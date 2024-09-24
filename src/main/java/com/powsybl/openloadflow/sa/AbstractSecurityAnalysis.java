@@ -15,10 +15,7 @@ import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TieLine;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -150,7 +147,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
 
-        SecurityAnalysisResult result;
+        SecurityAnalysisResult finalResult;
         if (securityAnalysisParametersExt.getThreadCount() == 1) {
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
@@ -158,11 +155,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             // create networks including all necessary switches
             try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
-                // run simulation on largest network
-                result = lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
-                        .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
-                        .orElse(createNoResult());
+                finalResult = runSimulationsOnAllComponents(lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions, lfParameters);
             }
+
         } else {
             var contingenciesPartitions = Lists2.partition(contingencies, securityAnalysisParametersExt.getThreadCount());
 
@@ -211,9 +206,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         }
 
                         // run simulation on largest network
-                        partitionResults.set(partitionNum, lfNetworks.getLargest().filter(n -> n.getValidity() == LfNetwork.Validity.VALID)
-                                .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
-                                .orElse(createNoResult()));
+                        partitionResults.set(partitionNum, runSimulationsOnAllComponents(
+                                lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions, lfParameters));
 
                         return null;
                     }, executor));
@@ -244,14 +238,119 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 postContingencyResults.addAll(partitionResult.getPostContingencyResults());
                 operatorStrategyResults.addAll(partitionResult.getOperatorStrategyResults());
             }
-            result = new SecurityAnalysisResult(partitionResults.get(0).getPreContingencyResult(), postContingencyResults, operatorStrategyResults);
+            finalResult = new SecurityAnalysisResult(partitionResults.get(0).getPreContingencyResult(), postContingencyResults, operatorStrategyResults);
         }
 
         stopwatch.stop();
         LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        return new SecurityAnalysisReport(result);
+        return new SecurityAnalysisReport(finalResult);
+    }
+
+    SecurityAnalysisResult runSimulationsOnAllComponents(LfNetworkList networks, List<PropagatedContingency> propagatedContingencies, P parameters,
+                                                         SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
+                                                         List<Action> actions, List<LimitReduction> limitReductions, LoadFlowParameters lfParameters) {
+        // run simulation on main connected component network first
+        SecurityAnalysisResult result = networks.getList().stream().filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID) && n.getNumCC() == ComponentConstants.MAIN_NUM)
+                .findFirst()
+                .map(n -> runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
+                .orElse(createNoResult());
+
+        List<PostContingencyResult> postContingencyResults = new ArrayList<>(result.getPostContingencyResults());
+        List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>(result.getOperatorStrategyResults());
+        NetworkResult mergedPreContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
+        List<LimitViolation> preContingenctViolations = new ArrayList<>(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
+
+        if (lfParameters.getConnectedComponentMode().equals(LoadFlowParameters.ConnectedComponentMode.ALL)) {
+            List<LfNetwork> networkToSimulate = networks.getList().stream()
+                    .filter(n -> n.getNumCC() != ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+            for (LfNetwork n : networkToSimulate) {
+                SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions);
+
+                // Merge into first result
+                // PreContingency results first
+                preContingenctViolations.addAll(resultOtherComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
+                mergedPreContingencyNetworkResult =
+                        mergeNetworkResult(resultOtherComponent.getPreContingencyResult().getNetworkResult(), mergedPreContingencyNetworkResult);
+
+                // PostContingency and OperatorStrategies results
+                mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResults, operatorStrategyResults);
+            }
+        }
+        PreContingencyResult mergedPrecontingencyResult =
+                new PreContingencyResult(result.getPreContingencyResult().getStatus(),
+                        new LimitViolationsResult(preContingenctViolations),
+                        mergedPreContingencyNetworkResult);
+        return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
+    }
+
+    void mergeSecurityAnalysisResult(SecurityAnalysisResult resultToMerge, List<PostContingencyResult> postContingencyResults,
+                                     List<OperatorStrategyResult> operatorStrategyResults) {
+        resultToMerge.getPostContingencyResults().forEach(postContingencyResult -> {
+            Optional<PostContingencyResult> optOriginalResult = postContingencyResults.stream()
+                    .filter(originalPostContingencyResult -> originalPostContingencyResult.getContingency().getId().equals(postContingencyResult.getContingency().getId()))
+                    .findAny();
+
+            if (optOriginalResult.isPresent()) {
+                PostContingencyResult originalResult = optOriginalResult.get();
+                NetworkResult mergedNetworkResult = mergeNetworkResult(postContingencyResult.getNetworkResult(), originalResult.getNetworkResult());
+                List<LimitViolation> violations = new ArrayList<>(postContingencyResult.getLimitViolationsResult().getLimitViolations());
+                violations.addAll(originalResult.getLimitViolationsResult().getLimitViolations());
+
+                PostContingencyResult mergedPostContingencyResult =
+                        new PostContingencyResult(originalResult.getContingency(), originalResult.getStatus(),
+                                new LimitViolationsResult(violations), mergedNetworkResult, originalResult.getConnectivityResult());
+
+                postContingencyResults.remove(originalResult);
+                postContingencyResults.add(mergedPostContingencyResult);
+            } else {
+                postContingencyResults.add(postContingencyResult);
+            }
+        });
+
+        resultToMerge.getOperatorStrategyResults().forEach(operatorStrategyResult -> {
+            Optional<OperatorStrategyResult> optOriginalResult = operatorStrategyResults.stream()
+                    .filter(originalOperatorStrategyResult -> originalOperatorStrategyResult.getOperatorStrategy().getId().equals(operatorStrategyResult.getOperatorStrategy().getId()))
+                    .findAny();
+            if (optOriginalResult.isPresent()) {
+                OperatorStrategyResult originalResult = optOriginalResult.get();
+                List<OperatorStrategyResult.ConditionalActionsResult> conditionalActionsResults = new ArrayList<>();
+
+                operatorStrategyResult.getConditionalActionsResults().forEach(conditionalActionsResult -> {
+                    Optional<OperatorStrategyResult.ConditionalActionsResult> originalRes = originalResult.getConditionalActionsResults().stream()
+                            .filter(originalConditionalActionResult -> originalConditionalActionResult.getConditionalActionsId().equals(conditionalActionsResult.getConditionalActionsId()))
+                            .findAny();
+                    if (originalRes.isPresent()) {
+                        NetworkResult mergedNetworkResult = mergeNetworkResult(conditionalActionsResult.getNetworkResult(), originalRes.get().getNetworkResult());
+                        List<LimitViolation> violations = new ArrayList<>(conditionalActionsResult.getLimitViolationsResult().getLimitViolations());
+                        violations.addAll(originalResult.getLimitViolationsResult().getLimitViolations());
+
+                        OperatorStrategyResult.ConditionalActionsResult mergedConditionalActionResult
+                                = new OperatorStrategyResult.ConditionalActionsResult(conditionalActionsResult.getConditionalActionsId(),
+                                conditionalActionsResult.getStatus(), new LimitViolationsResult(violations), mergedNetworkResult);
+                        conditionalActionsResults.add(mergedConditionalActionResult);
+
+                    } else {
+                        conditionalActionsResults.add(conditionalActionsResult);
+                    }
+                });
+                operatorStrategyResults.remove(originalResult);
+                operatorStrategyResults.add(new OperatorStrategyResult(originalResult.getOperatorStrategy(), conditionalActionsResults));
+            } else {
+                operatorStrategyResults.add(operatorStrategyResult);
+            }
+        });
+    }
+
+    static NetworkResult mergeNetworkResult(NetworkResult source, NetworkResult target) {
+        List<BranchResult> branchResults = new ArrayList<>(source.getBranchResults());
+        List<ThreeWindingsTransformerResult> twtResults = new ArrayList<>(source.getThreeWindingsTransformerResults());
+        List<BusResult> busResults = new ArrayList<>(source.getBusResults());
+        branchResults.addAll(target.getBranchResults());
+        twtResults.addAll(target.getThreeWindingsTransformerResults());
+        busResults.addAll(target.getBusResults());
+        return new NetworkResult(branchResults, busResults, twtResults);
     }
 
     protected abstract PostContingencyComputationStatus postContingencyStatusFromLoadFlowResult(R result);
