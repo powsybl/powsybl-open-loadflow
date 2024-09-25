@@ -237,6 +237,8 @@ class AreaInterchangeControlTest {
             LOGGER.info("Area {} interchange target: {} MW, actual interchange: {} MW, diff: {} MW ", area.getId(), area.getInterchangeTarget().getAsDouble(), area.getInterchange(), area.getInterchangeTarget().getAsDouble() - area.getInterchange());
             assertEquals(area.getInterchangeTarget().getAsDouble(), area.getInterchange(), 0.1);
         }
+        var componentResult = result.getComponentResults().get(0);
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 0.1);
 
         int a = 2;
     }
