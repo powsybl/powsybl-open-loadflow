@@ -17,7 +17,7 @@ The next section details the parameters that are specific to PowSyBl Open Load F
 **contingencyPropagation**  
 The `contingencyPropagation` property is applicable only to the portions of the network modeled with a Node/Breaker representation.
 
-Node: In iIDM, the topology modelling style Node/Breaker or Bus/Breaker is defined on a voltage level basis.
+Node: In iIDM, the topology modeling style Node/Breaker or Bus/Breaker is defined on a voltage level basis.
 For most users, all a network is of same topology style, but hybrid representation is also supported.
 
 For Bus/Breaker portions of the network, Security Analysis simulates the outage of only the equipment(s) defined in the contingency.

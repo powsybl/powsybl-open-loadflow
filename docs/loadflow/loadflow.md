@@ -1,6 +1,6 @@
-# Modelling and equations
+# Modeling and equations
 
-## Grid modelling
+## Grid modeling
 
 Open Load Flow computes power flows from IIDM grid model in bus/view topology. From the view, a very simple network, composed
 of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$ model for branches (lines, transformers, dangling lines, etc.):
@@ -11,7 +11,7 @@ of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$
 - $A_1$ is the angle shifting on side 1, before the series impedance. For classical branches, the default value is zero ;
 - $\rho_1$ is the ratio of voltages between side 2 and side 1, before the series impedance. For classical branches, the default value is $1$.
 
-As the $\Pi$ model is created from IIDM grid modelling that locates its ratio and phase tap changers in side 1, $A_2$ and $\rho_2$ are always
+As the $\Pi$ model is created from IIDM grid modeling that locates its ratio and phase tap changers in side 1, $A_2$ and $\rho_2$ are always
 equal to zero and $1$. In case of a branch with voltage or phase control, the $\Pi$ model becomes an array. See below our model:
 
 ![Pi model](pi-model.svg){class="only-light"}
@@ -100,14 +100,14 @@ Where $s$ is the slope of the static var compensator.
 
 #### LCC converters
 
-LCC converters can be assimilated to loads in the loadflow. Indeed, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. 
-The active power flow from the rectifier station to the inverter station is fixed and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by:
+LCC converters can be assimilated to loads in the load flow. Indeed, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. 
+The active power flows from the rectifier station to the inverter station, is fixed, and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by:
   - $P_{rectifier}= P$
   - $P_{inverter}= (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P - P_{LineLoss}))$
 
-Power flows are in load convention, the power at the rectifer side is positive and the power at the inverter side is negative. The losses are described in the paragraph below.
+Power flows are in load convention, the active power at the rectifier side is positive and the active power at the inverter side is negative. The losses are described in the paragraph below.
 
-The reactive power flow on each side of the line (AC side) is determined by the power factor of the converter (the power factor is the ratio between active power $P$ and apparent power $S$). For each converter, its target reactive power is given by:
+The reactive power flow on each side of the line (AC side) is determined by the power factor of the converter station, ratio between active power $P$ and apparent power $S$. For each converter, its target reactive power is given by:
   - $Q=\mid P*\tan(\cos(powerfactor))\mid$
 
 #### VSC converters
