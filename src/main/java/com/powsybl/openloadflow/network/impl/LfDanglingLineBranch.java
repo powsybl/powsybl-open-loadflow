@@ -71,6 +71,15 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
+    public List<String> getOriginalIds() {
+        if (getDanglingLine().getTieLine().isPresent()) {
+            return List.of(getId(), getDanglingLine().getTieLine().get().getId());
+        } else {
+            return List.of(getId());
+        }
+    }
+
+    @Override
     public BranchType getBranchType() {
         return BranchType.DANGLING_LINE;
     }
@@ -88,13 +97,27 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
         double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
         var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
                 p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN);
+        if (createExtension) {
+            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    getV1() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
+                    getV2() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
+                    Math.toDegrees(getAngle1()),
+                    Math.toDegrees(getAngle2())));
+        }
 
         if (getDanglingLine().getTieLine().isPresent() && getDanglingLine().getTieLine().get().getDanglingLine1() == getDanglingLine()) {
             TieLine tieLine = getDanglingLine().getTieLine().get();
-            LfBranch danglingLine2 = getNetwork().getBranchById(tieLine.getDanglingLine2().getId());
+            LfDanglingLineBranch danglingLine2 = (LfDanglingLineBranch) getNetwork().getBranchById(tieLine.getDanglingLine2().getId());
             double currentScale2 = PerUnit.ib(tieLine.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV());
             var tielineResult = new BranchResult(tieLine.getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                    danglingLine2.getP1().eval() * PerUnit.SB, danglingLine2.getQ1().eval() * PerUnit.SB, currentScale2 * danglingLine2.getI1().eval(), Double.NaN);
+                    danglingLine2.getP2().eval() * PerUnit.SB, danglingLine2.getQ2().eval() * PerUnit.SB, currentScale2 * danglingLine2.getI2().eval(), Double.NaN);
+            if (createExtension) {
+                tielineResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                        getV1() * tieLine.getTerminal1().getVoltageLevel().getNominalV(),
+                        danglingLine2.getV2() * tieLine.getTerminal2().getVoltageLevel().getNominalV(),
+                        Math.toDegrees(getAngle1()),
+                        Math.toDegrees(danglingLine2.getAngle2())));
+            }
             return List.of(tielineResult, branchResult);
         } else {
             return List.of(branchResult);
@@ -124,7 +147,14 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
-        updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
+        // If the tie line exists, it means that it has been modelled with two LfDanglingLineBranch objects (when area interchange control is enabled).
+        // In this case the power of iidm DanglingLine's terminal should be p1 or p2 depending on the side of the tie line that is this dangling line.
+        if (getDanglingLine().getTieLine().isPresent() && getDanglingLine().getTieLine().get().getDanglingLine2() == getDanglingLine()) {
+            updateFlows(p2.eval(), q2.eval(), Double.NaN, Double.NaN);
+        } else {
+            updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
+        }
+
     }
 
     @Override

@@ -85,7 +85,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
                 return !lessThanMaxMismatch(areaInterchangeMismatch);
             }).collect(Collectors.toMap(LfArea::getId, this::getInterchangeMismatch));
 
-            if (areaInterchangeMismatches.isEmpty() && getSlackInjection(DEFAULT_NO_AREA_NAME, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor) < areaInterchangePMaxMismatch / PerUnit.SB) {
+            if (areaInterchangeMismatches.isEmpty() && lessThanMaxMismatch(getSlackInjection(DEFAULT_NO_AREA_NAME, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor))) {
                 LOGGER.debug("Already balanced");
             } else {
                 // If some mismatch remains, we distribute it on the buses without area
@@ -218,7 +218,10 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     }
 
     private Set<LfBus> listBusesWithoutArea(LfNetwork network) {
-        return network.getBuses().stream().filter(b -> b.getArea().isEmpty()).collect(Collectors.toSet());
+        return network.getBuses().stream()
+                .filter(b -> b.getArea().isEmpty())
+                .filter(b -> !b.isFictitious())
+                .collect(Collectors.toSet());
     }
 
     private Map<String, Double> allocateSlackDistributionParticipationFactors(LfNetwork lfNetwork) {
