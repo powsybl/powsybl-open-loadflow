@@ -80,23 +80,29 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
             flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
         }
-        double nominalV1 = getHalf1().getTerminal().getVoltageLevel().getNominalV();
-        double nominalV2 = getHalf2().getTerminal().getVoltageLevel().getNominalV();
+        return createBranchResults(createExtension, flowTransfer, getHalf1(), getHalf2(), getId(), p1.eval(), q1.eval(), i1.eval(),
+                getV1(), getAngle1(), p2.eval(), q2.eval(), i2.eval(), getV2(),
+                getAngle2(), piModel);
+    }
+
+    protected static List<BranchResult> createBranchResults(boolean createExtension, double flowTransfer, DanglingLine dl1, DanglingLine dl2, String id, double p1, double q1, double i1, double v1, double angle1, double p2, double q2, double i2, double v2, double angle2, PiModel piModel) {
+        double nominalV1 = dl1.getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = dl2.getTerminal().getVoltageLevel().getNominalV();
         double currentScale1 = PerUnit.ib(nominalV1);
         double currentScale2 = PerUnit.ib(nominalV2);
-        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
-        var half1Result = new BranchResult(getHalf1().getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
+        var branchResult = new BranchResult(id, p1 * PerUnit.SB, q1 * PerUnit.SB, currentScale1 * i1,
+                p2 * PerUnit.SB, q2 * PerUnit.SB, currentScale2 * i2, flowTransfer);
+        var half1Result = new BranchResult(dl1.getId(), p1 * PerUnit.SB, q1 * PerUnit.SB, currentScale1 * i1,
                 Double.NaN, Double.NaN, Double.NaN, flowTransfer);
-        var half2Result = new BranchResult(getHalf2().getId(), p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(),
+        var half2Result = new BranchResult(dl2.getId(), p2 * PerUnit.SB, q2 * PerUnit.SB, currentScale2 * i2,
                 Double.NaN, Double.NaN, Double.NaN, flowTransfer);
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
-                    getV1() * nominalV1, getV2() * nominalV2, Math.toDegrees(getAngle1()), Math.toDegrees(getAngle2())));
+                    v1 * nominalV1, v2 * nominalV2, Math.toDegrees(angle1), Math.toDegrees(angle2)));
             half1Result.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
-                    getV1() * nominalV1, Double.NaN, Math.toDegrees(getAngle1()), Double.NaN));
+                    v1 * nominalV1, Double.NaN, Math.toDegrees(angle1), Double.NaN));
             half2Result.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
-                    Double.NaN, getV2() * nominalV2, Double.NaN, Math.toDegrees(getAngle2())));
+                    Double.NaN, v2 * nominalV2, Double.NaN, Math.toDegrees(angle2)));
         }
         return List.of(branchResult, half1Result, half2Result);
     }

@@ -92,34 +92,29 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
-        // we follow the convention side 1 for network side and side 2 for boundary side.
-        // we also create a branch result for the tie line if it exists.
-        double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
-        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN);
-        if (createExtension) {
-            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
-                    getV1() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
-                    getV2() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
-                    Math.toDegrees(getAngle1()),
-                    Math.toDegrees(getAngle2())));
-        }
-
-        if (getDanglingLine().getTieLine().isPresent() && getDanglingLine().getTieLine().get().getDanglingLine1() == getDanglingLine()) {
-            TieLine tieLine = getDanglingLine().getTieLine().get();
-            LfDanglingLineBranch danglingLine2 = (LfDanglingLineBranch) getNetwork().getBranchById(tieLine.getDanglingLine2().getId());
-            double currentScale2 = PerUnit.ib(tieLine.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV());
-            var tielineResult = new BranchResult(tieLine.getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                    danglingLine2.getP2().eval() * PerUnit.SB, danglingLine2.getQ2().eval() * PerUnit.SB, currentScale2 * danglingLine2.getI2().eval(), Double.NaN);
-            if (createExtension) {
-                tielineResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
-                        getV1() * tieLine.getTerminal1().getVoltageLevel().getNominalV(),
-                        danglingLine2.getV2() * tieLine.getTerminal2().getVoltageLevel().getNominalV(),
-                        Math.toDegrees(getAngle1()),
-                        Math.toDegrees(danglingLine2.getAngle2())));
+        // we follow the convention side 1 for network side and side 2 for boundary side if the dangling line is alone
+        // If it is part of a tie line, (area interchange control is enabled), we create a tie line branch result
+        if (getDanglingLine().getTieLine().isPresent()) {
+            if (getDanglingLine().getTieLine().get().getDanglingLine1() == getDanglingLine()) {
+                TieLine tieLine = getDanglingLine().getTieLine().get();
+                LfDanglingLineBranch danglingLine2 = (LfDanglingLineBranch) getNetwork().getBranchById(tieLine.getDanglingLine2().getId());
+                return LfTieLineBranch.createBranchResults(createExtension, Double.NaN, getDanglingLine(), tieLine.getDanglingLine2(), tieLine.getId(), p1.eval(), q1.eval(), i1.eval(), getV1(), getAngle1(),
+                        danglingLine2.getP2().eval(), danglingLine2.getQ2().eval(), danglingLine2.getI2().eval(), danglingLine2.getV2(),
+                        danglingLine2.getAngle2(), piModel);
+            } else {
+                return List.of();
             }
-            return List.of(tielineResult, branchResult);
         } else {
+            double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
+            var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
+                    p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN);
+            if (createExtension) {
+                branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                        getV1() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
+                        getV2() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
+                        Math.toDegrees(getAngle1()),
+                        Math.toDegrees(getAngle2())));
+            }
             return List.of(branchResult);
         }
     }
