@@ -113,7 +113,7 @@ The reactive power flow on each side of the line (AC side) is determined by the 
 #### VSC converters
 
 VSC converters are self-commutated converters that can be assimilated to generators in the loadflow. There can be two main modes to control active power flow through the line:
-- In **Active Power setpoint** mode, as for LCC converters, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. The active power flow
+- In **active power setpoint** mode, as for LCC converters, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. The active power flow
 from the rectifier station to the inverter station is fixed and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by the formula below (losses are described in the next paragraph):
   - $P_{rectifier}= P$
   - $P_{inverter}= (1 - loss_{inverter}) * ((1 - loss_{rectifier}) * (P - P_{LineLoss}))$
