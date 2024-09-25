@@ -69,7 +69,7 @@ Heterogeneous voltage controls management has become a key feature. All well-mod
  - Complex cases where the contingency leads to another synchronous component where a new resolution has to be performed are not supported at that stage. The loss of slack bus during a contingency is not supported yet, but the work is in progress.
  - The active and reactive power flows on branches, as well as angle and voltage at buses, can be monitored and collected for later analysis after the base case and after each contingency.
  - Remedial actions such as: switch action, terminal(s) connection action, re-dispatching action
- - Fast DC mode available, based on Woodbury's formula for calculating post-contingency states. Note that this mode has limitations for the moment, such as remedial actions not yet taken into account.
+ - Fast DC mode available, based on Woodbury's formula for calculating post-contingency states. Note that this mode has limitations for the moment. Remedial actions are not yet taken into account, as well as contingencies on HVDC lines in AC emulation mode.
 
 ### Sensitivity analysis implementation 
 
