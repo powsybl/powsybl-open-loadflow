@@ -24,10 +24,14 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     private final Ref<DanglingLine> danglingLineRef;
 
+    private final boolean side2;
+
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine,
                                    LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
         this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
+        Optional<TieLine> tieLineOpt = danglingLine.getTieLine();
+        this.side2 = tieLineOpt.isPresent() && tieLineOpt.get().getDanglingLine2() == danglingLine;
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2,
@@ -73,7 +77,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     @Override
     public List<String> getOriginalIds() {
         Optional<TieLine> tieLineOpt = getDanglingLine().getTieLine();
-        return tieLineOpt.map(tieLine -> List.of(getId(), tieLine.getId())).orElseGet(() -> List.of(getId()));
+        return tieLineOpt.map(tieLine -> List.of(tieLine.getId(), getId())).orElseGet(() -> List.of(getId()));
     }
 
     @Override
