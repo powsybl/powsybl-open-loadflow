@@ -448,7 +448,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     DanglingLine danglingLine2 = tieLine.getDanglingLine2();
                     LfBus lfBus1 = getLfBus(danglingLine1.getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBus lfBus2 = getLfBus(danglingLine2.getTerminal(), lfNetwork, parameters.isBreakers());
-                    if (parameters.isAreaInterchangeControl()) {
+                    if (parameters.isAreaInterchangeControl() && false) {
                         // If area interchange control is activated, a precise value of the tie-flows at the boundary is needed.
                         // We create a boundary bus and two branches for the two dangling lines.
                         LfTieLineBus lfTieLineBus = new LfTieLineBus(lfNetwork, tieLine, parameters);
@@ -470,6 +470,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     } else {
                         LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                         addBranch(lfNetwork, lfBranch, report);
+                        addBranchAreaBoundaries(tieLine, lfBranch, loadingContext);
                         postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
                     }
                     visitedDanglingLinesIds.add(danglingLine1.getId());

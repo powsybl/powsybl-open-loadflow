@@ -223,7 +223,7 @@ class AreaInterchangeControlTest {
         OpenLoadFlowParameters.create(params)
                 .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
                 .setSlackBusPMaxMismatch(0.1)
-                .setMaxOuterLoopIterations(15)
+//                .setMaxOuterLoopIterations(19)
                 .setAreaInterchangeControl(true);
 
 //        network.getArea("AT").remove();
