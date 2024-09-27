@@ -11,8 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.SV;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -20,8 +18,6 @@ import java.util.*;
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfAreaImpl.class);
 
     private final LfNetwork network;
     private final Ref<Area> areaRef;
