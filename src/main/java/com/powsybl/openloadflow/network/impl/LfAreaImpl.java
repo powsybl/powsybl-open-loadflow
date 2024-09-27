@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.util.SV;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -96,7 +97,24 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
 
         @Override
         public double getP() {
-            return branch.isDisabled() ? 0. : switch (side) {
+            if (branch.isDisabled()) {
+                return 0.0;
+            }
+            if (branch instanceof LfTieLineBranch lfTieLineBranch) {
+                switch (side) {
+                    case ONE:
+                        DanglingLine danglingLine1 = lfTieLineBranch.getHalf1();
+                        double nominalV1 = danglingLine1.getTerminal().getVoltageLevel().getNominalV();
+                        return new SV(lfTieLineBranch.getP1().eval() * PerUnit.SB, lfTieLineBranch.getQ1().eval() * PerUnit.SB, lfTieLineBranch.getV1() * nominalV1, Math.toDegrees(lfTieLineBranch.getAngle1()), side)
+                                .otherSideP(danglingLine1, true) / PerUnit.SB;
+                    case TWO:
+                        DanglingLine danglingLine = lfTieLineBranch.getHalf2();
+                        double nominalV2 = danglingLine.getTerminal().getVoltageLevel().getNominalV();
+                        return new SV(lfTieLineBranch.getP2().eval() * PerUnit.SB, lfTieLineBranch.getQ2().eval() * PerUnit.SB, lfTieLineBranch.getV2() * nominalV2, Math.toDegrees(lfTieLineBranch.getAngle2()), side)
+                                .otherSideP(danglingLine, true) / PerUnit.SB;
+                }
+            }
+            return switch (side) {
                 case ONE -> branch.getP1().eval();
                 case TWO -> branch.getP2().eval();
             };
