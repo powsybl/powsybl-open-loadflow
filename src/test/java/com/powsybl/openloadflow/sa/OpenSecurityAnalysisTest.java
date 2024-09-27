@@ -51,7 +51,6 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletionException;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -2301,7 +2300,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new TieLineContingency("t12"))));
         List<StateMonitor> monitors = createNetworkMonitors(network);
 
-
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(400.0, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b4").getV(), LoadFlowAssert.DELTA_V);
@@ -2387,13 +2385,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testAcceptableDurationsAreaInterchangeControl(){
+    void testAcceptableDurationsAreaInterchangeControl() {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         OpenLoadFlowParameters.create(securityAnalysisParameters.getLoadFlowParameters())
                 .setAreaInterchangeControl(true);
         testAcceptableDurations(securityAnalysisParameters);
     }
-
 
     void testAcceptableDurations(SecurityAnalysisParameters securityAnalysisParameters) {
         Network network = EurostagTutorialExample1Factory.createWithTieLine();
