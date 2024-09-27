@@ -398,15 +398,21 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * same as createTwoAreasWithTieLine but with a small dummy island and a2 has a boundary in it.
      */
 
-    public static Network areaTwoComponents() {
+    public static Network createAreaTwoComponents() {
         Network network = createTwoAreasWithTieLine();
         // create dummy bus in another island
         Bus dummy = createBus(network, "dummy");
         Bus dummy2 = createBus(network, "dummy2");
         createGenerator(dummy, "dummyGen", 1);
         createLoad(dummy2, "dummyLoad", 1.1);
-        Line dummyLine = createLine(network, dummy, dummy2, "dummyLine", 0);
+        createLine(network, dummy, dummy2, "dummyLine", 0);
         network.getArea("a2").addVoltageLevel(dummy.getVoltageLevel()).addVoltageLevel(dummy2.getVoltageLevel());
+        return network;
+    }
+
+    public static Network createAreaTwoComponentsWithBoundaries() {
+        Network network = createAreaTwoComponents();
+        Line dummyLine = network.getLine("dummyLine");
         network.getArea("a2").newAreaBoundary()
                 .setTerminal(dummyLine.getTerminal1())
                 .setAc(true)
