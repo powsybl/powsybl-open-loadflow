@@ -175,8 +175,11 @@ class AreaInterchangeControlTest {
     }
 
     @Test
-    void fragmentedArea() {
-        Network network = MultiAreaNetworkFactory.areaTwoComponents();
+    void areaFragmentedBuses() {
+        // Network has an area that has buses in two different components but all boundaries are in the same component
+        // This Area is considered by area interchange control only in the component where all boundaries are
+        Network network = MultiAreaNetworkFactory.createAreaTwoComponents();
+
         Area area1 = network.getArea("a1");
         Area area2 = network.getArea("a2");
 
@@ -185,7 +188,24 @@ class AreaInterchangeControlTest {
 
         var componentResult = result.getComponentResults().get(0);
         assertEquals(area1.getInterchangeTarget().getAsDouble(), area1.getInterchange(), 1e-3);
-        assertEquals(51.1, area2.getInterchange(), 1e-3); // has been ignored by area interchange control beacuse all boundaries are not in the same component
+        assertEquals(area2.getInterchangeTarget().getAsDouble(), area2.getInterchange(), 1e-3);
+        assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    }
+
+    @Test
+    void areaFragmentedBoundaries() {
+        // Network has an area that has buses and boundaries in two different components, this area is ignored by area interchange control
+        Network network = MultiAreaNetworkFactory.createAreaTwoComponentsWithBoundaries();
+        Area area1 = network.getArea("a1");
+        Area area2 = network.getArea("a2");
+
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        var result = loadFlowRunner.run(network, parameters);
+
+        var componentResult = result.getComponentResults().get(0);
+        assertEquals(area1.getInterchangeTarget().getAsDouble(), area1.getInterchange(), 1e-3);
+        assertEquals(51.1, area2.getInterchange(), 1e-3); // has been ignored by area interchange control because all boundaries are not in the same component
         assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(3, componentResult.getIterationCount());
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);

@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 
@@ -24,8 +23,6 @@ public class PropagatedContingencyCreationParameters {
     private boolean shuntCompensatorVoltageControlOn = LoadFlowParameters.DEFAULT_SHUNT_COMPENSATOR_VOLTAGE_CONTROL_ON;
 
     private boolean hvdcAcEmulation = LoadFlowParameters.DEFAULT_HVDC_AC_EMULATION_ON;
-
-    private boolean areaInterchangeControl = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
     public boolean isContingencyPropagation() {
         return contingencyPropagation;
@@ -60,15 +57,6 @@ public class PropagatedContingencyCreationParameters {
 
     public PropagatedContingencyCreationParameters setHvdcAcEmulation(boolean hvdcAcEmulation) {
         this.hvdcAcEmulation = hvdcAcEmulation;
-        return this;
-    }
-
-    public boolean isAreaInterchangeControl() {
-        return areaInterchangeControl;
-    }
-
-    public PropagatedContingencyCreationParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
-        this.areaInterchangeControl = areaInterchangeControl;
         return this;
     }
 }

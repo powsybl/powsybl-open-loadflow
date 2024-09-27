@@ -97,6 +97,9 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
 
         @Override
         public double getP() {
+            if (branch.isDisabled()) {
+                return 0.0;
+            }
             if (branch instanceof LfTieLineBranch lfTieLineBranch) {
                 switch (side) {
                     case ONE:
