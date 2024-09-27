@@ -448,31 +448,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     DanglingLine danglingLine2 = tieLine.getDanglingLine2();
                     LfBus lfBus1 = getLfBus(danglingLine1.getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBus lfBus2 = getLfBus(danglingLine2.getTerminal(), lfNetwork, parameters.isBreakers());
-                    if (parameters.isAreaInterchangeControl() && false) {
-                        // If area interchange control is activated, a precise value of the tie-flows at the boundary is needed.
-                        // We create a boundary bus and two branches for the two dangling lines.
-                        LfTieLineBus lfTieLineBus = new LfTieLineBus(lfNetwork, tieLine, parameters);
-                        lfNetwork.addBus(lfTieLineBus);
-                        lfBuses.add(lfTieLineBus);
-                        if (lfBus1 != null) {
-                            LfBranch lfBranch1 = LfDanglingLineBranch.create(danglingLine1, lfNetwork, lfBus1, lfTieLineBus, parameters);
-                            addDanglingLineAreaBoundary(danglingLine1, lfBranch1, TwoSides.TWO, loadingContext);
-                            addBranch(lfNetwork, lfBranch1, report);
-                            postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch1));
-                        }
-                        if (lfBus2 != null) {
-                            LfBranch lfBranch2 = LfDanglingLineBranch.create(danglingLine2, lfNetwork, lfTieLineBus, lfBus2, parameters);
-                            addDanglingLineAreaBoundary(danglingLine2, lfBranch2, TwoSides.ONE, loadingContext);
-                            addBranch(lfNetwork, lfBranch2, report);
-                            postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch2));
-                        }
-                        postProcessors.forEach(pp -> pp.onBusAdded(tieLine, lfTieLineBus));
-                    } else {
-                        LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
-                        addBranch(lfNetwork, lfBranch, report);
-                        addBranchAreaBoundaries(tieLine, lfBranch, loadingContext);
-                        postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
-                    }
+                    LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
+                    addBranch(lfNetwork, lfBranch, report);
+                    addBranchAreaBoundaries(tieLine, lfBranch, loadingContext);
+                    postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
                     visitedDanglingLinesIds.add(danglingLine1.getId());
                     visitedDanglingLinesIds.add(danglingLine2.getId());
                 }

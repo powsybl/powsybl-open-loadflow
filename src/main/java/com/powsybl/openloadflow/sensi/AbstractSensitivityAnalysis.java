@@ -777,9 +777,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
         Branch<?> branch = network.getBranch(branchId);
+        TieLine tieLine = network.getTieLine(branchId);
         if (branch != null) {
             LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-            if (lfBranch != null || network.getTieLine(branchId) == null) {
+            if (lfBranch != null || tieLine == null) {
                 return lfBranch;
             }
         }
@@ -791,22 +792,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         if (twt != null) {
             return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
         }
-        TieLine line = network.getTieLine(branchId);
-        if (line != null) {
-            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-            if (lfBranch == null && fType.getSide().isPresent()) {
-                switch (fType.getSide().getAsInt()) {
-                    case 1 -> danglingLine = line.getDanglingLine1();
-                    case 2 -> danglingLine = line.getDanglingLine2();
-                    default -> {
-                        return null;
-                    }
+        if (tieLine != null) {
+            switch (getLegNumber(fType)) {
+                case 1 -> danglingLine = tieLine.getDanglingLine1();
+                case 2 -> danglingLine = tieLine.getDanglingLine2();
+                default -> {
+                    return null;
                 }
-                if (danglingLine != null) {
-                    return lfNetwork.getBranchById(danglingLine.getId());
-                }
-            } else {
-                return null;
+            }
+            if (danglingLine != null) {
+                return lfNetwork.getBranchById(danglingLine.getId());
             }
         }
         throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + NOT_FOUND);

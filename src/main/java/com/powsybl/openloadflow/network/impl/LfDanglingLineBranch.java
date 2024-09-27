@@ -24,10 +24,14 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     private final Ref<DanglingLine> danglingLineRef;
 
+    private final boolean side2;
+
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine,
                                    LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
         this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
+        Optional<TieLine> tieLineOpt = danglingLine.getTieLine();
+        this.side2 = tieLineOpt.isPresent() && tieLineOpt.get().getDanglingLine2() == danglingLine;
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2,
@@ -72,11 +76,8 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<String> getOriginalIds() {
-        if (getDanglingLine().getTieLine().isPresent()) {
-            return List.of(getId(), getDanglingLine().getTieLine().get().getId());
-        } else {
-            return List.of(getId());
-        }
+        Optional<TieLine> tieLineOpt = getDanglingLine().getTieLine();
+        return tieLineOpt.map(tieLine -> List.of(tieLine.getId(), getId())).orElseGet(() -> List.of(getId()));
     }
 
     @Override
@@ -92,35 +93,23 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
-        // we follow the convention side 1 for network side and side 2 for boundary side.
-        // we also create a branch result for the tie line if it exists.
-        double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
-        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN);
-        if (createExtension) {
-            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
-                    getV1() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
-                    getV2() * getDanglingLine().getTerminal().getVoltageLevel().getNominalV(),
-                    Math.toDegrees(getAngle1()),
-                    Math.toDegrees(getAngle2())));
-        }
-
-        if (getDanglingLine().getTieLine().isPresent() && getDanglingLine().getTieLine().get().getDanglingLine1() == getDanglingLine()) {
-            TieLine tieLine = getDanglingLine().getTieLine().get();
-            LfDanglingLineBranch danglingLine2 = (LfDanglingLineBranch) getNetwork().getBranchById(tieLine.getDanglingLine2().getId());
-            double currentScale2 = PerUnit.ib(tieLine.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV());
-            var tielineResult = new BranchResult(tieLine.getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                    danglingLine2.getP2().eval() * PerUnit.SB, danglingLine2.getQ2().eval() * PerUnit.SB, currentScale2 * danglingLine2.getI2().eval(), Double.NaN);
-            if (createExtension) {
-                tielineResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
-                        getV1() * tieLine.getTerminal1().getVoltageLevel().getNominalV(),
-                        danglingLine2.getV2() * tieLine.getTerminal2().getVoltageLevel().getNominalV(),
-                        Math.toDegrees(getAngle1()),
-                        Math.toDegrees(danglingLine2.getAngle2())));
+        // we follow the convention side 1 for network side and side 2 for boundary side if the dangling line is alone
+        // If it is part of a tie line, (area interchange control is enabled), we create a tie line branch result
+        Optional<TieLine> tieLineOpt = getDanglingLine().getTieLine();
+        if (tieLineOpt.isPresent()) {
+            TieLine tieLine = tieLineOpt.get();
+            if (tieLine.getDanglingLine1() == getDanglingLine()) {
+                LfDanglingLineBranch danglingLine2 = (LfDanglingLineBranch) getNetwork().getBranchById(tieLine.getDanglingLine2().getId());
+                return LfTieLineBranch.createBranchResults(createExtension, Double.NaN, getDanglingLine(), tieLine.getDanglingLine2(), tieLine.getId(), p1.eval(), q1.eval(), i1.eval(), getV1(), getAngle1(),
+                        danglingLine2.getP2().eval(), danglingLine2.getQ2().eval(), danglingLine2.getI2().eval(), danglingLine2.getV2(),
+                        danglingLine2.getAngle2(), piModel);
+            } else {
+                return List.of();
             }
-            return List.of(tielineResult, branchResult);
         } else {
-            return List.of(branchResult);
+            double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
+            return List.of(new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
+                    p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN));
         }
     }
 
@@ -149,7 +138,8 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         // If the tie line exists, it means that it has been modelled with two LfDanglingLineBranch objects (when area interchange control is enabled).
         // In this case the power of iidm DanglingLine's terminal should be p1 or p2 depending on the side of the tie line that is this dangling line.
-        if (getDanglingLine().getTieLine().isPresent() && getDanglingLine().getTieLine().get().getDanglingLine2() == getDanglingLine()) {
+        Optional<TieLine> tieLineOpt = getDanglingLine().getTieLine();
+        if (tieLineOpt.isPresent() && tieLineOpt.get().getDanglingLine2() == getDanglingLine()) {
             updateFlows(p2.eval(), q2.eval(), Double.NaN, Double.NaN);
         } else {
             updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
