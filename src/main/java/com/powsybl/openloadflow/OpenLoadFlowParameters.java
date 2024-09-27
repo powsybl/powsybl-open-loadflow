@@ -54,6 +54,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final LowImpedanceBranchMode LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE = LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE;
 
+    public static final String MODULE_SPECIFIC_PARAMETERS = "open-loadflow-default-parameters";
+
     public enum SlackDistributionFailureBehavior {
         THROW,
         FAIL,
@@ -1278,7 +1280,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static OpenLoadFlowParameters load(PlatformConfig platformConfig) {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
-        platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
+        platformConfig.getOptionalModuleConfig(MODULE_SPECIFIC_PARAMETERS)
             .ifPresent(config -> parameters
                 .setSlackBusSelectionMode(config.getEnumProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.class, SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE))
                 .setSlackBusesIds(config.getStringListProperty(SLACK_BUSES_IDS_PARAM_NAME, Collections.emptyList()))
