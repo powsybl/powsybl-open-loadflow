@@ -104,19 +104,18 @@ class AcLoadFlowBoundaryTest {
     }
 
     @Test
-    void testWithXnodeDistributedSlack(){
+    void testWithXnodeDistributedSlack() {
         parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
         testWithXnode();
     }
 
     @Test
-    void testWithXnodeAreaInterchangeControl(){
+    void testWithXnodeAreaInterchangeControl() {
         parameters.setUseReactiveLimits(true);
         parametersExt.setAreaInterchangeControl(true);
         testWithXnode();
     }
-
 
     void testWithXnode() {
         Network network = BoundaryFactory.createWithXnode();
@@ -131,14 +130,14 @@ class AcLoadFlowBoundaryTest {
     }
 
     @Test
-    void testWithTieLineDistributedSlack(){
+    void testWithTieLineDistributedSlack() {
         parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
         testWithTieLine();
     }
 
     @Test
-    void testWithTieLineAreaInterchangeControl(){
+    void testWithTieLineAreaInterchangeControl() {
         parameters.setUseReactiveLimits(true);
         parametersExt.setAreaInterchangeControl(true);
         testWithTieLine();
