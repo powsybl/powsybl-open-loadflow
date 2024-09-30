@@ -19,8 +19,8 @@ import java.util.Set;
 public class LfLostLoad {
 
     private final PowerShift powerShift = new PowerShift();
-
     private final Set<String> ids = new LinkedHashSet<>();
+    private double notParticipatingLoadP0 = 0.0;
 
     public PowerShift getPowerShift() {
         return powerShift;
@@ -28,6 +28,22 @@ public class LfLostLoad {
 
     public Set<String> getOriginalIds() {
         return ids;
+    }
+
+    /**
+     * Updates the contribution of loads that do not participate to slack distribution
+     */
+    public void updateNotParticipatingLoadP0(LfLoad load, String originalLoadId, PowerShift powerShift) {
+        if (load.isOriginalLoadNotParticipating(originalLoadId)) {
+            notParticipatingLoadP0 += Math.abs(powerShift.getActive());
+        }
+    }
+
+    /**
+     * Returns the contribution of loads that do not participate to slack distribution
+     */
+    public double getNotParticipatingLoadP0() {
+        return notParticipatingLoadP0;
     }
 
     @Override

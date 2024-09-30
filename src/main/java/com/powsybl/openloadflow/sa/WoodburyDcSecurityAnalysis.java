@@ -68,8 +68,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     @Override
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
-        dcParameters.getNetworkParameters().setMinImpedance(true); // Connectivity break analysis does not handle zero impedance lines
-        dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true); // Needed to force at 0 a PST shifting angle when a PST is lost
+        // connectivity break analysis does not handle zero impedance lines
+        dcParameters.getNetworkParameters().setMinImpedance(true);
+        // needed an equation to force angle to zero when a PST is lost
+        dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
         return dcParameters;
     }
 
@@ -118,7 +120,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates); // TODO : compute for one contingency and one action
 
         double[] newFlowStates = flowStates;
-        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
 
             // get the lost phase tap changers for this contingency
             Set<LfBranch> lostPhaseControllers = contingency.getBranchIdsToOpen().keySet().stream()
@@ -320,7 +322,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
-        try (DcLoadFlowContext context = createLoadFlowContext(lfNetwork, dcParameters)) {
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters, false)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();
             ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
             lfNetwork.setReportNode(preContSimReportNode);
@@ -485,7 +487,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
                             preContingencyNetworkResult.getThreeWindingsTransformerResults()),
-                    postContingencyResults, operatorStrategyResults);
+                            postContingencyResults, operatorStrategyResults);
         }
     }
 }
