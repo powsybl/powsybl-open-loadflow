@@ -397,7 +397,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             networkState.restore();
 
                             List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
-                            if (operatorStrategiesForThisContingency != null) {// TODO : check if the ID is the same here
+                            if (operatorStrategiesForThisContingency != null) { // TODO : check if the ID is the same here
                                 for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
                                     ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                                     lfNetwork.setReportNode(osSimReportNode);
