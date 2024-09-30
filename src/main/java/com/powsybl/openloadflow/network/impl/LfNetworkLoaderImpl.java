@@ -560,7 +560,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             loadingContext.areaBusMap
                     .entrySet()
                     .stream()
-                    .filter(e -> checkBoundariesComponent(e.getKey(), numCC, numSC))
+                    .filter(e -> {
+                        if (e.getKey().getAreaBoundaryStream().findAny().isEmpty()) {
+                            LOGGER.warn("Area {} does not have any area boundary. The area will not be considered for area interchange control", e.getKey().getId());
+                            return false;
+                        }
+                        return true;
+                    })
                     .filter(e -> {
                         if (e.getKey().getInterchangeTarget().isEmpty()) {
                             LOGGER.warn("Area {} does not have an interchange target. The area will not be considered for area interchange control", e.getKey().getId());
@@ -568,6 +574,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         }
                         return true;
                     })
+                    .filter(e -> checkBoundariesComponent(e.getKey(), numCC, numSC))
                     .forEach(e -> {
                         Area area = e.getKey();
                         Set<LfBus> lfBuses = e.getValue();
