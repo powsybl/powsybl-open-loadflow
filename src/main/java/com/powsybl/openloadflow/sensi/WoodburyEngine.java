@@ -31,7 +31,7 @@ public class WoodburyEngine {
 
     private final DenseMatrix contingenciesStates;
 
-    private List<ComputedActionElement> actionElements;
+    private final List<ComputedActionElement> actionElements;
 
     private DenseMatrix actionsStates;
 

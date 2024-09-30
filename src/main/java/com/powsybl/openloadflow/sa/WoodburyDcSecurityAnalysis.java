@@ -202,7 +202,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 });
     }
 
-    public static DenseMatrix initActionRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedActionElement> actionElements) {
+    public static DenseMatrix initActionRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedActionElement> actionElements) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
@@ -212,17 +212,17 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         }
 
         DenseMatrix rhs = new DenseMatrix(equationCount, actionElements.size());
-        fillRhsAction(lfNetwork, equationSystem, actionElements, rhs);
+        fillRhsAction(equationSystem, actionElements, rhs);
         return rhs;
     }
 
     private static DenseMatrix calculateActionsStates(DcLoadFlowContext loadFlowContext, Collection<ComputedActionElement> actionElements) {
-        DenseMatrix actionsStates = initActionRhs(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), actionElements); // rhs with +1 -1 on contingency elements
+        DenseMatrix actionsStates = initActionRhs(loadFlowContext.getEquationSystem(), actionElements); // rhs with +1 -1 on contingency elements
         loadFlowContext.getJacobianMatrix().solveTransposed(actionsStates);
         return actionsStates;
     }
 
-    private static void fillRhsAction(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+    private static void fillRhsAction(EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                       Collection<ComputedActionElement> actionElements, Matrix rhs) {
         for (ComputedActionElement element : actionElements) {
             LfBranch lfBranch = element.getAction().getTapPositionChange().branch();
@@ -285,8 +285,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     private OperatorStrategyResult computeOperatorStrategyResult(OperatorStrategy operatorStrategy,
                                                                  DcLoadFlowContext loadFlowContext, SecurityAnalysisParameters securityAnalysisParameters,
                                                                  List<LfAction> operatorStrategyLfActions, PropagatedContingency contingency, double[] postContingencyAndActionsStates,
-                                                                 LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
-                                                                 List<LimitReduction> limitReductions, boolean createResultExtension) {
+                                                                 LimitViolationManager preContingencyLimitViolationManager, List<LimitReduction> limitReductions,
+                                                                 boolean createResultExtension) {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
         loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAndActionsStates);
         updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyAndActionsStates);
@@ -417,7 +417,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                             connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
                                             operatorStrategyLfActions, computedActionElements, actionsStates, reportNode);
                                     OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResult(operatorStrategy, context, securityAnalysisParameters,
-                                            operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager, preContingencyNetworkResult,
+                                            operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager,
                                             limitReductions, createResultExtension);
 
                                     LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
@@ -474,7 +474,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                 connectivityBreakAnalysisResults.contingencyElementByBranch(), preContingencyStates,
                                                 connectivityBreakAnalysisResults.contingenciesStates(), operatorStrategyLfActions, computedActionElements, actionsStates, reportNode);
                                         OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResult(operatorStrategy, context, securityAnalysisParameters,
-                                                operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager, preContingencyNetworkResult,
+                                                operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager,
                                                 limitReductions, createResultExtension);
                                         operatorStrategyResults.add(operatorStrategyResult);
                                         networkState.restore();
