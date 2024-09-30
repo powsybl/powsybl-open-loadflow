@@ -114,7 +114,9 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     }
 
     private OuterLoopResult buildOuterLoopResult(Map<String, Pair<Set<LfBus>, Double>> areas, Map<String, ActivePowerDistribution.Result> resultByArea, ReportNode reportNode, AcOuterLoopContext context) {
-        Map<String, Double> remainingMismatchByArea = resultByArea.entrySet().stream().filter(e -> Math.abs(e.getValue().remainingMismatch()) > ActivePowerDistribution.P_RESIDUE_EPS).collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().remainingMismatch()));
+        Map<String, Double> remainingMismatchByArea = resultByArea.entrySet().stream()
+                .filter(e -> !lessThanMaxMismatch(e.getValue().remainingMismatch()))
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().remainingMismatch()));
         double totalDistributedActivePower = resultByArea.entrySet().stream().mapToDouble(e -> areas.get(e.getKey()).getRight() - e.getValue().remainingMismatch()).sum();
         boolean movedBuses = resultByArea.values().stream().map(ActivePowerDistribution.Result::movedBuses).reduce(false, (a, b) -> a || b);
         Map<String, Integer> iterationsByArea = resultByArea.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().iteration()));
