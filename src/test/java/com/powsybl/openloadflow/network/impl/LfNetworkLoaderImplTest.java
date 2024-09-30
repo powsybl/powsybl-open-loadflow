@@ -154,7 +154,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void networkWithInvalidAreasTest2(){
+    void networkWithInvalidAreasTest2() {
         network = MultiAreaNetworkFactory.createAreaTwoComponentsWithBoundaries();
         LfNetworkParameters parameters = new LfNetworkParameters();
         parameters.setAreaInterchangeControl(true);
