@@ -169,7 +169,7 @@ $$
 Area Total Mismatch = Interchange - Interchange Target + Slack Injection
 $$
 
-Where :  
+Where:  
 "Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).  
 "Interchange Target" is the interchange target parameter of the area.  
 "Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see `Slack bus mismatch attribution`). 
@@ -189,7 +189,7 @@ If not, the remaining mismatch is first distributed over the buses that have no 
 If some mismatch still remains, it is distributed equally over all the areas.
 
 ### Areas validation
-There are some cases where areas are considered invalid and will not be considered for the area interchange control :
+There are some cases where areas are considered invalid and will not be considered for the area interchange control:
 - Areas without interchange target
 - Areas without boundaries
 - Areas that have boundaries in multiple synchronous/connected components. If all the boundaries are in the same component but some buses are in different components, only the part in the component of the boundaries will be considered.
@@ -200,15 +200,15 @@ The area boundaries are stored by couples of a branch and a side.
 
 - Tie lines: The tie lines (couple of paired dangling lines) are modeled by one single branch in OpenLoadFlow.
 An equivalent model based on input dangling lines' characteristics is used to calculate the power flow at the interconnection point.
-- Other branches : The active power power at the specified terminal is used.
+- Other branches: The active power at the specified terminal is used.
 
 
 ### Slack bus mismatch attribution
-Depending on the location of the slack bus(es), the role of distributing the active power mismatch will be attributed based on the following logic :
-- Slack bus part of an area : attributed to the area (see "total mismatch" calculation in `Algorithm description`).
-- Slack bus has no area :
-    - Connected to other bus(es) without area : treated as the slack mismatch of the buses without area
-    - Connected to only buses that have an area :
-        - All connected branches are boundaries of those areas : Not attributed to anyone, the mismatch will already be present in the interchange mismatch
-        - Some connected branches are not declared as boundaries of the areas : Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
+Depending on the location of the slack bus(es), the role of distributing the active power mismatch will be attributed based on the following logic:
+- Slack bus part of an area: attributed to the area (see "total mismatch" calculation in `Algorithm description`).
+- Slack bus has no area:
+    - Connected to other bus(es) without area: treated as the slack mismatch of the buses without area
+    - Connected to only buses that have an area:
+        - All connected branches are boundaries of those areas: Not attributed to anyone, the mismatch will already be present in the interchange mismatch
+        - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
 
