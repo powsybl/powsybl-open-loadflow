@@ -129,7 +129,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         if (factorGroups.hasMultiVariables() && (!lfContingency.getLostLoads().isEmpty() || !lfContingency.getLostGenerators().isEmpty())) {
-            // FIXME. It does not work with a contingency that breaks connectivity and loose an isolate injection.
+            // FIXME. It does not work with a contingency that breaks connectivity and lose an isolate injection.
             Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
             rescaleGlsk(factorGroups, affectedBuses);
         }
@@ -223,9 +223,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setMinNominalVoltageTargetVoltageCheck(lfParametersExt.getMinNominalVoltageTargetVoltageCheck())
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setSimulateAutomationSystems(false)
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR)
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
                 .setAreaInterchangeControl(lfParametersExt.isAreaInterchangeControl())
-                .setAreaInterchangeControlAreaType(lfParametersExt.getAreaInterchangeControlAreaType()); // not supported yet
+                .setAreaInterchangeControlAreaType(lfParametersExt.getAreaInterchangeControlAreaType());
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {

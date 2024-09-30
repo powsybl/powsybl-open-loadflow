@@ -31,7 +31,8 @@
     "open-security-analysis-parameters" : {
       "createResultExtension" : true,
       "contingencyPropagation" : false,
-      "threadCount" : 1
+      "threadCount" : 1,
+      "dcFastMode" : true
     }
   }
 }

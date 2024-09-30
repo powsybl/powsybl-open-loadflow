@@ -152,27 +152,63 @@ Hence, by solving the system using LU decomposition, you can compute the voltage
 
 ## Area Interchange Control
 
-[comment]: <> (TODO limitations:)
-[comment]: <> (  - supported in AC only)
-[comment]: <> (  - areas spanning multiple SCs are ignored)
-[comment]: <> (  - areas without targets are ignored)
-[comment]: <> (  - handling of network portions without areas)
+The area interchange control can be activated in the parameters and is performed by an outer loop.
 
-The outer loop performs an active power distribution in each one of the selected areas (for areas selection see `areaInterchangeControlAreaType`).
-The active power is distributed separately in each area to compensate its mismatch that is given by:
+The outer loop performs an active power distribution in each one of the selected areas (for areas selection see `areaInterchangeControlAreaType`),
+in order to have all areas' active power interchanges matching their target interchanges.
+It can handle networks where part (or even all) of the buses are not in an area. For networks that have no areas at all, the behaviour will be the same as with the distributed slack outer loop.
+
+It is preformed in an iterative way. After each iteration, a load flow computation is run and the next iteration will apply its changes based on this new calculated network state.
+Currently, the area interchange outer loop is only supported for AC load flows.
+
+### Algorithm description
+
+The active power is distributed separately on injections of each area to compensate its "total mismatch" that is given by:
 
 $$
-Area Active Mismatch = Interchange - Interchange Target + Slack Injection
+Area Total Mismatch = Interchange - Interchange Target + Slack Injection
 $$
 
-"Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).
+Where:  
+"Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).  
 "Interchange Target" is the interchange target parameter of the area.  
-"Slack Injection" is the active power mismatch of the slack bus(es) present in the area. If a slack bus is at the intersection of multiple areas its mismatch value will be equally split among the areas.
+"Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see `Slack bus mismatch attribution`). 
 
-If the active power has been correctly distributed, interchange mismatch is computed for all areas:
+The outer loop iterates until this mismatch is below `slackBusPMaxMismatch` for all areas.
+
+When it is the case, "interchange only" mismatch is computed for all areas:
 
 $$
 Interchange Mismatch = Interchange - Interchange Target
 $$
 
-The outer loop is stable if both mismatches are below `slackBusPMaxMismatch`, meaning that the interchanges are correct and the slack bus active power is distributed.
+If this mismatch for all areas and the slack injection of the buses without area are below `slackBusPMaxMismatch` the outerloop is stable and finishes, meaning that the interchanges are correct and the slack bus active power is distributed.
+
+If not, the remaining mismatch is first distributed over the buses that have no area.
+
+If some mismatch still remains, it is distributed equally over all the areas.
+
+### Areas validation
+There are some cases where areas are considered invalid and will not be considered for the area interchange control:
+- Areas without interchange target
+- Areas without boundaries
+- Areas that have boundaries in multiple synchronous/connected components. If all the boundaries are in the same component but some buses are in different components, only the part in the component of the boundaries will be considered.
+
+### Interchange flow calculation
+
+The area boundaries are stored by couples of a branch and a side.
+
+- Tie lines: The tie lines (couple of paired dangling lines) are modeled by one single branch in OpenLoadFlow.
+An equivalent model based on input dangling lines' characteristics is used to calculate the power flow at the interconnection point.
+- Other branches: The active power at the specified terminal is used.
+
+
+### Slack bus mismatch attribution
+Depending on the location of the slack bus(es), the role of distributing the active power mismatch will be attributed based on the following logic:
+- Slack bus part of an area: attributed to the area (see "total mismatch" calculation in `Algorithm description`).
+- Slack bus has no area:
+    - Connected to other bus(es) without area: treated as the slack mismatch of the buses without area
+    - Connected to only buses that have an area:
+        - All connected branches are boundaries of those areas: Not attributed to anyone, the mismatch will already be present in the interchange mismatch
+        - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
+

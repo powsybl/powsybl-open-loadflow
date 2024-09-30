@@ -86,8 +86,8 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
         private final TwoSides side;
 
         public BoundaryImpl(LfBranch branch, TwoSides side) {
-            this.branch = branch;
-            this.side = side;
+            this.branch = Objects.requireNonNull(branch);
+            this.side = Objects.requireNonNull(side);
         }
 
         @Override
@@ -101,17 +101,16 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
                 return 0.0;
             }
             if (branch instanceof LfTieLineBranch lfTieLineBranch) {
-                switch (side) {
-                    case ONE:
-                        DanglingLine danglingLine1 = lfTieLineBranch.getHalf1();
-                        double nominalV1 = danglingLine1.getTerminal().getVoltageLevel().getNominalV();
-                        return new SV(lfTieLineBranch.getP1().eval() * PerUnit.SB, lfTieLineBranch.getQ1().eval() * PerUnit.SB, lfTieLineBranch.getV1() * nominalV1, Math.toDegrees(lfTieLineBranch.getAngle1()), side)
-                                .otherSideP(danglingLine1, true) / PerUnit.SB;
-                    case TWO:
-                        DanglingLine danglingLine = lfTieLineBranch.getHalf2();
-                        double nominalV2 = danglingLine.getTerminal().getVoltageLevel().getNominalV();
-                        return new SV(lfTieLineBranch.getP2().eval() * PerUnit.SB, lfTieLineBranch.getQ2().eval() * PerUnit.SB, lfTieLineBranch.getV2() * nominalV2, Math.toDegrees(lfTieLineBranch.getAngle2()), side)
-                                .otherSideP(danglingLine, true) / PerUnit.SB;
+                if (side == TwoSides.ONE) {
+                    DanglingLine danglingLine1 = lfTieLineBranch.getHalf1();
+                    double nominalV1 = danglingLine1.getTerminal().getVoltageLevel().getNominalV();
+                    return new SV(lfTieLineBranch.getP1().eval() * PerUnit.SB, lfTieLineBranch.getQ1().eval() * PerUnit.SB, lfTieLineBranch.getV1() * nominalV1, Math.toDegrees(lfTieLineBranch.getAngle1()), side)
+                            .otherSideP(danglingLine1, true) / PerUnit.SB;
+                } else if (side == TwoSides.TWO) {
+                    DanglingLine danglingLine = lfTieLineBranch.getHalf2();
+                    double nominalV2 = danglingLine.getTerminal().getVoltageLevel().getNominalV();
+                    return new SV(lfTieLineBranch.getP2().eval() * PerUnit.SB, lfTieLineBranch.getQ2().eval() * PerUnit.SB, lfTieLineBranch.getV2() * nominalV2, Math.toDegrees(lfTieLineBranch.getAngle2()), side)
+                            .otherSideP(danglingLine, true) / PerUnit.SB;
                 }
             }
             return switch (side) {

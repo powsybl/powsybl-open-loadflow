@@ -420,4 +420,36 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network createWithAreaWithoutBoundariesOrTarget() {
+        Network network = createTwoAreasBase();
+        // Area a1 has no boundaries
+
+        // Area a2 has boundaries and an interchange target
+        network.getArea("a2").newAreaBoundary()
+                .setTerminal(network.getLine("l12").getTerminal2())
+                .setAc(true)
+                .add();
+        createBus(network, "b4");
+        createLine(network, network.getBusBreakerView().getBus("b2"), network.getBusBreakerView().getBus("b3"), "l23_A2", 1);
+        createLine(network, network.getBusBreakerView().getBus("b3"), network.getBusBreakerView().getBus("b4"), "l34", 1);
+
+        // Area a3 has boundaries but no target
+        network.newArea()
+                .setId("a3")
+                .setName("Area 3")
+                .setAreaType("ControlArea")
+                .addVoltageLevel(network.getVoltageLevel("b4_vl"))
+                .addAreaBoundary(network.getLine("l34").getTerminal2(), true)
+                .add();
+
+        // Area a4 has boundaries and a target but no voltage levels
+        network.newArea()
+                .setId("a4")
+                .setName("Area 4")
+                .setAreaType("ControlArea")
+                .addAreaBoundary(network.getLine("l34").getTerminal2(), true)
+                .add();
+        return network;
+    }
+
 }

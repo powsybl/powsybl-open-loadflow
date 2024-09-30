@@ -444,16 +444,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             danglingLine.getTieLine().ifPresentOrElse(tieLine -> {
                 if (!visitedDanglingLinesIds.contains(danglingLine.getId())) {
-                    DanglingLine danglingLine1 = tieLine.getDanglingLine1();
-                    DanglingLine danglingLine2 = tieLine.getDanglingLine2();
-                    LfBus lfBus1 = getLfBus(danglingLine1.getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBus lfBus2 = getLfBus(danglingLine2.getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus1 = getLfBus(tieLine.getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus2 = getLfBus(tieLine.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
                     addBranchAreaBoundaries(tieLine, lfBranch, loadingContext);
                     postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
-                    visitedDanglingLinesIds.add(danglingLine1.getId());
-                    visitedDanglingLinesIds.add(danglingLine2.getId());
+                    visitedDanglingLinesIds.add(tieLine.getDanglingLine1().getId());
+                    visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
                 }
             }, () -> {
                     LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
@@ -462,7 +460,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
-                    addDanglingLineAreaBoundary(danglingLine, lfBranch, TwoSides.TWO, loadingContext);
+                    addDanglingLineAreaBoundary(danglingLine, lfBranch, loadingContext);
                     postProcessors.forEach(pp -> {
                         pp.onBusAdded(danglingLine, lfBus2);
                         pp.onBranchAdded(danglingLine, lfBranch);
@@ -534,7 +532,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     /**
      * Add the terminals active power to the calculation of their Area's interchange (load convention) if they are boundaries.
-     * For simple branches (lines, transformers, switches), the terminal declared as the boundary must be the one which active power is used.
+     * For simple branches (lines, transformers, switches), the side declared as the boundary must be the one which active power is used.
+     * For tie lines, the side declared as the boundary must be the one on the side of the concerned area.
      */
     private static void addBranchAreaBoundaries(Branch<?> branch, LfBranch lfBranch, LoadingContext loadingContext) {
         addAreaBoundary(branch.getTerminal1(), lfBranch, TwoSides.ONE, loadingContext);
@@ -545,8 +544,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * Adds the active power of the terminal of the dangling line to the calculation of the Area's interchange (load convention) if it is a boundary.
      * The equivalent injection of the dangling line lfBranch model is P2;
      */
-    private static void addDanglingLineAreaBoundary(DanglingLine danglingLine, LfBranch lfDanglingLineBranch, TwoSides side, LoadingContext loadingContext) {
-        addAreaBoundary(danglingLine.getTerminal(), lfDanglingLineBranch, side, loadingContext);
+    private static void addDanglingLineAreaBoundary(DanglingLine danglingLine, LfBranch lfDanglingLineBranch, LoadingContext loadingContext) {
+        addAreaBoundary(danglingLine.getTerminal(), lfDanglingLineBranch, TwoSides.TWO, loadingContext);
     }
 
     private static void addAreaBoundary(Terminal terminal, LfBranch branch, TwoSides side, LoadingContext loadingContext) {
@@ -561,7 +560,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             loadingContext.areaBusMap
                     .entrySet()
                     .stream()
-                    .filter(e -> checkBoundariesComponent(e.getKey(), numCC, numSC))
+                    .filter(e -> {
+                        if (e.getKey().getAreaBoundaryStream().findAny().isEmpty()) {
+                            LOGGER.warn("Area {} does not have any area boundary. The area will not be considered for area interchange control", e.getKey().getId());
+                            return false;
+                        }
+                        return true;
+                    })
                     .filter(e -> {
                         if (e.getKey().getInterchangeTarget().isEmpty()) {
                             LOGGER.warn("Area {} does not have an interchange target. The area will not be considered for area interchange control", e.getKey().getId());
@@ -569,6 +574,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         }
                         return true;
                     })
+                    .filter(e -> checkBoundariesComponent(e.getKey(), numCC, numSC))
                     .forEach(e -> {
                         Area area = e.getKey();
                         Set<LfBus> lfBuses = e.getValue();

@@ -1299,7 +1299,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testFunctionRefWithSequenceOfConnectivty() {
         // Test that the result if you compute sensitivity manually one by one,
         // or all at once does not change result on function reference
-        // (especially if you loose compensation)
+        // (especially if you lose compensation)
         Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
@@ -1330,7 +1330,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testFunctionRefWithAdditionalFactors() {
         // Test that the result if you compute sensitivity manually one by one,
         // or all at once does not change result on function reference
-        // (especially if you loose compensation)
+        // (especially if you lose compensation)
         Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
