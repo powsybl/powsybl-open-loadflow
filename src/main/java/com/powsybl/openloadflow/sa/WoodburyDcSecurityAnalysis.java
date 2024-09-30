@@ -217,7 +217,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     private static DenseMatrix calculateActionsStates(DcLoadFlowContext loadFlowContext, Collection<ComputedActionElement> actionElements) {
-        DenseMatrix actionsStates = initActionRhs(loadFlowContext.getEquationSystem(), actionElements); // rhs with +1 -1 on contingency elements
+        DenseMatrix actionsStates = initActionRhs(loadFlowContext.getEquationSystem(), actionElements); // rhs with +1 -1 on action elements
         loadFlowContext.getJacobianMatrix().solveTransposed(actionsStates);
         return actionsStates;
     }
