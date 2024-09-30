@@ -120,6 +120,8 @@ $$
 If `balanceType` equals to `PROPORTIONAL_TO_LOAD`, the power factor remains constant scaling the global $P0$ and $Q0$ of the load.
 If `balanceType` equals to `PROPORTIONAL_TO_CONFORM_LOAD`, the power factor remains constant scaling only the variable parts. Thus, we fully rely on [load detail extension](inv:powsyblcore:*:*:#load-detail-extension).
 
+In both cases, slack is not distributed to fictitious loads. A load can be fictitious by setting its boolean attribute `isFictitious` or by having a `loadType` equal to `LoadType.FICTITIOUS`.
+
 The default value for `loadPowerFactorConstant` property is `false`.
 
 **slackBusPMaxMismatch**  

@@ -336,7 +336,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     case INJECTION_ACTIVE_POWER,
                          HVDC_LINE_ACTIVE_POWER:
                         // a load, a generator, a dangling line, an LCC or a VSC converter station.
-                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLoose().containsKey(variableId);
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLose().containsKey(variableId);
                     case BUS_TARGET_VOLTAGE:
                         // a generator or a two windings transformer.
                         // shunt contingency not supported yet.
@@ -398,7 +398,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
-                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getLoadIdsToLoose().keySet().stream())
+                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getLoadIdsToLose().keySet().stream())
                         .distinct()
                         .filter(originalVariableSetIds::contains)
                         .count();
@@ -555,7 +555,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     double balanceDiff = mainComponentWeights.values().stream().mapToDouble(x -> x).sum();
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
                         LfBus lfBus = lfBusAndParticipationFactor.getKey();
-                        double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the compensation depending on the injection
+                        double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the slack distribution depending on the injection
                         addBusInjection(rhs, lfBus, injection);
                     }
                     // add the injections on the side of the hvdc
