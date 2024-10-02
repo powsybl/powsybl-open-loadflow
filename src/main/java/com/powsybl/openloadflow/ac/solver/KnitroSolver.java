@@ -109,6 +109,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 this.listNonLinearConsts = listNonLinearConsts;
             }
 
+            // Callback function for non-linear parts of objective and constraints
             @Override
             public void evaluateFC(final List<Double> x, final List<Double> obj, final List<Double> c) {
                 LOGGER.trace("============ Knitro evaluating callback function ============");
@@ -486,23 +487,21 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             LOGGER.info("Feasibility violation    = {}", solver.getAbsFeasError());
             LOGGER.info("Optimality violation     = {}", solver.getAbsOptError());
 
-//            LOGGER.debug("Optimal x");
-//            for (int i = 0; i < solution.getX().size(); i++) {
-//                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
-//            }
-//            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
-//            for (int i = 0; i < instance.getNumCons(); i++) {
-//                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
-//            }
+            LOGGER.debug("Optimal x");
+            for (int i = 0; i < solution.getX().size(); i++) {
+                LOGGER.debug(" x[{}] = {}", i, solution.getX().get(i));
+            }
+            LOGGER.debug("Optimal constraint values (with corresponding multiplier)");
+            for (int i = 0; i < instance.getNumCons(); i++) {
+                LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
+            }
 
             // Load results in the network
 
             if (acStatus == AcSolverStatus.CONVERGED || knitroParameters.isAlwaysUpdateNetwork()) {
-                equationSystem.getStateVector().set(toArray(solution.getX()));
+                equationSystem.getStateVector().set(toArray(solution.getX())); //update equations system
                 AcSolverUtil.updateNetwork(network, equationSystem);
             }
-            equationSystem.getStateVector().set(toArray(solution.getX()));
-            AcSolverUtil.updateNetwork(network, equationSystem);
 
 //            // update network state variable //TODO later?
 //            if (acStatus == AcSolverStatus.CONVERGED && knitroParameters.is(reportNode)) {

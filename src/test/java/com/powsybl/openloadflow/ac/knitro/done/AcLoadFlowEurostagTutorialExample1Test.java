@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-package com.powsybl.openloadflow.ac.knitro;
+package com.powsybl.openloadflow.ac.knitro.done;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;

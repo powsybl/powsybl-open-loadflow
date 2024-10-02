@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.ac.knitro.done;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
@@ -16,7 +16,6 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
-import com.powsybl.openloadflow.ac.solver.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +37,7 @@ class AcLoadFlowTwoBusNetworkTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -49,19 +49,19 @@ class AcLoadFlowTwoBusNetworkTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcSolverType(AcSolverType.KNITRO);
     }
 
     @Test
     void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(0.855, bus2);
-        assertAngleEquals(-13.520904, bus2);
+        assertAngleEquals(-13.521852, bus2);
         assertActivePowerEquals(2, line1.getTerminal1());
         assertReactivePowerEquals(1.683, line1.getTerminal1());
         assertActivePowerEquals(-2, line1.getTerminal2());
@@ -72,11 +72,11 @@ class AcLoadFlowTwoBusNetworkTest {
     void voltageInitModeTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         // restart loadflow from previous calculated state, it should convergence in zero iteration
         result = loadFlowRunner.run(network, parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES));
         assertTrue(result.isFullyConverged());
-        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(0, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
@@ -94,11 +94,11 @@ class AcLoadFlowTwoBusNetworkTest {
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(0.784, bus2);
-        assertAngleEquals(-22.455747, bus2);
-        assertActivePowerEquals(2.996, line1.getTerminal1());
-        assertReactivePowerEquals(2.750, line1.getTerminal1());
-        assertActivePowerEquals(-2.996, line1.getTerminal2());
-        assertReactivePowerEquals(-1.096, line1.getTerminal2());
+        assertAngleEquals(-22.518194, bus2);
+        assertActivePowerEquals(2.999, line1.getTerminal1());
+        assertReactivePowerEquals(2.763, line1.getTerminal1());
+        assertActivePowerEquals(-2.999, line1.getTerminal2());
+        assertReactivePowerEquals(-1.099, line1.getTerminal2());
         assertActivePowerEquals(1, network.getBattery("bt2").getTerminal());
     }
 
@@ -121,12 +121,12 @@ class AcLoadFlowTwoBusNetworkTest {
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(0.829, bus2);
-        assertAngleEquals(-15.902121, bus2);
+        assertAngleEquals(-15.911666, bus2);
         assertActivePowerEquals(2.2727, line1.getTerminal1());
-        assertReactivePowerEquals(2.0228, line1.getTerminal1());
+        assertReactivePowerEquals(2.0276, line1.getTerminal1());
         assertActivePowerEquals(-2.2727, line1.getTerminal2());
-        assertReactivePowerEquals(-1.097, line1.getTerminal2());
-        assertActivePowerEquals(0.275, network.getBattery("bt2").getTerminal());
+        assertReactivePowerEquals(-1.099, line1.getTerminal2());
+        assertActivePowerEquals(0.272, network.getBattery("bt2").getTerminal());
     }
 
     @Test
@@ -147,7 +147,7 @@ class AcLoadFlowTwoBusNetworkTest {
         assertVoltageEquals(1, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(0.812, bus2);
-        assertAngleEquals(-18.680062, bus2);
+        assertAngleEquals(-18.678874, bus2);
         assertActivePowerEquals(2.600, line1.getTerminal1());
         assertReactivePowerEquals(2.309, line1.getTerminal1());
         assertActivePowerEquals(-2.600, line1.getTerminal2());
@@ -160,7 +160,7 @@ class AcLoadFlowTwoBusNetworkTest {
         var network = TwoBusNetworkFactory.createZeroImpedanceToShuntCompensator();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(0.9038788263615884, network.getLine("l23").getTerminal1());
+        assertReactivePowerEquals(0.9014977258927488, network.getLine("l23").getTerminal1());
         assertActivePowerEquals(0.0, network.getLine("l23").getTerminal1());
     }
 
