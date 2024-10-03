@@ -91,6 +91,6 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                 .flatMap(name -> createOuterLoop(name, parameters, parametersExt).stream())
                 .toList();
         checkTypeUnicity(outerLoops);
-        return outerLoops;
+        return filterInconsistentOuterLoops(outerLoops);
     }
 }

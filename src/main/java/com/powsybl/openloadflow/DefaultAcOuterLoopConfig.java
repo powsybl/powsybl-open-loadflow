@@ -40,6 +40,6 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createShuntVoltageControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
         // automation system
         createAutomationSystemOuterLoop(parametersExt).ifPresent(outerLoops::add);
-        return outerLoops;
+        return filterInconsistentOuterLoops(outerLoops);
     }
 }
