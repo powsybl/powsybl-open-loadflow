@@ -14,13 +14,16 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfAction;
 
+/**
+ * @author Pierre Arvy {@literal <pierre.arvy@artelys.com>}
+ */
 public final class ComputedActionElement extends ComputedElement {
 
     private final LfAction action;
 
-    // TODO : refactor this
     public ComputedActionElement(final LfAction action, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(action.getTapPositionChange().branch(), equationSystem.getEquationTerm(ElementType.BRANCH, action.getTapPositionChange().branch().getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
+        super(action.getTapPositionChange().branch(),
+                equationSystem.getEquationTerm(ElementType.BRANCH, action.getTapPositionChange().branch().getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
         this.action = action;
     }
 

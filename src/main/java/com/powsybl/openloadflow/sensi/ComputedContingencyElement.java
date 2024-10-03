@@ -28,7 +28,6 @@ public final class ComputedContingencyElement extends ComputedElement {
 
     private final ContingencyElement element;
 
-    // TODO : refactor this
     public ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         super(lfNetwork.getBranchById(element.getId()),
                 equationSystem.getEquationTerm(ElementType.BRANCH, lfNetwork.getBranchById(element.getId()).getNum(), ClosedBranchSide1DcFlowEquationTerm.class));

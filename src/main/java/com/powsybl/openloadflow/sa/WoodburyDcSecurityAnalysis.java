@@ -10,23 +10,17 @@ package com.powsybl.openloadflow.sa;
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -44,7 +38,6 @@ import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.updateNetwork;
@@ -202,50 +195,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 });
     }
 
-    public static DenseMatrix initActionRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedActionElement> actionElements) {
-        // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
-        if (actionElements.size() > maxContingencyElements) {
-            throw new PowsyblException("Too many action elements " + actionElements.size()
-                    + ", maximum is " + maxContingencyElements + " for a system with " + equationCount + " equations");
-        }
-
-        DenseMatrix rhs = new DenseMatrix(equationCount, actionElements.size());
-        fillRhsAction(equationSystem, actionElements, rhs);
-        return rhs;
-    }
-
-    private static DenseMatrix calculateActionsStates(DcLoadFlowContext loadFlowContext, Collection<ComputedActionElement> actionElements) {
-        DenseMatrix actionsStates = initActionRhs(loadFlowContext.getEquationSystem(), actionElements); // rhs with +1 -1 on action elements
-        loadFlowContext.getJacobianMatrix().solveTransposed(actionsStates);
-        return actionsStates;
-    }
-
-    private static void fillRhsAction(EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                      Collection<ComputedActionElement> actionElements, Matrix rhs) {
-        for (ComputedActionElement element : actionElements) {
-            LfBranch lfBranch = element.getAction().getTapPositionChange().branch();
-            if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
-                continue;
-            }
-            LfBus bus1 = lfBranch.getBus1();
-            LfBus bus2 = lfBranch.getBus2();
-            if (bus1.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getComputedElementIndex(), -1);
-            } else if (bus2.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getComputedElementIndex(), 1);
-            } else {
-                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p1.getColumn(), element.getComputedElementIndex(), 1);
-                rhs.set(p2.getColumn(), element.getComputedElementIndex(), -1);
-            }
-        }
-    }
-
     private PostContingencyResult computePostContingencyResult(DcLoadFlowContext loadFlowContext, Contingency contingency, LfContingency lfContingency,
                                                                LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
                                                                boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
@@ -331,6 +280,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // note that contingencies on branches connected only on one side are removed,
             // this is a difference with dc security analysis
             cleanContingencies(lfNetwork, propagatedContingencies);
+            // Verify only PST actions are given
             filterActions(actions);
 
             double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
@@ -368,7 +318,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             LinkedHashMap::new
                     ));
             ComputedElement.setComputedElementIndexes(computedActionElements.values());
-            DenseMatrix actionsStates = calculateActionsStates(context, computedActionElements.values());
+            DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, computedActionElements.values());
 
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
@@ -399,7 +349,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             networkState.restore();
 
                             List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
-                            if (operatorStrategiesForThisContingency != null) { // TODO : check if the ID is the same here
+                            if (operatorStrategiesForThisContingency != null) {
                                 for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
                                     ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                                     lfNetwork.setReportNode(osSimReportNode);
@@ -410,8 +360,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                             .filter(Objects::nonNull)
                                             .toList();
 
-                                    LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
-                                            operatorStrategy.getContingencyContext().getContingencyId(), network);
+                                    logActionStart(lfNetwork, operatorStrategy);
+                                    stopwatch = Stopwatch.createStarted();
 
                                     double[] postContingencyAndActionsStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, propagatedContingency,
                                             connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
@@ -420,8 +370,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                             operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager,
                                             limitReductions, createResultExtension);
 
-                                    LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
-                                            operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                                    stopwatch.stop();
+                                    logActionEnd(lfNetwork, operatorStrategy, stopwatch);
 
                                     operatorStrategyResults.add(operatorStrategyResult);
                                     networkState.restore();
@@ -458,7 +408,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                 postContingencyResults.add(postContingencyResult);
                                 networkState.restore();
 
-                                List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId()); // TODO : check if the ID is the same here
+                                List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
                                 if (operatorStrategiesForThisContingency != null) {
                                     for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
                                         ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
@@ -470,12 +420,19 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                 .filter(Objects::nonNull)
                                                 .toList();
 
+                                        logActionStart(lfNetwork, operatorStrategy);
+                                        stopwatch = Stopwatch.createStarted();
+
                                         double[] postContingencyAndActionsStates = calculatePostContingencyStatesForAContingencyBreakingConnectivity(connectivityAnalysisResult, context,
                                                 connectivityBreakAnalysisResults.contingencyElementByBranch(), preContingencyStates,
                                                 connectivityBreakAnalysisResults.contingenciesStates(), operatorStrategyLfActions, computedActionElements, actionsStates, reportNode);
                                         OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResult(operatorStrategy, context, securityAnalysisParameters,
                                                 operatorStrategyLfActions, propagatedContingency, postContingencyAndActionsStates, preContingencyLimitViolationManager,
                                                 limitReductions, createResultExtension);
+
+                                        stopwatch.stop();
+                                        logActionEnd(lfNetwork, operatorStrategy, stopwatch);
+
                                         operatorStrategyResults.add(operatorStrategyResult);
                                         networkState.restore();
                                     }
