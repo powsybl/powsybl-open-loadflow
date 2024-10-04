@@ -136,11 +136,6 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public double getA1(int tapPosition) {
-        return getModel(tapPosition).getA1();
-    }
-
-    @Override
     public PiModelArray setA1(double a1) {
         this.a1 = a1;
         return this;

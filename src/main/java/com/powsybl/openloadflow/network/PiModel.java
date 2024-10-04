@@ -52,8 +52,6 @@ public interface PiModel {
 
     double getA1();
 
-    double getA1(int tapPosition);
-
     PiModel setA1(double a1);
 
     PiModel setR1(double r1);

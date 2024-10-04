@@ -275,7 +275,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                         loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
                                 dcVariableTypeDcEquationTypeEquation -> {
                                     int column = dcVariableTypeDcEquationTypeEquation.getColumn();
-                                    targetVectorArray[column] = lfBranch.getPiModel().getA1(newTapPosition);
+                                    targetVectorArray[column] = lfBranch.getPiModel().getModel(newTapPosition).getA1();
                                 }
                         );
                     });

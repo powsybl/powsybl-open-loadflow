@@ -136,11 +136,6 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public double getA1(int tapPosition) {
-        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
-    }
-
-    @Override
     public SimplePiModel setA1(double a1) {
         this.a1 = a1;
         return this;
