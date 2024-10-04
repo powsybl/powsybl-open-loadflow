@@ -220,8 +220,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     /**
-     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
-     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
+     * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> lfActions) {
         Collection<LfBus> remainingBuses;
@@ -261,19 +261,20 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
 
         if (!lfActions.isEmpty()) {
-            lfActions.forEach(lfAction -> {
-                LfAction.TapPositionChange tapPositionChange = lfAction.getTapPositionChange();
-                LfBranch lfBranch = tapPositionChange.branch();
-                int tapPosition = lfBranch.getPiModel().getTapPosition();
-                int value = tapPositionChange.value();
-                int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
-                loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
-                        dcVariableTypeDcEquationTypeEquation -> {
-                            int column = dcVariableTypeDcEquationTypeEquation.getColumn();
-                            targetVectorArray[column] = lfBranch.getPiModel().getA1(newTapPosition);
-                        }
-                );
-            });
+            // set transformer phase shift to new shifting value
+            lfActions.stream()
+                    .map(LfAction::getTapPositionChange)
+                    .forEach(tapPositionChange -> {
+                        LfBranch lfBranch = tapPositionChange.branch();
+                        int newTapPosition = tapPositionChange.isRelative() ? lfBranch.getPiModel().getTapPosition() + tapPositionChange.value()
+                                : tapPositionChange.value();
+                        loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
+                                dcVariableTypeDcEquationTypeEquation -> {
+                                    int column = dcVariableTypeDcEquationTypeEquation.getColumn();
+                                    targetVectorArray[column] = lfBranch.getPiModel().getA1(newTapPosition);
+                                }
+                        );
+                    });
         }
 
         boolean succeeded = solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);
