@@ -21,6 +21,9 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -69,7 +72,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     /**
-     * TODO : update
      * Calculate post contingency states for a contingency.
      * In case of connectivity break, a pre-computation has been done in {@link #calculatePostContingencyStatesForAContingencyBreakingConnectivity}
      * to reset active power flow of hvdc lines on which one bus is lost.
@@ -83,8 +85,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     /**
-     * TODO: update
-     * Calculate post contingency states for a contingency.
+     * Calculate post contingency and post pst actions states.
      * In case of connectivity break, a pre-computation has been done in {@link #calculatePostContingencyStatesForAContingencyBreakingConnectivity}
      * to reset active power flow of hvdc lines on which one bus is lost.
      * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency, the pre contingency flowStates are overridden.
@@ -110,7 +111,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
         double[] postContingencyStates;
-        WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates); // TODO : compute for one contingency and one action
+        WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
 
         double[] newFlowStates = flowStates;
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
@@ -139,7 +140,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             contingency.toLfContingency(lfNetwork, false)
                     .ifPresent(lfContingency -> {
                         lfContingency.apply(lfParameters.getBalanceType());
-//                        LfAction.apply(lfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
                     });
 
             newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, lfActions);
@@ -152,7 +152,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     /**
      * Calculate post contingency states for a contingency breaking connectivity, without remedial actions.
-     * TODO : update
      */
     private double[] calculatePostContingencyStatesForAContingencyBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
                                                                                        Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
@@ -162,8 +161,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     /**
-     * Calculate post contingency states for a contingency breaking connectivity.
-     * TODO : update
+     * Calculate post contingency and post actions states, for a contingency breaking connectivity.
      */
     private double[] calculatePostContingencyStatesForAContingencyBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
                                                                                       Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
@@ -259,6 +257,20 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                         postActionsNetworkResult.getThreeWindingsTransformerResults()));
     }
 
+    private static Map<String, ComputedActionElement> createActionsElementsIndexByBranchId(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<String, ComputedActionElement> computedActionElements = lfActionById.values().stream()
+                .map(lfAction -> new ComputedActionElement(lfAction, equationSystem))
+                .filter(computedActionElement -> computedActionElement.getLfBranchEquation() != null)
+                .collect(Collectors.toMap(
+                        computedActionElement -> computedActionElement.getAction().getTapPositionChange().getLfBranch().getId(),
+                        computedActionElement -> computedActionElement,
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
+        ComputedElement.setComputedElementIndexes(computedActionElements.values());
+        return computedActionElements;
+    }
+
     @Override
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
@@ -308,16 +320,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // compute states with +1 -1 to model the actions in Woodbury engine
-            Map<String, ComputedActionElement> computedActionElements = lfActionById.values().stream()
-                    .map(lfAction -> new ComputedActionElement(lfAction, context.getEquationSystem()))
-                    .filter(computedActionElement -> computedActionElement.getLfBranchEquation() != null)
-                    .collect(Collectors.toMap(
-                            computedActionElement -> computedActionElement.getAction().getTapPositionChange().getLfBranch().getId(),
-                            computedActionElement -> computedActionElement,
-                            (existing, replacement) -> existing,
-                            LinkedHashMap::new
-                    ));
-            ComputedElement.setComputedElementIndexes(computedActionElements.values());
+            Map<String, ComputedActionElement> computedActionElements = createActionsElementsIndexByBranchId(lfActionById, context.getEquationSystem());
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, computedActionElements.values());
 
             // save base state for later restoration after each contingency/action

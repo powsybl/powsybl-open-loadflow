@@ -20,7 +20,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.MyNetworkFactory;
+import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
@@ -88,7 +88,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     @Test
     void testFastSaDcPhaseTapChangerTapPositionChangeAdmittanceOnlyAlphaNull() {
-        Network network = MyNetworkFactory.create();
+        Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         // no alpha modification with pst actions
         network.getTwoWindingsTransformer("PS1")
                 .getPhaseTapChanger()
@@ -148,7 +148,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     @Test
     void testFastSaDcPhaseTapChangerTapPositionChangeAdmittanceOnlyAlphaNonNull() {
-        Network network = MyNetworkFactory.create();
+        Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         // no alpha modification with pst actions
         network.getTwoWindingsTransformer("PS1")
                 .getPhaseTapChanger()
@@ -208,7 +208,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     @Test
     void testSaDcPhaseTapChangerTapPositionChangeAlphaOnly() {
-        Network network = MyNetworkFactory.create();
+        Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         network.getTwoWindingsTransformer("PS1")
                 .getPhaseTapChanger()
                 .getStep(0)
@@ -266,8 +266,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     }
 
     @Test
-    void testSaDcPhaseTapChangerTapPositionChange2() {
-        Network network = MyNetworkFactory.create2();
+    void testSaDcPhaseTapChangerTapPositionChangeWithConnectivityBreak() {
+        Network network = PhaseControlFactory.createNetworkWith3Buses();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("L23", new BranchContingency("L23")));
@@ -315,7 +315,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     @Test
     void testSaDcPhaseTapChangerTapPositionChange() {
-        Network network = MyNetworkFactory.create();
+        Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
@@ -360,7 +360,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     @Test
     void testFastSaDcOneContingencyTwoTapPositionChange() {
-        Network network = MyNetworkFactory.createWithTwoPhaseTapChangers();
+        Network network = PhaseControlFactory.createWithTwoT2wtTwoLines();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
@@ -407,7 +407,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     @Test
     void testFastSaDcTwoContingenciesOneTapPositionChange() {
-        Network network = MyNetworkFactory.createWithTwoPhaseTapChangers();
+        Network network = PhaseControlFactory.createWithTwoT2wtTwoLines();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("L1+PS2", List.of(new BranchContingency("L1"), new BranchContingency("PS2"))));
@@ -449,79 +449,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     }
 
     @Test
-    void test() {
-        Network network = MyNetworkFactory.create();
-        // add load to be lost by contingency
-        network.getVoltageLevel("VL2").newLoad()
-                .setId("LD3")
-                .setConnectableBus("B2")
-                .setBus("B2")
-                .setP0(50.0)
-                .setQ0(25.0)
-                .add();
-
-        List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        List<Contingency> contingencies = List.of(new Contingency("L1+LD3", List.of(new BranchContingency("L1"), new LoadContingency("LD3"))));
-//        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "PS1", false, 0));
-//        List<OperatorStrategy> operatorStrategies = List.of(
-//                new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("L1+LD3"), new TrueCondition(), List.of("pstChange")));
-
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setDc(true);
-        parameters.setDistributedSlack(false);
-        securityAnalysisParameters.setLoadFlowParameters(parameters);
-        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
-        openSecurityAnalysisParameters.setDcFastMode(true);
-        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
-
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
-                ReportNode.NO_OP);
-
-        assertNotNull(result);
-
-        BranchResult brAbsL2 = result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("L2");
-        BranchResult brAbsPS1 = result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("PS1");
-//        OperatorStrategyResult resultAbs = getOperatorStrategyResult(result, "strategyTapChange");
-//        BranchResult brAbsL2 = resultAbs.getNetworkResult().getBranchResult("L2");
-//        BranchResult brAbsPS1 = resultAbs.getNetworkResult().getBranchResult("PS1");
-
-        // Apply contingencies by hand
-        network.getLine("L1").getTerminal1().disconnect();
-        network.getLine("L1").getTerminal2().disconnect();
-        network.getLoad("LD3").disconnect();
-        // Apply remedial action
-//        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
-
-        loadFlowRunner.run(network, parameters);
-
-        // Compare results on the line L2
-        assertEquals(network.getLine("L2").getTerminal1().getP(), brAbsL2.getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(network.getLine("L2").getTerminal2().getP(), brAbsL2.getP2(), LoadFlowAssert.DELTA_POWER);
-        // Compare results on the t2wt PS1
-        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), brAbsPS1.getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brAbsPS1.getP2(), LoadFlowAssert.DELTA_POWER);
-
-    }
-
-    @Test
-    void tempoLf() {
-        Network network = MyNetworkFactory.create();
-        network.getLine("L1").disconnect();
-        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger()
-                .setTapPosition(0)
-                .getStep(0)
-                .setX(100.0);
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setDc(true);
-        loadFlowRunner.run(network, parameters);
-        System.out.println(network.getBusBreakerView().getBus("B2").getAngle());
-    }
-
-    @Test
-    void test2() {
-        Network network = MyNetworkFactory.create();
-        // add load to be lost by contingency
+    void testFastSaDcN2ContingencyOneTapPositionChange() {
+        Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
+        // add load which will be lost by contingency
         network.getVoltageLevel("VL2").newLoad()
                 .setId("LD3")
                 .setConnectableBus("B2")
@@ -567,6 +497,5 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         // Compare results on the t2wt PS1
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), brAbsPS1.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brAbsPS1.getP2(), LoadFlowAssert.DELTA_POWER);
-
     }
 }
