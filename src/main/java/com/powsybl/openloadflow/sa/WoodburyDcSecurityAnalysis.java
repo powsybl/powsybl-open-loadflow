@@ -189,7 +189,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction))
                 .findAny()
                 .ifPresent(e -> {
-                    throw new IllegalArgumentException("For now, only PhaseTapChangerTapPositionAction is allowed in WoodburyDcSecurityAnalysis");
+                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction is allowed in WoodburyDcSecurityAnalysis");
                 });
     }
 

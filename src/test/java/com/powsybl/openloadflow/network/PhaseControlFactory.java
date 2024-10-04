@@ -371,7 +371,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
                 .setQ0(50.0)
                 .add();
         ld2.getTerminal().setP(100.0).setQ(50.0);
-        Line l1 = network.newLine()
+        network.newLine()
                 .setId("L1")
                 .setVoltageLevel1("VL1")
                 .setConnectableBus1("B1")

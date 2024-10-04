@@ -10,6 +10,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.Action;
+import com.powsybl.action.GeneratorActionBuilder;
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
@@ -32,9 +33,9 @@ import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTest {
 
@@ -461,7 +462,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
                 .add();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        List<Contingency> contingencies = List.of(new Contingency("L1+LD3", List.of(new LoadContingency("LD3"))));
+        List<Contingency> contingencies = List.of(new Contingency("L1+LD3", List.of(new BranchContingency("L1"), new LoadContingency("LD3"))));
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "PS1", false, 0));
         List<OperatorStrategy> operatorStrategies = List.of(
                 new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("L1+LD3"), new TrueCondition(), List.of("pstChange")));
@@ -485,6 +486,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         BranchResult brAbsPS1 = resultAbs.getNetworkResult().getBranchResult("PS1");
 
         // Apply contingencies by hand
+        network.getLine("L1").disconnect();
         network.getLoad("LD3").disconnect();
         // Apply remedial action
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
@@ -497,5 +499,27 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         // Compare results on the t2wt PS1
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), brAbsPS1.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brAbsPS1.getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testFastDcSaWithActionNotOnPst() {
+        Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("contingencyLD2", List.of(new LoadContingency("LD2"))));
+        List<Action> actions = List.of(new GeneratorActionBuilder().withId("genActionG1").withGeneratorId("G1").withActivePowerRelativeValue(true).withActivePowerValue(1).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("contingencyLD2"), new TrueCondition(), List.of("genActionG1")));
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDc(true);
+        parameters.setDistributedSlack(false);
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        CompletionException thrown = assertThrows(CompletionException.class,
+                () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
+        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction is allowed in WoodburyDcSecurityAnalysis"));
     }
 }

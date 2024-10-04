@@ -91,8 +91,8 @@ public class WoodburyEngine {
             element.setAlphaForWoodburyComputation(b / a);
         } else {
             // set local indexes of computed elements to use them in small matrix computation
-            ComputedContingencyElement.setLocalIndexes(contingencyElements);
-            ComputedActionElement.setLocalIndexes(pstActionElements);
+            ComputedElement.setLocalIndexes(contingencyElements);
+            ComputedElement.setLocalIndexes(pstActionElements);
             int size = contingencyElements.size() + pstActionElements.size();
             DenseMatrix rhs = new DenseMatrix(size, 1);
             DenseMatrix matrix = new DenseMatrix(size, size);
