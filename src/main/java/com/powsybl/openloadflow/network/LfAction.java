@@ -30,9 +30,6 @@ public final class LfAction {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
 
-    public record TapPositionChange(LfBranch branch, int value, boolean isRelative) {
-    }
-
     private record LoadShift(String loadId, LfLoad lfLoad, PowerShift powerShift) {
     }
 
@@ -302,11 +299,9 @@ public final class LfAction {
     }
 
     private void applyTapPositionChange() {
-        LfBranch branch = tapPositionChange.branch();
-        int tapPosition = branch.getPiModel().getTapPosition();
-        int value = tapPositionChange.value();
-        int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
-        branch.getPiModel().setTapPosition(newTapPosition);
+        LfBranch lfBranch = tapPositionChange.getLfBranch();
+        int newTapPosition = tapPositionChange.getNewTapPosition();
+        lfBranch.getPiModel().setTapPosition(newTapPosition);
     }
 
     private void applyLoadShift() {

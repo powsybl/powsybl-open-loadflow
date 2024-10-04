@@ -12,7 +12,6 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.network.LfAction;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 
@@ -62,12 +61,6 @@ public class WoodburyEngine {
         return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
-    double getMatrixValue(boolean onDiagonal, double oldPower, double newPower, DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, ComputedElement element) {
-        double deltaX = onDiagonal ? 1d / (oldPower - newPower) : 0d;
-        return deltaX - (states.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
-                - states.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
-    }
-
     /**
      * Compute the flow transfer factors needed to calculate the post-contingency state values.
      */
@@ -87,15 +80,13 @@ public class WoodburyEngine {
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
-            int oldTapPosition = lfBranch.getPiModel().getTapPosition();
-            LfAction.TapPositionChange tapPositionChange = element.getAction().getTapPositionChange();
-            int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
-            double powerAfterModif = calculatePower(lfBranch, newTapPosition);
-            double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
-            double powerBeforeModif = calculatePower(lfBranch);
-
-            double a = 1d / (powerBeforeModif - powerAfterModif) - (pstActionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
+            // we solve a*alpha = b
+            int newTapPosition = element.getAction().getTapPositionChange().getNewTapPosition();
+            double deltaX = 1d / (calculatePower(lfBranch) - calculatePower(lfBranch, newTapPosition));
+            double a = deltaX - (pstActionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - pstActionsStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
+
+            double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
             element.setAlphaForWoodburyComputation(b / a);
         } else {
@@ -116,8 +107,8 @@ public class WoodburyEngine {
                 for (ComputedContingencyElement contingencyElement2 : contingencyElements) {
                     int j = contingencyElement2.getLocalIndex();
                     // if on the diagonal of the matrix, add variation of reactance
-                    double value = (i == j) ? 1d / calculatePower(lfBranch) : 0d;
-                    value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), contingencyElement2.getComputedElementIndex())
+                    double deltaX = (i == j) ? 1d / calculatePower(lfBranch) : 0d;
+                    double value = deltaX - (contingenciesStates.get(p1.getPh1Var().getRow(), contingencyElement2.getComputedElementIndex())
                             - contingenciesStates.get(p1.getPh2Var().getRow(), contingencyElement2.getComputedElementIndex()));
                     matrix.set(i, j, value);
                 }
@@ -135,9 +126,8 @@ public class WoodburyEngine {
                 int i = contingencyElements.size() + actionElement.getLocalIndex();
                 LfBranch lfBranch = actionElement.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
-                int oldTapPosition = lfBranch.getPiModel().getTapPosition();
-                LfAction.TapPositionChange tapPositionChange = actionElement.getAction().getTapPositionChange();
-                int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
+
+                int newTapPosition = actionElement.getAction().getTapPositionChange().getNewTapPosition();
                 double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
                 rhs.set(i, 0, states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha);
 
@@ -153,8 +143,8 @@ public class WoodburyEngine {
                 for (ComputedActionElement actionElement2 : pstActionElements) {
                     int j = contingencyElements.size() + actionElement2.getLocalIndex();
                     // if on the diagonal of the matrix, add variation of reactance
-                    double value = (i == j) ? 1d / (calculatePower(lfBranch) - calculatePower(lfBranch, newTapPosition)) : 0d;
-                    value = value - (pstActionsStates.get(p1.getPh1Var().getRow(), actionElement2.getComputedElementIndex())
+                    double deltaX = (i == j) ? 1d / (calculatePower(lfBranch) - calculatePower(lfBranch, newTapPosition)) : 0d;
+                    double value = deltaX - (pstActionsStates.get(p1.getPh1Var().getRow(), actionElement2.getComputedElementIndex())
                             - pstActionsStates.get(p1.getPh2Var().getRow(), actionElement2.getComputedElementIndex()));
                     matrix.set(i, j, value);
                 }

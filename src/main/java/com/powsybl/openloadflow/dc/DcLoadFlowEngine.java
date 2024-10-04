@@ -270,9 +270,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                     .map(LfAction::getTapPositionChange)
                     .filter(Objects::nonNull)
                     .forEach(tapPositionChange -> {
-                        LfBranch lfBranch = tapPositionChange.branch();
-                        int newTapPosition = tapPositionChange.isRelative() ? lfBranch.getPiModel().getTapPosition() + tapPositionChange.value()
-                                : tapPositionChange.value();
+                        LfBranch lfBranch = tapPositionChange.getLfBranch();
+                        int newTapPosition = tapPositionChange.getNewTapPosition();
                         loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
                                 dcVariableTypeDcEquationTypeEquation -> {
                                     int column = dcVariableTypeDcEquationTypeEquation.getColumn();

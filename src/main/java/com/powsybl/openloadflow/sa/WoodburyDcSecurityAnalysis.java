@@ -100,7 +100,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
         List<ComputedActionElement> actionElements = lfActions.stream()
-                .map(lfAction -> lfAction.getTapPositionChange().branch().getId())
+                .map(lfAction -> lfAction.getTapPositionChange().getLfBranch().getId())
                 .map(computedActionElements::get)
                 .collect(Collectors.toList());
 
@@ -312,7 +312,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     .map(lfAction -> new ComputedActionElement(lfAction, context.getEquationSystem()))
                     .filter(computedActionElement -> computedActionElement.getLfBranchEquation() != null)
                     .collect(Collectors.toMap(
-                            computedActionElement -> computedActionElement.getAction().getTapPositionChange().branch().getId(),
+                            computedActionElement -> computedActionElement.getAction().getTapPositionChange().getLfBranch().getId(),
                             computedActionElement -> computedActionElement,
                             (existing, replacement) -> existing,
                             LinkedHashMap::new
