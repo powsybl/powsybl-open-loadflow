@@ -347,7 +347,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     private static <T> ArrayList<T> ensureMutable(List<T> orig) {
-        return orig instanceof ArrayList<T> arrayList? arrayList : new ArrayList<>(orig);
+        return orig instanceof ArrayList<T> arrayList ? arrayList : new ArrayList<>(orig);
     }
 
     static NetworkResult mergeNetworkResult(NetworkResult source, NetworkResult target) {
