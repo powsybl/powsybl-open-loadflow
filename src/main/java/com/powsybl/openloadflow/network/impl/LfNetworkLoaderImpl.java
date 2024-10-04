@@ -587,21 +587,40 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static boolean checkBoundariesComponent(Area area, int numCC, int numSC) {
-        boolean allBoundariesInSameComponent = true;
-        for (AreaBoundary areaBoundary : area.getAreaBoundaries()) {
-            // boundary may be defined either by a terminal or by a DanglingLine boundary
-            final Terminal terminal = areaBoundary.getTerminal()
-                    .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getDanglingLine().getTerminal());
-            // this bus is in the same component as the boundary
-            final Bus bus = terminal.getBusView().getBus();
+        List<Bus> boundaryBuses = area.getAreaBoundaryStream()
+                .map(areaBoundary -> areaBoundary.getTerminal()
+                        .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getDanglingLine().getTerminal()))
+                .map(t -> t.getBusView().getBus())
+                .filter(Objects::nonNull)
+                .toList();
 
-            if (bus != null && bus.getConnectedComponent() != null && (bus.getConnectedComponent().getNum() != numCC || bus.getSynchronousComponent().getNum() != numSC)) {
+        List<Integer> connectedComponents = boundaryBuses.stream()
+                .map(Bus::getConnectedComponent)
+                .filter(Objects::nonNull)
+                .map(Component::getNum)
+                .distinct()
+                .sorted()
+                .toList();
+
+        List<Integer> synchronousComponents = boundaryBuses.stream()
+                .map(Bus::getSynchronousComponent)
+                .filter(Objects::nonNull)
+                .map(Component::getNum)
+                .distinct()
+                .sorted()
+                .toList();
+
+        if (connectedComponents.size() > 1 && synchronousComponents.size() > 1) {
+            if (connectedComponents.get(0) == numCC && synchronousComponents.get(0) == numSC) {
+                // to avoid logging the same warn multiple times
                 LOGGER.warn("Area {} does not have all its areaBoundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
-                allBoundariesInSameComponent = false;
-                break;
             }
+            return false;
+        } else if (!connectedComponents.contains(numCC) || !synchronousComponents.contains(numSC)) {
+            LOGGER.debug("Area {} has buses in component ({}, {}) but has no boundary in it, this part of the area will not be considered for area interchange control", area.getId(), numCC, numSC);
+            return false;
         }
-        return allBoundariesInSameComponent;
+        return true;
     }
 
     private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext,
