@@ -215,6 +215,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 .toList();
     }
 
+    /**
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling.
+     * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
+     */
     public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
         return run(loadFlowContext, disabledNetwork, reportNode, new ArrayList<>());
     }
@@ -223,7 +227,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
      * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
-    public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> lfActions) {
+    public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> pstActions) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -260,10 +264,11 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                     .forEach(column -> targetVectorArray[column] = 0);
         }
 
-        if (!lfActions.isEmpty()) {
+        if (!pstActions.isEmpty()) {
             // set transformer phase shift to new shifting value
-            lfActions.stream()
+            pstActions.stream()
                     .map(LfAction::getTapPositionChange)
+                    .filter(Objects::nonNull)
                     .forEach(tapPositionChange -> {
                         LfBranch lfBranch = tapPositionChange.branch();
                         int newTapPosition = tapPositionChange.isRelative() ? lfBranch.getPiModel().getTapPosition() + tapPositionChange.value()
