@@ -320,7 +320,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ComputedElement.setComputedElementIndexes(computedActionElements.values());
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, computedActionElements.values());
 
-            // save base state for later restoration after each contingency
+            // save base state for later restoration after each contingency/action
             NetworkState networkState = NetworkState.save(lfNetwork);
 
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();

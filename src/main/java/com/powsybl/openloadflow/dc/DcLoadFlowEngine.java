@@ -267,14 +267,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 int tapPosition = lfBranch.getPiModel().getTapPosition();
                 int value = tapPositionChange.value();
                 int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
-                lfBranch.getPiModel().setTapPosition(newTapPosition);
                 loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
                         dcVariableTypeDcEquationTypeEquation -> {
                             int column = dcVariableTypeDcEquationTypeEquation.getColumn();
-                            targetVectorArray[column] = lfBranch.getPiModel().getA1();
+                            targetVectorArray[column] = lfBranch.getPiModel().getA1(newTapPosition);
                         }
                 );
-                lfBranch.getPiModel().setTapPosition(tapPosition);
             });
         }
 

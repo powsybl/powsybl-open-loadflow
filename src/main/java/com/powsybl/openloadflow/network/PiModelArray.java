@@ -53,6 +53,10 @@ public class PiModelArray implements PiModel {
         return models.get(tapPositionIndex);
     }
 
+    public PiModel getModel(int tapPositionIndex) {
+        return models.get(tapPositionIndex);
+    }
+
     @Override
     public double getR() {
         return getModel().getR();
@@ -129,6 +133,11 @@ public class PiModelArray implements PiModel {
     @Override
     public double getA1() {
         return Double.isNaN(a1) ? getModel().getA1() : a1;
+    }
+
+    @Override
+    public double getA1(int tapPosition) {
+        return getModel(tapPosition).getA1();
     }
 
     @Override
