@@ -214,14 +214,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
-            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
-            slackBuses = selectedSlackBus.getBuses().stream()
-                    .filter(bus -> !excludedSlackBuses.contains(bus))
-                    .toList();
+            List<LfBus> selectableBus = busesByIndex.stream()
+                .filter(bus -> !excludedSlackBuses.contains(bus))
+                .toList();
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBus, maxSlackBusCount);
+            slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
-                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(busesByIndex, excludedSlackBuses.size() + maxSlackBusCount);
+                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBus, excludedSlackBuses.size() + maxSlackBusCount);
                 slackBuses = selectedSlackBus.getBuses().stream()
-                        .filter(bus -> !excludedSlackBuses.contains(bus))
                         .limit(maxSlackBusCount)
                         .toList();
             }
