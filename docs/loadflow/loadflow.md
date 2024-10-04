@@ -158,7 +158,7 @@ The outer loop performs an active power distribution in each one of the selected
 in order to have all areas' active power interchanges matching their target interchanges.
 It can handle networks where part (or even all) of the buses are not in an area. For networks that have no areas at all, the behaviour will be the same as with the distributed slack outer loop.
 
-It is preformed in an iterative way. After each iteration, a load flow computation is run and the next iteration will apply its changes based on this new calculated network state.
+It is performed in an iterative way. After each iteration, a load flow computation is run and the next iteration will apply its changes based on this new calculated network state.
 Currently, the area interchange outer loop is only supported for AC load flows.
 
 ### Algorithm description
