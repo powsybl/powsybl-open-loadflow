@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -372,8 +373,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return loadsById.get(id);
     }
 
-    public List<LfArea> getAreas() {
-        return new ArrayList<>(areasById.values());
+    public Stream<LfArea> getAreaStream() {
+        return areasById.values().stream();
+    }
+
+    public boolean hasArea() {
+        return !areasById.isEmpty();
     }
 
     public LfArea getAreaById(String id) {

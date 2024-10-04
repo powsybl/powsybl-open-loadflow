@@ -61,7 +61,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     @Override
     public void initialize(AcOuterLoopContext context) {
         LfNetwork network = context.getNetwork();
-        if (network.getAreas().isEmpty()) {
+        if (!network.hasArea()) {
             noAreaOuterLoop.initialize(context);
             return;
         }
@@ -71,8 +71,8 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
-        List<LfArea> areas = context.getNetwork().getAreas();
-        if (areas.isEmpty()) {
+        LfNetwork network = context.getNetwork();
+        if (!network.hasArea()) {
             return noAreaOuterLoop.check(context, reportNode);
         }
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
@@ -80,7 +80,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         Map<String, Double> areaSlackDistributionParticipationFactor = contextData.getAreaSlackDistributionParticipationFactor();
 
         // First, we balance the areas that have a mismatch in their interchange power flow, and take the slack mismatch into account.
-        Map<LfArea, Double> areaInterchangeWithSlackMismatches = areas.stream()
+        Map<LfArea, Double> areaInterchangeWithSlackMismatches = network.getAreaStream()
                 .collect(Collectors.toMap(area -> area, area -> getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor)));
         List<LfArea> areasToBalance = areaInterchangeWithSlackMismatches.entrySet().stream()
                 .filter(entry -> {
@@ -93,10 +93,11 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         if (areasToBalance.isEmpty()) {
             // Balancing takes the slack mismatch of the Areas into account. Now that the balancing is done, we check only the interchange power flow mismatch.
             // Doing this we make sure that the Areas' interchange targets have been reached and that the slack is correctly distributed.
-            Map<String, Double> areaInterchangeMismatches = areas.stream().filter(area -> {
-                double areaInterchangeMismatch = getInterchangeMismatch(area);
-                return !lessThanInterchangeMaxMismatch(areaInterchangeMismatch);
-            }).collect(Collectors.toMap(LfArea::getId, this::getInterchangeMismatch));
+            Map<String, Double> areaInterchangeMismatches = network.getAreaStream()
+                    .filter(area -> {
+                        double areaInterchangeMismatch = getInterchangeMismatch(area);
+                        return !lessThanInterchangeMaxMismatch(areaInterchangeMismatch);
+                    }).collect(Collectors.toMap(LfArea::getId, this::getInterchangeMismatch));
 
             if (areaInterchangeMismatches.isEmpty() && lessThanSlackBusMaxMismatch(slackBusActivePowerMismatch)) {
                 LOGGER.debug("Already balanced");
@@ -115,7 +116,8 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
                 if (lessThanSlackBusMaxMismatch(mismatchToSplitAmongAreas)) {
                     return buildOuterLoopResult(remainingMismatchMap, resultNoArea, reportNode, context);
                 } else {
-                    remainingMismatchMap = areas.stream().collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), mismatchToSplitAmongAreas / areas.size())));
+                    int areasCount = (int) network.getAreaStream().count();
+                    remainingMismatchMap = network.getAreaStream().collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), mismatchToSplitAmongAreas / areasCount)));
                     Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(remainingMismatchMap);
                     return buildOuterLoopResult(remainingMismatchMap, resultByArea, reportNode, context);
                 }
