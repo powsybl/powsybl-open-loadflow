@@ -415,13 +415,13 @@ class OpenLoadFlowParametersTest {
     @Test
     void testSlackDistributionOuterLoops() {
         LoadFlowParameters parameters = new LoadFlowParameters()
-                .setShuntCompensatorVoltageControlOn(true);
+                .setDistributedSlack(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
 
-        assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setAreaInterchangeControl(true);
-        assertEquals(List.of("AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("DistributedSlack", "AreaInterchangeControl"));
         assertEquals(List.of("AreaInterchangeControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
