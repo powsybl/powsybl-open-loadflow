@@ -57,15 +57,26 @@ public class WoodburyEngine {
         return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
+    private double calculatePower(LfBranch lfbranch, int tapPosition) {
+        PiModel piModel = lfbranch.getPiModel().getModel(tapPosition);
+        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
+    }
+
+    double getMatrixValue(boolean onDiagonal, double oldPower, double newPower, DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, ComputedElement element) {
+        double deltaX = onDiagonal ? 1d / (oldPower - newPower) : 0d;
+        return deltaX - (states.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
+                - states.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
+    }
+
     /**
      * Compute the flow transfer factors needed to calculate the post-contingency state values.
      */
-    // TODO : for now, only works if there is a contingency to be computed in woodbury engine
     private void setAlphas(DenseMatrix states, int columnState) {
-        if (contingencyElements.size() == 1 && pstActionElements.isEmpty()) { // TODO : modify to use same logic when there is only 1 action
+        if (contingencyElements.size() == 1 && pstActionElements.isEmpty()) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
+
             // we solve a*alpha = b
             double a = 1d / calculatePower(lfBranch) - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
@@ -76,18 +87,14 @@ public class WoodburyEngine {
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
-            // TODO : remove this after refactoring
             int oldTapPosition = lfBranch.getPiModel().getTapPosition();
             LfAction.TapPositionChange tapPositionChange = element.getAction().getTapPositionChange();
             int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
-            tapPositionChange.branch().getPiModel().setTapPosition(newTapPosition);
-            double powerAfterModif = calculatePower(lfBranch);
-            double newAlpha = lfBranch.getPiModel().getA1();
-            tapPositionChange.branch().getPiModel().setTapPosition(oldTapPosition);
+            double powerAfterModif = calculatePower(lfBranch, newTapPosition);
+            double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
             double powerBeforeModif = calculatePower(lfBranch);
-            double value = 1d / (powerBeforeModif - powerAfterModif);
 
-            double a = value - (pstActionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
+            double a = 1d / (powerBeforeModif - powerAfterModif) - (pstActionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - pstActionsStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
             element.setAlphaForWoodburyComputation(b / a);
@@ -100,63 +107,56 @@ public class WoodburyEngine {
             DenseMatrix matrix = new DenseMatrix(size, size);
 
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
+                int i = contingencyElement.getLocalIndex();
                 LfBranch lfBranch = contingencyElement.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = contingencyElement.getLfBranchEquation();
-                rhs.set(contingencyElement.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
-                        - states.get(p1.getPh2Var().getRow(), columnState)
-                );
-                // loop on contingencies to fill up-left part of the matrix
+                rhs.set(i, 0, states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState));
+
+                // loop on contingencies to fill top-left quadrant of the matrix
                 for (ComputedContingencyElement contingencyElement2 : contingencyElements) {
-                    double value = 0d;
-                    if (contingencyElement.equals(contingencyElement2)) {
-                        value = 1d / calculatePower(lfBranch);
-                    }
+                    int j = contingencyElement2.getLocalIndex();
+                    // if on the diagonal of the matrix, add variation of reactance
+                    double value = (i == j) ? 1d / calculatePower(lfBranch) : 0d;
                     value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), contingencyElement2.getComputedElementIndex())
                             - contingenciesStates.get(p1.getPh2Var().getRow(), contingencyElement2.getComputedElementIndex()));
-                    matrix.set(contingencyElement.getLocalIndex(), contingencyElement2.getLocalIndex(), value);
+                    matrix.set(i, j, value);
                 }
 
-                // loop on actions to fill up-right part of the matrix
+                // loop on actions to fill top-right quadrant of the matrix
                 for (ComputedActionElement actionElement : pstActionElements) {
+                    int j = contingencyElements.size() + actionElement.getLocalIndex();
                     double value = -(pstActionsStates.get(p1.getPh1Var().getRow(), actionElement.getComputedElementIndex())
                             - pstActionsStates.get(p1.getPh2Var().getRow(), actionElement.getComputedElementIndex()));
-                    matrix.set(contingencyElement.getLocalIndex(), contingencyElements.size() + actionElement.getLocalIndex(), value);
+                    matrix.set(i, j, value);
                 }
             }
 
             for (ComputedActionElement actionElement : pstActionElements) {
+                int i = contingencyElements.size() + actionElement.getLocalIndex();
                 LfBranch lfBranch = actionElement.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
                 int oldTapPosition = lfBranch.getPiModel().getTapPosition();
                 LfAction.TapPositionChange tapPositionChange = actionElement.getAction().getTapPositionChange();
                 int newTapPosition = tapPositionChange.isRelative() ? oldTapPosition + tapPositionChange.value() : tapPositionChange.value();
-                tapPositionChange.branch().getPiModel().setTapPosition(newTapPosition);
-                double newAlpha = lfBranch.getPiModel().getA1();
-                tapPositionChange.branch().getPiModel().setTapPosition(oldTapPosition);
-                rhs.set(contingencyElements.size() + actionElement.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
-                        - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha
-                );
+                double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
+                rhs.set(i, 0, states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha);
 
-                // loop on contingencies to fill down-left part of the small matrix
+                // loop on contingencies to fill bottom-left quadrant of the matrix
                 for (ComputedContingencyElement contingencyElement : contingencyElements) {
+                    int j = contingencyElement.getLocalIndex();
                     double value = -(contingenciesStates.get(p1.getPh1Var().getRow(), contingencyElement.getComputedElementIndex())
                             - contingenciesStates.get(p1.getPh2Var().getRow(), contingencyElement.getComputedElementIndex()));
-                    matrix.set(contingencyElements.size() + actionElement.getLocalIndex(), contingencyElement.getLocalIndex(), value);
+                    matrix.set(i, j, value);
                 }
 
-                // loop on actions to fill down-right part of the matrix
+                // loop on actions to fill bottom-right quadrant of the matrix
                 for (ComputedActionElement actionElement2 : pstActionElements) {
-                    double value = 0d;
-                    if (actionElement.equals(actionElement2)) {
-                        tapPositionChange.branch().getPiModel().setTapPosition(newTapPosition);
-                        double powerAfterModif = calculatePower(lfBranch);
-                        tapPositionChange.branch().getPiModel().setTapPosition(oldTapPosition);
-                        double powerBeforeModif = calculatePower(lfBranch);
-                        value = 1d / (powerBeforeModif - powerAfterModif);
-                    }
+                    int j = contingencyElements.size() + actionElement2.getLocalIndex();
+                    // if on the diagonal of the matrix, add variation of reactance
+                    double value = (i == j) ? 1d / (calculatePower(lfBranch) - calculatePower(lfBranch, newTapPosition)) : 0d;
                     value = value - (pstActionsStates.get(p1.getPh1Var().getRow(), actionElement2.getComputedElementIndex())
                             - pstActionsStates.get(p1.getPh2Var().getRow(), actionElement2.getComputedElementIndex()));
-                    matrix.set(contingencyElements.size() + actionElement.getLocalIndex(), contingencyElements.size() + actionElement2.getLocalIndex(), value);
+                    matrix.set(i, j, value);
                 }
             }
             try (LUDecomposition lu = matrix.decomposeLU()) {
