@@ -89,7 +89,8 @@
         "generatorVoltageControlMinNominalVoltage" : -1.0,
         "fictitiousGeneratorVoltageControlCheckMode" : "FORCED",
         "areaInterchangeControl" : false,
-        "areaInterchangeControlAreaType" : "ControlArea"
+        "areaInterchangeControlAreaType" : "ControlArea",
+        "areaInterchangePMaxMismatch" : 1.0
       }
     }
   },

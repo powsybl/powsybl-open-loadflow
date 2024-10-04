@@ -38,7 +38,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (parametersExt.isAreaInterchangeControl()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
-            return Optional.of(new AreaInterchangeControlOuterloop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
+            return Optional.of(new AreaInterchangeControlOuterloop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
         }
         return Optional.empty();
     }

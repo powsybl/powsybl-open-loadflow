@@ -40,7 +40,8 @@ class AreaInterchangeControlTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setAreaInterchangeControl(true)
-                .setSlackBusPMaxMismatch(1e-3);
+                .setSlackBusPMaxMismatch(1e-3)
+                .setAreaInterchangePMaxMismatch(1e-1);
     }
 
     @Test
@@ -125,7 +126,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTwoXNodes();
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                 .setSlackBusId("bx1_vl_0");
-        var result = runLfTwoAreas(network, -15, 15, -30, 13);
+        var result = runLfTwoAreas(network, -15, 15, -30, 6);
         List<LoadFlowResult.SlackBusResult> slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
         assertEquals(1, slackBusResults.size());
         assertEquals("bx1_vl_0", slackBusResults.get(0).getId());
@@ -137,7 +138,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTwoXNodes();
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                 .setSlackBusId("bx2_vl_0");
-        var result = runLfTwoAreas(network, -15, 15, -30, 13);
+        var result = runLfTwoAreas(network, -15, 15, -30, 6);
         List<LoadFlowResult.SlackBusResult> slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
         assertEquals(1, slackBusResults.size());
         assertEquals("bx2_vl_0", slackBusResults.get(0).getId());
@@ -212,13 +213,14 @@ class AreaInterchangeControlTest {
         area2.setInterchangeTarget(interchangeTarget2);
 
         var result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
 
         var componentResult = result.getComponentResults().get(0);
-        assertEquals(interchangeTarget1, area1.getInterchange(), 1e-3);
-        assertEquals(interchangeTarget2, area2.getInterchange(), 1e-3);
+        assertEquals(interchangeTarget1, area1.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
+        assertEquals(interchangeTarget2, area2.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
         assertEquals(expectedDistributedP, componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
-        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
         return result;
     }
 

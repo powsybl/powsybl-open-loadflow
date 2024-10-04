@@ -87,7 +87,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        assertEquals(70, provider.getSpecificParameters().size());
+        assertEquals(71, provider.getSpecificParameters().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
@@ -110,7 +110,7 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
-        assertEquals(70, map.size());
+        assertEquals(71, map.size());
         assertEquals(provider.getSpecificParameters().size(), map.size());
     }
 
