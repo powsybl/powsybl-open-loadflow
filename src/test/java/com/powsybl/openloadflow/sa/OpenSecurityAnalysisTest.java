@@ -302,7 +302,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testNoRemainingLoad() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -3782,5 +3781,54 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // This contingency will cut off bus with highest voltage level
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l23"))));
         assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, Collections.emptyList(), Collections.emptyList(), ReportNode.NO_OP));
+    }
+    
+    @Test
+    void testNoRemainingGenerator2() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        List<Contingency> contingencies = List.of(new Contingency("GEN", new GeneratorContingency("GEN")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setTransformerVoltageControlOn(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setMaxRealisticVoltage(1.5);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
+
+        // FIXME: this test passes, but only because of the unrealistic state check, the NR is converging to I don't know really what.
+        //  This is strange, we don't have any voltage control anymore, should not be converging.
+        assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+    }
+
+    @Test
+    void testOneBus() {
+        Network network = Network.create("test", "code");
+        VoltageLevel vl1 = network.newVoltageLevel()
+                .setId("VL1")
+                .setNominalV(400.)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("B1")
+                .add();
+        vl1.newGenerator()
+                .setId("G1")
+                .setMinP(0.)
+                .setMaxP(100.)
+                .setConnectableBus("B1")
+                .setBus("B1")
+                .setTargetP(10.)
+                .setTargetV(400.)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        List<Contingency> contingencies = List.of(new Contingency("G1", new GeneratorContingency("G1")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters);
+        // FIXME: PowsyblException: Expected to have same number of equations (2) and variables (1)
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
+
+        assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
 }
