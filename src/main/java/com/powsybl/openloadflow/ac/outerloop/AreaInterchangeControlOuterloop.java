@@ -42,9 +42,12 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
 
     private final ActivePowerDistribution activePowerDistribution;
 
+    private final AcOuterLoop noAreaOuterLoop;
+
     public AreaInterchangeControlOuterloop(ActivePowerDistribution activePowerDistribution, double areaInterchangePMaxMismatch) {
         this.activePowerDistribution = Objects.requireNonNull(activePowerDistribution);
         this.areaInterchangePMaxMismatch = areaInterchangePMaxMismatch;
+        this.noAreaOuterLoop = new DistributedSlackOuterLoop(activePowerDistribution, areaInterchangePMaxMismatch);
     }
 
     @Override
@@ -55,6 +58,10 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     @Override
     public void initialize(AcOuterLoopContext context) {
         LfNetwork network = context.getNetwork();
+        if (network.getAreas().isEmpty()) {
+            noAreaOuterLoop.initialize(context);
+            return;
+        }
         var contextData = new AreaInterchangeControlContextData(listBusesWithoutArea(network), allocateSlackDistributionParticipationFactors(network));
         context.setData(contextData);
     }
@@ -62,6 +69,9 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         List<LfArea> areas = context.getNetwork().getAreas();
+        if (areas.isEmpty()) {
+            return noAreaOuterLoop.check(context, reportNode);
+        }
         double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
         AreaInterchangeControlContextData contextData = (AreaInterchangeControlContextData) context.getData();
         Map<String, Double> areaSlackDistributionParticipationFactor = contextData.getAreaSlackDistributionParticipationFactor();
@@ -90,18 +100,18 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             } else {
                 // If some mismatch remains, we distribute it on the buses without area
                 double mismatchToDistributeOnBusesWithoutArea = -areaInterchangeMismatches.values().stream().mapToDouble(m -> m).sum() + getSlackInjection(DEFAULT_NO_AREA_NAME, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor);
-                Map<String, Pair<Set<LfBus>, Double>> remainingMismatchMap = new HashMap<>();
                 Set<LfBus> busesWithoutArea = contextData.getBusesWithoutArea();
+                Map<String, Pair<Set<LfBus>, Double>> remainingMismatchMap = new HashMap<>();
                 remainingMismatchMap.put(DEFAULT_NO_AREA_NAME, Pair.of(busesWithoutArea, mismatchToDistributeOnBusesWithoutArea));
-                Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(remainingMismatchMap);
+                Map<String, ActivePowerDistribution.Result> resultNoArea = distributeActivePower(remainingMismatchMap);
 
                 // If some mismatch remains (when there is no buses without area that participate for example) and the network has areas, we distribute equally among the areas.
-                double mismatchToSplitAmongAreas = resultByArea.get(DEFAULT_NO_AREA_NAME).remainingMismatch();
+                double mismatchToSplitAmongAreas = resultNoArea.get(DEFAULT_NO_AREA_NAME).remainingMismatch();
                 if (lessThanMaxMismatch(mismatchToSplitAmongAreas) || areas.isEmpty()) {
-                    return buildOuterLoopResult(remainingMismatchMap, resultByArea, reportNode, context);
+                    return buildOuterLoopResult(remainingMismatchMap, resultNoArea, reportNode, context);
                 } else {
                     remainingMismatchMap = areas.stream().collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), mismatchToSplitAmongAreas / areas.size())));
-                    resultByArea = distributeActivePower(remainingMismatchMap);
+                    Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(remainingMismatchMap);
                     return buildOuterLoopResult(remainingMismatchMap, resultByArea, reportNode, context);
                 }
             }
