@@ -156,7 +156,7 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("areaInterchangeControlAreaMismatch", "Remaining mismatch for Area ${area}: ${mismatch} MW")
                 .withUntypedValue("area", area)
-                .withUntypedValue(MISMATCH, mismatch)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
@@ -165,7 +165,7 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("areaInterchangeControlAreaDistributionSuccess", "Area ${area} interchange mismatch (${mismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
                 .withUntypedValue("area", area)
-                .withUntypedValue(MISMATCH, mismatch)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
