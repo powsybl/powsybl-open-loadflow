@@ -32,6 +32,7 @@ public final class Reports {
     private static final String BUS_ID = "busId";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
+    public static final String MISMATCH = "mismatch";
 
     public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
     }
@@ -130,7 +131,7 @@ public final class Reports {
     public static void reportMismatchDistributionFailure(ReportNode reportNode, double remainingMismatch) {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionFailure", "Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
-                .withTypedValue("mismatch", remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue(MISMATCH, remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
@@ -144,19 +145,28 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaMismatchDistributionFailure(ReportNode reportNode, String areaMismatchesString) {
-        reportNode.newReportNode()
-                .withMessageTemplate("areaInterchangeControlFailure", "Failed to distribute interchange active power mismatch. Remaining mismatches (with iterations) : ${areaMismatchesString}")
-                .withUntypedValue("areaMismatchesString", areaMismatchesString)
+    public static ReportNode reportAreaInterchangeControlDistributionFailure(ReportNode reportNode) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlDistributionFailure", "Failed to distribute interchange active power mismatch")
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
-    public static void reportAreaMismatchDistributionSuccess(ReportNode reportNode, String mismatches, int areasCount) {
+    public static void reportAreaInterchangeControlAreaMismatch(ReportNode reportNode, String area, double mismatch) {
         reportNode.newReportNode()
-                .withMessageTemplate("areaInterchangeControlSuccess", "Distributed area interchange mismatches (with iterations) : [${mismatches}]")
-                .withUntypedValue("areasCount", areasCount)
-                .withUntypedValue("mismatches", mismatches)
+                .withMessageTemplate("areaInterchangeControlAreaMismatch", "Remaining mismatch for Area ${area}: ${mismatch} MW")
+                .withUntypedValue("area", area)
+                .withUntypedValue(MISMATCH, mismatch)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaInterchangeControlAreaDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlAreaDistributionSuccess", "Area ${area} interchange mismatch (${mismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
+                .withUntypedValue("area", area)
+                .withUntypedValue(MISMATCH, mismatch)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
@@ -518,7 +528,7 @@ public final class Reports {
         ReportNode subReportNode = reportNode.newReportNode()
                 .withMessageTemplate("NRMismatch", "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}")
                 .withUntypedValue("equationType", acEquationType)
-                .withTypedValue("mismatch", mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue(MISMATCH, mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withUntypedValue("mismatchUnit", mismatchUnit)
                 .add();
 
