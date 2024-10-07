@@ -315,7 +315,7 @@ Newton-Raphson iterations report consist in reporting:
 The default value is an empty set of features to report.
 
 **networkCacheEnabled**  
-This parameter is used to run fast simulations by applying incremental modifications on the network directly to the Open Load Flow internal modelling.
+This parameter is used to run fast simulations by applying incremental modifications on the network directly to the Open Load Flow internal modeling.
 The cache mode allows faster runs when modifications on the network are light.
 Not all modifications types are supported yet, currently supported modifications are:
 - target voltage modification
