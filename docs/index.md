@@ -30,7 +30,7 @@ and topology changes involved in contingencies or in remedial actions.
 ### About controls
 
 Open Load Flow supports:
-- Generator and static var compensator voltage remote control through PQV bus modelling. It supports any kind of shared voltage control between controllers that can be generators, static var compensators, or VSC converter stations.
+- Generator and static var compensator voltage remote control through PQV bus modeling. It supports any kind of shared voltage control between controllers that can be generators, static var compensators, or VSC converter stations.
 - Static var compensator local voltage control with a slope (support the powsybl-core extension [VoltagePerReactivePowerControl](inv:powsyblcore:*:*:#remote-reactive-power-control-extension).
 - Local and remote phase control: phase tap changers can regulate active power flows or limit currents at given terminals.
 - Local and remote voltage control by transformers, including shared controls.
