@@ -148,7 +148,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             ReportNode failureReportNode = Reports.reportAreaInterchangeControlDistributionFailure(iterationReportNode);
             remainingMismatchByArea.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
                     LOGGER.error("Remaining mismatch for Area {}: {} MW", entry.getKey(), entry.getValue() * PerUnit.SB);
-                    Reports.reportAreaInterchangeControlAreaMismatch(failureReportNode, entry.getKey(), entry.getValue());
+                    Reports.reportAreaInterchangeControlAreaMismatch(failureReportNode, entry.getKey(), entry.getValue() * PerUnit.SB);
                 }
             );
             return distributionFailureResult(context, movedBuses, contextData, totalDistributedActivePower);
@@ -156,7 +156,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
             if (movedBuses) {
                 areas.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
                         LOGGER.info("Area {} interchange mismatch (${} MW) distributed in ${} distribution iteration(s)", entry.getKey(), entry.getValue().getValue() * PerUnit.SB, iterationsByArea.get(entry.getKey()));
-                        Reports.reportAreaInterchangeControlAreaDistributionSuccess(iterationReportNode, entry.getKey(), entry.getValue().getValue(), iterationsByArea.get(entry.getKey()));
+                        Reports.reportAreaInterchangeControlAreaDistributionSuccess(iterationReportNode, entry.getKey(), entry.getValue().getValue() * PerUnit.SB, iterationsByArea.get(entry.getKey()));
                     }
                 );
                 return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
