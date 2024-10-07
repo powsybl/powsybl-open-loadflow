@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.google.common.collect.ImmutableList;
 import com.powsybl.action.Action;
+import com.powsybl.action.LoadActionBuilder;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
@@ -3565,5 +3566,185 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency0.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l14").getTerminal1().getP(), networkResultContingency0.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency0.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void multiComponentSaTest() {
+        Network network = FourBusNetworkFactory.createWithTwoScs();
+        // Add a load on small component
+        network.getBusBreakerView().getBus("c1")
+                .getVoltageLevel().newLoad()
+                .setId("dummyLoad")
+                .setBus("c1")
+                .setConnectableBus("c1")
+                .setP0(1)
+                .setQ0(0)
+                .add();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+
+        List<Contingency> contingencies = List.of(new Contingency("l13", new BranchContingency("l13")),
+                new Contingency("dummyLoad", new LoadContingency("dummyLoad")));
+
+        // Monitor branch in both components
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "lc12", "lc12Bis"), emptySet(), emptySet())
+        );
+
+        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        NetworkResult preContingencyResults = results.getPreContingencyResult().getNetworkResult();
+        NetworkResult postContingencyResultsl13 = results.getPostContingencyResults().get(0).getNetworkResult();
+        NetworkResult postContingencyResultslc12Bis = results.getPostContingencyResults().get(1).getNetworkResult();
+
+        // Result for base case is available for all components
+        assertEquals(0.084, preContingencyResults.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.417, preContingencyResults.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.417, preContingencyResults.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.493, preContingencyResults.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.493, preContingencyResults.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Result for post contingency on l13 is available for part of the network on which the contingency has an impact
+        assertEquals(1.021, postContingencyResultsl13.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2.311, postContingencyResultsl13.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.310, postContingencyResultsl13.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // No impact on this component, no results
+        assertNull(postContingencyResultsl13.getBranchResult("lc12"));
+        assertNull(postContingencyResultsl13.getBranchResult("lc12Bis"));
+
+        // Result for post contingency on dummyLoad is available for part of the network on which the contingency has an impact
+        assertEquals(0.498, postContingencyResultslc12Bis.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498, postContingencyResultslc12Bis.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void multiComponentSaTestContingencyBothComponentsAndOperatorStrategy() {
+
+        Network network = FourBusNetworkFactory.createWithTwoScs();
+        // Add a load on small component
+        network.getBusBreakerView().getBus("c1")
+                .getVoltageLevel().newLoad()
+                .setId("dummyLoad")
+                .setBus("c1")
+                .setConnectableBus("c1")
+                .setP0(1)
+                .setQ0(0)
+                .add();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+
+        // This contingency should impact both components
+        List<Contingency> contingencies = List.of(new Contingency("compositeContingency", List.of(new BranchContingency("l13"), new LoadContingency("dummyLoad"))));
+
+        // Monitor branch in both components
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "lc12", "lc12Bis"), emptySet(), emptySet())
+        );
+
+        List<Action> actions = List.of(new TerminalsConnectionAction("open_l13", "l13", true),
+                new LoadActionBuilder().withId("dc2").withLoadId("dc2").withRelativeValue(false).withActivePowerValue(1).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("compositeContingency"), new TrueCondition(), List.of("open_l13", "dc2")));
+
+        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+        NetworkResult preContingencyResults = results.getPreContingencyResult().getNetworkResult();
+
+        // Result for base case is available for all components
+        assertEquals(0.084, preContingencyResults.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.417, preContingencyResults.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.417, preContingencyResults.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.493, preContingencyResults.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.493, preContingencyResults.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        NetworkResult postContingencyResults = results.getPostContingencyResults().get(0).getNetworkResult();
+
+        // Because contingency impact both networks, each simulation should output results for its components
+        // Results should then be merged in a single post contingency result
+        assertEquals(1.021, postContingencyResults.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2.311, postContingencyResults.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.310, postContingencyResults.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498, postContingencyResults.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498, postContingencyResults.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        NetworkResult operatorStrategyResult = results.getOperatorStrategyResults().get(0).getNetworkResult();
+
+        // Operator strategy is applied on both network and result should be merged and available
+        assertEquals(1.022, operatorStrategyResult.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2.311, operatorStrategyResult.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.311, operatorStrategyResult.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    /**
+     * FIXME Multiple initial components with an action reconnecting a line linking both components is not well supported
+     * This test give an example of inconsistent results for this specific case
+     */
+    @Test
+    void multipleComponentTerminalActionReconnect() {
+
+        Network network = FourBusNetworkFactory.createWithTwoScs();
+
+        // Add a line between two components and disconnect it
+        Line lB3C1 = network.newLine()
+            .setId("LB3C1")
+            .setBus1("b3")
+            .setConnectableBus1("b3")
+            .setBus2("c1")
+            .setConnectableBus2("c1")
+            .setR(0.0)
+            .setX(0.1)
+            .add();
+        lB3C1.getTerminal1().disconnect();
+
+        // Add a load on small component
+        network.getBusBreakerView().getBus("c1")
+            .getVoltageLevel().newLoad()
+            .setId("dummyLoad")
+            .setBus("c1")
+            .setConnectableBus("c1")
+            .setP0(1)
+            .setQ0(0)
+            .add();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+
+        // Dummy contingency
+        List<Contingency> contingencies = List.of(new Contingency("contingencyLoad", List.of(new LoadContingency("dummyLoad"))));
+
+        // Monitor branch in both components and line between them
+        List<StateMonitor> monitors = List.of(
+            new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "LB3C1", "lc12", "lc12Bis"), emptySet(), emptySet())
+        );
+
+        // This action will reconnect the two islands
+        List<Action> actions = List.of(new TerminalsConnectionAction("close_LB3C1", "LB3C1", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("contingencyLoad"), new TrueCondition(), List.of("close_LB3C1")));
+
+        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+        NetworkResult preContingencyResults = results.getPreContingencyResult().getNetworkResult();
+
+        // Result for base case is available for all components
+        assertNotNull(preContingencyResults.getBranchResult("l14"));
+        assertNotNull(preContingencyResults.getBranchResult("lc12"));
+        assertNotNull(preContingencyResults.getBranchResult("LB3C1"));
+
+        NetworkResult postContingencyResults = results.getPostContingencyResults().get(0).getNetworkResult();
+
+        // Contingency has no impact on first component, no result available
+        assertNull(postContingencyResults.getBranchResult("l14"));
+
+        // LB3C1 is on the second component, so result are available
+        assertNotNull(postContingencyResults.getBranchResult("lc12"));
+
+        NetworkResult operatorStrategyResult = results.getOperatorStrategyResults().get(0).getNetworkResult();
+
+        // Operator strategy with action reconnecting both components is not correctly supported
+        // No result on first component and results are available for the second
+        assertNull(operatorStrategyResult.getBranchResult("l14"));
+        assertNotNull(operatorStrategyResult.getBranchResult("lc12"));
+        assertNotNull(operatorStrategyResult.getBranchResult("LB3C1"));
     }
 }

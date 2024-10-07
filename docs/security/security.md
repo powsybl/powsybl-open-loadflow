@@ -28,3 +28,13 @@ Then the following would occur:
   - $distributedSlack(g1, cgt1)$ is `g1` contribution to distributed slack for the balancing of the `cgt1` "post-contingency" state.
 - Finally, in the "curative" state of contingency `ctg1`, the generator `g1` will solve to $initialTargetP(g1, ctg1) + 20 MW + distributedSlack(g1, curative1)$,
 where $distributedSlack(g1, curative1)$ is `g1` contribution to distributed slack for the balancing of the "curative" state.
+
+## Security analysis on multi components networks
+
+A temporary implementation for multi components analysis has been done to provide a minimal support of this feature.
+The approach is to execute a security analysis on each separated component and merge the results after all computations are done.
+However limitations remain until the core security analysis API evolves:
+
+- Convergence status of secondary components are not reported in precontingency status 
+- Convergence status of contingencies that affect multiple components are not reported (only the first run component's status)
+- Actions that change the topology of the network by connecting components not initially connected (using TerminalConnectionAction) are not supported
