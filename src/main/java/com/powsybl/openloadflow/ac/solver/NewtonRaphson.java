@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
+import com.powsybl.openloadflow.ac.UnrealisticVoltageCheck;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -172,30 +173,6 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
     }
 
-    private boolean isStateUnrealistic(ReportNode reportNode) {
-        Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
-        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
-            if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
-                double value = equationSystem.getStateVector().get(v.getRow());
-                if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
-                    busesOutOfNormalVoltageRange.put(network.getBus(v.getElementNum()).getId(), value);
-                }
-            }
-        }
-        if (!busesOutOfNormalVoltageRange.isEmpty()) {
-            if (LOGGER.isTraceEnabled()) {
-                for (var e : busesOutOfNormalVoltageRange.entrySet()) {
-                    LOGGER.trace("Bus '{}' has an unrealistic voltage magnitude: {} pu", e.getKey(), e.getValue());
-                }
-            }
-            LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
-                    busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
-
-            Reports.reportNewtonRaphsonBusesOutOfRealisticVoltageRange(reportNode, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
-        }
-        return !busesOutOfNormalVoltageRange.isEmpty();
-    }
-
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
@@ -236,7 +213,8 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
 
         // update network state variable
-        if (status == AcSolverStatus.CONVERGED && isStateUnrealistic(reportNode)) {
+        if (status == AcSolverStatus.CONVERGED &&
+                UnrealisticVoltageCheck.isStateUnrealistic(network, equationSystem, parameters, reportNode)) {
             status = AcSolverStatus.UNREALISTIC_STATE;
         }
 

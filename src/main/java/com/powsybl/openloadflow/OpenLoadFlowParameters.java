@@ -134,6 +134,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME = "slackDistributionFailureBehavior";
 
+    public static final String UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR_PARAM_NAME = "unrealisticVoltageCheckBehavior";
+
     public static final String VOLTAGE_REMOTE_CONTROL_PARAM_NAME = "voltageRemoteControl";
 
     public static final String GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME = "generatorReactivePowerRemoteControl";
@@ -336,6 +338,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, ParameterType.STRING, "Low impedance branch mode", LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LowImpedanceBranchMode.class), ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control", VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, ParameterType.STRING, "Behavior in case of slack distribution failure", SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackDistributionFailureBehavior.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+            new Parameter(UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR_PARAM_NAME, ParameterType.STRING, "Behavior in case of unrealistic voltage", NewtonRaphsonParameters.DEFAULT_UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR.name(), getEnumPossibleValues(NewtonRaphsonParameters.UnrealisticVoltageCheckBehavior.class)),
         new Parameter(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, ParameterType.BOOLEAN, "Load power factor is constant", LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, ParameterType.DOUBLE, "Plausible active power limit", LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Slack bus max active power mismatch", SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
@@ -434,6 +437,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private List<String> slackBusesIds = Collections.emptyList();
 
     private SlackDistributionFailureBehavior slackDistributionFailureBehavior = SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE;
+
+    private NewtonRaphsonParameters.UnrealisticVoltageCheckBehavior unrealisticVoltageCheckBehavior = NewtonRaphsonParameters.DEFAULT_UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR;
 
     private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE;
 
@@ -624,6 +629,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
+        return this;
+    }
+
+    public NewtonRaphsonParameters.UnrealisticVoltageCheckBehavior getUnrealisticVoltageCheckBehavior() {
+        return unrealisticVoltageCheckBehavior;
+    }
+
+    public OpenLoadFlowParameters setUnrealisticVoltageCheckBehavior(NewtonRaphsonParameters.UnrealisticVoltageCheckBehavior unrealisticVoltageCheckBehavior) {
+        this.unrealisticVoltageCheckBehavior = Objects.requireNonNull(unrealisticVoltageCheckBehavior);
         return this;
     }
 
@@ -1285,6 +1299,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
                 .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE))
                 .setSlackDistributionFailureBehavior(config.getEnumProperty(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, SlackDistributionFailureBehavior.class, SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE))
+                .setUnrealisticVoltageCheckBehavior(config.getEnumProperty(UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR_PARAM_NAME, NewtonRaphsonParameters.UnrealisticVoltageCheckBehavior.class, NewtonRaphsonParameters.DEFAULT_UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR))
                 .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                 .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
                 .setNewtonRaphsonStoppingCriteriaType(config.getEnumProperty(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, NewtonRaphsonStoppingCriteriaType.class, NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE))
@@ -1373,6 +1388,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltageRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME))
                 .ifPresent(prop -> this.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.valueOf(prop)));
+        Optional.ofNullable(properties.get(UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR_PARAM_NAME))
+                .ifPresent(prop -> this.setUnrealisticVoltageCheckBehavior(NewtonRaphsonParameters.UnrealisticVoltageCheckBehavior.valueOf(prop)));
         Optional.ofNullable(properties.get(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME))
                 .ifPresent(prop -> this.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))
@@ -1510,6 +1527,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
+        map.put(UNREALISTIC_VOLTAGE_CHECK_BEHAVIOR_PARAM_NAME, unrealisticVoltageCheckBehavior);
         map.put(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, voltageRemoteControl);
         map.put(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, lowImpedanceBranchMode);
         map.put(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, loadPowerFactorConstant);
@@ -1782,6 +1800,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
                 .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations())
+                .setUnrealisticVoltageCheckBehavior(parametersExt.getUnrealisticVoltageCheckBehavior())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
@@ -1915,6 +1934,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
                 extension1.getSlackBusesIds().equals(extension2.getSlackBusesIds()) &&
                 extension1.getSlackDistributionFailureBehavior() == extension2.getSlackDistributionFailureBehavior() &&
+                extension1.getUnrealisticVoltageCheckBehavior() == extension2.getUnrealisticVoltageCheckBehavior() &&
                 extension1.isVoltageRemoteControl() == extension2.isVoltageRemoteControl() &&
                 extension1.getLowImpedanceBranchMode() == extension2.getLowImpedanceBranchMode() &&
                 extension1.isLoadPowerFactorConstant() == extension2.isLoadPowerFactorConstant() &&
@@ -2008,6 +2028,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setSlackBusSelectionMode(extension.getSlackBusSelectionMode())
                     .setSlackBusesIds(new ArrayList<>(extension.getSlackBusesIds()))
                     .setSlackDistributionFailureBehavior(extension.getSlackDistributionFailureBehavior())
+                    .setUnrealisticVoltageCheckBehavior(extension.getUnrealisticVoltageCheckBehavior())
                     .setVoltageRemoteControl(extension.isVoltageRemoteControl())
                     .setLowImpedanceBranchMode(extension.getLowImpedanceBranchMode())
                     .setLoadPowerFactorConstant(extension.isLoadPowerFactorConstant())

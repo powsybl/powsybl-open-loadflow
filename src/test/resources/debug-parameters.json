@@ -23,6 +23,7 @@
         "slackBusSelectionMode" : "NAME",
         "slackBusesIds" : [ "b1_vl_0" ],
         "slackDistributionFailureBehavior" : "LEAVE_ON_SLACK_BUS",
+        "unrealisticVoltageCheckBehavior" : "FAIL_AT_UNREALISTIC_STATE_IN_ANY_ITERATION",
         "voltageRemoteControl" : true,
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
