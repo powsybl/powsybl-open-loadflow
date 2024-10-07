@@ -131,7 +131,9 @@ active power flow at each station is given by the formula below (HVDC line losse
 
 The HVDC line losses are described in a dedicated section further below.
 
-In both control modes (active power setpoint mode or in AC emulation mode), the target value $P$ is bounded by a maximum active power $P_{max}$ that can possibly be different from one direction to another.
+In both control modes (active power setpoint mode or in AC emulation mode), the target value $P$ is bounded by a maximum active power $P_{max}$ that can be either:
+- the `maxP` configured for the HVDC line,
+- or alternatively separate limit values for both directions using the [HVDC operator active power range iIDM extension](inv:powsyblcore:*:*:#hvdc-operator-active-power-range-extension)
 
 The reactive power flow on each side of the line depends on whether voltage regulation of the converters is enabled. If the voltage regulation is enabled, then the VSC converter behaves like a generator regulating the voltage. 
 Otherwise, reactive power of the converter at AC side is given by its reactive power setpoint.
