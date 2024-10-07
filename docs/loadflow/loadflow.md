@@ -1,6 +1,6 @@
-# Modelling and equations
+# Modeling and equations
 
-## Grid modelling
+## Grid modeling
 
 Open Load Flow computes power flows from IIDM grid model in bus/view topology. From the view, a very simple network, composed
 of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$ model for branches (lines, transformers, dangling lines, etc.):
@@ -11,16 +11,20 @@ of only buses and branches is created. In the graph vision, we rely on a $$\Pi$$
 - $A_1$ is the angle shifting on side 1, before the series impedance. For classical branches, the default value is zero ;
 - $\rho_1$ is the ratio of voltages between side 2 and side 1, before the series impedance. For classical branches, the default value is $1$.
 
-As the $\Pi$ model is created from IIDM grid modelling that locates its ratio and phase tap changers in side 1, $A_2$ and $\rho_2$ are always
+As the $\Pi$ model is created from IIDM grid modeling that locates its ratio and phase tap changers in side 1, $A_2$ and $\rho_2$ are always
 equal to zero and $1$. In case of a branch with voltage or phase control, the $\Pi$ model becomes an array. See below our model:
 
 ![Pi model](pi-model.svg){class="only-light"}
 ![Pi model](pi-model-dark-mode.svg){class="only-dark"}
 
+### HVDC line
+
+Open Load Flow also supports networks with HVDC lines (High Voltage Direct Current lines). An HVDC line is connected to the rest of the AC network through HVDC converter stations, that can be either LCC (Line-Commutated Converter) or VSC (Voltage-Source Converter).
+
 (ac-flow-computing)=
 ## AC flows computing
 
-AC flows computing in OpenLoadFLow relies on solving a system of non-linear squared equations, where unknown are voltage magnitude and phase angle at each bus of the network, implying that there are $2N$ unknown where $N$ is the number of buses. There are two equations per network bus, resulting in $2N$ equations. The nature of these $2$ equations depends on the type of the bus:
+AC flows computing in OpenLoadFLow relies on solving a system of non-linear squared equations, where the unknowns are voltage magnitude and phase angle at each bus of the network, implying that there are $2N$ unknowns where $N$ is the number of buses. There are two equations per network bus, resulting in $2N$ equations. The nature of these $2$ equations depends on the type of the bus:
 - PQ-bus: active and reactive balance are fixed at the bus,
 - PV-bus: active balance and voltage magnitude are fixed at the bus.
 
@@ -91,6 +95,54 @@ In that case only, the voltage equation at bus $b_1$ is replaced with:
 $$v_{b_1} + s \cdot q_{svc} = V^{c}_{b_1}$$
 
 Where $s$ is the slope of the static var compensator.
+
+### Computing HVDC power flow
+
+#### LCC converters
+
+LCC converters can be considered as fixed loads in the load flow. Indeed, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. 
+The active power flows from the rectifier station to the inverter station, is fixed, and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by:
+  - $P_{rectifier}= P$
+  - $P_{inverter}= (1 - LossFactor_{inverter}) * ((1 - LossFactor_{rectifier}) * (P - P_{LineLoss}))$
+
+Power flows are in load sign convention, the active power at the rectifier AC terminal is positive and the active power at the inverter AC terminal is negative.
+The HVDC line losses $P_{LineLoss}$ are described in a dedicated section further below.
+
+The reactive power consumption of each converter on AC side is determined by the configured converter power factor of the converter station in the grid model, representing the ratio between active power $P$ and apparent power $S$.
+For each converter, its target reactive power is given by:
+  - $Q=\mid P*\tan(\cos(powerfactor))\mid$
+
+Note that LCC converters are always absorbing reactive power.
+
+#### VSC converters
+
+VSC converters are self-commutated converters that can be assimilated to generators in the loadflow. There can be two main modes to control active power flow through the line:
+- In **active power setpoint** mode, as for LCC converters, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. The active power flow
+from the rectifier station to the inverter station is fixed and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by:
+  - $P_{rectifier}= P$
+  - $P_{inverter}= (1 - LossFactor_{inverter}) * ((1 - LossFactor_{rectifier}) * (P - P_{LineLoss}))$
+
+- In **AC emulation** mode, the active power flow between both stations is given by: $P = P_0 + k~(\theta_1 - \theta_2)$ 
+with $\theta_1$ and $\theta_2$ being the voltage angles at the bus connection for each converter station, and $P_0$ and $k$ being fixed parameters for the HVDC line. 
+If $P$ is positive, the converter station 1 is controller, else it is converter station 2. For example, if station 1 is controller, the
+active power flow at each station is given by the formula below (HVDC line losses are described in the next paragraph):
+  - $P_{controller} = P_0 + k~(\theta_1 - \theta_2)$
+  - $P_{noncontroller} = (1 - LossFactor_{noncontroller}) * ((1 - LossFactor_{controller}) * (P_0 + k~(\theta_1 - \theta_2) - P_{LineLoss}))$
+
+The HVDC line losses are described in a dedicated section further below.
+
+In both control modes (active power setpoint mode or in AC emulation mode), the target value $P$ is bounded by a maximum active power $P_{max}$ that can be either:
+- the `maxP` configured for the HVDC line,
+- or alternatively separate limit values for both directions using the [HVDC operator active power range iIDM extension](inv:powsyblcore:*:*:#hvdc-operator-active-power-range-extension)
+
+The reactive power flow on each side of the line depends on whether voltage regulation of the converters is enabled. If the voltage regulation is enabled, then the VSC converter behaves like a generator regulating the voltage. 
+Otherwise, reactive power of the converter at AC side is given by its reactive power setpoint.
+
+#### HVDC line losses
+
+In both cases of LCC and VSC, the power flows are impacted by losses of the converter stations. In addition to the converter losses, Joule effect (due to resistance in cable) implies line losses in the HVDC line.
+The HVDC line losses are calculated assuming nominal DC voltage: $P_{LineLoss} = Ri^2$ with $i = P_1 / V$ with $R$ being the HVDC line resistance, $P_1$ being the active power at the output of the controller
+station and $V$ being the HVDC nominal voltage (equals 1 per unit).
 
 ## DC flows computing
 
