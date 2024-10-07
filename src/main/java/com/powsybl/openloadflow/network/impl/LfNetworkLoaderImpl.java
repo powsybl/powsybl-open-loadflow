@@ -555,26 +555,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createAreas(int numCC, int numSC, LoadingContext loadingContext, List<LfNetworkLoaderPostProcessor> postProcessors, LfNetworkParameters parameters, LfNetwork network) {
+    private static void createAreas(LfNetwork network, LoadingContext loadingContext, List<LfNetworkLoaderPostProcessor> postProcessors, LfNetworkParameters parameters) {
         if (parameters.isAreaInterchangeControl()) {
             loadingContext.areaBusMap
                     .entrySet()
                     .stream()
                     .filter(e -> {
                         if (e.getKey().getAreaBoundaryStream().findAny().isEmpty()) {
-                            LOGGER.warn("Area {} does not have any area boundary. The area will not be considered for area interchange control", e.getKey().getId());
+                            LOGGER.warn("Network {}: Area {} does not have any area boundary. The area will not be considered for area interchange control", network, e.getKey().getId());
                             return false;
                         }
                         return true;
                     })
                     .filter(e -> {
                         if (e.getKey().getInterchangeTarget().isEmpty()) {
-                            LOGGER.warn("Area {} does not have an interchange target. The area will not be considered for area interchange control", e.getKey().getId());
+                            LOGGER.warn("Network {}: Area {} does not have an interchange target. The area will not be considered for area interchange control", network, e.getKey().getId());
                             return false;
                         }
                         return true;
                     })
-                    .filter(e -> checkBoundariesComponent(e.getKey(), numCC, numSC))
+                    .filter(e -> checkBoundariesComponent(network, e.getKey()))
                     .forEach(e -> {
                         Area area = e.getKey();
                         Set<LfBus> lfBuses = e.getValue();
@@ -586,7 +586,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static boolean checkBoundariesComponent(Area area, int numCC, int numSC) {
+    private static boolean checkBoundariesComponent(LfNetwork network, Area area) {
+        final int numCC = network.getNumCC();
+        final int numSC = network.getNumSC();
         List<Bus> boundaryBuses = area.getAreaBoundaryStream()
                 .map(areaBoundary -> areaBoundary.getTerminal()
                         .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getDanglingLine().getTerminal()))
@@ -613,11 +615,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (connectedComponents.size() > 1 && synchronousComponents.size() > 1) {
             if (connectedComponents.get(0) == numCC && synchronousComponents.get(0) == numSC) {
                 // to avoid logging the same warn multiple times
-                LOGGER.warn("Area {} does not have all its areaBoundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", area.getId());
+                LOGGER.warn("Network {}: Area {} does not have all its areaBoundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", network, area.getId());
             }
             return false;
         } else if (!connectedComponents.contains(numCC) || !synchronousComponents.contains(numSC)) {
-            LOGGER.debug("Area {} has buses in component ({}, {}) but has no boundary in it, this part of the area will not be considered for area interchange control", area.getId(), numCC, numSC);
+            LOGGER.debug("Network {}: Area {} has buses in component ({}, {}) but has no boundary in it, this part of the area will not be considered for area interchange control", network, area.getId(), numCC, numSC);
             return false;
         }
         return true;
@@ -903,7 +905,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
-        createAreas(numCC, numSC, loadingContext, postProcessors, parameters, lfNetwork);
+        createAreas(lfNetwork, loadingContext, postProcessors, parameters);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
