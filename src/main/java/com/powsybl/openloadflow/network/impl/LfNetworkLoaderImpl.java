@@ -562,6 +562,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     .stream()
                     .filter(e -> {
                         if (e.getKey().getAreaBoundaryStream().findAny().isEmpty()) {
+                            Reports.reportAreaNoInterchangeControl(network.getReportNode(), e.getKey().getId(), "Area does not have any area boundary");
                             LOGGER.warn("Network {}: Area {} does not have any area boundary. The area will not be considered for area interchange control", network, e.getKey().getId());
                             return false;
                         }
@@ -569,6 +570,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     })
                     .filter(e -> {
                         if (e.getKey().getInterchangeTarget().isEmpty()) {
+                            Reports.reportAreaNoInterchangeControl(network.getReportNode(), e.getKey().getId(), "Area does not have an interchange target");
                             LOGGER.warn("Network {}: Area {} does not have an interchange target. The area will not be considered for area interchange control", network, e.getKey().getId());
                             return false;
                         }
@@ -615,10 +617,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (connectedComponents.size() > 1 && synchronousComponents.size() > 1) {
             if (connectedComponents.get(0) == numCC && synchronousComponents.get(0) == numSC) {
                 // to avoid logging the same warn multiple times
-                LOGGER.warn("Network {}: Area {} does not have all its areaBoundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", network, area.getId());
+                Reports.reportAreaNoInterchangeControl(network.getReportNode(), area.getId(), "Area does not have all its boundary buses in the same connected component or synchronous component");
+                LOGGER.warn("Network {}: Area {} does not have all its boundary buses in the same connected component or synchronous component. The area will not be considered for area interchange control", network, area.getId());
             }
             return false;
         } else if (!connectedComponents.contains(numCC) || !synchronousComponents.contains(numSC)) {
+            // only debug level and do report here, this is very common on real networks and would just clutter the logs/reports
             LOGGER.debug("Network {}: Area {} has buses in component ({}, {}) but has no boundary in it, this part of the area will not be considered for area interchange control", network, area.getId(), numCC, numSC);
             return false;
         }

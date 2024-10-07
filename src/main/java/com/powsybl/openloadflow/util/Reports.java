@@ -145,6 +145,15 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportAreaNoInterchangeControl(ReportNode reportNode, String area, String reason) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaNoInterchangeControl", "Area ${area} will not be considered in area interchange control, reason: ${reason}")
+                .withUntypedValue("area", area)
+                .withUntypedValue("reason", reason)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static ReportNode reportAreaInterchangeControlDistributionFailure(ReportNode reportNode) {
         return reportNode.newReportNode()
                 .withMessageTemplate("areaInterchangeControlDistributionFailure", "Failed to distribute interchange active power mismatch")
