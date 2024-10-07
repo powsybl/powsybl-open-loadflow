@@ -640,16 +640,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
                 LOGGER.warn("Controlled bus '{}' already has a transformer voltage control with a different target voltage: {} and {}",
                         controlledBus.getId(), vc.getTargetValue(), targetValue);
+                Reports.reportTransformerControlAlreadyExistsWithDifferentTargetV(controlledBus.getNetwork().getReportNode(),
+                        vc.getControllerElements().get(0).getId(), controllerBranch.getId(), controlledBus.getId(),
+                        controlledBus.getNominalV() * vc.getTargetValue(), controlledBus.getNominalV() * targetValue);
             }
             vc.addControllerElement(controllerBranch);
             controllerBranch.setVoltageControl(vc);
             if (targetDeadband != null) {
                 Double oldTargetDeadband = vc.getTargetDeadband().orElse(null);
-                if (oldTargetDeadband == null) {
-                    vc.setTargetDeadband(targetDeadband);
-                } else {
-                    // merge target deadbands by taking minimum
-                    vc.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                // merge target deadbands by taking minimum
+                double newTargetDeadband = oldTargetDeadband == null ? targetDeadband : Math.min(oldTargetDeadband, targetDeadband);
+                vc.setTargetDeadband(newTargetDeadband);
+                if (oldTargetDeadband == null || newTargetDeadband != oldTargetDeadband) {
+                    Reports.reportTransformerControlAlreadyExistsUpdateDeadband(controlledBus.getNetwork().getReportNode(),
+                            vc.getControllerElements().get(0).getId(), controllerBranch.getId(), controlledBus.getId(),
+                            controlledBus.getNominalV() * newTargetDeadband, oldTargetDeadband == null ? null : controlledBus.getNominalV() * oldTargetDeadband);
                 }
             }
         }, () -> {

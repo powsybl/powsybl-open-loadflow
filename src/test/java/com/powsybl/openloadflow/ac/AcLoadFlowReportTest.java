@@ -219,4 +219,23 @@ class AcLoadFlowReportTest {
         LoadFlowAssert.assertReportEquals("/shuntVoltageControlDiscarded.txt", reportNode);
     }
 
+    @Test
+    void testTransformerControlAlreadyExistsWithDifferentTargetV() throws IOException {
+        Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger().setTargetV(34.5).setTargetDeadband(3.0);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/transformerControlAlreadyExistsWithDifferentTargetVReport.txt", reportNode);
+    }
 }
