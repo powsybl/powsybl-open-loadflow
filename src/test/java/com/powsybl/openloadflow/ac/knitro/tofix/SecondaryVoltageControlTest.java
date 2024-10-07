@@ -114,7 +114,7 @@ class SecondaryVoltageControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(13, b10);
         assertVoltageEquals(12.945, b6);
         assertVoltageEquals(23.839, b8);
@@ -124,7 +124,7 @@ class SecondaryVoltageControlTest {
         pilotPoint.setTargetV(13.5);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(13.5, b10);
         assertVoltageEquals(13.358, b6);
         assertVoltageEquals(25.621, b8);
@@ -134,7 +134,7 @@ class SecondaryVoltageControlTest {
         pilotPoint.setTargetV(12);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12, b10);
         assertVoltageEquals(12.151, b6);
         assertVoltageEquals(20.269, b8);
@@ -166,7 +166,7 @@ class SecondaryVoltageControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(11, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(11.736, b10); // 11.5 kV was not feasible
         assertVoltageEquals(11.924, b6);
@@ -191,11 +191,12 @@ class SecondaryVoltageControlTest {
         g8.setTargetV(19.5);
 
         parametersExt.setSecondaryVoltageControl(true);
+//        parametersExt.setAcSolverType(AcSolverType.NEWTON_RAPHSON);
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(14, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(22, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(15, b10);
         assertVoltageEquals(14.604, b6);
@@ -226,7 +227,7 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(9, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(142, b4);
         assertVoltageEquals(14.5, b10);
     }
@@ -250,7 +251,7 @@ class SecondaryVoltageControlTest {
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(9, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14.4, b10);
         assertVoltageEquals(14.151, b6);
         assertVoltageEquals(28.913, b8);
