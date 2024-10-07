@@ -238,6 +238,30 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double vcTargetValue, double targetValue) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlAlreadyExistsWithDifferentTargetV", "Transformers ${firstControllerId} and ${newControllerId} control voltage at bus ${controlledBusId} with different target voltages: ${vcTargetValue}kV (kept) and ${targetValue}kV (rejected)")
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("firstControllerId", firstControllerId)
+                .withUntypedValue("newControllerId", newControllerId)
+                .withUntypedValue("vcTargetValue", vcTargetValue)
+                .withUntypedValue("targetValue", targetValue)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double newTargetDeadband, Double oldTargetDeadband) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlAlreadyExistsUpdateDeadband", "Transformers ${firstControllerId} and ${newControllerId} control voltage at bus ${controlledBusId} with different deadbands, thinnest will be kept: ${newTargetDeadband}kV (kept) and ${oldTargetDeadband}kV (rejected)")
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("firstControllerId", firstControllerId)
+                .withUntypedValue("newControllerId", newControllerId)
+                .withUntypedValue("newTargetDeadband", newTargetDeadband)
+                .withUntypedValue("oldTargetDeadband", oldTargetDeadband == null ? "---" : oldTargetDeadband.toString())
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportTransformerControlBusesOutsideDeadband(ReportNode reportNode, int numTransformerControlBusesOutsideDeadband) {
         reportNode.newReportNode()
                 .withMessageTemplate("transformerControlBusesOutsideDeadband", "${numTransformerControlBusesOutsideDeadband} voltage-controlled buses are outside of their target deadbands")
