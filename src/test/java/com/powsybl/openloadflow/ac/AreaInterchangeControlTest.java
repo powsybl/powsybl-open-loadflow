@@ -147,7 +147,8 @@ class AreaInterchangeControlTest {
     @Test
     void networkWithoutAreas() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
-        parametersExt.setAreaInterchangeControl(false);
+        parameters.setDistributedSlack(false);
+        parametersExt.setAreaInterchangeControl(true);
         var result = loadFlowRunner.run(network, parameters);
         var componentResult = result.getComponentResults().get(0);
         assertEquals(1.998, componentResult.getDistributedActivePower(), 1e-3);
@@ -163,7 +164,7 @@ class AreaInterchangeControlTest {
         var result = loadFlowRunner.run(network, parameters);
 
         var componentResult = result.getComponentResults().get(0);
-        assertEquals(area1.getInterchangeTarget().getAsDouble(), area1.getInterchange(), 1e-3);
+        assertEquals(area1.getInterchangeTarget().orElseThrow(), area1.getInterchange(), 1e-3);
         assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(3, componentResult.getIterationCount());
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
@@ -182,8 +183,8 @@ class AreaInterchangeControlTest {
         var result = loadFlowRunner.run(network, parameters);
 
         var componentResult = result.getComponentResults().get(0);
-        assertEquals(area1.getInterchangeTarget().getAsDouble(), area1.getInterchange(), 1e-3);
-        assertEquals(area2.getInterchangeTarget().getAsDouble(), area2.getInterchange(), 1e-3);
+        assertEquals(area1.getInterchangeTarget().orElseThrow(), area1.getInterchange(), 1e-3);
+        assertEquals(area2.getInterchangeTarget().orElseThrow(), area2.getInterchange(), 1e-3);
         assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
@@ -199,7 +200,7 @@ class AreaInterchangeControlTest {
         var result = loadFlowRunner.run(network, parameters);
 
         var componentResult = result.getComponentResults().get(0);
-        assertEquals(area1.getInterchangeTarget().getAsDouble(), area1.getInterchange(), 1e-3);
+        assertEquals(area1.getInterchangeTarget().orElseThrow(), area1.getInterchange(), 1e-3);
         assertEquals(51.1, area2.getInterchange(), 1e-3); // has been ignored by area interchange control because all boundaries are not in the same component
         assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(3, componentResult.getIterationCount());
