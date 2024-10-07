@@ -33,7 +33,7 @@ where $distributedSlack(g1, curative1)$ is `g1` contribution to distributed slac
 
 A temporary implementation for multi components analysis has been done to provide a minimal support of this feature.
 The approach is to execute a security analysis on each separated component and merge the results after all computations are done.
-However limitations remain until the core security analysis API evolves :
+However limitations remain until the core security analysis API evolves:
 
 - Convergence status of secondary components are not reported in precontingency status 
 - Convergence status of contingencies that affect multiple components are not reported (only the first run component's status)
