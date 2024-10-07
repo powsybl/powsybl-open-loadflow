@@ -262,7 +262,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         NetworkResult mergedPreContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
         List<LimitViolation> preContingenctViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
 
-        if (lfParameters.getConnectedComponentMode().equals(LoadFlowParameters.ConnectedComponentMode.ALL)) {
+        if (lfParameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.ALL) {
             Map<String, PostContingencyResult> postContingencyResultMap = new LinkedHashMap<>();
             Map<String, OperatorStrategyResult> operatorStrategyResultMap = new LinkedHashMap<>();
             postContingencyResults.forEach(r -> postContingencyResultMap.put(r.getContingency().getId(), r));
@@ -282,7 +282,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOtherComponent.getPreContingencyResult().getNetworkResult());
 
                 // PostContingency and OperatorStrategies results
-                mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap);
+                mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
             }
             postContingencyResults = postContingencyResultMap.values().stream().toList();
             operatorStrategyResults = operatorStrategyResultMap.values().stream().toList();
@@ -295,12 +295,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     void mergeSecurityAnalysisResult(SecurityAnalysisResult resultToMerge, Map<String, PostContingencyResult> postContingencyResults,
-                                     Map<String, OperatorStrategyResult> operatorStrategyResults) {
+                                     Map<String, OperatorStrategyResult> operatorStrategyResults, int connectedComponentNum) {
         resultToMerge.getPostContingencyResults().forEach(postContingencyResult -> {
             String contingencyId = postContingencyResult.getContingency().getId();
             PostContingencyResult originalResult = postContingencyResults.get(contingencyId);
 
             if (originalResult != null) {
+                warnDifferentStatus(originalResult.getStatus(), postContingencyResult.getStatus(), connectedComponentNum, "post contingency", postContingencyResult.getContingency().getId());
                 NetworkResult mergedNetworkResult = mergeNetworkResult(originalResult.getNetworkResult(), postContingencyResult.getNetworkResult());
                 List<LimitViolation> violations = new ArrayList<>(postContingencyResult.getLimitViolationsResult().getLimitViolations());
                 violations.addAll(originalResult.getLimitViolationsResult().getLimitViolations());
@@ -326,6 +327,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                             .filter(originalConditionalActionResult -> originalConditionalActionResult.getConditionalActionsId().equals(conditionalActionsResult.getConditionalActionsId()))
                             .findAny();
                     if (originalRes.isPresent()) {
+                        warnDifferentStatus(originalRes.get().getStatus(), conditionalActionsResult.getStatus(), connectedComponentNum, "conditional actions", conditionalActionsResult.getConditionalActionsId());
                         NetworkResult mergedNetworkResult = mergeNetworkResult(originalRes.get().getNetworkResult(), conditionalActionsResult.getNetworkResult());
                         List<LimitViolation> violations = new ArrayList<>(conditionalActionsResult.getLimitViolationsResult().getLimitViolations());
                         violations.addAll(originalResult.getLimitViolationsResult().getLimitViolations());
@@ -344,6 +346,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 operatorStrategyResults.put(strategyId, operatorStrategyResult);
             }
         });
+    }
+
+    void warnDifferentStatus(PostContingencyComputationStatus mainStatus, PostContingencyComputationStatus subComponentStatus, int subComponentNum, String stage, String stageId) {
+        if (mainStatus != subComponentStatus) {
+            LOGGER.warn("Component {} {} {} result being merged has status {} while main connected component has status {}." +
+                    " Status of component {} will not be represented in the output.",
+                subComponentNum, stage, stageId, subComponentStatus, mainStatus, subComponentNum);
+        }
     }
 
     private static <T> ArrayList<T> ensureMutable(List<T> orig) {
