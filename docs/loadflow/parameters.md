@@ -82,15 +82,6 @@ The `slackBusCountryFilter` defines a list of countries where slack bus should b
 Countries are specified by their alpha 2 code (e.g. `FR`, `BE`, `DE`, ...).  
 The default value is an empty list (any country can be used for slack bus selection).
 
-**areaInterchangeControl**  
-The `areaInterchangeControl` property is an optional property that defines if the area interchange control outer loop is enabled. 
-If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.
-The default value is `false`.
-
-**areaInterchangeControlAreaType**  
-Defines the `areaType` of the areas on which the area interchange control is applied.
-Only the areas of the input network that have this type will be converted and considered.
-
 **loadPowerFactorConstant**  
 The `loadPowerFactorConstant ` property is an optional boolean property. This property is used in the outer loop that distributes slack on loads if :
 - `distributedSlack` property is set to true in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration),
@@ -128,6 +119,20 @@ The default value for `loadPowerFactorConstant` property is `false`.
 When slack distribution is enabled (`distributedSlack` set to `true` in LoadFlowParameters), this is the threshold below which slack power
 is considered to be distributed.  
 The default value is `1 MW` and it must be greater or equal to `0 MW`.
+
+**areaInterchangeControl**  
+The `areaInterchangeControl` property is an optional property that defines if the [area interchange control](loadflow.md#area-interchange-control) outer loop is enabled.
+If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.  
+The default value is `false`.
+
+**areaInterchangeControlAreaType**  
+Defines the `areaType` of the areas on which the [area interchange control](loadflow.md#area-interchange-control) is applied.
+Only the areas of the input network that have this type will be considered.  
+The default value is `ControlArea`.
+
+**areaInterchangePMaxMismatch**  
+Defines the maximum interchange mismatch tolerance for [area interchange control](loadflow.md#area-interchange-control).
+The default value is `2 MW` and it must be greater than `0 MW`.
 
 **voltageRemoteControl**  
 The `voltageRemoteControl` property is an optional property that defines if the remote control for voltage controllers has to be modeled.

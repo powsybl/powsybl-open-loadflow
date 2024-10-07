@@ -130,7 +130,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
 
-    public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 1.0;
+    public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
