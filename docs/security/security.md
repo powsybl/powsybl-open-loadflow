@@ -35,5 +35,6 @@ A temporary implementation for multi components analysis has been done to provid
 The approach is to execute a security analysis on each separated component and merge the results after all computations are done.
 However limitations remain until the core security analysis API evolves :
 
-- convergence status of secondary components are not reported in precontingency status 
-- convergence status of contingencies that affect multiple components are not reported (only the first run component's status)
+- Convergence status of secondary components are not reported in precontingency status 
+- Convergence status of contingencies that affect multiple components are not reported (only the first run component's status)
+- Actions that change the topology of the network by connecting components not initially connected (using TerminalConnectionAction) are not supported

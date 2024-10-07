@@ -3676,4 +3676,75 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    /**
+     * FIXME Multiple initial components with an action reconnecting a line linking both components is not well supported
+     * This test give an example of inconsistent results for this specific case
+     */
+    @Test
+    void multipleComponentTerminalActionReconnect() {
+
+        Network network = FourBusNetworkFactory.createWithTwoScs();
+
+        // Add a line between two components and disconnect it
+        Line lB3C1 = network.newLine()
+            .setId("LB3C1")
+            .setBus1("b3")
+            .setConnectableBus1("b3")
+            .setBus2("c1")
+            .setConnectableBus2("c1")
+            .setR(0.0)
+            .setX(0.1)
+            .add();
+        lB3C1.getTerminal1().disconnect();
+
+        // Add a load on small component
+        network.getBusBreakerView().getBus("c1")
+            .getVoltageLevel().newLoad()
+            .setId("dummyLoad")
+            .setBus("c1")
+            .setConnectableBus("c1")
+            .setP0(1)
+            .setQ0(0)
+            .add();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+
+        // Dummy contingency
+        List<Contingency> contingencies = List.of(new Contingency("contingencyLoad", List.of(new LoadContingency("dummyLoad"))));
+
+        // Monitor branch in both components and line between them
+        List<StateMonitor> monitors = List.of(
+            new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "LB3C1", "lc12", "lc12Bis"), emptySet(), emptySet())
+        );
+
+        // This action will reconnect the two islands
+        List<Action> actions = List.of(new TerminalsConnectionAction("close_LB3C1", "LB3C1", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("contingencyLoad"), new TrueCondition(), List.of("close_LB3C1")));
+
+        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+        NetworkResult preContingencyResults = results.getPreContingencyResult().getNetworkResult();
+
+        // Result for base case is available for all components
+        assertNotNull(preContingencyResults.getBranchResult("l14"));
+        assertNotNull(preContingencyResults.getBranchResult("lc12"));
+        assertNotNull(preContingencyResults.getBranchResult("LB3C1"));
+
+        NetworkResult postContingencyResults = results.getPostContingencyResults().get(0).getNetworkResult();
+
+        // Contingency has no impact on first component, no result available
+        assertNull(postContingencyResults.getBranchResult("l14"));
+
+        // LB3C1 is on the second component, so result are available
+        assertNotNull(postContingencyResults.getBranchResult("lc12"));
+
+        NetworkResult operatorStrategyResult = results.getOperatorStrategyResults().get(0).getNetworkResult();
+
+        // Operator strategy with action reconnecting both components is not correctly supported
+        // No result on first component and results are available for the second
+        assertNull(operatorStrategyResult.getBranchResult("l14"));
+        assertNotNull(operatorStrategyResult.getBranchResult("lc12"));
+        assertNotNull(operatorStrategyResult.getBranchResult("LB3C1"));
+    }
 }
