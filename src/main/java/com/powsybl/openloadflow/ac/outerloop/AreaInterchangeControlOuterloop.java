@@ -155,7 +155,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
         } else {
             if (movedBuses) {
                 areas.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
-                        LOGGER.info("Area {} interchange mismatch (${} MW) distributed in ${} distribution iteration(s)", entry.getKey(), entry.getValue().getValue() * PerUnit.SB, iterationsByArea.get(entry.getKey()));
+                        LOGGER.info("Area {} interchange mismatch ({} MW) distributed in {} distribution iteration(s)", entry.getKey(), entry.getValue().getValue() * PerUnit.SB, iterationsByArea.get(entry.getKey()));
                         Reports.reportAreaInterchangeControlAreaDistributionSuccess(iterationReportNode, entry.getKey(), entry.getValue().getValue() * PerUnit.SB, iterationsByArea.get(entry.getKey()));
                     }
                 );
