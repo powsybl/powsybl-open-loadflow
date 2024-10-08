@@ -63,6 +63,7 @@ class IllConditionedCaseTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
 
         parametersExt.setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE);
+        parametersExt.setMaxKnitroIterations(30);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(8, result.getComponentResults().get(0).getIterationCount());

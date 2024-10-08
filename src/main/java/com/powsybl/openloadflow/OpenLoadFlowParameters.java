@@ -156,6 +156,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME = "maxNewtonRaphsonIterations";
 
+    public static final String MAX_KNITRO_ITERATIONS_PARAM_NAME = "maxKnitroIterations";
+
     public static final String MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME = "maxOuterLoopIterations";
 
     public static final String NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME = "newtonRaphsonConvEpsPerEq";
@@ -277,6 +279,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Generator remote reactive power control", GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE),
         new Parameter(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Transformer reactive power control", TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE),
         new Parameter(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max iterations per Newton-Raphson", NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS),
+        new Parameter(MAX_KNITRO_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max iterations per Knitro", KnitroSolverParameters.DEFAULT_MAX_ITERATIONS),
         new Parameter(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max outer loop iterations", AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS),
         new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
         new Parameter(KNITRO_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Knitro convergence epsilon per equation", KnitroSolverStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
@@ -408,6 +411,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean transformerReactivePowerControl = TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE;
 
     private int maxNewtonRaphsonIterations = NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS;
+
+    private int maxKnitroIterations = KnitroSolverParameters.DEFAULT_MAX_ITERATIONS;
 
     private int maxOuterLoopIterations = AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
@@ -655,6 +660,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         this.maxNewtonRaphsonIterations = checkParameterValue(maxNewtonRaphsonIterations,
                 maxNewtonRaphsonIterations >= 1,
                 MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME);
+        return this;
+    }
+
+    public int getMaxKnitroIterations() {
+        return maxKnitroIterations;
+    }
+
+    public OpenLoadFlowParameters setMaxKnitroIterations(int maxKnitroIterations) {
+        this.maxKnitroIterations = checkParameterValue(maxKnitroIterations,
+                maxKnitroIterations >= 1,
+                MAX_KNITRO_ITERATIONS_PARAM_NAME);
         return this;
     }
 
@@ -1276,6 +1292,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setGeneratorReactivePowerRemoteControl(config.getBooleanProperty(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
                 .setTransformerReactivePowerControl(config.getBooleanProperty(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
                 .setMaxNewtonRaphsonIterations(config.getIntProperty(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS))
+                .setMaxKnitroIterations(config.getIntProperty(MAX_KNITRO_ITERATIONS_PARAM_NAME, KnitroSolverParameters.DEFAULT_MAX_ITERATIONS))
                 .setMaxOuterLoopIterations(config.getIntProperty(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS))
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setKnitroSolverConvEpsPerEq(config.getDoubleProperty(KNITRO_CONV_EPS_PER_EQ_PARAM_NAME, KnitroSolverStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
@@ -1382,6 +1399,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setTransformerReactivePowerControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxNewtonRaphsonIterations(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(MAX_KNITRO_ITERATIONS_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxKnitroIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxOuterLoopIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME))
@@ -1513,6 +1532,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, generatorReactivePowerRemoteControl);
         map.put(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, transformerReactivePowerControl);
         map.put(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, maxNewtonRaphsonIterations);
+        map.put(MAX_KNITRO_ITERATIONS_PARAM_NAME, maxKnitroIterations);
         map.put(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, maxOuterLoopIterations);
         map.put(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, newtonRaphsonConvEpsPerEq);
         map.put(KNITRO_CONV_EPS_PER_EQ_PARAM_NAME, knitroSolverConvEpsPerEq);
@@ -1768,7 +1788,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltageKnitroSolver())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetworkKnitroSolver())
                 .setGradientComputationMode(parametersExt.getGradientComputationModeKnitro())
-                .setGradientUserRoutine(parametersExt.getGradientUserRoutineKnitro());
+                .setGradientUserRoutine(parametersExt.getGradientUserRoutineKnitro())
+                .setMaxIterations(parametersExt.getMaxKnitroIterations());
 
         List<AcOuterLoop> outerLoops = createOuterLoops(parameters, parametersExt);
 

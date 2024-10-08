@@ -92,8 +92,9 @@ public class KnitroSolverParametersTest {
 //                "convEpsPerEq=1.0E-6, " +
                 "stoppingCriteria=DefaultKnitroSolverStoppingCriteria, " +
                 "minRealisticVoltage=0.5, " +
-                "maxRealisticVoltage=1.5, " +
-                "alwaysUpdateNetwork=false" +
+                "maxRealisticVoltage=2.0, " +
+                "alwaysUpdateNetwork=false, " +
+                "maxIterations=15" +
                 ")", parameters.toString());
     }
 }

@@ -21,6 +21,8 @@ public class KnitroSolverParameters {
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 2.0;
     public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
+    public static final int DEFAULT_MAX_ITERATIONS = 15;
+
 
     public KnitroSolverParameters() {
     }
@@ -36,6 +38,8 @@ public class KnitroSolverParameters {
     private KnitroSolverStoppingCriteria stoppingCriteria = new DefaultKnitroSolverStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+
+    private int maxIterations = DEFAULT_MAX_ITERATIONS;
 
     public int getGradientComputationMode() {
         return gradientComputationMode;
@@ -106,6 +110,15 @@ public class KnitroSolverParameters {
         return this;
     }
 
+    public int getMaxIterations() {
+        return maxIterations;
+    }
+
+    public KnitroSolverParameters setMaxIterations(int maxIterations) {
+        this.maxIterations = maxIterations;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "KnitroSolverParameters(" +
@@ -114,6 +127,7 @@ public class KnitroSolverParameters {
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
+                ", maxIterations=" + maxIterations +
                 ')';
     }
 }

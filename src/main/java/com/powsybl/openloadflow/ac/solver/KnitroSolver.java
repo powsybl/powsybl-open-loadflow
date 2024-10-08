@@ -441,9 +441,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         solver.setParam(KNConstants.KN_PARAM_GRADOPT, knitroParameters.getGradientComputationMode());
         DefaultKnitroSolverStoppingCriteria knitroSolverStoppingCriteria = (DefaultKnitroSolverStoppingCriteria) knitroParameters.getStoppingCriteria();
         solver.setParam(KNConstants.KN_PARAM_FEASTOL, knitroSolverStoppingCriteria.convEpsPerEq);
+        solver.setParam(KNConstants.KN_PARAM_MAXIT, knitroParameters.getMaxIterations());
 //        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK, 1);
 //        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
-//        solver.setParam(KNConstants.KN_PARAM_MAXIT, 30);
 //        solver.setParam(KNConstants.KN_PARAM_OUTLEV,4);
 //        solver.setParam(KNConstants.KN_PARAM_OUTMODE,2);
 //        solver.setParam(KNConstants.KN_PARAM_DEBUG ,1);
