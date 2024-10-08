@@ -272,7 +272,7 @@ In the DanglingLine case, the flow at the boundary side is considered as it shou
 
 ### Slack bus mismatch attribution
 Depending on the location of the slack bus(es), the role of distributing the active power mismatch will be attributed based on the following logic:
-- If the slack bus part of an area: the slack power is attributed to the area (see "total mismatch" calculation in [Algorithm description](#area-interchange-control---algorithm-description)).
+- If the slack bus is part of an area: the slack power is attributed to the area (see "total mismatch" calculation in [Algorithm description](#area-interchange-control---algorithm-description)).
 Indeed, in this case the slack injection can be seen as an interchange to 'the void' which must be resolved.
 - Slack bus has no area:
     - Connected to other bus(es) without area: treated as the slack mismatch of the buses without area
