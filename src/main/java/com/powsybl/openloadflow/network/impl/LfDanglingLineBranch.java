@@ -42,10 +42,10 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
         PiModel piModel = new SimplePiModel()
                 .setR(danglingLine.getR() / zb)
                 .setX(danglingLine.getX() / zb)
-                .setG1(danglingLine.getG() / 2 * zb)
-                .setG2(danglingLine.getG() / 2 * zb)
-                .setB1(danglingLine.getB() / 2 * zb)
-                .setB2(danglingLine.getB() / 2 * zb);
+                .setG1(danglingLine.getG() * zb)
+                .setG2(0)
+                .setB1(danglingLine.getB() * zb)
+                .setB2(0);
         return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine, parameters);
     }
 
