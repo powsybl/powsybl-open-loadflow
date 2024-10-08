@@ -39,6 +39,8 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(parameters);
         double zb = PerUnit.zb(danglingLine.getTerminal().getVoltageLevel().getNominalV());
+        // iIDM DanglingLine shunt admittance is network side only which is always side 1.
+        // See also https://github.com/powsybl/powsybl-core/pull/3169 on powsybl-core side.
         PiModel piModel = new SimplePiModel()
                 .setR(danglingLine.getR() / zb)
                 .setX(danglingLine.getX() / zb)
