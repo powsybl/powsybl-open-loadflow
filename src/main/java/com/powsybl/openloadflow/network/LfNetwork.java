@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -221,6 +222,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
                 selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBus, maxSlackBusCount);
+                if (selectedSlackBus.getBuses().isEmpty()) {
+                    throw new PowsyblException("Slack bus selection process has failed after multiple fallback");
+                }
                 slackBuses = selectedSlackBus.getBuses();
             }
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());

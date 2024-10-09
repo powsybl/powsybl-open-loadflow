@@ -459,14 +459,16 @@ class LfNetworkTest extends AbstractSerDeTest {
     @Test
     void slackBusSelectionFallback() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
+        network.getSubstations().forEach(substation -> substation.setCountry(Country.FR));
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setReadSlackBus(false);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
 
-        // Setup a slack bus selection method with an unknown bus to test fallback mechanism
-        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
-        parametersExt.setSlackBusesIds(List.of("Dummy"));
+        // Setup a slack bus selection method with a filter on country that we do not have in the network (for it to fail)
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersExt.setSlackBusCountryFilter(Set.of(Country.BE));
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
