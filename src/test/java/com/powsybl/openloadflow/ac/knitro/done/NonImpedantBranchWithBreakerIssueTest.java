@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.knitro.tofix;
+package com.powsybl.openloadflow.ac.knitro.done;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
@@ -13,6 +13,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.solver.KnitroSolverFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class NonImpedantBranchWithBreakerIssueTest {
                 .setNetworkParameters(networkParameters)
                 .setMatrixFactory(new DenseMatrixFactory());
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
-            new AcloadFlowEngine(context)
+            new AcloadFlowEngine(context, new KnitroSolverFactory())
                     .run();
         }
         lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK));
@@ -57,7 +58,7 @@ class NonImpedantBranchWithBreakerIssueTest {
                 .setNetworkParameters(networkParameters)
                 .setMatrixFactory(new DenseMatrixFactory());
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
-            new AcloadFlowEngine(context)
+            new AcloadFlowEngine(context, new KnitroSolverFactory())
                     .run();
         }
         lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK));
