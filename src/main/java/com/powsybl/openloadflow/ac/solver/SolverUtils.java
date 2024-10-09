@@ -28,7 +28,6 @@ public final class SolverUtils {
             AcEquationType.DUMMY_TARGET_Q,
             AcEquationType.ZERO_V,
             AcEquationType.ZERO_PHI,
-            AcEquationType.DISTR_Q,
             AcEquationType.DISTR_SHUNT_B,
             AcEquationType.DISTR_RHO,
             AcEquationType.SHUNT_TARGET_B,
@@ -46,8 +45,9 @@ public final class SolverUtils {
             AcEquationType.BUS_TARGET_Q,
             AcEquationType.BRANCH_TARGET_P,
             AcEquationType.BRANCH_TARGET_Q,
-            AcEquationType.BUS_DISTR_SLACK_P
-    ));
+            AcEquationType.BUS_DISTR_SLACK_P,
+            AcEquationType.DISTR_Q
+            ));
 
     public static List<AcEquationType> getNonLinearConstraintsTypes() {
         return nonLinearConstraintsTypes;
@@ -66,7 +66,6 @@ public final class SolverUtils {
             case BRANCH_TARGET_RHO1:
                 varAndCoefList = addConstraintConstantTarget(typeEq, equationId, terms);
                 break;
-            case DISTR_Q:
             case DISTR_SHUNT_B:
             case DISTR_RHO:
                 varAndCoefList = addConstraintDistrQ(typeEq, equationId, terms);
