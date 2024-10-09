@@ -495,6 +495,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             for (int i = 0; i < instance.getNumCons(); i++) {
                 LOGGER.debug(" c[{}] = {} (lambda = {} )", i, constraintValues.get(i), solution.getLambda().get(i));
             }
+            LOGGER.debug("Constraint violation");
+            for (int i = 0; i < instance.getNumCons(); i++) {
+                LOGGER.debug(" violation[{}] = {} ", i, solver.getConViol(i));
+            }
 
             // Load results in the network
 
