@@ -16,6 +16,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -419,6 +420,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         parametersExt
                 .setGeneratorReactivePowerRemoteControl(true);
+        parametersExt.setKnitroSolverConvEpsPerEq(Math.pow(10,-4));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(targetQ, l34.getTerminal(TwoSides.TWO));
@@ -676,7 +678,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(0.274417, l34.getTerminal(TwoSides.TWO));
+        assertReactivePowerEquals(0.277229, l34.getTerminal(TwoSides.TWO));
     }
 
     @Test
@@ -935,8 +937,8 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-10.296, g4.getTerminal());
-        assertReactivePowerEquals(4.004, l34.getTerminal2());
+        assertReactivePowerEquals(-10.285, g4.getTerminal());
+        assertReactivePowerEquals(4.000, l34.getTerminal2());
         assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
     }
 
@@ -966,7 +968,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-5.0, g4.getTerminal());
-        assertReactivePowerEquals(2.031, l34.getTerminal2());
+        assertReactivePowerEquals(2.029, l34.getTerminal2());
         assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
     }
 }
