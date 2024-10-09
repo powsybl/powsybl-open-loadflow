@@ -69,7 +69,7 @@ public class KnitroSolverVoltageBounds {
     }
 
     @Test
-    void effectVoltageLoAndUpBounds() {
+    void testVoltageLoAndUpBounds() {
         /*
          * Checks
          * the effect of changing Knitro's voltage bounds
