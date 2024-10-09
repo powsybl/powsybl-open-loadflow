@@ -223,7 +223,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setMinNominalVoltageTargetVoltageCheck(lfParametersExt.getMinNominalVoltageTargetVoltageCheck())
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setSimulateAutomationSystems(false)
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
+                .setAreaInterchangeControl(lfParametersExt.isAreaInterchangeControl())
+                .setAreaInterchangeControlAreaType(lfParametersExt.getAreaInterchangeControlAreaType());
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {
