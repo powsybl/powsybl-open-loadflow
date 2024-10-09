@@ -1398,10 +1398,22 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = BoundaryFactory.createWithTieLine();
-        List<SensitivityFactor> factors = network.getTieLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).collect(Collectors.toList());
+        List<SensitivityFactor> factors = network.getTieLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).toList();
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(1, result.getValues().size());
         assertEquals(35.000, result.getBranchFlow1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWithTieLinesAreaInterchangeControl() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        LoadFlowParameters parameters = sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        OpenLoadFlowParameters.create(parameters).setAreaInterchangeControl(true);
+        Network network = BoundaryFactory.createWithTieLine();
+        List<SensitivityFactor> factors = network.getTieLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1", null, TwoSides.TWO)).toList();
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(1, result.getValues().size());
+        assertEquals(-35.000, result.getBranchFlow2FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

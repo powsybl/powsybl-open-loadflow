@@ -103,10 +103,22 @@ class AcLoadFlowBoundaryTest {
     }
 
     @Test
-    void testWithXnode() {
-        network = BoundaryFactory.createWithXnode();
+    void testWithXnodeDistributedSlack() {
         parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
+        testWithXnode();
+    }
+
+    @Test
+    void testWithXnodeAreaInterchangeControl() {
+        parameters.setUseReactiveLimits(true);
+        parametersExt.setAreaInterchangeControl(true);
+        testWithXnode();
+    }
+
+    void testWithXnode() {
+        network = BoundaryFactory.createWithXnode();
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -117,10 +129,21 @@ class AcLoadFlowBoundaryTest {
     }
 
     @Test
-    void testWithTieLine() {
-        network = BoundaryFactory.createWithTieLine();
+    void testWithTieLineDistributedSlack() {
         parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
+        testWithTieLine();
+    }
+
+    @Test
+    void testWithTieLineAreaInterchangeControl() {
+        parameters.setUseReactiveLimits(true);
+        parametersExt.setAreaInterchangeControl(true);
+        testWithTieLine();
+    }
+
+    void testWithTieLine() {
+        network = BoundaryFactory.createWithTieLine();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 

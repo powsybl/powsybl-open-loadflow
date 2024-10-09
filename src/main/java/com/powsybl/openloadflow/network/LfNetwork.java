@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -75,6 +76,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
     private final Map<String, LfLoad> loadsById = new HashMap<>();
+
+    private final Map<String, LfArea> areasById = new HashMap<>();
 
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
@@ -298,6 +301,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
+    public void addArea(LfArea area) {
+        Objects.requireNonNull(area);
+        areasById.put(area.getId(), area);
+    }
+
     public List<LfBus> getBuses() {
         return busesByIndex;
     }
@@ -363,6 +371,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfLoad getLoadById(String id) {
         Objects.requireNonNull(id);
         return loadsById.get(id);
+    }
+
+    public Stream<LfArea> getAreaStream() {
+        return areasById.values().stream();
+    }
+
+    public boolean hasArea() {
+        return !areasById.isEmpty();
+    }
+
+    public LfArea getAreaById(String id) {
+        Objects.requireNonNull(id);
+        return areasById.get(id);
     }
 
     public void addHvdc(LfHvdc hvdc) {

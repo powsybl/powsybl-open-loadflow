@@ -2396,11 +2396,24 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testWithTieLineContingency() {
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
+        testWithTieLineContingency(securityAnalysisParameters);
+    }
+
+    @Test
+    void testWithTieLineContingencyAreaInterchangeControl() {
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
+        OpenLoadFlowParameters.create(securityAnalysisParameters.getLoadFlowParameters())
+                .setAreaInterchangeControl(true);
+        testWithTieLineContingency(securityAnalysisParameters);
+    }
+
+    void testWithTieLineContingency(SecurityAnalysisParameters securityAnalysisParameters) {
         Network network = BoundaryFactory.createWithTieLine();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new TieLineContingency("t12"))));
         List<StateMonitor> monitors = createNetworkMonitors(network);
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
@@ -2488,6 +2501,18 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testAcceptableDurations() {
+        testAcceptableDurations(new SecurityAnalysisParameters());
+    }
+
+    @Test
+    void testAcceptableDurationsAreaInterchangeControl() {
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenLoadFlowParameters.create(securityAnalysisParameters.getLoadFlowParameters())
+                .setAreaInterchangeControl(true);
+        testAcceptableDurations(securityAnalysisParameters);
+    }
+
+    void testAcceptableDurations(SecurityAnalysisParameters securityAnalysisParameters) {
         Network network = EurostagTutorialExample1Factory.createWithTieLine();
         network.getGenerator("GEN").setMaxP(4000).setMinP(-4000);
 
@@ -2519,8 +2544,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                     .setValue(1.7976931348623157E308D)
                 .endTemporaryLimit()
                 .add();
-
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         ContingenciesProvider contingencies = n -> ImmutableList.of(
                 new Contingency("contingency1", new BranchContingency("NHV1_NHV2_1")),
                 new Contingency("contingency2", new TieLineContingency("NHV1_NHV2_2")),

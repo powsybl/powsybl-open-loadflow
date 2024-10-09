@@ -201,3 +201,81 @@ Note that the vector $b$ of right-hand sides is linearly computed from the given
 
 To solve this system, we follow the classic approach of the LU matrices decomposition $J = LU$.
 Hence, by solving the system using LU decomposition, you can compute the voltage angles by giving as data the injections and the phase-shifting angles.
+
+## Area Interchange Control
+
+Area Interchange Control consists in having the Load Flow finding a solution where area interchanges are solved to match the input target interchange values.
+
+Currently, Area Interchange Control is only supported for AC load flow, DC load flow support is planned for future release.
+
+The area interchange control feature is optional, can be activated via the [parameter `areaInterchangeControl`](parameters.md)
+and is performed by an outer loop.
+
+Area Interchange Control is performed using an outer loop, similar in principle to the traditional `SlackDistribution` outer loop.
+However unlike the `SlackDistribution` outer loop which distributes imbalance over the entire synchronous component (island),
+the Area Interchange Control outer loop performs an active power distribution over areas
+(filtered on areas having their type matching the configured [parameter `areaInterchangeControlAreaType`](parameters.md)),
+in order to have all areas' active power interchanges matching their target interchanges.
+
+The Area Interchange Control outer loop can handle networks where part (or even all) of the buses are not in an area.
+For networks that have no areas at all, the behaviour is the same as with the distributed slack outer loop - in such case
+internally the Area Interchange Control outer loop just triggers the Slack Distribution outer loop logic.
+
+Just like other outer loops, the Area Interchange Control outer loop checks whether area imbalance must be distributed:
+* If no, the outer loop is stable
+* If yes, the outer loop is unstable and a new Newton-Raphson is triggered
+
+### Area Interchange Control - algorithm description
+
+The active power is distributed separately on injections (as configured in the [parameter `balanceType`](parameters.md)) of each area
+to compensate the area "total mismatch" that is given by:
+
+$$
+Area Total Mismatch = Interchange - Interchange Target + Slack Injection
+$$
+
+Where:  
+* "Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).  
+* "Interchange Target" is the interchange target parameter of the area.  
+* "Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see [Slack bus mismatch attribution](#slack-bus-mismatch-attribution)). 
+
+The outer loop iterates until this mismatch is below the configured [parameter `areaInterchangePMaxMismatch`](parameters.md) for all areas.
+
+When it is the case, "interchange only" mismatch is computed for all areas:
+
+$$
+Interchange Mismatch = Interchange - Interchange Target
+$$
+
+If this mismatch for all areas and the slack injection of the buses without area are below the configured [parameter `slackBusPMaxMismatch`](parameters.md)
+then the outerloop is stable and declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
+
+If not, the remaining mismatch is first distributed over the buses that have no area.
+
+If some mismatch still remains, it is distributed equally over all the areas.
+
+### Areas validation
+There are some cases where areas are considered invalid and will not be considered for the area interchange control:
+- Areas without interchange target
+- Areas without boundaries
+- Areas that have boundaries in multiple synchronous/connected components. If all the boundaries are in the same component but some buses are in different components, only the part in the component of the boundaries will be considered.
+
+In such cases the involved areas are not considered in the Area Interchange Control outer loop, however other valid areas will still be considered.
+
+### Interchange flow calculation
+
+In iIDM each area defines the boundary points to be considered in the interchange. iIDM supports two ways of modeling area boundaries:
+- either via an equipment terminal,
+- or via a DanglingLine boundary.
+
+In the DanglingLine case, the flow at the boundary side is considered as it should be, for both unpaired DanglingLines and DanglingLines paired in a TieLine.
+
+### Slack bus mismatch attribution
+Depending on the location of the slack bus(es), the role of distributing the active power mismatch will be attributed based on the following logic:
+- If the slack bus is part of an area: the slack power is attributed to the area (see "total mismatch" calculation in [Algorithm description](#area-interchange-control---algorithm-description)).
+Indeed, in this case the slack injection can be seen as an interchange to 'the void' which must be resolved.
+- Slack bus has no area:
+    - Connected to other bus(es) without area: treated as the slack mismatch of the buses without area
+    - Connected to only buses that have an area:
+        - All connected branches are boundaries of those areas: Not attributed to anyone, the mismatch will already be present in the interchange mismatch
+        - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
