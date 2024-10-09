@@ -220,10 +220,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBus, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
-                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBus, excludedSlackBuses.size() + maxSlackBusCount);
-                slackBuses = selectedSlackBus.getBuses().stream()
-                        .limit(maxSlackBusCount)
-                        .toList();
+                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBus, maxSlackBusCount);
+                slackBuses = selectedSlackBus.getBuses();
             }
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {

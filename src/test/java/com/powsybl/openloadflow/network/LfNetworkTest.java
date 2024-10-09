@@ -18,6 +18,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
@@ -453,5 +454,21 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertEquals(0.9, reductions[2], 0.001); // TATL 60s
         // `terminalLimitReduction4` is now declared before `terminalLimitReduction2`, its value is overlapped by the one of `terminalLimitReduction2`
         assertEquals(0.9, reductions[3], 0.001); // TATL 0s
+    }
+
+    @Test
+    void slackBusSelectionFallback() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
+
+        // Setup a slack bus selection method with an unknown bus to test fallback mechanism
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
+        parametersExt.setSlackBusesIds(List.of("Dummy"));
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
     }
 }
