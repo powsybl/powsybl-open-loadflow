@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.solver.AcSolverType;
+import com.powsybl.openloadflow.ac.solver.KnitroSolverFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -63,7 +65,7 @@ class NonImpedantBranchDisablingTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters.getNetworkParameters()).get(0);
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, parameters)) {
-            var engine = new AcloadFlowEngine(context);
+            var engine = new AcloadFlowEngine(context, new KnitroSolverFactory());
             engine.run();
             assertEquals(8, context.getEquationSystem().getIndex().getSortedVariablesToFind().size());
             var l1 = lfNetwork.getBranchById("L1");
@@ -82,10 +84,12 @@ class NonImpedantBranchDisablingTest {
 
     @Test
     void testOpenBranch() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters).setAcSolverType(AcSolverType.KNITRO);
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getLine("L2").setR(0.0).setX(0.0);
         network.getLine("L1").getTerminal1().disconnect();
-        loadFlowRunner.run(network);
+        loadFlowRunner.run(network, parameters);
         assertEquals(600.018, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-600.018, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0, network.getLine("L1").getTerminal1().getP(), 0);
@@ -107,7 +111,8 @@ class NonImpedantBranchDisablingTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-                .setSlackBusesIds(List.of("VL2_0"));
+                .setSlackBusesIds(List.of("VL2_0"))
+                .setAcSolverType(AcSolverType.KNITRO);
 
         loadFlowRunner.run(network, parameters);
 
@@ -128,7 +133,7 @@ class NonImpedantBranchDisablingTest {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (AcLoadFlowContext context = new AcLoadFlowContext(largestNetwork, acLoadFlowParameters)) {
-                new AcloadFlowEngine(context).run();
+                new AcloadFlowEngine(context, new KnitroSolverFactory()).run();
             }
             // should be the same as with previous LF
             assertEquals(401.757, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
@@ -149,6 +154,7 @@ class NonImpedantBranchDisablingTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDc(true);
+        OpenLoadFlowParameters.create(parameters).setAcSolverType(AcSolverType.KNITRO);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertTrue(Double.isNaN(network.getLine("L2").getTerminal1().getP()));
