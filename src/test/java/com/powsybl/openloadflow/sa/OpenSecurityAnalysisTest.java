@@ -3771,6 +3771,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertNotNull(operatorStrategyResult.getBranchResult("LB3C1"));
     }
 
+    @Test
     void testSlackBusSelectionExcludeBusWithHighestVoltage() {
         Network network = TwoBusNetworkFactory.createWithAThirdBus();
 
