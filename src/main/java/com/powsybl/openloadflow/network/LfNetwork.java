@@ -223,7 +223,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             if (slackBuses.isEmpty()) { // ultimate fallback
                 selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBus, maxSlackBusCount);
                 if (selectedSlackBus.getBuses().isEmpty()) {
-                    throw new PowsyblException("Slack bus selection process has failed after multiple fallback");
+                    throw new PowsyblException("No slack bus could be selected");
                 }
                 slackBuses = selectedSlackBus.getBuses();
             }

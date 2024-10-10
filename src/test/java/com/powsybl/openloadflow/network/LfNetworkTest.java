@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.*;
@@ -34,6 +35,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -472,5 +474,18 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void slackBusSelectionFallbackFails() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        network.getSubstations().forEach(substation -> substation.setCountry(Country.FR));
+
+        // Make the initial slack bus selector fail and the fallback fail by setting all buses as excluded buses
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector(Set.of(Country.BE)));
+        LfNetwork first = lfNetworks.get(0);
+        first.setExcludedSlackBuses(new HashSet<>(first.getBuses()));
+        assertThrows(PowsyblException.class, first::updateSlackBusesAndReferenceBus,
+            "No slack bus could be selected");
     }
 }
