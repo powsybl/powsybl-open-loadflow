@@ -1,4 +1,4 @@
-# Modelling and equations
+# Modeling and equations
 
 ## DC sensitivity analysis
 

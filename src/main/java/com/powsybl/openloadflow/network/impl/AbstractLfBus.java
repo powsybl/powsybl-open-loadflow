@@ -87,6 +87,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfAsymBus asym;
 
+    private LfArea area = null;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
         this.v = v;
@@ -819,5 +821,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public void setAsym(LfAsymBus asym) {
         this.asym = asym;
         asym.setBus(this);
+    }
+
+    @Override
+    public Optional<LfArea> getArea() {
+        return Optional.ofNullable(area);
+    }
+
+    @Override
+    public void setArea(LfArea area) {
+        this.area = area;
     }
 }
