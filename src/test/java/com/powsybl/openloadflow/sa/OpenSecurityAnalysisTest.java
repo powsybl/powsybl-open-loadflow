@@ -3776,13 +3776,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         OpenLoadFlowParameters.create(securityAnalysisParameters.getLoadFlowParameters())
-            .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
-        // This contingency will cut off bus with highest voltage level
+        // This contingency will cut off bus with the highest voltage level
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l23"))));
         assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, Collections.emptyList(), Collections.emptyList(), ReportNode.NO_OP));
     }
-    
+
     @Test
     void testNoRemainingGenerator2() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
