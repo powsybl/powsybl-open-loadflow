@@ -131,7 +131,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             }
             postContingencyStates = engine.run(newFlowStates);
 
-        // TODO : add lf action in calculation for cases with generator or load lost
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
