@@ -29,9 +29,9 @@ import java.util.stream.Stream;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class AreaInterchangeControlOuterloop implements AcOuterLoop {
+public class AcAreaInterchangeControlOuterLoop implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AreaInterchangeControlOuterloop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcAreaInterchangeControlOuterLoop.class);
 
     public static final String NAME = "AreaInterchangeControl";
 
@@ -46,7 +46,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
 
     private final AcOuterLoop noAreaOuterLoop;
 
-    public AreaInterchangeControlOuterloop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
+    public AcAreaInterchangeControlOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
         this.activePowerDistribution = Objects.requireNonNull(activePowerDistribution);
         this.areaInterchangePMaxMismatch = areaInterchangePMaxMismatch;
         this.slackBusPMaxMismatch = slackBusPMaxMismatch;
@@ -187,7 +187,7 @@ public class AreaInterchangeControlOuterloop implements AcOuterLoop {
     private OuterLoopResult distributionFailureResult(AcOuterLoopContext context, boolean movedBuses, AreaInterchangeControlContextData contextData, double totalDistributedActivePower) {
         OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
         if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
-            LOGGER.error("Distribute on reference generator is not supported in AreaInterchangeControlOuterloop, falling back to FAIL mode");
+            LOGGER.error("Distribute on reference generator is not supported in AcAreaInterchangeControlOuterLoop, falling back to FAIL mode");
             slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
         }
 
