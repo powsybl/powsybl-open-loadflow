@@ -87,7 +87,10 @@
         "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ],
         "transformerVoltageControlUseInitialTapPosition" : false,
         "generatorVoltageControlMinNominalVoltage" : -1.0,
-        "fictitiousGeneratorVoltageControlCheckMode" : "FORCED"
+        "fictitiousGeneratorVoltageControlCheckMode" : "FORCED",
+        "areaInterchangeControl" : false,
+        "areaInterchangeControlAreaType" : "ControlArea",
+        "areaInterchangePMaxMismatch" : 2.0
       }
     }
   },

@@ -177,7 +177,7 @@ public final class LfAction {
 
     private static Optional<LfAction> create(TerminalsConnectionAction action, LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getElementId());
-        if (branch != null) {
+        if (branch != null && branch.getBus1() != null && branch.getBus2() != null) {
             if (action.getSide().isEmpty()) {
                 if (action.isOpen()) {
                     return Optional.of(new LfAction(action.getId(), branch, null, null, null, null, null, null));

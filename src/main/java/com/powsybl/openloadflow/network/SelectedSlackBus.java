@@ -21,9 +21,6 @@ public class SelectedSlackBus {
 
     public SelectedSlackBus(List<LfBus> buses, String selectionMethod) {
         this.buses = Objects.requireNonNull(buses);
-        if (buses.isEmpty()) {
-            throw new IllegalArgumentException("Empty slack bus list");
-        }
         this.selectionMethod = Objects.requireNonNull(selectionMethod);
     }
 

@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.*;
@@ -18,6 +19,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
@@ -33,6 +35,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -453,5 +456,36 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertEquals(0.9, reductions[2], 0.001); // TATL 60s
         // `terminalLimitReduction4` is now declared before `terminalLimitReduction2`, its value is overlapped by the one of `terminalLimitReduction2`
         assertEquals(0.9, reductions[3], 0.001); // TATL 0s
+    }
+
+    @Test
+    void slackBusSelectionFallback() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        network.getSubstations().forEach(substation -> substation.setCountry(Country.FR));
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setReadSlackBus(false);
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
+
+        // Setup a slack bus selection method with a filter on country that we do not have in the network (for it to fail)
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersExt.setSlackBusCountryFilter(Set.of(Country.BE));
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void slackBusSelectionFallbackFails() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        network.getSubstations().forEach(substation -> substation.setCountry(Country.FR));
+
+        // Make the initial slack bus selector fail and the fallback fail by setting all buses as excluded buses
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector(Set.of(Country.BE)));
+        LfNetwork first = lfNetworks.get(0);
+        first.setExcludedSlackBuses(new HashSet<>(first.getBuses()));
+        assertThrows(PowsyblException.class, first::updateSlackBusesAndReferenceBus,
+            "No slack bus could be selected");
     }
 }
