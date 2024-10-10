@@ -34,7 +34,9 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
 
     protected final List<Variable<DcVariableType>> variables;
 
-    protected final double power;
+    protected final boolean useTransformerRatio;
+
+    protected DcApproximationType dcApproximationType;
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                      boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
@@ -46,7 +48,8 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
-        power = calculatePower(useTransformerRatio, dcApproximationType, piModel);
+        this.useTransformerRatio = useTransformerRatio;
+        this.dcApproximationType = dcApproximationType;
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {

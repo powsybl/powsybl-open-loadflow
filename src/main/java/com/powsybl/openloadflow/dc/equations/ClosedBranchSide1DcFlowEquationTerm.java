@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PiModel;
 
 import java.util.Objects;
 
@@ -22,16 +21,9 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBranchDcFlowEquationTerm {
 
-    boolean useTransformerRatio;
-    DcApproximationType dcApproximationType;
-    PiModel piModel;
-
     private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                 boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
         super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio, dcApproximationType);
-        this.useTransformerRatio = useTransformerRatio;
-        this.dcApproximationType = dcApproximationType;
-        this.piModel = branch.getPiModel();
     }
 
     public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
@@ -46,18 +38,18 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     @Override
     protected double calculateSensi(double ph1, double ph2, double a1) {
         double deltaPhase = ph2 - ph1 + A2 - a1;
-        return -calculatePower(useTransformerRatio, dcApproximationType, piModel) * deltaPhase;
+        return -calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel()) * deltaPhase;
     }
 
     @Override
     public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return power;
+            return calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel());
         } else if (variable.equals(ph2Var)) {
-            return -power;
+            return -calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel());
         } else if (variable.equals(a1Var)) {
-            return power;
+            return calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -66,9 +58,9 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     @Override
     public double rhs() {
         if (a1Var != null) {
-            return -power * A2;
+            return -calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel()) * A2;
         } else {
-            return -power * (A2 - a1());
+            return -calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel()) * (A2 - a1());
         }
     }
 
