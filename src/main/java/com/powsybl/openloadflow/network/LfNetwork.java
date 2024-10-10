@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -214,16 +215,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
-            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
-            slackBuses = selectedSlackBus.getBuses().stream()
-                    .filter(bus -> !excludedSlackBuses.contains(bus))
-                    .toList();
+            List<LfBus> selectableBuses =
+                excludedSlackBuses.isEmpty() ? busesByIndex :
+                    busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
+            slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
-                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(busesByIndex, excludedSlackBuses.size() + maxSlackBusCount);
-                slackBuses = selectedSlackBus.getBuses().stream()
-                        .filter(bus -> !excludedSlackBuses.contains(bus))
-                        .limit(maxSlackBusCount)
-                        .toList();
+                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBuses, maxSlackBusCount);
+                if (selectedSlackBus.getBuses().isEmpty()) {
+                    throw new PowsyblException("No slack bus could be selected");
+                }
+                slackBuses = selectedSlackBus.getBuses();
             }
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
