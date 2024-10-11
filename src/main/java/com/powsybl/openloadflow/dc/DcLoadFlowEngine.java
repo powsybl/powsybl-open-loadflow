@@ -243,6 +243,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
      * update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
+        // FIXME : add AIC here ?
+
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
