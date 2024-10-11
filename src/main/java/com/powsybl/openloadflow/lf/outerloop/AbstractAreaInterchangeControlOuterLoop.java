@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class AbstractAreaInterchangeControlOuterLoop<A extends Enum<A> & Quantity, B extends Enum<B> & Quantity, C extends AbstractLoadFlowParameters<?>, D extends LoadFlowContext<A, B, C>, E extends OuterLoopContext<A, B, C, D>> implements OuterLoop<A, B, C, D, E> {
+public abstract class AbstractAreaInterchangeControlOuterLoop<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters<?>, C extends LoadFlowContext<V, E, P>, O extends OuterLoopContext<V, E, P, C>> implements OuterLoop<V, E, P, C, O> {
 
     protected static final String FAILED_TO_DISTRIBUTE_INTERCHANGE_ACTIVE_POWER_MISMATCH = "Failed to distribute interchange active power mismatch";
     private final Logger logger;
@@ -41,7 +41,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<A extends Enum<A> 
         this.logger = logger;
     }
 
-    protected OuterLoopResult check(E context, ReportNode reportNode, double slackBusActivePowerMismatch) {
+    protected OuterLoopResult check(O context, ReportNode reportNode, double slackBusActivePowerMismatch) {
         LfNetwork network = context.getNetwork();
         AreaInterchangeControlContextData contextData = (AreaInterchangeControlContextData) context.getData();
         Map<String, Double> areaSlackDistributionParticipationFactor = contextData.getAreaSlackDistributionParticipationFactor();
@@ -129,7 +129,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<A extends Enum<A> 
         return areaSlackDistributionParticipationFactor.getOrDefault(areaId, 0.0) * slackBusActivePowerMismatch;
     }
 
-    protected OuterLoopResult buildOuterLoopResult(Map<String, Pair<Set<LfBus>, Double>> areas, Map<String, ActivePowerDistribution.Result> resultByArea, ReportNode reportNode, E context) {
+    protected OuterLoopResult buildOuterLoopResult(Map<String, Pair<Set<LfBus>, Double>> areas, Map<String, ActivePowerDistribution.Result> resultByArea, ReportNode reportNode, O context) {
         return null;
     }
 
