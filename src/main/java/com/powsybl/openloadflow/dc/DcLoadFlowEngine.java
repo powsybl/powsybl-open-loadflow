@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.DisabledNetwork;
 import com.powsybl.openloadflow.network.LfBus;
@@ -109,7 +110,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    private boolean runPhaseControlOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
+    private boolean runOuterLoop(OuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> outerLoop, DcOuterLoopContext outerLoopContext) {
         ReportNode olReportNode = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
@@ -165,14 +166,24 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         // outer loop initialization
         DcIncrementalPhaseControlOuterLoop phaseShifterControlOuterLoop = new DcIncrementalPhaseControlOuterLoop();
-        DcOuterLoopContext outerLoopContext = new DcOuterLoopContext(network);
+        DcOuterLoopContext phaseShifterControlOuterLoopContext = new DcOuterLoopContext(network);
+
+        boolean areaInterchangeControl = parameters.isAreaInterchangeControl() && network.hasArea();
+        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false, parameters.getNetworkParameters().isUseActiveLimits());
+        DcAreaInterchangeControlControlOuterLoop areaInterchangeControlOuterLoop = new DcAreaInterchangeControlControlOuterLoop(activePowerDistribution, parameters.getSlackBusPMaxMismatch(), parameters.getAreaInterchangePMaxMismatch());
+        DcOuterLoopContext areaInterchangeControlOuterLoopContext = new DcOuterLoopContext(network);
+
         if (parameters.getNetworkParameters().isPhaseControl()) {
-            phaseShifterControlOuterLoop.initialize(outerLoopContext);
+            phaseShifterControlOuterLoop.initialize(phaseShifterControlOuterLoopContext);
+        }
+
+        if (areaInterchangeControl) {
+            areaInterchangeControlOuterLoop.initialize(areaInterchangeControlOuterLoopContext);
         }
 
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
-        if (parameters.isDistributedSlack()) {
+        if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl() && !network.hasArea()) {
             distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
@@ -187,9 +198,15 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         equationSystem.getStateVector().set(targetVectorArray);
         updateNetwork(network, equationSystem, targetVectorArray);
 
+        // perform area interchange control outer loop
+        // FIXME Do the loop as in AC ?
+        if (success && areaInterchangeControl) {
+            success = runOuterLoop(areaInterchangeControlOuterLoop, areaInterchangeControlOuterLoopContext);
+        }
+
         // continue with PST active power control outer loop only if first linear system solution has succeeded
         if (success && parameters.getNetworkParameters().isPhaseControl()) {
-            success = runPhaseControlOuterLoop(phaseShifterControlOuterLoop, outerLoopContext);
+            success = runOuterLoop(phaseShifterControlOuterLoop, phaseShifterControlOuterLoopContext);
         }
 
         // set all calculated voltages to NaN
