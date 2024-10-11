@@ -16,10 +16,7 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.DisabledNetwork;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -27,10 +24,7 @@ import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -222,10 +216,18 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     /**
-     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
-     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling.
+     * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
+        return run(loadFlowContext, disabledNetwork, reportNode, new ArrayList<>());
+    }
+
+    /**
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
+     * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
+     */
+    public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> pstActions) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -260,6 +262,23 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                     .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        if (!pstActions.isEmpty()) {
+            // set transformer phase shift to new shifting value
+            pstActions.stream()
+                    .map(LfAction::getTapPositionChange)
+                    .filter(Objects::nonNull)
+                    .forEach(tapPositionChange -> {
+                        LfBranch lfBranch = tapPositionChange.getLfBranch();
+                        int newTapPosition = tapPositionChange.getNewTapPosition();
+                        loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
+                                dcVariableTypeDcEquationTypeEquation -> {
+                                    int column = dcVariableTypeDcEquationTypeEquation.getColumn();
+                                    targetVectorArray[column] = lfBranch.getPiModel().getModel(newTapPosition).getA1();
+                                }
+                        );
+                    });
         }
 
         boolean succeeded = solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);

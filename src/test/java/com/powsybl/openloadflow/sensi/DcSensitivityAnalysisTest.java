@@ -1055,7 +1055,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         LfNetwork network = Mockito.mock(LfNetwork.class);
         List<ComputedContingencyElement> contingencyElements = Mockito.mock(List.class);
         Mockito.when(contingencyElements.size()).thenReturn(999999);
-        e = assertThrows(PowsyblException.class, () -> ConnectivityBreakAnalysis.initContingencyRhs(network, equationSystem, contingencyElements));
-        assertEquals("Too many contingency elements 999999, maximum is 2684 for a system with 100000 equations", e.getMessage());
+        e = assertThrows(PowsyblException.class, () -> ComputedElement.initRhs(equationSystem, contingencyElements));
+        assertEquals("Too many elements 999999, maximum is 2684 for a system with 100000 equations", e.getMessage());
     }
 }

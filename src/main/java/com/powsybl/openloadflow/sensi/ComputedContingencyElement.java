@@ -24,69 +24,18 @@ import java.util.Collection;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
-public final class ComputedContingencyElement {
+public final class ComputedContingencyElement extends ComputedElement {
 
-    private int contingencyIndex = -1; // index of the element in the rhs for +1-1
-    private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
-    private double alphaForPostContingencyState = Double.NaN;
     private final ContingencyElement element;
-    private final LfBranch lfBranch;
-    private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
 
     public ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        super(lfNetwork.getBranchById(element.getId()),
+                equationSystem.getEquationTerm(ElementType.BRANCH, lfNetwork.getBranchById(element.getId()).getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
         this.element = element;
-        lfBranch = lfNetwork.getBranchById(element.getId());
-        branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-    }
-
-    public int getContingencyIndex() {
-        return contingencyIndex;
-    }
-
-    public void setContingencyIndex(final int index) {
-        this.contingencyIndex = index;
-    }
-
-    public int getLocalIndex() {
-        return localIndex;
-    }
-
-    private void setLocalIndex(final int index) {
-        this.localIndex = index;
-    }
-
-    public double getAlphaForPostContingencyState() {
-        return alphaForPostContingencyState;
-    }
-
-    public void setAlphaForPostContingencyState(double alphaForPostContingencyStates) {
-        this.alphaForPostContingencyState = alphaForPostContingencyStates;
     }
 
     public ContingencyElement getElement() {
         return element;
-    }
-
-    public LfBranch getLfBranch() {
-        return lfBranch;
-    }
-
-    public ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
-        return branchEquation;
-    }
-
-    public static void setContingencyIndexes(Collection<ComputedContingencyElement> elements) {
-        int index = 0;
-        for (ComputedContingencyElement element : elements) {
-            element.setContingencyIndex(index++);
-        }
-    }
-
-    public static void setLocalIndexes(Collection<ComputedContingencyElement> elements) {
-        int index = 0;
-        for (ComputedContingencyElement element : elements) {
-            element.setLocalIndex(index++);
-        }
     }
 
     public static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
