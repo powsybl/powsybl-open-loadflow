@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
@@ -92,7 +91,7 @@ public class AcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
                     Reports.reportAreaInterchangeControlAreaMismatch(failureReportNode, entry.getKey(), entry.getValue() * PerUnit.SB);
                 }
             );
-            return distributionFailureResult(context, movedBuses, contextData, totalDistributedActivePower);
+            return handleDistributionFailure(context, contextData, movedBuses, totalDistributedActivePower, Double.NaN, FAILED_TO_DISTRIBUTE_INTERCHANGE_ACTIVE_POWER_MISMATCH);
         } else {
             if (movedBuses) {
                 areas.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
@@ -107,29 +106,14 @@ public class AcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
         }
     }
 
-    private OuterLoopResult distributionFailureResult(AcOuterLoopContext context, boolean movedBuses, AreaInterchangeControlContextData contextData, double totalDistributedActivePower) {
+    @Override
+    public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior(AcOuterLoopContext context) {
         OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
         if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
             LOGGER.error("Distribute on reference generator is not supported in AcAreaInterchangeControlOuterLoop, falling back to FAIL mode");
             slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
         }
-
-        switch (slackDistributionFailureBehavior) {
-            case THROW ->
-                throw new PowsyblException(FAILED_TO_DISTRIBUTE_INTERCHANGE_ACTIVE_POWER_MISMATCH);
-
-            case LEAVE_ON_SLACK_BUS -> {
-                return new OuterLoopResult(this, movedBuses ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
-            }
-            case FAIL -> {
-                // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last NR run.
-                // Since we will not be re-running an NR, revert distributedActivePower reporting which would otherwise be misleading.
-                // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
-                contextData.addDistributedActivePower(-totalDistributedActivePower);
-                return new OuterLoopResult(this, OuterLoopStatus.FAILED, FAILED_TO_DISTRIBUTE_INTERCHANGE_ACTIVE_POWER_MISMATCH);
-            }
-            default -> throw new IllegalArgumentException("Unknown slackDistributionFailureBehavior");
-        }
+        return slackDistributionFailureBehavior;
     }
 
 }

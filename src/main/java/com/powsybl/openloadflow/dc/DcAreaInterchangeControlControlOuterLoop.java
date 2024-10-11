@@ -1,6 +1,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
@@ -68,7 +69,7 @@ public class DcAreaInterchangeControlControlOuterLoop extends AbstractAreaInterc
                 Reports.reportAreaInterchangeControlAreaMismatch(failureReportNode, entry.getKey(), entry.getValue() * PerUnit.SB);
             }
             );
-            return distributionFailureResult(movedBuses);
+            return handleDistributionFailure(context, contextData, movedBuses, totalDistributedActivePower, Double.NaN, FAILED_TO_DISTRIBUTE_INTERCHANGE_ACTIVE_POWER_MISMATCH);
         } else {
             if (movedBuses) {
                 areas.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
@@ -83,7 +84,8 @@ public class DcAreaInterchangeControlControlOuterLoop extends AbstractAreaInterc
         }
     }
 
-    private OuterLoopResult distributionFailureResult(boolean movedBuses) {
-        return new OuterLoopResult(this, movedBuses ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
+    @Override
+    public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior(DcOuterLoopContext context) {
+        return OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
     }
 }

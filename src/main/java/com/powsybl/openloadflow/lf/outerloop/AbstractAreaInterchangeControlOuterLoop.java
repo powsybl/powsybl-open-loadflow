@@ -23,10 +23,18 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public abstract class AbstractAreaInterchangeControlOuterLoop<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters<?>, C extends LoadFlowContext<V, E, P>, O extends OuterLoopContext<V, E, P, C>> implements OuterLoop<V, E, P, C, O> {
+public abstract class AbstractAreaInterchangeControlOuterLoop<
+        V extends Enum<V> & Quantity,
+        E extends Enum<E> & Quantity,
+        P extends AbstractLoadFlowParameters<?>,
+        C extends LoadFlowContext<V, E, P>,
+        O extends OuterLoopContext<V, E, P, C>>
+        implements OuterLoop<V, E, P, C, O>,
+        ActivePowerDistributionOuterLoop<V, E, P, C, O> {
+
+    private final Logger logger;
 
     protected static final String FAILED_TO_DISTRIBUTE_INTERCHANGE_ACTIVE_POWER_MISMATCH = "Failed to distribute interchange active power mismatch";
-    private final Logger logger;
 
     protected static final String DEFAULT_NO_AREA_NAME = "NO_AREA";
 
