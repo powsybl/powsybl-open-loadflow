@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -91,9 +90,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             if (outerLoopResult.status() == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), runningContext.outerLoopTotalIterations);
 
-                ReportNode nrReportNode = context.getNetwork().getReportNode();
+                ReportNode reportNode = context.getNetwork().getReportNode();
                 if (context.getParameters().isDetailedReport()) {
-                    nrReportNode = Reports.createDetailedSolverReporterOuterLoop(nrReportNode,
+                    reportNode = Reports.createDetailedSolverReporterOuterLoop(reportNode,
                             solver.getName(),
                             context.getNetwork().getNumCC(),
                             context.getNetwork().getNumSC(),
@@ -102,7 +101,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 }
 
                 // if not yet stable, restart solver
-                runningContext.lastSolverResult = solver.run(new PreviousValueVoltageInitializer(), nrReportNode);
+                runningContext.lastSolverResult = solver.run(new PreviousValueVoltageInitializer(), reportNode);
 
                 runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
                 runningContext.outerLoopTotalIterations++;
@@ -122,6 +121,12 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
+        VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
+        // in case of a DC voltage initializer, an DC equation system in created and equations are attached
+        // to the network. It is important that DC init is done before AC equation system is created by
+        // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
+        voltageInitializer.prepare(context.getNetwork());
+
         boolean hasVoltageRegulatedBus = context.getEquationSystem().getEquations()
                 .stream()
                 .anyMatch(eq -> eq.isActive() && eq.getType() == AcEquationType.BUS_TARGET_V);
@@ -135,12 +140,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN); // or UNREALISTIC_STATE ?
             return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
         }
-
-        VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
-        // in case of a DC voltage initializer, an DC equation system in created and equations are attached
-        // to the network. It is important that DC init is done before AC equation system is created by
-        // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
-        voltageInitializer.prepare(context.getNetwork());
 
         AcSolver solver = solverFactory.create(context.getNetwork(),
                                                context.getParameters(),
