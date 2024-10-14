@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -121,13 +122,26 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
+        boolean hasVoltageRegulatedBus = context.getEquationSystem().getEquations().stream()
+                .filter(eq -> eq.getType() == AcEquationType.BUS_TARGET_V)
+                .anyMatch(Equation::isActive);
+        RunningContext runningContext = new RunningContext();
+        double distributedActivePower = 0.0;
+        ReportNode reportNode = context.getNetwork().getReportNode();
+
+        if (!hasVoltageRegulatedBus) {
+            LOGGER.info("Network has no voltage regulated bus");
+            Reports.reportNoVoltageRegulatedBus(reportNode);
+            runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN); // or UNREALISTIC_STATE ?
+            return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
+        }
+
         VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
         // in case of a DC voltage initializer, an DC equation system in created and equations are attached
         // to the network. It is important that DC init is done before AC equation system is created by
         // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
         voltageInitializer.prepare(context.getNetwork());
 
-        RunningContext runningContext = new RunningContext();
         AcSolver solver = solverFactory.create(context.getNetwork(),
                                                context.getParameters(),
                                                context.getEquationSystem(),
@@ -147,15 +161,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoop.initialize(outerLoopContext);
         }
 
-        ReportNode nrReportNode = context.getNetwork().getReportNode();
         if (context.getParameters().isDetailedReport()) {
-            nrReportNode = Reports.createDetailedSolverReporter(nrReportNode,
+            reportNode = Reports.createDetailedSolverReporter(reportNode,
                     solver.getName(),
                     context.getNetwork().getNumCC(),
                     context.getNetwork().getNumSC());
         }
         // initial solver run
-        runningContext.lastSolverResult = solver.run(voltageInitializer, nrReportNode);
+        runningContext.lastSolverResult = solver.run(voltageInitializer, reportNode);
 
         runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
 
@@ -187,7 +200,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
 
-        double distributedActivePower = 0.0;
         // outer loops finalization (in reverse order to allow correct cleanup)
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
@@ -207,13 +219,17 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
         }
 
+        return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower);
+    }
+
+    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, double distributedActivePower) {
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.outerLoopTotalIterations,
                                                        runningContext.nrTotalIterations.getValue(),
                                                        runningContext.lastSolverResult.getStatus(),
-                                                       outerLoopFinalResult,
+                outerLoopFinalResult,
                                                        runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
-                                                       distributedActivePower
+                distributedActivePower
                                                        );
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);

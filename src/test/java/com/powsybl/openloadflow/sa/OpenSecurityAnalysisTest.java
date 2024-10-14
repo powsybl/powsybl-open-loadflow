@@ -3776,7 +3776,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         OpenLoadFlowParameters.create(securityAnalysisParameters.getLoadFlowParameters())
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+            .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         // This contingency will cut off bus with the highest voltage level
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l23"))));
@@ -3795,9 +3795,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setMaxRealisticVoltage(1.5);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
-        // FIXME: this test passes, but only because of the unrealistic state check, the NR is converging to I don't know really what.
-        //  This is strange, we don't have any voltage control anymore, should not be converging.
-        assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(PostContingencyComputationStatus.SOLVER_FAILED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
@@ -3826,9 +3824,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters);
-        // FIXME: PowsyblException: Expected to have same number of equations (2) and variables (1)
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
-        assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(PostContingencyComputationStatus.SOLVER_FAILED, result.getPostContingencyResults().get(0).getStatus());
     }
 }
