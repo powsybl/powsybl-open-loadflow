@@ -38,7 +38,7 @@
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'NGEN_NHV1'
             Network has no voltage regulated bus
-            AC load flow completed with error (solverStatus=SOLVER_FAILED, outerloopStatus=STABLE)
+            AC load flow completed with error (solverStatus=UNREALISTIC_STATE, outerloopStatus=STABLE)
          + Post-contingency simulation 'NHV2_NLOAD'
             + Outer loop DistributedSlack
                + Outer loop iteration 1

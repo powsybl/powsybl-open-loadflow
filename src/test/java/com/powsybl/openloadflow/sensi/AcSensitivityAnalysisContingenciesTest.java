@@ -1291,7 +1291,8 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testBusContingency() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        // add another generator otherwise we end up with no bus voltage regulated in post-contingency state
+        // add another generator producing epsilon MW with voltage regulation enabled at NLOAD bus,
+        // otherwise we end up with no bus voltage regulated in 'NHV1' and 'NGEN' post-contingency states
         network.getVoltageLevel("VLLOAD").newGenerator()
                 .setId("GEN2")
                 .setConnectableBus("NLOAD")
@@ -1310,7 +1311,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                   createBranchFlowPerInjectionIncrease("NGEN_NHV1", "LOAD"));
         List<Contingency> contingencies = network.getBusBreakerView().getBusStream()
                 .map(bus -> new Contingency(bus.getId(), new BusContingency(bus.getId())))
-                .collect(Collectors.toList());
+                .toList();
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);

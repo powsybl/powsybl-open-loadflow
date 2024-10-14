@@ -137,7 +137,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         if (!hasVoltageRegulatedBus) {
             LOGGER.info("Network has no voltage regulated bus");
             Reports.reportNoVoltageRegulatedBus(reportNode);
-            runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN); // or UNREALISTIC_STATE ?
+            runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE, 0, Double.NaN);
             return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
         }
 
@@ -229,7 +229,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                        outerLoopFinalResult,
                                                        runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
                                                        distributedActivePower
-        );
+                                                       );
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 

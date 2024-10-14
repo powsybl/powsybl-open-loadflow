@@ -282,7 +282,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getGenerator("GEN").getTerminal().disconnect();
 
         SecurityAnalysisResult result = runSecurityAnalysis(network);
-        assertNotSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertSame(LoadFlowResult.ComponentResult.Status.FAILED, result.getPreContingencyResult().getStatus());
     }
 
     @Test
@@ -292,16 +292,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("NGEN_NHV1", new BranchContingency("NGEN_NHV1")));
 
         LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setMaxRealisticVoltage(1.5);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
-        assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertSame(PostContingencyComputationStatus.FAILED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
     void testNoRemainingLoad() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -1505,7 +1504,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testEmptyNetwork() {
         Network network = Network.create("empty", "");
         SecurityAnalysisResult result = runSecurityAnalysis(network);
-        assertNotSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertSame(LoadFlowResult.ComponentResult.Status.FAILED, result.getPreContingencyResult().getStatus());
     }
 
     @Test
@@ -1514,7 +1513,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getLine("NHV1_NHV2_1").setR(100).setX(-999);
         network.getLine("NHV1_NHV2_2").setR(100).setX(-999);
         SecurityAnalysisResult result = runSecurityAnalysis(network);
-        assertNotSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertSame(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getPreContingencyResult().getStatus());
     }
 
     @Test
@@ -3784,21 +3783,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testNoRemainingGenerator2() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-
-        List<Contingency> contingencies = List.of(new Contingency("GEN", new GeneratorContingency("GEN")));
-
-        LoadFlowParameters parameters = new LoadFlowParameters()
-                .setTransformerVoltageControlOn(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setMaxRealisticVoltage(1.5);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
-
-        assertEquals(PostContingencyComputationStatus.SOLVER_FAILED, result.getPostContingencyResults().get(0).getStatus());
-    }
-
-    @Test
     void testOneBus() {
         Network network = Network.create("test", "code");
         VoltageLevel vl1 = network.newVoltageLevel()
@@ -3826,6 +3810,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         OpenLoadFlowParameters.create(parameters);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
-        assertEquals(PostContingencyComputationStatus.SOLVER_FAILED, result.getPostContingencyResults().get(0).getStatus());
+        assertSame(PostContingencyComputationStatus.FAILED, result.getPostContingencyResults().get(0).getStatus());
     }
 }
