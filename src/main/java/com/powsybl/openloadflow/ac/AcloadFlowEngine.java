@@ -122,9 +122,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
-        boolean hasVoltageRegulatedBus = context.getEquationSystem().getEquations().stream()
-                .filter(eq -> eq.getType() == AcEquationType.BUS_TARGET_V)
-                .anyMatch(Equation::isActive);
+        boolean hasVoltageRegulatedBus = context.getEquationSystem().getEquations()
+                .stream()
+                .anyMatch(eq -> eq.isActive() && eq.getType() == AcEquationType.BUS_TARGET_V);
         RunningContext runningContext = new RunningContext();
         double distributedActivePower = 0.0;
         ReportNode reportNode = context.getNetwork().getReportNode();
