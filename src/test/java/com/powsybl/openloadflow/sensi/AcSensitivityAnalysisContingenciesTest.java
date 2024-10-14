@@ -1291,6 +1291,17 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testBusContingency() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        // add another generator otherwise we end up with no bus voltage regulated in post-contingency state
+        network.getVoltageLevel("VLLOAD").newGenerator()
+                .setId("GEN2")
+                .setConnectableBus("NLOAD")
+                .setBus("NLOAD")
+                .setMinP(0.0)
+                .setMaxP(1.0)
+                .setTargetP(1e-6)
+                .setTargetV(147.58)
+                .setVoltageRegulatorOn(true)
+                .add();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "NGEN", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"),
@@ -1306,10 +1317,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0.019, result.getBranchFlow1FunctionReferenceValue("NLOAD", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         // Contingency 'NHV1' leads to an isolated slack bus:  slack bus is relocated.
         assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("NHV1"));
-        assertEquals(600.413, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV2_NLOAD"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(600.784, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV2_NLOAD"), LoadFlowAssert.DELTA_POWER);
         // Contingency 'NGEN' leads to the loss of a slack bus: slack bus is relocated.
         assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("NGEN"));
-        assertEquals(301.056, result.getBranchFlow1FunctionReferenceValue("NGEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(302.304, result.getBranchFlow1FunctionReferenceValue("NGEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NGEN", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
     }
 }
