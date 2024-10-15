@@ -37,7 +37,7 @@
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'NGEN_NHV1'
-            Network has no voltage regulated bus
+            Network must have at least one bus with generator voltage control enabled
             AC load flow completed with error (solverStatus=UNREALISTIC_STATE, outerloopStatus=STABLE)
          + Post-contingency simulation 'NHV2_NLOAD'
             + Outer loop DistributedSlack

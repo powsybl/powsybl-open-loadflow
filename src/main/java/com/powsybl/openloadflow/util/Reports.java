@@ -628,11 +628,4 @@ public final class Reports {
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
     }
-
-    public static void reportNoVoltageRegulatedBus(ReportNode reportNode) {
-        reportNode.newReportNode()
-                .withMessageTemplate("noVoltageRegulatedBus", "Network has no voltage regulated bus")
-                .withSeverity(TypedValue.INFO_SEVERITY)
-                .add();
-    }
 }
