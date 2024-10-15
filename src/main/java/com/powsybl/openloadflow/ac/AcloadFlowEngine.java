@@ -135,7 +135,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         ReportNode reportNode = context.getNetwork().getReportNode();
 
         if (!hasVoltageRegulatedBus) {
-            LOGGER.info("Network has no voltage regulated bus");
+            LOGGER.info("Network must have at least one bus with generator voltage control enabled");
             Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE, 0, Double.NaN);
             return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
