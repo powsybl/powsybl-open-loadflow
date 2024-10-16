@@ -38,9 +38,9 @@ public final class HvdcConverterStations {
         return 0.0;
     }
 
-    public static boolean isVsc(Connectable<?> connectable) {
-        return connectable.getType() == IdentifiableType.HVDC_CONVERTER_STATION
-                && ((HvdcConverterStation<?>) connectable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
+    public static boolean isVsc(Identifiable<?> identifiable) {
+        return identifiable.getType() == IdentifiableType.HVDC_CONVERTER_STATION
+                && ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
     }
 
     public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station, LfNetworkParameters parameters) {
