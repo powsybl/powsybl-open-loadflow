@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class DcAreaInterchangeControlControlOuterLoop extends AbstractAreaInterchangeControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> {
+public class DcAreaInterchangeControlControlOuterLoop extends AbstractAreaInterchangeControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> implements DcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcAreaInterchangeControlControlOuterLoop.class);
 
