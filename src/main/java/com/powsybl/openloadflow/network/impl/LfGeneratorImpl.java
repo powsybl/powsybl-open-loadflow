@@ -62,9 +62,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         minTargetP = apcHelper.minTargetP();
         maxTargetP = apcHelper.maxTargetP();
 
-        if (generator.getId().equals("PENLY7PENLYT1")) {
-            System.out.println("dddd");
-        }
         setReferencePriority(ReferencePriority.get(generator));
 
         if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
