@@ -370,6 +370,7 @@ class SecondaryVoltageControlTest {
 
     @Test
     void testWithGeneratorRemoteVoltage() {
+        // move generator 6 to bus 5 but keep voltage control on bus 6
         network.getGenerator("B6-G").remove();
         var g5 = network.getVoltageLevel("VL5").newGenerator()
                 .setId("B5-G")
@@ -387,7 +388,7 @@ class SecondaryVoltageControlTest {
                 .newControlZone()
                 .withName("z1")
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B5-G").add()
+                .newControlUnit().withId("B5-G").add() // this control unit is a generator with remote voltage control
                 .newControlUnit().withId("B8-G").add()
                 .add()
                 .add();
