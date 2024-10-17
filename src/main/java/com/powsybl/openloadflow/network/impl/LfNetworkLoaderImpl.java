@@ -1047,19 +1047,43 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static Set<GeneratorVoltageControl> findControlZoneGeneratorVoltageControl(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork, ControlZone controlZone) {
-        return controlZone.getControlUnits().stream()
-                .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
-                .flatMap(regulatingTerminal -> {
-                    Connectable<?> connectable = regulatingTerminal.getConnectable();
-                    if (connectable.getType() != IdentifiableType.GENERATOR && !HvdcConverterStations.isVsc(connectable)) {
-                        throw new PowsyblException("Control unit '" + connectable.getId() + "' of zone '"
-                                + controlZone.getName() + "' is expected to be either a generator or a VSC converter station");
-                    }
-                    return Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream();
-                })
-                .filter(LfBus::isGeneratorVoltageControlled) // might happen to be false, if generator has been discarded from voltage control because of inconsistency (like small reactive limit range)
-                .flatMap(controlledBus -> controlledBus.getGeneratorVoltageControl().stream())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<GeneratorVoltageControl> generatorVoltageControls = new LinkedHashSet<>();
+        Set<String> controlUnitsNotFound = new LinkedHashSet<>();
+        Set<String> controlledBusesOfNotFoundVoltageControls = new LinkedHashSet<>();
+        for (ControlUnit controlUnit : controlZone.getControlUnits()) {
+            Identifiable<?> identifiable = network.getIdentifiable(controlUnit.getId());
+            if (identifiable == null) {
+                controlUnitsNotFound.add(controlUnit.getId());
+                continue;
+            }
+            if (identifiable.getType() != IdentifiableType.GENERATOR && !HvdcConverterStations.isVsc(identifiable)) {
+                throw new PowsyblException("Control unit '" + controlUnit.getId() + "' of zone '"
+                        + controlZone.getName() + "' is expected to be either a generator or a VSC converter station");
+            }
+            Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(identifiable).orElse(null);
+            if (regulatingTerminal == null) {
+                continue;
+            }
+            LfBus controlledBus = getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers());
+            if (controlledBus == null) {
+                // might happen if controlled bus is not in same component that controller buses
+                continue;
+            }
+            if (!controlledBus.isGeneratorVoltageControlled()) {
+                // might happen to be false if all generators of the voltage control are disconnected or have been
+                // discarded from voltage control because of inconsistency (like small reactive limit range)
+                controlledBusesOfNotFoundVoltageControls.add(controlledBus.getId());
+                continue;
+            }
+            GeneratorVoltageControl generatorVoltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
+            generatorVoltageControls.add(generatorVoltageControl);
+        }
+        LOGGER.debug("{} control units of control zone '{}' have been mapped to {} generator voltage controls (controlled buses: {}, controlled buses without voltage control: {}, control units not found: {})",
+                controlZone.getControlUnits().size(), controlZone.getName(), generatorVoltageControls.size(),
+                generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).toList(),
+                controlledBusesOfNotFoundVoltageControls,
+                controlUnitsNotFound);
+        return generatorVoltageControls;
     }
 
     private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
@@ -1079,9 +1103,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
                     // filter missing control units and find corresponding primary voltage control, controlled bus
                     Set<GeneratorVoltageControl> generatorVoltageControls = findControlZoneGeneratorVoltageControl(network, parameters, lfNetwork, controlZone);
-                    LOGGER.debug("{} control units of control zone '{}' have been mapped to {} generator voltage control (controlled buses are: {})",
-                            controlZone.getControlUnits().size(), controlZone.getName(), generatorVoltageControls.size(),
-                            generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).toList());
                     if (!generatorVoltageControls.isEmpty()) {
                         Set<String> participatingControlUnitIds = controlZone.getControlUnits().stream()
                                 .filter(ControlUnit::isParticipate)

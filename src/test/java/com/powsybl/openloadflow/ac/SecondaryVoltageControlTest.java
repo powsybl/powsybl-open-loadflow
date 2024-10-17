@@ -9,8 +9,13 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.iidm.network.extensions.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -361,5 +366,66 @@ class SecondaryVoltageControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    void testWithGeneratorRemoteVoltage() {
+        // move generator 6 to bus 5 but keep voltage control on bus 6
+        network.getGenerator("B6-G").remove();
+        var g5 = network.getVoltageLevel("VL5").newGenerator()
+                .setId("B5-G")
+                .setBus("B5")
+                .setTargetP(0)
+                .setMinP(-9999)
+                .setMaxP(9999)
+                .setTargetV(12.8)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .add();
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B5-G").add() // this control unit is a generator with remote voltage control
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(13, b10);
+        assertVoltageEquals(12.682, b6);
+        assertVoltageEquals(25.311, b8);
+        assertReactivePowerEquals(82.904, g5.getTerminal());
+        assertReactivePowerEquals(-97, g8.getTerminal());
+    }
+
+    @Test
+    void testWithDiscardedGenerator() {
+        g6.newMinMaxReactiveLimits()
+                .setMinQ(100)
+                .setMaxQ(100.00000001)
+                .add();
+        parametersExt.setSecondaryVoltageControl(true);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(13, b10);
+        assertVoltageEquals(13.090, b6);
+        assertVoltageEquals(23.381, b8);
     }
 }
