@@ -111,7 +111,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkKnitroSolver();
             }
             // update network state
-            if (atLeastOneComponentHasToBeUpdated || isAlwaysUpdateNetwork) {
+            if (atLeastOneComponentHasToBeUpdated && result.isSuccess() || isAlwaysUpdateNetwork) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),

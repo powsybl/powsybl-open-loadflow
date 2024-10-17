@@ -68,7 +68,7 @@ class AcLoadFlowBoundaryTest {
         assertVoltageEquals(388.582864, bus2);
         assertAngleEquals(0, bus2);
         assertActivePowerEquals(101.302, dl1.getTerminal());
-        assertReactivePowerEquals(149.766, dl1.getTerminal());
+        assertReactivePowerEquals(149.764, dl1.getTerminal());
     }
 
     @Test

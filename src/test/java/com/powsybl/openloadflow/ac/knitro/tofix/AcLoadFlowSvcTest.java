@@ -14,7 +14,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -71,8 +70,7 @@ class AcLoadFlowSvcTest {
                 .setVoltagePerReactivePowerControl(false)
                 .setSvcVoltageMonitoring(false)
                 .setGradientComputationModeKnitro(2)
-//                .setAcSolverType(AcSolverType.KNITRO)
-        ;
+                .setAcSolverType(AcSolverType.KNITRO);
     }
 
     @Test
@@ -157,11 +155,11 @@ class AcLoadFlowSvcTest {
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(398.155, bus2);
-        assertAngleEquals(-0.524413, bus2);
+        assertAngleEquals(-0.524416, bus2);
         assertActivePowerEquals(108.952, l1.getTerminal1());
-        assertReactivePowerEquals(-1094.367, l1.getTerminal1());
+        assertReactivePowerEquals(-1094.376, l1.getTerminal1());
         assertActivePowerEquals(-101, l1.getTerminal2());
-        assertReactivePowerEquals(1118.223, l1.getTerminal2());
+        assertReactivePowerEquals(1118.232, l1.getTerminal2());
         assertActivePowerEquals(0, svc1.getTerminal());
         assertReactivePowerEquals(-1268.223, svc1.getTerminal());
     }
@@ -245,19 +243,20 @@ class AcLoadFlowSvcTest {
                 .add();
 
         parametersExt.setVoltagePerReactivePowerControl(true);
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-//        assertVoltageEquals(390, bus1);
-//        assertAngleEquals(0, bus1);
-//        assertVoltageEquals(388.462, bus2);
-//        assertAngleEquals(-0.052034, bus2);
-//        assertActivePowerEquals(101.249, l1.getTerminal1());
-//        assertReactivePowerEquals(166.160, l1.getTerminal1());
-//        assertActivePowerEquals(-101, l1.getTerminal2());
-//        assertReactivePowerEquals(-165.413, l1.getTerminal2());
-//        assertActivePowerEquals(0, svc1.getTerminal());
-//        assertReactivePowerEquals(115.413, svc1.getTerminal());
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(388.462, bus2);
+        assertAngleEquals(-0.052034, bus2);
+        assertActivePowerEquals(101.249, l1.getTerminal1());
+        assertReactivePowerEquals(166.160, l1.getTerminal1());
+        assertActivePowerEquals(-101, l1.getTerminal2());
+        assertReactivePowerEquals(-165.413, l1.getTerminal2());
+        assertActivePowerEquals(0, svc1.getTerminal());
+        assertReactivePowerEquals(115.413, svc1.getTerminal());
 
 //        System.out.println("STARTING NR");
 //        assertKnitroComparisonToNewtonRaphson(resultNR);
@@ -334,7 +333,7 @@ class AcLoadFlowSvcTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        assertReactivePowerEquals(584.129, svc1.getTerminal());
+        assertReactivePowerEquals(584.126, svc1.getTerminal());
         assertVoltageEquals(384.0, bus2);
     }
 

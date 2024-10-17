@@ -16,13 +16,12 @@ import java.util.Objects;
 
 public class KnitroSolverParameters {
 
-    public static final int DEFAULT_GRADIENT_COMPUTATION_MODE = 1; // user provides a routine for computing the exact gradients
-    public static final int DEFAULT_GRADIENT_USER_ROUTINE = 2; // user routine for computing the exact gradients
-    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
-    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
+    public static final int DEFAULT_GRADIENT_COMPUTATION_MODE = 1; // Specifies how the Jacobian matrix is computed
+    public static final int DEFAULT_GRADIENT_USER_ROUTINE = 2; // If the user chooses to pass the exact Jacobian to knitro, specifies the sparsity pattern for the Jacobian matrix.
+    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5; // Lower bound for voltage magnitude
+    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5; // Upper bound for voltage magnitude
     public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
     public static final int DEFAULT_MAX_ITERATIONS = 200;
-
 
     public KnitroSolverParameters() {
     }

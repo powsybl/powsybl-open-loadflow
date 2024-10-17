@@ -20,9 +20,8 @@ import java.util.*;
 
 public final class SolverUtils {
 
-    // List of linear constraints
-    public static List<AcEquationType> linearConstraintsTypes = new ArrayList<>(Arrays.asList(
-            AcEquationType.BUS_TARGET_V,
+    // List of always linear constraints
+    private static List<AcEquationType> linearConstraintsTypes = new ArrayList<>(Arrays.asList(
             AcEquationType.BUS_TARGET_PHI,
             AcEquationType.DUMMY_TARGET_P,
             AcEquationType.DUMMY_TARGET_Q,
@@ -35,45 +34,58 @@ public final class SolverUtils {
             AcEquationType.BRANCH_TARGET_RHO1
     ));
 
-    public static List<AcEquationType> getLinearConstraintsTypes() {
-        return linearConstraintsTypes;
-    }
-
-    // List of non-linear constraints
-    public static List<AcEquationType> nonLinearConstraintsTypes = new ArrayList<>(Arrays.asList(
+    // List of always non-linear constraints
+    private static List<AcEquationType> nonLinearConstraintsTypes = new ArrayList<>(Arrays.asList(
             AcEquationType.BUS_TARGET_P,
             AcEquationType.BUS_TARGET_Q,
             AcEquationType.BRANCH_TARGET_P,
             AcEquationType.BRANCH_TARGET_Q,
             AcEquationType.BUS_DISTR_SLACK_P,
             AcEquationType.DISTR_Q
-            ));
+    ));
+
+    public static List<AcEquationType> getLinearConstraintsTypes() {
+        return linearConstraintsTypes;
+    }
 
     public static List<AcEquationType> getNonLinearConstraintsTypes() {
         return nonLinearConstraintsTypes;
     }
 
+    // Classifies a constraint as linear or non-linear based on its type and terms
+    public static boolean isLinear(AcEquationType typeEq, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
+        // Check if the constraint type is BUS_TARGET_V
+        if (typeEq == AcEquationType.BUS_TARGET_V) {
+            return terms.size() == 1; // If there's only one term, it is linear
+        }
+        return linearConstraintsTypes.contains(typeEq);
+    }
+
     // Return lists of variables and coefficients to pass to Knitro for a linear constraint
     public VarAndCoefList getLinearConstraint(AcEquationType typeEq, int equationId, List<EquationTerm<AcVariableType, AcEquationType>> terms) {
         VarAndCoefList varAndCoefList = null;
-        switch (typeEq) {
-            case BUS_TARGET_V:
-            case BUS_TARGET_PHI:
-            case DUMMY_TARGET_P:
-            case DUMMY_TARGET_Q:
-            case SHUNT_TARGET_B:
-            case BRANCH_TARGET_ALPHA1:
-            case BRANCH_TARGET_RHO1:
-                varAndCoefList = addConstraintConstantTarget(typeEq, equationId, terms);
-                break;
-            case DISTR_SHUNT_B:
-            case DISTR_RHO:
-                varAndCoefList = addConstraintDistrQ(typeEq, equationId, terms);
-                break;
-            case ZERO_V:
-            case ZERO_PHI:
-                varAndCoefList = addConstraintZero(typeEq, equationId, terms);
-                break;
+
+        // Check if the constraint is linear
+        if (isLinear(typeEq, terms)) {
+            switch (typeEq) {
+                case BUS_TARGET_V: // BUS_TARGET_V should be treated as linear
+                case BUS_TARGET_PHI:
+                case DUMMY_TARGET_P:
+                case DUMMY_TARGET_Q:
+                case SHUNT_TARGET_B:
+                case BRANCH_TARGET_ALPHA1:
+                case BRANCH_TARGET_RHO1:
+                    varAndCoefList = addConstraintConstantTarget(typeEq, equationId, terms);
+                    break;
+                case DISTR_SHUNT_B:
+                case DISTR_RHO:
+                    varAndCoefList = addConstraintDistrQ(typeEq, equationId, terms);
+                    break;
+                case ZERO_V:
+                case ZERO_PHI:
+                    varAndCoefList = addConstraintZero(typeEq, equationId, terms);
+                    break;
+            }
         }
         return varAndCoefList;
     }

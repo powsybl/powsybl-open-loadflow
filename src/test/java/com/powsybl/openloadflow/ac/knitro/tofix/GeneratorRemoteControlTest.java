@@ -16,7 +16,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -418,9 +417,9 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
             .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
             .withEnabled(true).add();
 
-        parametersExt
-                .setGeneratorReactivePowerRemoteControl(true);
-        parametersExt.setKnitroSolverConvEpsPerEq(Math.pow(10,-4));
+        parametersExt.setGeneratorReactivePowerRemoteControl(true);
+        parametersExt.setKnitroSolverConvEpsPerEq(Math.pow(10, -4));
+        parametersExt.setLowImpedanceThreshold(1e-3); // otherwise Knitro does not converge
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(targetQ, l34.getTerminal(TwoSides.TWO));

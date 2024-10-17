@@ -37,9 +37,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     protected static KnitroSolverParameters knitroParameters = new KnitroSolverParameters();
 
     public KnitroSolver(LfNetwork network, KnitroSolverParameters knitroParameters,
-                           EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
-                           TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector,
-                           boolean detailedReport) {
+                        EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
+                        TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector,
+                        boolean detailedReport) {
         super(network, equationSystem, j, targetVector, equationVector, detailedReport);
         this.knitroParameters = knitroParameters;
     }
@@ -51,12 +51,12 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
     // List of all possible Knitro status
     public enum KnitroStatus {
-    CONVERGED_TO_LOCAL_OPTIMUM,
-    CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
-    TERMINATED_AT_INFEASIBLE_POINT,
-    PROBLEM_UNBOUNDED,
-    TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
-    INPUT_OR_NON_STANDARD_ERROR }
+        CONVERGED_TO_LOCAL_OPTIMUM,
+        CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
+        TERMINATED_AT_INFEASIBLE_POINT,
+        PROBLEM_UNBOUNDED,
+        TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
+        INPUT_OR_NON_STANDARD_ERROR }
 
     // Get AcStatus equivalent from Knitro Status, and log Knitro Status
     public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus) {
@@ -93,19 +93,18 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     }
 
     private static final class KnitroProblem extends KNProblem {
-        /*------------------------------------------------------------------*/
-        /*     FUNCTION callbackEvalF                                       */
-        /*------------------------------------------------------------------*/
+
+        /**
+         * Callback function to evaluate non-linear parts of the objective and of constraints
+         */
 
         private final class CallbackEvalFC extends KNEvalFCCallback {
 
             private final List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve;
-            private final LfNetwork lfNetwork;
             private final List<Integer> listNonLinearConsts;
 
-            private CallbackEvalFC(List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, LfNetwork lfNetwork, List<Integer> listNonLinearConsts) {
+            private CallbackEvalFC(List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, List<Integer> listNonLinearConsts) {
                 this.sortedEquationsToSolve = sortedEquationsToSolve;
-                this.lfNetwork = lfNetwork;
                 this.listNonLinearConsts = listNonLinearConsts;
             }
 
@@ -127,7 +126,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
-                    if (!SolverUtils.getNonLinearConstraintsTypes().contains(typeEq)) { // check that the constraint is really non-linear
+                    if (SolverUtils.isLinear(typeEq, equation.getTerms())) { // check that the constraint is really non-linear
                         throw new IllegalArgumentException("Equation of type " + typeEq + " is linear, and should be considered in the main function of Knitro, not in the callback function");
                     } else {
                         // we evaluate the equation with respect to the current state
@@ -149,9 +148,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
         }
 
-        /*------------------------------------------------------------------*/
-        /*     FUNCTION callbackEvalG                                       */
-        /*------------------------------------------------------------------*/
+        /**
+         * Callback function to evaluate the gradient
+         * When no objective, that is to say the matrix of the constraints, the Jacobian matrix
+         */
         private final class CallbackEvalG extends KNEvalGACallback {
             private final JacobianMatrix<AcVariableType, AcEquationType> oldMatrix;
             private final List<Integer> listNonZerosCts;
@@ -277,16 +277,23 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
         }
 
-        /*------------------------------------------------------------------*/
-        /*     FUNCTION callbackEvalH                                       */
-        /*------------------------------------------------------------------*/
+        /**
+         * Callback function to evaluate the Hessian Matrix
+         */
         private static class CallbackEvalH extends KNEvalHCallback {
             @Override
             public void evaluateH(final List<Double> x, final double sigma, final List<Double> lambda, List<Double> hess) {
-                // TODO ?
+                // TODO : add Hessian matrix to improve performances
             }
         }
 
+        /**
+         * Knitro Problem definition with :
+         * - initialization of variables (types, bounds, initial state)
+         * - definition of linear constraints
+         * - definition of non-linear constraints, evaluated in the callback function
+         * - definition of the Jacobian matrix passed to Knitro to solve the problem
+         */
         private KnitroProblem(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem, TargetVector targetVector, VoltageInitializer voltageInitializer, JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix, KnitroSolverParameters knitroParameters) throws KNException {
 
             // =============== Variables ===============
@@ -325,8 +332,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             for (int i = 0; i < numVar; i++) {
                 listXInitial.add(equationSystem.getStateVector().get(i));
             }
-            setXInitial(listXInitial);
             LOGGER.info("Initialization of variables : type of initialization {}", voltageInitializer);
+            setXInitial(listXInitial);
 
             // =============== Constraints ==============
             // ----- Active constraints -----
@@ -343,9 +350,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 AcEquationType typeEq = equation.getType();
                 List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                 SolverUtils solverUtils = new SolverUtils();
-                if (SolverUtils.getLinearConstraintsTypes().contains(typeEq)) {
-                    List<Integer> listVar = new ArrayList<>();
-                    List<Double> listCoef = new ArrayList<>();
+                if (SolverUtils.isLinear(typeEq, terms)) {
+                    List<Integer> listVar;
+                    List<Double> listCoef;
                     listVar = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListIdVar();
                     listCoef = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListCoef();
 
@@ -362,6 +369,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // ----- Non-linear constraints -----
             // Callback
+            // Pass to Knitro the indexes of non-linear constraints, that will be evaluated in the callback function
             setMainCallbackCstIndexes(listNonLinearConsts);
 
             // ----- RHS : targets -----
@@ -372,22 +380,23 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // =============== Callback ==============
             // ----- Constraints -----
-            setObjEvalCallback(new CallbackEvalFC(sortedEquationsToSolve, lfNetwork, listNonLinearConsts));
+            setObjEvalCallback(new CallbackEvalFC(sortedEquationsToSolve, listNonLinearConsts));
 
             // ----- Jacobian matrix -----
-            // Non zero pattern
-            List<Integer> listNonZerosCts = new ArrayList<>(); //list of constraints to parse to Knitro non-zero pattern
-            List<Integer> listNonZerosVars = new ArrayList<>(); //list of variables to pass to Knitro non-zero pattern
-            List<Integer> listNonZerosCts2 = new ArrayList<>();
-            List<Integer> listNonZerosVars2 = new ArrayList<>();
-            List<Integer> listVarChecker = new ArrayList<>();
+            // Non-zero pattern : for each constraint, we detail the variables of which the constraint is a function of.
+            List<Integer> listNonZerosCtsDense = new ArrayList<>(); // for the dense method, list of constraints to pass to Knitro's non-zero pattern
+            List<Integer> listNonZerosVarsDense = new ArrayList<>(); // for the dense method, list of variables to pass to Knitro's non-zero pattern
+            List<Integer> listNonZerosCtsSparse = new ArrayList<>();
+            List<Integer> listNonZerosVarsSparse = new ArrayList<>();
+            List<Integer> listVarChecker = new ArrayList<>(); //TODO
 
-            // FIRST METHOD : all non-linear constraints
             if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
                 if (knitroParameters.getGradientUserRoutine() == 1) {
+                    // Dense method : when computing the Jacobian matrix, all non-linear constraints are considered as a function of all variables.
                     for (Integer idCt : listNonLinearConsts) {
                         for (int i = 0; i < numVar; i++) {
-                            listNonZerosCts.add(idCt);
+                            // there are numVar*numNonLinearConstraints derivates to evaluate because every non-linear constraint is derived with respect to every variable
+                            listNonZerosCtsDense.add(idCt);
                         }
                     }
 
@@ -396,11 +405,11 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         listVars.add(i);
                     }
                     for (int i = 0; i < listNonLinearConsts.size(); i++) {
-                        listNonZerosVars.addAll(listVars);
+                        listNonZerosVarsDense.addAll(listVars);
                     }
                 } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    // SECOND METHOD : only non-zero constraints
-                    for (Integer ct : listNonLinearConsts) {
+                    // Sparse method : when computing the Jacobian matrix, non-linear constraints derivates are evaluated only with respect to variables the constraints really depend off.
+                    for (Integer ct : listNonLinearConsts) { // for each non-linear constraint, we get the variables of which it depends on
                         Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
                         List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
                         List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
@@ -410,29 +419,30 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                                 listNonZerosVarsCurrentCt.add(variable.getRow());
                             }
                         }
-                        List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list
-                        listNonZerosVars2.addAll(uniqueListVarsCurrentCt);
+                        List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list, because the same variables may be present in several terms of the constraint
+                        listNonZerosVarsSparse.addAll(uniqueListVarsCurrentCt);
 
-                        //                for (int var = 0; var < sortedVariables.size(); var++) {
+                        //                for (int var = 0; var < sortedVariables.size(); var++) { //TODO
                         //                    if (uniqueListVarsCurrentCt.contains(var)) {
                         //                        listVarChecker.add(var);
                         //                    } else {
                         //                        listVarChecker.add(-1);
                         //                    }
                         //                }
-
-                        listNonZerosCts2.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
+                        // we add uniqueListVarsCurrentCt.size() times the constraint ct to the list of constraints to derive
+                        listNonZerosCtsSparse.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
                     }
                 }
             }
 
-            if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
+            // If the user decided to directly pass the Jacobian to the solver, we set the callback for gradient evaluations.
+            if (knitroParameters.getGradientComputationMode() == 1) {
                 if (knitroParameters.getGradientUserRoutine() == 1) {
-                    setJacNnzPattern(listNonZerosCts, listNonZerosVars);
+                    setJacNnzPattern(listNonZerosCtsDense, listNonZerosVarsDense);
                 } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    setJacNnzPattern(listNonZerosCts2, listNonZerosVars2);
+                    setJacNnzPattern(listNonZerosCtsSparse, listNonZerosVarsSparse);
                 }
-                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCts, listNonZerosVars, listNonZerosCts2, listNonZerosVars2, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem));
+                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCtsDense, listNonZerosVarsDense, listNonZerosCtsSparse, listNonZerosVarsSparse, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem)); //TODO enlever listVarChecker
             }
         }
     }
@@ -501,10 +511,14 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             }
 
             // Load results in the network
-
             if (acStatus == AcSolverStatus.CONVERGED || knitroParameters.isAlwaysUpdateNetwork()) {
-                equationSystem.getStateVector().set(toArray(solution.getX())); //update equations system
-                AcSolverUtil.updateNetwork(network, equationSystem);
+                equationSystem.getStateVector().set(toArray(solution.getX())); //update equation system
+                for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()) { //update terms
+                    for (EquationTerm term : equation.getTerms()) {
+                        term.setStateVector(equationSystem.getStateVector()); //FIXME
+                    }
+                }
+                AcSolverUtil.updateNetwork(network, equationSystem); //update network
             }
 
 //            // update network state variable //TODO later?
