@@ -294,7 +294,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
-        assertSame(PostContingencyComputationStatus.FAILED, result.getPostContingencyResults().get(0).getStatus());
+        assertSame(PostContingencyComputationStatus.SOLVER_FAILED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
@@ -3783,7 +3783,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testOneBus() {
+    void testNoMoreVoltageControlledBusOneBusNetwork() {
         Network network = Network.create("test", "code");
         VoltageLevel vl1 = network.newVoltageLevel()
                 .setId("VL1")
@@ -3810,11 +3810,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         OpenLoadFlowParameters.create(parameters);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
-        assertSame(PostContingencyComputationStatus.FAILED, result.getPostContingencyResults().get(0).getStatus());
+        // no more voltage controlled bus in network after contingency
+        assertSame(PostContingencyComputationStatus.SOLVER_FAILED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
-    void testTwoBus() {
+    void testNoMoreVoltageControlledBusTwoBusNetwork() {
         Network network = Network.create("test", "code");
         VoltageLevel vl1 = network.newVoltageLevel()
                 .setId("VL1")
@@ -3871,18 +3872,20 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         LoadFlowResult result = runLoadFlow(network, parameters);
         assertTrue(result.isFullyConverged());
-        // G2 is blocker at QMin
-        assertEquals(-300, network.getGenerator("G2").getTerminal().getQ(), 1e-3);
+        // G2 is blocked at MinQ limit
+        assertReactivePowerEquals(-300, network.getGenerator("G2").getTerminal());
 
         List<Contingency> contingencies = List.of(new Contingency("G1", new GeneratorContingency("G1")));
         SecurityAnalysisResult asResult = runSecurityAnalysis(network, contingencies, parameters);
 
-        // FIXME - This should converge like the N case below
-        // assertEquals(PostContingencyComputationStatus.CONVERGED, asResult.getPostContingencyResults().get(0).getStatus());
+        // FIXME: This should  converge like the N case with contingency applied - see further below
+        assertEquals(PostContingencyComputationStatus.SOLVER_FAILED, asResult.getPostContingencyResults().get(0).getStatus());
 
         network.getGenerator("G1").disconnect();
         result = runLoadFlow(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(400.01, network.getBusBreakerView().getBus("B2").getV(), 1e-3);
+        // G2 within reactive limits
+        assertReactivePowerEquals(0.0, network.getGenerator("G2").getTerminal());
+        assertVoltageEquals(400.01, network.getBusBreakerView().getBus("B2"));
     }
 }

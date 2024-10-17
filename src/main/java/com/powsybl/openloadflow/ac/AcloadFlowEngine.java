@@ -127,17 +127,24 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
         voltageInitializer.prepare(context.getNetwork());
 
-        boolean hasVoltageRegulatedBus = context.getEquationSystem().getEquations()
-                .stream()
-                .anyMatch(eq -> eq.isActive() && eq.getType() == AcEquationType.BUS_TARGET_V);
         RunningContext runningContext = new RunningContext();
         double distributedActivePower = 0.0;
         ReportNode reportNode = context.getNetwork().getReportNode();
 
+        // Verify whether a regulated bus voltage exists.
+        // If not, then fail immediately with SOLVER_FAILED status.
+        // Note that this approach is not perfect and could be improved in the future, in particular in
+        // security analysis and remedial actions context.
+        // For example: a contingency may cause the last PV node to disappear. In this case here we would
+        // just report SOLVER_FAILED. However, there could be other generators blocked at MinQ or MaxQ that
+        // _could potentially_ recover the situation, but this will not be tried at all...
+        boolean hasVoltageRegulatedBus = context.getEquationSystem().getEquations()
+                .stream()
+                .anyMatch(eq -> eq.isActive() && eq.getType() == AcEquationType.BUS_TARGET_V);
         if (!hasVoltageRegulatedBus) {
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
             Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
-            runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE, 0, Double.NaN);
+            runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN);
             return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
         }
 
