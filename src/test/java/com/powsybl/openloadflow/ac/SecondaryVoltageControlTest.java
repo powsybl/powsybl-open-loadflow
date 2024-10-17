@@ -403,4 +403,29 @@ class SecondaryVoltageControlTest {
         assertReactivePowerEquals(82.904, g5.getTerminal());
         assertReactivePowerEquals(-97, g8.getTerminal());
     }
+
+    @Test
+    void testWithDisconnectedGenerator() {
+        network.getGenerator("B6-G").disconnect();
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B5-G").add() // this control unit is a generator with remote voltage control
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(13, b10);
+        assertVoltageEquals(12.909, b6);
+        assertVoltageEquals(23.978, b8);
+        assertReactivePowerEquals(Double.NaN, g6.getTerminal());
+        assertReactivePowerEquals(-57.925, g8.getTerminal());
+    }
 }
