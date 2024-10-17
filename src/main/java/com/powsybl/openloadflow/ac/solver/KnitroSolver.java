@@ -92,7 +92,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         return value >= min && value <= max;
     }
 
-    // Handle lower and upper variables bounds
+    // Handle setting lower and upper variables bounds
     public class VariableBounds {
         private final List<Double> lowerBounds;
         private final List<Double> upperBounds;
@@ -125,6 +125,30 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
         public List<Double> getUpperBounds() {
             return upperBounds;
+        }
+    }
+
+    // Handle setting the initial state
+    public class StateInitializer {
+        private final List<Double> initialState;
+
+        public StateInitializer(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                VoltageInitializer voltageInitializer) {
+            int numVar = equationSystem.getVariableSet().getVariables().size();
+            this.initialState = new ArrayList<>(numVar);
+            initializeState(lfNetwork, equationSystem, voltageInitializer);
+        }
+
+        private void initializeState(LfNetwork lfNetwork, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                     VoltageInitializer voltageInitializer) {
+            AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer);
+            for (int i = 0; i < equationSystem.getVariableSet().getVariables().size(); i++) {
+                initialState.add(equationSystem.getStateVector().get(i));
+            }
+        }
+
+        public List<Double> getInitialState() {
+            return initialState;
         }
     }
 
@@ -304,13 +328,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             setVarUpBnds(variableBounds.getUpperBounds());
 
             // Initial state
-            List<Double> listXInitial = new ArrayList<>(numVar);
-            AcSolverUtil.initStateVector(lfNetwork, equationSystem, voltageInitializer); // Initialize state vector
-            for (int i = 0; i < numVar; i++) {
-                listXInitial.add(equationSystem.getStateVector().get(i));
-            }
+            StateInitializer stateInitializer = new StateInitializer(lfNetwork, equationSystem, voltageInitializer);
+            setXInitial(stateInitializer.getInitialState());
             LOGGER.info("Initialization of variables : type of initialization {}", voltageInitializer);
-            setXInitial(listXInitial);
 
             // =============== Constraints ==============
             // ----- Active constraints -----
