@@ -281,6 +281,8 @@ public final class Networks {
     }
 
     public static Optional<Terminal> getEquipmentRegulatingTerminal(Network network, String equipmentId) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(equipmentId);
         Identifiable<?> identifiable = network.getIdentifiable(equipmentId);
         if (identifiable != null) {
             return getEquipmentRegulatingTerminal(identifiable);
@@ -310,7 +312,9 @@ public final class Networks {
             case GENERATOR -> Optional.of(((Generator) identifiable).getRegulatingTerminal());
             case SHUNT_COMPENSATOR -> Optional.of(((ShuntCompensator) identifiable).getRegulatingTerminal());
             case STATIC_VAR_COMPENSATOR -> Optional.of(((StaticVarCompensator) identifiable).getRegulatingTerminal());
-            case HVDC_CONVERTER_STATION -> Optional.of(((VscConverterStation) identifiable).getTerminal()); // local regulation only
+            case HVDC_CONVERTER_STATION -> ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC
+                    ? Optional.of(((VscConverterStation) identifiable).getTerminal()) // local regulation only
+                    : Optional.empty();
             default -> Optional.empty();
         };
     }

@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -39,6 +40,7 @@ public final class HvdcConverterStations {
     }
 
     public static boolean isVsc(Identifiable<?> identifiable) {
+        Objects.requireNonNull(identifiable);
         return identifiable.getType() == IdentifiableType.HVDC_CONVERTER_STATION
                 && ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
     }
