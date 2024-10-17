@@ -154,10 +154,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
          */
         private final class CallbackEvalG extends KNEvalGACallback {
             private final JacobianMatrix<AcVariableType, AcEquationType> oldMatrix;
-            private final List<Integer> listNonZerosCts;
-            private final List<Integer> listNonZerosVars;
-            private final List<Integer> listNonZerosCts2;
-            private final List<Integer> listNonZerosVars2;
+            private final List<Integer> listNonZerosCtsDense;
+            private final List<Integer> listNonZerosVarsDense;
+            private final List<Integer> listNonZerosCtsSparse;
+            private final List<Integer> listNonZerosVarsSparse;
             private final List<Integer> listNonLinearConsts;
             private final List<Integer> listVarChecker;
             private final LfNetwork network;
@@ -165,10 +165,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             private CallbackEvalG(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonZerosCts, List<Integer> listNonZerosVars, List<Integer> listNonZerosCts2, List<Integer> listNonZerosVars2, List<Integer> listNonLinearConsts, List<Integer> listVarChecker, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
                 this.oldMatrix = oldMatrix;
-                this.listNonZerosCts = listNonZerosCts;
-                this.listNonZerosVars = listNonZerosVars;
-                this.listNonZerosCts2 = listNonZerosCts2;
-                this.listNonZerosVars2 = listNonZerosVars2;
+                this.listNonZerosCtsDense = listNonZerosCts;
+                this.listNonZerosVarsDense = listNonZerosVars;
+                this.listNonZerosCtsSparse = listNonZerosCts2;
+                this.listNonZerosVarsSparse = listNonZerosVars2;
                 this.listNonLinearConsts = listNonLinearConsts;
                 this.listVarChecker = listVarChecker;
                 this.network = network;
@@ -190,9 +190,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 // Number of constraints evaluated in callback
                 int numCbCts = 0;
                 if (knitroParameters.getGradientUserRoutine() == 1) {
-                    numCbCts = listNonZerosCts.size();
+                    numCbCts = listNonZerosCtsDense.size();
                 } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    numCbCts = listNonZerosCts2.size();
+                    numCbCts = listNonZerosCtsSparse.size();
                 }
 
                 // Pass coefficients of Jacobian matrix to Knitro
@@ -201,11 +201,11 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         int var = 0;
                         int ct = 0;
                         if (knitroParameters.getGradientUserRoutine() == 1) {
-                            var = listNonZerosVars.get(index);
-                            ct = listNonZerosCts.get(index);
+                            var = listNonZerosVarsDense.get(index);
+                            ct = listNonZerosCtsDense.get(index);
                         } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                            var = listNonZerosVars2.get(index);
-                            ct = listNonZerosCts2.get(index);
+                            var = listNonZerosVarsSparse.get(index);
+                            ct = listNonZerosCtsSparse.get(index);
                         }
 
                         // Start and end index in the values array for column ct
@@ -224,56 +224,10 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         }
                         jac.set(index, valueSparse);
                     } catch (Exception e) {
-                        LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
+                        LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVarsSparse.get(index), listNonZerosCtsSparse.get(index));
                         LOGGER.error(e.getMessage());
                     }
                 }
-
-//                List<Double> jac1 = new ArrayList<>();
-//                List<Double> jac2 = new ArrayList<>();
-//                List<Double> jacDiff = new ArrayList<>();
-//
-//                // JAC 1 all non linear constraints
-//                for (int ct : listNonLinearConsts) {
-//                    for (int var = 0; var < equationSystem.getVariableSet().getVariables().size(); var++) { //TODO CHANGER
-//                        try {
-//                            jac1.add(denseOldMatrix.get(var, ct));  // Jacobian needs to be transposed
-//                        } catch (Exception e) {
-//                            LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", var, ct);
-//                            LOGGER.error(e.getMessage());
-//                            throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
-//                        }
-//                    }
-//                }
-//
-//                // JAC 2 only non zeros
-//                for (int index = 0; index < listNonZerosCts2.size(); index++) {
-//                    try {
-//                        double value = denseOldMatrix.get(listNonZerosVars2.get(index), listNonZerosCts2.get(index));
-//                        jac2.add(value);  // Jacobian needs to be transposed
-//                    } catch (Exception e) {
-//                        LOGGER.error("Exception found while trying to add Jacobian term {} in non-linear constraint n° {}", listNonZerosVars2.get(index), listNonZerosCts2.get(index));
-//                        LOGGER.error(e.getMessage());
-//                        throw new PowsyblException("Exception found while trying to add Jacobian term in non-linear constraint");
-//                    }
-//                }
-
-//                // JAC DIFF
-//                int id2 = 0;
-//                for (int i = 0; i < jac1.size(); i++) {
-//                    if (listVarChecker.get(i) != -1) {
-//                        jacDiff.add(jac1.get(i) - jac2.get(id2));
-//                        id2 += 1;
-//                    } else {
-//                        jacDiff.add(jac1.get(i));
-//                    }
-//                }
-//
-//                for (double value : jacDiff) {
-//                    if (value >= 0.00001) {
-//                        System.out.println("Les deux Jacobiennes sont censées être équivalentes, mais elles le sont pas!!! ; erreur " + value);
-//                    }
-//                }
             }
         }
 
