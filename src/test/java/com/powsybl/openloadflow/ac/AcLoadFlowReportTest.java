@@ -254,6 +254,6 @@ class AcLoadFlowReportTest {
         LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterloop.txt", reportNode);
+        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterLoop.txt", reportNode);
     }
 }
