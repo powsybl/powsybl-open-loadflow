@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import org.junit.jupiter.api.Test;
@@ -29,9 +30,13 @@ class NetworksTest {
         assertSame(network.getGenerator("GH1").getTerminal(), Networks.getEquipmentRegulatingTerminal(network, "GH1").orElseThrow());
         assertSame(network.getShuntCompensator("SHUNT").getTerminal(), Networks.getEquipmentRegulatingTerminal(network, "SHUNT").orElseThrow());
         assertSame(network.getVscConverterStation("VSC1").getTerminal(), Networks.getEquipmentRegulatingTerminal(network, "VSC1").orElseThrow());
+        assertFalse(Networks.getEquipmentRegulatingTerminal(network, "LCC1").isPresent());
         assertSame(network.getStaticVarCompensator("SVC").getTerminal(), Networks.getEquipmentRegulatingTerminal(network, "SVC").orElseThrow());
 
         Network network3wt = ThreeWindingsTransformerNetworkFactory.create();
         assertSame(network3wt.getLoad("LOAD_33").getTerminal(), Networks.getEquipmentRegulatingTerminal(network3wt, "3WT").orElseThrow());
+
+        Network network3wtWithoutTapChanger = EurostagTutorialExample1Factory.createWith3wTransformer();
+        assertFalse(Networks.getEquipmentRegulatingTerminal(network3wtWithoutTapChanger, "NGEN_V2_NHV1").isPresent());
     }
 }
