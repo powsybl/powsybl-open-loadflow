@@ -92,7 +92,43 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         return value >= min && value <= max;
     }
 
-    private static final class KnitroProblem extends KNProblem {
+    // Handle lower and upper variables bounds
+    public class VariableBounds {
+        private final List<Double> lowerBounds;
+        private final List<Double> upperBounds;
+
+        public VariableBounds(List<Variable<AcVariableType>> sortedVariables, KnitroSolverParameters knitroParameters) {
+            this.lowerBounds = new ArrayList<>();
+            this.upperBounds = new ArrayList<>();
+            setBounds(sortedVariables, knitroParameters);
+        }
+
+        private void setBounds(List<Variable<AcVariableType>> sortedVariables, KnitroSolverParameters knitroParameters) {
+            double loBndV = knitroParameters.getMinRealisticVoltage();
+            double upBndV = knitroParameters.getMaxRealisticVoltage();
+
+            for (Variable<AcVariableType> variable : sortedVariables) {
+                Enum<AcVariableType> typeVar = variable.getType();
+                if (typeVar == AcVariableType.BUS_V) {
+                    lowerBounds.add(loBndV);
+                    upperBounds.add(upBndV);
+                } else {
+                    lowerBounds.add(-KNConstants.KN_INFINITY);
+                    upperBounds.add(KNConstants.KN_INFINITY);
+                }
+            }
+        }
+
+        public List<Double> getLowerBounds() {
+            return lowerBounds;
+        }
+
+        public List<Double> getUpperBounds() {
+            return upperBounds;
+        }
+    }
+
+    private final class KnitroProblem extends KNProblem {
 
         /**
          * Callback function to evaluate non-linear parts of the objective and of constraints
@@ -263,22 +299,9 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             setVarTypes(listVarTypes);
 
             // Bounds
-            List<Double> listVarLoBounds = new ArrayList<>(numVar);
-            List<Double> listVarUpBounds = new ArrayList<>(numVar);
-            double loBndV = knitroParameters.getMinRealisticVoltage();
-            double upBndV = knitroParameters.getMaxRealisticVoltage();
-            for (int var = 0; var < sortedVariables.size(); var++) {
-                Enum<AcVariableType> typeVar = sortedVariables.get(var).getType();
-                if (typeVar == AcVariableType.BUS_V) {
-                    listVarLoBounds.add(loBndV);
-                    listVarUpBounds.add(upBndV);
-                } else {
-                    listVarLoBounds.add(-KNConstants.KN_INFINITY);
-                    listVarUpBounds.add(KNConstants.KN_INFINITY);
-                }
-            }
-            setVarLoBnds(listVarLoBounds);
-            setVarUpBnds(listVarUpBounds);
+            VariableBounds variableBounds = new VariableBounds(sortedVariables, knitroParameters);
+            setVarLoBnds(variableBounds.getLowerBounds());
+            setVarUpBnds(variableBounds.getUpperBounds());
 
             // Initial state
             List<Double> listXInitial = new ArrayList<>(numVar);
