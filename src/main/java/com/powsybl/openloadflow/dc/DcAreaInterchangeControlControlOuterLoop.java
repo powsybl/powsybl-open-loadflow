@@ -1,14 +1,10 @@
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
-import com.powsybl.openloadflow.lf.outerloop.AreaInterchangeControlContextData;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +16,7 @@ public class DcAreaInterchangeControlControlOuterLoop extends AbstractAreaInterc
     private static final Logger LOGGER = LoggerFactory.getLogger(DcAreaInterchangeControlControlOuterLoop.class);
 
     protected DcAreaInterchangeControlControlOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
-        super(activePowerDistribution, slackBusPMaxMismatch, areaInterchangePMaxMismatch, LOGGER);
+        super(activePowerDistribution, null, slackBusPMaxMismatch, areaInterchangePMaxMismatch, LOGGER);
     }
 
     @Override
@@ -29,17 +25,9 @@ public class DcAreaInterchangeControlControlOuterLoop extends AbstractAreaInterc
     }
 
     @Override
-    public void initialize(DcOuterLoopContext context) {
-        LfNetwork network = context.getNetwork();
-        var contextData = new AreaInterchangeControlContextData(listBusesWithoutArea(network), allocateSlackDistributionParticipationFactors(network));
-        context.setData(contextData);
-    }
-
-    @Override
-    public OuterLoopResult check(DcOuterLoopContext context, ReportNode reportNode) {
+    public double getSlackBusActivePowerMismatch(DcOuterLoopContext context) {
         List<LfBus> buses = context.getNetwork().getBuses();
-        double slackBusActivePowerMismatch = DcLoadFlowEngine.getActivePowerMismatch(buses);
-        return check(context, reportNode, slackBusActivePowerMismatch);
+        return DcLoadFlowEngine.getActivePowerMismatch(buses);
     }
 
     @Override

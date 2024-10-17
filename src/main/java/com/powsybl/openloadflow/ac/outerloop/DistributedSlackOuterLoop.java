@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.lf.outerloop.ActivePowerDistributionOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.AbstractActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -31,7 +31,9 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class DistributedSlackOuterLoop implements AcOuterLoop, ActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext> {
+public class DistributedSlackOuterLoop
+        extends AbstractActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+        implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
 
@@ -59,7 +61,7 @@ public class DistributedSlackOuterLoop implements AcOuterLoop, ActivePowerDistri
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
-        double slackBusActivePowerMismatch = context.getLastSolverResult().getSlackBusActivePowerMismatch();
+        double slackBusActivePowerMismatch = getSlackBusActivePowerMismatch(context);
         double absMismatch = Math.abs(slackBusActivePowerMismatch);
         boolean shouldDistributeSlack = absMismatch > slackBusPMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
 
@@ -67,7 +69,6 @@ public class DistributedSlackOuterLoop implements AcOuterLoop, ActivePowerDistri
             LOGGER.debug("Already balanced");
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
-
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
         double remainingMismatch = result.remainingMismatch();
