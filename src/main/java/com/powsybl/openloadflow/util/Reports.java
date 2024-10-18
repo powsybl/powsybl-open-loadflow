@@ -606,14 +606,25 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
-        reportNode.newReportNode()
-                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfRealisticVoltageRange}")
+        ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
+            .withMessageTemplate("busesOutOfVoltageRealisticRange", "Buses have a voltage magnitude out of the configured realistic range")
+            .add();
+
+        voltageOutOfRangeReport.newReportNode()
+                .withMessageTemplate("busesOutOfVoltageRealisticRangeSummary", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}]")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
                 .withUntypedValue("minRealisticVoltage", minRealisticVoltage)
                 .withUntypedValue("maxRealisticVoltage", maxRealisticVoltage)
                 .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+
+        busesOutOfRealisticVoltageRange.forEach((id, voltage) -> voltageOutOfRangeReport.newReportNode()
+            .withMessageTemplate("busesOutOfVoltageRealisticRangeDetail", "Bus ${id} has an unrealistic voltage magnitude: ${voltage} pu")
+            .withUntypedValue("id", id)
+            .withUntypedValue("voltage", voltage)
+            .withSeverity(TypedValue.TRACE_SEVERITY)
+            .add());
     }
 
     public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {
