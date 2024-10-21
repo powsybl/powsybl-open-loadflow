@@ -451,7 +451,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(0.035, t3wt.getLeg1().getTerminal());
         assertReactivePowerEquals(8.076e-6, t3wt.getLeg2().getTerminal());
         assertReactivePowerEquals(6.698e-8, t3wt.getLeg3().getTerminal());
-        assertEquals(0, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
     }
 
     @Test

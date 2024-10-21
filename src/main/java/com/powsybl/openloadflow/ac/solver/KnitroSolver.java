@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import net.jafama.DoubleWrapper;
+import org.jgrapht.alg.interfaces.CliqueAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,22 +161,26 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         int numConst = sortedEquationsToSolve.size();
 
         for (int equationId = 0; equationId < numConst; equationId++) {
-            Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
-            AcEquationType typeEq = equation.getType();
-            List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
+            addConstraint(equationId, knitroProblem, sortedEquationsToSolve, solverUtils, listNonLinearConsts);
+        }
+    }
 
-            if (solverUtils.isLinear(typeEq, terms)) {
-                List<Integer> listVar = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListIdVar();
-                List<Double> listCoef = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListCoef();
+    public void addConstraint(int equationId, KnitroProblem knitroProblem, List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, SolverUtils solverUtils, List<Integer> listNonLinearConsts){
+        Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
+        AcEquationType typeEq = equation.getType();
+        List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
 
-                for (int i = 0; i < listVar.size(); i++) {
-                    knitroProblem.addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
-                }
-                LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
-            } else {
-                // ----- Non-linear constraints -----
-                listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
+        if (solverUtils.isLinear(typeEq, terms)) {
+            List<Integer> listVar = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListIdVar();
+            List<Double> listCoef = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListCoef();
+
+            for (int i = 0; i < listVar.size(); i++) {
+                knitroProblem.addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
             }
+            LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
+        } else {
+            // ----- Non-linear constraints -----
+            listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
         }
     }
 
@@ -368,7 +373,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // ----- Linear constraints -----
             SolverUtils solverUtils = new SolverUtils();
-            addLinearConstraints(this, sortedEquationsToSolve, solverUtils,listNonLinearConsts); // Call the extracted function to add linear constraints
+            addLinearConstraints(this, sortedEquationsToSolve, solverUtils,listNonLinearConsts); // add linear constraints and fill the list of non-linear constraints
 
 
             // ----- Non-linear constraints -----
