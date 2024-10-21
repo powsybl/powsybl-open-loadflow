@@ -45,12 +45,12 @@ class AcSolverFactoryTest {
     public record AcSolverMockParameters(int maxIterations) implements AcSolverParameters {
 
         @Override
-            public String toString() {
-                return "AcSolverMockParameters(" +
-                        "maxIterations=" + maxIterations +
-                        ')';
-            }
+        public String toString() {
+            return "AcSolverMockParameters(" +
+                    "maxIterations=" + maxIterations +
+                    ')';
         }
+    }
 
     public static class AcSolverMock implements AcSolver {
         private static final Logger LOGGER = LoggerFactory.getLogger(AcSolverMock.class);
