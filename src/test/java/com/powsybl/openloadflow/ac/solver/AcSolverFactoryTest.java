@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.solver;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
@@ -127,5 +128,13 @@ class AcSolverFactoryTest {
         assertTrue(result.isFullyConverged());
         assertEquals(12, result.getComponentResults().get(0).getIterationCount());
         assertEquals(34, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch());
+    }
+
+    @Test
+    void testNotFoundAcSolver() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
+        Throwable t = assertThrows(PowsyblException.class, () -> parametersExt.setAcSolverType("notExists"));
+        assertEquals("AC Solver 'notExists' not found", t.getMessage());
     }
 }
