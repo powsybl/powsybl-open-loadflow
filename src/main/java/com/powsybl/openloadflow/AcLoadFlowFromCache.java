@@ -120,7 +120,7 @@ public class AcLoadFlowFromCache {
             context.setNetworkUpdated(false);
             return result;
         }
-        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE, 0d, 0d, new DoubleWrapper(), -1);
+        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopStatus.STABLE, 0d, 0d);
     }
 
     public List<AcLoadFlowResult> run() {

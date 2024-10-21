@@ -457,10 +457,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         AcSolverStatus status;
         int nbIter = -1;
-        DoubleWrapper errorWrapper = new DoubleWrapper();
-        errorWrapper.value = -1;
-        double initialError = -1; //TODO
-
         AcSolverStatus acStatus = null;
 
         try {
@@ -478,7 +474,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Double> constraintValues = solver.getConstraintValues();
             acStatus = getAcStatusAndKnitroStatus(solution.getStatus());
             nbIter = solver.getNumberIters();
-            errorWrapper.value = solver.getAbsFeasError();
 
             // Log solution
             LOGGER.info("Optimal objective value  = {}", solution.getObjValue());
@@ -520,6 +515,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(acStatus, nbIter, slackBusActivePowerMismatch, errorWrapper, initialError);
+        return new AcSolverResult(acStatus, nbIter, slackBusActivePowerMismatch);
     }
 }

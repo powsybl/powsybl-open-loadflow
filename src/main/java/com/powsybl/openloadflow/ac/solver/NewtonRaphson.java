@@ -113,7 +113,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         };
     }
 
-    private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode, DoubleWrapper errorWrapper) {
+    private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
         LOGGER.debug("Start iteration {}", iterations);
 
         try {
@@ -156,8 +156,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                                               parameters.getStoppingCriteria(), testResult,
                                               iterationReportNode);
 
-            errorWrapper.value = testResult.getNorm();
-            LOGGER.debug("|f(x)|={}", errorWrapper.value);
+            LOGGER.debug("|f(x)|={}", testResult.getNorm());
             if (detailedReport) {
                 Reports.reportNewtonRaphsonNorm(iterationReportNode, testResult.getNorm());
             }
@@ -207,10 +206,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
         StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters, initialTestResult);
 
-        DoubleWrapper errorWrapper = new DoubleWrapper();
-        errorWrapper.value = initialTestResult.getNorm();
-        double initialError = initialTestResult.getNorm();
-        LOGGER.debug("|f(x0)|={}", initialError);
+        LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
         ReportNode initialReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, 0) : null;
         if (detailedReport) {
@@ -224,7 +220,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
         while (iterations.getValue() <= parameters.getMaxIterations()) {
-            AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode, errorWrapper);
+            AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode);
             if (newStatus != null) {
                 status = newStatus;
                 break;
@@ -245,6 +241,6 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch, errorWrapper, initialError);
+        return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }
 }

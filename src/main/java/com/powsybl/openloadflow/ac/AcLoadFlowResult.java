@@ -23,7 +23,7 @@ import java.util.Objects;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE, Double.NaN, Double.NaN, new DoubleWrapper(), -1);
+        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopStatus.STABLE, Double.NaN, Double.NaN);
     }
 
     private final int outerLoopIterations;
@@ -36,21 +36,15 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     private final double distributedActivePower;
 
-    private final DoubleWrapper error;
-
-    private final double initialError;
-
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
                             AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus,
-                            double slackBusActivePowerMismatch, double distributedActivePower, DoubleWrapper error, double initialError) {
+                            double slackBusActivePowerMismatch, double distributedActivePower) {
         super(network, slackBusActivePowerMismatch);
         this.outerLoopIterations = outerLoopIterations;
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
         this.outerLoopStatus = Objects.requireNonNull(outerLoopStatus);
         this.distributedActivePower = distributedActivePower;
-        this.error = error;
-        this.initialError = initialError;
     }
 
     public int getOuterLoopIterations() {
@@ -71,14 +65,6 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public double getDistributedActivePower() {
         return distributedActivePower;
-    }
-
-    public DoubleWrapper getError() {
-        return error;
-    }
-
-    public double getInitialError() {
-        return initialError;
     }
 
     @Override
@@ -116,7 +102,6 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
                 + ", outerLoopStatus=" + outerLoopStatus
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
                 + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
-                + ", error=" + error
                 + ")";
     }
 }
