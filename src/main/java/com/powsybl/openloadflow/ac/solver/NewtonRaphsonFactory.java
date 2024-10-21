@@ -24,7 +24,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 @AutoService(AcSolverFactory.class)
 public class NewtonRaphsonFactory implements AcSolverFactory {
 
-    public static final String NAME = "NewtonRaphson";
+    public static final String NAME = "NEWTON_RAPHSON";
 
     @Override
     public String getName() {

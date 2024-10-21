@@ -24,7 +24,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 @AutoService(AcSolverFactory.class)
 public class NewtonKrylovFactory implements AcSolverFactory {
 
-    public static final String NAME = "NewtonKrylov";
+    public static final String NAME = "NEWTON_KRYLOV";
 
     @Override
     public String getName() {

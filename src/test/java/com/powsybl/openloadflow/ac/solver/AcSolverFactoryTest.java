@@ -67,7 +67,7 @@ class AcSolverFactoryTest {
 
         @Override
         public String getName() {
-            return "AcSolverMock";
+            return "AC Solver Mock";
         }
 
         @Override
@@ -81,7 +81,7 @@ class AcSolverFactoryTest {
     @AutoService(AcSolverFactory.class)
     public static class AcSolverFactoryMock implements AcSolverFactory {
 
-        public static final String NAME = "AcSolverMock";
+        public static final String NAME = "AC_SOLVER_MOCK";
 
         @Override
         public String getName() {
@@ -103,8 +103,8 @@ class AcSolverFactoryTest {
     void testAcSolverTypeParam() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         Parameter acSolverType = provider.getSpecificParameters().stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.AC_SOLVER_TYPE_PARAM_NAME)).findFirst().orElseThrow();
-        assertEquals("NewtonRaphson", acSolverType.getDefaultValue());
-        assertEquals(List.of("AcSolverMock", "NewtonKrylov", "NewtonRaphson"), acSolverType.getPossibleValues());
+        assertEquals("NEWTON_RAPHSON", acSolverType.getDefaultValue());
+        assertEquals(List.of("AC_SOLVER_MOCK", "NEWTON_KRYLOV", "NEWTON_RAPHSON"), acSolverType.getPossibleValues());
     }
 
     @Test
