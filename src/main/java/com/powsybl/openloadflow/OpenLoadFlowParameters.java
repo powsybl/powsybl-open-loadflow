@@ -2000,7 +2000,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isUseLoadModel() == extension2.isUseLoadModel() &&
                 extension1.getDcApproximationType() == extension2.getDcApproximationType() &&
                 extension1.isSimulateAutomationSystems() == extension2.isSimulateAutomationSystems() &&
-                extension1.getAcSolverType() == extension2.getAcSolverType() &&
+                extension1.getAcSolverType().equals(extension2.getAcSolverType()) &&
                 extension1.getMaxNewtonKrylovIterations() == extension2.getMaxNewtonKrylovIterations() &&
                 extension1.isNewtonKrylovLineSearch() == extension2.isNewtonKrylovLineSearch() &&
                 extension1.getReferenceBusSelectionMode() == extension2.getReferenceBusSelectionMode() &&
