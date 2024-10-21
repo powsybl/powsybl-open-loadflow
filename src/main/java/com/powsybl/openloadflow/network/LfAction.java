@@ -299,9 +299,9 @@ public final class LfAction {
     }
 
     private void applyTapPositionChange() {
-        LfBranch lfBranch = tapPositionChange.getLfBranch();
+        LfBranch branch = tapPositionChange.getBranch();
         int newTapPosition = tapPositionChange.getNewTapPosition();
-        lfBranch.getPiModel().setTapPosition(newTapPosition);
+        branch.getPiModel().setTapPosition(newTapPosition);
     }
 
     private void applyLoadShift() {

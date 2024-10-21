@@ -270,7 +270,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                     .map(LfAction::getTapPositionChange)
                     .filter(Objects::nonNull)
                     .forEach(tapPositionChange -> {
-                        LfBranch lfBranch = tapPositionChange.getLfBranch();
+                        LfBranch lfBranch = tapPositionChange.getBranch();
                         int newTapPosition = tapPositionChange.getNewTapPosition();
                         loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
                                 dcVariableTypeDcEquationTypeEquation -> {

@@ -8,22 +8,22 @@
 package com.powsybl.openloadflow.network;
 
 public class TapPositionChange {
-    private final LfBranch lfBranch;
+    private final LfBranch branch;
     private final int value;
     private final boolean isRelative;
 
     public TapPositionChange(LfBranch branch, int value, boolean isRelative) {
-        this.lfBranch = branch;
+        this.branch = branch;
         this.value = value;
         this.isRelative = isRelative;
     }
 
     public int getNewTapPosition() {
-        int tapPosition = lfBranch.getPiModel().getTapPosition();
+        int tapPosition = branch.getPiModel().getTapPosition();
         return isRelative ? tapPosition + value : value;
     }
 
-    public LfBranch getLfBranch() {
-        return lfBranch;
+    public LfBranch getBranch() {
+        return branch;
     }
 }
