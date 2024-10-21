@@ -451,17 +451,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         DefaultKnitroSolverStoppingCriteria knitroSolverStoppingCriteria = (DefaultKnitroSolverStoppingCriteria) knitroParameters.getStoppingCriteria();
         solver.setParam(KNConstants.KN_PARAM_FEASTOL, knitroSolverStoppingCriteria.convEpsPerEq);
         solver.setParam(KNConstants.KN_PARAM_MAXIT, knitroParameters.getMaxIterations());
-//        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK, 1);
-//        solver.setParam(KNConstants.KN_PARAM_DERIVCHECK_TOL, 0.0001);
-//        solver.setParam(KNConstants.KN_PARAM_OUTLEV,4);
-//        solver.setParam(KNConstants.KN_PARAM_OUTMODE,2);
-//        solver.setParam(KNConstants.KN_PARAM_DEBUG ,1);
-
-//        solver.setParam(KNConstants.KN_PARAM_MS_ENABLE, 0); // multi-start
-//        solver.setParam(KNConstants.KN_PARAM_MS_NUMTHREADS, 1);
-//        solver.setParam(KNConstants.KN_PARAM_CONCURRENT_EVALS, 0); //pas d'évaluations de callbacks concurrentes
-//        solver.setParam(KNConstants.KN_PARAM_NUMTHREADS, 8);
-//        solver.setParam(KNConstants.KN_PARAM_LINSOLVER_SCALING, ); // scaling for linear systems
     }
 
     @Override
