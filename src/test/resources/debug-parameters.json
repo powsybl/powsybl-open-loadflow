@@ -79,7 +79,7 @@
         "useLoadModel" : false,
         "dcApproximationType" : "IGNORE_R",
         "simulateAutomationSystems" : false,
-        "acSolverType" : "NEWTON_RAPHSON",
+        "acSolverType" : "NewtonRaphson",
         "maxNewtonKrylovIterations" : 100,
         "newtonKrylovLineSearch" : false,
         "referenceBusSelectionMode" : "FIRST_SLACK",
