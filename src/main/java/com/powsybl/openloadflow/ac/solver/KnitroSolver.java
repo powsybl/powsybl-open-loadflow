@@ -251,16 +251,18 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             private final List<Integer> listNonZerosCtsSparse;
             private final List<Integer> listNonZerosVarsSparse;
             private final List<Integer> listNonLinearConsts;
+            private final List<Integer> listVarChecker;
             private final LfNetwork network;
             private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-            private CallbackEvalG(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonZerosCts, List<Integer> listNonZerosVars, List<Integer> listNonZerosCts2, List<Integer> listNonZerosVars2, List<Integer> listNonLinearConsts, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+            private CallbackEvalG(JacobianMatrix<AcVariableType, AcEquationType> oldMatrix, List<Integer> listNonZerosCts, List<Integer> listNonZerosVars, List<Integer> listNonZerosCts2, List<Integer> listNonZerosVars2, List<Integer> listNonLinearConsts, List<Integer> listVarChecker, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
                 this.oldMatrix = oldMatrix;
                 this.listNonZerosCtsDense = listNonZerosCts;
                 this.listNonZerosVarsDense = listNonZerosVars;
                 this.listNonZerosCtsSparse = listNonZerosCts2;
                 this.listNonZerosVarsSparse = listNonZerosVars2;
                 this.listNonLinearConsts = listNonLinearConsts;
+                this.listVarChecker = listVarChecker;
                 this.network = network;
                 this.equationSystem = equationSystem;
             }
@@ -395,6 +397,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Integer> listNonZerosVarsDense = new ArrayList<>(); // for the dense method, list of variables to pass to Knitro's non-zero pattern
             List<Integer> listNonZerosCtsSparse = new ArrayList<>();
             List<Integer> listNonZerosVarsSparse = new ArrayList<>();
+            List<Integer> listVarChecker = new ArrayList<>(); //TODO
 
             if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
                 if (knitroParameters.getGradientUserRoutine() == 1) {
@@ -428,6 +431,13 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                         List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list, because the same variables may be present in several terms of the constraint
                         listNonZerosVarsSparse.addAll(uniqueListVarsCurrentCt);
 
+                        //                for (int var = 0; var < sortedVariables.size(); var++) { //TODO
+                        //                    if (uniqueListVarsCurrentCt.contains(var)) {
+                        //                        listVarChecker.add(var);
+                        //                    } else {
+                        //                        listVarChecker.add(-1);
+                        //                    }
+                        //                }
                         // we add uniqueListVarsCurrentCt.size() times the constraint ct to the list of constraints to derive
                         listNonZerosCtsSparse.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
                     }
@@ -441,7 +451,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                 } else if (knitroParameters.getGradientUserRoutine() == 2) {
                     setJacNnzPattern(listNonZerosCtsSparse, listNonZerosVarsSparse);
                 }
-                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCtsDense, listNonZerosVarsDense, listNonZerosCtsSparse, listNonZerosVarsSparse, listNonLinearConsts, lfNetwork, equationSystem));
+                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCtsDense, listNonZerosVarsDense, listNonZerosCtsSparse, listNonZerosVarsSparse, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem)); //TODO enlever listVarChecker
             }
         }
     }
