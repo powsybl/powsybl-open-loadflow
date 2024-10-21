@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import net.jafama.DoubleWrapper;
-
 import java.util.Objects;
 
 /**

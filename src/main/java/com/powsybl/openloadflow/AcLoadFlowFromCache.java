@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
-import net.jafama.DoubleWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

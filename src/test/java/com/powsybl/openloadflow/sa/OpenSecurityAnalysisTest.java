@@ -39,7 +39,6 @@ import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
-import net.jafama.DoubleWrapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

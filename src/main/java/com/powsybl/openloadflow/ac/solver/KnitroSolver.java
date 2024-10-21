@@ -163,7 +163,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
     }
 
-    public void addConstraint(int equationId, KnitroProblem knitroProblem, List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, SolverUtils solverUtils, List<Integer> listNonLinearConsts){
+    public void addConstraint(int equationId, KnitroProblem knitroProblem, List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, SolverUtils solverUtils, List<Integer> listNonLinearConsts) {
         Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
         AcEquationType typeEq = equation.getType();
         List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
@@ -203,8 +203,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
     }
 
-
-    public void buildDenseJacobianMatrix(int numVar, List<Integer> listNonLinearConsts, List<Integer> listNonZerosCtsDense, List<Integer> listNonZerosVarsDense){
+    public void buildDenseJacobianMatrix(int numVar, List<Integer> listNonLinearConsts, List<Integer> listNonZerosCtsDense, List<Integer> listNonZerosVarsDense) {
         for (Integer idCt : listNonLinearConsts) {
             for (int i = 0; i < numVar; i++) {
                 // there are numVar*numNonLinearConstraints derivates to evaluate because every non-linear constraint is derived with respect to every variable
@@ -436,8 +435,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // ----- Linear constraints -----
             SolverUtils solverUtils = new SolverUtils();
-            addLinearConstraints(this, sortedEquationsToSolve, solverUtils,listNonLinearConsts); // add linear constraints and fill the list of non-linear constraints
-
+            addLinearConstraints(this, sortedEquationsToSolve, solverUtils, listNonLinearConsts); // add linear constraints and fill the list of non-linear constraints
 
             // ----- Non-linear constraints -----
             // Callback
@@ -465,59 +463,6 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             setJacobianMatrix(this, lfNetwork, jacobianMatrix, sortedEquationsToSolve, listNonLinearConsts,
                     listNonZerosCtsDense, listNonZerosVarsDense,
                     listNonZerosCtsSparse, listNonZerosVarsSparse, listVarChecker);
-
-//            if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
-//                if (knitroParameters.getGradientUserRoutine() == 1) {
-//                    // Dense method : when computing the Jacobian matrix, all non-linear constraints are considered as a function of all variables.
-//                    for (Integer idCt : listNonLinearConsts) {
-//                        for (int i = 0; i < numVar; i++) {
-//                            // there are numVar*numNonLinearConstraints derivates to evaluate because every non-linear constraint is derived with respect to every variable
-//                            listNonZerosCtsDense.add(idCt);
-//                        }
-//                    }
-//
-//                    List<Integer> listVars = new ArrayList<>();
-//                    for (int i = 0; i < numVar; i++) {
-//                        listVars.add(i);
-//                    }
-//                    for (int i = 0; i < listNonLinearConsts.size(); i++) {
-//                        listNonZerosVarsDense.addAll(listVars);
-//                    }
-//                } else if (knitroParameters.getGradientUserRoutine() == 2) {
-//                    // Sparse method : when computing the Jacobian matrix, non-linear constraints derivates are evaluated only with respect to variables the constraints really depend off.
-//                    for (Integer ct : listNonLinearConsts) { // for each non-linear constraint, we get the variables of which it depends on
-//                        Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
-//                        List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
-//                        List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
-//
-//                        for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
-//                            for (Variable variable : term.getVariables()) {
-//                                listNonZerosVarsCurrentCt.add(variable.getRow());
-//                            }
-//                        }
-//                        List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list, because the same variables may be present in several terms of the constraint
-//                        listNonZerosVarsSparse.addAll(uniqueListVarsCurrentCt);
-//
-//                        //                for (int var = 0; var < sortedVariables.size(); var++) { //TODO
-//                        //                    if (uniqueListVarsCurrentCt.contains(var)) {
-//                        //                        listVarChecker.add(var);
-//                        //                    } else {
-//                        //                        listVarChecker.add(-1);
-//                        //                    }
-//                        //                }
-//                        // we add uniqueListVarsCurrentCt.size() times the constraint ct to the list of constraints to derive
-//                        listNonZerosCtsSparse.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
-//                    }
-//                }
-//
-//                // If the user decided to directly pass the Jacobian to the solver, we set the callback for gradient evaluations.
-//                if (knitroParameters.getGradientUserRoutine() == 1) {
-//                    setJacNnzPattern(listNonZerosCtsDense, listNonZerosVarsDense);
-//                } else if (knitroParameters.getGradientUserRoutine() == 2) {
-//                    setJacNnzPattern(listNonZerosCtsSparse, listNonZerosVarsSparse);
-//                }
-//                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCtsDense, listNonZerosVarsDense, listNonZerosCtsSparse, listNonZerosVarsSparse, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem)); //TODO enlever listVarChecker
-//            }
         }
     }
 
