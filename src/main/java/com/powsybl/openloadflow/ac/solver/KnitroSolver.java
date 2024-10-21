@@ -152,6 +152,33 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
     }
 
+    // Handle adding linear constraints
+    public void addLinearConstraints(KnitroProblem knitroProblem,
+                                     List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve,
+                                     SolverUtils solverUtils, List<Integer> listNonLinearConsts) {
+
+        int numConst = sortedEquationsToSolve.size();
+
+        for (int equationId = 0; equationId < numConst; equationId++) {
+            Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
+            AcEquationType typeEq = equation.getType();
+            List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
+
+            if (solverUtils.isLinear(typeEq, terms)) {
+                List<Integer> listVar = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListIdVar();
+                List<Double> listCoef = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListCoef();
+
+                for (int i = 0; i < listVar.size(); i++) {
+                    knitroProblem.addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
+                }
+                LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
+            } else {
+                // ----- Non-linear constraints -----
+                listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
+            }
+        }
+    }
+
     private final class KnitroProblem extends KNProblem {
 
         /**
@@ -334,35 +361,15 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 
             // =============== Constraints ==============
             // ----- Active constraints -----
-            // Get active constraints and order them in same order as targets
             List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
-
             int numConst = sortedEquationsToSolve.size();
             List<Integer> listNonLinearConsts = new ArrayList<>(); // list of indexes of non-linear constraints
             LOGGER.info("Defining {} active constraints", numConst);
 
             // ----- Linear constraints -----
-            for (int equationId = 0; equationId < numConst; equationId++) {
-                Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
-                AcEquationType typeEq = equation.getType();
-                List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
-                SolverUtils solverUtils = new SolverUtils();
-                if (SolverUtils.isLinear(typeEq, terms)) {
-                    List<Integer> listVar;
-                    List<Double> listCoef;
-                    listVar = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListIdVar();
-                    listCoef = solverUtils.getLinearConstraint(typeEq, equationId, terms).getListCoef();
+            SolverUtils solverUtils = new SolverUtils();
+            addLinearConstraints(this, sortedEquationsToSolve, solverUtils,listNonLinearConsts); // Call the extracted function to add linear constraints
 
-                    for (int i = 0; i < listVar.size(); i++) {
-                        addConstraintLinearPart(equationId, listVar.get(i), listCoef.get(i));
-                    }
-                    LOGGER.trace("Adding linear constraint n° {} of type {}", equationId, typeEq);
-
-                } else {
-                    // ----- Non-linear constraints -----
-                    listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
-                }
-            }
 
             // ----- Non-linear constraints -----
             // Callback
