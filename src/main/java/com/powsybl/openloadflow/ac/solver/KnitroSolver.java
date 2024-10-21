@@ -18,8 +18,6 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import net.jafama.DoubleWrapper;
-import org.jgrapht.alg.interfaces.CliqueAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,7 +151,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
     }
 
-    // Handle adding linear constraints
+    // Handle adding linear constraints or classifying them as non-linear
     public void addLinearConstraints(KnitroProblem knitroProblem,
                                      List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve,
                                      SolverUtils solverUtils, List<Integer> listNonLinearConsts) {
@@ -181,6 +179,71 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         } else {
             // ----- Non-linear constraints -----
             listNonLinearConsts.add(equationId); // Add constraint number to list of non-linear constraints
+        }
+    }
+
+    // Handles passing the Jacobian matrix to Knitro, either in dense or sparse way
+    public void setJacobianMatrix(KnitroProblem knitroProblem, LfNetwork lfNetwork, JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix,
+                                  List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, List<Integer> listNonLinearConsts,
+                                  List<Integer> listNonZerosCtsDense, List<Integer> listNonZerosVarsDense,
+                                  List<Integer> listNonZerosCtsSparse, List<Integer> listNonZerosVarsSparse, List<Integer> listVarChecker) throws KNException {
+        int numVar = equationSystem.getVariableSet().getVariables().size();
+        if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
+            if (knitroParameters.getGradientUserRoutine() == 1) {
+                // Dense method : when computing the Jacobian matrix, all non-linear constraints are considered as a function of all variables.
+                buildDenseJacobianMatrix(numVar, listNonLinearConsts, listNonZerosCtsDense, listNonZerosVarsDense);
+                knitroProblem.setJacNnzPattern(listNonZerosCtsDense, listNonZerosVarsDense);
+            } else if (knitroParameters.getGradientUserRoutine() == 2) {
+                // Sparse method : when computing the Jacobian matrix, non-linear constraints derivates are evaluated only with respect to variables the constraints really depend off.
+                buildSparseJacobianMatrix(sortedEquationsToSolve, listNonLinearConsts, listNonZerosCtsSparse, listNonZerosVarsSparse);
+                knitroProblem.setJacNnzPattern(listNonZerosCtsSparse, listNonZerosVarsSparse);
+            }
+            // If the user decided to directly pass the Jacobian to the solver, we set the callback for gradient evaluations.
+            knitroProblem.setGradEvalCallback(new KnitroProblem.CallbackEvalG(jacobianMatrix, listNonZerosCtsDense, listNonZerosVarsDense, listNonZerosCtsSparse, listNonZerosVarsSparse, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem)); //TODO enlever listVarChecker
+        }
+    }
+
+
+    public void buildDenseJacobianMatrix(int numVar, List<Integer> listNonLinearConsts, List<Integer> listNonZerosCtsDense, List<Integer> listNonZerosVarsDense){
+        for (Integer idCt : listNonLinearConsts) {
+            for (int i = 0; i < numVar; i++) {
+                // there are numVar*numNonLinearConstraints derivates to evaluate because every non-linear constraint is derived with respect to every variable
+                listNonZerosCtsDense.add(idCt);
+            }
+        }
+
+        List<Integer> listVars = new ArrayList<>();
+        for (int i = 0; i < numVar; i++) {
+            listVars.add(i);
+        }
+        for (int i = 0; i < listNonLinearConsts.size(); i++) {
+            listNonZerosVarsDense.addAll(listVars);
+        }
+    }
+
+    public void buildSparseJacobianMatrix(List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, List<Integer> listNonLinearConsts, List<Integer> listNonZerosCtsSparse, List<Integer> listNonZerosVarsSparse) {
+        for (Integer ct : listNonLinearConsts) { // for each non-linear constraint, we get the variables of which it depends on
+            Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
+            List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
+            List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
+
+            for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
+                for (Variable variable : term.getVariables()) {
+                    listNonZerosVarsCurrentCt.add(variable.getRow());
+                }
+            }
+            List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list, because the same variables may be present in several terms of the constraint
+            listNonZerosVarsSparse.addAll(uniqueListVarsCurrentCt);
+            // we add uniqueListVarsCurrentCt.size() times the constraint ct to the list of constraints to derive
+            listNonZerosCtsSparse.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
+
+            //                for (int var = 0; var < sortedVariables.size(); var++) { //TODO
+            //                    if (uniqueListVarsCurrentCt.contains(var)) {
+            //                        listVarChecker.add(var);
+            //                    } else {
+            //                        listVarChecker.add(-1);
+            //                    }
+            //                }
         }
     }
 
@@ -244,7 +307,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
          * Callback function to evaluate the gradient
          * When no objective, that is to say the matrix of the constraints, the Jacobian matrix
          */
-        private final class CallbackEvalG extends KNEvalGACallback {
+        private static final class CallbackEvalG extends KNEvalGACallback {
             private final JacobianMatrix<AcVariableType, AcEquationType> oldMatrix;
             private final List<Integer> listNonZerosCtsDense;
             private final List<Integer> listNonZerosVarsDense;
@@ -399,60 +462,62 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             List<Integer> listNonZerosVarsSparse = new ArrayList<>();
             List<Integer> listVarChecker = new ArrayList<>(); //TODO
 
-            if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
-                if (knitroParameters.getGradientUserRoutine() == 1) {
-                    // Dense method : when computing the Jacobian matrix, all non-linear constraints are considered as a function of all variables.
-                    for (Integer idCt : listNonLinearConsts) {
-                        for (int i = 0; i < numVar; i++) {
-                            // there are numVar*numNonLinearConstraints derivates to evaluate because every non-linear constraint is derived with respect to every variable
-                            listNonZerosCtsDense.add(idCt);
-                        }
-                    }
+            setJacobianMatrix(this, lfNetwork, jacobianMatrix, sortedEquationsToSolve, listNonLinearConsts,
+                    listNonZerosCtsDense, listNonZerosVarsDense,
+                    listNonZerosCtsSparse, listNonZerosVarsSparse, listVarChecker);
 
-                    List<Integer> listVars = new ArrayList<>();
-                    for (int i = 0; i < numVar; i++) {
-                        listVars.add(i);
-                    }
-                    for (int i = 0; i < listNonLinearConsts.size(); i++) {
-                        listNonZerosVarsDense.addAll(listVars);
-                    }
-                } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    // Sparse method : when computing the Jacobian matrix, non-linear constraints derivates are evaluated only with respect to variables the constraints really depend off.
-                    for (Integer ct : listNonLinearConsts) { // for each non-linear constraint, we get the variables of which it depends on
-                        Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
-                        List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
-                        List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
-
-                        for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
-                            for (Variable variable : term.getVariables()) {
-                                listNonZerosVarsCurrentCt.add(variable.getRow());
-                            }
-                        }
-                        List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list, because the same variables may be present in several terms of the constraint
-                        listNonZerosVarsSparse.addAll(uniqueListVarsCurrentCt);
-
-                        //                for (int var = 0; var < sortedVariables.size(); var++) { //TODO
-                        //                    if (uniqueListVarsCurrentCt.contains(var)) {
-                        //                        listVarChecker.add(var);
-                        //                    } else {
-                        //                        listVarChecker.add(-1);
-                        //                    }
-                        //                }
-                        // we add uniqueListVarsCurrentCt.size() times the constraint ct to the list of constraints to derive
-                        listNonZerosCtsSparse.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
-                    }
-                }
-            }
-
-            // If the user decided to directly pass the Jacobian to the solver, we set the callback for gradient evaluations.
-            if (knitroParameters.getGradientComputationMode() == 1) {
-                if (knitroParameters.getGradientUserRoutine() == 1) {
-                    setJacNnzPattern(listNonZerosCtsDense, listNonZerosVarsDense);
-                } else if (knitroParameters.getGradientUserRoutine() == 2) {
-                    setJacNnzPattern(listNonZerosCtsSparse, listNonZerosVarsSparse);
-                }
-                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCtsDense, listNonZerosVarsDense, listNonZerosCtsSparse, listNonZerosVarsSparse, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem)); //TODO enlever listVarChecker
-            }
+//            if (knitroParameters.getGradientComputationMode() == 1) { // User routine to compute the Jacobian
+//                if (knitroParameters.getGradientUserRoutine() == 1) {
+//                    // Dense method : when computing the Jacobian matrix, all non-linear constraints are considered as a function of all variables.
+//                    for (Integer idCt : listNonLinearConsts) {
+//                        for (int i = 0; i < numVar; i++) {
+//                            // there are numVar*numNonLinearConstraints derivates to evaluate because every non-linear constraint is derived with respect to every variable
+//                            listNonZerosCtsDense.add(idCt);
+//                        }
+//                    }
+//
+//                    List<Integer> listVars = new ArrayList<>();
+//                    for (int i = 0; i < numVar; i++) {
+//                        listVars.add(i);
+//                    }
+//                    for (int i = 0; i < listNonLinearConsts.size(); i++) {
+//                        listNonZerosVarsDense.addAll(listVars);
+//                    }
+//                } else if (knitroParameters.getGradientUserRoutine() == 2) {
+//                    // Sparse method : when computing the Jacobian matrix, non-linear constraints derivates are evaluated only with respect to variables the constraints really depend off.
+//                    for (Integer ct : listNonLinearConsts) { // for each non-linear constraint, we get the variables of which it depends on
+//                        Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(ct);
+//                        List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
+//                        List<Integer> listNonZerosVarsCurrentCt = new ArrayList<>(); //list of variables involved in current constraint
+//
+//                        for (EquationTerm<AcVariableType, AcEquationType> term : terms) {
+//                            for (Variable variable : term.getVariables()) {
+//                                listNonZerosVarsCurrentCt.add(variable.getRow());
+//                            }
+//                        }
+//                        List<Integer> uniqueListVarsCurrentCt = listNonZerosVarsCurrentCt.stream().distinct().sorted().toList(); // remove duplicate elements from the list, because the same variables may be present in several terms of the constraint
+//                        listNonZerosVarsSparse.addAll(uniqueListVarsCurrentCt);
+//
+//                        //                for (int var = 0; var < sortedVariables.size(); var++) { //TODO
+//                        //                    if (uniqueListVarsCurrentCt.contains(var)) {
+//                        //                        listVarChecker.add(var);
+//                        //                    } else {
+//                        //                        listVarChecker.add(-1);
+//                        //                    }
+//                        //                }
+//                        // we add uniqueListVarsCurrentCt.size() times the constraint ct to the list of constraints to derive
+//                        listNonZerosCtsSparse.addAll(new ArrayList<>(Collections.nCopies(uniqueListVarsCurrentCt.size(), ct)));
+//                    }
+//                }
+//
+//                // If the user decided to directly pass the Jacobian to the solver, we set the callback for gradient evaluations.
+//                if (knitroParameters.getGradientUserRoutine() == 1) {
+//                    setJacNnzPattern(listNonZerosCtsDense, listNonZerosVarsDense);
+//                } else if (knitroParameters.getGradientUserRoutine() == 2) {
+//                    setJacNnzPattern(listNonZerosCtsSparse, listNonZerosVarsSparse);
+//                }
+//                setGradEvalCallback(new CallbackEvalG(jacobianMatrix, listNonZerosCtsDense, listNonZerosVarsDense, listNonZerosCtsSparse, listNonZerosVarsSparse, listNonLinearConsts, listVarChecker, lfNetwork, equationSystem)); //TODO enlever listVarChecker
+//            }
         }
     }
 
