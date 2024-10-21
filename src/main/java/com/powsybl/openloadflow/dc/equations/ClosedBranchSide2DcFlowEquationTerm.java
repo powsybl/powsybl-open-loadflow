@@ -38,18 +38,18 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     @Override
     protected double calculateSensi(double ph1, double ph2, double a1) {
         double deltaPhase = ph2 - ph1 + A2 - a1;
-        return calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel()) * deltaPhase;
+        return calculatePower(element.getPiModel()) * deltaPhase;
     }
 
     @Override
     public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return -calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel());
+            return -calculatePower(element.getPiModel());
         } else if (variable.equals(ph2Var)) {
-            return calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel());
+            return calculatePower(element.getPiModel());
         } else if (variable.equals(a1Var)) {
-            return -calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel());
+            return -calculatePower(element.getPiModel());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -58,9 +58,9 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     @Override
     public double rhs() {
         if (a1Var != null) {
-            return calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel()) * A2;
+            return calculatePower(element.getPiModel()) * A2;
         } else {
-            return calculatePower(useTransformerRatio, dcApproximationType, element.getPiModel()) * (A2 - a1());
+            return calculatePower(element.getPiModel()) * (A2 - a1());
         }
     }
 

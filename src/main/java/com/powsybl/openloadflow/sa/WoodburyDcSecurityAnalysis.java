@@ -137,9 +137,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             DcLoadFlowParameters lfParameters = loadFlowContext.getParameters();
             NetworkState networkState = NetworkState.save(lfNetwork);
             contingency.toLfContingency(lfNetwork, false)
-                    .ifPresent(lfContingency -> {
-                        lfContingency.apply(lfParameters.getBalanceType());
-                    });
+                    .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
 
             newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, lfActions);
             postContingencyStates = engine.run(newFlowStates);

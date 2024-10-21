@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.PiModelArray;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,9 +35,13 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
 
     protected final List<Variable<DcVariableType>> variables;
 
+    protected double power;
+
     protected final boolean useTransformerRatio;
 
     protected DcApproximationType dcApproximationType;
+
+    protected int lastTapPosition;
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                      boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
@@ -48,13 +53,27 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
+        lastTapPosition = piModel instanceof PiModelArray ? piModel.getTapPosition() : -1;
         this.useTransformerRatio = useTransformerRatio;
         this.dcApproximationType = dcApproximationType;
+        power = calculatePower(useTransformerRatio, dcApproximationType, piModel);
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {
             variables = List.of(ph1Var, ph2Var);
         }
+    }
+
+    /**
+     * Update power only if pi model tap position has changed since last calculation.
+     * @param piModel the new pi model for which calculation must be done.
+     */
+    public double calculatePower(PiModel piModel) {
+        if (piModel instanceof PiModelArray && piModel.getTapPosition() != lastTapPosition) {
+            lastTapPosition = piModel.getTapPosition();
+            power = calculatePower(useTransformerRatio, dcApproximationType, piModel);
+        }
+        return power;
     }
 
     public static double calculatePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel) {
