@@ -11,7 +11,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
-import com.powsybl.openloadflow.ac.solver.NewtonKrylovParameters;
+import com.powsybl.openloadflow.ac.solver.AcSolverParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
@@ -30,9 +30,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
-    private NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
-
-    private NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters();
+    private AcSolverParameters acSolverParameters = new NewtonRaphsonParameters();
 
     private List<AcOuterLoop> outerLoops = Collections.emptyList();
 
@@ -57,21 +55,12 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
-    public NewtonRaphsonParameters getNewtonRaphsonParameters() {
-        return newtonRaphsonParameters;
+    public AcSolverParameters getAcSolverParameters() {
+        return acSolverParameters;
     }
 
-    public AcLoadFlowParameters setNewtonRaphsonParameters(NewtonRaphsonParameters newtonRaphsonParameters) {
-        this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
-        return this;
-    }
-
-    public NewtonKrylovParameters getNewtonKrylovParameters() {
-        return newtonKrylovParameters;
-    }
-
-    public AcLoadFlowParameters setNewtonKrylovParameters(NewtonKrylovParameters newtonKrylovParameters) {
-        this.newtonKrylovParameters = Objects.requireNonNull(newtonKrylovParameters);
+    public AcLoadFlowParameters setAcSolverParameters(AcSolverParameters acSolverParameters) {
+        this.acSolverParameters = Objects.requireNonNull(acSolverParameters);
         return this;
     }
 
@@ -143,8 +132,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return "AcLoadFlowParameters(" +
                 "networkParameters=" + networkParameters +
                 ", equationSystemCreationParameters=" + equationSystemCreationParameters +
-                ", newtonRaphsonParameters=" + newtonRaphsonParameters +
-                ", newtonKrylovParameters=" + newtonKrylovParameters +
+                ", acSolverParameters=" + acSolverParameters +
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).toList() +
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
