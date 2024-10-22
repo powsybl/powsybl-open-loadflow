@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.10.0-Jeanne</version>
+    <version>1.10.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -153,11 +153,6 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-commons</artifactId>
         </dependency>
-        <dependency>
-            <scope>compile</scope>
-            <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-matpower-converter</artifactId>
-        </dependency>
 
         <!-- Runtime dependencies -->
 
@@ -243,13 +238,6 @@
             <version>0.7.0</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/../libs/bridj-0.7.0.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>org.coinor</groupId>
-            <artifactId>ipopt</artifactId>
-            <version>3.4.16</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/../libs/org.coinor.ipopt.jar</systemPath>
         </dependency>
     </dependencies>
 </project>
