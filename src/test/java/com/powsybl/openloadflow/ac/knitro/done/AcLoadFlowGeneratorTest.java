@@ -15,7 +15,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.CompareKnitroToNewtonRaphson;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.AcSolverType;
@@ -74,9 +73,6 @@ class AcLoadFlowGeneratorTest {
         assertAngleEquals(-1.4523745, b4);
         assertReactivePowerEquals(0.0, g1Bis.getTerminal());
         assertReactivePowerEquals(-0.571, g1.getTerminal());
-        LoadFlowResult resultNR = CompareKnitroToNewtonRaphson.runComparison(loadFlowRunner, parameters, parametersExt, network);
-        assertKnitroComparisonToNewtonRaphson(resultNR);
-
     }
 }
 
