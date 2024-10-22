@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
+ * Copyright (c) 2024, Artelys (https://www.artelys.com/)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -154,7 +154,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
     // Handle adding linear constraints or classifying them as non-linear
     public void addLinearConstraints(KnitroProblem knitroProblem,
                                      List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve,
-                                     SolverUtils solverUtils, List<Integer> listNonLinearConsts) {
+                                     NonLinearExternalSolverUtils solverUtils, List<Integer> listNonLinearConsts) {
 
         int numConst = sortedEquationsToSolve.size();
 
@@ -163,7 +163,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
     }
 
-    public void addConstraint(int equationId, KnitroProblem knitroProblem, List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, SolverUtils solverUtils, List<Integer> listNonLinearConsts) {
+    public void addConstraint(int equationId, KnitroProblem knitroProblem, List<Equation<AcVariableType, AcEquationType>> sortedEquationsToSolve, NonLinearExternalSolverUtils solverUtils, List<Integer> listNonLinearConsts) {
         Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
         AcEquationType typeEq = equation.getType();
         List<EquationTerm<AcVariableType, AcEquationType>> terms = equation.getTerms();
@@ -280,7 +280,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
                     Equation<AcVariableType, AcEquationType> equation = sortedEquationsToSolve.get(equationId);
                     AcEquationType typeEq = equation.getType();
                     double valueConst = 0;
-                    if (SolverUtils.isLinear(typeEq, equation.getTerms())) { // check that the constraint is really non-linear
+                    if (NonLinearExternalSolverUtils.isLinear(typeEq, equation.getTerms())) { // check that the constraint is really non-linear
                         throw new IllegalArgumentException("Equation of type " + typeEq + " is linear, and should be considered in the main function of Knitro, not in the callback function");
                     } else {
                         // we evaluate the equation with respect to the current state
@@ -434,7 +434,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
             LOGGER.info("Defining {} active constraints", numConst);
 
             // ----- Linear constraints -----
-            SolverUtils solverUtils = new SolverUtils();
+            NonLinearExternalSolverUtils solverUtils = new NonLinearExternalSolverUtils();
             addLinearConstraints(this, sortedEquationsToSolve, solverUtils, listNonLinearConsts); // add linear constraints and fill the list of non-linear constraints
 
             // ----- Non-linear constraints -----
