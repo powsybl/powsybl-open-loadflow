@@ -18,7 +18,7 @@ import java.util.*;
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 
-public final class SolverUtils {
+public final class NonLinearExternalSolverUtils {
 
     // List of always linear constraints
     private static List<AcEquationType> linearConstraintsTypes = new ArrayList<>(Arrays.asList(
