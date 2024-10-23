@@ -346,7 +346,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(OpenLoadFlowParameters.equals(p1, p2));
         assertFalse(OpenLoadFlowParameters.equals(p1, new LoadFlowParameters()));
         assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), p2));
-        pe1.setMinRealisticVoltageNewtonRaphson(0.3);
+        pe1.setMinRealisticVoltage(0.3);
         assertFalse(OpenLoadFlowParameters.equals(p1, p2));
     }
 
@@ -525,16 +525,16 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinNominalVoltageTargetVoltageCheck(-1.0));
         assertEquals("Invalid value for parameter minNominalVoltageTargetVoltageCheck: -1.0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinRealisticVoltageNewtonRaphson(-1.0));
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinRealisticVoltage(-1.0));
         assertEquals("Invalid value for parameter minRealisticVoltageNewtonRaphson: -1.0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRealisticVoltageNewtonRaphson(-1.0));
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRealisticVoltage(-1.0));
         assertEquals("Invalid value for parameter maxRealisticVoltageNewtonRaphson: -1.0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMinRealisticVoltageKnitroSolver(-1.0));
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setKnitroLowerVoltageBound(-1.0));
         assertEquals("Invalid value for parameter minRealisticVoltageKnitroSolver: -1.0", e.getMessage());
 
-        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRealisticVoltageKnitroSolver(-1.0));
+        e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setKnitroUpperVoltageBound(-1.0));
         assertEquals("Invalid value for parameter maxRealisticVoltageKnitroSolver: -1.0", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setLowImpedanceThreshold(0.0));

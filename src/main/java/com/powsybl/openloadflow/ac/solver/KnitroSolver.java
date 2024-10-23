@@ -103,8 +103,8 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
         }
 
         private void setBounds(List<Variable<AcVariableType>> sortedVariables, KnitroSolverParameters knitroParameters) {
-            double loBndV = knitroParameters.getMinRealisticVoltage();
-            double upBndV = knitroParameters.getMaxRealisticVoltage();
+            double loBndV = knitroParameters.getLowerVoltageBound();
+            double upBndV = knitroParameters.getUpperVoltageBound();
 
             for (Variable<AcVariableType> variable : sortedVariables) {
                 Enum<AcVariableType> typeVar = variable.getType();
@@ -530,7 +530,7 @@ public class KnitroSolver extends AbstractNonLinearExternalSolver {
 //            }
 
         } catch (KNException e) {
-            acStatus = AcSolverStatus.NO_CALCULATION;
+            acStatus = AcSolverStatus.SOLVER_FAILED;
             throw new PowsyblException("Exception found while trying to solve with Knitro");
         }
 

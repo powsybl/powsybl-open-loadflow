@@ -20,8 +20,8 @@ public class KnitroSolverParameters {
 
     public static final int DEFAULT_GRADIENT_COMPUTATION_MODE = 1; // Specifies how the Jacobian matrix is computed
     public static final int DEFAULT_GRADIENT_USER_ROUTINE = 2; // If the user chooses to pass the exact Jacobian to knitro, specifies the sparsity pattern for the Jacobian matrix.
-    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5; // Lower bound for voltage magnitude
-    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5; // Upper bound for voltage magnitude
+    public static final double DEFAULT_LOWER_VOLTAGE_BOUND = 0.5; // Lower bound for voltage magnitude
+    public static final double DEFAULT_UPPER_VOLTAGE_BOUND = 1.5; // Upper bound for voltage magnitude
     public static final int DEFAULT_MAX_ITERATIONS = 200;
 
     public KnitroSolverParameters() {
@@ -31,9 +31,9 @@ public class KnitroSolverParameters {
 
     private int gradientUserRoutine = DEFAULT_GRADIENT_USER_ROUTINE;
 
-    private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
+    private double lowerVoltageBound = DEFAULT_LOWER_VOLTAGE_BOUND;
 
-    private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
+    private double upperVoltageBound = DEFAULT_UPPER_VOLTAGE_BOUND;
 
     private KnitroSolverStoppingCriteria stoppingCriteria = new DefaultKnitroSolverStoppingCriteria();
 
@@ -65,30 +65,30 @@ public class KnitroSolverParameters {
         return this;
     }
 
-    public double getMinRealisticVoltage() {
-        return minRealisticVoltage;
+    public double getLowerVoltageBound() {
+        return lowerVoltageBound;
     }
 
-    public KnitroSolverParameters setMinRealisticVoltage(double minRealisticVoltage) {
-        if (minRealisticVoltage < 0) {
+    public KnitroSolverParameters setLowerVoltageBound(double lowerVoltageBound) {
+        if (lowerVoltageBound < 0) {
             throw new IllegalArgumentException("Realistic voltage bounds must strictly greater then 0");
         }
-        this.minRealisticVoltage = minRealisticVoltage;
+        this.lowerVoltageBound = lowerVoltageBound;
         return this;
     }
 
-    public double getMaxRealisticVoltage() {
-        return maxRealisticVoltage;
+    public double getUpperVoltageBound() {
+        return upperVoltageBound;
     }
 
-    public KnitroSolverParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
-        if (maxRealisticVoltage < 0) {
+    public KnitroSolverParameters setUpperVoltageBound(double upperVoltageBound) {
+        if (upperVoltageBound < 0) {
             throw new IllegalArgumentException("Realistic voltage bounds must strictly greater then 0");
         }
-        if (maxRealisticVoltage <= minRealisticVoltage) {
+        if (upperVoltageBound <= lowerVoltageBound) {
             throw new IllegalArgumentException("Realistic voltage upper bounds must greater then lower bounds");
         }
-        this.maxRealisticVoltage = maxRealisticVoltage;
+        this.upperVoltageBound = upperVoltageBound;
         return this;
     }
 
@@ -124,8 +124,8 @@ public class KnitroSolverParameters {
         return "KnitroSolverParameters(" +
                 "gradientComputationMode=" + gradientComputationMode +
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
-                ", minRealisticVoltage=" + minRealisticVoltage +
-                ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", minRealisticVoltage=" + lowerVoltageBound +
+                ", maxRealisticVoltage=" + upperVoltageBound +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
                 ", maxIterations=" + maxIterations +
                 ')';

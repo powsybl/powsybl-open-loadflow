@@ -284,7 +284,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setMaxRealisticVoltageNewtonRaphson(1.5);
+                .setMaxRealisticVoltage(1.5);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
         assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
@@ -1660,7 +1660,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(loadFlowParameters)
-                .setMaxRealisticVoltageNewtonRaphson(1.5);
+                .setMaxRealisticVoltage(1.5);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(loadFlowParameters);
         runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNode);
@@ -2200,8 +2200,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         lfParameters.setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
-        openLoadFlowParameters.setMinRealisticVoltageNewtonRaphson(0.0);
-        openLoadFlowParameters.setMaxRealisticVoltageNewtonRaphson(3.0);
+        openLoadFlowParameters.setMinRealisticVoltage(0.0);
+        openLoadFlowParameters.setMaxRealisticVoltage(3.0);
         lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);

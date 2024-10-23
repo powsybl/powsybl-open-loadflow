@@ -39,19 +39,19 @@ public class KnitroSolverParametersTest {
         KnitroSolverParameters parametersKnitro = new KnitroSolverParameters();
         //TODO
         // default value
-        assertEquals(0.5, parametersKnitro.getMinRealisticVoltage());
-        assertEquals(1.5, parametersKnitro.getMaxRealisticVoltage());
+        assertEquals(0.5, parametersKnitro.getLowerVoltageBound());
+        assertEquals(1.5, parametersKnitro.getUpperVoltageBound());
         // set other value
-        parametersKnitro.setMinRealisticVoltage(0.95);
-        parametersKnitro.setMaxRealisticVoltage(1.05);
-        assertEquals(0.95, parametersKnitro.getMinRealisticVoltage());
-        assertEquals(1.05, parametersKnitro.getMaxRealisticVoltage());
+        parametersKnitro.setLowerVoltageBound(0.95);
+        parametersKnitro.setUpperVoltageBound(1.05);
+        assertEquals(0.95, parametersKnitro.getLowerVoltageBound());
+        assertEquals(1.05, parametersKnitro.getUpperVoltageBound());
         // wrong values
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setMinRealisticVoltage(-Math.pow(10, -6)));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setLowerVoltageBound(-Math.pow(10, -6)));
         assertEquals("Realistic voltage bounds must strictly greater then 0", e.getMessage());
-        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setMaxRealisticVoltage(-2.0));
+        IllegalArgumentException e2 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setUpperVoltageBound(-2.0));
         assertEquals("Realistic voltage bounds must strictly greater then 0", e2.getMessage());
-        IllegalArgumentException e3 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setMaxRealisticVoltage(0.90));
+        IllegalArgumentException e3 = assertThrows(IllegalArgumentException.class, () -> parametersKnitro.setUpperVoltageBound(0.90));
         assertEquals("Realistic voltage upper bounds must greater then lower bounds", e3.getMessage());
     }
 

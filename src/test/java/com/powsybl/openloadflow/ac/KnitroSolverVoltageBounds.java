@@ -81,10 +81,10 @@ public class KnitroSolverVoltageBounds {
         // ============= Model with default voltage bounds =============
         LoadFlowResult knitroResultDefault = loadFlowRunner.run(network, parameters);
         // Default voltage bounds
-        double defaultMinVoltage = parametersExt.getMinRealisticVoltageKnitroSolver();
-        double defaultMaxVoltage = parametersExt.getMaxRealisticVoltageKnitroSolver();
-        Assertions.assertEquals(defaultMinVoltage, KnitroSolverParameters.DEFAULT_MIN_REALISTIC_VOLTAGE, 0.0001);
-        Assertions.assertEquals(defaultMaxVoltage, KnitroSolverParameters.DEFAULT_MAX_REALISTIC_VOLTAGE, 0.0001);
+        double defaultMinVoltage = parametersExt.getKnitroLowerVoltageBound();
+        double defaultMaxVoltage = parametersExt.getKnitroUpperVoltageBound();
+        Assertions.assertEquals(defaultMinVoltage, KnitroSolverParameters.DEFAULT_LOWER_VOLTAGE_BOUND, 0.0001);
+        Assertions.assertEquals(defaultMaxVoltage, KnitroSolverParameters.DEFAULT_UPPER_VOLTAGE_BOUND, 0.0001);
         // Results
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, knitroResultDefault.getComponentResults().get(0).getStatus());
         assertTrue(knitroResultDefault.isFullyConverged());
@@ -98,8 +98,8 @@ public class KnitroSolverVoltageBounds {
         assertAngleEquals(-6.531907, busList.get(3));
 
         // ============= Model with more restrictive voltage bounds =============
-        parametersExt.setMinRealisticVoltageKnitroSolver(0.99);
-        parametersExt.setMaxRealisticVoltageKnitroSolver(1.1);
+        parametersExt.setKnitroLowerVoltageBound(0.99);
+        parametersExt.setKnitroUpperVoltageBound(1.1);
         LoadFlowResult knitroResultMoreRestrictive = loadFlowRunner.run(network, parameters);
 
         assertSame(LoadFlowResult.ComponentResult.Status.FAILED, knitroResultMoreRestrictive.getComponentResults().get(0).getStatus());
