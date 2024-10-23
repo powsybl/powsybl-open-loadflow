@@ -1,6 +1,7 @@
 package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
@@ -31,7 +32,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
             C extends LoadFlowContext<V, E, P>,
             O extends AbstractOuterLoopContext<V, E, P, C>>
         extends AbstractActivePowerDistributionOuterLoop<V, E, P, C, O>
-        implements OuterLoop<V, E, P, C, O> {
+        implements OuterLoop<V, E, P, C, O>, ActivePowerDistributionOuterLoop<V, E, P, C, O> {
 
     private final Logger logger;
 
@@ -235,4 +236,13 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
         return areaSlackDistributionParticipationFactor;
     }
 
+    @Override
+    public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior(O context) {
+        OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
+        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
+            logger.error("Distribute on reference generator is not supported in AcAreaInterchangeControlOuterLoop, falling back to FAIL mode");
+            slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
+        }
+        return slackDistributionFailureBehavior;
+    }
 }

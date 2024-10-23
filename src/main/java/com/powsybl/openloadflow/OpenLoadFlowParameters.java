@@ -1934,6 +1934,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new DcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
+                .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
                 .setMatrixFactory(matrixFactory)
                 .setDistributedSlack(parameters.isDistributedSlack())
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())

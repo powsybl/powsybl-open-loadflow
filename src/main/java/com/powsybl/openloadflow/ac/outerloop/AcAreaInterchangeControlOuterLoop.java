@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -36,16 +35,6 @@ public class AcAreaInterchangeControlOuterLoop
     @Override
     public String getName() {
         return NAME;
-    }
-
-    @Override
-    public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior(AcOuterLoopContext context) {
-        OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
-        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
-            LOGGER.error("Distribute on reference generator is not supported in AcAreaInterchangeControlOuterLoop, falling back to FAIL mode");
-            slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
-        }
-        return slackDistributionFailureBehavior;
     }
 
 }
