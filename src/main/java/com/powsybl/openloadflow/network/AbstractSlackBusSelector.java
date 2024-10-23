@@ -27,4 +27,5 @@ public abstract class AbstractSlackBusSelector implements SlackBusSelector {
         return countries.isEmpty()
                 || bus.getCountry().map(countries::contains).orElse(false);
     }
+
 }

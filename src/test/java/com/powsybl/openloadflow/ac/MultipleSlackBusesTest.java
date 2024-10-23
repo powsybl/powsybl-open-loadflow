@@ -52,6 +52,7 @@ class MultipleSlackBusesTest {
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
                 .setMaxSlackBusCount(2);
     }
 
