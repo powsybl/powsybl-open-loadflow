@@ -257,7 +257,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setMaxNewtonRaphsonIterations(2); // Force final status of following run to be MAX_ITERATION_REACHED
-        assertFalse(olfParameters.isAlwaysUpdateNetworkNewtonRaphson()); // Default value of alwaysUpdateNetwork
+        assertFalse(olfParameters.isAlwaysUpdateNetwork()); // Default value of alwaysUpdateNetwork
 
         // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
@@ -267,8 +267,8 @@ class OpenLoadFlowParametersTest {
         assertTrue(Double.isNaN(nload.getV()));
 
         // Check the network is updated if alwaysUpdateNetwork = true and final status = MAX_ITERATION_REACHED
-        olfParameters.setAlwaysUpdateNetworkNewtonRaphson(true);
-        assertTrue(olfParameters.isAlwaysUpdateNetworkNewtonRaphson());
+        olfParameters.setAlwaysUpdateNetwork(true);
+        assertTrue(olfParameters.isAlwaysUpdateNetwork());
 
         loadFlowRunner.run(network, parameters);
         assertVoltageEquals(158, nload);
@@ -286,7 +286,7 @@ class OpenLoadFlowParametersTest {
                 .setAcSolverType(AcSolverType.KNITRO)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
-        assertFalse(parametersExt.isAlwaysUpdateNetworkKnitroSolver()); // Default value of alwaysUpdateNetwork
+        assertFalse(parametersExt.isAlwaysUpdateNetwork()); // Default value of alwaysUpdateNetwork
 //
         // TODO a reprendre, ajouter paramètre max iters dans KnitroSolver
 //        // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED

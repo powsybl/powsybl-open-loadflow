@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+
 import java.util.Objects;
 
 /**
@@ -20,7 +22,6 @@ public class KnitroSolverParameters {
     public static final int DEFAULT_GRADIENT_USER_ROUTINE = 2; // If the user chooses to pass the exact Jacobian to knitro, specifies the sparsity pattern for the Jacobian matrix.
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5; // Lower bound for voltage magnitude
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5; // Upper bound for voltage magnitude
-    public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
     public static final int DEFAULT_MAX_ITERATIONS = 200;
 
     public KnitroSolverParameters() {
@@ -36,7 +37,7 @@ public class KnitroSolverParameters {
 
     private KnitroSolverStoppingCriteria stoppingCriteria = new DefaultKnitroSolverStoppingCriteria();
 
-    private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+    private boolean alwaysUpdateNetwork = OpenLoadFlowParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     private int maxIterations = DEFAULT_MAX_ITERATIONS;
 

@@ -106,9 +106,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         try {
             boolean isAlwaysUpdateNetwork = false;
             if (parametersExt.getAcSolverType() == AcSolverType.NEWTON_RAPHSON) {
-                isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkNewtonRaphson();
+                isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetwork();
             } else if (parametersExt.getAcSolverType() == AcSolverType.KNITRO) {
-                isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkKnitroSolver();
+                isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetwork();
             }
             // update network state
             if (atLeastOneComponentHasToBeUpdated && result.isSuccess() || isAlwaysUpdateNetwork) {
@@ -158,9 +158,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         boolean atLeastOneComponentHasToBeUpdated = results.stream().anyMatch(AcLoadFlowResult::isWithNetworkUpdate);
         boolean isAlwaysUpdateNetwork = false;
         if (parametersExt.getAcSolverType() == AcSolverType.NEWTON_RAPHSON) {
-            isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkNewtonRaphson();
+            isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetwork();
         } else if (parametersExt.getAcSolverType() == AcSolverType.KNITRO) {
-            isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetworkKnitroSolver();
+            isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetwork();
         }
         // update network state
         if (atLeastOneComponentHasToBeUpdated || isAlwaysUpdateNetwork) {
@@ -180,14 +180,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (AcLoadFlowResult result : results) {
             updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
-            Map<String, String> metricsMap = new HashMap<>();
-
             ReferenceBusAndSlackBusesResults referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                     result.getNetwork().getNumSC(),
                     result.toComponentResultStatus(),
                     result.toComponentResultStatus().name(), // statusText: can do better later on
-                    metricsMap, // Collections.emptyMap(), // metrics: can do better later on
+                    Collections.emptyMap(), // metrics: can do better later on
                     result.getSolverIterations(),
                     referenceBusAndSlackBusesResults.referenceBusId(),
                     referenceBusAndSlackBusesResults.slackBusResultList(),

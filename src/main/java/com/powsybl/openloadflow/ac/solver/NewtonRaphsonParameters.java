@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+
 import java.util.Objects;
 
 /**
@@ -18,7 +20,6 @@ public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaph
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 2;
     public static final StateVectorScalingMode DEFAULT_STATE_VECTOR_SCALING_MODE = StateVectorScalingMode.NONE;
-    public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
 
     public NewtonRaphsonParameters() {
         super(DEFAULT_MAX_ITERATIONS);
@@ -40,7 +41,7 @@ public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaph
 
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
-    private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+    private boolean alwaysUpdateNetwork = OpenLoadFlowParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     public double getMinRealisticVoltage() {
         return minRealisticVoltage;
