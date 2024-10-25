@@ -458,10 +458,9 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         VoltageLevel vl1 = network.getVoltageLevel("VL1");
         VoltageLevel vl2 = network.getVoltageLevel("VL2");
-
-        Line l1 = network.getLine("L1");
         Line l2 = network.getLine("L2");
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+
         ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
         ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
         ps1.getPhaseTapChanger().setTargetDeadband(10);
