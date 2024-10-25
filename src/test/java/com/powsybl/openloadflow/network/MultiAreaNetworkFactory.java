@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
@@ -449,6 +450,61 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setAreaType("ControlArea")
                 .addAreaBoundary(network.getLine("l34").getTerminal2(), true)
                 .add();
+        return network;
+    }
+
+    public static Network createTwoAreasWithPhaseShifter() {
+        Network network = PhaseShifterTestCaseFactory.create();
+
+        VoltageLevel vl1 = network.getVoltageLevel("VL1");
+        VoltageLevel vl2 = network.getVoltageLevel("VL2");
+
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
+        ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
+        ps1.getPhaseTapChanger().setTargetDeadband(10);
+        ps1.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL);
+        ps1.getPhaseTapChanger().setRegulating(true);
+        ps1.getPhaseTapChanger().setRegulationValue(-80);
+
+        vl2.newGenerator()
+                .setId("G2")
+                .setBus("B2")
+                .setTargetP(40)
+                .setTargetQ(0)
+                .setTargetV(400)
+                .setMinP(0)
+                .setMaxP(150)
+                .setVoltageRegulatorOn(false)
+                .add();
+
+        vl1.newLoad()
+                .setId("LD1")
+                .setBus("B1")
+                .setP0(40.0)
+                .setQ0(5.0)
+                .add();
+
+        network.newArea()
+                .setId("A1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(-81.5)
+                .addVoltageLevel(vl1)
+                .addAreaBoundary(ps1.getTerminal2(), true)
+                .add();
+
+        network.newArea()
+                .setId("A2")
+                .setName("Area 2")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(81.5)
+                .addVoltageLevel(vl2)
+                .addAreaBoundary(l2.getTerminal1(), true)
+                .add();
+
         return network;
     }
 

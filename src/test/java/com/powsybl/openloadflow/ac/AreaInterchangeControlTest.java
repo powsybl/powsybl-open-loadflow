@@ -51,7 +51,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
         runLfTwoAreas(network, -40, 40, -30, 2);
         parameters.setDc(true);
-        runLfTwoAreas(network, -40, 40, Double.NaN, 0);
+        runLfTwoAreas(network, -40, 40, -30, 0);
     }
 
     @Test
@@ -61,7 +61,7 @@ class AreaInterchangeControlTest {
         double interchangeTarget2 = 40;
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
         parameters.setDc(true);
-        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, Double.NaN, 0);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
     }
 
     @Test
@@ -69,7 +69,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
         runLfTwoAreas(network, -40, 40, -30, 2);
         parameters.setDc(true);
-        runLfTwoAreas(network, -40, 40, Double.NaN, 0);
+        runLfTwoAreas(network, -40, 40, -30, 0);
     }
 
     @Test
@@ -78,7 +78,7 @@ class AreaInterchangeControlTest {
         int expectedIterationCount = 3;
         runLfTwoAreas(network, -40, 40, -35, expectedIterationCount);
         parameters.setDc(true);
-        runLfTwoAreas(network, -40, 40, Double.NaN, 0);
+        runLfTwoAreas(network, -40, 40, -35, 0);
     }
 
     @Test
@@ -194,7 +194,7 @@ class AreaInterchangeControlTest {
         assertEquals("bx1_vl_0", slackBusResults.get(0).getId());
 
         parameters.setDc(true);
-        result = runLfTwoAreas(network, -15, 15, Double.NaN, 0);
+        result = runLfTwoAreas(network, -15, 15, -30, 0);
         slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
         assertEquals(1, slackBusResults.size());
         assertEquals("bx1_vl_0", slackBusResults.get(0).getId());
@@ -212,7 +212,7 @@ class AreaInterchangeControlTest {
         assertEquals("bx2_vl_0", slackBusResults.get(0).getId());
 
         parameters.setDc(true);
-        result = runLfTwoAreas(network, -15, 15, Double.NaN, 0);
+        result = runLfTwoAreas(network, -15, 15, -30, 0);
         slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
         assertEquals(1, slackBusResults.size());
         assertEquals("bx2_vl_0", slackBusResults.get(0).getId());

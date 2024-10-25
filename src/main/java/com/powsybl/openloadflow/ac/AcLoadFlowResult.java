@@ -26,29 +26,16 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), Double.NaN, Double.NaN);
     }
 
-    private final int outerLoopIterations;
-
     private final int solverIterations;
 
     private final AcSolverStatus solverStatus;
 
-    private final OuterLoopResult outerLoopResult;
-
-    private final double distributedActivePower;
-
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
                             AcSolverStatus solverStatus, OuterLoopResult outerLoopResult,
                             double slackBusActivePowerMismatch, double distributedActivePower) {
-        super(network, slackBusActivePowerMismatch);
-        this.outerLoopIterations = outerLoopIterations;
+        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
-        this.outerLoopResult = Objects.requireNonNull(outerLoopResult);
-        this.distributedActivePower = distributedActivePower;
-    }
-
-    public int getOuterLoopIterations() {
-        return outerLoopIterations;
     }
 
     public int getSolverIterations() {
@@ -59,17 +46,9 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return solverStatus;
     }
 
-    public OuterLoopResult getOuterLoopResult() {
-        return outerLoopResult;
-    }
-
-    public double getDistributedActivePower() {
-        return distributedActivePower;
-    }
-
     @Override
     public boolean isSuccess() {
-        return solverStatus == AcSolverStatus.CONVERGED && outerLoopResult.status() == OuterLoopStatus.STABLE;
+        return solverStatus == AcSolverStatus.CONVERGED && getOuterLoopResult().status() == OuterLoopStatus.STABLE;
     }
 
     public boolean isWithNetworkUpdate() {
