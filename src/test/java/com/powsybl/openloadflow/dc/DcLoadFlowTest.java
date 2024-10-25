@@ -434,7 +434,7 @@ class DcLoadFlowTest {
         result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Reached outer loop max iterations limit. Last outer loop name: DcAreaInterchangeControl", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: AreaInterchangeControl", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test

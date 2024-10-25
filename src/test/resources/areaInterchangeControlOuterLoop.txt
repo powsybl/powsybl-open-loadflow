@@ -6,13 +6,13 @@
             Network balance: active generation=140.0 MW, active load=110.0 MW, reactive generation=0.0 MVar, reactive load=15.0 MVar
             Angle reference bus: bx1_vl_0
             Slack bus: bx1_vl_0
-         + Outer loop AcAreaInterchangeControl
+         + Outer loop AreaInterchangeControl
             + Outer loop iteration 1
                Area a1 interchange mismatch (10.000000416666666 MW) distributed in 1 distribution iteration(s)
                Area a2 interchange mismatch (-40.00000000651042 MW) distributed in 1 distribution iteration(s)
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
-         Outer loop AcAreaInterchangeControl
+         Outer loop AreaInterchangeControl
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

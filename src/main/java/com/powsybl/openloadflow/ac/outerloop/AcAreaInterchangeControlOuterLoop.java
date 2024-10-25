@@ -26,7 +26,7 @@ public class AcAreaInterchangeControlOuterLoop
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcAreaInterchangeControlOuterLoop.class);
 
-    public static final String NAME = "AcAreaInterchangeControl";
+    public static final String NAME = "AreaInterchangeControl";
 
     public AcAreaInterchangeControlOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
         super(activePowerDistribution, new DistributedSlackOuterLoop(activePowerDistribution, slackBusPMaxMismatch), slackBusPMaxMismatch, areaInterchangePMaxMismatch, LOGGER);
