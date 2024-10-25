@@ -200,5 +200,100 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, c1, c2, "lc12Bis", 1f);
         return network;
     }
+
+    /**
+     *     b1 ------------------- b2 ----- t24 ------ b4 - d4
+     *     |                      |
+     *     |                      |
+     *     |                      |
+     *     b2 ------------------- b3 ----- t57 ------ b7 - d7
+     *     | tr                   |--------t56 ------ b6 - d6
+     *     b8 - g3
+     **/
+    public static Network createWithSeveralTransformerVoltageControls() {
+        Network network = Network.create("testTransformerVoltageControls", "code");
+        Bus b1 = createBus(network, "s", "b1", 225);
+        Bus b2 = createBus(network, "s", "b2", 225);
+        Bus b3 = createBus(network, "s", "b3", 225);
+        Bus b4 = createBus(network, "s", "b4", 225);
+        Bus b5 = createBus(network, "s", "b5", 225);
+        Bus b6 = createBus(network, "s", "b6", 90);
+        Bus b7 = createBus(network, "s", "b7", 90);
+        Bus b8 = createBus(network, "s", "b8", 90);
+        createGenerator(b1, "g1", 4, 230);
+        createGenerator(b8, "g3", 3, 93);
+        createLoad(b4, "d4", 2);
+        createLoad(b6, "d6", 1);
+        createLoad(b7, "d7", 4);
+        createLine(network, b1, b2, "l12", 0.15);
+        createLine(network, b1, b3, "l13", 0.1);
+        createLine(network, b3, b5, "l35", 0.2);
+        createLine(network, b2, b5, "l25", 0.16);
+        createTransformer(network, "s", b3, b8, "t38", 0.15, 1d);
+        TwoWindingsTransformer twt = createTransformer(network, "s", b2, b4, "t24", 1.0, 1d);
+        twt.newRatioTapChanger()
+                .setTapPosition(0)
+                .setRegulationTerminal(twt.getTerminal2())
+                .setTargetV(230)
+                .setRegulating(true)
+                .setTargetDeadband(0.1)
+                .setLoadTapChangingCapabilities(true)
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(1.2)
+                .endStep()
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(1.0)
+                .endStep()
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(0.8)
+                .endStep()
+                .add();
+        TwoWindingsTransformer twt2 = createTransformer(network, "s", b5, b7, "t57", 0.2, 1d);
+        twt2.newRatioTapChanger()
+                .setTapPosition(0)
+                .setRegulationTerminal(twt2.getTerminal2())
+                .setTargetV(93)
+                .setRegulating(true)
+                .setTargetDeadband(0.1)
+                .setLoadTapChangingCapabilities(true)
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(1.2)
+                .endStep()
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(1.0)
+                .endStep()
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(0.8)
+                .endStep()
+                .add();
+        TwoWindingsTransformer twt3 = createTransformer(network, "s", b5, b6, "t56", 0.2, 1d);
+        twt3.newRatioTapChanger()
+                .setTapPosition(0)
+                .setRegulationTerminal(twt3.getTerminal2())
+                .setTargetV(93)
+                .setRegulating(true)
+                .setTargetDeadband(0.1)
+                .setLoadTapChangingCapabilities(true)
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(1.2)
+                .endStep()
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(1.0)
+                .endStep()
+                .beginStep()
+                    .setX(0.1f)
+                    .setRho(0.8)
+                .endStep()
+                .add();
+        return network;
+    }
 }
 

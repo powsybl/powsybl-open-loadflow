@@ -11,13 +11,18 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAcOuterLoopConfig.class);
 
     protected AbstractAcOuterLoopConfig() {
     }
@@ -26,6 +31,14 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         if (parameters.isDistributedSlack()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isAreaInterchangeControl()) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+            return Optional.of(new AreaInterchangeControlOuterloop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
         }
         return Optional.empty();
     }
@@ -55,12 +68,15 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
-                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
+    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters,
+                                                                                    boolean useInitialTapPosition,
+                                                                                    OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
+                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift,
+                                                                                    double generatorVoltageControlMinNominalVoltage) {
         if (parameters.isTransformerVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new SimpleTransformerVoltageControlOuterLoop();
-                case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop();
+                case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop(useInitialTapPosition, generatorVoltageControlMinNominalVoltage);
                 case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalTransformerVoltageControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift);
             };
             return Optional.of(outerLoop);
@@ -70,8 +86,10 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return createTransformerVoltageControlOuterLoop(parameters,
+                                                        parametersExt.isTransformerVoltageControlUseInitialTapPosition(),
                                                         parametersExt.getTransformerVoltageControlMode(),
-                                                        parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift());
+                                                        parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(),
+                                                        parametersExt.getGeneratorVoltageControlMinNominalVoltage());
     }
 
     protected static Optional<AcOuterLoop> createTransformerReactivePowerControlOuterLoop(OpenLoadFlowParameters parametersExt) {
@@ -116,5 +134,19 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
             return Optional.of(new AutomationSystemOuterLoop());
         }
         return Optional.empty();
+    }
+
+    static List<AcOuterLoop> filterInconsistentOuterLoops(List<AcOuterLoop> outerLoops) {
+        if (outerLoops.stream().anyMatch(AreaInterchangeControlOuterloop.class::isInstance)) {
+            return outerLoops.stream().filter(o -> {
+                if (o instanceof DistributedSlackOuterLoop) {
+                    LOGGER.warn("Distributed slack and area interchange control are both enabled. " +
+                            "Distributed slack outer loop will be disabled, slack will be distributed by the area interchange control.");
+                    return false;
+                }
+                return true;
+            }).toList();
+        }
+        return outerLoops;
     }
 }

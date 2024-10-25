@@ -101,10 +101,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         void setFunctionReference(double functionReference);
 
-        double getBaseSensitivityValue();
-
-        void setBaseCaseSensitivityValue(double baseCaseSensitivityValue);
-
         Status getStatus();
 
         void setStatus(Status status);
@@ -141,8 +137,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         private Double functionPredefinedResult = null;
 
         private double functionReference = 0d;
-
-        private double baseCaseSensitivityValue = Double.NaN; // the sensitivity value on pre contingency network, that needs to be recomputed if the stack distribution change
 
         protected Status status = Status.VALID;
 
@@ -264,16 +258,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         @Override
-        public double getBaseSensitivityValue() {
-            return baseCaseSensitivityValue;
-        }
-
-        @Override
-        public void setBaseCaseSensitivityValue(double baseCaseSensitivityValue) {
-            this.baseCaseSensitivityValue = baseCaseSensitivityValue;
-        }
-
-        @Override
         public Status getStatus() {
             return status;
         }
@@ -352,7 +336,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     case INJECTION_ACTIVE_POWER,
                          HVDC_LINE_ACTIVE_POWER:
                         // a load, a generator, a dangling line, an LCC or a VSC converter station.
-                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLoose().containsKey(variableId);
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLose().containsKey(variableId);
                     case BUS_TARGET_VOLTAGE:
                         // a generator or a two windings transformer.
                         // shunt contingency not supported yet.
@@ -414,7 +398,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
-                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getLoadIdsToLoose().keySet().stream())
+                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getLoadIdsToLose().keySet().stream())
                         .distinct()
                         .filter(originalVariableSetIds::contains)
                         .count();
@@ -571,7 +555,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     double balanceDiff = mainComponentWeights.values().stream().mapToDouble(x -> x).sum();
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
                         LfBus lfBus = lfBusAndParticipationFactor.getKey();
-                        double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the compensation depending on the injection
+                        double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the slack distribution depending on the injection
                         addBusInjection(rhs, lfBus, injection);
                     }
                     // add the injections on the side of the hvdc
@@ -771,44 +755,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return validFactorHolder;
     }
 
-    private static void cleanBranchIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
-        // Elements have already been checked and found in PropagatedContingency, so there is no need to
-        // check them again
-        Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
-        for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
-            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-            if (lfBranch == null) {
-                branchesToRemove.add(branchId); // disconnected branch
-                continue;
-            }
-            if (!lfBranch.isConnectedAtBothSides()) {
-                branchesToRemove.add(branchId); // branch connected only on one side
-            }
-        }
-        branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
-
-        // update branches to open connected with buses in contingency. This is an approximation:
-        // these branches are indeed just open at one side.
-        String slackBusId = null;
-        for (String busId : contingency.getBusIdsToLose()) {
-            LfBus bus = lfNetwork.getBusById(busId);
-            if (bus != null) {
-                if (bus.isSlack()) {
-                    // slack bus disabling is not supported
-                    // we keep the slack bus enabled and the connected branches
-                    LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
-                    slackBusId = busId;
-                } else {
-                    bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
-                }
-            }
-        }
-        if (slackBusId != null) {
-            contingency.getBusIdsToLose().remove(slackBusId);
-        }
-    }
-
-    protected void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+    protected void checkContingencies(List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
             // check ID are unique because, later contingency are indexed by their IDs
@@ -817,12 +764,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
             }
             contingenciesIds.add(contingencyId);
-
-            cleanBranchIdsToOpen(lfNetwork, contingency);
-
-            if (contingency.hasNoImpact()) {
-                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
-            }
         }
     }
 
@@ -1296,6 +1237,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         switch (variable) {
             case INJECTION_ACTIVE_POWER, HVDC_LINE_ACTIVE_POWER:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
+            case INJECTION_REACTIVE_POWER:
+                // We consider that the magnitude change of reactive injection to V is of the same magnitude as other usages of FlowVoltage threshold
+                // (used for dV/dQ, dV/dI) and re-use this threshold
+                return function == SensitivityFunctionType.BUS_VOLTAGE && Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
             case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                 return isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
             case BUS_TARGET_VOLTAGE:
@@ -1308,7 +1253,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,
                                                             SensitivityAnalysisParameters parameters) {
         return switch (function) {
-            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3 -> Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
+            // We consider that the voltage change to current is approximately of the same magnitude as the voltage change to reactive power
+            // and use the same threshold for filtering
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3, BUS_REACTIVE_POWER -> Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
             case BUS_VOLTAGE -> Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
             default -> false;
         };

@@ -30,6 +30,8 @@ public interface LfHvdc extends LfElement {
 
     double getDroop();
 
+    double getR();
+
     double getP0();
 
     boolean isAcEmulation();

@@ -83,8 +83,9 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(150.649, l1.getTerminal1());
         assertActivePowerEquals(-101, l1.getTerminal2());
         assertReactivePowerEquals(-150, l1.getTerminal2());
-        assertTrue(Double.isNaN(svc1.getTerminal().getP()));
-        assertTrue(Double.isNaN(svc1.getTerminal().getQ()));
+        // SVC is OFF
+        assertActivePowerEquals(0, svc1.getTerminal());
+        assertReactivePowerEquals(0, svc1.getTerminal());
 
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
@@ -256,7 +257,7 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
-    void testRegulationModeOff() {
+    void testRegulationModeReactivePower() {
         svc1.setReactivePowerSetpoint(100)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

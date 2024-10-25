@@ -22,8 +22,11 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -442,7 +445,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void testGeneratorsConnectedToSameBusNotControllingSameBus() {
+    void testGeneratorsConnectedToSameBusNotControllingSameBus() throws IOException {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLGEN").newGenerator()
                 .setId("GEN2")
@@ -455,9 +458,13 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setTargetV(148)
                 .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
                 .add();
-        loadFlowRunner.run(network);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
         assertVoltageEquals(147.57, network.getBusBreakerView().getBus("NLOAD"));
+        LoadFlowAssert.assertReportEquals("/generatorsConnectedToSameBusNotControllingSameBusReport.txt", reportNode);
     }
 
     @Test
@@ -468,6 +475,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: DistributedSlack", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test

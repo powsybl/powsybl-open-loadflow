@@ -74,6 +74,16 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     }
 
     @Override
+    public void setInitialTargetP(double initialTargetP) {
+        // no-op
+    }
+
+    @Override
+    public void setInitialTargetPToTargetP() {
+        // no-op
+    }
+
+    @Override
     public double getLossFactor() {
         return lossFactor;
     }
@@ -113,5 +123,11 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         if (hvdc == null || !hvdc.isAcEmulation()) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
             station.getTerminal().setP(-getTargetP() * PerUnit.SB);
         }
+    }
+
+    @Override
+    public int getReferencePriority() {
+        // never selected
+        return -1;
     }
 }

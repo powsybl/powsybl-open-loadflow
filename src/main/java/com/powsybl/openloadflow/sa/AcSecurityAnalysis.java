@@ -20,10 +20,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.ReferenceBusSelector;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
@@ -42,6 +39,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
+    protected LoadFlowModel getLoadFlowModel() {
+        return LoadFlowModel.AC;
+    }
+
+    @Override
     protected ReportNode createSaRootReportNode() {
         return Reports.createAcSecurityAnalysis(reportNode, network.getId());
     }
@@ -54,9 +56,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     @Override
     protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
+        if (acParameters.getNetworkParameters().getMaxSlackBusCount() > 1) {
+            LOGGER.warn("Multiple slack buses in a security analysis is not supported, force to 1");
+        }
         acParameters.getNetworkParameters()
                 .setCacheEnabled(false) // force not caching as not supported in secu analysis
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
+                .setMaxSlackBusCount(1);
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
         return acParameters;
     }
@@ -82,9 +88,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     public static PostContingencyComputationStatus postContingencyStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
-        if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
+        if (result.getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
             return PostContingencyComputationStatus.MAX_ITERATION_REACHED;
-        } else if (result.getOuterLoopStatus() == OuterLoopStatus.FAILED) {
+        } else if (result.getOuterLoopResult().status() == OuterLoopStatus.FAILED) {
             return PostContingencyComputationStatus.FAILED;
         } else {
             return switch (result.getSolverStatus()) {

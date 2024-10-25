@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.LoadType;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
@@ -29,7 +30,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private final LfLoadModel loadModel;
 
-    private final List<Ref<Load>> loadsRefs = new ArrayList<>();
+    private final Map<String, Ref<Load>> loadsRefs = new HashMap<>();
 
     private final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
@@ -37,7 +38,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private boolean ensurePowerFactorConstantByLoad = false;
 
-    private final List<Double> loadsAbsVariableTargetP = new ArrayList<>();
+    private final HashMap<String, Double> loadsAbsVariableTargetP = new HashMap<>();
 
     private double absVariableTargetP = 0;
 
@@ -63,7 +64,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     @Override
     public List<String> getOriginalIds() {
-        return Stream.concat(loadsRefs.stream().map(r -> r.get().getId()),
+        return Stream.concat(loadsRefs.values().stream().map(r -> r.get().getId()),
                              lccCsRefs.stream().map(r -> r.get().getId()))
                 .toList();
     }
@@ -74,17 +75,26 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
+    public boolean isOriginalLoadNotParticipating(String originalLoadId) {
+        if (loadsRefs.get(originalLoadId) == null) {
+            return false;
+        }
+        return isLoadNotParticipating(loadsRefs.get(originalLoadId).get());
+    }
+
+    @Override
     public Optional<LfLoadModel> getLoadModel() {
         return Optional.ofNullable(loadModel);
     }
 
     void add(Load load, LfNetworkParameters parameters) {
-        loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
+        loadsRefs.put(load.getId(), Ref.create(load, parameters.isCacheEnabled()));
         loadsDisablingStatus.put(load.getId(), false);
         double p0 = load.getP0();
+        double q0 = load.getQ0();
         targetP += p0 / PerUnit.SB;
         initialTargetP += p0 / PerUnit.SB;
-        targetQ += load.getQ0() / PerUnit.SB;
+        targetQ += q0 / PerUnit.SB;
         boolean hasVariableActivePower = false;
         if (parameters.isDistributedOnConformLoad()) {
             LoadDetail loadDetail = load.getExtension(LoadDetail.class);
@@ -92,11 +102,12 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
                 hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
             }
         }
-        if (p0 < 0 || hasVariableActivePower) {
+        boolean reactiveOnlyLoad = p0 == 0 && q0 != 0;
+        if (p0 < 0 || hasVariableActivePower || reactiveOnlyLoad) {
             ensurePowerFactorConstantByLoad = true;
         }
-        double absTargetP = getAbsVariableTargetP(load);
-        loadsAbsVariableTargetP.add(absTargetP);
+        double absTargetP = getAbsVariableTargetPPerUnit(load, distributedOnConformLoad);
+        loadsAbsVariableTargetP.put(load.getId(), absTargetP);
         absVariableTargetP += absTargetP;
     }
 
@@ -156,7 +167,10 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         this.absVariableTargetP = absVariableTargetP;
     }
 
-    private double getAbsVariableTargetP(Load load) {
+    public static double getAbsVariableTargetPPerUnit(Load load, boolean distributedOnConformLoad) {
+        if (isLoadNotParticipating(load)) {
+            return 0.0;
+        }
         double varP;
         if (distributedOnConformLoad) {
             varP = load.getExtension(LoadDetail.class) == null ? 0 : load.getExtension(LoadDetail.class).getVariableActivePower();
@@ -167,17 +181,17 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
-    public double getOriginalLoadCount() {
+    public int getOriginalLoadCount() {
         return loadsRefs.size();
     }
 
-    private double getParticipationFactor(int i) {
+    private double getParticipationFactor(String originalLoadId) {
         // FIXME
         // After a load contingency or a load action, only the global variable targetP is updated.
         // The list loadsAbsVariableTargetP never changes. It is not an issue for security analysis as the network is
         // never updated. Excepted if loadPowerFactorConstant is true, the new targetQ could be wrong after a load contingency
         // or a load action.
-        return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
+        return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(originalLoadId) / absVariableTargetP : 0;
     }
 
     private double calculateP() {
@@ -197,9 +211,9 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         double pv = p == EvaluableConstants.NAN ? 1 : calculateP() / targetP; // extract part of p that is dependent to voltage
         double qv = q == EvaluableConstants.NAN ? 1 : calculateQ() / targetQ;
         double diffLoadTargetP = targetP - initialTargetP;
-        for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = loadsRefs.get(i).get();
-            double diffP0 = diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB;
+        for (Ref<Load> refLoad : loadsRefs.values()) {
+            Load load = refLoad.get();
+            double diffP0 = diffLoadTargetP * getParticipationFactor(load.getId()) * PerUnit.SB;
             double updatedP0 = load.getP0() + diffP0;
             double updatedQ0 = load.getQ0() + (loadPowerFactorConstant ? getPowerFactor(load) * diffP0 : 0.0);
             load.getTerminal()
@@ -221,9 +235,9 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     @Override
     public double calculateNewTargetQ(double diffTargetP) {
         double newLoadTargetQ = 0;
-        for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = loadsRefs.get(i).get();
-            double updatedQ0 = load.getQ0() / PerUnit.SB + getPowerFactor(load) * diffTargetP * getParticipationFactor(i);
+        for (Ref<Load> refLoad : loadsRefs.values()) {
+            Load load = refLoad.get();
+            double updatedQ0 = load.getQ0() / PerUnit.SB + getPowerFactor(load) * diffTargetP * getParticipationFactor(load.getId());
             newLoadTargetQ += updatedQ0;
         }
         return newLoadTargetQ;
@@ -251,6 +265,14 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
+    /**
+     * Returns true if the load does not participate to slack distribution
+     */
+    public static boolean isLoadNotParticipating(Load load) {
+        // Fictitious loads that do not participate to slack distribution.
+        return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
     }
 
     @Override

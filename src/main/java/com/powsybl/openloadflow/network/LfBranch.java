@@ -9,7 +9,11 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.ThreeSides;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.util.LimitViolationUtils;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -42,18 +46,21 @@ public interface LfBranch extends LfElement {
 
         private final double value;
 
-        public LfLimit(String name, int acceptableDuration, double value) {
+        private final double reduction;
+
+        public LfLimit(String name, int acceptableDuration, double value, double reduction) {
             this.name = name;
             this.acceptableDuration = acceptableDuration;
             this.value = value;
+            this.reduction = reduction;
         }
 
-        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double valuePerUnit) {
-            return new LfLimit(name, acceptableDuration, valuePerUnit);
+        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double reduction) {
+            return new LfLimit(name, acceptableDuration, originalValuePerUnit, reduction);
         }
 
-        public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, valuePerUnit);
+        public static LfLimit createPermanentLimit(double originalValuePerUnit, Double reduction) {
+            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, originalValuePerUnit, reduction);
         }
 
         public String getName() {
@@ -68,8 +75,16 @@ public interface LfBranch extends LfElement {
             return value;
         }
 
+        public double getReducedValue() {
+            return value * reduction;
+        }
+
         public void setAcceptableDuration(int acceptableDuration) {
             this.acceptableDuration = acceptableDuration;
+        }
+
+        public double getReduction() {
+            return reduction;
         }
     }
 
@@ -81,6 +96,8 @@ public interface LfBranch extends LfElement {
         }
         return branchIndex;
     }
+
+    Optional<ThreeSides> getOriginalSide();
 
     BranchType getBranchType();
 
@@ -194,11 +211,13 @@ public interface LfBranch extends LfElement {
 
     List<Evaluable> getAdditionalClosedQ2();
 
-    List<LfLimit> getLimits1(LimitType type);
+    List<LfLimit> getLimits1(LimitType type, LimitReductionManager limitReductionManager);
 
-    default List<LfLimit> getLimits2(LimitType type) {
+    default List<LfLimit> getLimits2(LimitType type, LimitReductionManager limitReductionManager) {
         return Collections.emptyList();
     }
+
+    double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits);
 
     void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 

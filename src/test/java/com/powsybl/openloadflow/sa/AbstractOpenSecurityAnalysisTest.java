@@ -33,7 +33,8 @@ import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
 import com.powsybl.security.SecurityAnalysisResult;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
+import com.powsybl.security.SecurityAnalysisRunParameters;
+import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
@@ -123,7 +124,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
      * Runs a security analysis with default parameters + most meshed slack bus selection
      */
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                       LoadFlowParameters lfParameters) {
+                                                         LoadFlowParameters lfParameters) {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         return runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
@@ -137,19 +138,33 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
                                                        SecurityAnalysisParameters saParameters, ReportNode reportNode) {
         ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setFilter(new LimitViolationFilter())
+                .setComputationManager(computationManager)
+                .setSecurityAnalysisParameters(saParameters)
+                .setMonitors(monitors)
+                .setReportNode(reportNode);
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
-                new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(),
-                computationManager,
-                saParameters,
                 provider,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                monitors,
-                Collections.emptyList(),
-                reportNode)
+                runParameters)
+                .join();
+        return report.getResult();
+    }
+
+    protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                         List<LimitReduction> limitReductions, SecurityAnalysisParameters saParameters) {
+        ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setFilter(new LimitViolationFilter())
+                .setComputationManager(computationManager)
+                .setSecurityAnalysisParameters(saParameters)
+                .setMonitors(monitors)
+                .setLimitReductions(limitReductions);
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network,
+                        network.getVariantManager().getWorkingVariantId(),
+                        provider,
+                        runParameters)
                 .join();
         return report.getResult();
     }
@@ -158,19 +173,18 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                                                          SecurityAnalysisParameters saParameters, List<OperatorStrategy> operatorStrategies,
                                                          List<Action> actions, ReportNode reportNode) {
         ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setFilter(new LimitViolationFilter())
+                .setComputationManager(computationManager)
+                .setSecurityAnalysisParameters(saParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions)
+                .setMonitors(monitors)
+                .setReportNode(reportNode);
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
-                new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(),
-                computationManager,
-                saParameters,
                 provider,
-                Collections.emptyList(),
-                operatorStrategies,
-                actions,
-                monitors,
-                Collections.emptyList(),
-                reportNode)
+                runParameters)
                 .join();
         return report.getResult();
     }

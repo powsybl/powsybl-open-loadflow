@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.VoltageControl;
@@ -36,11 +37,11 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         if (context.getIteration() == 0) {
-            status = roundVoltageRatios(context);
+            status = roundVoltageRatios(context.getNetwork());
         }
-        return status;
+        return new OuterLoopResult(this, status);
     }
 }

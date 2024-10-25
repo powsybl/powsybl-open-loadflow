@@ -146,6 +146,14 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         return componentSets.get(componentNumber);
     }
 
+    @Override
+    public Set<V> getLargestConnectedComponent() {
+        checkSavedContext();
+        updateComponents();
+        computeMainConnectedComponent();
+        return componentSets.get(0);
+    }
+
     private void computeMainConnectedComponent() {
         if (componentSets.get(0) == null) {
             Set<V> mainConnectedComponent = new HashSet<>(getGraph().vertexSet());

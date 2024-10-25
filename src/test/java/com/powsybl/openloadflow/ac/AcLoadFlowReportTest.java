@@ -131,8 +131,12 @@ class AcLoadFlowReportTest {
         LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Converged", result.getComponentResults().get(0).getStatusText());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(1).getStatus());
+        assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL.toString(), result.getComponentResults().get(1).getStatusText());
         assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
+        assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
+        assertEquals(Double.NaN, network.getLoad("d9").getTerminal().getP()); // load on the NO_CALCULATION island connected component
         LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsAcReport.txt", reportNode);
 
         // test in DC
@@ -143,8 +147,113 @@ class AcLoadFlowReportTest {
         result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Converged", result.getComponentResults().get(0).getStatusText());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(1).getStatus());
+        assertEquals("Converged", result.getComponentResults().get(1).getStatusText());
         assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
+        assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
+        assertEquals(Double.NaN, network.getLoad("d9").getTerminal().getP()); // load on the NO_CALCULATION island connected component
         LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsDcReport.txt", reportNode);
+    }
+
+    @Test
+    void generatorVoltageControlDiscarded() throws IOException {
+        Network network = FourBusNetworkFactory.create();
+        network.getGenerator("g2").setTargetV(10); // not plausible targetV, will be discarded and reported
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/generatorVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void transformerVoltageControlDiscarded() throws IOException {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var t2wt = network.getTwoWindingsTransformer("T2wT");
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationMode(RatioTapChanger.RegulationMode.VOLTAGE)
+                .setTargetV(100); // not plausible, will be discarded and reported
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/transformerVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void shuntVoltageControlDiscarded() throws IOException {
+        Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
+        network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/shuntVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void testTransformerControlAlreadyExistsWithDifferentTargetV() throws IOException {
+        Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger().setTargetV(34.5).setTargetDeadband(3.0);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/transformerControlAlreadyExistsWithDifferentTargetVReport.txt", reportNode);
+    }
+
+    @Test
+    void areaInterchangeControl() throws IOException {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setAreaInterchangeControl(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterloop.txt", reportNode);
     }
 }

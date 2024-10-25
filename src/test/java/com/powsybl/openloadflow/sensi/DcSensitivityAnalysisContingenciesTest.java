@@ -1299,7 +1299,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testFunctionRefWithSequenceOfConnectivty() {
         // Test that the result if you compute sensitivity manually one by one,
         // or all at once does not change result on function reference
-        // (especially if you loose compensation)
+        // (especially if you lose compensation)
         Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
@@ -1330,7 +1330,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testFunctionRefWithAdditionalFactors() {
         // Test that the result if you compute sensitivity manually one by one,
         // or all at once does not change result on function reference
-        // (especially if you loose compensation)
+        // (especially if you lose compensation)
         Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
@@ -1671,19 +1671,19 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertNotNull(parametersFile);
         assertNotNull(variableSetsFile);
         try (InputStream is = Files.newInputStream(contingenciesFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
         }
         try (InputStream is = Files.newInputStream(factorsFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
         }
         try (InputStream is = Files.newInputStream(networkFile)) {
-            ComparisonUtils.compareXml(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
+            ComparisonUtils.assertXmlEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
         }
         try (InputStream is = Files.newInputStream(parametersFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
         }
         try (InputStream is = Files.newInputStream(variableSetsFile)) {
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
+            ComparisonUtils.assertTxtEquals(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
         }
 
         String fileName = contingenciesFile.getFileName().toString();
@@ -2470,5 +2470,23 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(-200.0, result.getBranchFlow1FunctionReferenceValue("l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("contingency", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("bus", "l34"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingenciesWithConnectivityBreak() {
+        Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), "d5")).collect(Collectors.toList());
+
+        List<Contingency> contingencies = List.of(
+                new Contingency("l67+l57+l56", new BranchContingency("l67"), new BranchContingency("l57"), new BranchContingency("l56")),
+                new Contingency("l67+l57", new BranchContingency("l67"), new BranchContingency("l57")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l67+l57+l56", "l56"));
+        assertEquals(-0.296, result.getBranchFlow1FunctionReferenceValue("l67+l57", "l56"), LoadFlowAssert.DELTA_POWER);
     }
 }

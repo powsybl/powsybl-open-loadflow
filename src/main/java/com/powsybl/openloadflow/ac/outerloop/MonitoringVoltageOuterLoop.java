@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
@@ -124,7 +125,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
@@ -137,6 +138,6 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
             status = OuterLoopStatus.UNSTABLE;
         }
 
-        return status;
+        return new OuterLoopResult(this, status);
     }
 }
