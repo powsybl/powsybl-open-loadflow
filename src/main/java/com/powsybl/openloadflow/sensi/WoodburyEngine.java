@@ -81,13 +81,25 @@ public class WoodburyEngine {
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
+            double newAlpha = 0d;
+            double oldPower = 0d;
+            double newPower = 0d;
+            if (element.getAction().getTapPositionChange() != null) {
+                int newTapPosition = element.getAction().getTapPositionChange().getNewTapPosition();
+                newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
+                oldPower = calculatePower(lfBranch);
+                newPower = calculatePower(lfBranch, newTapPosition);
+            } else if (element.getAction().getEnabledBranch() != null) {
+                newPower = calculatePower(lfBranch);
+            } else {
+                oldPower = calculatePower(lfBranch);
+            }
+
             // we solve a*alpha = b
-            int newTapPosition = element.getAction().getTapPositionChange().getNewTapPosition();
-            double deltaX = 1d / (calculatePower(lfBranch) - calculatePower(lfBranch, newTapPosition));
+            double deltaX = 1d / (oldPower - newPower);
             double a = deltaX - (actionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - actionsStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
 
-            double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
             element.setAlphaForWoodburyComputation(b / a);
         } else {

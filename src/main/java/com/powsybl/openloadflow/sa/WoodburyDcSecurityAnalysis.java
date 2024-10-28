@@ -102,6 +102,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
         List<ComputedActionElement> actionElements = lfActions.stream()
+                .filter(element -> element.getId() != "openL23")
                 .map(lfAction ->
                         // TODO : case with more than one branch impacted
                         lfAction.getTapPositionChange() != null ? lfAction.getTapPositionChange().getBranch().getId()

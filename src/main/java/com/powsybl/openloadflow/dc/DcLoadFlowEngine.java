@@ -265,6 +265,14 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
 
         if (!lfActions.isEmpty()) {
+            // set transformer phase shift to 0 for disconnected phase tap changers
+            lfActions.stream()
+                .map(LfAction::getDisabledBranch)
+                .filter(Objects::nonNull)
+                .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                .map(Equation::getColumn)
+                .forEach(column -> targetVectorArray[column] = 0);
+
             // set transformer phase shift to new shifting value
             lfActions.stream()
                     .map(LfAction::getTapPositionChange)
@@ -279,8 +287,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                 }
                         );
                     });
-
-            // TODO : case a pst is lost by switching off a branch
         }
 
         boolean succeeded = solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);
