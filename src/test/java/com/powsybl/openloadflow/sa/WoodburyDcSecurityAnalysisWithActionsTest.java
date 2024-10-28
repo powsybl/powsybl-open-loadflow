@@ -18,6 +18,7 @@ import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -573,6 +574,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     @Test
     void testFastSaDcTransformerConnectionAction() {
         // TODO : problem to update a value that is not present here... Big change expected
+        // FIXME : when a t2wt is added by the closing of an action, seems very problematic...
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
         List<Action> actions = List.of(new TerminalsConnectionAction("closePS1", "PS1", false));
@@ -595,5 +597,52 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(50.0, getOperatorStrategyResult(result, "strategyClosePS1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    // TODO : same with connectivity lost
+    @Test
+    void testDcSecurityAnalysisWithOperatorStrategy() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getLineStream().forEach(line -> {
+            if (line.getCurrentLimits1().isPresent()) {
+                line.getCurrentLimits1().orElseThrow().setPermanentLimit(310);
+            }
+            if (line.getCurrentLimits2().isPresent()) {
+                line.getCurrentLimits2().orElseThrow().setPermanentLimit(310);
+            }
+        });
+
+        List<Contingency> contingencies = Stream.of("L3")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        // FIXME : add the cases with connectivity modification due to the actions
+        List<Action> actions = List.of(new SwitchAction("action1", "C1", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), new TrueCondition(), List.of("action1")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        parameters.setDc(true);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        // verify pre contingency results
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+        assertEquals(400.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(100.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(100.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // compare post contingency/action results with load flow
+        network.getLine("L3").disconnect();
+        network.getSwitch("C1").setOpen(false);
+        loadFlowRunner.run(network, parameters);
+
+        // Compare results on the line L2
+        assertEquals(network.getLine("L2").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("L1").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+
+    // FIXME : cases with actions that modify the connectivity (i.e. add network or remove some part are) are not yet handled
 }

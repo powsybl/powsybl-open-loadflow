@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
+import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
@@ -102,8 +103,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
         List<ComputedActionElement> actionElements = lfActions.stream()
-                .filter(element -> element.getId() != "openL23")
                 .map(lfAction ->
+                        // TODO : filter elements which reconnect connectivity
                         // TODO : case with more than one branch impacted
                         lfAction.getTapPositionChange() != null ? lfAction.getTapPositionChange().getBranch().getId()
                         : (lfAction.getDisabledBranch() != null ? lfAction.getDisabledBranch().getId() : lfAction.getEnabledBranch().getId()))
@@ -188,10 +189,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private void filterActions(List<Action> actions) {
         actions.stream()
-                .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction || action instanceof TerminalsConnectionAction))
+                .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction
+                        || action instanceof TerminalsConnectionAction || action instanceof SwitchAction))
                 .findAny()
                 .ifPresent(e -> {
-                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction and TerminalsConnectionAction are allowed in WoodburyDcSecurityAnalysis");
+                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction and SwitchAction are allowed in WoodburyDcSecurityAnalysis");
                 });
     }
 
