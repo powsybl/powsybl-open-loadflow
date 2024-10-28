@@ -57,7 +57,7 @@ when DC mode is activated.
 Please note that fast mode has a few limitations:
 - Contingencies applied on branches opened on one side are ignored.
 - Contingencies applied on HVDC lines in AC emulation mode are ignored.
-- No remedial action is currently supported.
+- Only PST remedial actions are supported.
 - Slack relocation following the application of a contingency is not supported.
 
 The default value is `false`.
