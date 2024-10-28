@@ -272,6 +272,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                     List<Action> actions, List<LimitReduction> limitReductions) {
+        // Verify only PST actions are given
+        filterActions(actions);
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
@@ -289,8 +291,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // note that contingencies on branches connected only on one side are removed,
             // this is a difference with dc security analysis
             cleanContingencies(lfNetwork, propagatedContingencies);
-            // Verify only PST actions are given
-            filterActions(actions);
 
             double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
 

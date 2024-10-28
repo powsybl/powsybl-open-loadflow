@@ -510,9 +510,9 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * A very small network to test connectivity break and phase tap modification by remedial actions.
      *
-     *     G1         LD2       LD3
-     *     |     L1   |   PS1   |
-     *     B1 -------B2--------B3
+     *     G1         LD2         LD3
+     *     |     PS1   |   L23    |
+     *     B1 ------- B2 -------- B3
      */
     public static Network createNetworkWith3Buses() {
         Network network = NetworkFactory.findDefault().createNetwork("phaseShifterTestCase", "code");
