@@ -71,6 +71,7 @@ public final class LfAction {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         switch (action.getType()) {
+            // TODO : should be handled as for TerminalsConnectionAction
             case SwitchAction.NAME:
                 return create((SwitchAction) action, lfNetwork);
 

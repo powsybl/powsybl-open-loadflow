@@ -279,6 +279,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                 }
                         );
                     });
+
+            // TODO : case a pst is lost by switching off a branch
         }
 
         boolean succeeded = solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);

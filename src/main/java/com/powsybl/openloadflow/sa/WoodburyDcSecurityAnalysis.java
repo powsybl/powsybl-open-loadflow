@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
+import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
@@ -101,7 +102,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
         List<ComputedActionElement> actionElements = lfActions.stream()
-                .map(lfAction -> lfAction.getTapPositionChange().getBranch().getId())
+                .map(lfAction ->
+                        // TODO : case with more than one branch impacted
+                        lfAction.getTapPositionChange() != null ? lfAction.getTapPositionChange().getBranch().getId()
+                        : (lfAction.getDisabledBranch() != null ? lfAction.getDisabledBranch().getId() : lfAction.getEnabledBranch().getId()))
                 .map(computedActionElements::get)
                 .collect(Collectors.toList());
 
@@ -183,10 +187,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private void filterActions(List<Action> actions) {
         actions.stream()
-                .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction))
+                .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction || action instanceof TerminalsConnectionAction))
                 .findAny()
                 .ifPresent(e -> {
-                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction is allowed in WoodburyDcSecurityAnalysis");
+                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction and TerminalsConnectionAction are allowed in WoodburyDcSecurityAnalysis");
                 });
     }
 
@@ -259,7 +263,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(lfAction -> new ComputedActionElement(lfAction, equationSystem))
                 .filter(computedActionElement -> computedActionElement.getLfBranchEquation() != null)
                 .collect(Collectors.toMap(
-                        computedActionElement -> computedActionElement.getAction().getTapPositionChange().getBranch().getId(),
+                        // TODO : should be modified in PR with PST actions
+                        computedActionElement -> computedActionElement.getLfBranch().getId(),
                         computedActionElement -> computedActionElement,
                         (existing, replacement) -> existing,
                         LinkedHashMap::new

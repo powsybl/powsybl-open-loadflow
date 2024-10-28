@@ -22,8 +22,12 @@ public final class ComputedActionElement extends ComputedElement {
     private final LfAction action;
 
     public ComputedActionElement(final LfAction action, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(action.getTapPositionChange().getBranch(),
-                equationSystem.getEquationTerm(ElementType.BRANCH, action.getTapPositionChange().getBranch().getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
+        super(action.getTapPositionChange() != null ? action.getTapPositionChange().getBranch()
+                        : (action.getDisabledBranch() != null ? action.getDisabledBranch() : action.getEnabledBranch()),
+                equationSystem.getEquationTerm(ElementType.BRANCH,
+                        action.getTapPositionChange() != null ? action.getTapPositionChange().getBranch().getNum()
+                            : (action.getDisabledBranch() != null ? action.getDisabledBranch().getNum() : action.getEnabledBranch().getNum()),
+                        ClosedBranchSide1DcFlowEquationTerm.class));
         this.action = action;
     }
 
