@@ -98,7 +98,7 @@ public class WoodburyEngine {
                     postContingencyValue += contingencyElement.getAlphaForPostContingencyState()
                             * contingenciesStates.get(rowIndex, contingencyElement.getContingencyIndex());
                 }
-                preContingencyStates.set(rowIndex, columnIndex, postContingencyValue);
+                postContingencyStates.set(rowIndex, columnIndex, postContingencyValue);
             }
         }
         return postContingencyStates;
