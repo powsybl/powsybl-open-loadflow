@@ -229,10 +229,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, reportNode);
             }
 
-            engine.run(newFlowStates);
-            engine.run(newFactorStates);
-            calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
-
+            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
+            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
+            calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
             // write contingency status
             if (contingency.hasNoImpact()) {
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
@@ -281,9 +280,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateFlowStates(loadFlowContext, newParticipatingElements, disabledNetwork, reportNode);
 
-            engine.run(newFlowStates);
-            engine.run(newFactorStates);
-            calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
+            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
+            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
+            calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();
         }
