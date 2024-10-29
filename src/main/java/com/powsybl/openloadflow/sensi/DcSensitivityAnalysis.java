@@ -465,18 +465,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with no connectivity break
                 for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
-
-                    if (factorStates.getRowCount() == baseFactorStates.getRowCount() && factorStates.getColumnCount() == baseFactorStates.getColumnCount()) {
-                        matrixShallowCopy(baseFactorStates, factorStates);
-                    } else {
-                        factorStates = (DenseMatrix) baseFactorStates.copy(new DenseMatrixFactory());
-                    }
-
-                    if (flowStates.getRowCount() == baseFlowStates.getRowCount() && flowStates.getColumnCount() == baseFlowStates.getColumnCount()) {
-                        matrixShallowCopy(baseFlowStates, flowStates);
-                    } else {
-                        flowStates = (DenseMatrix) baseFlowStates.copy(new DenseMatrixFactory());
-                    }
+                    matrixShallowCopy(baseFlowStates, flowStates);
+                    matrixShallowCopy(baseFactorStates, factorStates);
 
                     calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
                             factorStates, connectivityBreakAnalysisResults.contingenciesStates(), flowStates, contingency,
@@ -487,18 +477,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with connectivity break
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
-
-                    if (factorStates.getRowCount() == baseFactorStates.getRowCount() && factorStates.getColumnCount() == baseFactorStates.getColumnCount()) {
-                        matrixShallowCopy(baseFactorStates, factorStates);
-                    } else {
-                        factorStates = (DenseMatrix) baseFactorStates.copy(new DenseMatrixFactory());
-                    }
-
-                    if (flowStates.getRowCount() == baseFlowStates.getRowCount() && flowStates.getColumnCount() == baseFlowStates.getColumnCount()) {
-                        matrixShallowCopy(baseFlowStates, flowStates);
-                    } else {
-                        flowStates = (DenseMatrix) baseFlowStates.copy(new DenseMatrixFactory());
-                    }
+                    matrixShallowCopy(baseFlowStates, flowStates);
+                    matrixShallowCopy(baseFactorStates, factorStates);
 
                     processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
                             validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
