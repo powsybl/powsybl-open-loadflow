@@ -84,7 +84,7 @@ public class WoodburyEngine {
 
     /**
      * Calculate post-contingency states values using pre-contingency states values and some flow transfer factors (alphas).
-     * @return a matrix of post-contingency voltage angle states (which is the same modified pre_contingency states java object)
+     * @return a matrix of post-contingency voltage angle states (which is the same modified pre-contingency states java object).
      */
     public DenseMatrix run(DenseMatrix preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
@@ -106,7 +106,7 @@ public class WoodburyEngine {
 
     /**
      * Calculate post-contingency states values using pre-contingency states values and some flow transfer factors (alphas).
-     * @return an array of post-contingency voltage angle states (which is the same modified pre_contingency java object)
+     * @return an array of post-contingency voltage angle states (which is the same modified pre-contingency java object).
      */
     public double[] run(double[] preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
