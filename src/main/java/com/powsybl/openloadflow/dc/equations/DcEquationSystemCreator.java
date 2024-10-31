@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -61,8 +60,8 @@ public class DcEquationSystemCreator {
         }
         LfBus refSlackBus = refSlackBusOpt.get();
         if (slackBuses.size() > 1) {
-            for (int i = 1; i < slackBuses.size(); i++) {
-                LfBus slackBus = slackBuses.get(i);
+            List<LfBus> otherSlackBuses = slackBuses.stream().filter(b -> b != refSlackBus).toList();
+            for (LfBus slackBus : otherSlackBuses) {
                 // example for 2 slack buses
                 // 0 = slack_p1 - slack_p2
                 // 0 = slack_p1 - slack_p3

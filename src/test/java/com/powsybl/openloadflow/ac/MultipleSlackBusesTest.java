@@ -53,7 +53,7 @@ class MultipleSlackBusesTest {
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
-                .setMaxSlackBusCount(2);
+                .setMaxSlackBusCount(3);
     }
 
     static Stream<Arguments> allStoppingCriteriaTypes() {
