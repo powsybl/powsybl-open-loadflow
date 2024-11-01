@@ -138,9 +138,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         // For example: a contingency may cause the last PV node to disappear. In this case here we would
         // just report SOLVER_FAILED. However, there could be other generators blocked at MinQ or MaxQ that
         // _could potentially_ recover the situation, but this will not be tried at all...
-        boolean hasVoltageRegulatedBus = context.getEquationSystem().getEquations()
-                .stream()
-                .anyMatch(eq -> eq.isActive() && eq.getType() == AcEquationType.BUS_TARGET_V);
+        boolean hasVoltageRegulatedBus = context.getNetwork().getBuses().stream()
+                .anyMatch(b -> b.isGeneratorVoltageControlEnabled() && !b.isDisabled() && !b.getGeneratorVoltageControl().orElseThrow().isDisabled());
         if (!hasVoltageRegulatedBus) {
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
             Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
