@@ -76,6 +76,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * In case of connectivity break, a pre-computation has been done in {@link #calculatePostContingencyStatesForAContingencyBreakingConnectivity}
      * to reset active power flow of hvdc lines on which one bus is lost.
      * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency, the pre contingency flowStates are overridden.
+     * @return the post contingency states for the contingency
      */
     private double[] calculatePostContingencyStatesForAContingency(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
                                                                    PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
@@ -92,7 +93,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
-        double[] postContingencyStates;
         double[] newFlowStates = flowStates;
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
 
@@ -108,7 +108,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty()) {
                 newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
             }
-            postContingencyStates = engine.run(newFlowStates);
+            engine.computeToPostContingencyStates(newFlowStates);
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
@@ -117,11 +117,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             contingency.toLfContingency(lfNetwork, false)
                     .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
             newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
-            postContingencyStates = engine.run(newFlowStates);
+            engine.computeToPostContingencyStates(newFlowStates);
             networkState.restore();
         }
 
-        return postContingencyStates;
+        return newFlowStates;
     }
 
     /**
