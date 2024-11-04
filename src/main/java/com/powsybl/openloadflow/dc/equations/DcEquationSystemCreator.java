@@ -65,7 +65,7 @@ public class DcEquationSystemCreator {
                 // example for 2 slack buses
                 // 0 = slack_p1 - slack_p2
                 // 0 = slack_p1 - slack_p3
-                equationSystem.createEquation(slackBus, DcEquationType.BUS_TARGET_P)
+                equationSystem.createEquation(slackBus, DcEquationType.BUS_DISTR_SLACK_P)
                         .addTerms(createActiveInjectionTerms(refSlackBus, equationSystem.getVariableSet()))
                         .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()).stream()
                                 .map(EquationTerm::minus)
@@ -233,87 +233,6 @@ public class DcEquationSystemCreator {
             }
         }
     }
-
-    // TODO adapt to DC system
-//    static void updateBranchEquations(LfBranch branch) {
-//        if (!branch.isDisabled() && !branch.isZeroImpedance(LoadFlowModel.DC)) {
-//            if (branch.isConnectedSide1() && branch.isConnectedSide2()) {
-//                setActive(branch.getP1(), );
-//
-//
-//
-//
-//
-//                setActive(branch.getOpenP1(), false);
-//                setActive(branch.getOpenQ1(), false);
-//                setActive(branch.getClosedP1(), true);
-//                setActive(branch.getClosedQ1(), true);
-//                setActive(branch.getOpenP2(), false);
-//                setActive(branch.getOpenQ2(), false);
-//                setActive(branch.getClosedP2(), true);
-//                setActive(branch.getClosedQ2(), true);
-//                branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, false));
-//                branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, false));
-//                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, true));
-//                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, true));
-//                branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, false));
-//                branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, false));
-//                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, true));
-//                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, true));
-//            } else if (branch.isConnectedSide1() && !branch.isConnectedSide2()) {
-//                setActive(branch.getOpenP1(), true);
-//                setActive(branch.getOpenQ1(), true);
-//                setActive(branch.getClosedP1(), false);
-//                setActive(branch.getClosedQ1(), false);
-//                setActive(branch.getOpenP2(), false);
-//                setActive(branch.getOpenQ2(), false);
-//                setActive(branch.getClosedP2(), false);
-//                setActive(branch.getClosedQ2(), false);
-//                branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, true));
-//                branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, true));
-//                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, false));
-//                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, false));
-//                branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, false));
-//                branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, false));
-//                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, false));
-//                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, false));
-//            } else if (!branch.isConnectedSide1() && branch.isConnectedSide2()) {
-//                setActive(branch.getOpenP2(), true);
-//                setActive(branch.getOpenQ2(), true);
-//                setActive(branch.getClosedP2(), false);
-//                setActive(branch.getClosedQ2(), false);
-//                setActive(branch.getOpenP1(), false);
-//                setActive(branch.getOpenQ1(), false);
-//                setActive(branch.getClosedP1(), false);
-//                setActive(branch.getClosedQ1(), false);
-//                branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, false));
-//                branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, false));
-//                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, false));
-//                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, false));
-//                branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, true));
-//                branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, true));
-//                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, false));
-//                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, false));
-//            } else {
-//                setActive(branch.getOpenP1(), false);
-//                setActive(branch.getOpenQ1(), false);
-//                setActive(branch.getClosedP1(), false);
-//                setActive(branch.getClosedQ1(), false);
-//                setActive(branch.getOpenP2(), false);
-//                setActive(branch.getOpenQ2(), false);
-//                setActive(branch.getClosedP2(), false);
-//                setActive(branch.getClosedQ2(), false);
-//                branch.getAdditionalOpenP1().forEach(openP1 -> setActive(openP1, false));
-//                branch.getAdditionalOpenQ1().forEach(openQ1 -> setActive(openQ1, false));
-//                branch.getAdditionalClosedP1().forEach(closedP1 -> setActive(closedP1, false));
-//                branch.getAdditionalClosedQ1().forEach(closedQ1 -> setActive(closedQ1, false));
-//                branch.getAdditionalOpenP2().forEach(openP2 -> setActive(openP2, false));
-//                branch.getAdditionalOpenQ2().forEach(openQ2 -> setActive(openQ2, false));
-//                branch.getAdditionalClosedP2().forEach(closedP2 -> setActive(closedP2, false));
-//                branch.getAdditionalClosedQ2().forEach(closedQ2 -> setActive(closedQ2, false));
-//            }
-//        }
-//    }
 
     public EquationSystem<DcVariableType, DcEquationType> create(boolean withListener) {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>();
