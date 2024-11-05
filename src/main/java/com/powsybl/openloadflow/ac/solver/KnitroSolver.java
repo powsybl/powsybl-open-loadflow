@@ -526,7 +526,6 @@ public class KnitroSolver extends AbstractAcSolver {
 //            }
 
         } catch (KNException e) {
-            acStatus = AcSolverStatus.SOLVER_FAILED;
             throw new PowsyblException("Exception found while trying to solve with Knitro");
         }
 
