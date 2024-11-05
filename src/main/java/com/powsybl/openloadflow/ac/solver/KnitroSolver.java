@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.Range;
 
 import java.util.*;
 
@@ -50,45 +51,40 @@ public class KnitroSolver extends AbstractAcSolver {
 
     // List of all possible Knitro status
     public enum KnitroStatus {
-        CONVERGED_TO_LOCAL_OPTIMUM,
-        CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION,
-        TERMINATED_AT_INFEASIBLE_POINT,
-        PROBLEM_UNBOUNDED,
-        TERMINATED_DUE_TO_PRE_DEFINED_LIMIT,
-        INPUT_OR_NON_STANDARD_ERROR }
+        CONVERGED_TO_LOCAL_OPTIMUM(0, 0, AcSolverStatus.CONVERGED),
+        CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION(-199, -100, AcSolverStatus.CONVERGED),
+        TERMINATED_AT_INFEASIBLE_POINT(-299, -200, AcSolverStatus.SOLVER_FAILED),
+        PROBLEM_UNBOUNDED(-399, -300, AcSolverStatus.SOLVER_FAILED),
+        TERMINATED_DUE_TO_PRE_DEFINED_LIMIT(-499, -400, AcSolverStatus.MAX_ITERATION_REACHED),
+        INPUT_OR_NON_STANDARD_ERROR(-599, -500, AcSolverStatus.NO_CALCULATION);
 
-    // Get AcStatus equivalent from Knitro Status, and log Knitro Status
-    public AcSolverStatus getAcStatusAndKnitroStatus(int knitroStatus) {
-        if (knitroStatus == 0) {
-            logKnitroStatus(KnitroStatus.CONVERGED_TO_LOCAL_OPTIMUM);
-            return AcSolverStatus.CONVERGED;
-        } else if (isInRange(knitroStatus, -199, -100)) {
-            logKnitroStatus(KnitroStatus.CONVERGED_TO_FEASIBLE_APPROXIMATE_SOLUTION);
-            return AcSolverStatus.CONVERGED;
-        } else if (isInRange(knitroStatus, -299, -200)) {
-            logKnitroStatus(KnitroStatus.TERMINATED_AT_INFEASIBLE_POINT);
-            return AcSolverStatus.SOLVER_FAILED;
-        } else if (isInRange(knitroStatus, -399, -300)) {
-            logKnitroStatus(KnitroStatus.PROBLEM_UNBOUNDED);
-            return AcSolverStatus.SOLVER_FAILED;
-        } else if (isInRange(knitroStatus, -499, -400)) {
-            logKnitroStatus(KnitroStatus.TERMINATED_DUE_TO_PRE_DEFINED_LIMIT);
-            return AcSolverStatus.MAX_ITERATION_REACHED;
-        } else if (isInRange(knitroStatus, -599, -500)) {
-            logKnitroStatus(KnitroStatus.INPUT_OR_NON_STANDARD_ERROR);
-            return AcSolverStatus.NO_CALCULATION;
-        } else {
-            LOGGER.info("Knitro Status: unknown");
+        private final Range<Integer> statusRange;
+        private final AcSolverStatus acSolverStatus;
+
+        // Initialize the range and corresponding AcSolverStatus
+        KnitroStatus(int min, int max, AcSolverStatus acSolverStatus) {
+            this.statusRange = Range.between(min, max);
+            this.acSolverStatus = acSolverStatus;
+        }
+
+        // Find KnitroStatus from Knitro's integer status code
+        public static KnitroStatus fromStatusCode(int statusCode) {
+            for (KnitroStatus status : KnitroStatus.values()) {
+                if (status.statusRange.contains(statusCode)) {
+                    return status;
+                }
+            }
             throw new IllegalArgumentException("Unknown Knitro Status");
+        }
+
+        // Convert KnitroStatus to AcSolverStatus
+        public AcSolverStatus toAcSolverStatus() {
+            return this.acSolverStatus;
         }
     }
 
     private void logKnitroStatus(KnitroStatus status) {
         LOGGER.info("Knitro Status: {}", status);
-    }
-
-    private boolean isInRange(int value, int min, int max) {
-        return value >= min && value <= max;
     }
 
     // Handle setting lower and upper variables bounds
@@ -492,7 +488,7 @@ public class KnitroSolver extends AbstractAcSolver {
             solver.solve();
             KNSolution solution = solver.getSolution();
             List<Double> constraintValues = solver.getConstraintValues();
-            acStatus = getAcStatusAndKnitroStatus(solution.getStatus());
+            logKnitroStatus(KnitroStatus.fromStatusCode(solution.getStatus())); // convert and log Knitro's status
             nbIter = solver.getNumberIters();
 
             // Log solution
