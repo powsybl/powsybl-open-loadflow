@@ -29,7 +29,7 @@ import static com.google.common.primitives.Doubles.toArray;
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class KnitroSolver extends AbstractNonLinearExternalSolver {
+public class KnitroSolver extends AbstractAcSolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KnitroSolver.class);
 
