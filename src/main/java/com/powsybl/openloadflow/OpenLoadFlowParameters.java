@@ -307,6 +307,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME = "generatorsWithZeroMwTargetAreNotStarted";
 
+    public static final String FIX_TARGET_VOLTAGE_INCOMPATIBILITY_PARAM_NAME = "fixTargetVoltageIncompatibility";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -455,7 +457,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
-        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
+        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(FIX_TARGET_VOLTAGE_INCOMPATIBILITY_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix incompatible target voltages", LfNetworkParameters.FIX_TARGET_VOLTAGE_INCOMPATIBILITY_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -652,6 +655,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean startWithFrozenACEmulation = START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE;
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
+
+    private boolean fixTargetVoltageIncompatibility = LfNetworkParameters.FIX_TARGET_VOLTAGE_INCOMPATIBILITY_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1441,6 +1446,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isFixTargetVoltageIncompatibility() {
+        return fixTargetVoltageIncompatibility;
+    }
+
+    public OpenLoadFlowParameters setFixTargetVoltageIncompatibility(boolean fixTargetVoltageIncompatibility) {
+        this.fixTargetVoltageIncompatibility = fixTargetVoltageIncompatibility;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1575,6 +1589,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
                     config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
                     config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
+                    config.getOptionalBooleanProperty(FIX_TARGET_VOLTAGE_INCOMPATIBILITY_PARAM_NAME).ifPresent(this::setFixTargetVoltageIncompatibility);
                 });
         return this;
     }
@@ -1745,6 +1760,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setStartWithFrozenACEmulation(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorsWithZeroMwTargetAreNotStarted(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(FIX_TARGET_VOLTAGE_INCOMPATIBILITY_PARAM_NAME))
+                .ifPresent(prop -> this.setFixTargetVoltageIncompatibility(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1828,6 +1845,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
         map.put(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, startWithFrozenACEmulation);
         map.put(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, generatorsWithZeroMwTargetAreNotStarted);
+        map.put(FIX_TARGET_VOLTAGE_INCOMPATIBILITY_PARAM_NAME, fixTargetVoltageIncompatibility);
         return map;
     }
 
@@ -1942,7 +1960,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                    SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                    SlackBusSelector slackBusSelector, MatrixFactory matrixFactory,
+                                                    GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                     boolean breakers) {
         return new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
@@ -1988,7 +2007,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
-                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
+                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
+                .setFixTargetVoltageIncompatibility(parametersExt.isFixTargetVoltageIncompatibility())
+                .setMatrixFactory(matrixFactory);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2025,7 +2046,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
                 parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), parametersExt.getSlackBusCountryFilter());
 
-        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
+        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, matrixFactory, connectivityFactory, breakers);
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
 
@@ -2233,7 +2254,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMinNominalVoltageRealisticVoltageCheck() == extension2.getMinNominalVoltageRealisticVoltageCheck() &&
                 extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
                 extension1.isStartWithFrozenACEmulation() == extension2.isStartWithFrozenACEmulation() &&
-                extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted();
+                extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted() &&
+                extension1.isFixTargetVoltageIncompatibility() == extension2.isFixTargetVoltageIncompatibility();
     }
 
     public static OpenLoadFlowParameters clone(OpenLoadFlowParameters extension) {
@@ -2315,7 +2337,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted())
-                .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation());
+                .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation())
+                .setFixTargetVoltageIncompatibility(extension.isFixTargetVoltageIncompatibility());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
