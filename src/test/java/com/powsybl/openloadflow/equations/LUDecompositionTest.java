@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class LUDecompositionTest {
+class LUDecompositionTest {
 
     class LUDecompositionMockIncrementalFailure implements LUDecomposition {
         private final LUDecomposition delegate;
@@ -87,7 +87,7 @@ public class LUDecompositionTest {
     }
 
     @Test
-    public void testIncrementalLURobustification() {
+    void testIncrementalLURobustification() {
 
         // The condition that cause an incremental LU decomposition to fail is hard to reproduce on small models.
         // It has been seen in Security Analysis, on large models, when a contingence moves an AC emulation HVDC link above PMax
