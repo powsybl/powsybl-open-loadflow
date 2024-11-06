@@ -121,6 +121,11 @@ public class LUDecompositionTest {
             spyMatrixFactory.alwaysFail = true;
             j.updateStatus(JacobianMatrix.Status.VALUES_INVALID);
             assertThrows(MatrixException.class, () -> j.solve(values));
+
+            // Force always fail in non incremental case
+            spyMatrixFactory.alwaysFail = true;
+            j.updateStatus(JacobianMatrix.Status.VALUES_AND_ZEROS_INVALID);
+            assertThrows(MatrixException.class, () -> j.solve(values));
         }
 
     }
