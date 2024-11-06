@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LUDecompositionTest {
@@ -61,7 +62,7 @@ public class LUDecompositionTest {
 
         @Override
         public void update(boolean allowIncrementalUpdate) {
-            if (allowIncrementalUpdate) {
+            if (allowIncrementalUpdate || spy.alwaysFail) {
                 spy.exceptionThrown = true;
                 throw new MatrixException("Sorry incremental update failed");
             } else {
@@ -72,6 +73,7 @@ public class LUDecompositionTest {
 
     class SpyMatrixFactory extends DenseMatrixFactory {
         boolean exceptionThrown = false;
+        boolean alwaysFail = false;
 
         @Override
         public DenseMatrix create(int rowCount, int columnCount, int estimatedValueCount) {
@@ -92,7 +94,7 @@ public class LUDecompositionTest {
         //
         // This test uses a mocked DenseMatrix to reproduce the condition and check that the solve succeds
 
-        SpyMatrixFactory factory = new SpyMatrixFactory();
+        SpyMatrixFactory spyMatrixFactory = new SpyMatrixFactory();
 
         List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
@@ -105,16 +107,20 @@ public class LUDecompositionTest {
 
         double[] values = new double[] {0.1};
 
-        try (JacobianMatrix j = new JacobianMatrix(equationSystem, factory)) {
+        try (JacobianMatrix j = new JacobianMatrix(equationSystem, spyMatrixFactory)) {
             // First update
             j.solve(values);
-            assertFalse(factory.exceptionThrown);
+            assertFalse(spyMatrixFactory.exceptionThrown);
             // second update that triggers incremental update
             j.updateStatus(JacobianMatrix.Status.VALUES_INVALID);
             j.solve(values);
             // An eception should be thrown but the solve should continue
-            assertTrue(factory.exceptionThrown);
+            assertTrue(spyMatrixFactory.exceptionThrown);
 
+            // Force always fail
+            spyMatrixFactory.alwaysFail = true;
+            j.updateStatus(JacobianMatrix.Status.VALUES_INVALID);
+            assertThrows(MatrixException.class, () -> j.solve(values));
         }
 
     }
