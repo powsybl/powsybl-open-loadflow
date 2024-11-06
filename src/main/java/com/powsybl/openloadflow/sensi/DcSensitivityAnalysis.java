@@ -13,6 +13,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
@@ -229,8 +230,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, reportNode);
             }
 
-            engine.computeToPostContingencyStates(newFlowStates);
-            engine.computeToPostContingencyStates(newFactorStates);
+            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyStates(newFactorStates);
             calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
             // write contingency status
             if (contingency.hasNoImpact()) {
@@ -280,8 +281,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateFlowStates(loadFlowContext, newParticipatingElements, disabledNetwork, reportNode);
 
-            engine.computeToPostContingencyStates(newFlowStates);
-            engine.computeToPostContingencyStates(newFactorStates);
+            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyStates(newFactorStates);
             calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();
@@ -444,7 +445,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // compute the pre-contingency factor states
                 DenseMatrix baseFactorStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
-                // create workingFactorStates matrix that will be a working copy of baseFlowStates
+                // create workingFactorStates matrix that will be a working copy of baseFactorStates
                 DenseMatrix workingFactorStates = new DenseMatrix(baseFactorStates.getRowCount(), baseFactorStates.getColumnCount());
 
                 // calculate sensitivity values for pre-contingency network
@@ -507,7 +508,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 }
             }
         } else {
-            throw new IllegalArgumentException();
+            throw new MatrixException("Incompatible matrices dimensions when copying values. Received (" + originalMatrix.getRowCount() + ", " + originalMatrix.getColumnCount() + ") and (" + copyMatrix.getRowCount() + ", " + copyMatrix.getColumnCount() + ")");
         }
     }
 
