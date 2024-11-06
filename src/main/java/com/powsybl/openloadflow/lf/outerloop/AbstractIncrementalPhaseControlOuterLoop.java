@@ -34,7 +34,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                                                                O extends OuterLoopContext<V, E, P, C>>
         extends AbstractPhaseControlOuterLoop<V, E, P, C, O> {
 
-    public static final int MAX_DIRECTION_CHANGE = 2;
+    public static final int MAX_DIRECTION_CHANGE = 3;
     public static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
     public static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
     public static final double SENSI_EPS = 1e-6;

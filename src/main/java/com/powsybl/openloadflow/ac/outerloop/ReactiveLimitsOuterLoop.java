@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.GeneratorVoltageControl;
 import com.powsybl.openloadflow.network.LfBus;
@@ -183,9 +184,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", controllerBus.getId(), controllerBus.getV(), getBusTargetV(controllerBus));
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", controllerBus.getId(), getBusV(controllerBus), getBusTargetV(controllerBus));
                     } else {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", controllerBus.getId(), controllerBus.getV(), getBusTargetV(controllerBus));
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", controllerBus.getId(), getBusV(controllerBus), getBusTargetV(controllerBus));
                     }
                 }
             }
@@ -298,7 +299,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<ControllerBusToPqBus> pvToPqBuses = new ArrayList<>();
@@ -346,6 +347,6 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, iterationReportNode)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        return status;
+        return new OuterLoopResult(this, status);
     }
 }

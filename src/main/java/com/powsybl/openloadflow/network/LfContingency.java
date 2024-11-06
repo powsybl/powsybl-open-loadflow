@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -61,8 +60,8 @@ public class LfContingency {
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += bus.getGenerationTargetP();
-            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.toList()));
-            disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).collect(Collectors.toList()));
+            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).toList());
+            disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).toList());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
         }
@@ -75,7 +74,7 @@ public class LfContingency {
             disconnectedGenerationActivePower += generator.getTargetP();
             disconnectedElementIds.add(generator.getOriginalId());
         }
-        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).collect(Collectors.toList()));
+        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 
@@ -148,7 +147,7 @@ public class LfContingency {
             LfLoad load = e.getKey();
             LfLostLoad lostLoad = e.getValue();
             PowerShift shift = lostLoad.getPowerShift();
-            load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive()));
+            load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive(), lostLoad.getNotParticipatingLoadP0()));
             load.setTargetQ(load.getTargetQ() - shift.getReactive());
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
             lostLoad.getOriginalIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
@@ -156,14 +155,15 @@ public class LfContingency {
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
             generator.setTargetP(0);
+            generator.setInitialTargetP(0);
             LfBus bus = generator.getBus();
             generatorBuses.add(bus);
             generator.setParticipating(false);
             generator.setDisabled(true);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-                bus.getGeneratorVoltageControl().ifPresent(vc -> vc.updateReactiveKeys());
-                bus.getGeneratorReactivePowerControl().ifPresent(rc -> rc.updateReactiveKeys());
+                bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
+                bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
@@ -189,16 +189,17 @@ public class LfContingency {
         }
     }
 
-    private static double getUpdatedLoadP0(LfLoad load, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
+    private static double getUpdatedLoadP0(LfLoad lfLoad, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower, double notParticipatingLoadP0) {
         double factor = 0;
-        if (load.getOriginalLoadCount() > 0) {
+        double loadVariableTargetP = lfLoad.getAbsVariableTargetP();
+        if (loadVariableTargetP != 0 && lfLoad.getOriginalLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = Math.abs(initialP0) / load.getAbsVariableTargetP();
+                factor = (Math.abs(initialP0) - Math.abs(notParticipatingLoadP0)) / loadVariableTargetP;
             } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = initialVariableActivePower / load.getAbsVariableTargetP();
+                factor = initialVariableActivePower / loadVariableTargetP;
             }
         }
-        return initialP0 + (load.getTargetP() - load.getInitialTargetP()) * factor;
+        return initialP0 + (lfLoad.getTargetP() - lfLoad.getInitialTargetP()) * factor;
     }
 
     public Set<LfBus> getLoadAndGeneratorBuses() {

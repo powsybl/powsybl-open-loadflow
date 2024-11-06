@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -41,7 +42,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
     public static final String NAME = "IncrementalTransformerReactivePowerControl";
 
-    private static final int MAX_DIRECTION_CHANGE = 2;
+    private static final int MAX_DIRECTION_CHANGE = 3;
 
     private final int maxTapShift;
 
@@ -158,7 +159,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
     }
 
     @Override
-    public OuterLoopStatus check(AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
@@ -170,7 +171,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         List<LfBranch> controllerBranchesOutOfDeadband = getControllerBranchesOutOfDeadband(controlledBranchesOutOfDeadband);
 
         if (controllerBranchesOutOfDeadband.isEmpty()) {
-            return status.getValue();
+            return new OuterLoopResult(this, status.getValue());
         }
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadband,
@@ -220,7 +221,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBranchesWithAllItsControllersToLimit.size());
         }
 
-        return status.getValue();
+        return new OuterLoopResult(this, status.getValue());
     }
 
     private static double getDiffQ(TransformerReactivePowerControl reactivePowerControl) {

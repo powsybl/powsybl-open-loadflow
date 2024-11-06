@@ -13,7 +13,6 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -34,7 +33,7 @@ public final class LfAction {
     private record TapPositionChange(LfBranch branch, int value, boolean isRelative) {
     }
 
-    private record LoadShift(String loadId, LfLoad load, PowerShift powerShift) {
+    private record LoadShift(String loadId, LfLoad lfLoad, PowerShift powerShift) {
     }
 
     private record GeneratorChange(LfGenerator generator, double activePowerValue, boolean isRelative) {
@@ -137,21 +136,9 @@ public final class LfAction {
         Terminal terminal = load.getTerminal();
         Bus bus = Networks.getBus(terminal, breakers);
         if (bus != null) {
-            double activePowerShift = 0;
-            double reactivePowerShift = 0;
-            OptionalDouble activePowerValue = action.getActivePowerValue();
-            OptionalDouble reactivePowerValue = action.getReactivePowerValue();
-            if (activePowerValue.isPresent()) {
-                activePowerShift = action.isRelativeValue() ? activePowerValue.getAsDouble() : activePowerValue.getAsDouble() - load.getP0();
-            }
-            if (reactivePowerValue.isPresent()) {
-                reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.getAsDouble() : reactivePowerValue.getAsDouble() - load.getQ0();
-            }
-            // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
-            // of P0 that could be described in a LoadDetail extension.
-            PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
             LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
             if (lfLoad != null) {
+                PowerShift powerShift = PowerShift.createPowerShift(load, action);
                 return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(load.getId(), lfLoad, powerShift), null, null, null));
             }
         }
@@ -190,7 +177,7 @@ public final class LfAction {
 
     private static Optional<LfAction> create(TerminalsConnectionAction action, LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getElementId());
-        if (branch != null) {
+        if (branch != null && branch.getBus1() != null && branch.getBus2() != null) {
             if (action.getSide().isEmpty()) {
                 if (action.isOpen()) {
                     return Optional.of(new LfAction(action.getId(), branch, null, null, null, null, null, null));
@@ -319,13 +306,13 @@ public final class LfAction {
     }
 
     private void applyLoadShift() {
-        LfLoad load = loadShift.load();
-        if (!load.isOriginalLoadDisabled(loadShift.loadId())) {
+        String loadId = loadShift.loadId();
+        LfLoad lfLoad = loadShift.lfLoad();
+        if (!lfLoad.isOriginalLoadDisabled(loadId)) {
             PowerShift shift = loadShift.powerShift();
-            load.setTargetP(load.getTargetP() + shift.getActive());
-            load.setTargetQ(load.getTargetQ() + shift.getReactive());
-            load.setAbsVariableTargetP(load.getAbsVariableTargetP()
-                    + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
+            lfLoad.setTargetP(lfLoad.getTargetP() + shift.getActive());
+            lfLoad.setTargetQ(lfLoad.getTargetQ() + shift.getReactive());
+            lfLoad.setAbsVariableTargetP(lfLoad.getAbsVariableTargetP() + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
         }
     }
 
@@ -334,10 +321,8 @@ public final class LfAction {
         if (!generator.isDisabled()) {
             double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.activePowerValue() : generatorChange.activePowerValue();
             generator.setTargetP(newTargetP);
-            if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                    networkParameters.getPlausibleActivePowerLimit(), networkParameters.isUseActiveLimits(), null)) {
-                generator.setParticipating(false);
-            }
+            generator.setInitialTargetP(newTargetP);
+            generator.reApplyActivePowerControlChecks(networkParameters, null);
         }
     }
 

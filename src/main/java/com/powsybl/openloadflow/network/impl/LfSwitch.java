@@ -9,10 +9,15 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +29,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfSwitch extends AbstractLfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfSwitch.class);
 
     private final Ref<Switch> switchRef;
 
@@ -356,18 +363,30 @@ public class LfSwitch extends AbstractLfBranch {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }
 
-    public List<LfLimit> getLimits1(final LimitType type) {
+    @Override
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         return Collections.emptyList();
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type) {
-        return Collections.emptyList();
+    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+        return new double[] {};
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
-        // nothing to do
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
+        if (parameters.isSimulateAutomationSystems()) {
+            if (isDisabled() && !switchRef.get().isOpen()) {
+                LOGGER.trace("Open switch '{}'", switchRef.get().getId());
+                updateReport.openedSwitchCount++;
+                switchRef.get().setOpen(true);
+            }
+            if (!isDisabled() && switchRef.get().isOpen()) {
+                LOGGER.trace("Close switch '{}'", switchRef.get().getId());
+                updateReport.closedSwitchCount++;
+                switchRef.get().setOpen(false);
+            }
+        }
     }
 
     @Override

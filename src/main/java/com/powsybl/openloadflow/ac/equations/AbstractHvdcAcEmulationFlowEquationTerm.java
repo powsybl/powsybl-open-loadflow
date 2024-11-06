@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
 
+import com.powsybl.iidm.network.util.HvdcUtils;
+
 import java.util.List;
 
 /**
@@ -30,6 +32,8 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double p0;
 
+    protected final double r;
+
     protected final double lossFactor1;
 
     protected final double lossFactor2;
@@ -45,13 +49,14 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         variables = List.of(ph1Var, ph2Var);
         k = hvdc.getDroop() * 180 / Math.PI;
         p0 = hvdc.getP0();
+        r = hvdc.getR();
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
         pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
         pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
     }
 
-    protected double rawP(double p0, double k, double ph1, double ph2) {
+    protected double rawP(double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
     }
 
@@ -76,6 +81,15 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected double getVscLossMultiplier() {
         return (1 - lossFactor1) * (1 - lossFactor2);
+    }
+
+    protected double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossNonController) {
+        double lineInputPower = (1 - lossController) * Math.abs(boundedP);
+        return (1 - lossNonController) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
+    }
+
+    protected static double getHvdcLineLosses(double lineInputPower, double r) {
+        return HvdcUtils.getHvdcLineLosses(lineInputPower, 1, r);
     }
 
     @Override

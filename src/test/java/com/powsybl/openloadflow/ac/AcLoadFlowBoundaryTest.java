@@ -72,7 +72,6 @@ class AcLoadFlowBoundaryTest {
     void testWithVoltageRegulationOn() {
         g1.setTargetQ(0);
         g1.setVoltageRegulatorOn(false);
-        // FIXME: no targetV here?
         dl1.getGeneration().setVoltageRegulationOn(true);
         dl1.getGeneration().setMinP(0);
         dl1.getGeneration().setMaxP(10);
@@ -104,10 +103,22 @@ class AcLoadFlowBoundaryTest {
     }
 
     @Test
-    void testWithXnode() {
-        Network network = BoundaryFactory.createWithXnode();
+    void testWithXnodeDistributedSlack() {
         parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
+        testWithXnode();
+    }
+
+    @Test
+    void testWithXnodeAreaInterchangeControl() {
+        parameters.setUseReactiveLimits(true);
+        parametersExt.setAreaInterchangeControl(true);
+        testWithXnode();
+    }
+
+    void testWithXnode() {
+        network = BoundaryFactory.createWithXnode();
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -118,10 +129,21 @@ class AcLoadFlowBoundaryTest {
     }
 
     @Test
-    void testWithTieLine() {
-        Network network = BoundaryFactory.createWithTieLine();
+    void testWithTieLineDistributedSlack() {
         parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
+        testWithTieLine();
+    }
+
+    @Test
+    void testWithTieLineAreaInterchangeControl() {
+        parameters.setUseReactiveLimits(true);
+        parametersExt.setAreaInterchangeControl(true);
+        testWithTieLine();
+    }
+
+    void testWithTieLine() {
+        network = BoundaryFactory.createWithTieLine();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -140,7 +162,7 @@ class AcLoadFlowBoundaryTest {
 
     @Test
     void testEquivalentBranch() {
-        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         network.newLine()
                 .setId("LINE_23")
                 .setBus1("BUS_2")
@@ -182,5 +204,26 @@ class AcLoadFlowBoundaryTest {
         assertTrue(result3.isFullyConverged());
         assertActivePowerEquals(101.0, dl1.getTerminal());
         assertReactivePowerEquals(Double.NaN, dl1.getTerminal());
+    }
+
+    @Test
+    void testDanglingLineShuntAdmittance() {
+        // verify dangling line shunt admittance is correctly accounted to be completely on network side (and not split with boundary side)
+
+        // setup zero flows flow at dangling line boundary side
+        dl1.setP0(0.0).setQ0(0.0).getGeneration().setTargetP(0.0).setTargetQ(0.0).setVoltageRegulationOn(false);
+
+        // set higher B and G shunt values, and also much higher series impedance, so we would get very different results if the shunt admittance were split
+        dl1.setB(1e-3).setG(1e-4).setR(3.).setX(30.);
+
+        // set g1 to regulate dl1 terminal at 400.0 kV
+        g1.setRegulatingTerminal(dl1.getTerminal()).setTargetV(400.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(400.0, bus2);
+        assertActivePowerEquals(16., dl1.getTerminal()); // v^2 * B_shunt
+        assertReactivePowerEquals(-160., dl1.getTerminal()); // - v^2 * G_shunt
     }
 }

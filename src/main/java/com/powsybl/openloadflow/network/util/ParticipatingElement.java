@@ -35,9 +35,19 @@ public class ParticipatingElement {
         return factor;
     }
 
+    public double getTargetP() {
+        if (element instanceof LfGenerator generator) {
+            return generator.getTargetP();
+        } else if (element instanceof LfLoad load) {
+            return load.getTargetP();
+        } else {
+            return Double.NaN;
+        }
+    }
+
     public static double participationFactorNorm(List<ParticipatingElement> participatingElements) {
         return participatingElements.stream()
-                .mapToDouble(participatingGenerator -> participatingGenerator.factor)
+                .mapToDouble(participatingElement -> participatingElement.factor)
                 .sum();
     }
 

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoadingReport;
 
 import java.util.OptionalDouble;
 
@@ -40,10 +41,6 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
         return (2 * q - maxQ - minQ) / (maxQ - minQ);
     }
 
-    static boolean isTargetVoltageNotPlausible(double targetV, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        return targetV < minPlausibleTargetVoltage || targetV > maxPlausibleTargetVoltage;
-    }
-
     String getId();
 
     String getOriginalId();
@@ -68,9 +65,29 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     double getInitialTargetP();
 
+    void setInitialTargetP(double initialTargetP);
+
+    void setInitialTargetPToTargetP();
+
     double getTargetP();
 
     void setTargetP(double targetP);
+
+    /**
+     * The minimum target P for active power operations (can be different from minP if minTargetP is set in the ActivePowerControl extension)
+     * This limit is taken into account in the slack distribution.
+     */
+    default double getMinTargetP() {
+        return getMinP();
+    }
+
+    /**
+     * The maximum target P for active power operations (can be different from maxP if maxTargetP is set in the ActivePowerControl extension)
+     * This limit is taken into account in the slack distribution.
+     */
+    default double getMaxTargetP() {
+        return getMaxP();
+    }
 
     double getMinP();
 
@@ -127,4 +144,6 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
     LfAsymGenerator getAsym();
 
     void setAsym(LfAsymGenerator asym);
+
+    void reApplyActivePowerControlChecks(LfNetworkParameters parameters, LfNetworkLoadingReport report);
 }

@@ -12,8 +12,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.OverloadManagementSystem;
-import com.powsybl.openloadflow.network.impl.extensions.SubstationAutomationSystems;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -166,10 +164,10 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem system) {
-        Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
+    private static void addSwitchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.SwitchTripping tripping) {
+        Switch aSwitch = network.getSwitch(tripping.getSwitchToOperateId());
         if (aSwitch != null) {
-            if (system.isSwitchOpen()) {
+            if (tripping.isOpenAction()) {
                 topoConfig.getSwitchesToOpen().add(aSwitch);
             } else {
                 topoConfig.getSwitchesToClose().add(aSwitch);
@@ -177,13 +175,27 @@ public final class Networks {
         }
     }
 
-    private static void addSwitchesOperatedByAutomationSystem(Network network, LfTopoConfig topoConfig) {
+    private static void addBranchToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig, OverloadManagementSystem.BranchTripping tripping) {
+        Branch<?> branch = network.getBranch(tripping.getBranchToOperateId());
+        if (branch != null && !tripping.isOpenAction()
+                && !branch.getTerminal1().isConnected() && !branch.getTerminal2().isConnected()) {
+            topoConfig.getBranchIdsToClose().add(branch.getId());
+        }
+    }
+
+    private static void addElementsToOperateByAutomationSystem(Network network, LfTopoConfig topoConfig) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
-            if (systems != null) {
-                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
-                    addSwitchesOperatedByAutomationSystem(network, topoConfig, system);
-                }
+            for (OverloadManagementSystem system : substation.getOverloadManagementSystems()) {
+                system.getTrippings()
+                        .forEach(tripping -> {
+                            if (tripping.getType() == OverloadManagementSystem.Tripping.Type.SWITCH_TRIPPING) {
+                                addSwitchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.SwitchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.BRANCH_TRIPPING) {
+                                addBranchToOperateByAutomationSystem(network, topoConfig, (OverloadManagementSystem.BranchTripping) tripping);
+                            } else if (tripping.getType() == OverloadManagementSystem.Tripping.Type.THREE_WINDINGS_TRANSFORMER_TRIPPING) {
+                                // TODO
+                            }
+                        });
             }
         }
     }
@@ -198,7 +210,7 @@ public final class Networks {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
-            addSwitchesOperatedByAutomationSystem(network, modifiedTopoConfig);
+            addElementsToOperateByAutomationSystem(network, modifiedTopoConfig);
             if (modifiedTopoConfig.isBreaker()) {
                 networkParameters.setBreakers(true);
             }
@@ -269,38 +281,41 @@ public final class Networks {
     }
 
     public static Optional<Terminal> getEquipmentRegulatingTerminal(Network network, String equipmentId) {
-        Generator generator = network.getGenerator(equipmentId);
-        if (generator != null) {
-            return Optional.of(generator.getRegulatingTerminal());
-        }
-        StaticVarCompensator staticVarCompensator = network.getStaticVarCompensator(equipmentId);
-        if (staticVarCompensator != null) {
-            return Optional.of(staticVarCompensator.getRegulatingTerminal());
-        }
-        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(equipmentId);
-        if (t2wt != null) {
-            RatioTapChanger rtc = t2wt.getRatioTapChanger();
-            if (rtc != null) {
-                return Optional.of(rtc.getRegulationTerminal());
-            }
-        }
-        ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
-        if (t3wt != null) {
-            for (ThreeWindingsTransformer.Leg leg : t3wt.getLegs()) {
-                RatioTapChanger rtc = leg.getRatioTapChanger();
-                if (rtc != null && rtc.isRegulating()) {
-                    return Optional.of(rtc.getRegulationTerminal());
-                }
-            }
-        }
-        ShuntCompensator shuntCompensator = network.getShuntCompensator(equipmentId);
-        if (shuntCompensator != null) {
-            return Optional.of(shuntCompensator.getRegulatingTerminal());
-        }
-        VscConverterStation vsc = network.getVscConverterStation(equipmentId);
-        if (vsc != null) {
-            return Optional.of(vsc.getTerminal()); // local regulation only
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(equipmentId);
+        Identifiable<?> identifiable = network.getIdentifiable(equipmentId);
+        if (identifiable != null) {
+            return getEquipmentRegulatingTerminal(identifiable);
         }
         return Optional.empty();
+    }
+
+    public static Optional<Terminal> getEquipmentRegulatingTerminal(Identifiable<?> identifiable) {
+        Objects.requireNonNull(identifiable);
+        return switch (identifiable.getType()) {
+            case TWO_WINDINGS_TRANSFORMER -> {
+                RatioTapChanger rtc = ((TwoWindingsTransformer) identifiable).getRatioTapChanger();
+                if (rtc != null) {
+                    yield Optional.of(rtc.getRegulationTerminal());
+                }
+                yield Optional.empty();
+            }
+            case THREE_WINDINGS_TRANSFORMER -> {
+                for (ThreeWindingsTransformer.Leg leg : ((ThreeWindingsTransformer) identifiable).getLegs()) {
+                    RatioTapChanger rtc = leg.getRatioTapChanger();
+                    if (rtc != null && rtc.isRegulating()) {
+                        yield Optional.of(rtc.getRegulationTerminal());
+                    }
+                }
+                yield Optional.empty();
+            }
+            case GENERATOR -> Optional.of(((Generator) identifiable).getRegulatingTerminal());
+            case SHUNT_COMPENSATOR -> Optional.of(((ShuntCompensator) identifiable).getRegulatingTerminal());
+            case STATIC_VAR_COMPENSATOR -> Optional.of(((StaticVarCompensator) identifiable).getRegulatingTerminal());
+            case HVDC_CONVERTER_STATION -> ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC
+                    ? Optional.of(((VscConverterStation) identifiable).getTerminal()) // local regulation only
+                    : Optional.empty();
+            default -> Optional.empty();
+        };
     }
 }

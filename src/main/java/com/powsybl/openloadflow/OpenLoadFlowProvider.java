@@ -9,6 +9,7 @@ package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.config.ModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
@@ -49,6 +50,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS;
 
 /**
  * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
@@ -111,18 +114,20 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 isAlwaysUpdateNetwork = parametersExt.isAlwaysUpdateNetwork();
             }
             // update network state
-            if (atLeastOneComponentHasToBeUpdated && result.isSuccess() || isAlwaysUpdateNetwork) {
+            if (atLeastOneComponentHasToBeUpdated && result.isSuccess()
+                    || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parametersExt.isTransformerReactivePowerControl(),
-                                                                          parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
+                                                                          (parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers(),
                                                                           parametersExt.getReactivePowerDispatchMode(),
                                                                           parametersExt.isWriteReferenceTerminals(),
-                                                                          parametersExt.getReferenceBusSelectionMode());
+                                                                          parametersExt.getReferenceBusSelectionMode(),
+                                                                          parametersExt.isSimulateAutomationSystems());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -181,10 +186,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
             ReferenceBusAndSlackBusesResults referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
+            final var status = result.toComponentResultStatus();
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                     result.getNetwork().getNumSC(),
-                    result.toComponentResultStatus(),
-                    result.toComponentResultStatus().name(), // statusText: can do better later on
+                    status.status(),
+                    status.statusText(),
                     Collections.emptyMap(), // metrics: can do better later on
                     result.getSolverIterations(),
                     referenceBusAndSlackBusesResults.referenceBusId(),
@@ -200,7 +206,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
         double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
-        if (result.getNetwork().isValid()) {
+        if (result.getNetwork().getValidity() == LfNetwork.Validity.VALID) {
             referenceBusId = result.getNetwork().getReferenceBus().getId();
             List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
             slackBusResultList = slackBuses.stream().map(
@@ -251,7 +257,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       breakers,
                                                                       ReactivePowerDispatchMode.Q_EQUAL_PROPORTION,
                                                                       parametersExt.isWriteReferenceTerminals(),
-                                                                      parametersExt.getReferenceBusSelectionMode());
+                                                                      parametersExt.getReferenceBusSelectionMode(),
+                                                                      false);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
@@ -259,12 +266,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
-        LoadFlowResult.ComponentResult.Status status = result.isSuccess() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED;
+        final var status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
                 result.getNetwork().getNumSC(),
-                status,
-                status.name(), // statusText: can do better later on
+                status.status(),
+                status.statusText(),
                 Collections.emptyMap(), // metrics: can do better later on
                 0, // iterationCount
                 referenceBusAndSlackBusesResults.referenceBusId(),
@@ -338,5 +345,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return ((OpenLoadFlowParameters) extension).toMap().entrySet()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> Objects.toString(e.getValue(), "")));
+    }
+
+    @Override
+    public Optional<ModuleConfig> getModuleConfig(PlatformConfig platformConfig) {
+        return platformConfig.getOptionalModuleConfig(MODULE_SPECIFIC_PARAMETERS);
     }
 }

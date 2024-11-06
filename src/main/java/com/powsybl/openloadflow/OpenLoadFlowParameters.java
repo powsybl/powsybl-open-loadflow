@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.google.common.collect.ImmutableMap;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
@@ -52,6 +53,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final SlackBusSelectionMode SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE = SlackBusSelectionMode.MOST_MESHED;
 
     public static final LowImpedanceBranchMode LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE = LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE;
+
+    public static final String MODULE_SPECIFIC_PARAMETERS = "open-loadflow-default-parameters";
 
     public enum SlackDistributionFailureBehavior {
         THROW,
@@ -119,6 +122,19 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     protected static final int INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_DEFAULT_VALUE = 3;
 
     public static final boolean WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE = true;
+
+    protected static final double GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE = -1d;
+
+    public enum FictitiousGeneratorVoltageControlCheckMode {
+        FORCED,
+        NORMAL
+    }
+
+    protected static final FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlCheckMode.FORCED;
+
+    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
+
+    public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -262,9 +278,83 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME = "gradientUserRoutineKnitro";
 
-    private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
+    public static final String TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME = "transformerVoltageControlUseInitialTapPosition";
+
+    public static final String GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME = "generatorVoltageControlMinNominalVoltage";
+
+    public static final String FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE = "fictitiousGeneratorVoltageControlCheckMode";
+
+    public static final String AREA_INTERCHANGE_CONTROL_PARAM_NAME = "areaInterchangeControl";
+
+    public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME = "areaInterchangeControlAreaType";
+
+    public static final String AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME = "areaInterchangePMaxMismatch";
+
+    public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
+
+    // Category keys
+    public static final String MODEL_CATEGORY_KEY = "Model";
+
+    public static final String DC_CATEGORY_KEY = "DC";
+
+    public static final String SLACK_DISTRIBUTION_CATEGORY_KEY = "SlackDistribution";
+
+    public static final String REFERENCE_BUS_CATEGORY_KEY = "ReferenceBus";
+
+    public static final String VOLTAGE_CONTROLS_CATEGORY_KEY = "VoltageControls";
+
+    public static final String GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY = "GeneratorVoltageControl";
+
+    public static final String TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY = "TransformerVoltageControl";
+
+    public static final String SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY = "ShuntVoltageControl";
+
+    public static final String PHASE_CONTROL_CATEGORY_KEY = "PhaseControl";
+
+    public static final String REACTIVE_POWER_CONTROL_CATEGORY_KEY = "ReactivePowerControl";
+
+    public static final String NEWTON_RAPHSON_CATEGORY_KEY = "NewtonRaphson";
+
+    public static final String NEWTON_KRYLOV_CATEGORY_KEY = "NewtonKrylov";
+
+    public static final String FAST_RESTART_CATEGORY_KEY = "FastRestart";
+
+    public static final String OUTER_LOOPS_CATEGORY_KEY = "OuterLoops";
+
+    public static final String SOLVER_CATEGORY_KEY = "Solver";
+
+    public static final String DEBUG_CATEGORY_KEY = "Debug";
+
+    public static final String REPORTING_CATEGORY_KEY = "Reporting";
+
+    public static final String VOLTAGE_INIT_CATEGORY_KEY = "VoltageInit";
+
+    public static final String HVDC_CATEGORY_KEY = "HVDC";
+
+    public static final String AUTOMATION_CATEGORY_KEY = "Automation";
+
+    public static final String PERFORMANCE_CATEGORY_KEY = "Performance";
+
+    public static final Map<String, String> BASE_PARAMETERS_CATEGORY = ImmutableMap.<String, String>builder()
+            .put("dc", MODEL_CATEGORY_KEY)
+            .put("twtSplitShuntAdmittance", MODEL_CATEGORY_KEY)
+            .put("dcPowerFactor", DC_CATEGORY_KEY)
+            .put("dcUseTransformerRatio", DC_CATEGORY_KEY)
+            .put("useReactiveLimits", VOLTAGE_CONTROLS_CATEGORY_KEY)
+            .put("distributedSlack", SLACK_DISTRIBUTION_CATEGORY_KEY)
+            .put("readSlackBus", SLACK_DISTRIBUTION_CATEGORY_KEY)
+            .put("writeSlackBus", SLACK_DISTRIBUTION_CATEGORY_KEY)
+            .put("balanceType", SLACK_DISTRIBUTION_CATEGORY_KEY)
+            .put("countriesToBalance", SLACK_DISTRIBUTION_CATEGORY_KEY)
+            .put("shuntCompensatorVoltageControlOn", SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY)
+            .put("transformerVoltageControlOn", TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY)
+            .put("phaseShifterRegulationOn", PHASE_CONTROL_CATEGORY_KEY)
+            .put("voltageInitMode", VOLTAGE_INIT_CATEGORY_KEY)
+            .put("hvdcAcEmulation", HVDC_CATEGORY_KEY)
+            .put("computedConnectedComponentScope", PERFORMANCE_CATEGORY_KEY)
+            .build();
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
         new Parameter(SLACK_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Slack bus selection mode", SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackBusSelectionMode.class)),
@@ -337,7 +427,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE),
         new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class)),
         new Parameter(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME, ParameterType.INTEGER, "Gradient computation mode", KnitroSolverParameters.DEFAULT_GRADIENT_COMPUTATION_MODE),
-        new Parameter(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, ParameterType.INTEGER, "Gradient user routine", KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE)
+        new Parameter(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, ParameterType.INTEGER, "Gradient user routine", KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE),
+        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, ParameterType.BOOLEAN, "Maintain initial tap position if possible", LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection", OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -520,6 +616,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int gradientComputationModeKnitro = KnitroSolverParameters.DEFAULT_GRADIENT_COMPUTATION_MODE;
 
     private int gradientUserRoutineKnitro = KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE;
+
+    private boolean transformerVoltageControlUseInitialTapPosition = LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE;
+
+    private double generatorVoltageControlMinNominalVoltage = GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE;
+
+    private FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE;
+
+    private boolean areaInterchangeControl = AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
+
+    private String areaInterchangeControlAreaType = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
+
+    private double areaInterchangePMaxMismatch = AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1253,13 +1361,74 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isTransformerVoltageControlUseInitialTapPosition() {
+        return transformerVoltageControlUseInitialTapPosition;
+    }
+
+    public OpenLoadFlowParameters setTransformerVoltageControlUseInitialTapPosition(boolean transformerVoltageControlUseInitialTapPosition) {
+        this.transformerVoltageControlUseInitialTapPosition = transformerVoltageControlUseInitialTapPosition;
+        return this;
+    }
+
+    /**
+     * Only if transformer voltage control is active and with mode `AFTER_GENERATOR_VOLTAGE_CONTROL`. Set the nominal
+     * voltage under which the generator voltage control are disabled during outer loop. This parameter overrides the
+     * automatic nominal voltage computation if >= 0.
+     */
+    public OpenLoadFlowParameters setGeneratorVoltageControlMinNominalVoltage(double generatorVoltageControlMinNominalVoltage) {
+        this.generatorVoltageControlMinNominalVoltage = generatorVoltageControlMinNominalVoltage;
+        return this;
+    }
+
+    public double getGeneratorVoltageControlMinNominalVoltage() {
+        return generatorVoltageControlMinNominalVoltage;
+    }
+
+    public FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+        return fictitiousGeneratorVoltageControlCheckMode;
+    }
+
+    public OpenLoadFlowParameters setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+        this.fictitiousGeneratorVoltageControlCheckMode = Objects.requireNonNull(fictitiousGeneratorVoltageControlCheckMode);
+        return this;
+    }
+
+    public boolean isAreaInterchangeControl() {
+        return areaInterchangeControl;
+    }
+
+    public OpenLoadFlowParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
+        this.areaInterchangeControl = areaInterchangeControl;
+        return this;
+    }
+
+    public String getAreaInterchangeControlAreaType() {
+        return areaInterchangeControlAreaType;
+    }
+
+    public OpenLoadFlowParameters setAreaInterchangeControlAreaType(String areaInterchangeControlAreaType) {
+        this.areaInterchangeControlAreaType = Objects.requireNonNull(areaInterchangeControlAreaType);
+        return this;
+    }
+
+    public double getAreaInterchangePMaxMismatch() {
+        return areaInterchangePMaxMismatch;
+    }
+
+    public OpenLoadFlowParameters setAreaInterchangePMaxMismatch(double areaInterchangePMaxMismatch) {
+        this.areaInterchangePMaxMismatch = checkParameterValue(areaInterchangePMaxMismatch,
+                areaInterchangePMaxMismatch >= 0,
+                AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
 
     public static OpenLoadFlowParameters load(PlatformConfig platformConfig) {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
-        platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
+        platformConfig.getOptionalModuleConfig(MODULE_SPECIFIC_PARAMETERS)
             .ifPresent(config -> parameters
                 .setSlackBusSelectionMode(config.getEnumProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.class, SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE))
                 .setSlackBusesIds(config.getStringListProperty(SLACK_BUSES_IDS_PARAM_NAME, Collections.emptyList()))
@@ -1332,7 +1501,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
                 .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
                 .setGradientComputationModeKnitro(config.getIntProperty(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_COMPUTATION_MODE))
-                .setGradientUserRoutineKnitro(config.getIntProperty(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE)));
+                .setGradientUserRoutineKnitro(config.getIntProperty(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE)))
+                .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
+                .setTransformerVoltageControlUseInitialTapPosition(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE))
+                .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE))
+                .setAreaInterchangeControl(config.getBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME, AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE))
+                .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE))
+                .setAreaInterchangePMaxMismatch(config.getDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1493,11 +1668,23 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setGradientComputationModeKnitro(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME))
                 .ifPresent(prop -> this.setGradientUserRoutineKnitro(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME))
+                .ifPresent(prop -> this.setTransformerVoltageControlUseInitialTapPosition(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME))
+                .ifPresent(prop -> this.setGeneratorVoltageControlMinNominalVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE))
+                .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_PARAM_NAME))
+                .ifPresent(prop -> this.setAreaInterchangeControl(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME))
+                .ifPresent(this::setAreaInterchangeControlAreaType);
+        Optional.ofNullable(properties.get(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME))
+                .ifPresent(prop -> this.setAreaInterchangePMaxMismatch(Double.parseDouble(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(65);
+        Map<String, Object> map = new LinkedHashMap<>(71);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1569,6 +1756,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, voltageTargetPriorities);
         map.put(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME, gradientComputationModeKnitro);
         map.put(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, gradientUserRoutineKnitro);
+        map.put(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, transformerVoltageControlUseInitialTapPosition);
+        map.put(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, generatorVoltageControlMinNominalVoltage);
+        map.put(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, fictitiousGeneratorVoltageControlCheckMode);
+        map.put(AREA_INTERCHANGE_CONTROL_PARAM_NAME, areaInterchangeControl);
+        map.put(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, areaInterchangeControlAreaType);
+        map.put(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, areaInterchangePMaxMismatch);
         return map;
     }
 
@@ -1602,15 +1795,41 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static void log(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (LOGGER.isInfoEnabled()) {
+            // build category map
+            Map<String, String> categoryByParameterName = new HashMap<>(BASE_PARAMETERS_CATEGORY);
+            for (Parameter parameter : OpenLoadFlowParameters.SPECIFIC_PARAMETERS) {
+                if (parameter.getCategoryKey() != null) {
+                    categoryByParameterName.put(parameter.getName(), parameter.getCategoryKey());
+                }
+            }
+
+            record CategorizedParameter(String category, String name, Object value) implements Comparable<CategorizedParameter> {
+                @Override
+                public int compareTo(CategorizedParameter o) {
+                    int c = category.compareTo(o.category);
+                    if (c == 0) {
+                        c = name.compareTo(o.name);
+                    }
+                    return c;
+                }
+            }
+            Map<String, Object> parametersMap = new HashMap<>();
+            parametersMap.putAll(parameters.toMap());
+            parametersMap.putAll(parametersExt.toMap());
+            Set<CategorizedParameter> categorizedParameters = parametersMap.entrySet()
+                    .stream()
+                    .map(e -> new CategorizedParameter(categoryByParameterName.getOrDefault(e.getKey(), "None"), e.getKey(), e.getValue()))
+                    .collect(Collectors.toCollection(TreeSet::new));
+
             AsciiTable at = new AsciiTable();
             at.addRule();
-            at.addRow("Name", "Value");
+            at.addRow("Category", "Name", "Value");
             at.addRule();
-            for (var e : parameters.toMap().entrySet()) {
-                at.addRow(e.getKey(), e.getValue());
-            }
-            for (var e : parametersExt.toMap().entrySet()) {
-                at.addRow(e.getKey(), Objects.toString(e.getValue(), ""));
+            String previousCategory = null;
+            for (var p : categorizedParameters) {
+                String category = p.category.equals(previousCategory) ? "" : p.category; // to not repeat in the table for each row
+                previousCategory = p.category;
+                at.addRow(category, p.name, Objects.toString(p.value, ""));
             }
             at.addRule();
             at.getRenderer().setCWC(new CWC_LongestWord());
@@ -1626,7 +1845,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), parametersExt.getDcApproximationType(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), parametersExt.getDcApproximationType(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -1644,7 +1863,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case FULL_VOLTAGE:
                 return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold()),
                         new DcValueVoltageInitializer(networkParameters,
-                                                      parameters.isDistributedSlack(),
+                                                      parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl(),
                                                       parameters.getBalanceType(),
                                                       parameters.isDcUseTransformerRatio(),
                                                       parametersExt.getDcApproximationType(),
@@ -1671,7 +1890,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
-                .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
@@ -1696,7 +1915,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setUseLoadModel(parametersExt.isUseLoadModel())
                 .setSimulateAutomationSystems(parametersExt.isSimulateAutomationSystems())
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
-                .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities());
+                .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities())
+                .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode())
+                .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
+                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1827,7 +2049,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
-                .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)
@@ -1963,8 +2185,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getNewtonRaphsonStoppingCriteriaType() == extension2.getNewtonRaphsonStoppingCriteriaType() &&
                 extension1.getGradientComputationModeKnitro() == extension2.getGradientComputationModeKnitro() &&
                 extension1.getGradientUserRoutineKnitro() == extension2.getGradientUserRoutineKnitro() &&
-                Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities());
-
+                Objects.equals(extension1.getVoltageTargetPriorities(), extension2.getVoltageTargetPriorities()) &&
+                extension1.isTransformerVoltageControlUseInitialTapPosition() == extension2.isTransformerVoltageControlUseInitialTapPosition() &&
+                extension1.getGeneratorVoltageControlMinNominalVoltage() == extension2.getGeneratorVoltageControlMinNominalVoltage() &&
+                extension1.getFictitiousGeneratorVoltageControlCheckMode() == extension2.getFictitiousGeneratorVoltageControlCheckMode() &&
+                extension1.isAreaInterchangeControl() == extension2.isAreaInterchangeControl() &&
+                Objects.equals(extension1.getAreaInterchangeControlAreaType(), extension2.getAreaInterchangeControlAreaType()) &&
+                extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2059,7 +2286,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReferenceBusSelectionMode(extension.getReferenceBusSelectionMode())
                     .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
                     .setGradientComputationModeKnitro(extension.getGradientComputationModeKnitro())
-                    .setGradientUserRoutineKnitro(extension.getGradientUserRoutineKnitro());
+                    .setGradientUserRoutineKnitro(extension.getGradientUserRoutineKnitro())
+                    .setVoltageTargetPriorities(extension.getVoltageTargetPriorities())
+                    .setTransformerVoltageControlUseInitialTapPosition(extension.isTransformerVoltageControlUseInitialTapPosition())
+                    .setGeneratorVoltageControlMinNominalVoltage(extension.getGeneratorVoltageControlMinNominalVoltage())
+                    .setFictitiousGeneratorVoltageControlCheckMode(extension.getFictitiousGeneratorVoltageControlCheckMode())
+                    .setAreaInterchangeControl(extension.isAreaInterchangeControl())
+                    .setAreaInterchangeControlAreaType(extension.getAreaInterchangeControlAreaType())
+                    .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

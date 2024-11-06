@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,8 +42,9 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getLoads().stream())
+                .filter(load -> load.getAbsVariableTargetP() != 0)
                 .map(load -> new ParticipatingElement(load, getParticipationFactor(load)))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(LinkedList::new));
     }
 
     private double getParticipationFactor(LfLoad load) {
@@ -50,7 +52,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public ActivePowerDistribution.StepResult run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // loads might have reach zero and have been discarded.
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
@@ -84,7 +86,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} buses ({} at min consumption)",
                 -done * PerUnit.SB, -remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
 
-        return new ActivePowerDistribution.StepResult(done, modifiedBuses != 0);
+        return done;
     }
 
     private static void ensurePowerFactorConstant(LfLoad load, double newLoadTargetP) {

@@ -158,4 +158,19 @@ class AcloadFlowReactiveLimitsTest {
         assertReactivePowerEquals(-120, gen2.getTerminal());
         assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
     }
+
+    @Test
+    void testZeroReactiveRangeAndReactiveLimitsDisabled() {
+        parameters.setUseReactiveLimits(false);
+
+        gen2.newMinMaxReactiveLimits()
+                .setMinQ(0)
+                .setMaxQ(0)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-109.228, gen.getTerminal());
+        assertReactivePowerEquals(-152.265, gen2.getTerminal());
+        assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
+    }
 }

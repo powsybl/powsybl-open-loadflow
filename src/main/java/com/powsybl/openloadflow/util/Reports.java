@@ -11,6 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,9 +22,17 @@ public final class Reports {
     private static final String NETWORK_NUM_CC = "networkNumCc";
     private static final String NETWORK_NUM_SC = "networkNumSc";
     private static final String ITERATION = "iteration";
+    private static final String ITERATION_COUNT = "iterationCount";
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
+
+    private static final String IMPACTED_TRANSFORMER_COUNT = "impactedTransformerCount";
+
+    private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
+    private static final String CONTROLLER_BUS_ID = "controllerBusId";
+    private static final String CONTROLLED_BUS_ID = "controlledBusId";
+    public static final String MISMATCH = "mismatch";
 
     public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
     }
@@ -51,6 +60,59 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportNotUniqueControlledBus(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueControlledBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("controlledBusGenId", controlledBusGenId)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue("keptTargetV", keptTargetV)
+                .withUntypedValue("rejectedTargetV", rejectedTargetV)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportControllerShuntAlreadyInVoltageControl(ReportNode reportNode, String controllerShuntId, String controlledBusId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("controllerShuntAlreadyInVoltageControl", "Controller shunt ${controllerShuntId} is already in a shunt voltage control. The second controlled bus ${controlledBusId} is ignored")
+                .withUntypedValue("controllerShuntId", controllerShuntId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId, String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("busAlreadyControlledWithDifferentTargetV", "Bus ${controllerBusId} controls voltage of bus ${controlledBusId} which is already controlled by buses [${busesId}] with a different target voltage: ${keptTargetV} kV (kept) and ${ignoredTargetV} kV (ignored)")
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("busesId", busesId)
+                .withUntypedValue("keptTargetV", keptTargetV)
+                .withUntypedValue("ignoredTargetV", ignoredTargetV)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportBranchControlledAtBothSides(ReportNode reportNode, String controlledBranchId, String keptSide, String rejectedSide) {
+        reportNode.newReportNode()
+                .withMessageTemplate("branchControlledAtBothSides", "Controlled branch ${controlledBranchId} is controlled at both sides. Controlled side ${keptSide} (kept) side ${rejectedSide} (rejected).")
+                .withUntypedValue("controlledBranchId", controlledBranchId)
+                .withUntypedValue("keptSide", keptSide)
+                .withUntypedValue("rejectedSide", rejectedSide)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
     public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(ReportNode reportNode) {
         reportNode.newReportNode()
                 .withMessageTemplate("networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled", "Network must have at least one bus with generator voltage control enabled")
@@ -58,10 +120,18 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportComponentsWithoutGenerators(ReportNode reportNode, int deadComponentsCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("componentsWithoutGenerators", "No calculation will be done on ${deadComponentsCount} network(s) that have no generators")
+                .withUntypedValue("deadComponentsCount", deadComponentsCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportMismatchDistributionFailure(ReportNode reportNode, double remainingMismatch) {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionFailure", "Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
-                .withTypedValue("mismatch", remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue(MISMATCH, remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
@@ -70,7 +140,42 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionSuccess", "Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withUntypedValue("iterationCount", iterationCount)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControl(ReportNode reportNode, String area, String reason) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaNoInterchangeControl", "Area ${area} will not be considered in area interchange control, reason: ${reason}")
+                .withUntypedValue("area", area)
+                .withUntypedValue("reason", reason)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportAreaInterchangeControlDistributionFailure(ReportNode reportNode) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlDistributionFailure", "Failed to distribute interchange active power mismatch")
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaInterchangeControlAreaMismatch(ReportNode reportNode, String area, double mismatch) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlAreaMismatch", "Remaining mismatch for Area ${area}: ${mismatch} MW")
+                .withUntypedValue("area", area)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaInterchangeControlAreaDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlAreaDistributionSuccess", "Area ${area} interchange mismatch (${mismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
+                .withUntypedValue("area", area)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
@@ -138,6 +243,30 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("activePowerControlPstsChangedTaps", "${numOfActivePowerControlPstsThatChangedTap} active power control PST(s) changed taps")
                 .withUntypedValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double vcTargetValue, double targetValue) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlAlreadyExistsWithDifferentTargetV", "Transformers ${firstControllerId} and ${newControllerId} control voltage at bus ${controlledBusId} with different target voltages: ${vcTargetValue}kV (kept) and ${targetValue}kV (rejected)")
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("firstControllerId", firstControllerId)
+                .withUntypedValue("newControllerId", newControllerId)
+                .withUntypedValue("vcTargetValue", vcTargetValue)
+                .withUntypedValue("targetValue", targetValue)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double newTargetDeadband, Double oldTargetDeadband) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlAlreadyExistsUpdateDeadband", "Transformers ${firstControllerId} and ${newControllerId} control voltage at bus ${controlledBusId} with different deadbands, thinnest will be kept: ${newTargetDeadband}kV (kept) and ${oldTargetDeadband}kV (rejected)")
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("firstControllerId", firstControllerId)
+                .withUntypedValue("newControllerId", newControllerId)
+                .withUntypedValue("newTargetDeadband", newTargetDeadband)
+                .withUntypedValue("oldTargetDeadband", oldTargetDeadband == null ? "---" : oldTargetDeadband.toString())
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
@@ -230,6 +359,30 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedTransformerCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedTransformerCount} transformers have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_TRANSFORMER_COUNT, impactedTransformerCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedShuntCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("shuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedShuntCount} shunt compensators have been discarded from voltage control because targetV is inconsistent")
+                .withUntypedValue(IMPACTED_SHUNT_COUNT, impactedShuntCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static void reportAcLfComplete(ReportNode reportNode, boolean success, String solverStatus, String outerloopStatus) {
         TypedValue severity = success ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
         String successText = success ? "successfully" : "with error";
@@ -248,12 +401,17 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createLfNetworkReporter(ReportNode reportNode, int networkNumCc, int networkNumSc) {
-        return reportNode.newReportNode()
+    public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
+        return ReportNode.newRootReportNode()
                 .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-                .add();
+                .build();
+    }
+
+    public static ReportNode includeLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode) {
+        reportNode.include(lfNetworkReportNode);
+        return lfNetworkReportNode;
     }
 
     public static ReportNode createNetworkInfoReporter(ReportNode reportNode) {
@@ -297,6 +455,13 @@ public final class Reports {
                 .add();
     }
 
+    public static ReportNode createWoodburyDcSecurityAnalysis(ReportNode reportNode, String networkId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("woodburyDcSecurityAnalysis", "Woodbury DC security analysis on network '${networkId}'")
+                .withUntypedValue(NETWORK_ID, networkId)
+                .add();
+    }
+
     public static ReportNode createPreContingencySimulation(ReportNode reportNode) {
         return reportNode.newReportNode()
                 .withMessageTemplate("preContingencySimulation", "Pre-contingency simulation")
@@ -307,6 +472,13 @@ public final class Reports {
         return reportNode.newReportNode()
                 .withMessageTemplate("postContingencySimulation", "Post-contingency simulation '${contingencyId}'")
                 .withUntypedValue("contingencyId", contingencyId)
+                .add();
+    }
+
+    public static ReportNode createOperatorStrategySimulation(ReportNode reportNode, String operatorStrategyId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("operatorStrategySimulation", "Operator strategy simulation '${operatorStrategyId}'")
+                .withUntypedValue("operatorStrategyId", operatorStrategyId)
                 .add();
     }
 
@@ -389,7 +561,7 @@ public final class Reports {
         ReportNode subReportNode = reportNode.newReportNode()
                 .withMessageTemplate("NRMismatch", "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}")
                 .withUntypedValue("equationType", acEquationType)
-                .withTypedValue("mismatch", mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue(MISMATCH, mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withUntypedValue("mismatchUnit", mismatchUnit)
                 .add();
 
@@ -442,5 +614,18 @@ public final class Reports {
                 .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+    }
+
+    public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {
+        reportNode.newReportNode()
+                .withMessageTemplate("angleReferenceBusSelection", "Angle reference bus: ${referenceBus}")
+                .withUntypedValue("referenceBus", referenceBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        slackBuses.forEach(slackBus -> reportNode.newReportNode()
+                .withMessageTemplate("slackBusSelection", "Slack bus: ${slackBus}")
+                .withUntypedValue("slackBus", slackBus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add());
     }
 }

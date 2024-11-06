@@ -56,6 +56,8 @@ public class LfNetworkParameters {
 
     public static final boolean SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE = false;
 
+    public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = "ControlArea";
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -63,6 +65,8 @@ public class LfNetworkParameters {
     public static final LinePerUnitMode LINE_PER_UNIT_MODE_DEFAULT_VALUE = LinePerUnitMode.IMPEDANCE;
 
     public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = VoltageControl.VOLTAGE_CONTROL_PRIORITIES;
+
+    public static final boolean TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE = false;
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -138,6 +142,12 @@ public class LfNetworkParameters {
 
     private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
+    private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+
+    private boolean areaInterchangeControl = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
+
+    private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -181,6 +191,9 @@ public class LfNetworkParameters {
         this.simulateAutomationSystems = other.simulateAutomationSystems;
         this.referenceBusSelector = other.referenceBusSelector;
         this.voltageTargetPriorities = new ArrayList<>(other.voltageTargetPriorities);
+        this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
+        this.areaInterchangeControl = other.areaInterchangeControl;
+        this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -420,6 +433,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+        return fictitiousGeneratorVoltageControlCheckMode;
+    }
+
+    public LfNetworkParameters setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+        this.fictitiousGeneratorVoltageControlCheckMode = fictitiousGeneratorVoltageControlCheckMode;
+        return this;
+    }
+
     public boolean isSvcVoltageMonitoring() {
         return svcVoltageMonitoring;
     }
@@ -557,6 +579,24 @@ public class LfNetworkParameters {
         return priority;
     }
 
+    public boolean isAreaInterchangeControl() {
+        return areaInterchangeControl;
+    }
+
+    public LfNetworkParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
+        this.areaInterchangeControl = areaInterchangeControl;
+        return this;
+    }
+
+    public String getAreaInterchangeControlAreaType() {
+        return areaInterchangeControlAreaType;
+    }
+
+    public LfNetworkParameters setAreaInterchangeControlAreaType(String areaInterchangeControlAreaType) {
+        this.areaInterchangeControlAreaType = areaInterchangeControlAreaType;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -595,6 +635,9 @@ public class LfNetworkParameters {
                 ", simulateAutomationSystems=" + simulateAutomationSystems +
                 ", referenceBusSelector=" + referenceBusSelector.getClass().getSimpleName() +
                 ", voltageTargetPriorities=" + voltageTargetPriorities +
+                ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
+                ", areaInterchangeControl=" + areaInterchangeControl +
+                ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
                 ')';
     }
 }

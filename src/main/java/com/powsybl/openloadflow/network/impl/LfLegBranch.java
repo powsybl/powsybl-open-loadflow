@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
@@ -115,6 +116,11 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
+    public Optional<ThreeSides> getOriginalSide() {
+        return Optional.of(getLeg().getSide());
+    }
+
+    @Override
     public BranchType getBranchType() {
         var leg = getLeg();
         return switch (leg.getSide()) {
@@ -140,15 +146,15 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type) {
+    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         var leg = getLeg();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, leg.getActivePowerLimits().orElse(null));
+                return getLimits1(type, leg.getActivePowerLimits().orElse(null), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, leg.getApparentPowerLimits().orElse(null));
+                return getLimits1(type, leg.getApparentPowerLimits().orElse(null), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, leg.getCurrentLimits().orElse(null));
+                return getLimits1(type, leg.getCurrentLimits().orElse(null), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -156,7 +162,12 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
+    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+        return new double[] {};
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
         var twt = getTwt();
         var leg = getLeg();
 
