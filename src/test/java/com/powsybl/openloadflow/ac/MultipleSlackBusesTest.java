@@ -19,7 +19,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -121,17 +120,15 @@ class MultipleSlackBusesTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
 
-
         TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
         Load load = network.getLoad("LOAD");
 
-        // Load is ignored by LF equations only slack goes to this bus
-        assertEquals(-301.159, t2wtLoad.getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-600.710, t2wtLoad.getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(600.0, load.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
 
-        // Slack bus mismatch is false
+        // still small difference due to NR conv epsilon per eq
         assertEquals(2, slackBusResults.size());
-        assertEquals(-1.15940, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.15940, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.711, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.711, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
     }
 }
