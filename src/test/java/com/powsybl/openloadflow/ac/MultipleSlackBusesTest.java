@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -17,6 +19,8 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -106,5 +110,28 @@ class MultipleSlackBusesTest {
         assertEquals(2, slackBusResults.size());
         assertEquals(-0.005, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.005, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void targetVectorBug() {
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
+        parametersExt.setSlackBusesIds(List.of("VLHV2", "VLLOAD"));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
+
+
+        TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
+        Load load = network.getLoad("LOAD");
+
+        // Load is ignored by LF equations only slack goes to this bus
+        assertEquals(-301.159, t2wtLoad.getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(600.0, load.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
+
+        // Slack bus mismatch is false
+        assertEquals(2, slackBusResults.size());
+        assertEquals(-1.15940, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.15940, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
     }
 }
