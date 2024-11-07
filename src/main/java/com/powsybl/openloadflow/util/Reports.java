@@ -71,6 +71,16 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportTooFarControlledBus(ReportNode reportNode, String controllerBusId, String controlledBusId, int maxRemoteVoltageControlDistance) {
+        reportNode.newReportNode()
+                .withMessageTemplate("tooFarControllerBus", "Remote voltage controlled bus '{}' is too far from controller bus '{}' (maximum distance is {}). Switching to local voltage control")
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue("maxRemoteVoltageControlDistance", maxRemoteVoltageControlDistance)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
     public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
         reportNode.newReportNode()
                 .withMessageTemplate("notUniqueTargetVControllerBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
