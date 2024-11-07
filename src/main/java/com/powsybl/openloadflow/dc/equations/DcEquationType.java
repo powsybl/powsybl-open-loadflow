@@ -18,7 +18,6 @@ public enum DcEquationType implements Quantity {
     BUS_TARGET_PHI("bus_target_\u03C6", ElementType.BUS), // slack bus voltage angle target
     BRANCH_TARGET_ALPHA1("branch_target_\u03B1", ElementType.BRANCH), // phase shifter constant shift
     ZERO_PHI("zero_\u03C6", ElementType.BRANCH), // zero impedance branch, voltage angle equality
-    BUS_DISTR_SLACK_P("bus_distr_slack_p", ElementType.BUS), // multiple slack buses distribution
     DUMMY_TARGET_P("dummy_target_p", ElementType.BRANCH);
 
     private final String symbol;

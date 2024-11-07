@@ -11,14 +11,11 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -39,86 +36,17 @@ public class DcEquationSystemCreator {
     }
 
     private void createBuses(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-
         List<LfBus> buses = network.getBuses();
-        List<LfBus> slackBuses = network.getSlackBuses();
         for (LfBus bus : buses) {
             var p = equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_P);
             bus.setP(p);
-            if (bus.isReference()) {
+            // P balance deactivated for the first slack bus. Multi slack will be handled in target vector
+            if (bus == network.getSlackBus()) {
                 equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_PHI)
                         .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI).createTerm());
-            }
-            if (bus.isSlack() || bus.isReference()) {
                 p.setActive(false);
             }
         }
-
-        Optional<LfBus> refSlackBusOpt = slackBuses.stream().filter(LfBus::isReference).findFirst();
-        if (refSlackBusOpt.isEmpty()) {
-            throw new IllegalStateException("No reference bus among slack buses");
-        }
-        LfBus refSlackBus = refSlackBusOpt.get();
-        if (slackBuses.size() > 1) {
-            List<LfBus> otherSlackBuses = slackBuses.stream().filter(b -> b != refSlackBus).toList();
-            for (LfBus slackBus : otherSlackBuses) {
-                // example for 2 slack buses
-                // 0 = slack_p1 - slack_p2
-                // 0 = slack_p1 - slack_p3
-                equationSystem.createEquation(slackBus, DcEquationType.BUS_DISTR_SLACK_P)
-                        .addTerms(createActiveInjectionTerms(refSlackBus, equationSystem.getVariableSet()))
-                        .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()).stream()
-                                .map(EquationTerm::minus)
-                                .toList())
-                        .setActive(true);
-            }
-        }
-    }
-
-    private List<EquationTerm<DcVariableType, DcEquationType>> createActiveInjectionTerms(LfBus bus,
-                                                                                          VariableSet<DcVariableType> variableSet) {
-        List<EquationTerm<DcVariableType, DcEquationType>> terms = new ArrayList<>();
-        for (LfBranch branch : bus.getBranches()) {
-            if (branch.isZeroImpedance(LoadFlowModel.DC)) {
-                if (branch.isSpanningTreeEdge(LoadFlowModel.DC)) {
-                    EquationTerm<DcVariableType, DcEquationType> p = variableSet.getVariable(branch.getNum(), DcVariableType.DUMMY_P).createTerm();
-                    if (branch.getBus2() == bus) {
-                        p = p.minus();
-                    }
-                    terms.add(p);
-                }
-            } else {
-                boolean deriveA1 = isDeriveA1(branch, creationParameters);
-                EquationTerm<DcVariableType, DcEquationType> p = null;
-                if (branch.getBus1() == bus) {
-                    LfBus otherSideBus = branch.getBus2();
-                    if (otherSideBus != null) {
-                        p = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus, otherSideBus, variableSet, deriveA1, creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType());
-                        branch.addAdditionalClosedP1(p);
-                        if (branch.isDisconnectionAllowedSide2()) {
-                            branch.setP1(EvaluableConstants.ZERO);
-                        }
-                    } else {
-                        branch.setP1(EvaluableConstants.ZERO);
-                    }
-                } else {
-                    LfBus otherSideBus = branch.getBus1();
-                    if (otherSideBus != null) {
-                        p = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus, otherSideBus, variableSet, deriveA1, creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType());
-                        branch.addAdditionalClosedP2(p);
-                        if (branch.isDisconnectionAllowedSide1()) {
-                            branch.setP2(EvaluableConstants.ZERO);
-                        }
-                    } else {
-                        branch.setP2(EvaluableConstants.ZERO);
-                    }
-                }
-                if (p != null) {
-                    terms.add(p);
-                }
-            }
-        }
-        return terms;
     }
 
     public static void createNonImpedantBranch(EquationSystem<DcVariableType, DcEquationType> equationSystem,
