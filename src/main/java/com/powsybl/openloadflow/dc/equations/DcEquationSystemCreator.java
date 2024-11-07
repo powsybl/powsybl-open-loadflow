@@ -38,9 +38,11 @@ public class DcEquationSystemCreator {
         for (LfBus bus : network.getBuses()) {
             var p = equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_P);
             bus.setP(p);
-            if (bus == network.getSlackBus()) {
+            if (bus.isReference()) {
                 equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_PHI)
                         .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI).createTerm());
+            }
+            if (bus == network.getSlackBus()) {
                 p.setActive(false);
             }
         }
