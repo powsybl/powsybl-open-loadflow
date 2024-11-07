@@ -1921,7 +1921,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
-                .setMaxSlackBusCount(1)
+                .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
