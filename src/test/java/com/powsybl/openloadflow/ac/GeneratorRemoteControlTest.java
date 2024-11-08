@@ -978,29 +978,30 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testTooFarRemoteVoltageControl() throws IOException {
-
+        // create a network with the controlled bus located 3 branches far from the controller buses
         network = VoltageControlNetworkFactory.createWithGeneratorFarFromRemoteControl();
-        b1 = network.getBusBreakerView().getBus("b1");
-        b2 = network.getBusBreakerView().getBus("b2");
-        b3 = network.getBusBreakerView().getBus("b3");
-        b4 = network.getBusBreakerView().getBus("b4");
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");
         g3 = network.getGenerator("g3");
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
-        parametersExt.setMaxRemoteVoltageControlDistance(4);
-        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
-        assertTrue(result.isFullyConverged());
-        assertVoltageEquals(20.67, b1);
-        assertVoltageEquals(20.67, b2);
-        assertVoltageEquals(20.67, b3);
-        assertVoltageEquals(372.39, b4);
-        assertReactivePowerEquals(-398.5730, g1.getTerminal());
-        assertReactivePowerEquals(-392.5901, g2.getTerminal());
-        assertReactivePowerEquals(-96.7208, g3.getTerminal());
+
+        // First check with low maxRemoteVoltageControlDistance that detects too far controller buses
+        parametersExt.setMaxRemoteVoltageControlDistance(2);
+        LoadFlowResult result1 = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
+        assertTrue(result1.isFullyConverged());
+        assertReactivePowerEquals(-157.5988, g1.getTerminal());
+        assertReactivePowerEquals(-189.2926, g2.getTerminal());
+        assertReactivePowerEquals(41.6880, g3.getTerminal());
         LoadFlowAssert.assertReportEquals("/tooFarRemoteVoltageControlReport.txt", reportNode);
 
+        // Second check with maxRemoteVoltageControlDistance=3 which allows the controller buses
+        parametersExt.setMaxRemoteVoltageControlDistance(3);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+        assertReactivePowerEquals(-100.4356, g1.getTerminal());
+        assertReactivePowerEquals(-100.4356, g2.getTerminal());
+        assertReactivePowerEquals(-100.4356, g3.getTerminal());
     }
 }

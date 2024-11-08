@@ -26,14 +26,14 @@ public final class BusDistance {
      * @param bus1              first LfBus (from which the breadth first search starts)
      * @param bus2              second LfBus
      * @param maxDistanceSearch the algorithm searches until this range and stops after this limit (or if every bus have been checked)
-     * @return                  measured distance (number of branches) and Integer.MAX_VALUE if bus2 is not found
+     * @return                  measured distance (number of branches) or Integer.MAX_VALUE if bus2 is not found
      */
     public static int distanceBetweenBuses(LfBus bus1, LfBus bus2, int maxDistanceSearch) {
         if (bus1.equals(bus2)) {
             return 0;
         }
-        Set<LfBus> busesToCheck = new HashSet<LfBus>();
-        Set<LfBus> checkedBuses = new HashSet<LfBus>();
+        Set<LfBus> busesToCheck = new HashSet<>();
+        Set<LfBus> checkedBuses = new HashSet<>();
         busesToCheck.add(bus2);
         checkedBuses.add(bus2);
         for (int distance = 1; distance <= maxDistanceSearch; distance++) {

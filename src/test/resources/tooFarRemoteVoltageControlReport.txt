@@ -1,11 +1,11 @@
 + Test Report
    + Load flow on network 'generator-remote-control-test'
       + Network CC0 SC0
-         Remote voltage controlled bus vl4_4 is too far from controller bus vl1_0 (maximum distance is 4). Switching to local voltage control
-         Remote voltage controlled bus vl4_4 is too far from controller bus vl2_0 (maximum distance is 4). Switching to local voltage control
-         Remote voltage controlled bus vl4_4 is too far from controller bus vl3_0 (maximum distance is 4). Switching to local voltage control
+         Remote voltage controlled bus vl4_2 is too far from controller bus vl1_0 (maximum distance is 2). Switching to local voltage control
+         Remote voltage controlled bus vl4_2 is too far from controller bus vl2_0 (maximum distance is 2). Switching to local voltage control
+         Remote voltage controlled bus vl4_2 is too far from controller bus vl3_0 (maximum distance is 2). Switching to local voltage control
          + Network info
-            Network has 8 buses and 7 branches
+            Network has 6 buses and 5 branches
             Network balance: active generation=300.0 MW, active load=299.6 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
             Angle reference bus: vl4_0
             Slack bus: vl4_0
