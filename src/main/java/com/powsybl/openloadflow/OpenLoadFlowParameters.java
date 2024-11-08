@@ -278,7 +278,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME = "areaInterchangePMaxMismatch";
 
-    public static final String MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_PARAM_NAME = "maxRemoteVoltageDistance";
+    public static final String MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_PARAM_NAME = "maxRemoteVoltageControlDistance";
 
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
