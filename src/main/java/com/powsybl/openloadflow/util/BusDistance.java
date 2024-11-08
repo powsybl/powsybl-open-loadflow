@@ -24,13 +24,10 @@ public final class BusDistance {
         if (controlledBus.equals(controller)) {
             return 0;
         }
-        Set<LfBus> neighbors = controlledBus.findNeighbors().keySet();
-        if (neighbors.contains(controller)) {
-            return 1;
-        }
-        for (int distance = 2; distance <= maxDistanceSearch; distance++) {
-            neighbors = neighbors.stream().flatMap(bus -> bus.findNeighbors().keySet().stream()).collect(Collectors.toSet());
-            if (neighbors.contains(controller)) {
+        Set<LfBus> busesToCheck = Set.of(controlledBus);
+        for (int distance = 1; distance <= maxDistanceSearch; distance++) {
+            busesToCheck = busesToCheck.stream().flatMap(bus -> bus.findNeighbors().keySet().stream()).collect(Collectors.toSet());
+            if (busesToCheck.contains(controller)) {
                 return distance;
             }
         }
