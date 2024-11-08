@@ -204,7 +204,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // compute the pre-contingency states
             double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
             // create workingContingencyStates that will be a working copy of pre-contingency states
-            double[] workingContingencyStates = preContingencyStates.clone();
+            double[] workingContingencyStates = new double[preContingencyStates.length];
+            System.arraycopy(preContingencyStates, 0, workingContingencyStates, 0, preContingencyStates.length);
 
             // set pre contingency angle states as state vector of equation system
             context.getEquationSystem().getStateVector().set(preContingencyStates);
