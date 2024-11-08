@@ -21,18 +21,27 @@ public final class BusDistance {
     private BusDistance() {
     }
 
-    public static int distanceBetweenBuses(LfBus controlledBus, LfBus controller, int maxDistanceSearch) {
-        if (controlledBus.equals(controller)) {
+    /**
+     * Breadth first search algorithm to compute distance between two LfBus in a network
+     * @param bus1              first LfBus (from which the breadth first search starts)
+     * @param bus2              second LfBus
+     * @param maxDistanceSearch the algorithm searches until this range and stops after this limit (or if every bus have been checked)
+     * @return                  measured distance (number of branches) and Integer.MAX_VALUE if bus2 is not found
+     */
+    public static int distanceBetweenBuses(LfBus bus1, LfBus bus2, int maxDistanceSearch) {
+        if (bus1.equals(bus2)) {
             return 0;
         }
         Set<LfBus> busesToCheck = new HashSet<LfBus>();
         Set<LfBus> checkedBuses = new HashSet<LfBus>();
-        busesToCheck.add(controller);
-        checkedBuses.add(controller);
+        busesToCheck.add(bus2);
+        checkedBuses.add(bus2);
         for (int distance = 1; distance <= maxDistanceSearch; distance++) {
-            busesToCheck = busesToCheck.stream().flatMap(bus -> bus.findNeighbors().keySet().stream()).collect(Collectors.toSet());
+            busesToCheck = busesToCheck.stream()
+                    .flatMap(bus -> bus.findNeighbors().keySet().stream())
+                    .collect(Collectors.toSet());
             busesToCheck.removeAll(checkedBuses);
-            if (busesToCheck.contains(controlledBus)) {
+            if (busesToCheck.contains(bus1)) {
                 return distance;
             } else if (busesToCheck.isEmpty()) {
                 return Integer.MAX_VALUE;
