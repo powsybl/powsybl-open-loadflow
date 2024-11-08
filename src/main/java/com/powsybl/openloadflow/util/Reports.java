@@ -73,7 +73,7 @@ public final class Reports {
 
     public static void reportTooFarControlledBus(ReportNode reportNode, String controllerBusId, String controlledBusId, int maxRemoteVoltageControlDistance) {
         reportNode.newReportNode()
-                .withMessageTemplate("tooFarControllerBus", "Remote voltage controlled bus '{}' is too far from controller bus '{}' (maximum distance is {}). Switching to local voltage control")
+                .withMessageTemplate("tooFarControllerBus", "Remote voltage controlled bus ${controlledBusId} is too far from controller bus ${controllerBusId} (maximum distance is ${maxRemoteVoltageControlDistance}). Switching to local voltage control")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue("maxRemoteVoltageControlDistance", maxRemoteVoltageControlDistance)

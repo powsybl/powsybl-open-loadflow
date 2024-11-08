@@ -28,7 +28,7 @@ public final class BusDistance {
         if (neighbors.contains(controller)) {
             return 1;
         }
-        for (int distance = 2; distance < maxDistanceSearch; distance++) {
+        for (int distance = 2; distance <= maxDistanceSearch; distance++) {
             neighbors = neighbors.stream().flatMap(bus -> bus.findNeighbors().keySet().stream()).collect(Collectors.toSet());
             if (neighbors.contains(controller)) {
                 return distance;

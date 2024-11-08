@@ -128,7 +128,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     }
                 });
 
-                int maxRemoteVoltageControlDistance = 3;
+                int maxRemoteVoltageControlDistance = 4;
 
                 boolean isRemoteVoltageControl = false;
                 if (!parameters.isGeneratorVoltageRemoteControl() && controlledBus != controllerBus) {
