@@ -510,8 +510,11 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * A very small network to test connectivity break and phase tap modification by remedial actions.
      *
-     *     G1         LD2         LD3
-     *     |     PS1   |   L23    |
+     *     G1         LD2
+     *     |     PS1   |
+     *     |  -------  |
+     *     |           |         LD3
+     *     |    L12    |   L23    |
      *     B1 ------- B2 -------- B3
      */
     public static Network createNetworkWith3Buses() {
@@ -538,7 +541,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
                 .setTargetP(100.0)
                 .setTargetV(400.0)
                 .setMinP(50.0)
-                .setMaxP(150.0)
+                .setMaxP(200.0)
                 .add();
         g1.getTerminal().setP(-100.16797).setQ(-58.402832);
         VoltageLevel vl2 = s1.newVoltageLevel()
@@ -575,6 +578,21 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
                 .setQ0(50.0)
                 .add();
         ld3.getTerminal().setP(100.0).setQ(50.0);
+        network.newLine()
+                .setId("L12")
+                .setVoltageLevel1("VL1")
+                .setConnectableBus1("B1")
+                .setBus1("B1")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(0)
+                .setX(200.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
+                .add();
         network.newLine()
                 .setId("L23")
                 .setVoltageLevel1("VL2")

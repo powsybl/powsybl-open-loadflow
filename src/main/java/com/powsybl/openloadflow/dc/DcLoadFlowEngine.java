@@ -220,7 +220,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
-        return run(loadFlowContext, disabledNetwork, reportNode, new ArrayList<>());
+        return run(loadFlowContext, disabledNetwork, reportNode, Collections.emptyList());
     }
 
     /**
