@@ -293,6 +293,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             cleanContingencies(lfNetwork, propagatedContingencies);
 
             double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
+            double[] baseContingencyStates = preContingencyStates.clone();
 
             // set pre contingency angle states as state vector of equation system
             context.getEquationSystem().getStateVector().set(preContingencyStates);
@@ -334,7 +335,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
                             logPostContingencyStart(lfNetwork, lfContingency);
                             Stopwatch stopwatch = Stopwatch.createStarted();
-
+                            System.arraycopy(baseContingencyStates, 0, preContingencyStates, 0, baseContingencyStates.length);
                             double[] postContingencyStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), preContingencyStates, propagatedContingency,
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), reportNode);
                             // compute post contingency result with post contingency states
