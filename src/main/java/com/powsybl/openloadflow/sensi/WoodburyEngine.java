@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,14 +33,28 @@ public class WoodburyEngine {
 
     private final List<ComputedActionElement> pstActionElements;
 
-    private DenseMatrix pstActionsStates;
+    private final DenseMatrix pstActionsStates;
+
+    // TODO : empty matrix in DenseMatrix class ?
+    public static final class EmptyDenseMatrix {
+        private static final DenseMatrix INSTANCE = new DenseMatrix(0, 0);
+
+        private EmptyDenseMatrix() {
+
+        }
+
+        public static DenseMatrix getInstance() {
+            return INSTANCE;
+        }
+    }
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
-        this.pstActionElements = List.of();
+        this.pstActionElements = Collections.emptyList();
+        this.pstActionsStates = EmptyDenseMatrix.getInstance();
     }
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
