@@ -96,6 +96,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-open-loadflow</artifactId>
+            <version>1.14.0-external-ac-solver</version>
+        </dependency>
         <!-- Compile dependencies -->
         <dependency>
             <groupId>de.vandermeer</groupId>
