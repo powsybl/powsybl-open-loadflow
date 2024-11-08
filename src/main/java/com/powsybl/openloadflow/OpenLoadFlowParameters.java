@@ -134,8 +134,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
-    public static final int MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE = 0;
-
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -418,7 +416,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_PARAM_NAME, ParameterType.INTEGER, "Maximum remote voltage control distance", MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY)
+        new Parameter(MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_PARAM_NAME, ParameterType.INTEGER, "Maximum remote voltage control distance", LfNetworkParameters.MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -602,7 +600,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double areaInterchangePMaxMismatch = AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE;
 
-    private int maxRemoteVoltageControlDistance = MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE;
+    private int maxRemoteVoltageControlDistance = LfNetworkParameters.MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1334,9 +1332,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxRemoteVoltageControlDistance(int maxRemoteVoltageControlDistance) {
-        this.maxRemoteVoltageControlDistance = checkParameterValue(maxRemoteVoltageControlDistance,
-                maxRemoteVoltageControlDistance >= 0 && maxRemoteVoltageControlDistance < 10,
-                MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_PARAM_NAME);
+        this.maxRemoteVoltageControlDistance = LfNetworkParameters.checkMaxRemoteVoltageControlDistance(maxRemoteVoltageControlDistance);
         return this;
     }
 
@@ -1419,7 +1415,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControl(config.getBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME, AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE))
                 .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE))
                 .setAreaInterchangePMaxMismatch(config.getDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE))
-                .setMaxRemoteVoltageControlDistance(config.getIntProperty(MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_PARAM_NAME, MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE)));
+                .setMaxRemoteVoltageControlDistance(config.getIntProperty(MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_PARAM_NAME, LfNetworkParameters.MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1815,7 +1811,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities())
                 .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode())
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
-                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
+                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
+                .setMaxRemoteVoltageControlDistance(parametersExt.getMaxRemoteVoltageControlDistance());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

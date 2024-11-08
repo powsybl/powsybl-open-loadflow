@@ -58,6 +58,8 @@ public class LfNetworkParameters {
 
     public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = "ControlArea";
 
+    public static final int MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE = 0;
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -147,6 +149,8 @@ public class LfNetworkParameters {
     private boolean areaInterchangeControl = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
     private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
+
+    private int maxRemoteVoltageControlDistance = MAX_REMOTE_VOLTAGE_CONTROL_DISTANCE_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -594,6 +598,24 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setAreaInterchangeControlAreaType(String areaInterchangeControlAreaType) {
         this.areaInterchangeControlAreaType = areaInterchangeControlAreaType;
+        return this;
+    }
+
+    public int getMaxRemoteVoltageControlDistance() {
+        return maxRemoteVoltageControlDistance;
+    }
+
+    public static int checkMaxRemoteVoltageControlDistance(int maxRemoteVoltageControlDistance) {
+        if (maxRemoteVoltageControlDistance > 10) {
+            throw new IllegalArgumentException("Max remote voltage control distance shouldn't exceed 10 (set to 0 to not check distance)");
+        } else if (maxRemoteVoltageControlDistance < 0) {
+            throw new IllegalArgumentException("Max remote voltage control distance should be > 0");
+        }
+        return maxRemoteVoltageControlDistance;
+    }
+
+    public LfNetworkParameters setMaxRemoteVoltageControlDistance(int maxRemoteVoltageControlDistance) {
+        this.maxRemoteVoltageControlDistance = checkMaxRemoteVoltageControlDistance(maxRemoteVoltageControlDistance);
         return this;
     }
 

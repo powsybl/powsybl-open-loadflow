@@ -483,7 +483,7 @@ class OpenLoadFlowParametersTest {
         assertEquals("Invalid value for parameter maxNewtonKrylovIterations: 0", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxRemoteVoltageControlDistance(-1));
-        assertEquals("Invalid value for parameter maxRemoteVoltageControlDistance: -1", e.getMessage());
+        assertEquals("Max remote voltage control distance should be > 0", e.getMessage());
     }
 
     @Test

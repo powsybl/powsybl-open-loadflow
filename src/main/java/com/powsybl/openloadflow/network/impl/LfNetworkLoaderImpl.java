@@ -128,16 +128,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     }
                 });
 
-                int maxRemoteVoltageControlDistance = 4;
-
                 boolean isRemoteVoltageControl = false;
                 if (!parameters.isGeneratorVoltageRemoteControl() && controlledBus != controllerBus) {
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
                             controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
-                } else if (distanceBetweenBuses(controlledBus, controllerBus, maxRemoteVoltageControlDistance) > maxRemoteVoltageControlDistance) {
+                } else if (parameters.getMaxRemoteVoltageControlDistance() != 0 && distanceBetweenBuses(controlledBus, controllerBus, parameters.getMaxRemoteVoltageControlDistance()) > parameters.getMaxRemoteVoltageControlDistance()) {
                     LOGGER.error("Voltage controlled bus '{}' is too far from controller bus '{}' (maximum distance is {}). The bus switches to local voltage control and target voltage is rescaled from {} to {}",
-                            controlledBus.getId(), controllerBus.getId(), maxRemoteVoltageControlDistance, controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
-                    Reports.reportTooFarControlledBus(controlledBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), maxRemoteVoltageControlDistance);
+                            controlledBus.getId(), controllerBus.getId(), parameters.getMaxRemoteVoltageControlDistance(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                    Reports.reportTooFarControlledBus(controlledBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), parameters.getMaxRemoteVoltageControlDistance());
                 } else {
                     isRemoteVoltageControl = true;
                 }

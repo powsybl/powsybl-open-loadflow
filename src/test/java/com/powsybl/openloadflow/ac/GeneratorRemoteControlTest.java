@@ -990,6 +990,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
+        parametersExt.setMaxRemoteVoltageControlDistance(4);
         LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(20.67, b1);
