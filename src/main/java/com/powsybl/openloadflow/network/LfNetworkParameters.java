@@ -198,6 +198,7 @@ public class LfNetworkParameters {
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
+        this.maxRemoteVoltageControlDistance = other.maxRemoteVoltageControlDistance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -606,10 +607,8 @@ public class LfNetworkParameters {
     }
 
     public static int checkMaxRemoteVoltageControlDistance(int maxRemoteVoltageControlDistance) {
-        if (maxRemoteVoltageControlDistance > 10) {
-            throw new IllegalArgumentException("Max remote voltage control distance shouldn't exceed 10 (set to 0 to not check distance)");
-        } else if (maxRemoteVoltageControlDistance < 0) {
-            throw new IllegalArgumentException("Max remote voltage control distance should be > 0");
+        if (maxRemoteVoltageControlDistance < 0) {
+            throw new IllegalArgumentException("Invalid value for parameter maxRemoteVoltageControlDistance: " + maxRemoteVoltageControlDistance);
         }
         return maxRemoteVoltageControlDistance;
     }
@@ -660,6 +659,7 @@ public class LfNetworkParameters {
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ", areaInterchangeControl=" + areaInterchangeControl +
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
+                ", maxRemoteVoltageControlDistance=" + maxRemoteVoltageControlDistance +
                 ')';
     }
 }

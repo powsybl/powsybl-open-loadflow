@@ -129,6 +129,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 });
 
                 boolean isRemoteVoltageControl = false;
+                LOGGER.warn("Checking");
+                int d = distanceBetweenBuses(controlledBus, controllerBus, parameters.getMaxRemoteVoltageControlDistance());
+                LOGGER.warn("Finished Checking =" + d);
                 if (!parameters.isGeneratorVoltageRemoteControl() && controlledBus != controllerBus) {
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
                             controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
