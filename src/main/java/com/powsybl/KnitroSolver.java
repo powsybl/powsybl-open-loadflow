@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.solver;
+package com.powsybl;
 
 import com.artelys.knitro.api.*;
 import com.artelys.knitro.api.callbacks.*;
@@ -14,6 +14,10 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.SparseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.solver.AbstractAcSolver;
+import com.powsybl.openloadflow.ac.solver.AcSolverResult;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -488,6 +492,7 @@ public class KnitroSolver extends AbstractAcSolver {
             solver.solve();
             KNSolution solution = solver.getSolution();
             List<Double> constraintValues = solver.getConstraintValues();
+            acStatus = KnitroStatus.fromStatusCode(solution.getStatus()).toAcSolverStatus();
             logKnitroStatus(KnitroStatus.fromStatusCode(solution.getStatus())); // convert and log Knitro's status
             nbIter = solver.getNumberIters();
 
