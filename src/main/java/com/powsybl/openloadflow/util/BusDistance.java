@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.util;
 
 import com.powsybl.openloadflow.network.LfBus;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,12 +25,19 @@ public final class BusDistance {
         if (controlledBus.equals(controller)) {
             return 0;
         }
-        Set<LfBus> busesToCheck = Set.of(controlledBus);
+        Set<LfBus> busesToCheck = new HashSet<LfBus>();
+        Set<LfBus> checkedBuses = new HashSet<LfBus>();
+        busesToCheck.add(controller);
+        checkedBuses.add(controller);
         for (int distance = 1; distance <= maxDistanceSearch; distance++) {
             busesToCheck = busesToCheck.stream().flatMap(bus -> bus.findNeighbors().keySet().stream()).collect(Collectors.toSet());
-            if (busesToCheck.contains(controller)) {
+            busesToCheck.removeAll(checkedBuses);
+            if (busesToCheck.contains(controlledBus)) {
                 return distance;
+            } else if (busesToCheck.isEmpty()) {
+                return Integer.MAX_VALUE;
             }
+            checkedBuses.addAll(busesToCheck);
         }
         return Integer.MAX_VALUE;
     }
