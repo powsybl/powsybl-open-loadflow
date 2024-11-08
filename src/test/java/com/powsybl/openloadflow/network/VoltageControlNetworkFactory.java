@@ -1411,4 +1411,85 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setTargetV(1.2);
         return network;
     }
+
+    /**
+     *   g1     g2      g3
+     *   |      |       |
+     *  b1      b2      b3
+     *  |       |       |
+     *  8 tr1   8 tr2   8 tr3
+     *  |       |       |
+     *  +------ b4 -----+
+     *          |
+     *          b5
+     *          |
+     *          b6
+     *          |
+     *          b7
+     *          |
+     *          b8
+     *          |
+     *          l8
+     */
+    public static Network createWithGeneratorFarFromRemoteControl() {
+        Network network = createWithGeneratorRemoteControl();
+        VoltageLevel vl4 = network.getVoltageLevel("vl4");
+        vl4.getBusBreakerView().newBus()
+                .setId("b5")
+                .add();
+        vl4.getBusBreakerView().newBus()
+                .setId("b6")
+                .add();
+        vl4.getBusBreakerView().newBus()
+                .setId("b7")
+                .add();
+        vl4.getBusBreakerView().newBus()
+                .setId("b8")
+                .add();
+        Load l8 = vl4.newLoad()
+                .setId("l8")
+                .setBus("b8")
+                .setConnectableBus("b8")
+                .setP0(299.6)
+                .setQ0(200)
+                .add();
+        network.newLine()
+                .setId("line45")
+                .setBus1("b4")
+                .setBus2("b5")
+                .setR(1.0)
+                .setX(10.0)
+                .setG1(0.005)
+                .add();
+        network.newLine()
+                .setId("line56")
+                .setBus1("b5")
+                .setBus2("b6")
+                .setR(1.0)
+                .setX(10.0)
+                .setG1(0.005)
+                .add();
+        network.newLine()
+                .setId("line67")
+                .setBus1("b6")
+                .setBus2("b7")
+                .setR(1.0)
+                .setX(10.0)
+                .setG1(0.005)
+                .add();
+        network.newLine()
+                .setId("line78")
+                .setBus1("b7")
+                .setBus2("b8")
+                .setR(1.0)
+                .setX(10.0)
+                .setG1(0.005)
+                .add();
+        network.getGenerator("g1").setRegulatingTerminal(l8.getTerminal()).setVoltageRegulatorOn(true);
+        network.getGenerator("g2").setRegulatingTerminal(l8.getTerminal()).setVoltageRegulatorOn(true);
+        network.getGenerator("g3").setRegulatingTerminal(l8.getTerminal()).setVoltageRegulatorOn(true);
+        network.getLoad("l4").remove();
+        return network;
+    }
+
 }

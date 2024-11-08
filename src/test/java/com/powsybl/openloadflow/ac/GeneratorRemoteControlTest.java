@@ -975,4 +975,31 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(2.031, l34.getTerminal2());
         assertEquals(0.0, Math.abs(network.getBusView().getBus("b4_vl_0").getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum()), 1E-2);
     }
+
+    @Test
+    void testTooFarRemoteVoltageControl() throws IOException {
+
+        network = VoltageControlNetworkFactory.createWithGeneratorFarFromRemoteControl();
+        b1 = network.getBusBreakerView().getBus("b1");
+        b2 = network.getBusBreakerView().getBus("b2");
+        b3 = network.getBusBreakerView().getBus("b3");
+        b4 = network.getBusBreakerView().getBus("b4");
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(20.67, b1);
+        assertVoltageEquals(20.67, b2);
+        assertVoltageEquals(20.67, b3);
+        assertVoltageEquals(372.39, b4);
+        assertReactivePowerEquals(-398.5730, g1.getTerminal());
+        assertReactivePowerEquals(-392.5901, g2.getTerminal());
+        assertReactivePowerEquals(-96.7208, g3.getTerminal());
+        LoadFlowAssert.assertReportEquals("/tooFarRemoteVoltageControlReport.txt", reportNode);
+
+    }
 }
