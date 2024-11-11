@@ -50,7 +50,7 @@ public class KnitroSolverFactory implements AcSolverFactory {
                 .setGradientComputationMode(parameters.getExtension(ExternalSolverExtensionParameters.class).getGradientComputationMode())
                 .setGradientUserRoutine(parameters.getExtension(ExternalSolverExtensionParameters.class).getGradientUserRoutine())
                 .setLowerVoltageBound(parameters.getExtension(ExternalSolverExtensionParameters.class).getLowerVoltageBound())
-                .setLowerVoltageBound(parameters.getExtension(ExternalSolverExtensionParameters.class).getLowerVoltageBound());
+                .setUpperVoltageBound(parameters.getExtension(ExternalSolverExtensionParameters.class).getUpperVoltageBound());
         }
         return knitroSolverParameters;
     }
