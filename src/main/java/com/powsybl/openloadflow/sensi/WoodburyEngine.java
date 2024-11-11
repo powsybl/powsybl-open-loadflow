@@ -31,9 +31,9 @@ public class WoodburyEngine {
 
     private final DenseMatrix contingenciesStates;
 
-    private final List<ComputedTapPositionChangeElement> pstActionElements;
+    private final List<ComputedTapPositionChangeElement> tapPositionChangeElements;
 
-    private final DenseMatrix pstActionsStates;
+    private final DenseMatrix tapPositionChangeStates;
 
     // TODO : empty matrix in DenseMatrix class ?
     public static final class EmptyDenseMatrix {
@@ -53,17 +53,17 @@ public class WoodburyEngine {
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
-        this.pstActionElements = Collections.emptyList();
-        this.pstActionsStates = EmptyDenseMatrix.getInstance();
+        this.tapPositionChangeElements = Collections.emptyList();
+        this.tapPositionChangeStates = EmptyDenseMatrix.getInstance();
     }
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
-                          DenseMatrix contingenciesStates, List<ComputedTapPositionChangeElement> pstActionElements, DenseMatrix pstActionsStates) {
+                          DenseMatrix contingenciesStates, List<ComputedTapPositionChangeElement> tapPositionChangeElements, DenseMatrix tapPositionChangeStates) {
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
-        this.pstActionElements = Objects.requireNonNull(pstActionElements);
-        this.pstActionsStates = Objects.requireNonNull(pstActionsStates);
+        this.tapPositionChangeElements = Objects.requireNonNull(tapPositionChangeElements);
+        this.tapPositionChangeStates = Objects.requireNonNull(tapPositionChangeStates);
     }
 
     private double calculatePower(LfBranch lfBranch) {
@@ -80,7 +80,7 @@ public class WoodburyEngine {
      * Compute the flow transfer factors needed to calculate the post-contingency state values.
      */
     private void setAlphas(DenseMatrix states, int columnState) {
-        if (contingencyElements.size() == 1 && pstActionElements.isEmpty()) {
+        if (contingencyElements.size() == 1 && tapPositionChangeElements.isEmpty()) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
@@ -90,16 +90,16 @@ public class WoodburyEngine {
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
             element.setAlphaForWoodburyComputation(b / a);
-        } else if (contingencyElements.isEmpty() && pstActionElements.size() == 1) {
-            ComputedTapPositionChangeElement element = pstActionElements.iterator().next();
+        } else if (contingencyElements.isEmpty() && tapPositionChangeElements.size() == 1) {
+            ComputedTapPositionChangeElement element = tapPositionChangeElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
             // we solve a*alpha = b
             int newTapPosition = element.getTapPositionChange().getNewTapPosition();
             double deltaX = 1d / (calculatePower(lfBranch) - calculatePower(lfBranch, newTapPosition));
-            double a = deltaX - (pstActionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
-                    - pstActionsStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
+            double a = deltaX - (tapPositionChangeStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
+                    - tapPositionChangeStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
 
             double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
             double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
@@ -107,8 +107,8 @@ public class WoodburyEngine {
         } else {
             // set local indexes of computed elements to use them in small matrix computation
             ComputedElement.setLocalIndexes(contingencyElements);
-            ComputedElement.setLocalIndexes(pstActionElements);
-            int size = contingencyElements.size() + pstActionElements.size();
+            ComputedElement.setLocalIndexes(tapPositionChangeElements);
+            int size = contingencyElements.size() + tapPositionChangeElements.size();
             DenseMatrix rhs = new DenseMatrix(size, 1);
             DenseMatrix matrix = new DenseMatrix(size, size);
 
@@ -129,20 +129,20 @@ public class WoodburyEngine {
                 }
 
                 // loop on actions to fill top-right quadrant of the matrix
-                for (ComputedTapPositionChangeElement actionElement : pstActionElements) {
-                    int j = contingencyElements.size() + actionElement.getLocalIndex();
-                    double value = -(pstActionsStates.get(p1.getPh1Var().getRow(), actionElement.getComputedElementIndex())
-                            - pstActionsStates.get(p1.getPh2Var().getRow(), actionElement.getComputedElementIndex()));
+                for (ComputedTapPositionChangeElement tapPositionChangeElement : tapPositionChangeElements) {
+                    int j = contingencyElements.size() + tapPositionChangeElement.getLocalIndex();
+                    double value = -(tapPositionChangeStates.get(p1.getPh1Var().getRow(), tapPositionChangeElement.getComputedElementIndex())
+                            - tapPositionChangeStates.get(p1.getPh2Var().getRow(), tapPositionChangeElement.getComputedElementIndex()));
                     matrix.set(i, j, value);
                 }
             }
 
-            for (ComputedTapPositionChangeElement actionElement : pstActionElements) {
-                int i = contingencyElements.size() + actionElement.getLocalIndex();
-                LfBranch lfBranch = actionElement.getLfBranch();
-                ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
+            for (ComputedTapPositionChangeElement tapPositionChangeElement : tapPositionChangeElements) {
+                int i = contingencyElements.size() + tapPositionChangeElement.getLocalIndex();
+                LfBranch lfBranch = tapPositionChangeElement.getLfBranch();
+                ClosedBranchSide1DcFlowEquationTerm p1 = tapPositionChangeElement.getLfBranchEquation();
 
-                int newTapPosition = actionElement.getTapPositionChange().getNewTapPosition();
+                int newTapPosition = tapPositionChangeElement.getTapPositionChange().getNewTapPosition();
                 double newAlpha = lfBranch.getPiModel().getModel(newTapPosition).getA1();
                 rhs.set(i, 0, states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha);
 
@@ -155,12 +155,12 @@ public class WoodburyEngine {
                 }
 
                 // loop on actions to fill bottom-right quadrant of the matrix
-                for (ComputedTapPositionChangeElement actionElement2 : pstActionElements) {
-                    int j = contingencyElements.size() + actionElement2.getLocalIndex();
+                for (ComputedTapPositionChangeElement tapPositionChangeElement2 : tapPositionChangeElements) {
+                    int j = contingencyElements.size() + tapPositionChangeElement2.getLocalIndex();
                     // if on the diagonal of the matrix, add variation of reactance
                     double deltaX = (i == j) ? 1d / (calculatePower(lfBranch) - calculatePower(lfBranch, newTapPosition)) : 0d;
-                    double value = deltaX - (pstActionsStates.get(p1.getPh1Var().getRow(), actionElement2.getComputedElementIndex())
-                            - pstActionsStates.get(p1.getPh2Var().getRow(), actionElement2.getComputedElementIndex()));
+                    double value = deltaX - (tapPositionChangeStates.get(p1.getPh1Var().getRow(), tapPositionChangeElement2.getComputedElementIndex())
+                            - tapPositionChangeStates.get(p1.getPh2Var().getRow(), tapPositionChangeElement2.getComputedElementIndex()));
                     matrix.set(i, j, value);
                 }
             }
@@ -168,7 +168,7 @@ public class WoodburyEngine {
                 lu.solve(rhs); // rhs now contains state matrix
             }
             contingencyElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(element.getLocalIndex(), 0)));
-            pstActionElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(contingencyElements.size() + element.getLocalIndex(), 0)));
+            tapPositionChangeElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(contingencyElements.size() + element.getLocalIndex(), 0)));
         }
     }
 
@@ -208,9 +208,9 @@ public class WoodburyEngine {
                 postContingencyValue += contingencyElement.getAlphaForWoodburyComputation()
                         * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
             }
-            for (ComputedTapPositionChangeElement actionElement : pstActionElements) {
+            for (ComputedTapPositionChangeElement actionElement : tapPositionChangeElements) {
                 postContingencyValue += actionElement.getAlphaForWoodburyComputation()
-                        * pstActionsStates.get(rowIndex, actionElement.getComputedElementIndex());
+                        * tapPositionChangeStates.get(rowIndex, actionElement.getComputedElementIndex());
             }
             postContingencyStates[rowIndex] = postContingencyValue;
         }
