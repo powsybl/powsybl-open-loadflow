@@ -267,7 +267,7 @@ class OpenLoadFlowParametersTest {
 
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setMaxNewtonRaphsonIterations(2); // Force final status of following run to be MAX_ITERATION_REACHED
+                .setMaxSolverIterations(2); // Force final status of following run to be MAX_ITERATION_REACHED
         assertFalse(olfParameters.isAlwaysUpdateNetwork()); // Default value of alwaysUpdateNetwork
 
         // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
@@ -302,7 +302,7 @@ class OpenLoadFlowParametersTest {
         parameters.update(updateParametersMap);
         assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getSlackBusSelectionMode());
         assertFalse(parameters.isVoltageRemoteControl());
-        assertEquals(10, parameters.getMaxNewtonRaphsonIterations());
+        assertEquals(10, parameters.getMaxSolverIterations());
         assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
     }
 
@@ -388,7 +388,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
         var pe = OpenLoadFlowParameters.create(p);
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
-        pe.setMaxNewtonRaphsonIterations(20);
+        pe.setMaxSolverIterations(20);
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
         assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), OpenLoadFlowParameters.clone(p)));
     }
@@ -464,7 +464,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
 
         // for integer parameters
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonRaphsonIterations(0));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxSolverIterations(0));
         assertEquals("Invalid value for parameter maxNewtonRaphsonIterations: 0", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxOuterLoopIterations(0));

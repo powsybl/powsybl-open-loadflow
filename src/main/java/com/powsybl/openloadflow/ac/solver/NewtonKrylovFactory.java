@@ -8,6 +8,8 @@
 package com.powsybl.openloadflow.ac.solver;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.iidm.network.Load;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -32,7 +34,7 @@ public class NewtonKrylovFactory implements AcSolverFactory {
     }
 
     @Override
-    public AcSolverParameters createParameters(OpenLoadFlowParameters parametersExt) {
+    public AcSolverParameters createParameters(OpenLoadFlowParameters parametersExt, LoadFlowParameters parameters) {
         return new NewtonKrylovParameters()
                 .setLineSearch(parametersExt.isNewtonKrylovLineSearch())
                 .setMaxIterations(parametersExt.getMaxNewtonKrylovIterations());
