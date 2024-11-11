@@ -1501,7 +1501,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setWriteReferenceTerminals(config.getBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME, WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE))
                 .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
                 .setGradientComputationModeKnitro(config.getIntProperty(GRADIENT_COMPUTATION_MODE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_COMPUTATION_MODE))
-                .setGradientUserRoutineKnitro(config.getIntProperty(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE)))
+                .setGradientUserRoutineKnitro(config.getIntProperty(GRADIENT_USER_ROUTINE_KNITRO_PARAM_NAME, KnitroSolverParameters.DEFAULT_GRADIENT_USER_ROUTINE))
                 .setVoltageTargetPriorities(config.getStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE))
                 .setTransformerVoltageControlUseInitialTapPosition(config.getBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE))
                 .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE))
