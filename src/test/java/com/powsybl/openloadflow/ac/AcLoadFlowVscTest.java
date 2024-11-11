@@ -26,6 +26,8 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEqua
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+
+//TODO oubli de passer ce test en Knitro
 class AcLoadFlowVscTest {
 
     @Test
