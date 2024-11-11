@@ -93,14 +93,14 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     private double[] calculatePostContingencyStatesForAContingency(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
                                                                    PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                    Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches,
-                                                                   List<LfAction> lfActions, Map<String, ComputedActionElement> computedActionElements,
+                                                                   List<LfAction> lfActions, Map<String, ComputedTapPositionChangeElement> computedActionElements,
                                                                    DenseMatrix actionsStates, ReportNode reportNode) {
 
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
-        List<ComputedActionElement> actionElements = lfActions.stream()
+        List<ComputedTapPositionChangeElement> actionElements = lfActions.stream()
                 .map(lfAction -> lfAction.getTapPositionChange().getBranch().getId())
                 .map(computedActionElements::get)
                 .collect(Collectors.toList());
@@ -161,8 +161,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * Calculate post contingency and post actions states, for a contingency breaking connectivity.
      */
     private double[] calculatePostContingencyStatesForAContingencyBreakingConnectivity(ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult, DcLoadFlowContext loadFlowContext,
-                                                                                      Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
-                                                                                       List<LfAction> lfActions, Map<String, ComputedActionElement> actionElementByBranch, DenseMatrix actionsStates, ReportNode reportNode) {
+                                                                                       Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
+                                                                                       List<LfAction> lfActions, Map<String, ComputedTapPositionChangeElement> actionElementByBranch, DenseMatrix actionsStates, ReportNode reportNode) {
 
         PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
@@ -254,18 +254,19 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                         postActionsNetworkResult.getThreeWindingsTransformerResults()));
     }
 
-    private static Map<String, ComputedActionElement> createActionsElementsIndexByBranchId(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        Map<String, ComputedActionElement> computedActionElements = lfActionById.values().stream()
-                .map(lfAction -> new ComputedActionElement(lfAction, equationSystem))
+    private static Map<String, ComputedTapPositionChangeElement> createActionsElementsIndexByBranchId(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<String, ComputedTapPositionChangeElement> computedTapPositionChangeElements = lfActionById.values().stream()
+                .filter(lfAction -> lfAction.getTapPositionChange() != null)
+                .map(lfAction -> new ComputedTapPositionChangeElement(lfAction.getTapPositionChange(), equationSystem))
                 .filter(computedActionElement -> computedActionElement.getLfBranchEquation() != null)
                 .collect(Collectors.toMap(
-                        computedActionElement -> computedActionElement.getAction().getTapPositionChange().getBranch().getId(),
+                        computedActionElement -> computedActionElement.getLfBranch().getId(),
                         computedActionElement -> computedActionElement,
                         (existing, replacement) -> existing,
                         LinkedHashMap::new
                 ));
-        ComputedElement.setComputedElementIndexes(computedActionElements.values());
-        return computedActionElements;
+        ComputedElement.setComputedElementIndexes(computedTapPositionChangeElements.values());
+        return computedTapPositionChangeElements;
     }
 
     @Override
@@ -318,7 +319,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // compute states with +1 -1 to model the actions in Woodbury engine
-            Map<String, ComputedActionElement> computedActionElements = createActionsElementsIndexByBranchId(lfActionById, context.getEquationSystem());
+            // TODO : do I really need to index on the branchId, instead of action ID ?
+            Map<String, ComputedTapPositionChangeElement> computedActionElements = createActionsElementsIndexByBranchId(lfActionById, context.getEquationSystem());
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, computedActionElements.values());
 
             // save base state for later restoration after each contingency/action

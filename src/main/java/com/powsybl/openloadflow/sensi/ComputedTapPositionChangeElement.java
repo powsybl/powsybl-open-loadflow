@@ -12,22 +12,21 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfAction;
+import com.powsybl.openloadflow.network.TapPositionChange;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy@artelys.com>}
  */
-public final class ComputedActionElement extends ComputedElement {
+public final class ComputedTapPositionChangeElement extends ComputedElement {
 
-    private final LfAction action;
+    private final TapPositionChange tapPositionChange;
 
-    public ComputedActionElement(final LfAction action, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(action.getTapPositionChange().getBranch(),
-                equationSystem.getEquationTerm(ElementType.BRANCH, action.getTapPositionChange().getBranch().getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
-        this.action = action;
+    public ComputedTapPositionChangeElement(TapPositionChange tapPositionChange, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        super(tapPositionChange.getBranch(), equationSystem.getEquationTerm(ElementType.BRANCH, tapPositionChange.getBranch().getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
+        this.tapPositionChange = tapPositionChange;
     }
 
-    public LfAction getAction() {
-        return action;
+    public TapPositionChange getTapPositionChange() {
+        return tapPositionChange;
     }
 }
