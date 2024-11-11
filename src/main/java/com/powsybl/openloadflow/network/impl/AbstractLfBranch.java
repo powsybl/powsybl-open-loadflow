@@ -149,10 +149,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return piModel;
     }
 
-    public PiModel getPiModel(int tapPosition) {
-        return getPiModel().getModel(tapPosition);
-    }
-
     @Override
     public Optional<TransformerPhaseControl> getPhaseControl() {
         return Optional.ofNullable(phaseControl);

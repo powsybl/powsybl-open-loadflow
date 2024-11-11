@@ -77,6 +77,4 @@ public interface PiModel {
     PiModel setTapPosition(int tapPosition);
 
     Range<Integer> getTapPositionRange();
-
-    PiModel getModel(int tapPositionIndex);
 }

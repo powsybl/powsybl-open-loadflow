@@ -7,13 +7,18 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Objects;
+
 public class TapPositionChange {
     private final LfBranch branch;
     private final int value;
     private final boolean isRelative;
 
     public TapPositionChange(LfBranch branch, int value, boolean isRelative) {
-        this.branch = branch;
+        if (!(branch.getPiModel() instanceof PiModelArray)) {
+            throw new IllegalStateException("A TapPositionChange can not be applied on a branch without PiModelArray");
+        }
+        this.branch = Objects.requireNonNull(branch);
         this.value = value;
         this.isRelative = isRelative;
     }
@@ -21,6 +26,11 @@ public class TapPositionChange {
     public int getNewTapPosition() {
         int tapPosition = branch.getPiModel().getTapPosition();
         return isRelative ? tapPosition + value : value;
+    }
+
+    public PiModel getNewPiModel() {
+        int newTapPosition = getNewTapPosition();
+        return ((PiModelArray) branch.getPiModel()).getModel(newTapPosition);
     }
 
     public LfBranch getBranch() {

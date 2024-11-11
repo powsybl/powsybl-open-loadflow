@@ -213,9 +213,4 @@ public class SimplePiModel implements PiModel {
     public Range<Integer> getTapPositionRange() {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
-
-    @Override
-    public PiModel getModel(int tapPositionIndex) {
-        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
-    }
 }
