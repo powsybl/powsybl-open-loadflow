@@ -198,21 +198,21 @@ public class WoodburyEngine {
      */
     public double[] run(double[] preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
-        double[] postContingencyStates = preContingencyStates;
+        double[] postContingencyAndOperatorStrategyStates = preContingencyStates;
         setAlphas(new DenseMatrix(preContingencyStates.length, 1, preContingencyStates), 0);
         for (int rowIndex = 0; rowIndex < preContingencyStates.length; rowIndex++) {
-            double postContingencyValue = preContingencyStates[rowIndex];
+            double postContingencyAndOperatorStrategyValue = preContingencyStates[rowIndex];
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                postContingencyValue += contingencyElement.getAlphaForWoodburyComputation()
+                postContingencyAndOperatorStrategyValue += contingencyElement.getAlphaForWoodburyComputation()
                         * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
             }
-            for (ComputedTapPositionChangeElement actionElement : tapPositionChangeElements) {
-                postContingencyValue += actionElement.getAlphaForWoodburyComputation()
-                        * tapPositionChangeStates.get(rowIndex, actionElement.getComputedElementIndex());
+            for (ComputedTapPositionChangeElement tapPositionChangeElement : tapPositionChangeElements) {
+                postContingencyAndOperatorStrategyValue += tapPositionChangeElement.getAlphaForWoodburyComputation()
+                        * tapPositionChangeStates.get(rowIndex, tapPositionChangeElement.getComputedElementIndex());
             }
-            postContingencyStates[rowIndex] = postContingencyValue;
+            postContingencyAndOperatorStrategyStates[rowIndex] = postContingencyAndOperatorStrategyValue;
         }
-        return postContingencyStates;
+        return postContingencyAndOperatorStrategyStates;
     }
 }
 
