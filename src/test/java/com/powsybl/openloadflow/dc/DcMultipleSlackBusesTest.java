@@ -1,11 +1,4 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * SPDX-License-Identifier: MPL-2.0
- */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.dc;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Line;
@@ -19,28 +12,20 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
- */
-class MultipleSlackBusesTest {
+class DcMultipleSlackBusesTest {
 
     private Network network;
 
@@ -55,68 +40,15 @@ class MultipleSlackBusesTest {
         network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
+                .setDc(true)
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMaxSlackBusCount(2);
     }
 
-    static Stream<Arguments> allStoppingCriteriaTypes() {
-        return Arrays.stream(NewtonRaphsonStoppingCriteriaType.values()).map(Arguments::of);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("allStoppingCriteriaTypes")
-    void multiSlackTest(NewtonRaphsonStoppingCriteriaType stoppingCriteria) {
-        parametersExt.setNewtonRaphsonStoppingCriteriaType(stoppingCriteria);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
-        assertEquals(3, componentResult.getIterationCount());
-        List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
-        assertEquals(2, slackBusResults.size());
-        assertEquals(-0.716, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.716, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-
-        parameters.setDistributedSlack(true);
-        result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        componentResult = result.getComponentResults().get(0);
-        slackBusResults = componentResult.getSlackBusResults();
-        assertEquals(4, componentResult.getIterationCount());
-        assertEquals(2, slackBusResults.size());
-        assertEquals(-0.005, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.005, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-    }
-
-    @Test
-    void nonImpedantBranchTest() {
-        network.getLine("NHV1_NHV2_1")
-                .setR(0)
-                .setX(0);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
-        List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
-        assertEquals(3, componentResult.getIterationCount());
-        assertEquals(2, slackBusResults.size());
-        assertEquals(-2.755, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-2.755, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-
-        parameters.setDistributedSlack(true);
-        result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        componentResult = result.getComponentResults().get(0);
-        slackBusResults = componentResult.getSlackBusResults();
-        assertEquals(4, componentResult.getIterationCount());
-        assertEquals(2, slackBusResults.size());
-        assertEquals(-0.005, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.005, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-    }
-
     @Test
     void dcMultiSlackTest() {
-        parameters.setDc(true);
         parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -130,11 +62,11 @@ class MultipleSlackBusesTest {
         TwoWindingsTransformer t2wtGen = network.getTwoWindingsTransformer("NGEN_NHV1");
         TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
 
-        assertEquals(0, nGen.getAngle(), LoadFlowAssert.DELTA_ANGLE);
-        assertEquals(301.75, l12A.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(301.75, l12B.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(600, t2wtLoad.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(607, t2wtGen.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertAngleEquals(0.0, nGen);
+        assertActivePowerEquals(301.75, l12A.getTerminal1());
+        assertActivePowerEquals(301.75, l12B.getTerminal1());
+        assertActivePowerEquals(600, t2wtLoad.getTerminal1());
+        assertActivePowerEquals(607, t2wtGen.getTerminal1());
 
         assertEquals(List.of("VLHV1_0", "VLHV2_0"), result.getComponentResults().get(0).getSlackBusResults().stream().map(r -> r.getId()).toList());
         assertEquals(-3.5, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
@@ -155,7 +87,6 @@ class MultipleSlackBusesTest {
         network.getLine("NHV1_NHV2_1")
                 .setR(0)
                 .setX(0);
-        parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
@@ -169,10 +100,10 @@ class MultipleSlackBusesTest {
         TwoWindingsTransformer t2wtGen = network.getTwoWindingsTransformer("NGEN_NHV1");
         TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
 
-        assertEquals(603.5, l12A.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0, l12B.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(600, t2wtLoad.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(607, t2wtGen.getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertActivePowerEquals(603.5, l12A.getTerminal1());
+        assertActivePowerEquals(0.0, l12B.getTerminal1());
+        assertActivePowerEquals(600, t2wtLoad.getTerminal1());
+        assertActivePowerEquals(607, t2wtGen.getTerminal1());
 
         parameters.setDistributedSlack(true);
         result = loadFlowRunner.run(network, parameters);
@@ -186,7 +117,6 @@ class MultipleSlackBusesTest {
 
     @Test
     void dcMultiSlackWithLoadOnSlackBus() {
-        parameters.setDc(true);
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
         parametersExt.setSlackBusesIds(List.of("VLHV2", "VLLOAD"));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -197,10 +127,11 @@ class MultipleSlackBusesTest {
         TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
         Load load = network.getLoad("LOAD");
 
-        assertEquals(-603.5, t2wtLoad.getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(600.0, load.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
+        assertActivePowerEquals(-603.5, t2wtLoad.getTerminal2());
+        assertActivePowerEquals(600.0, load.getTerminal());
 
         assertEquals(-3.5, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.5, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
     }
+
 }
