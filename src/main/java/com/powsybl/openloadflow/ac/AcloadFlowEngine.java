@@ -45,12 +45,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     private final AcSolverFactory solverFactory;
 
     public AcloadFlowEngine(AcLoadFlowContext context) {
-        this(context, new NewtonRaphsonFactory());
-    }
-
-    public AcloadFlowEngine(AcLoadFlowContext context, AcSolverFactory solverFactory) {
         this.context = Objects.requireNonNull(context);
-        this.solverFactory = Objects.requireNonNull(solverFactory);
+        this.solverFactory = context.getParameters().getSolverFactory();
     }
 
     @Override
@@ -251,7 +247,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .map(n -> {
                     if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
-                            return new AcloadFlowEngine(context, parameters.getSolverFactory())
+                            return new AcloadFlowEngine(context)
                                     .run();
                         }
                     }
