@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
@@ -59,11 +60,6 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return acSolverParameters;
     }
 
-    public AcLoadFlowParameters setAcSolverParameters(AcSolverParameters acSolverParameters) {
-        this.acSolverParameters = Objects.requireNonNull(acSolverParameters);
-        return this;
-    }
-
     public List<AcOuterLoop> getOuterLoops() {
         return outerLoops;
     }
@@ -113,8 +109,9 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return solverFactory;
     }
 
-    public AcLoadFlowParameters setSolverFactory(AcSolverFactory solverFactory) {
+    public AcLoadFlowParameters setSolverFactory(AcSolverFactory solverFactory, LoadFlowParameters parameters) {
         this.solverFactory = Objects.requireNonNull(solverFactory);
+        this.acSolverParameters = solverFactory.createParameters(parameters);
         return this;
     }
 
