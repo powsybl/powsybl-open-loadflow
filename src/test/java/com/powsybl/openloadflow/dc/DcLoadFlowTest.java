@@ -77,7 +77,10 @@ class DcLoadFlowTest {
         assertEquals(Double.NaN, line2.getTerminal1().getP(), 0);
         assertEquals(Double.NaN, line2.getTerminal2().getP(), 0);
 
-        loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(-7.0, result.getComponentResults().get(0).getDistributedActivePower(), 1e-3);
 
         assertEquals(300, line1.getTerminal1().getP(), 0.01);
         assertEquals(-300, line1.getTerminal2().getP(), 0.01);
@@ -106,7 +109,10 @@ class DcLoadFlowTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLoad("LOAD").setP0(450);
 
-        loadFlowRunner.run(network, parameters);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(-157.0, result.getComponentResults().get(0).getDistributedActivePower(), 1e-3);
 
         assertTrue(Double.isNaN(line1.getTerminal1().getP()));
         assertTrue(Double.isNaN(line1.getTerminal2().getP()));
