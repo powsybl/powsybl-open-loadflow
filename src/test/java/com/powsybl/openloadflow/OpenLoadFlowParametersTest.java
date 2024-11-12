@@ -14,6 +14,7 @@ import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
+import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -39,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.powsybl.openloadflow.OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -135,6 +137,16 @@ class OpenLoadFlowParametersTest {
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
+    }
+
+    @Test
+    void testConfigSpecificParameters() {
+        MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig(MODULE_SPECIFIC_PARAMETERS);
+        olfModuleConfig.setStringProperty("slackBusSelectionMode", "FIRST");
+
+        List<Parameter> olfParameters = new OpenLoadFlowProvider().getSpecificParameters(platformConfig);
+
+        assertEquals(SlackBusSelectionMode.FIRST.toString(), olfParameters.get(0).getDefaultValue());
     }
 
     @Test
