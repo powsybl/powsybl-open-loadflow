@@ -42,6 +42,7 @@ public class DcEquationSystemCreator {
                 equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_PHI)
                         .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI).createTerm());
             }
+            // The P balance equation is only disabled for the first slack bus. In cas of multi-slack, target vector will be updated for the other slack buses
             if (bus == network.getSlackBus()) {
                 p.setActive(false);
             }
