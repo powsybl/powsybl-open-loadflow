@@ -128,7 +128,6 @@ class MultipleSlackBusesTest {
         assertEquals(-600.710, t2wtLoad.getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(600.0, load.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
 
-        // still small difference due to NR conv epsilon per eq
         assertEquals(2, slackBusResults.size());
         assertEquals(-0.710, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.710, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
