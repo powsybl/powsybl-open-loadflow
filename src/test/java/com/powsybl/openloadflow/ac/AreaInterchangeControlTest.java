@@ -18,11 +18,9 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.List;
 import java.util.concurrent.CompletionException;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -171,15 +169,6 @@ class AreaInterchangeControlTest {
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
         CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Failed to distribute interchange active power mismatch", thrown.getCause().getMessage());
-    }
-
-    static Stream<Arguments> slackDistributionFailureBehaviors() {
-        return Stream.of(
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW)
-        );
     }
 
     @Test
