@@ -615,7 +615,6 @@ public final class Reports {
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
                 .withUntypedValue("minRealisticVoltage", minRealisticVoltage)
                 .withUntypedValue("maxRealisticVoltage", maxRealisticVoltage)
-                .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
 
