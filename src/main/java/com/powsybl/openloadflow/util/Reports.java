@@ -607,10 +607,6 @@ public final class Reports {
 
     public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
         ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
-            .withMessageTemplate("busesOutOfVoltageRealisticRange", "Buses have a voltage magnitude out of the configured realistic range")
-            .add();
-
-        voltageOutOfRangeReport.newReportNode()
                 .withMessageTemplate("busesOutOfVoltageRealisticRangeSummary", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}]")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
                 .withUntypedValue("minRealisticVoltage", minRealisticVoltage)

@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -255,5 +256,39 @@ class AcLoadFlowReportTest {
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterloop.txt", reportNode);
+    }
+
+    @Test
+    void busesOutOfRealisticVoltageRangeTest() throws IOException {
+        Network network = EurostagTutorialExample1Factory.create();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setMinRealisticVoltage(0.99)
+                .setMaxRealisticVoltage(1.01);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertTrue(result.isFailed());
+        LoadFlowAssert.assertTxtReportEquals("""
+                        + Test Report
+                           + Load flow on network 'sim1'
+                              + Network CC0 SC0
+                                 + Network info
+                                    Network has 4 buses and 4 branches
+                                    Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+                                    Angle reference bus: VLHV1_0
+                                    Slack bus: VLHV1_0
+                                 + 4 buses have a voltage magnitude out of the configured realistic range [0.99, 1.01]
+                                    Bus VLGEN_0 has an unrealistic voltage magnitude: 1.0208333333333333 pu
+                                    Bus VLHV1_0 has an unrealistic voltage magnitude: 1.0582636574158686 pu
+                                    Bus VLHV2_0 has an unrealistic voltage magnitude: 1.0261840057810543 pu
+                                    Bus VLLOAD_0 has an unrealistic voltage magnitude: 0.9838500227734096 pu
+                                 AC load flow completed with error (solverStatus=UNREALISTIC_STATE, outerloopStatus=STABLE)
+                        """, reportNode);
     }
 }
