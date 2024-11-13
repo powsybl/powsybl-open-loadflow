@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -125,8 +126,8 @@ class MultipleSlackBusesTest {
         TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
         Load load = network.getLoad("LOAD");
 
-        assertEquals(-600.710, t2wtLoad.getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(600.0, load.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
+        assertActivePowerEquals(-600.710, t2wtLoad.getTerminal2());
+        assertActivePowerEquals(600.0, load.getTerminal());
 
         assertEquals(2, slackBusResults.size());
         assertEquals(-0.710, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
