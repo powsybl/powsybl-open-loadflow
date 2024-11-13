@@ -8,11 +8,7 @@
 
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -29,7 +25,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,6 +42,12 @@ class DcMultipleSlackBusesTest {
     private LoadFlowParameters parameters;
 
     private OpenLoadFlowParameters parametersExt;
+    Bus genBus;
+    Load load;
+    private Line line1;
+    private Line line2;
+    private TwoWindingsTransformer genT2wt;
+    private TwoWindingsTransformer loadT2wt;
 
     @BeforeEach
     void setUp() {
@@ -52,10 +55,16 @@ class DcMultipleSlackBusesTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
                 .setDc(true)
-                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMaxSlackBusCount(2);
+
+        genBus = network.getBusBreakerView().getBus("NGEN");
+        load = network.getLoad("LOAD");
+        line1 = network.getLine("NHV1_NHV2_1");
+        line2 = network.getLine("NHV1_NHV2_2");
+        genT2wt = network.getTwoWindingsTransformer("NGEN_NHV1");
+        loadT2wt = network.getTwoWindingsTransformer("NHV2_NLOAD");
     }
 
     @Test
@@ -66,22 +75,15 @@ class DcMultipleSlackBusesTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
         assertEquals(2, slackBusResults.size());
-
-        Bus nGen = network.getBusBreakerView().getBus("NGEN");
-        Line l12A = network.getLine("NHV1_NHV2_1");
-        Line l12B = network.getLine("NHV1_NHV2_2");
-        TwoWindingsTransformer t2wtGen = network.getTwoWindingsTransformer("NGEN_NHV1");
-        TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
-
-        assertAngleEquals(0.0, nGen);
-        assertActivePowerEquals(301.75, l12A.getTerminal1());
-        assertActivePowerEquals(301.75, l12B.getTerminal1());
-        assertActivePowerEquals(600, t2wtLoad.getTerminal1());
-        assertActivePowerEquals(607, t2wtGen.getTerminal1());
-
-        assertEquals(List.of("VLHV1_0", "VLHV2_0"), result.getComponentResults().get(0).getSlackBusResults().stream().map(r -> r.getId()).toList());
+        assertEquals(List.of("VLHV1_0", "VLHV2_0"), slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
         assertEquals(-3.5, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.5, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+
+        assertAngleEquals(0.0, genBus);
+        assertActivePowerEquals(301.75, line1.getTerminal1());
+        assertActivePowerEquals(301.75, line2.getTerminal1());
+        assertActivePowerEquals(600, loadT2wt.getTerminal1());
+        assertActivePowerEquals(607, genT2wt.getTerminal1());
 
         parameters.setDistributedSlack(true);
         result = loadFlowRunner.run(network, parameters);
@@ -95,26 +97,21 @@ class DcMultipleSlackBusesTest {
 
     @Test
     void dcNonImpedantBranchTest() {
-        network.getLine("NHV1_NHV2_1")
-                .setR(0)
-                .setX(0);
+        line1.setR(0).setX(0); // "shortcuts" the line2
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
+        assertEquals(List.of("VLHV1_0", "VLHV2_0"), slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
         assertEquals(2, slackBusResults.size());
         assertEquals(-3.5, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.5, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
 
-        Line l12A = network.getLine("NHV1_NHV2_1");
-        Line l12B = network.getLine("NHV1_NHV2_2");
-        TwoWindingsTransformer t2wtGen = network.getTwoWindingsTransformer("NGEN_NHV1");
-        TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
-
-        assertActivePowerEquals(603.5, l12A.getTerminal1());
-        assertActivePowerEquals(0.0, l12B.getTerminal1());
-        assertActivePowerEquals(600, t2wtLoad.getTerminal1());
-        assertActivePowerEquals(607, t2wtGen.getTerminal1());
+        assertActivePowerEquals(603.5, line1.getTerminal1());
+        assertActivePowerEquals(0.0, line2.getTerminal1());
+        assertActivePowerEquals(600, loadT2wt.getTerminal1());
+        assertActivePowerEquals(607, genT2wt.getTerminal1());
 
         parameters.setDistributedSlack(true);
         result = loadFlowRunner.run(network, parameters);
@@ -135,14 +132,12 @@ class DcMultipleSlackBusesTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
         assertEquals(2, slackBusResults.size());
-        TwoWindingsTransformer t2wtLoad = network.getTwoWindingsTransformer("NHV2_NLOAD");
-        Load load = network.getLoad("LOAD");
+        assertEquals(List.of("VLHV2_0", "VLLOAD_0"), slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
 
-        assertActivePowerEquals(-603.5, t2wtLoad.getTerminal2());
+        assertActivePowerEquals(-603.5, loadT2wt.getTerminal2());
         assertActivePowerEquals(600.0, load.getTerminal());
 
         assertEquals(-3.5, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.5, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
     }
-
 }
