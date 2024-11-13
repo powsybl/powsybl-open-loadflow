@@ -112,9 +112,11 @@ class MultipleSlackBusesTest {
     }
 
     @Test
-    void targetVectorBug() {
-        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
-        parametersExt.setSlackBusesIds(List.of("VLHV2", "VLLOAD"));
+    void testSlackBusWithInjection() {
+        parametersExt
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusesIds(List.of("VLHV2", "VLLOAD"))
+                .setNewtonRaphsonConvEpsPerEq(1e-6);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
@@ -128,7 +130,7 @@ class MultipleSlackBusesTest {
 
         // still small difference due to NR conv epsilon per eq
         assertEquals(2, slackBusResults.size());
-        assertEquals(-0.711, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.711, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.710, slackBusResults.get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.710, slackBusResults.get(1).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
     }
 }
