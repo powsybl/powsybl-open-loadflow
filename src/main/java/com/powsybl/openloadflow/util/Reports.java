@@ -607,7 +607,7 @@ public final class Reports {
 
     public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
         ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
-                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}]")
+                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
                 .withUntypedValue("minRealisticVoltage", minRealisticVoltage)
                 .withUntypedValue("maxRealisticVoltage", maxRealisticVoltage)
@@ -615,8 +615,8 @@ public final class Reports {
                 .add();
 
         busesOutOfRealisticVoltageRange.forEach((id, voltage) -> voltageOutOfRangeReport.newReportNode()
-            .withMessageTemplate("busesOutOfVoltageRealisticRangeDetail", "Bus ${id} has an unrealistic voltage magnitude: ${voltage} pu")
-            .withUntypedValue("id", id)
+            .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRangeDetails", "Bus ${busId} has an unrealistic voltage magnitude: ${voltage} p.u.")
+            .withUntypedValue(BUS_ID, id)
             .withUntypedValue("voltage", voltage)
             .withSeverity(TypedValue.TRACE_SEVERITY)
             .add());
