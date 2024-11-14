@@ -413,6 +413,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public double getNonFictitiousLoadTargetP() {
+        return loads.stream()
+                .mapToDouble(load -> load.getNonFictitiousLoadTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
+                .sum();
+    }
+
+    @Override
     public double getLoadTargetQ() {
         return loads.stream()
                 .mapToDouble(load -> load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))

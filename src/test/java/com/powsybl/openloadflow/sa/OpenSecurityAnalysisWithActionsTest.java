@@ -34,6 +34,8 @@ import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -1477,13 +1479,25 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(104.40, operatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
     }
 
-    @Test
-    void testVSCLossSetpoint() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testVSCLossSetpoint(boolean withFictiveLoad) {
         // contingency leads to the lost of one converter station.
         // contingency leads to zero active power transmission in the hvdc line.
         // but other converter station keeps its voltage control capability.
         // remedial action re-enables the power transmission of the hvdc line.
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        if (withFictiveLoad) {
+            network.getBusBreakerView().getBus("b2").getVoltageLevel()
+                    .newLoad()
+                    .setId("fictiveLoad")
+                    .setP0(10)
+                    .setQ0(0)
+                    .setBus("b2")
+                    .setConnectableBus("b2")
+                    .setFictitious(true)
+                    .add();
+        }
         List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")));
         List<Action> actions = List.of(new SwitchAction("action", "s2", false));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy",

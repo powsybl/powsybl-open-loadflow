@@ -58,14 +58,18 @@ public final class HvdcConverterStations {
     }
 
     private static boolean isIsolated(Terminal terminal, LfNetworkParameters parameters) {
-        Bus bus = parameters.isBreakers() ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+        Bus bus = terminal.getBusView().getBus();
         if (bus == null) {
             return true;
         }
 
-        // The criteria should as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station
+        // The criteria should as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station or a fictitious load
         return bus.getConnectedTerminalStream()
                 .map(Terminal::getConnectable)
-                .noneMatch(c -> !(c instanceof HvdcConverterStation<?> || c instanceof BusbarSection));
+                .noneMatch(c -> !(c instanceof HvdcConverterStation<?> || c instanceof BusbarSection || isFictitiousLoad(c)));
+    }
+
+    private static boolean isFictitiousLoad(Connectable c) {
+        return c instanceof Load load && LfLoadImpl.isLoadFictitious(load);
     }
 }
