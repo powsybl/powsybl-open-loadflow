@@ -71,7 +71,7 @@ public class WoodburyEngine {
     }
 
     private double calculatePower(PiModel piModel) {
-        return AbstractClosedBranchDcFlowEquationTerm.calculatePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
+        return AbstractClosedBranchDcFlowEquationTerm.computePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
     /**

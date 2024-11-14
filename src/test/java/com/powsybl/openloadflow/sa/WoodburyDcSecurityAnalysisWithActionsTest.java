@@ -112,8 +112,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brRelPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcPhaseTapChangerTapPositionChangeAdmittanceOnlyAlphaNonNull() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testFastSaDcPhaseTapChangerTapPositionChangeAdmittanceOnlyAlphaNonNull(boolean dcFastMode) {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         // no alpha modification with pst actions
         network.getTwoWindingsTransformer("PS1")
@@ -129,6 +130,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
                 new OperatorStrategy("strategyTapAbsChange", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pstAbsChange")),
                 new OperatorStrategy("strategyTapRelChange", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pstRelChange")));
 
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
+
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 
@@ -163,8 +167,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brRelPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testSaDcPhaseTapChangerTapPositionChangeAlphaOnly() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testSaDcPhaseTapChangerTapPositionChangeAlphaOnly(boolean dcFastMode) {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         network.getTwoWindingsTransformer("PS1")
                 .getPhaseTapChanger()
@@ -179,6 +184,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
                 new OperatorStrategy("strategyTapAbsChange", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pstAbsChange")),
                 new OperatorStrategy("strategyTapRelChange", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pstRelChange")));
 
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
+
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 
@@ -213,6 +221,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brRelPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
+    // TODO Does not work in DC mode - to fix in a separate PR
     @Test
     void testSaDcPhaseTapChangerTapPositionChangeWithConnectivityBreak() {
         Network network = PhaseControlFactory.createNetworkWith3Buses();
@@ -259,8 +268,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brRelPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testSaDcPhaseTapChangerTapPositionChange() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testSaDcPhaseTapChangerTapPositionChange(boolean dcFastMode) {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -268,6 +278,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstAbsChange", "PS1", false, 0));
         List<OperatorStrategy> operatorStrategies = List.of(
                 new OperatorStrategy("strategyTapAbsChange", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pstAbsChange")));
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
@@ -295,8 +308,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brAbsPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcOneContingencyTwoTapPositionChange() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testFastSaDcOneContingencyTwoTapPositionChange(boolean dcFastMode) {
         Network network = PhaseControlFactory.createWithTwoT2wtTwoLines();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -305,6 +319,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
                 new PhaseTapChangerTapPositionAction("pst2Change", "PS2", false, 2));
         List<OperatorStrategy> operatorStrategies = List.of(
                 new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pst1Change", "pst2Change")));
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
@@ -334,14 +351,18 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS2").getTerminal2().getP(), brPS2.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcTwoContingenciesOneTapPositionChange() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testFastSaDcTwoContingenciesOneTapPositionChange(boolean dcFastMode) {
         Network network = PhaseControlFactory.createWithTwoT2wtTwoLines();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("L1+PS2", List.of(new BranchContingency("L1"), new BranchContingency("PS2"))));
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pst1Change", "PS1", false, 0));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("L1+PS2"), new TrueCondition(), List.of("pst1Change")));
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
@@ -369,8 +390,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcN2ContingencyOneTapPositionChange() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testFastSaDcN2ContingencyOneTapPositionChange(boolean dcFastMode) {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         // add load which will be lost by contingency
         network.getVoltageLevel("VL2").newLoad()
@@ -386,6 +408,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "PS1", false, 0));
         List<OperatorStrategy> operatorStrategies = List.of(
                 new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("L1+LD3"), new TrueCondition(), List.of("pstChange")));
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
@@ -412,6 +437,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brAbsPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
+    // Test on fast DC only. The limitation is specific to ast dc
     @Test
     void testFastDcSaWithActionNotOnPst() {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
