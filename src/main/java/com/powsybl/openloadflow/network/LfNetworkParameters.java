@@ -10,8 +10,6 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -59,8 +57,6 @@ public class LfNetworkParameters {
     public static final boolean SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE = false;
 
     public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = "ControlArea";
-
-    public static final boolean FIX_TARGET_VOLTAGE_INCOMPATIBILITY_DEFAULT_VALUE = false;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -166,10 +162,6 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
-    private boolean fixTargetVoltageIncompatibility = FIX_TARGET_VOLTAGE_INCOMPATIBILITY_DEFAULT_VALUE;
-
-    private MatrixFactory matrixFactory = new SparseMatrixFactory();
-
     public LfNetworkParameters() {
     }
 
@@ -218,8 +210,6 @@ public class LfNetworkParameters {
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
-        this.fixTargetVoltageIncompatibility = other.fixTargetVoltageIncompatibility;
-        this.matrixFactory = other.matrixFactory;
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
     }
@@ -661,24 +651,6 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isFixTargetVoltageIncompatibility() {
-        return fixTargetVoltageIncompatibility;
-    }
-
-    public LfNetworkParameters setFixTargetVoltageIncompatibility(boolean fixTargetVoltageIncompatibility) {
-        this.fixTargetVoltageIncompatibility = fixTargetVoltageIncompatibility;
-        return this;
-    }
-
-    public MatrixFactory getMatrixFactory() {
-        return matrixFactory;
-    }
-
-    public LfNetworkParameters setMatrixFactory(MatrixFactory matrixFactory) {
-        this.matrixFactory = matrixFactory;
-        return this;
-    }
-
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -724,8 +696,6 @@ public class LfNetworkParameters {
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
-                ", fixTargetVoltageIncompatibility=" + fixTargetVoltageIncompatibility +
-                ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ')';
     }
 }

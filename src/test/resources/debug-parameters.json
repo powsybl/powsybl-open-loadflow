@@ -98,7 +98,7 @@
         "extrapolateReactiveLimits" : false,
         "startWithFrozenACEmulation" : false,
         "generatorsWithZeroMwTargetAreNotStarted" : true,
-        "fixTargetVoltageIncompatibility" : false
+        "fixRemoteVoltageTarget" : false
       }
     }
   },

@@ -12,8 +12,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.TargetVoltageCompatibilityChecker;
-import com.powsybl.openloadflow.TargetVoltageCompatibilityCheckerParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -656,10 +654,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix(LfNetworkParameters parameters) {
-        if (parameters.isMinImpedance()) {
+    public void fix(boolean minImpedance, double lowImpedanceThreshold) {
+        if (minImpedance) {
             for (LfBranch branch : branches) {
-                branch.setMinZ(parameters.getLowImpedanceThreshold());
+                branch.setMinZ(lowImpedanceThreshold);
             }
         } else {
             // zero impedance phase shifter controller or controlled branch is not supported
@@ -667,16 +665,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     .filter(b -> b.isPhaseController() || b.isPhaseControlled()
                             || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
                             || b.getGeneratorReactivePowerControl().isPresent())
-                    .forEach(branch -> branch.setMinZ(parameters.getLowImpedanceThreshold()));
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
             // zero impedance boundary branch is not supported
             areas.stream()
                     .flatMap(a -> a.getBoundaries().stream())
                     .map(LfArea.Boundary::getBranch)
-                    .forEach(branch -> branch.setMinZ(parameters.getLowImpedanceThreshold()));
-        }
-
-        if (parameters.isFixTargetVoltageIncompatibility()) {
-            new TargetVoltageCompatibilityChecker(this).fix(new TargetVoltageCompatibilityCheckerParameters(parameters.getMatrixFactory()));
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
@@ -739,7 +733,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         int deadComponentsCount = 0;
         for (LfNetwork lfNetwork : lfNetworks) {
             ReportNode networkReport = Reports.createNetworkInfoReporter(lfNetwork.getReportNode());
-            lfNetwork.fix(parameters);
+            lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
             lfNetwork.validate(parameters.getLoadFlowModel(), networkReport);
             switch (lfNetwork.getValidity()) {
                 case VALID -> {
