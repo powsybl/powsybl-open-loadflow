@@ -192,7 +192,7 @@ public class WoodburyEngine {
     /**
      * Calculate post-contingency and post-actions states values by modifying pre-contingency states values using some flow transfer factors (alphas).
      */
-    public void toPostContingencyStates(double[] preContingencyStates) {
+    public void toPostContingencyAndOperatorStrategyStates(double[] preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
         setAlphas(new DenseMatrix(preContingencyStates.length, 1, preContingencyStates), 0);
         for (int rowIndex = 0; rowIndex < preContingencyStates.length; rowIndex++) {

@@ -129,7 +129,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || !operatorStrategyLfActions.isEmpty()) {
                 newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, operatorStrategyLfActions);
             }
-            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
@@ -139,7 +139,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
 
             newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode, operatorStrategyLfActions);
-            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
             networkState.restore();
         }
 
