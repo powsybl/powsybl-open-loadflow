@@ -307,8 +307,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME = "generatorsWithZeroMwTargetAreNotStarted";
 
-    public static final String FIX_REMOTE_TARGET_VOLTAGE_PARAM_NAME = "fixRemoteTargetVoltage";
-
+    public static final String FIX_REMOTE_VOLTAGE_TARGET_PARAM_NAME = "fixRemoteTargetVoltage";
 
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -459,7 +458,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
         new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(FIX_REMOTE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix incompatible target voltages", AcLoadFlowParameters.FIX_REMOTE_VOLTAGE_TARGET_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY)
+        new Parameter(FIX_REMOTE_VOLTAGE_TARGET_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix problematic remote voltage targets", AcLoadFlowParameters.FIX_REMOTE_VOLTAGE_TARGET_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -1589,7 +1588,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
                     config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
                     config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
-                    config.getOptionalBooleanProperty(FIX_REMOTE_TARGET_VOLTAGE_PARAM_NAME).ifPresent(this::setFixRemoteVoltageTarget);
+                    config.getOptionalBooleanProperty(FIX_REMOTE_VOLTAGE_TARGET_PARAM_NAME).ifPresent(this::setFixRemoteVoltageTarget);
                 });
         return this;
     }
@@ -1760,7 +1759,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setStartWithFrozenACEmulation(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorsWithZeroMwTargetAreNotStarted(Boolean.parseBoolean(prop)));
-        Optional.ofNullable(properties.get(FIX_REMOTE_TARGET_VOLTAGE_PARAM_NAME))
+        Optional.ofNullable(properties.get(FIX_REMOTE_VOLTAGE_TARGET_PARAM_NAME))
                 .ifPresent(prop -> this.setFixRemoteVoltageTarget(Boolean.parseBoolean(prop)));
         return this;
     }
@@ -1845,7 +1844,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
         map.put(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, startWithFrozenACEmulation);
         map.put(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, generatorsWithZeroMwTargetAreNotStarted);
-        map.put(FIX_REMOTE_TARGET_VOLTAGE_PARAM_NAME, fixRemoteVoltageTarget);
+        map.put(FIX_REMOTE_VOLTAGE_TARGET_PARAM_NAME, fixRemoteVoltageTarget);
         return map;
     }
 
