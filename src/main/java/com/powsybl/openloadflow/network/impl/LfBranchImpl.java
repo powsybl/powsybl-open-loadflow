@@ -125,6 +125,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         double zb = PerUnit.zb(nominalV2);
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
+        double ratedRatio = twt.getRatedU2() / twt.getRatedU1();
         if (ptc != null
                 && (ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retainPtc)) {
@@ -134,7 +135,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             List<PiModel> models = new ArrayList<>();
             for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance()));
+                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance(), ratedRatio));
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
         }
@@ -148,7 +149,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 List<PiModel> models = new ArrayList<>();
                 for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance()));
+                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance(), ratedRatio));
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
             } else {
@@ -160,7 +161,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             // we don't have any phase or voltage control, we create a simple pi model (single tap) based on phase current
             // tap and voltage current tap
             Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt);
-            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance());
+            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance(), ratedRatio);
         }
 
         return new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);

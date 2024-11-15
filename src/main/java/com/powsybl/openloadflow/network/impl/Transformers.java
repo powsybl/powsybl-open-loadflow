@@ -154,12 +154,12 @@ public final class Transformers {
     }
 
     public static SimplePiModel createPiModel(Transformers.TapCharacteristics tapCharacteristics, double zb,
-                                              double baseRatio, boolean twtSplitShuntAdmittance) {
+                                              double baseRatio, boolean twtSplitShuntAdmittance, double ratedRatio) {
         double r = tapCharacteristics.getR() / zb;
         double x = tapCharacteristics.getX() / zb;
-        double g1 = (twtSplitShuntAdmittance ? tapCharacteristics.getG() / 2 : tapCharacteristics.getG()) * zb;
+        double g1 = (twtSplitShuntAdmittance ? tapCharacteristics.getG() * ratedRatio / (ratedRatio + 1) : tapCharacteristics.getG()) * zb;
         double g2 = twtSplitShuntAdmittance ? g1 : 0;
-        double b1 = (twtSplitShuntAdmittance ? tapCharacteristics.getB() / 2 : tapCharacteristics.getB()) * zb;
+        double b1 = (twtSplitShuntAdmittance ? tapCharacteristics.getB() * ratedRatio / (ratedRatio + 1) : tapCharacteristics.getB()) * zb;
         double b2 = twtSplitShuntAdmittance ? b1 : 0;
         double r1 = tapCharacteristics.getRatio() / baseRatio;
         double a1 = tapCharacteristics.getAngle();
