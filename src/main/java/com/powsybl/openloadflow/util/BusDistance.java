@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,8 @@ public final class BusDistance {
      * @return                  measured distance (number of branches) or Integer.MAX_VALUE if bus2 is not found
      */
     public static int distanceBetweenBuses(LfBus bus1, LfBus bus2, int maxDistanceSearch) {
+        Objects.requireNonNull(bus1);
+        Objects.requireNonNull(bus2);
         if (bus1.equals(bus2)) {
             return 0;
         }
