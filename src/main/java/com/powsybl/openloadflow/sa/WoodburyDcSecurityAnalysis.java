@@ -341,7 +341,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             Stopwatch stopwatch = Stopwatch.createStarted();
                             System.arraycopy(preContingencyStates, 0, workingContingencyStates, 0, preContingencyStates.length);
                             double[] postContingencyStates = calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates, propagatedContingency,
-                                    connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), reportNode, Collections.emptySet());
+                                    connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), reportNode);
                             // compute post contingency result with post contingency states
                             PostContingencyResult postContingencyResult = computePostContingencyResult(context, propagatedContingency.getContingency(),
                                     lfContingency, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
