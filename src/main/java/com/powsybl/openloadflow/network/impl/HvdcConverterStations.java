@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.HvdcUtils;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -45,19 +44,19 @@ public final class HvdcConverterStations {
                 && ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
     }
 
-    public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station, LfNetworkParameters parameters) {
+    public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station) {
 
-        if (isIsolated(station.getTerminal(), parameters)) {
+        if (isIsolated(station.getTerminal())) {
             return true;
         } else {
             return station.getOtherConverterStation().map(otherConverterStation -> {
                 Terminal otherTerminal = otherConverterStation.getTerminal();
-                return isIsolated(otherTerminal, parameters);
+                return isIsolated(otherTerminal);
             }).orElse(true); // it means there is no HVDC line connected to station
         }
     }
 
-    private static boolean isIsolated(Terminal terminal, LfNetworkParameters parameters) {
+    private static boolean isIsolated(Terminal terminal) {
         Bus bus = terminal.getBusView().getBus();
         if (bus == null) {
             return true;
@@ -69,7 +68,7 @@ public final class HvdcConverterStations {
                 .noneMatch(c -> !(c instanceof HvdcConverterStation<?> || c instanceof BusbarSection || isFictitiousLoad(c)));
     }
 
-    private static boolean isFictitiousLoad(Connectable c) {
+    private static boolean isFictitiousLoad(Connectable<?> c) {
         return c instanceof Load load && LfLoadImpl.isLoadFictitious(load);
     }
 }
