@@ -31,6 +31,7 @@ import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.AbstractDcOuterLoopConfig;
@@ -2138,6 +2139,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations())
                 .setSlackBusPMaxMismatch(parametersExt.getSlackBusPMaxMismatch())
                 .setAreaInterchangePMaxMismatch(parametersExt.getAreaInterchangePMaxMismatch());
+    }
+
+    static GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt,
+                                                                            GraphConnectivityFactory<LfBus, LfBranch> defaultConnectivityFactory) {
+        return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+                || parametersExt.isSimulateAutomationSystems()
+                ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
+                : defaultConnectivityFactory;
     }
 
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
