@@ -180,8 +180,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             new RemoteVoltageTargetChecker(context.getNetwork(),
                     loadFlowContext.getEquationSystem(),
                     loadFlowContext.getJacobianMatrix())
-                    .fix(new RemoteVoltageTargetCheckerParameters(loadFlowContext.getParameters().getMatrixFactory(),
-                                                                  loadFlowContext.getParameters().getVoltageInitializer()));
+                    .fix(new RemoteVoltageTargetCheckerParameters(loadFlowContext.getParameters().getMatrixFactory()));
         }
         context.setData(new ContextData());
     }
