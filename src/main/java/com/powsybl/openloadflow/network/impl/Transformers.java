@@ -155,6 +155,8 @@ public final class Transformers {
 
     public static SimplePiModel createPiModel(Transformers.TapCharacteristics tapCharacteristics, double zb,
                                               double baseRatio, boolean twtSplitShuntAdmittance, double ratedRatio) {
+        // If twtSplitShuntAdmittance is used we use the ratedRatio, not the tapCharacteristics's ratio. With this choice, if the tap changers step
+        // do not change g or b, then the splitted g1/g2 b1/b2 are not changed.
         double r = tapCharacteristics.getR() / zb;
         double x = tapCharacteristics.getX() / zb;
         double g1 = (twtSplitShuntAdmittance ? tapCharacteristics.getG() * ratedRatio / (ratedRatio + 1) : tapCharacteristics.getG()) * zb;
