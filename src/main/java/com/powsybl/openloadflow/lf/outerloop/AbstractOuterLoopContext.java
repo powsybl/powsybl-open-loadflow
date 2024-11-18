@@ -28,6 +28,8 @@ public abstract class AbstractOuterLoopContext<V extends Enum<V> & Quantity,
     protected Object data;
 
     protected C loadFlowContext;
+    private int outerLoopTotalIterations; // current total iterations over all outer loop types, for reporting purposes
+    private int iteration;
 
     protected AbstractOuterLoopContext(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
@@ -56,5 +58,22 @@ public abstract class AbstractOuterLoopContext<V extends Enum<V> & Quantity,
     @Override
     public void setLoadFlowContext(C loadFlowContext) {
         this.loadFlowContext = loadFlowContext;
+    }
+
+    public int getOuterLoopTotalIterations() {
+        return outerLoopTotalIterations;
+    }
+
+    public void setOuterLoopTotalIterations(int outerLoopTotalIterations) {
+        this.outerLoopTotalIterations = outerLoopTotalIterations;
+    }
+
+    @Override
+    public int getIteration() {
+        return iteration;
+    }
+
+    public void setIteration(int iteration) {
+        this.iteration = iteration;
     }
 }
