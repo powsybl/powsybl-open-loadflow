@@ -11,12 +11,10 @@ import com.google.common.collect.Lists;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.outerloop.AcActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
-import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
-import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -209,8 +207,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
-            if (outerLoop instanceof DistributedSlackOuterLoop || outerLoop instanceof AreaInterchangeControlOuterloop) {
-                distributedActivePower = ((DistributedSlackContextData) outerLoopContext.getData()).getDistributedActivePower();
+            if (outerLoop instanceof AcActivePowerDistributionOuterLoop activePowerDistributionOuterLoop) {
+                distributedActivePower = activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext);
             }
             outerLoop.cleanup(outerLoopContext);
         }

@@ -1922,7 +1922,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
                 .setMaxSlackBusCount(1)
-                .setLinePerUnitMode(parametersExt.getLinePerUnitMode());
+                .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
+                .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
+                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
@@ -1934,11 +1936,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new DcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
+                .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
                 .setMatrixFactory(matrixFactory)
                 .setDistributedSlack(parameters.isDistributedSlack())
+                .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setBalanceType(parameters.getBalanceType())
                 .setSetVToNan(true)
-                .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations());
+                .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations())
+                .setSlackBusPMaxMismatch(parametersExt.getSlackBusPMaxMismatch())
+                .setAreaInterchangePMaxMismatch(parametersExt.getAreaInterchangePMaxMismatch());
     }
 
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {

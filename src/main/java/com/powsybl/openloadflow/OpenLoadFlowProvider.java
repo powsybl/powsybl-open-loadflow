@@ -262,7 +262,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 0, // iterationCount
                 referenceBusAndSlackBusesResults.referenceBusId(),
                 referenceBusAndSlackBusesResults.slackBusResultList(),
-                Double.NaN);
+                result.getDistributedActivePower() * PerUnit.SB);
     }
 
     @Override

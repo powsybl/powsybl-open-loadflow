@@ -18,10 +18,21 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class AcOuterLoopContext extends AbstractOuterLoopContext<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext> {
 
+    private int iteration; // current iterations of this single outer loop type
+
     private AcSolverResult lastSolverResult;
 
     AcOuterLoopContext(LfNetwork network) {
         super(network);
+    }
+
+    @Override
+    public int getIteration() {
+        return iteration;
+    }
+
+    public void setIteration(int iteration) {
+        this.iteration = iteration;
     }
 
     public AcSolverResult getLastSolverResult() {

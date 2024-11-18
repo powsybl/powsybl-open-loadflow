@@ -21,11 +21,11 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
     private final boolean solverSuccess;
 
     public static DcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new DcLoadFlowResult(network, 0, false, OuterLoopResult.stable(), Double.NaN);
+        return new DcLoadFlowResult(network, 0, false, OuterLoopResult.stable(), Double.NaN, Double.NaN);
     }
 
-    public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch) {
-        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult);
+    public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch, double distributedActivePower) {
+        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverSuccess = solverSuccess;
     }
 
