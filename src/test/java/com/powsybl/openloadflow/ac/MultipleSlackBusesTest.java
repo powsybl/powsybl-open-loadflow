@@ -109,7 +109,6 @@ class MultipleSlackBusesTest {
         assertTrue(result.isFullyConverged());
         componentResult = result.getComponentResults().get(0);
         slackBusResults = componentResult.getSlackBusResults();
-
         expectedIterationCount = ac ? 4 : 0;
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
         expectedSlackBusMismatch = ac ? -0.005 : 0;
@@ -143,7 +142,6 @@ class MultipleSlackBusesTest {
         assertTrue(result.isFullyConverged());
         componentResult = result.getComponentResults().get(0);
         slackBusResults = componentResult.getSlackBusResults();
-
         expectedIterationCount = ac ? 4 : 0;
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
         expectedSlackBusMismatch = ac ? -0.005 : 0;
@@ -159,14 +157,12 @@ class MultipleSlackBusesTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
-
         int expectedIterationCount = ac ? 3 : 0;
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
 
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
         assertEquals(List.of("VLHV2_0", "VLLOAD_0"), slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
         double expectedSlackBusMismatch = ac ? -1.159 : -3.5;
-
         assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
 
         if (ac) {
