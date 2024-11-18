@@ -208,6 +208,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         double slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
+            // FIXME handle distribution failure
             distributedActivePower = distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
