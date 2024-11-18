@@ -7,6 +7,10 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -146,7 +150,7 @@ class MultipleSlackBusesTest {
 
     @ParameterizedTest(name = "ac : {0}")
     @MethodSource("allModelTypes")
-    void dcMultiSlackWithLoadOnSlackBus(boolean ac) {
+    void loadOnSlackBusTest(boolean ac) {
         parameters.setDc(!ac);
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
         parametersExt.setSlackBusesIds(List.of("VLHV2", "VLLOAD"));
@@ -158,12 +162,11 @@ class MultipleSlackBusesTest {
 
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
         assertEquals(List.of("VLHV2_0", "VLLOAD_0"), slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
-        double expectedSlackBusMismatch = ac ? -1.159 : -3.5;
+        double expectedSlackBusMismatch = ac ? -0.711 : -3.5;
         assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
 
         if (ac) {
-            // Needs to be fixed -> wrong power balance for slack buses with injections
-            assertActivePowerValues(303.183, 303.183, 301.434);
+            assertActivePowerValues(303.165, 303.165, 601.58);
         } else {
             assertActivePowerValues(303.5, 303.5, 603.5);
         }
