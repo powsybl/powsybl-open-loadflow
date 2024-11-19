@@ -19,8 +19,4 @@ import com.powsybl.openloadflow.lf.outerloop.ActivePowerDistributionOuterLoop;
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public interface AcActivePowerDistributionOuterLoop extends ActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext> {
-    @Override
-    default double getSlackBusActivePowerMismatch(AcOuterLoopContext context) {
-        return context.getLastSolverResult().getSlackBusActivePowerMismatch();
-    }
 }

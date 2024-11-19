@@ -94,6 +94,11 @@ public class DistributedSlackOuterLoop
     }
 
     @Override
+    public double getSlackBusActivePowerMismatch(AcOuterLoopContext context) {
+        return context.getLastSolverResult().getSlackBusActivePowerMismatch();
+    }
+
+    @Override
     public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior(AcOuterLoopContext context) {
         OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
         if (slackDistributionFailureBehavior == OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR

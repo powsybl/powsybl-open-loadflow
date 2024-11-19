@@ -37,4 +37,9 @@ public class AcAreaInterchangeControlOuterLoop
         return NAME;
     }
 
+    @Override
+    public double getSlackBusActivePowerMismatch(AcOuterLoopContext context) {
+        return context.getLastSolverResult().getSlackBusActivePowerMismatch();
+    }
+
 }
