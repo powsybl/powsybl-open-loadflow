@@ -53,7 +53,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         private boolean lastSolverSuccess;
 
-        private int solverTotalIterations = 0;
+        private int solverTotalExecutions = 0;
 
         private int outerLoopTotalIterations = 0;
 
@@ -144,7 +144,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 // if not yet stable, restart linear system solving
                 double[] targetVectorArray = context.getTargetVector().getArray().clone();
                 runningContext.lastSolverSuccess = solve(targetVectorArray, context.getJacobianMatrix(), olReportNode);
-                runningContext.solverTotalIterations++;
+                runningContext.solverTotalExecutions++;
 
                 if (runningContext.lastSolverSuccess) {
                     context.getEquationSystem().getStateVector().set(targetVectorArray);
@@ -214,9 +214,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         // continue with outer loops only if solver succeed
         if (runningContext.lastSolverSuccess) {
-            int oldSolverTotalIterations;
+            int oldSolverTotalExecutions;
             do {
-                oldSolverTotalIterations = runningContext.solverTotalIterations;
+                oldSolverTotalExecutions = runningContext.solverTotalExecutions;
                 // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
                     runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), runningContext);
@@ -231,7 +231,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                         break;
                     }
                 }
-            } while (runningContext.solverTotalIterations > oldSolverTotalIterations
+            } while (runningContext.solverTotalExecutions > oldSolverTotalExecutions
                     && runningContext.lastSolverSuccess
                     && runningContext.lastOuterLoopResult.status() != OuterLoopStatus.FAILED
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
