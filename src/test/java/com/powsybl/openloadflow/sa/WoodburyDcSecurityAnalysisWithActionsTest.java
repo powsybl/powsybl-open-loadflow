@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
@@ -96,7 +97,6 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         network.getLine("L1").getTerminal2().disconnect();
         // Apply remedial action
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
-        OpenLoadFlowParameters.create(parameters);
 
         loadFlowRunner.run(network, parameters);
 
@@ -151,7 +151,6 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         network.getLine("L1").getTerminal2().disconnect();
         // Apply remedial action
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
-        OpenLoadFlowParameters.create(parameters);
 
         loadFlowRunner.run(network, parameters);
 
@@ -205,7 +204,6 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         network.getLine("L1").getTerminal2().disconnect();
         // Apply remedial action
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
-        OpenLoadFlowParameters.create(parameters);
 
         loadFlowRunner.run(network, parameters);
 
@@ -234,6 +232,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
                 new OperatorStrategy("strategyTapAbsChange", ContingencyContext.specificContingency("L23"), new TrueCondition(), List.of("pstAbsChange")),
                 new OperatorStrategy("strategyTapRelChange", ContingencyContext.specificContingency("L23"), new TrueCondition(), List.of("pstRelChange")));
 
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusId("VL2_0")
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 
@@ -252,7 +253,6 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         network.getLine("L23").getTerminal2().disconnect();
         // Apply remedial action
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
-        OpenLoadFlowParameters.create(parameters);
 
         loadFlowRunner.run(network, parameters);
 
@@ -296,7 +296,6 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         network.getLine("L1").getTerminal2().disconnect();
         // Apply remedial action
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
-        OpenLoadFlowParameters.create(parameters);
 
         loadFlowRunner.run(network, parameters);
 

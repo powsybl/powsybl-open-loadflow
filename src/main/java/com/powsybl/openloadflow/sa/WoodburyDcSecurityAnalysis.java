@@ -321,7 +321,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // compute states with +1 -1 to model the actions in Woodbury engine
-            // TODO : do I really need to index on the branchId, instead of action ID ?
             Map<String, ComputedTapPositionChangeElement> tapPositionChangeElementsByBranchId = createTapPositionChangeElementsIndexByBranchId(lfActionById, context.getEquationSystem());
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, tapPositionChangeElementsByBranchId.values());
 
