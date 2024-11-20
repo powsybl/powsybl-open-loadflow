@@ -41,6 +41,7 @@ import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -121,7 +122,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             engine.toPostContingencyStates(newFlowStates);
             networkState.restore();
         }
-
         return newFlowStates;
     }
 
@@ -185,52 +185,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 connectivityResult);
     }
 
-    private Optional<PostContingencyResult> processContingency(
-            LfNetwork lfNetwork,
-            DcLoadFlowContext context,
-            PropagatedContingency propagatedContingency,
-            PreContingencyNetworkResult preContingencyNetworkResult,
-            LimitViolationManager preContingencyLimitViolationManager,
-            SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-            boolean createResultExtension,
-            NetworkState networkState,
-            Supplier<double[]> postContingencyStateComputation,
-            List<LimitReduction> limitReductions) {
-
-        Optional<LfContingency> lfContingency = propagatedContingency.toLfContingency(lfNetwork, false);
-        if (lfContingency.isPresent()) {
-            ReportNode postContSimReportNode = Reports.createPostContingencySimulation(
-                    context.getNetwork().getReportNode(),
-                    propagatedContingency.getContingency().getId());
-            context.getNetwork().setReportNode(postContSimReportNode);
-
-            logPostContingencyStart(context.getNetwork(), lfContingency.get()); // TODO : modify the get here
-
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            double[] postContingencyState = postContingencyStateComputation.get();
-            stopwatch.stop();
-
-            PostContingencyResult postContingencyResult = computePostContingencyResult(
-                    context,
-                    propagatedContingency.getContingency(),
-                    lfContingency.get(),
-                    preContingencyLimitViolationManager,
-                    preContingencyNetworkResult,
-                    createResultExtension,
-                    violationsParameters,
-                    postContingencyState,
-                    limitReductions
-            );
-
-            logPostContingencyEnd(context.getNetwork(), lfContingency.get(), stopwatch);
-            networkState.restore();
-
-            return Optional.of(postContingencyResult);
-        }
-
-        return Optional.empty();
-    }
-
     @Override
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
@@ -280,49 +234,51 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             NetworkState networkState = NetworkState.save(lfNetwork);
 
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+
+            BiConsumer<PropagatedContingency, Supplier<double[]>> postContingencyResultAdder = (contingency, postContingencyStatesSupplier) -> {
+                contingency.toLfContingency(lfNetwork, false).ifPresent(lfContingency -> {
+                    ReportNode postContSimReportNode = Reports.createPostContingencySimulation(context.getNetwork().getReportNode(), contingency.getContingency().getId());
+                    context.getNetwork().setReportNode(postContSimReportNode);
+
+                    logPostContingencyStart(context.getNetwork(), lfContingency);
+                    Stopwatch stopwatch = Stopwatch.createStarted();
+
+                    double[] postContingencyStates = postContingencyStatesSupplier.get();
+                    // compute post contingency result with post contingency states
+                    PostContingencyResult postContingencyResult = computePostContingencyResult(context, contingency.getContingency(),
+                            lfContingency, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
+                            securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyStates, limitReductions);
+
+                    stopwatch.stop();
+                    logPostContingencyEnd(context.getNetwork(), lfContingency, stopwatch);
+
+                    postContingencyResults.add(postContingencyResult);
+                    // restore pre contingency states for next post contingency computation
+                    // FIXME : not sure this is mandatory to copy preContingency in workingContingency in case of connectivity break
+                    System.arraycopy(preContingencyStates, 0, workingContingencyStates, 0, preContingencyStates.length);
+                    networkState.restore();
+                });
+            };
+
             LOGGER.info("Processing post contingency results for contingencies with no connectivity break");
-            for (PropagatedContingency nonBreakingContingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
-                Supplier<double[]> postContingencyStatesForNonBreakingConnectivityContingency = () ->
-                        calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates, nonBreakingContingency, connectivityBreakAnalysisResults.contingencyElementByBranch(),
-                                Collections.emptySet(), Collections.emptySet(), reportNode, Collections.emptySet());
-                Optional<PostContingencyResult> postContingencyResult = processContingency(
-                        lfNetwork, context, nonBreakingContingency, preContingencyNetworkResult,
-                        preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(), createResultExtension, networkState,
-                        postContingencyStatesForNonBreakingConnectivityContingency,
-                        limitReductions);
-                postContingencyResult.ifPresent(postContingencyResults::add);
-                System.arraycopy(preContingencyStates, 0, workingContingencyStates, 0, preContingencyStates.length);
-                networkState.restore();
-            }
+            connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies().forEach(
+                    nonBreakingConnectivityContingency -> {
+                        Supplier<double[]> toPostContingencyStates = () -> calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates, nonBreakingConnectivityContingency, connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                                        Collections.emptySet(), Collections.emptySet(), reportNode, Collections.emptySet());
+                        postContingencyResultAdder.accept(nonBreakingConnectivityContingency, toPostContingencyStates);
+                    }
+            );
 
             LOGGER.info("Processing post contingency results for contingencies breaking connectivity");
             connectivityBreakAnalysisResults.connectivityAnalysisResults()
                     .forEach(connectivityAnalysisResult -> {
-                        PropagatedContingency propagatedContingency = connectivityAnalysisResult.getPropagatedContingency();
-                        propagatedContingency.toLfContingency(lfNetwork, false) // Woodbury does not support slack relocation
-                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
-                                lfNetwork.setReportNode(postContSimReportNode);
-
-                                logPostContingencyStart(lfNetwork, lfContingency);
-                                Stopwatch stopwatch = Stopwatch.createStarted();
-
-                                // no need to distribute active mismatch due to connectivity modifications
-                                // this is handled when the slack is distributed in pre contingency states override
-                                double[] postContingencyStates = calculatePostContingencyStatesForAContingencyBreakingConnectivity(connectivityAnalysisResult, context,
-                                        connectivityBreakAnalysisResults.contingencyElementByBranch(), preContingencyStates,
-                                        connectivityBreakAnalysisResults.contingenciesStates(), reportNode);
-                                // compute post contingency result with post contingency states
-                                PostContingencyResult postContingencyResult = computePostContingencyResult(context, propagatedContingency.getContingency(),
-                                        lfContingency, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
-                                        securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyStates, limitReductions);
-
-                                stopwatch.stop();
-                                logPostContingencyEnd(lfNetwork, lfContingency, stopwatch);
-
-                                postContingencyResults.add(postContingencyResult);
-                                networkState.restore();
-                            });
+                        PropagatedContingency breakingConnectivityContingency = connectivityAnalysisResult.getPropagatedContingency();
+                        // no need to distribute active mismatch due to connectivity modifications
+                        // this is handled when the slack is distributed in pre contingency states override
+                        Supplier<double[]> toPostContingencyStates = () -> calculatePostContingencyStatesForAContingencyBreakingConnectivity(connectivityAnalysisResult, context,
+                                connectivityBreakAnalysisResults.contingencyElementByBranch(), preContingencyStates,
+                                connectivityBreakAnalysisResults.contingenciesStates(), reportNode);
+                        postContingencyResultAdder.accept(breakingConnectivityContingency, toPostContingencyStates);
                     });
 
             return new SecurityAnalysisResult(
