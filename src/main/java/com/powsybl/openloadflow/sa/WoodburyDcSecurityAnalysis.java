@@ -122,6 +122,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             engine.toPostContingencyStates(newFlowStates);
             networkState.restore();
         }
+
         return newFlowStates;
     }
 
@@ -234,7 +235,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             NetworkState networkState = NetworkState.save(lfNetwork);
 
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-
             BiConsumer<PropagatedContingency, Supplier<double[]>> postContingencyResultAdder = (contingency, postContingencyStatesSupplier) -> {
                 contingency.toLfContingency(lfNetwork, false).ifPresent(lfContingency -> {
                     ReportNode postContSimReportNode = Reports.createPostContingencySimulation(context.getNetwork().getReportNode(), contingency.getContingency().getId());
@@ -253,9 +253,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     logPostContingencyEnd(context.getNetwork(), lfContingency, stopwatch);
 
                     postContingencyResults.add(postContingencyResult);
-                    // restore pre contingency states for next post contingency computation
-                    // FIXME : not sure this is mandatory to copy preContingency in workingContingency in case of connectivity break
-                    System.arraycopy(preContingencyStates, 0, workingContingencyStates, 0, preContingencyStates.length);
+                    // restore pre contingency state for next post contingency computation
                     networkState.restore();
                 });
             };
@@ -266,6 +264,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                         Supplier<double[]> toPostContingencyStates = () -> calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates, nonBreakingConnectivityContingency, connectivityBreakAnalysisResults.contingencyElementByBranch(),
                                         Collections.emptySet(), Collections.emptySet(), reportNode, Collections.emptySet());
                         postContingencyResultAdder.accept(nonBreakingConnectivityContingency, toPostContingencyStates);
+                        // update workingContingencyStates as it may have been updated by post contingency states calculation
+                        System.arraycopy(preContingencyStates, 0, workingContingencyStates, 0, preContingencyStates.length);
                     }
             );
 
