@@ -35,18 +35,8 @@ public class WoodburyEngine {
 
     private final DenseMatrix tapPositionChangeStates;
 
-    // TODO : empty matrix in DenseMatrix class ?
-    public static final class EmptyDenseMatrix {
-        private static final DenseMatrix INSTANCE = new DenseMatrix(0, 0);
-
-        private EmptyDenseMatrix() {
-
-        }
-
-        public static DenseMatrix getInstance() {
-            return INSTANCE;
-        }
-    }
+    // TODO : should be removed after refactoring in powsybl-core
+    public static final DenseMatrix EMPTY_DENSE_MATRIX = new DenseMatrix(0, 0);
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
@@ -54,7 +44,7 @@ public class WoodburyEngine {
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
         this.tapPositionChangeElements = Collections.emptyList();
-        this.tapPositionChangeStates = EmptyDenseMatrix.getInstance();
+        this.tapPositionChangeStates = EMPTY_DENSE_MATRIX;
     }
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
