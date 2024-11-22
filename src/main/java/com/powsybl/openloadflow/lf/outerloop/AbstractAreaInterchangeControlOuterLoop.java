@@ -250,7 +250,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
     public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior(O context) {
         OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior();
         if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == slackDistributionFailureBehavior) {
-            logger.error("Distribute on reference generator is not supported in AcAreaInterchangeControlOuterLoop, falling back to FAIL mode");
+            logger.error("Distribute on reference generator is not supported in area interchange control outer loop, falling back to FAIL mode");
             slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
         }
         return slackDistributionFailureBehavior;
