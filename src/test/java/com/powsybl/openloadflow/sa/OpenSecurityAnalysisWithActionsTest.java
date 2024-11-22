@@ -1418,7 +1418,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         Network network = HvdcNetworkFactory.createHvdcAndSwitch(HvdcConverterStation.HvdcType.VSC);
 
-
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
 
@@ -1430,7 +1429,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         assertEquals(-250, network.getBranch("l34").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(200.0, network.getHvdcConverterStation("cs3").getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-
 
         network.getSwitch("s3").setOpen(true);
         runLoadFlow(network, parameters);
