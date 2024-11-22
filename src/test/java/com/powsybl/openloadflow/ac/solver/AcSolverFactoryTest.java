@@ -89,7 +89,7 @@ class AcSolverFactoryTest {
         }
 
         @Override
-        public AcSolverParameters createParameters(OpenLoadFlowParameters parametersExt, LoadFlowParameters parameters) {
+        public AcSolverParameters createParameters(LoadFlowParameters parameters) {
             return new AcSolverMockParameters(12);
         }
 

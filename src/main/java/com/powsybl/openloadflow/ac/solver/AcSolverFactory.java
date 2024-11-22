@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -41,7 +40,7 @@ public interface AcSolverFactory {
 
     String getName();
 
-    AcSolverParameters createParameters(OpenLoadFlowParameters parametersExt, LoadFlowParameters parameters);
+    AcSolverParameters createParameters(LoadFlowParameters parameters);
 
     AcSolver create(LfNetwork network,
                     AcLoadFlowParameters parameters,

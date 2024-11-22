@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.14.0-SNAPSHOT-knitro-extension</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -78,6 +78,18 @@
                             <classpathDependencyExclude>com.powsybl:powsybl-config-classic</classpathDependencyExclude>
                         </classpathDependencyExcludes>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.2.0</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>test-jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -218,20 +230,6 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-psse-converter</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.artelys</groupId>
-            <artifactId>knitro-interfaces</artifactId>
-            <version>14.0.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/../libs/Knitro-Interfaces-2.5-KN_14.0.0.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>com.artelys</groupId>
-            <artifactId>bridj</artifactId>
-            <version>0.7.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/../libs/bridj-0.7.0.jar</systemPath>
         </dependency>
     </dependencies>
 </project>

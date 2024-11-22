@@ -1842,14 +1842,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
-                .setAcSolverParameters(solverFactory.createParameters(parametersExt, parameters))
                 .setOuterLoops(outerLoops)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations())
                 .setMatrixFactory(matrixFactory)
                 .setVoltageInitializer(voltageInitializer)
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
-                .setSolverFactory(solverFactory);
+                .setSolverFactory(solverFactory, parameters);
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

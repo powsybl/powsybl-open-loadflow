@@ -33,7 +33,8 @@ public class NewtonRaphsonFactory implements AcSolverFactory {
     }
 
     @Override
-    public AcSolverParameters createParameters(OpenLoadFlowParameters parametersExt, LoadFlowParameters parameters) {
+    public AcSolverParameters createParameters(LoadFlowParameters parameters) {
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         return new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
                 .setMaxIterations(parametersExt.getMaxSolverIterations())
