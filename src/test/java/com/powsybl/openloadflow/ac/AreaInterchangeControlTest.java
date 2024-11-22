@@ -18,9 +18,13 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -79,96 +83,36 @@ class AreaInterchangeControlTest {
         runLfTwoAreas(network, -40, 40, -35, 0);
     }
 
-    @Test
-    void acRemainingMismatchLeaveOnSlackBus() {
-        var mainComponentResult = remainingMismatchLeaveOnSlackBus();
-        assertEquals(-10, mainComponentResult.getDistributedActivePower(), 1e-3);
+    static Stream<Arguments> allSlackDistributionFailureBehaviors() {
+        return Stream.of(Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, -90, -20, -10),
+                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL, Double.NaN, -30, 0),
+                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR, Double.NaN, -30, 0),
+                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW, Double.NaN, Double.NaN, Double.NaN));
     }
 
-    @Test
-    void dcRemainingMismatchLeaveOnSlackBus() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("allSlackDistributionFailureBehaviors")
+    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+        runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
         parameters.setDc(true);
-        remainingMismatchLeaveOnSlackBus();
+        runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
     }
 
-    private LoadFlowResult.ComponentResult remainingMismatchLeaveOnSlackBus() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+        parametersExt.setSlackDistributionFailureBehavior(slackDistributionFailureBehavior);
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        var result = loadFlowRunner.run(network, parameters);
-        var mainComponentResult = result.getComponentResults().get(0);
 
-        assertEquals(-90, network.getGenerator("g1").getTerminal().getP(), 1e-3);
-        assertEquals(-20, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
-        return mainComponentResult;
-    }
-
-    @Test
-    void acRemainingMismatchFail() {
-        var mainComponentResult = remainingMismatchFail();
-        assertEquals(0, mainComponentResult.getDistributedActivePower(), 1e-3);
-    }
-
-    @Test
-    void dcRemainingMismatchFail() {
-        parameters.setDc(true);
-        remainingMismatchFail();
-    }
-
-    private LoadFlowResult.ComponentResult remainingMismatchFail() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
-        Network network = MultiAreaNetworkFactory.createOneAreaBase();
-        network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        var result = loadFlowRunner.run(network, parameters);
-        var mainComponentResult = result.getComponentResults().get(0);
-
-        assertEquals(Double.NaN, network.getGenerator("g1").getTerminal().getP(), 1e-3);
-        assertEquals(-30, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
-        return mainComponentResult;
-    }
-
-    @Test
-    void acRemainingMismatchDistributeOnReferenceGenerator() {
-        var mainComponentResult = remainingMismatchDistributeOnReferenceGenerator();
-        assertEquals(0, mainComponentResult.getDistributedActivePower(), 1e-3);
-    }
-
-    @Test
-    void dcRemainingMismatchDistributeOnReferenceGenerator() {
-        parameters.setDc(true);
-        remainingMismatchDistributeOnReferenceGenerator();
-    }
-
-    private LoadFlowResult.ComponentResult remainingMismatchDistributeOnReferenceGenerator() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
-        Network network = MultiAreaNetworkFactory.createOneAreaBase();
-        network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        var result = loadFlowRunner.run(network, parameters);
-        var mainComponentResult = result.getComponentResults().get(0);
-
-        // falls back to FAIL
-        assertEquals(Double.NaN, network.getGenerator("g1").getTerminal().getP(), 1e-3);
-        assertEquals(-30, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
-        return mainComponentResult;
-    }
-
-    @Test
-    void acRemainingMismatchThrow() {
-        remainingMismatchThrow();
-    }
-
-    @Test
-    void dcRemainingMismatchThrow() {
-        parameters.setDc(true);
-        remainingMismatchThrow();
-    }
-
-    private void remainingMismatchThrow() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
-        Network network = MultiAreaNetworkFactory.createOneAreaBase();
-        network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("Failed to distribute interchange active power mismatch", thrown.getCause().getMessage());
+        if (slackDistributionFailureBehavior != OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW) {
+            var result = loadFlowRunner.run(network, parameters);
+            var mainComponentResult = result.getComponentResults().get(0);
+            assertEquals(expectedGen1P, network.getGenerator("g1").getTerminal().getP(), 1e-3);
+            assertEquals(expectedMismatch, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+            assertEquals(expectedDistributedP, mainComponentResult.getDistributedActivePower(), 1e-3);
+        } else {
+            CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+            assertEquals("Failed to distribute interchange active power mismatch", thrown.getCause().getMessage());
+        }
     }
 
     @Test
