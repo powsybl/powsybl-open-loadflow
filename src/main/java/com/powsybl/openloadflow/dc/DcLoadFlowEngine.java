@@ -205,7 +205,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
-        double slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
+        double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
             // FIXME handle distribution failure
@@ -267,9 +267,20 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess);
         LOGGER.info("DC load flow completed (success={})", runningContext.lastSolverSuccess);
 
-        boolean success = runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE;
-        slackBusActivePowerMismatch = success ? getActivePowerMismatch(network.getBuses()) : slackBusActivePowerMismatch;
-        return new DcLoadFlowResult(context.getNetwork(), runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+        return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
+    }
+
+    DcLoadFlowResult buildDcLoadFlowResult(LfNetwork network, RunningContext runningContext, double initialSlackBusActivePowerMismatch, double finalDistributedActivePower) {
+        double slackBusActivePowerMismatch;
+        double distributedActivePower;
+        if (runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE) {
+            slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
+            distributedActivePower = finalDistributedActivePower;
+        } else {
+            slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
+            distributedActivePower = 0.0;
+        }
+        return new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, ReportNode reportNode) {
