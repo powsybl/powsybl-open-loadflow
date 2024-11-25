@@ -58,7 +58,7 @@ public class LfNetworkParameters {
 
     public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = "ControlArea";
 
-    public static final int MAX_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE = 0;
+    public static final int MAX_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE = 2;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -606,15 +606,8 @@ public class LfNetworkParameters {
         return maxVoltageRemoteControlDistance;
     }
 
-    public static int checkMaxVoltageRemoteControlDistance(int maxVoltageRemoteControlDistance) {
-        if (maxVoltageRemoteControlDistance < 0) {
-            throw new IllegalArgumentException("Invalid value for parameter maxVoltageRemoteControlDistance: " + maxVoltageRemoteControlDistance);
-        }
-        return maxVoltageRemoteControlDistance;
-    }
-
     public LfNetworkParameters setMaxVoltageRemoteControlDistance(int maxVoltageRemoteControlDistance) {
-        this.maxVoltageRemoteControlDistance = checkMaxVoltageRemoteControlDistance(maxVoltageRemoteControlDistance);
+        this.maxVoltageRemoteControlDistance = maxVoltageRemoteControlDistance;
         return this;
     }
 

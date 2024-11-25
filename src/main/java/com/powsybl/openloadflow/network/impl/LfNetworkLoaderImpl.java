@@ -133,7 +133,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
                             controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
                 } else if (parameters.getMaxVoltageRemoteControlDistance() != 0 && distanceBetweenBuses(controlledBus, controllerBus, parameters.getMaxVoltageRemoteControlDistance()) > parameters.getMaxVoltageRemoteControlDistance()) {
-                    LOGGER.error("Voltage controlled bus '{}' is too far from controller bus '{}' (maximum distance is {}). The bus switches to local voltage control and target voltage is rescaled from {} to {}",
+                    LOGGER.warn("Voltage controlled bus '{}' is too far from controller bus '{}' (maximum distance is {}). The bus switches to local voltage control and target voltage is rescaled from {} to {}",
                             controlledBus.getId(), controllerBus.getId(), parameters.getMaxVoltageRemoteControlDistance(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
                     Reports.reportTooFarControlledBus(controlledBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), parameters.getMaxVoltageRemoteControlDistance());
                 } else {

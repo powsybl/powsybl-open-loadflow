@@ -1332,7 +1332,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxVoltageRemoteControlDistance(int maxVoltageRemoteControlDistance) {
-        this.maxVoltageRemoteControlDistance = LfNetworkParameters.checkMaxVoltageRemoteControlDistance(maxVoltageRemoteControlDistance);
+        this.maxVoltageRemoteControlDistance = maxVoltageRemoteControlDistance;
         return this;
     }
 

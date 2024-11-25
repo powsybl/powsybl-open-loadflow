@@ -77,7 +77,7 @@ public final class Reports {
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue("maxVoltageRemoteControlDistance", maxVoltageRemoteControlDistance)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
