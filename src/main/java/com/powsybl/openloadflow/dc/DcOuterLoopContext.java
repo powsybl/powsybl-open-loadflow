@@ -17,18 +17,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class DcOuterLoopContext extends AbstractOuterLoopContext<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext> {
 
-    private int iteration;
-
     DcOuterLoopContext(LfNetwork network) {
         super(network);
     }
 
-    @Override
-    public int getIteration() {
-        return iteration;
-    }
-
-    public void setIteration(int iteration) {
-        this.iteration = iteration;
-    }
 }
