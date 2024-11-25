@@ -252,8 +252,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                          List<Action> actions, List<LimitReduction> limitReductions, LoadFlowParameters lfParameters) {
         // run simulation on main connected component network first
-        SecurityAnalysisResult result = networks.getList().stream().filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID) && n.getNumCC() == ComponentConstants.MAIN_NUM)
-                .findFirst()
+        SecurityAnalysisResult result = selectValidMainComponent(networks)
                 .map(n -> runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
                 .orElse(createNoResult());
 
@@ -262,36 +261,54 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         NetworkResult mergedPreContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
         List<LimitViolation> preContingenctViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
 
-        if (lfParameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.ALL) {
-            Map<String, PostContingencyResult> postContingencyResultMap = new LinkedHashMap<>();
-            Map<String, OperatorStrategyResult> operatorStrategyResultMap = new LinkedHashMap<>();
-            postContingencyResults.forEach(r -> postContingencyResultMap.put(r.getContingency().getId(), r));
-            operatorStrategyResults.forEach(r -> operatorStrategyResultMap.put(r.getOperatorStrategy().getId(), r));
+        Map<String, PostContingencyResult> postContingencyResultMap = new LinkedHashMap<>();
+        Map<String, OperatorStrategyResult> operatorStrategyResultMap = new LinkedHashMap<>();
+        postContingencyResults.forEach(r -> postContingencyResultMap.put(r.getContingency().getId(), r));
+        operatorStrategyResults.forEach(r -> operatorStrategyResultMap.put(r.getOperatorStrategy().getId(), r));
 
-            // Ensure the lists are writable and can be extended
-            preContingenctViolations = new ArrayList<>(preContingenctViolations);
+        // Ensure the lists are writable and can be extended
+        preContingenctViolations = new ArrayList<>(preContingenctViolations);
 
-            List<LfNetwork> networkToSimulate = networks.getList().stream()
-                    .filter(n -> n.getNumCC() != ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-            for (LfNetwork n : networkToSimulate) {
-                SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions);
+        List<LfNetwork> networkToSimulate = selectValidSecondaryComponents(networks, lfParameters.getConnectedComponentMode());
 
-                // Merge into first result
-                // PreContingency results first
-                preContingenctViolations.addAll(resultOtherComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
-                mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOtherComponent.getPreContingencyResult().getNetworkResult());
+        for (LfNetwork n : networkToSimulate) {
+            SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions);
 
-                // PostContingency and OperatorStrategies results
-                mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
-            }
-            postContingencyResults = postContingencyResultMap.values().stream().toList();
-            operatorStrategyResults = operatorStrategyResultMap.values().stream().toList();
+            // Merge into first result
+            // PreContingency results first
+            preContingenctViolations.addAll(resultOtherComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
+            mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOtherComponent.getPreContingencyResult().getNetworkResult());
+
+            // PostContingency and OperatorStrategies results
+            mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
         }
+        postContingencyResults = postContingencyResultMap.values().stream().toList();
+        operatorStrategyResults = operatorStrategyResultMap.values().stream().toList();
+
         PreContingencyResult mergedPrecontingencyResult =
                 new PreContingencyResult(result.getPreContingencyResult().getStatus(),
                         new LimitViolationsResult(preContingenctViolations),
                         mergedPreContingencyNetworkResult);
         return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
+    }
+
+    static Optional<LfNetwork> selectValidMainComponent(LfNetworkList networks) {
+        return networks.getList().stream().filter(n -> isMainCCandMainSC(n) && n.getValidity().equals(LfNetwork.Validity.VALID)).findFirst();
+    }
+
+    static List<LfNetwork> selectValidSecondaryComponents(LfNetworkList networks, LoadFlowParameters.ConnectedComponentMode mode) {
+        return networks.getList().stream()
+            .filter(n -> (mode == LoadFlowParameters.ConnectedComponentMode.ALL && !isMainCCandMainSC(n)
+                || mode == LoadFlowParameters.ConnectedComponentMode.MAIN && isMainCCandSecondarySC(n))
+                && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+    }
+
+    static boolean isMainCCandMainSC(LfNetwork n) {
+        return n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM;
+    }
+
+    static boolean isMainCCandSecondarySC(LfNetwork n) {
+        return n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() != ComponentConstants.MAIN_NUM;
     }
 
     void mergeSecurityAnalysisResult(SecurityAnalysisResult resultToMerge, Map<String, PostContingencyResult> postContingencyResults,

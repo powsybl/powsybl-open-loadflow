@@ -37,6 +37,8 @@ import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -3910,5 +3912,65 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // G2 within reactive limits
         assertReactivePowerEquals(0.0, network.getGenerator("G2").getTerminal());
         assertVoltageEquals(400.01, network.getBusBreakerView().getBus("B2"));
+    }
+
+    @Test
+    void testComponentSelectionOneCCtwoSC() {
+        // Network has one CC with two SC
+        Network network = HvdcNetworkFactory.createVsc();
+        LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComputeMainConnectedComponentOnly(false)));
+        assertEquals(2, networks.getList().size());
+
+        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumCC());
+        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumSC());
+        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(1).getNumCC());
+        assertEquals(1, networks.getList().get(1).getNumSC());
+
+        // Select Main CC/SC
+        Optional<LfNetwork> mainComponent = AbstractSecurityAnalysis.selectValidMainComponent(networks);
+        assertTrue(mainComponent.isPresent());
+        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumCC());
+        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumSC());
+
+        // Select secondary component of main CC
+        List<LfNetwork> secondaryComponentMain = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        assertEquals(1, secondaryComponentMain.size());
+        assertEquals(ComponentConstants.MAIN_NUM, secondaryComponentMain.get(0).getNumCC());
+        assertEquals(1, secondaryComponentMain.get(0).getNumSC());
+
+        // Select all secondary components
+        List<LfNetwork> secondaryComponentAll = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        assertEquals(1, secondaryComponentAll.size());
+        assertEquals(ComponentConstants.MAIN_NUM, secondaryComponentAll.get(0).getNumCC());
+        assertEquals(1, secondaryComponentAll.get(0).getNumSC());
+    }
+
+    @Test
+    void testComponentSelectionTwoCC() {
+        Network network = FourBusNetworkFactory.createWithTwoScs();
+        LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComputeMainConnectedComponentOnly(false)));
+        assertEquals(2, networks.getList().size());
+
+        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumCC());
+        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumSC());
+        assertEquals(1, networks.getList().get(1).getNumCC());
+        assertEquals(1, networks.getList().get(1).getNumSC());
+
+        // Select Main CC/SC
+        Optional<LfNetwork> mainComponent = AbstractSecurityAnalysis.selectValidMainComponent(networks);
+        assertTrue(mainComponent.isPresent());
+
+        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumCC());
+        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumSC());
+
+        // Select secondary component of main CC (there is none)
+        List<LfNetwork> secondaryComponentMain = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        assertEquals(0, secondaryComponentMain.size());
+
+        // Select secondary component of all CC (there is one)
+        List<LfNetwork> secondaryComponentAll = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        assertEquals(1, secondaryComponentAll.size());
+        assertEquals(1, secondaryComponentAll.get(0).getNumCC());
+        assertEquals(1, secondaryComponentAll.get(0).getNumSC());
     }
 }
