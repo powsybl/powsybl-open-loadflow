@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Sylvestre Prabakaran {@literal <sylvestre.prabakaran at rte-france.com>}
  */
-public class BusDistanceTest {
+class BusDistanceTest {
 
     private LfNetwork network;
 
