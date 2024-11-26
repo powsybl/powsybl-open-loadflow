@@ -32,10 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/*
+/**
 * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
 */
-public class TwtSplitShuntAdmittanceTest {
+class TwtSplitShuntAdmittanceTest {
 
     @Test
     void testSplitImpactOnPST() {
