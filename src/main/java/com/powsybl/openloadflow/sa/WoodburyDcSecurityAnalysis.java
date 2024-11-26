@@ -18,7 +18,6 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -107,7 +106,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty()) {
-                newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
+                newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode);
             }
             engine.toPostContingencyStates(newFlowStates);
         } else {
@@ -117,7 +116,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             NetworkState networkState = NetworkState.save(lfNetwork);
             contingency.toLfContingency(lfNetwork, false)
                     .ifPresent(lfContingency -> lfContingency.apply(lfParameters.getBalanceType()));
-            newFlowStates = DcLoadFlowEngine.run(loadFlowContext, disabledNetwork, reportNode);
+            newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode);
             engine.toPostContingencyStates(newFlowStates);
             networkState.restore();
         }
@@ -239,7 +238,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             cleanContingencies(lfNetwork, propagatedContingencies);
 
             // compute the pre-contingency states
-            double[] preContingencyStates = DcLoadFlowEngine.run(context, new DisabledNetwork(), reportNode);
+            double[] preContingencyStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, new DisabledNetwork(), reportNode);
             // create workingContingencyStates that will be a working copy of pre-contingency states
             double[] workingContingencyStates = new double[preContingencyStates.length];
             System.arraycopy(preContingencyStates, 0, workingContingencyStates, 0, preContingencyStates.length);
