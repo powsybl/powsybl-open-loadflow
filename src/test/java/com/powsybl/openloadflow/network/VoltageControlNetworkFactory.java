@@ -414,6 +414,57 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     }
 
     /**
+     * A very small network to test with a T2wt.
+     *<pre>
+     *     G1        LD2      LD3
+     *     |    L12   |        |
+     *     |  ------- |        |
+     *     B1         B2      B3
+     *                  \    /
+     *                   T2WT
+     *</pre>
+     */
+    public static Network createNetworkWithVoltageReguulatingT2wtTapChangeRationOnly() {
+
+        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
+
+        TwoWindingsTransformer t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
+                .setId("T2wT")
+                .setRatedU1(132.0)
+                .setRatedU2(33.0)
+                .setR(17.0)
+                .setX(10.0)
+                .setG(0.00573921028466483)
+                .setB(0.000573921028466483)
+                .setBus1("BUS_2")
+                .setBus2("BUS_3")
+                .add();
+
+        t2wt.newRatioTapChanger()
+                .beginStep()
+                .setRho(0.9)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .endStep()
+                .beginStep()
+                .setRho(1.05)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(true)
+                .setTargetV(33.0)
+                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .setTargetDeadband(0.1)
+                .add();
+
+        return network;
+    }
+
+    /**
      * A small network to test with two T2wt linked by a switch.
      *<pre>
      *     G1        LD2      LD3           LD4     LD5
