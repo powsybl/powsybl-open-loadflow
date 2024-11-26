@@ -15,10 +15,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +39,10 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<String> bbsIds;
 
+    private final TopologyKind topologyKind;
+
+    private List<Integer> nodes = new ArrayList<>();
+
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
@@ -61,6 +62,8 @@ public class LfBusImpl extends AbstractLfBus {
         } else {
             bbsIds = Collections.emptyList();
         }
+
+        topologyKind = bus.getVoltageLevel().getTopologyKind();
     }
 
     private static void createAsym(Bus bus, LfBusImpl lfBus) {
@@ -189,5 +192,27 @@ public class LfBusImpl extends AbstractLfBus {
             // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return super.getTargetQ();
+    }
+
+    @Override
+    public List<String> getBbsIds() {
+        return bbsIds;
+    }
+
+    public TopologyKind getTopologyKind() {
+        return topologyKind;
+    }
+
+    @Override
+    public List<Integer> getNodes() {
+        if (topologyKind == TopologyKind.NODE_BREAKER) {
+//            Networks.getNodesByBus(getBus().getVoltageLevel()).forEach((noodesByBus, arr) -> System.out.println("nodeByBus : " + noodesByBus.toString()));
+            Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
+            if (nodesByBus.containsKey(getBus().getId())) {
+                nodes = nodesByBus.get(getBus().getId()).stream().toList();
+            }
+
+        }
+        return nodes;
     }
 }

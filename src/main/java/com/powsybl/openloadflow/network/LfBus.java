@@ -219,4 +219,8 @@ public interface LfBus extends LfElement {
     Optional<LfArea> getArea();
 
     void setArea(LfArea area);
+
+    List<String> getBbsIds();
+
+    List<Integer> getNodes();
 }
