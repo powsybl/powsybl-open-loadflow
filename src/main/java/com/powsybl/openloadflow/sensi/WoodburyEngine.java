@@ -18,16 +18,9 @@ import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.network.DisabledNetwork;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 
-import java.util.Collections;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.distributeSlack;
 import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.solve;
@@ -70,10 +63,18 @@ public class WoodburyEngine {
     }
 
     /**
-     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
-     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling.
+     * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
+        return runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, Collections.emptyList());
+    }
+
+    /**
+     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
+     * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
+     */
+    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> lfActions) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -108,6 +109,22 @@ public class WoodburyEngine {
                     .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        if (!lfActions.isEmpty()) {
+            // set transformer phase shift to new shifting value
+            lfActions.stream()
+                    .map(LfAction::getTapPositionChange)
+                    .filter(Objects::nonNull)
+                    .forEach(tapPositionChange -> {
+                        LfBranch lfBranch = tapPositionChange.getBranch();
+                        loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).ifPresent(
+                                dcVariableTypeDcEquationTypeEquation -> {
+                                    int column = dcVariableTypeDcEquationTypeEquation.getColumn();
+                                    targetVectorArray[column] = tapPositionChange.getNewPiModel().getA1();
+                                }
+                        );
+                    });
         }
 
         boolean succeeded = solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);
