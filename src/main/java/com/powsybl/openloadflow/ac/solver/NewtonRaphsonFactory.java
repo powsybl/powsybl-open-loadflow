@@ -37,7 +37,7 @@ public class NewtonRaphsonFactory implements AcSolverFactory {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         return new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
-                .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations())
+                .setMaxIterations(parametersExt.getMaxSolverIterations())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
