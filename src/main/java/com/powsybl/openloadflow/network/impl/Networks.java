@@ -319,10 +319,4 @@ public final class Networks {
         };
     }
 
-    private static void checkNodeBreakerVoltageLevel(VoltageLevel voltageLevel) {
-        if (voltageLevel.getTopologyKind() != TopologyKind.NODE_BREAKER) {
-            throw new IllegalArgumentException("The voltage level " + voltageLevel.getId() + " is not described in Node/Breaker topology");
-        }
-    }
-
 }
