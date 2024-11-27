@@ -383,4 +383,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
         return new OuterLoopResult(this, status);
     }
+
+    @Override
+    public boolean canFixUnrealisticSate() {
+        return true;
+    }
 }
