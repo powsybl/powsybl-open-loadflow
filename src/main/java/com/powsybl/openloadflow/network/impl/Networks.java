@@ -16,8 +16,6 @@ import com.powsybl.openloadflow.network.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.powsybl.iidm.network.util.Networks.getEquivalentTerminal;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -327,34 +325,4 @@ public final class Networks {
         }
     }
 
-    public static Map<String, Set<Integer>> getNodesByBus(VoltageLevel voltageLevel) {
-        checkNodeBreakerVoltageLevel(voltageLevel);
-
-        Map<String, Set<Integer>> nodesByBus = new TreeMap<>();
-        for (int i : voltageLevel.getNodeBreakerView().getNodes()) {
-            Terminal terminal = voltageLevel
-                    .getNodeBreakerView()
-                    .getTerminal(i);
-            if (terminal != null) {
-                Bus bus = terminal
-                        .getBusView()
-                        .getBus();
-                if (bus != null) {
-                    nodesByBus.computeIfAbsent(bus.getId(), k -> new TreeSet<>()).add(i);
-                }
-            } else {
-                // If there is no terminal for the current node, we try to find one traversing the topology
-                Terminal equivalentTerminal = getEquivalentTerminal(voltageLevel, i);
-
-                if (equivalentTerminal != null) {
-                    Bus bus = equivalentTerminal.getBusView().getBus();
-                    if (bus != null) {
-                        nodesByBus.computeIfAbsent(bus.getId(), k -> new TreeSet<>()).add(i);
-                    }
-                }
-            }
-        }
-
-        return nodesByBus;
-    }
 }

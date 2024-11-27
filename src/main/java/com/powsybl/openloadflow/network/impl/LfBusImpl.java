@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
+import com.powsybl.iidm.network.util.Networks;
 
 import java.util.*;
 import java.util.stream.Collectors;
