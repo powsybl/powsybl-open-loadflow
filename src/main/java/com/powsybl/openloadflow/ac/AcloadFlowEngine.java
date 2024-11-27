@@ -110,6 +110,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         if (!canCheckUnrealistic && runningContext.lastUnrealisticStateFixingLoop == outerLoop && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED) {
             // This is time to check the irrealistic state
+
             if (solver.isStateUnrealisticForSolver(context.getNetwork().getReportNode())) {
                 runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE,
                                                                      runningContext.lastSolverResult.getIterations(),
