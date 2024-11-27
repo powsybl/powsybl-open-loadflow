@@ -39,6 +39,7 @@ class BusDistanceTest {
     void testBusDistance() {
         bus1 = network.getBusById("vl1_0"); // Bus "b1"
         bus2 = network.getBusById("vl4_0"); // Bus "b4"
+        assertEquals(0, BusDistance.distanceBetweenBuses(bus1, bus1, 4));
         assertEquals(1, BusDistance.distanceBetweenBuses(bus1, bus2, 4));
 
         bus1 = network.getBusById("vl1_0"); // Bus "b1"

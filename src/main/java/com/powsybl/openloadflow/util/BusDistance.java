@@ -26,7 +26,7 @@ public final class BusDistance {
     /**
      * Breadth first search algorithm to compute distance between two LfBus in a network
      * @param bus1              first LfBus (from which the breadth first search starts)
-     * @param bus2              second LfBus
+     * @param bus2              second LfBus (searched bus)
      * @param maxDistanceSearch the algorithm searches until this range and stops after this limit (or if every bus have been checked)
      * @return                  measured distance (number of branches) or Integer.MAX_VALUE if bus2 is not found
      */
@@ -38,14 +38,14 @@ public final class BusDistance {
         }
         Set<LfBus> busesToCheck = new HashSet<>();
         Set<LfBus> checkedBuses = new HashSet<>();
-        busesToCheck.add(bus2);
-        checkedBuses.add(bus2);
+        busesToCheck.add(bus1);
+        checkedBuses.add(bus1);
         for (int distance = 1; distance <= maxDistanceSearch; distance++) {
             busesToCheck = busesToCheck.stream()
                     .flatMap(bus -> bus.findNeighbors().keySet().stream())
                     .collect(Collectors.toSet());
             busesToCheck.removeAll(checkedBuses);
-            if (busesToCheck.contains(bus1)) {
+            if (busesToCheck.contains(bus2)) {
                 return distance;
             } else if (busesToCheck.isEmpty()) {
                 return Integer.MAX_VALUE;
