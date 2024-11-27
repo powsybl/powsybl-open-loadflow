@@ -108,4 +108,13 @@ public final class LoadFlowAssert {
         String logExport = normalizeLineSeparator(sw.toString());
         assertEquals(refLogExport, logExport);
     }
+
+    public static void assertTxtReportEquals(String reportTxt, ReportNode reportNode) throws IOException {
+        StringWriter sw = new StringWriter();
+        reportNode.print(sw);
+
+        String refLogExport = normalizeLineSeparator(reportTxt);
+        String logExport = normalizeLineSeparator(sw.toString());
+        assertEquals(refLogExport, logExport);
+    }
 }
