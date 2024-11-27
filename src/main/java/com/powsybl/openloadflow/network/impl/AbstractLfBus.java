@@ -834,11 +834,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public List<String> getBbsIds() {
-        return List.of();
-    }
-
-    @Override
     public List<Integer> getNodes() {
         return List.of();
     }

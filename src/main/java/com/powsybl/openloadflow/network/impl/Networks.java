@@ -332,9 +332,13 @@ public final class Networks {
 
         Map<String, Set<Integer>> nodesByBus = new TreeMap<>();
         for (int i : voltageLevel.getNodeBreakerView().getNodes()) {
-            Terminal terminal = voltageLevel.getNodeBreakerView().getTerminal(i);
+            Terminal terminal = voltageLevel
+                    .getNodeBreakerView()
+                    .getTerminal(i);
             if (terminal != null) {
-                Bus bus = terminal.getBusView().getBus();
+                Bus bus = terminal
+                        .getBusView()
+                        .getBus();
                 if (bus != null) {
                     nodesByBus.computeIfAbsent(bus.getId(), k -> new TreeSet<>()).add(i);
                 }

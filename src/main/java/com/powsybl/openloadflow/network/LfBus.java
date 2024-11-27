@@ -220,7 +220,5 @@ public interface LfBus extends LfElement {
 
     void setArea(LfArea area);
 
-    List<String> getBbsIds();
-
     List<Integer> getNodes();
 }

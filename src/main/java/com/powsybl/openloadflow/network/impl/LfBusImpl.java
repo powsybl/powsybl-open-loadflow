@@ -195,18 +195,8 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public List<String> getBbsIds() {
-        return bbsIds;
-    }
-
-    public TopologyKind getTopologyKind() {
-        return topologyKind;
-    }
-
-    @Override
     public List<Integer> getNodes() {
         if (topologyKind == TopologyKind.NODE_BREAKER) {
-//            Networks.getNodesByBus(getBus().getVoltageLevel()).forEach((noodesByBus, arr) -> System.out.println("nodeByBus : " + noodesByBus.toString()));
             Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
             if (nodesByBus.containsKey(getBus().getId())) {
                 nodes = nodesByBus.get(getBus().getId()).stream().toList();
