@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -32,6 +33,7 @@ import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -365,6 +367,21 @@ class DcLoadFlowTest {
         assertEquals(-50, l2.getTerminal2().getP(), 0.01);
         assertEquals(50, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void outerLoopMaxTotalIterationTest() {
+        // Will soon be used to test with the AIC outer loop too
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setAreaInterchangeControl(true);
+
+        parametersExt.setAreaInterchangePMaxMismatch(1)
+                .setMaxOuterLoopIterations(1);
+        var result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: DC Incremental phase control", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
