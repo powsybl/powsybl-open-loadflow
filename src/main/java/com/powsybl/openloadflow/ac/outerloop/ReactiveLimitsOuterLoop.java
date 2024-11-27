@@ -82,11 +82,6 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         return NAME;
     }
 
-    private enum ReactiveLimitDirection {
-        MIN,
-        MAX
-    }
-
     private static final class ControllerBusToPqBus {
 
         private final LfBus controllerBus;
@@ -95,13 +90,13 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         private final double qLimit;
 
-        private final ReactiveLimitDirection limitDirection;
+        private final LfBus.QLimitType limitType;
 
-        private ControllerBusToPqBus(LfBus controllerBus, double q, double qLimit, ReactiveLimitDirection limitDirection) {
+        private ControllerBusToPqBus(LfBus controllerBus, double q, double qLimit, LfBus.QLimitType limitType) {
             this.controllerBus = controllerBus;
             this.q = q;
             this.qLimit = qLimit;
-            this.limitDirection = limitDirection;
+            this.limitType = limitType;
         }
     }
 
@@ -109,11 +104,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         private final LfBus controllerBus;
 
-        private final ReactiveLimitDirection limitDirection;
+        private final LfBus.QLimitType limitType;
 
-        private PqToPvBus(LfBus controllerBus, ReactiveLimitDirection limitDirection) {
+        private PqToPvBus(LfBus controllerBus, LfBus.QLimitType limitType) {
             this.controllerBus = controllerBus;
-            this.limitDirection = limitDirection;
+            this.limitType = limitType;
         }
     }
 
@@ -144,18 +139,24 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
                 // switch PV -> PQ
                 controllerBus.setGenerationTargetQ(pvToPqBus.qLimit);
-                controllerBus.setQLimitType(pvToPqBus.limitDirection.equals(ReactiveLimitDirection.MIN) ? LfBus.QLimitType.MIN_Q : LfBus.QLimitType.MAX_Q);
+                controllerBus.setQLimitType(pvToPqBus.limitType);
                 controllerBus.setGeneratorVoltageControlEnabled(false);
                 // increment PV -> PQ switch counter
                 contextData.incrementPvPqSwitchCount(controllerBus.getId());
 
                 if (LOGGER.isTraceEnabled()) {
-                    if (pvToPqBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
-                                pvToPqBus.qLimit * PerUnit.SB);
-                    } else {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
-                                pvToPqBus.qLimit * PerUnit.SB);
+                    switch (pvToPqBus.limitType) {
+                        case MAX_Q :
+                            LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
+                                    pvToPqBus.qLimit * PerUnit.SB);
+                            break;
+                        case MIN_Q:
+                            LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
+                                    pvToPqBus.qLimit * PerUnit.SB);
+                            break;
+                        case MIN_V, MAX_V:
+                            LOGGER.trace("Switch bus '{}' PV -> PQ, q={} = targetQ - v outside realistic voltage limits", controllerBus.getId(), pvToPqBus.qLimit * PerUnit.SB);
+                            break;
                     }
                 }
             }
@@ -190,7 +191,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 pqPvSwitchCount++;
 
                 if (LOGGER.isTraceEnabled()) {
-                    if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
+                    if (pqToPvBus.limitType.isMaxLimit()) {
                         LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", controllerBus.getId(), getBusV(controllerBus), getBusTargetV(controllerBus));
                     } else {
                         LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", controllerBus.getId(), getBusV(controllerBus), getBusTargetV(controllerBus));
@@ -225,26 +226,27 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         boolean remainsPV = true;
 
         if (q < minQ) {
-            buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
+            buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, LfBus.QLimitType.MIN_Q));
             remainsPV = false;
         } else if (q > maxQ) {
-            buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, ReactiveLimitDirection.MAX));
+            buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, LfBus.QLimitType.MAX_Q));
             remainsPV = false;
         }
 
         // If Q not out of bounds, check V stator for remote coltage control, which is another criteria for blocking the group
         if (remainsPV && controllerBus.getGeneratorVoltageControl().map(c -> c.getControlledBus() != controllerBus).orElse(false)) {
-            // Check that reactiveLimits are really defined and there's no group with Double.MAX_VAULE as limit
-            boolean hasRealMinQ = Math.abs(minQ) < 1e100;
-            boolean hasRealMaxQ = Math.abs(maxQ) < 1e100;
-            // Use bus voltage of remote generator control as a criteria to move to PQ
-            if (hasRealMinQ && controllerBus.getV() < this.minRealisticVoltage * REALISTIC_VOLTAGE_MARGIN) {
+            // At this point Q boudns are not reached and is still larger than waht coauses irrealistic voltage.
+            // Just deactivate remote tension control and set generation targetQ to initial value
+            // Move V to a safe one for next computation
+            if (controllerBus.getV() < this.minRealisticVoltage * REALISTIC_VOLTAGE_MARGIN) {
+                double initialTargetQ = controllerBus.getGenerators().stream().mapToDouble(g -> g.getTargetQ()).sum();
                 controllerBus.setV(1);
-                buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
+                buses.add(new ControllerBusToPqBus(controllerBus, q, initialTargetQ, LfBus.QLimitType.MIN_V));
                 remainsPV = false;
-            } else if (hasRealMaxQ && controllerBus.getV() > this.maxRealisticVoltage / REALISTIC_VOLTAGE_MARGIN) {
+            } else if (controllerBus.getV() > this.maxRealisticVoltage / REALISTIC_VOLTAGE_MARGIN) {
+                double initialTargetQ = controllerBus.getGenerators().stream().mapToDouble(g -> g.getTargetQ()).sum();
                 controllerBus.setV(1);
-                buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, ReactiveLimitDirection.MAX));
+                buses.add(new ControllerBusToPqBus(controllerBus, q, initialTargetQ, LfBus.QLimitType.MAX_V));
                 remainsPV = false;
             }
         }
@@ -266,20 +268,20 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
         double q = controllerCapableBus.getGenerationTargetQ();
         controllerCapableBus.getQLimitType().ifPresent(qLimitType -> {
-            if (qLimitType == LfBus.QLimitType.MIN_Q) {
+            if (qLimitType.isMinLimit()) {
                 if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
                     // bus absorb too much reactive power
-                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
-                } else if (Math.abs(minQ - q) > maxReactivePowerMismatch) {
+                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MIN_Q));
+                } else if (qLimitType == LfBus.QLimitType.MIN_Q && Math.abs(minQ - q) > maxReactivePowerMismatch) {
                     LOGGER.trace("PQ bus {} with updated Q limits, previous minQ {} new minQ {}", controllerCapableBus.getId(), q, minQ);
                     controllerCapableBus.setGenerationTargetQ(minQ);
                     busesWithUpdatedQLimits.add(controllerCapableBus);
                 }
-            } else if (qLimitType == LfBus.QLimitType.MAX_Q) {
+            } else if (qLimitType.isMaxLimit()) {
                 if (getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
                     // bus produce too much reactive power
-                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
-                } else if (Math.abs(maxQ - q) > maxReactivePowerMismatch) {
+                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MAX_Q));
+                } else if (qLimitType == LfBus.QLimitType.MAX_Q && Math.abs(maxQ - q) > maxReactivePowerMismatch) {
                     LOGGER.trace("PQ bus {} with updated Q limits, previous maxQ {} new maxQ {}", controllerCapableBus.getId(), q, maxQ);
                     controllerCapableBus.setGenerationTargetQ(maxQ);
                     busesWithUpdatedQLimits.add(controllerCapableBus);
@@ -299,12 +301,19 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             switchCount++;
 
             if (LOGGER.isTraceEnabled()) {
-                if (bus.limitDirection == ReactiveLimitDirection.MAX) {
-                    LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} > maxQ={}", controllerBus.getId(), bus.q * PerUnit.SB,
-                            bus.qLimit * PerUnit.SB);
-                } else {
-                    LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} < minQ={}", controllerBus.getId(), bus.q * PerUnit.SB,
-                            bus.qLimit * PerUnit.SB);
+                switch (bus.limitType) {
+                    case MAX_Q:
+                        LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} > maxQ={}", controllerBus.getId(), bus.q * PerUnit.SB,
+                                bus.qLimit * PerUnit.SB);
+                        break;
+                    case MIN_Q:
+                        LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} < minQ={}", controllerBus.getId(), bus.q * PerUnit.SB,
+                                bus.qLimit * PerUnit.SB);
+                        break;
+                    case MIN_V, MAX_V:
+                        LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} = targetQ - v outside realistic voltage limits",
+                                bus.qLimit * PerUnit.SB);
+                        break;
                 }
             }
         }
