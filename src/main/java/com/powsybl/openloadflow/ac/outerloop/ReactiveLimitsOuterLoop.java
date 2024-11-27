@@ -33,6 +33,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "ReactiveLimits";
 
+    private static final double REALISTIC_VOLTAGE_MARGIN = 1.02;
+
     private static final Comparator<ControllerBusToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
         controllerBusToPqBus -> controllerBusToPqBus.controllerBus.getGeneratorVoltageControl()
             .map(vc -> -vc.getControlledBus().getNominalV())
@@ -46,10 +48,15 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
     private final int maxPqPvSwitch;
     private final double maxReactivePowerMismatch;
+    private final double minRealisticVoltage;
+    private final double maxRealisticVoltage;
 
-    public ReactiveLimitsOuterLoop(int maxPqPvSwitch, double maxReactivePowerMismatch) {
+    public ReactiveLimitsOuterLoop(int maxPqPvSwitch, double maxReactivePowerMismatch, double minRealisticVoltage, double maxRealisticVoltage) {
         this.maxPqPvSwitch = maxPqPvSwitch;
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
+        this.minRealisticVoltage = minRealisticVoltage;
+        this.maxRealisticVoltage = maxRealisticVoltage;
+
     }
 
     private static final class ContextData {
@@ -207,15 +214,42 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
      *  - if Q equals to Qmin
      *  (2) A remote reactive controller can reach its Q limits: the control is switch off.
      */
-    private static void checkControllerBus(LfBus controllerBus, List<ControllerBusToPqBus> buses, MutableInt remainingUnchangedBusCount) {
+    private void checkControllerBus(LfBus controllerBus,
+                                           List<ControllerBusToPqBus> buses,
+                                           MutableInt remainingUnchangedBusCount,
+                                           AcOuterLoopContext context) {
         double minQ = controllerBus.getMinQ();
         double maxQ = controllerBus.getMaxQ();
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
+
+        boolean remainsPV = true;
+
         if (q < minQ) {
             buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
+            remainsPV = false;
         } else if (q > maxQ) {
             buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, ReactiveLimitDirection.MAX));
-        } else {
+            remainsPV = false;
+        }
+
+        // If Q not out of bounds, check V stator for remote coltage control, which is another criteria for blocking the group
+        if (remainsPV && controllerBus.getGeneratorVoltageControl().map(c -> c.getControlledBus() != controllerBus).orElse(false)) {
+            // Check that reactiveLimits are really defined and there's no group with Double.MAX_VAULE as limit
+            boolean hasRealMinQ = Math.abs(minQ) < 1e100;
+            boolean hasRealMaxQ = Math.abs(maxQ) < 1e100;
+            // Use bus voltage of remote generator control as a criteria to move to PQ
+            if (hasRealMinQ && controllerBus.getV() < this.minRealisticVoltage * REALISTIC_VOLTAGE_MARGIN) {
+                controllerBus.setV(1);
+                buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
+                remainsPV = false;
+            } else if (hasRealMaxQ && controllerBus.getV() > this.maxRealisticVoltage / REALISTIC_VOLTAGE_MARGIN) {
+                controllerBus.setV(1);
+                buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, ReactiveLimitDirection.MAX));
+                remainsPV = false;
+            }
+        }
+
+        if (remainsPV) {
             remainingUnchangedBusCount.increment();
         }
     }
@@ -311,7 +345,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
             if (bus.isGeneratorVoltageControlEnabled()) {
-                checkControllerBus(bus, pvToPqBuses, remainingPvBusCount);
+                checkControllerBus(bus, pvToPqBuses, remainingPvBusCount, context);
             } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
                 checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
@@ -322,7 +356,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             if (bus.isGeneratorReactivePowerControlEnabled()) {
                 // a bus that has a remote reactive generator power control, if its reactive limits are not respected,
                 // will become a classical PQ bus at reactive limits.
-                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount);
+                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount, context);
             }
         });
 
