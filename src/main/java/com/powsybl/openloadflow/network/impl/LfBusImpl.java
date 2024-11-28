@@ -13,6 +13,9 @@ import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.security.BusBreakerViolationLocation;
+import com.powsybl.security.NodeBreakerViolationLocation;
+import com.powsybl.security.ViolationLocation;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.iidm.network.util.Networks;
 
@@ -40,8 +43,6 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<String> bbsIds;
 
-    private final TopologyKind topologyKind;
-
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
@@ -62,7 +63,6 @@ public class LfBusImpl extends AbstractLfBus {
             bbsIds = Collections.emptyList();
         }
 
-        topologyKind = bus.getVoltageLevel().getTopologyKind();
     }
 
     private static void createAsym(Bus bus, LfBusImpl lfBus) {
@@ -193,33 +193,30 @@ public class LfBusImpl extends AbstractLfBus {
         return super.getTargetQ();
     }
 
-    @Override
-    public List<Integer> getNodes() {
-        if (topologyKind == TopologyKind.NODE_BREAKER) {
-            List<Integer> nodes = new ArrayList<>();
-            Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
-            if (nodesByBus.containsKey(getBus().getId())) {
-                nodes = nodesByBus.get(getBus().getId()).stream().toList();
+    public ViolationLocation getViolationLocation() {
+        TopologyKind topologyKind = getBus().getVoltageLevel().getTopologyKind();
+        return switch (topologyKind) {
+            case NODE_BREAKER -> {
+                List<Integer> nodes = new ArrayList<>();
+                Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
+                if (nodesByBus.containsKey(getBus().getId())) {
+                    nodes = nodesByBus.get(getBus().getId()).stream().toList();
+                }
+                yield new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
             }
-            return nodes;
-        }
-        return List.of();
-    }
-
-    @Override
-    public List<String> getBusIds() {
-        try {
-            return getBus().getVoltageLevel().getBusBreakerView()
-                    .getBusStreamFromBusViewBusId(getBus().getId())
-                    .map(Identifiable::getId)
-                    .sorted().toList();
-        } catch (Exception e) {
-            return List.of();
-        }
-    }
-
-    @Override
-    public TopologyKind getTopologyKind() {
-        return getBus().getVoltageLevel().getTopologyKind();
+            case BUS_BREAKER -> {
+                // are we in breaker mode ?
+                var busBreakerView = getBus().getVoltageLevel().getBusBreakerView();
+                if (getBus() == busBreakerView.getBus(getBus().getId())) {
+                    yield new BusBreakerViolationLocation(List.of(getBus().getId()));
+                } else {
+                    // Bus is a merged bus from thebus view
+                    yield new BusBreakerViolationLocation(busBreakerView
+                            .getBusStreamFromBusViewBusId(getBus().getId())
+                            .map(Identifiable::getId)
+                            .sorted().toList());
+                }
+            }
+        };
     }
 }

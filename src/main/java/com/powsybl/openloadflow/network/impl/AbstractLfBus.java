@@ -833,13 +833,4 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.area = area;
     }
 
-    @Override
-    public List<Integer> getNodes() {
-        return List.of();
-    }
-
-    @Override
-    public List<String> getBusIds() {
-        return List.of();
-    }
 }

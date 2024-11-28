@@ -176,31 +176,14 @@ public class LimitViolationManager {
         double busV = bus.getV();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
             LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
-                    (float) 1., busV * scale, createViolationLocation(bus));
+                    (float) 1., busV * scale, bus.getViolationLocation());
             addBusLimitViolation(limitViolation1, bus);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
             LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
-                    (float) 1., busV * scale, createViolationLocation(bus));
+                    (float) 1., busV * scale, bus.getViolationLocation());
             addBusLimitViolation(limitViolation2, bus);
         }
-    }
-
-    public static ViolationLocation createViolationLocation(LfBus bus) {
-        if (bus.getTopologyKind() == TopologyKind.NODE_BREAKER) {
-            List<Integer> nodes = bus.getNodes();
-            if (nodes.isEmpty()) {
-                return null;
-            }
-            return new NodeBreakerViolationLocation(bus.getVoltageLevelId(), nodes);
-        } else {
-            List<String> busIds = bus.getBusIds();
-            if (busIds.isEmpty()) {
-                return null;
-            }
-            return new BusBreakerViolationLocation(busIds);
-        }
-
     }
 
     /**
