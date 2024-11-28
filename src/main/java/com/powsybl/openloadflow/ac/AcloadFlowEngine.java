@@ -198,6 +198,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             // re-run all outer loops until solver failed or no more solver iterations are needed
             int oldNrTotalIterations;
             do {
+                // Restore the flag before each outerloop iteration
+                canCheckUnrealisticStates = runningContext.lastUnrealisticStateFixingLoop == null;
+
                 oldNrTotalIterations = runningContext.nrTotalIterations.getValue();
 
                 // outer loops are nested: innermost loop first in the list, outermost loop last
