@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResult;
 
@@ -221,4 +222,8 @@ public interface LfBus extends LfElement {
     void setArea(LfArea area);
 
     List<Integer> getNodes();
+
+    List<String> getBusIds();
+
+    TopologyKind getTopologyKind();
 }

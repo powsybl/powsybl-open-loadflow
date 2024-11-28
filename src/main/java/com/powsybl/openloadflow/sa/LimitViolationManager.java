@@ -187,12 +187,20 @@ public class LimitViolationManager {
     }
 
     public static ViolationLocation createViolationLocation(LfBus bus) {
-        List<Integer> nodes = bus.getNodes();
-        if (nodes.isEmpty()) {
-            return null;
+        if (bus.getTopologyKind() == TopologyKind.NODE_BREAKER){
+            List<Integer> nodes = bus.getNodes();
+            if (nodes.isEmpty()) {
+                return null;
+            }
+            return new NodeBreakerViolationLocation(bus.getVoltageLevelId(), nodes);
+        } else {
+            List<String> busIds = bus.getBusIds();
+            if (busIds.isEmpty()) {
+                return null;
+            }
+            return new BusBreakerViolationLocation(busIds);
         }
 
-        return new NodeBreakerViolationLocation(bus.getVoltageLevelId(), nodes);
     }
 
     /**

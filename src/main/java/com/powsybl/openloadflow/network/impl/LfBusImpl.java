@@ -42,8 +42,6 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final TopologyKind topologyKind;
 
-    private List<Integer> nodes = new ArrayList<>();
-
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
@@ -59,7 +57,7 @@ public class LfBusImpl extends AbstractLfBus {
                     .map(Terminal::getConnectable)
                     .filter(BusbarSection.class::isInstance)
                     .map(Connectable::getId)
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             bbsIds = Collections.emptyList();
         }
@@ -198,12 +196,30 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public List<Integer> getNodes() {
         if (topologyKind == TopologyKind.NODE_BREAKER) {
+            List<Integer> nodes = new ArrayList<>();
             Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
             if (nodesByBus.containsKey(getBus().getId())) {
                 nodes = nodesByBus.get(getBus().getId()).stream().toList();
             }
-
+            return nodes;
         }
-        return nodes;
+        return List.of();
+    }
+
+    @Override
+    public List<String> getBusIds() {
+        try {
+            return getBus().getVoltageLevel().getBusBreakerView()
+                    .getBusStreamFromBusViewBusId(getBus().getId())
+                    .map(Identifiable::getId)
+                    .sorted().toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    @Override
+    public TopologyKind getTopologyKind() {
+        return getBus().getVoltageLevel().getTopologyKind();
     }
 }

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -74,5 +75,10 @@ public class LfDanglingLineBus extends AbstractLfBus {
         Networks.setPropertyAngle(danglingLine, Math.toDegrees(angle));
 
         super.updateState(parameters);
+    }
+
+    @Override
+    public TopologyKind getTopologyKind() {
+        return getDanglingLine().getNetwork().getVoltageLevel(getVoltageLevelId()).getTopologyKind();
     }
 }

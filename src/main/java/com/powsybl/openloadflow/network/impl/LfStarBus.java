@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
+import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -69,5 +70,10 @@ public class LfStarBus extends AbstractLfBus {
         Networks.setPropertyAngle(t3wt, Math.toDegrees(angle));
 
         super.updateState(parameters);
+    }
+
+    @Override
+    public TopologyKind getTopologyKind() {
+        return getT3wt().getNetwork().getVoltageLevel(getVoltageLevelId()).getTopologyKind();
     }
 }
