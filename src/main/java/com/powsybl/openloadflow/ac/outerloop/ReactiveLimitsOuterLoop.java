@@ -224,6 +224,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
 
         boolean remainsPV = true;
+        boolean generatorRemoteController = isGeneratorRemoteController(controllerBus);
 
         if (q < minQ) {
             buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, LfBus.QLimitType.MIN_Q));
@@ -233,20 +234,22 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             remainsPV = false;
         }
 
+        if (generatorRemoteController && !remainsPV && (isUnrealisticLowVoltage(controllerBus) || isUnrealisticHighVoltage(controllerBus))) {
+            controllerBus.setV(1);
+        }
+
         // If Q not out of bounds, check V stator for remote coltage control, which is another criteria for blocking the group
-        if (remainsPV && controllerBus.getGeneratorVoltageControl().map(c -> c.getControlledBus() != controllerBus).orElse(false)) {
+        if (remainsPV && generatorRemoteController) {
             // At this point Q boudns are not reached and is still larger than waht coauses irrealistic voltage.
             // Just deactivate remote tension control and set generation targetQ to initial value
             // Move V to a safe one for next computation
-            if (controllerBus.getV() < this.minRealisticVoltage * REALISTIC_VOLTAGE_MARGIN) {
-                double initialTargetQ = controllerBus.getGenerators().stream().mapToDouble(g -> g.getTargetQ()).sum();
+            if (isUnrealisticLowVoltage(controllerBus)) {
                 controllerBus.setV(1);
-                buses.add(new ControllerBusToPqBus(controllerBus, q, initialTargetQ, LfBus.QLimitType.MIN_V));
+                buses.add(new ControllerBusToPqBus(controllerBus, q, getInitialGenerationTargetQ(controllerBus), LfBus.QLimitType.MIN_V));
                 remainsPV = false;
-            } else if (controllerBus.getV() > this.maxRealisticVoltage / REALISTIC_VOLTAGE_MARGIN) {
-                double initialTargetQ = controllerBus.getGenerators().stream().mapToDouble(g -> g.getTargetQ()).sum();
+            } else if (isUnrealisticHighVoltage(controllerBus)) {
                 controllerBus.setV(1);
-                buses.add(new ControllerBusToPqBus(controllerBus, q, initialTargetQ, LfBus.QLimitType.MAX_V));
+                buses.add(new ControllerBusToPqBus(controllerBus, q, getInitialGenerationTargetQ(controllerBus), LfBus.QLimitType.MAX_V));
                 remainsPV = false;
             }
         }
@@ -256,13 +259,29 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
     }
 
+    private double getInitialGenerationTargetQ(LfBus controllerBus) {
+        return controllerBus.getGenerators().stream().mapToDouble(g -> g.getTargetQ()).sum();
+    }
+
+    private boolean isGeneratorRemoteController(LfBus controllerBus) {
+        return controllerBus.getGeneratorVoltageControl().map(c -> c.getControlledBus() != controllerBus).orElse(false);
+    }
+
+    private boolean isUnrealisticLowVoltage(LfBus controllerBus) {
+        return controllerBus.getV() < this.minRealisticVoltage * REALISTIC_VOLTAGE_MARGIN;
+    }
+
+    private boolean isUnrealisticHighVoltage(LfBus controllerBus) {
+        return controllerBus.getV() > this.maxRealisticVoltage / REALISTIC_VOLTAGE_MARGIN;
+    }
+
     /**
      * A PQ bus can be switched to PV in 2 cases:
      *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
      *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its targetV.
      * A PQ bus can have its Qmin or Qmax limit updated after a change in targetP of the generator or a change of the voltage magnitude of the bus.
      */
-    private static void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,
+    private void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,
                                    double maxReactivePowerMismatch, boolean canSwitchPqToPv) {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
