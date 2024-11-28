@@ -187,7 +187,7 @@ public class LimitViolationManager {
     }
 
     public static ViolationLocation createViolationLocation(LfBus bus) {
-        if (bus.getTopologyKind() == TopologyKind.NODE_BREAKER){
+        if (bus.getTopologyKind() == TopologyKind.NODE_BREAKER) {
             List<Integer> nodes = bus.getNodes();
             if (nodes.isEmpty()) {
                 return null;
