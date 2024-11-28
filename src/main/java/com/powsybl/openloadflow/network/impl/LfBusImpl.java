@@ -202,7 +202,7 @@ public class LfBusImpl extends AbstractLfBus {
                 if (nodesByBus.containsKey(getBus().getId())) {
                     nodes = nodesByBus.get(getBus().getId()).stream().toList();
                 }
-                yield new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
+                yield nodes.isEmpty() ? null : new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
             }
             case BUS_BREAKER -> {
                 // are we in breaker mode ?
@@ -211,10 +211,11 @@ public class LfBusImpl extends AbstractLfBus {
                     yield new BusBreakerViolationLocation(List.of(getBus().getId()));
                 } else {
                     // Bus is a merged bus from thebus view
-                    yield new BusBreakerViolationLocation(busBreakerView
+                    List<String> busIds = busBreakerView
                             .getBusStreamFromBusViewBusId(getBus().getId())
                             .map(Identifiable::getId)
-                            .sorted().toList());
+                            .sorted().toList();
+                    yield busIds.isEmpty() ? null : new BusBreakerViolationLocation(busIds);
                 }
             }
         };

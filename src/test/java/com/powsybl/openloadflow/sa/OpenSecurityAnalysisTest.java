@@ -2814,6 +2814,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(1).getSubjectId());
+
+        List<LimitViolation> limitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, limitViolations.size());
+        BusBreakerViolationLocation busBreakerViolationLocation1 = (BusBreakerViolationLocation) limitViolations.get(0).getViolationLocation().get();
+        BusBreakerViolationLocation busBreakerViolationLocation2 = (BusBreakerViolationLocation) limitViolations.get(1).getViolationLocation().get();
+        assertEquals(busBreakerViolationLocation1.getBusIds(), List.of("NLOAD"));
+        assertEquals(busBreakerViolationLocation2.getBusIds(), List.of("NLOAD2"));
     }
 
     @Test
