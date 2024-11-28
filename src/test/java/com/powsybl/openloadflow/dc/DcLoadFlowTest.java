@@ -184,15 +184,18 @@ class DcLoadFlowTest {
     void nonImpedantBranchTest() {
         Network network = PhaseShifterTestCaseFactory.create();
         network.getLine("L2").setX(0).setR(0);
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(1).setAlpha(2);
         parameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
         loadFlowRunner.run(network, parameters);
-        assertEquals(66.6666, network.getLine("L2").getTerminal1().getP(), 0.01);
-        assertEquals(33.3333, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(83.4683, network.getLine("L2").getTerminal1().getP(), 0.01);
+        assertEquals(16.5316, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(-83.4683, network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), 0.01);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
         loadFlowRunner.run(network, parameters);
-        assertEquals(66.6666, network.getLine("L2").getTerminal1().getP(), 0.01);
-        assertEquals(33.3333, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(83.4683, network.getLine("L2").getTerminal1().getP(), 0.01);
+        assertEquals(16.5316, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(-83.4683, network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), 0.01);
     }
 
     @Test
