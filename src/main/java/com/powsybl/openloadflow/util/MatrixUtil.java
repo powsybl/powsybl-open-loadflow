@@ -11,11 +11,13 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.math.matrix.DenseMatrix;
 
 /**
- * TODO: move theses features to core.
+ * Do not use this class : all these features have been moved to powsybl.math.matrix.DenseMatrix
  *
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
  */
+
+@Deprecated
 public final class MatrixUtil {
 
     private MatrixUtil() {
