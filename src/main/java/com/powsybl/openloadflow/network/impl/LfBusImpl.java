@@ -43,6 +43,9 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<String> bbsIds;
 
+    // Lazy initialiation
+    private ViolationLocation violationLocation = null;
+
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
@@ -195,29 +198,32 @@ public class LfBusImpl extends AbstractLfBus {
 
     public ViolationLocation getViolationLocation() {
         TopologyKind topologyKind = getBus().getVoltageLevel().getTopologyKind();
-        return switch (topologyKind) {
-            case NODE_BREAKER -> {
-                List<Integer> nodes = new ArrayList<>();
-                Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
-                if (nodesByBus.containsKey(getBus().getId())) {
-                    nodes = nodesByBus.get(getBus().getId()).stream().toList();
+        if (violationLocation == null) {
+            violationLocation = switch (topologyKind) {
+                case NODE_BREAKER -> {
+                    List<Integer> nodes = new ArrayList<>();
+                    Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
+                    if (nodesByBus.containsKey(getBus().getId())) {
+                        nodes = nodesByBus.get(getBus().getId()).stream().toList();
+                    }
+                    yield nodes.isEmpty() ? null : new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
                 }
-                yield nodes.isEmpty() ? null : new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
-            }
-            case BUS_BREAKER -> {
-                // are we in breaker mode ?
-                var busBreakerView = getBus().getVoltageLevel().getBusBreakerView();
-                if (getBus() == busBreakerView.getBus(getBus().getId())) {
-                    yield new BusBreakerViolationLocation(List.of(getBus().getId()));
-                } else {
-                    // Bus is a merged bus from thebus view
-                    List<String> busIds = busBreakerView
-                            .getBusStreamFromBusViewBusId(getBus().getId())
-                            .map(Identifiable::getId)
-                            .sorted().toList();
-                    yield busIds.isEmpty() ? null : new BusBreakerViolationLocation(busIds);
+                case BUS_BREAKER -> {
+                    // are we in breaker mode ?
+                    var busBreakerView = getBus().getVoltageLevel().getBusBreakerView();
+                    if (getBus() == busBreakerView.getBus(getBus().getId())) {
+                        yield new BusBreakerViolationLocation(List.of(getBus().getId()));
+                    } else {
+                        // Bus is a merged bus from thebus view
+                        List<String> busIds = busBreakerView
+                                .getBusStreamFromBusViewBusId(getBus().getId())
+                                .map(Identifiable::getId)
+                                .sorted().toList();
+                        yield busIds.isEmpty() ? null : new BusBreakerViolationLocation(busIds);
+                    }
                 }
-            }
-        };
+            };
+        }
+        return violationLocation;
     }
 }
