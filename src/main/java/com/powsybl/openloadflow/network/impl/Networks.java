@@ -318,5 +318,4 @@ public final class Networks {
             default -> Optional.empty();
         };
     }
-
 }

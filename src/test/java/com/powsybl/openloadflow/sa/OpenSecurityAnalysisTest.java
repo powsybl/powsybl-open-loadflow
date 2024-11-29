@@ -153,7 +153,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Optional<ViolationLocation> vl1ViolationLocation = lowViolation.getViolationLocation();
         assertTrue(vl1ViolationLocation.isPresent());
         assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation.get().getType());
-        assertFalse(((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes().isEmpty());
+        assertEquals(List.of(0, 1, 2, 3), ((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes());
     }
 
     @Test
@@ -182,7 +182,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Optional<ViolationLocation> vl1ViolationLocation = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0).getViolationLocation();
         assertTrue(vl1ViolationLocation.isPresent());
         assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation.get().getType());
-        assertFalse(((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes().isEmpty());
+        assertEquals(List.of(0, 1, 3, 4, 5, 6), ((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes());
     }
 
     @Test
@@ -2886,6 +2886,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("c", new SwitchContingency("SWITCH")));
         List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        // Check a violation location in breaker mode
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        LimitViolation lv = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals(LimitViolationType.HIGH_VOLTAGE, lv.getLimitType());
+        assertEquals(List.of(network.getBusBreakerView().getBus("BUS_5")), lv.getViolationLocation().map(l -> l.getBusBreakerView(network).getBusStream().toList()).orElse(Collections.emptyList()));
+
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "c");
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(33.824, result.getPreContingencyResult().getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);
