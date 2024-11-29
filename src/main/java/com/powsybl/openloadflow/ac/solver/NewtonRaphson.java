@@ -172,6 +172,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
     }
 
+    @Override
     public boolean isStateUnrealisticForSolver(ReportNode reportNode) {
         Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
 

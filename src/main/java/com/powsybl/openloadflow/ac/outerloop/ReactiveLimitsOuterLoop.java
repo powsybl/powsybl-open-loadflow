@@ -217,8 +217,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
      */
     private void checkControllerBus(LfBus controllerBus,
                                            List<ControllerBusToPqBus> buses,
-                                           MutableInt remainingUnchangedBusCount,
-                                           AcOuterLoopContext context) {
+                                           MutableInt remainingUnchangedBusCount) {
         double minQ = controllerBus.getMinQ();
         double maxQ = controllerBus.getMaxQ();
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
@@ -330,7 +329,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                                 bus.qLimit * PerUnit.SB);
                         break;
                     case MIN_V, MAX_V:
-                        LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} = targetQ - v outside realistic voltage limits",
+                        LOGGER.trace("Remote reactive power controller bus '{}' -> PQ = targetQ - v outside realistic voltage limits",
                                 bus.qLimit * PerUnit.SB);
                         break;
                 }
@@ -373,7 +372,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
             if (bus.isGeneratorVoltageControlEnabled()) {
-                checkControllerBus(bus, pvToPqBuses, remainingPvBusCount, context);
+                checkControllerBus(bus, pvToPqBuses, remainingPvBusCount);
             } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
                 checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
@@ -384,7 +383,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             if (bus.isGeneratorReactivePowerControlEnabled()) {
                 // a bus that has a remote reactive generator power control, if its reactive limits are not respected,
                 // will become a classical PQ bus at reactive limits.
-                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount, context);
+                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount);
             }
         });
 
