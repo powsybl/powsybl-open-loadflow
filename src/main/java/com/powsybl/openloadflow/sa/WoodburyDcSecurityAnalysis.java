@@ -48,6 +48,7 @@ import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanC
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
+ * TODO : change the actions parameters to operator strategy parameters
  */
 public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
