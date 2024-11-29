@@ -66,7 +66,7 @@ class TwtSplitShuntAdmittanceTest {
     @Test
     void testPiModelOnTransformer() {
         // Test that the shunt split is correct
-        Network n = VoltageControlNetworkFactory.createNetworkWithVoltageReguulatingT2wtTapChangeRationOnly();
+        Network n = VoltageControlNetworkFactory.createNetworkWithVoltageRegulatingT2wtTapChangeRationOnly();
 
         TwoWindingsTransformer twt = n.getTwoWindingsTransformer("T2wT");
 

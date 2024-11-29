@@ -424,7 +424,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
      *                   T2WT
      *</pre>
      */
-    public static Network createNetworkWithVoltageReguulatingT2wtTapChangeRationOnly() {
+    public static Network createNetworkWithVoltageRegulatingT2wtTapChangeRationOnly() {
 
         Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
 
@@ -434,8 +434,8 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(33.0)
                 .setR(17.0)
                 .setX(10.0)
-                .setG(0.00573921028466483)
-                .setB(0.000573921028466483)
+                .setG(0.00574)
+                .setB(0.000585)
                 .setBus1("BUS_2")
                 .setBus2("BUS_3")
                 .add();
