@@ -70,7 +70,7 @@ class TwtSplitShuntAdmittanceTest {
 
         TwoWindingsTransformer twt = n.getTwoWindingsTransformer("T2wT");
 
-        // Create pi model array and splti transformer shunt admittance
+        // Create pi model array and split transformer shunt admittance
         LfNetworkParameters params = new LfNetworkParameters()
                 .setTwtSplitShuntAdmittance(true)
                 .setTransformerVoltageControl(true);
@@ -84,14 +84,14 @@ class TwtSplitShuntAdmittanceTest {
         assertNotEquals(0, lfTwt.getPiModel().getB2());
         assertEquals(lfTwt.getPiModel().getB1(), lfTwt.getPiModel().getB2());
 
-        // If we move B2 to the left, the result should be sames as TWT (in Per Unit)
+        // If we move B2 to the left, the result should be the same as TWT (in Per Unit)
         double ratio = twt.getRatedU2() / twt.getRatedU1();
         double bLeft = lfTwt.getPiModel().getB1() + lfTwt.getPiModel().getB2() / ratio;
         assertEquals(twt.getB() * PerUnit.zb(twt.getTerminal2().getVoltageLevel().getNominalV()), bLeft, 1e-5);
 
         assertNotEquals(0, lfTwt.getPiModel().getG2());
         assertEquals(lfTwt.getPiModel().getG1(), lfTwt.getPiModel().getG2());
-        // If e move G2 to the left the result should be sames as TWT (in Per Unit)
+        // If we move G2 to the left the result should be the same as TWT (in Per Unit)
         double gLeft = lfTwt.getPiModel().getG1() + lfTwt.getPiModel().getG2() / ratio;
         assertEquals(twt.getG() * PerUnit.zb(twt.getTerminal2().getVoltageLevel().getNominalV()), gLeft, 1e-5);
 
