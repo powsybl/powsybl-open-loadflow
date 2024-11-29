@@ -17,8 +17,8 @@ equal to zero and $1$. In case of a branch with voltage or phase control, the $\
 ![Pi model](pi-model.svg){class="only-light"}
 ![Pi model](pi-model-dark-mode.svg){class="only-dark"}
 
-Note that transformers are modeled with a single admittance on one side (conductance $G$ and susceptance $B$). This admittance can be splitted into two parts (on two sides) with the [PowSyBl LoadFlow `twtSplitShuntAdmittance` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration).
-It this parameter is set to `true`, then $G_1=G_2=G*\rho_1/(1+\rho_1)$ and $B_1=B_2=B*\rho_1/(1+\rho_1)$.
+Note that transformers are modeled with a single admittance on one side (conductance $G$ and susceptance $B$). This admittance can be splitted into two parts (on both sides) with the [PowSyBl LoadFlow `twtSplitShuntAdmittance` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration).
+If this parameter is set to `true`, then $G_1=G_2=G*\rho_1/(1+\rho_1)$ and $B_1=B_2=B*\rho_1/(1+\rho_1)$.
 
 ### HVDC line
 
