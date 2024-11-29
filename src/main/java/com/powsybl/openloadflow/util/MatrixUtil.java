@@ -17,7 +17,7 @@ import com.powsybl.math.matrix.DenseMatrix;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at gmail.com>}
  */
 
-@Deprecated
+@Deprecated (since="1.14.0", forRemoval=true)
 public final class MatrixUtil {
 
     private MatrixUtil() {
