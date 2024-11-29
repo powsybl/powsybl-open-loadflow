@@ -113,7 +113,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
         assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
         assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
-        assertTrue(lfDanglingLineBus.getViolationLocation() == null);
+        assertNull(lfDanglingLineBus.getViolationLocation());
     }
 
     @Test
@@ -183,7 +183,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
         assertTrue(lfStarBus.getCountry().isEmpty());
-        assertTrue(lfStarBus.getViolationLocation() == null);
+        assertNull(lfStarBus.getViolationLocation());
     }
 
     @Test
