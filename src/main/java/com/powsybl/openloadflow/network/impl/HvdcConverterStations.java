@@ -62,7 +62,7 @@ public final class HvdcConverterStations {
             return true;
         }
 
-        // The criteria should as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station or a fictitious load
+        // The criteria should be as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station or a fictitious load
         return bus.getConnectedTerminalStream()
                 .map(Terminal::getConnectable)
                 .noneMatch(c -> !(c instanceof HvdcConverterStation<?> || c instanceof BusbarSection || isFictitiousLoad(c)));
