@@ -1,5 +1,7 @@
 package com.powsybl.openloadflow.ac;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Line;
@@ -16,9 +18,12 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -143,44 +148,87 @@ public class GeneratorRemoteControlPQSwitchTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setVoltageRemoteControl(true)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+
+        // Activate trace logs
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(Level.TRACE);
+    }
+
+    @AfterEach
+    void restoreLogger() {
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(null);
     }
 
     @Test
-    void testUnrealisticVoltageDetection() {
-
+    void testLowVoltageLargeLimits() {
+        parametersExt.setMinRealisticVoltage(0.5);
+        parametersExt.setMaxRealisticVoltage(2.0);
+        parameters.setUseReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(12.17, b1);
         assertReactivePowerEquals(2553.557, g1.getTerminal());
 
-        // Now with realistic limits
+    }
+
+    @Test
+    void testLowVoltageRealisticLimits() {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
-        result = loadFlowRunner.run(network, parameters);
+        parameters.setUseReactiveLimits(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
+    }
 
-        // Now with reactive limits on g1
+    @Test
+    void testLowVoltageQMin() {
+        parametersExt.setMinRealisticVoltage(0.8);
+        parametersExt.setMaxRealisticVoltage(1.2);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-800).setMaxQ(800).add();
-        result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(800, g1.getTerminal());
+    }
 
-        // Now with very large reactive limits on g1
+    @Test
+    void testLowVoltageVMin() {
+        parametersExt.setMinRealisticVoltage(0.8);
+        parametersExt.setMaxRealisticVoltage(1.2);
+        parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
         g1.setTargetQ(10);
-        result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+    }
 
-        // And with a high voltage
+    @Test
+    void testHighVoltageVMax() {
+        parametersExt.setMinRealisticVoltage(0.8);
+        parametersExt.setMaxRealisticVoltage(1.2);
+        parameters.setUseReactiveLimits(true);
+        g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
         g1.setTargetV(403);
         g1.setTargetQ(10);
-        result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+    }
 
+    @Test
+    void testHighVoltageQMax() {
+        parametersExt.setMinRealisticVoltage(0.8);
+        parametersExt.setMaxRealisticVoltage(1.2);
+        parameters.setUseReactiveLimits(true);
+        g1.newMinMaxReactiveLimits().setMinQ(-800).setMaxQ(800).add();
+        g1.setTargetV(403);
+        g1.setTargetQ(10);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-800, g1.getTerminal());  // The group is set to initial targetQ
     }
 
 }
