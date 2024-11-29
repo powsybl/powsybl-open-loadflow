@@ -11,8 +11,6 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.NetworkFactory;
 import com.powsybl.iidm.network.Substation;
@@ -38,7 +36,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
-public class GeneratorRemoteControlPQSwitchTest {
+class GeneratorRemoteControlPQSwitchTest {
 
     private Network network;
     private Bus b1;
@@ -100,7 +98,7 @@ public class GeneratorRemoteControlPQSwitchTest {
                 .setId("b3")
                 .add();
 
-        Line l23 = network.newLine()
+        network.newLine()
                 .setId("l12")
                 .setR(0.1)
                 .setX(0.1)
@@ -132,7 +130,7 @@ public class GeneratorRemoteControlPQSwitchTest {
                 .setTargetV(401)
                 .add();
 
-        Generator g3 = vl3.newGenerator()
+        vl3.newGenerator()
                 .setId("g3")
                 .setMaxP(10)
                 .setMinP(0)
@@ -143,7 +141,7 @@ public class GeneratorRemoteControlPQSwitchTest {
                 .setTargetV(402)
                 .add();
 
-        Load l3 = vl3.newLoad()
+        vl3.newLoad()
                 .setId("l3")
                 .setBus(b3.getId())
                 .setConnectableBus(b3.getId())
