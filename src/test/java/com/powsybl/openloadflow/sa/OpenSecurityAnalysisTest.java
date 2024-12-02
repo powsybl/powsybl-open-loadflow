@@ -62,6 +62,7 @@ import java.util.stream.Stream;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -3972,5 +3973,34 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, secondaryComponentAll.size());
         assertEquals(1, secondaryComponentAll.get(0).getNumCC());
         assertEquals(1, secondaryComponentAll.get(0).getNumSC());
+    }
+
+    @Test
+    void testNoCc0Sc0() {
+        Network network = ConnectedComponentNetworkFactory.createNoCc0Sc0();
+        var compByBus = network.getBusBreakerView().getBusStream().collect(Collectors.toMap(Identifiable::getId, b -> String.format("CC%d SC%d", b.getConnectedComponent().getNum(), b.getSynchronousComponent().getNum())));
+        assertEquals(6, compByBus.size());
+        assertEquals("CC0 SC1", compByBus.get("b01"));
+        assertEquals("CC0 SC2", compByBus.get("b02"));
+        assertEquals("CC0 SC3", compByBus.get("b03"));
+        assertEquals("CC0 SC4", compByBus.get("b04"));
+        assertEquals("CC1 SC0", compByBus.get("b11"));
+        assertEquals("CC1 SC0", compByBus.get("b12"));
+        LoadFlowParameters lfParametersAll = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        LoadFlowParameters lfParametersMain = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.MAIN);
+        var lfResultAll = LoadFlow.run(network, lfParametersAll);
+        assertTrue(lfResultAll.isFullyConverged());
+        var lfResultMain = LoadFlow.run(network, lfParametersMain);
+        assertTrue(lfResultAll.isFullyConverged());
+        assertEquals(5, lfResultAll.getComponentResults().size()); // 5 SCs
+        assertTrue(lfResultMain.isFullyConverged());
+        assertEquals(4, lfResultMain.getComponentResults().size()); // 4 SCs
+
+        var saResultMain = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersMain);
+        // FIXME getting FAILED assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultMain.getPreContingencyResult().getStatus());
+        assertEquals(4, saResultMain.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 4 buses in CC0
+        var saResultAll = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersAll);
+        // FIXME getting FAILED assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultAll.getPreContingencyResult().getStatus());
+        assertEquals(6, saResultAll.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 6 buses in total
     }
 }
