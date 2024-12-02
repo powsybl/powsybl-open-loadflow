@@ -3928,14 +3928,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, networks.getList().get(1).getNumSC());
 
         // Main connected component mode and all connected component mode should yield same result
-        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
         assertEquals(2, componentMain.size());
         assertEquals(0, componentMain.get(0).getNumCC());
         assertEquals(0, componentMain.get(0).getNumSC());
         assertEquals(0, componentMain.get(1).getNumCC());
         assertEquals(1, componentMain.get(1).getNumSC());
 
-        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
         assertEquals(2, componentAll.size());
         assertEquals(0, componentAll.get(0).getNumCC());
         assertEquals(0, componentAll.get(0).getNumSC());
@@ -3955,13 +3955,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, networks.getList().get(1).getNumSC());
 
         // Main connected component mode should only select component associated to main CC
-        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
         assertEquals(1, componentMain.size());
         assertEquals(0, componentMain.get(0).getNumCC());
         assertEquals(0, componentMain.get(0).getNumSC());
 
         // All connected component mode should select all component
-        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
         assertEquals(2, componentAll.size());
         assertEquals(0, componentAll.get(0).getNumCC());
         assertEquals(0, componentAll.get(0).getNumSC());

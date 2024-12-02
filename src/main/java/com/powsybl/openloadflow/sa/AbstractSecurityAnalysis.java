@@ -252,7 +252,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                          List<Action> actions, List<LimitReduction> limitReductions, LoadFlowParameters lfParameters) {
 
-        List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworkToSimulate(networks, lfParameters.getConnectedComponentMode()));
+        List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(networks, lfParameters.getConnectedComponentMode()));
 
         if (networkToSimulate.isEmpty()) {
             return createNoResult();
@@ -296,7 +296,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
     }
 
-    static List<LfNetwork> getNetworkToSimulate(LfNetworkList networks, LoadFlowParameters.ConnectedComponentMode mode) {
+    static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ConnectedComponentMode mode) {
 
         if (LoadFlowParameters.ConnectedComponentMode.MAIN.equals(mode)) {
             return networks.getList().stream()
