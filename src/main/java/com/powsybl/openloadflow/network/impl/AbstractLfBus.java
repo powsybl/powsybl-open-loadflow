@@ -832,4 +832,5 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public void setArea(LfArea area) {
         this.area = area;
     }
+
 }
