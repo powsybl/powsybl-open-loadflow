@@ -57,8 +57,9 @@ when DC mode is activated.
 Please note that fast mode has a few limitations:
 - Contingencies applied on branches opened on one side are ignored.
 - Contingencies applied on HVDC lines in AC emulation mode are ignored.
-- Only PST remedial actions are supported.
-- Slack relocation following the application of a contingency is not supported.
+- Only PST remedial actions are supported for now.
+- Slack relocation following the application of a contingency is not supported. 
+As a result, security analysis is carried out only in slack component, and not necessarily in the larger one.
 
 The default value is `false`.
 
