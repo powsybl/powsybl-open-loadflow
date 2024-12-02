@@ -297,7 +297,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs, parameters)) {
+        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs)) {
             // Note: Load is determined statically - contingencies or actions that change an LCC Station connectivity
             // will continue to give incorrect result
             getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
@@ -409,6 +409,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public double getLoadTargetP() {
         return loads.stream()
                 .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
+                .sum();
+    }
+
+    @Override
+    public double getNonFictitiousLoadTargetP() {
+        return loads.stream()
+                .mapToDouble(load -> load.getNonFictitiousLoadTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
                 .sum();
     }
 
@@ -832,4 +839,5 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public void setArea(LfArea area) {
         this.area = area;
     }
+
 }

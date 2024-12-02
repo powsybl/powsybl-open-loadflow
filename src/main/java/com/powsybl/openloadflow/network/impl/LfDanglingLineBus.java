@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.security.ViolationLocation;
 
 import java.util.List;
 
@@ -74,5 +75,10 @@ public class LfDanglingLineBus extends AbstractLfBus {
         Networks.setPropertyAngle(danglingLine, Math.toDegrees(angle));
 
         super.updateState(parameters);
+    }
+
+    @Override
+    public ViolationLocation getViolationLocation() {
+        return null;
     }
 }
