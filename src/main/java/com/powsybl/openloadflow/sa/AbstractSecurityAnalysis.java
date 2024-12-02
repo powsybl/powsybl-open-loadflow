@@ -293,22 +293,30 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     static Optional<LfNetwork> selectValidMainComponent(LfNetworkList networks) {
-        return networks.getList().stream().filter(n -> isMainCCandMainSC(n) && n.getValidity().equals(LfNetwork.Validity.VALID)).findFirst();
+        return getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN)
+            .stream().filter(AbstractSecurityAnalysis::isMainCCandMainSC).findFirst();
     }
 
     static List<LfNetwork> selectValidSecondaryComponents(LfNetworkList networks, LoadFlowParameters.ConnectedComponentMode mode) {
-        return networks.getList().stream()
-            .filter(n -> (mode == LoadFlowParameters.ConnectedComponentMode.ALL && !isMainCCandMainSC(n)
-                || mode == LoadFlowParameters.ConnectedComponentMode.MAIN && isMainCCandSecondarySC(n))
-                && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        return getNetworkToSimulate(networks, mode).stream()
+            .filter(n -> !isMainCCandMainSC(n)).toList();
     }
 
     static boolean isMainCCandMainSC(LfNetwork n) {
         return n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM;
     }
 
-    static boolean isMainCCandSecondarySC(LfNetwork n) {
-        return n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() != ComponentConstants.MAIN_NUM;
+    static List<LfNetwork> getNetworkToSimulate(LfNetworkList networks, LoadFlowParameters.ConnectedComponentMode mode) {
+
+        if (LoadFlowParameters.ConnectedComponentMode.MAIN.equals(mode)) {
+            return networks.getList().stream()
+                .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        } else if (LoadFlowParameters.ConnectedComponentMode.ALL.equals(mode)) {
+            return networks.getList().stream()
+                .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        } else {
+            throw new PowsyblException("Unsupported ConnectedComponentMode " + mode);
+        }
     }
 
     void mergeSecurityAnalysisResult(SecurityAnalysisResult resultToMerge, Map<String, PostContingencyResult> postContingencyResults,
