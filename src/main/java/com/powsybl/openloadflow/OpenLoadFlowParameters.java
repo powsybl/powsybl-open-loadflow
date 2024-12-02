@@ -1923,7 +1923,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSvcVoltageMonitoring(false)
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
-                .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
