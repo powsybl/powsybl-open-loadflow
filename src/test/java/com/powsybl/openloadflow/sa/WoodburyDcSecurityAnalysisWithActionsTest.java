@@ -436,7 +436,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brAbsPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    // Test on fast DC only. The limitation is specific to ast dc
+    // Test on fast DC only. The limitation is specific to fast dc
     @Test
     void testFastDcSaWithActionNotOnPst() {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();

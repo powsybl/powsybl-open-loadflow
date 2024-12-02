@@ -28,6 +28,7 @@ import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.solve;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
+ * @author Pierre Arvy {@literal <pierre.arvy@artelys.com}
  */
 public class WoodburyEngine {
 
