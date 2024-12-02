@@ -26,8 +26,6 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.usefultoys.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -40,8 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
  */
 class DcLoadFlowTest {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowTest.class);
 
     private LoadFlowParameters parameters;
 
@@ -291,7 +287,7 @@ class DcLoadFlowTest {
         Switch c1 = network.getSwitch("C1");
         c1.setOpen(true);
 
-        LoadFlowParameters parameters = new LoadFlowParameters()
+        parameters = new LoadFlowParameters()
                 .setDc(true);
         loadFlowRunner.run(network, parameters);
 
@@ -392,8 +388,8 @@ class DcLoadFlowTest {
 
         assertTrue(result.isFullyConverged());
         assertEquals(0.0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
-        assertEquals(a1.getInterchangeTarget().getAsDouble(), a1.getInterchange(), 1);
-        assertEquals(a2.getInterchangeTarget().getAsDouble(), a2.getInterchange(), 1);
+        assertEquals(a1.getInterchangeTarget().orElseThrow(), a1.getInterchange(), 1);
+        assertEquals(a2.getInterchangeTarget().orElseThrow(), a2.getInterchange(), 1);
 
         assertEquals(17.86, l1.getTerminal1().getP(), 0.01);
         assertEquals(-17.86, l1.getTerminal2().getP(), 0.01);

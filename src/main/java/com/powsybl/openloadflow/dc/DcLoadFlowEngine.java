@@ -261,8 +261,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             }
         }
 
-        Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess);
-        LOGGER.info("DC load flow completed (success={})", runningContext.lastSolverSuccess);
+        Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
 
         return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
     }
@@ -277,7 +276,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
             distributedActivePower = 0.0;
         }
-        return new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+        DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+        LOGGER.info("DC loadflow complete on network {} (result={})", context.getNetwork(), result);
+        return result;
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, ReportNode reportNode) {
