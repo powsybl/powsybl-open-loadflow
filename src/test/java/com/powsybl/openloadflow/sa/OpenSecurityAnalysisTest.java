@@ -3922,28 +3922,25 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComputeMainConnectedComponentOnly(false)));
         assertEquals(2, networks.getList().size());
 
-        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumCC());
-        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumSC());
-        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(1).getNumCC());
+        assertEquals(0, networks.getList().get(0).getNumCC());
+        assertEquals(0, networks.getList().get(0).getNumSC());
+        assertEquals(0, networks.getList().get(1).getNumCC());
         assertEquals(1, networks.getList().get(1).getNumSC());
 
-        // Select Main CC/SC
-        Optional<LfNetwork> mainComponent = AbstractSecurityAnalysis.selectValidMainComponent(networks);
-        assertTrue(mainComponent.isPresent());
-        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumCC());
-        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumSC());
+        // Main connected component mode and all connected component mode should yield same result
+        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        assertEquals(2, componentMain.size());
+        assertEquals(0, componentMain.get(0).getNumCC());
+        assertEquals(0, componentMain.get(0).getNumSC());
+        assertEquals(0, componentMain.get(1).getNumCC());
+        assertEquals(1, componentMain.get(1).getNumSC());
 
-        // Select secondary component of main CC
-        List<LfNetwork> secondaryComponentMain = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
-        assertEquals(1, secondaryComponentMain.size());
-        assertEquals(ComponentConstants.MAIN_NUM, secondaryComponentMain.get(0).getNumCC());
-        assertEquals(1, secondaryComponentMain.get(0).getNumSC());
-
-        // Select all secondary components
-        List<LfNetwork> secondaryComponentAll = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
-        assertEquals(1, secondaryComponentAll.size());
-        assertEquals(ComponentConstants.MAIN_NUM, secondaryComponentAll.get(0).getNumCC());
-        assertEquals(1, secondaryComponentAll.get(0).getNumSC());
+        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        assertEquals(2, componentAll.size());
+        assertEquals(0, componentAll.get(0).getNumCC());
+        assertEquals(0, componentAll.get(0).getNumSC());
+        assertEquals(0, componentAll.get(1).getNumCC());
+        assertEquals(1, componentAll.get(1).getNumSC());
     }
 
     @Test
@@ -3952,27 +3949,24 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComputeMainConnectedComponentOnly(false)));
         assertEquals(2, networks.getList().size());
 
-        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumCC());
-        assertEquals(ComponentConstants.MAIN_NUM, networks.getList().get(0).getNumSC());
+        assertEquals(0, networks.getList().get(0).getNumCC());
+        assertEquals(0, networks.getList().get(0).getNumSC());
         assertEquals(1, networks.getList().get(1).getNumCC());
         assertEquals(1, networks.getList().get(1).getNumSC());
 
-        // Select Main CC/SC
-        Optional<LfNetwork> mainComponent = AbstractSecurityAnalysis.selectValidMainComponent(networks);
-        assertTrue(mainComponent.isPresent());
+        // Main connected component mode should only select component associated to main CC
+        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        assertEquals(1, componentMain.size());
+        assertEquals(0, componentMain.get(0).getNumCC());
+        assertEquals(0, componentMain.get(0).getNumSC());
 
-        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumCC());
-        assertEquals(ComponentConstants.MAIN_NUM, mainComponent.get().getNumSC());
-
-        // Select secondary component of main CC (there is none)
-        List<LfNetwork> secondaryComponentMain = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
-        assertEquals(0, secondaryComponentMain.size());
-
-        // Select secondary component of all CC (there is one)
-        List<LfNetwork> secondaryComponentAll = AbstractSecurityAnalysis.selectValidSecondaryComponents(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
-        assertEquals(1, secondaryComponentAll.size());
-        assertEquals(1, secondaryComponentAll.get(0).getNumCC());
-        assertEquals(1, secondaryComponentAll.get(0).getNumSC());
+        // All connected component mode should select all component
+        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworkToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        assertEquals(2, componentAll.size());
+        assertEquals(0, componentAll.get(0).getNumCC());
+        assertEquals(0, componentAll.get(0).getNumSC());
+        assertEquals(1, componentAll.get(1).getNumCC());
+        assertEquals(1, componentAll.get(1).getNumSC());
     }
 
     @Test
@@ -3997,10 +3991,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(4, lfResultMain.getComponentResults().size()); // 4 SCs
 
         var saResultMain = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersMain);
-        // FIXME getting FAILED assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultMain.getPreContingencyResult().getStatus());
         assertEquals(4, saResultMain.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 4 buses in CC0
         var saResultAll = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersAll);
-        // FIXME getting FAILED assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultAll.getPreContingencyResult().getStatus());
         assertEquals(6, saResultAll.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 6 buses in total
     }
 }
