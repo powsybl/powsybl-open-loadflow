@@ -149,6 +149,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LimitViolation lowViolation = limitViolations1.get(2);
         assertEquals(LimitViolationType.LOW_VOLTAGE, lowViolation.getLimitType());
         assertEquals(370, lowViolation.getLimit());
+
+        Optional<ViolationLocation> vl1ViolationLocation = lowViolation.getViolationLocation();
+        assertTrue(vl1ViolationLocation.isPresent());
+        assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation.get().getType());
+        assertEquals(List.of(0, 1, 2, 3), ((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes());
     }
 
     @Test
@@ -173,6 +178,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
         assertEquals(0, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+
+        Optional<ViolationLocation> vl1ViolationLocation = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0).getViolationLocation();
+        assertTrue(vl1ViolationLocation.isPresent());
+        assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation.get().getType());
+        assertEquals(List.of(0, 1, 3, 4, 5, 6), ((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes());
     }
 
     @Test
@@ -2804,6 +2814,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
         assertEquals("VLLOAD", postContingencyResult.getLimitViolationsResult().getLimitViolations().get(1).getSubjectId());
+
+        List<LimitViolation> limitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, limitViolations.size());
+        BusBreakerViolationLocation busBreakerViolationLocation1 = (BusBreakerViolationLocation) limitViolations.get(0).getViolationLocation().get();
+        BusBreakerViolationLocation busBreakerViolationLocation2 = (BusBreakerViolationLocation) limitViolations.get(1).getViolationLocation().get();
+        assertEquals(busBreakerViolationLocation1.getBusIds(), List.of("NLOAD"));
+        assertEquals(busBreakerViolationLocation2.getBusIds(), List.of("NLOAD2"));
     }
 
     @Test
@@ -2869,6 +2886,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("c", new SwitchContingency("SWITCH")));
         List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        // Check a violation location in breaker mode
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        LimitViolation lv = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals(LimitViolationType.HIGH_VOLTAGE, lv.getLimitType());
+        assertEquals(List.of(network.getBusBreakerView().getBus("BUS_5")), lv.getViolationLocation().map(l -> l.getBusBreakerView(network).getBusStream().toList()).orElse(Collections.emptyList()));
+
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "c");
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(33.824, result.getPreContingencyResult().getNetworkResult().getBusResult("BUS_3").getV(), DELTA_V);

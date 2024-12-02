@@ -1028,6 +1028,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.getLoadFlowModel());
         }
 
+        postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
         return lfNetwork;
     }
 

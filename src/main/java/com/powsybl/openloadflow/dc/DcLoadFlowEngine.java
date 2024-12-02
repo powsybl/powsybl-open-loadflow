@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.dc;
 
 import com.google.common.collect.Lists;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
@@ -18,7 +17,6 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.DisabledNetwork;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
@@ -32,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -277,52 +274,4 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 .toList();
     }
 
-    /**
-     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
-     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
-     */
-    public static double[] run(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
-        Collection<LfBus> remainingBuses;
-        if (disabledNetwork.getBuses().isEmpty()) {
-            remainingBuses = loadFlowContext.getNetwork().getBuses();
-        } else {
-            remainingBuses = new LinkedHashSet<>(loadFlowContext.getNetwork().getBuses());
-            remainingBuses.removeAll(disabledNetwork.getBuses());
-        }
-
-        DcLoadFlowParameters parameters = loadFlowContext.getParameters();
-        if (parameters.isDistributedSlack()) {
-            distributeSlack(loadFlowContext.getNetwork(), remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
-        }
-
-        // we need to copy the target array because:
-        //  - in case of disabled buses or branches some elements could be overwritten to zero
-        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
-        //    to fill with the solution
-        // so we need to copy to later the target as it is and reusable for next run
-        var targetVectorArray = loadFlowContext.getTargetVector().getArray().clone();
-
-        if (!disabledNetwork.getBuses().isEmpty()) {
-            // set buses injections and transformers to 0
-            disabledNetwork.getBuses().stream()
-                    .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
-                    .map(Equation::getColumn)
-                    .forEach(column -> targetVectorArray[column] = 0);
-        }
-
-        if (!disabledNetwork.getBranches().isEmpty()) {
-            // set transformer phase shift to 0
-            disabledNetwork.getBranches().stream()
-                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
-                    .map(Equation::getColumn)
-                    .forEach(column -> targetVectorArray[column] = 0);
-        }
-
-        boolean succeeded = solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);
-        if (!succeeded) {
-            throw new PowsyblException("DC solver failed");
-        }
-
-        return targetVectorArray; // now contains dx
-    }
 }
