@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 public abstract class AbstractAreaInterchangeControlOuterLoop<
             V extends Enum<V> & Quantity,
             E extends Enum<E> & Quantity,
-            P extends AbstractLoadFlowParameters<?>,
+            P extends AbstractLoadFlowParameters<P>,
             C extends LoadFlowContext<V, E, P>,
             O extends AbstractOuterLoopContext<V, E, P, C>>
         extends AbstractActivePowerDistributionOuterLoop<V, E, P, C, O>

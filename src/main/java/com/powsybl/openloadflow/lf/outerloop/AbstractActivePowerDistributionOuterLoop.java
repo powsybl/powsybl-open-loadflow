@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 public abstract class AbstractActivePowerDistributionOuterLoop<V extends Enum<V> & Quantity,
         E extends Enum<E> & Quantity,
-        P extends AbstractLoadFlowParameters,
+        P extends AbstractLoadFlowParameters<P>,
         C extends LoadFlowContext<V, E, P>,
         O extends OuterLoopContext<V, E, P, C>>
         implements ActivePowerDistributionOuterLoop<V, E, P, C, O> {
