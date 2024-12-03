@@ -327,10 +327,11 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportDcLfComplete(ReportNode reportNode, boolean succeeded) {
+    public static void reportDcLfComplete(ReportNode reportNode, boolean succeeded, String outerloopStatus) {
         reportNode.newReportNode()
-                .withMessageTemplate("dcLfComplete", "DC load flow completed (status=${succeeded})")
+                .withMessageTemplate("dcLfComplete", "DC load flow completed (solverSuccess=${succeeded}, outerloopStatus=${outerloopStatus})")
                 .withUntypedValue("succeeded", succeeded)
+                .withUntypedValue("outerloopStatus", outerloopStatus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }

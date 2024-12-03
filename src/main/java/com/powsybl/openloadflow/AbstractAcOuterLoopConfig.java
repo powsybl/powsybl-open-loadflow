@@ -38,7 +38,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (parametersExt.isAreaInterchangeControl()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
-            return Optional.of(new AreaInterchangeControlOuterloop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
+            return Optional.of(new AcAreaInterchangeControlOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
         }
         return Optional.empty();
     }
@@ -137,7 +137,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     static List<AcOuterLoop> filterInconsistentOuterLoops(List<AcOuterLoop> outerLoops) {
-        if (outerLoops.stream().anyMatch(AreaInterchangeControlOuterloop.class::isInstance)) {
+        if (outerLoops.stream().anyMatch(AcAreaInterchangeControlOuterLoop.class::isInstance)) {
             return outerLoops.stream().filter(o -> {
                 if (o instanceof DistributedSlackOuterLoop) {
                     LOGGER.warn("Distributed slack and area interchange control are both enabled. " +

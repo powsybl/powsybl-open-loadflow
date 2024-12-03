@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
@@ -41,8 +40,6 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private VoltageInitializer voltageInitializer = new UniformValueVoltageInitializer();
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
-
-    private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
 
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
@@ -108,15 +105,6 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     public AcLoadFlowParameters setAsymmetrical(boolean asymmetrical) {
         this.asymmetrical = asymmetrical;
-        return this;
-    }
-
-    public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
-        return slackDistributionFailureBehavior;
-    }
-
-    public AcLoadFlowParameters setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
-        this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
         return this;
     }
 
