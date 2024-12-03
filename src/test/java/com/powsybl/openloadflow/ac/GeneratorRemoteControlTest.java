@@ -992,7 +992,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .build();
 
         // First check with low maxRemoteVoltageControlDistance that detects too far controller buses
-        parametersExt.setMaxVoltageRemoteControlDistance(2);
+        parametersExt.setMaxGeneratorVoltageRemoteControlDistance(2);
         LoadFlowResult result1 = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result1.isFullyConverged());
 
@@ -1010,7 +1010,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowAssert.assertReportEquals("/tooFarVoltageRemoteControlReport.txt", reportNode);
 
         // Second check with maxRemoteVoltageControlDistance=3 which allows the remote control
-        parametersExt.setMaxVoltageRemoteControlDistance(3);
+        parametersExt.setMaxGeneratorVoltageRemoteControlDistance(3);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
 

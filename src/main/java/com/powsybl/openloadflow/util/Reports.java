@@ -71,12 +71,12 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTooFarControlledBus(ReportNode reportNode, String controllerBusId, String controlledBusId, int maxVoltageRemoteControlDistance) {
+    public static void reportTooFarControlledBus(ReportNode reportNode, String controllerBusId, String controlledBusId, int maxGeneratorVoltageRemoteControlDistance) {
         reportNode.newReportNode()
-                .withMessageTemplate("tooFarControllerBus", "Remote voltage controlled bus ${controlledBusId} is too far from controller bus ${controllerBusId} (maxVoltageRemoteControlDistance is set to ${maxVoltageRemoteControlDistance}). Switching to local voltage control")
+                .withMessageTemplate("tooFarControllerBus", "Remote voltage controlled bus ${controlledBusId} is too far from controller bus ${controllerBusId} (maxGeneratorVoltageRemoteControlDistance is set to ${maxGeneratorVoltageRemoteControlDistance}). Switching to local voltage control")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
-                .withUntypedValue("maxVoltageRemoteControlDistance", maxVoltageRemoteControlDistance)
+                .withUntypedValue("maxGeneratorVoltageRemoteControlDistance", maxGeneratorVoltageRemoteControlDistance)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }

@@ -58,7 +58,7 @@ public class LfNetworkParameters {
 
     public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = "ControlArea";
 
-    public static final int MAX_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE = 2;
+    public static final int MAX_GENERATOR_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE = 2;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -150,7 +150,7 @@ public class LfNetworkParameters {
 
     private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
-    private int maxVoltageRemoteControlDistance = MAX_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE;
+    private int maxGeneratorVoltageRemoteControlDistance = MAX_GENERATOR_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -198,7 +198,7 @@ public class LfNetworkParameters {
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
-        this.maxVoltageRemoteControlDistance = other.maxVoltageRemoteControlDistance;
+        this.maxGeneratorVoltageRemoteControlDistance = other.maxGeneratorVoltageRemoteControlDistance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -602,12 +602,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public int getMaxVoltageRemoteControlDistance() {
-        return maxVoltageRemoteControlDistance;
+    public int getMaxGeneratorVoltageRemoteControlDistance() {
+        return maxGeneratorVoltageRemoteControlDistance;
     }
 
-    public LfNetworkParameters setMaxVoltageRemoteControlDistance(int maxVoltageRemoteControlDistance) {
-        this.maxVoltageRemoteControlDistance = maxVoltageRemoteControlDistance;
+    public LfNetworkParameters setMaxGeneratorVoltageRemoteControlDistance(int maxGeneratorVoltageRemoteControlDistance) {
+        this.maxGeneratorVoltageRemoteControlDistance = maxGeneratorVoltageRemoteControlDistance;
         return this;
     }
 
@@ -652,7 +652,7 @@ public class LfNetworkParameters {
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ", areaInterchangeControl=" + areaInterchangeControl +
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
-                ", maxVoltageRemoteControlDistance=" + maxVoltageRemoteControlDistance +
+                ", maxGeneratorVoltageRemoteControlDistance=" + maxGeneratorVoltageRemoteControlDistance +
                 ')';
     }
 }
