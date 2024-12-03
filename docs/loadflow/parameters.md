@@ -140,6 +140,12 @@ If set to false, any existing voltage remote control is converted to a local con
 according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.  
 The default value is `true`.
 
+**maxGeneratorVoltageRemoteControlDistance**
+Defines the maximum distance allowed between the remote regulated bus and the voltage controller generator (requires `voltageRemoteControl` to be set to `true`).
+This distance is measured in number of branches separating the controlled bus and the generator. If the distance is higher than this parameter, then the voltage remote control is converted to a local control, rescaling the target voltage according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus. (This criteria covers also remote voltage control of static variable compensators, VSC converters and batteries)
+If `maxGeneratorVoltageRemoteControlDistance` is set to `0` (or a negative value), there is no distance checking.
+The default value is `2`.
+
 **voltagePerReactivePowerControl**  
 Whether simulation of static VAR compensators with voltage control enabled and a slope defined should be enabled
 (See [voltage per reactive power control extension](inv:powsyblcore:*:*:#voltage-per-reactive-power-control-extension)).  

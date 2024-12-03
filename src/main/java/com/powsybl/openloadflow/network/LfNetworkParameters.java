@@ -58,6 +58,8 @@ public class LfNetworkParameters {
 
     public static final String AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE = "ControlArea";
 
+    public static final int MAX_GENERATOR_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE = 2;
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -148,6 +150,8 @@ public class LfNetworkParameters {
 
     private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
+    private int maxGeneratorVoltageRemoteControlDistance = MAX_GENERATOR_VOLTAGE_REMOTE_CONTROL_DISTANCE_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -194,6 +198,7 @@ public class LfNetworkParameters {
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
+        this.maxGeneratorVoltageRemoteControlDistance = other.maxGeneratorVoltageRemoteControlDistance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -597,6 +602,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public int getMaxGeneratorVoltageRemoteControlDistance() {
+        return maxGeneratorVoltageRemoteControlDistance;
+    }
+
+    public LfNetworkParameters setMaxGeneratorVoltageRemoteControlDistance(int maxGeneratorVoltageRemoteControlDistance) {
+        this.maxGeneratorVoltageRemoteControlDistance = maxGeneratorVoltageRemoteControlDistance;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -638,6 +652,7 @@ public class LfNetworkParameters {
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ", areaInterchangeControl=" + areaInterchangeControl +
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
+                ", maxGeneratorVoltageRemoteControlDistance=" + maxGeneratorVoltageRemoteControlDistance +
                 ')';
     }
 }

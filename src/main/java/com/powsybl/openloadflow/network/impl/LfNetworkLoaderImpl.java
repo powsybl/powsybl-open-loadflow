@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.util.BusDistance.distanceBetweenBuses;
 import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -127,14 +128,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     }
                 });
 
-                if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
+                boolean keepVoltageRemoteControl = false;
+                if (!parameters.isGeneratorVoltageRemoteControl() && controlledBus != controllerBus) {
+                    LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
+                            controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                } else if (parameters.getMaxGeneratorVoltageRemoteControlDistance() > 0 && distanceBetweenBuses(controlledBus, controllerBus, parameters.getMaxGeneratorVoltageRemoteControlDistance()) > parameters.getMaxGeneratorVoltageRemoteControlDistance()) {
+                    LOGGER.warn("Voltage controlled bus '{}' is too far from controller bus '{}' (maxGeneratorVoltageRemoteControlDistance is set to {}). The bus switches to local voltage control and target voltage is rescaled from {} to {}",
+                            controlledBus.getId(), controllerBus.getId(), parameters.getMaxGeneratorVoltageRemoteControlDistance(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                    Reports.reportTooFarControlledBus(controlledBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), parameters.getMaxGeneratorVoltageRemoteControlDistance());
+                } else {
+                    keepVoltageRemoteControl = true;
+                }
+
+                if (keepVoltageRemoteControl) {
                     controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                         vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
                         () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
                 } else {
                     // if voltage remote control deactivated and remote control, set local control instead
-                    LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
-                            controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
                     controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                         vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
                         () -> createGeneratorVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, parameters));
