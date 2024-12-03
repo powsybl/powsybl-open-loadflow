@@ -22,12 +22,14 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
     protected final double slackBusActivePowerMismatch;
     protected final int outerLoopIterations;
     protected final OuterLoopResult outerLoopResult;
+    protected final double distributedActivePower;
 
-    protected AbstractLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, int outerLoopIterations, OuterLoopResult outerLoopResult) {
+    protected AbstractLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, int outerLoopIterations, OuterLoopResult outerLoopResult, double distributedActivePower) {
         this.network = Objects.requireNonNull(network);
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
         this.outerLoopIterations = outerLoopIterations;
         this.outerLoopResult = Objects.requireNonNull(outerLoopResult);
+        this.distributedActivePower = distributedActivePower;
     }
 
     @Override
@@ -46,5 +48,9 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
 
     public OuterLoopResult getOuterLoopResult() {
         return outerLoopResult;
+    }
+
+    public double getDistributedActivePower() {
+        return distributedActivePower;
     }
 }

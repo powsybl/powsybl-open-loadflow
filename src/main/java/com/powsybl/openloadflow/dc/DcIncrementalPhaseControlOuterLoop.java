@@ -29,8 +29,7 @@ import java.util.List;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DcIncrementalPhaseControlOuterLoop
-        extends AbstractIncrementalPhaseControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext>
-        implements DcOuterLoop {
+        extends AbstractIncrementalPhaseControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> implements DcOuterLoop {
 
     public DcIncrementalPhaseControlOuterLoop() {
         super(LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class));
