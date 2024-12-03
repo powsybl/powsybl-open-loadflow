@@ -983,6 +983,9 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");
         g3 = network.getGenerator("g3");
+        b1 = network.getBusBreakerView().getBus("b1");
+        b2 = network.getBusBreakerView().getBus("b2");
+        b3 = network.getBusBreakerView().getBus("b3");
         Bus b6 = network.getBusBreakerView().getBus("b6");
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")
@@ -992,7 +995,15 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         parametersExt.setMaxVoltageRemoteControlDistance(2);
         LoadFlowResult result1 = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result1.isFullyConverged());
-        assertVoltageEquals(375.09, b6); // Bus b6 remote control is disabled
+
+        // Bus b6 remote control is disabled
+        assertVoltageEquals(375.09, b6);
+
+        // Switched to local voltage control for groups g1, g2 , g3 : targetV = 413.4kV * 20/400 = 20.65 kV
+        assertVoltageEquals(20.669, b1);
+        assertVoltageEquals(20.669, b2);
+        assertVoltageEquals(20.669, b3);
+
         assertReactivePowerEquals(-157.5988, g1.getTerminal());
         assertReactivePowerEquals(-189.2926, g2.getTerminal());
         assertReactivePowerEquals(41.6880, g3.getTerminal());
@@ -1002,7 +1013,15 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         parametersExt.setMaxVoltageRemoteControlDistance(3);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
-        assertVoltageEquals(413.40, b6); // Controlled bus b6 reaches targetV
+
+        // Bus b6 remote control is kept : targetV = 413.4 kV
+        assertVoltageEquals(413.4, b6);
+
+        // No local voltage control at buses b1, b2, b3
+        assertVoltageEquals(22.338, b1);
+        assertVoltageEquals(22.135, b2);
+        assertVoltageEquals(23.576, b3);
+
         assertReactivePowerEquals(-100.4356, g1.getTerminal());
         assertReactivePowerEquals(-100.4356, g2.getTerminal());
         assertReactivePowerEquals(-100.4356, g3.getTerminal());
