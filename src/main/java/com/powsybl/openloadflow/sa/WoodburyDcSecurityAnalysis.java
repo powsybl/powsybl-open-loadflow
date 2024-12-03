@@ -79,24 +79,24 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency, the pre contingency flowStates are overridden.
      * @return the post contingency states for the contingency
      */
-    private double[] calculatePostContingencyStatesForAContingency(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
-                                                                   PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                   Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches, ReportNode reportNode) {
-        return calculatePostContingencyAndOperatorStrategyStatesForAContingency(loadFlowContext, contingenciesStates, flowStates, contingency, contingencyElementByBranch, disabledBuses, elementsToReconnect,
+    private double[] calculatePostContingencyStates(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
+                                                    PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                    Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches, ReportNode reportNode) {
+        return calculatePostContingencyAndOperatorStrategyStates(loadFlowContext, contingenciesStates, flowStates, contingency, contingencyElementByBranch, disabledBuses, elementsToReconnect,
                 partialDisabledBranches, Collections.emptyList(), Collections.emptyMap(), WoodburyEngine.EMPTY_DENSE_MATRIX, reportNode);
     }
 
     /**
-     * Calculate post contingency and post operator strategy states, for a contingency.
+     * Calculate post contingency and post operator strategy states, for a contingency and operator strategy actions.
      * In case of connectivity break, a pre-computation has been done in {@link #calculatePostContingencyAndOperatorStrategyStatesForAContingencyBreakingConnectivity}
      * to reset active power flow of hvdc lines on which one bus is lost.
      * If connectivity, a generator, a load or a phase tap changer is lost/modified due to the contingency/operator strategy, the pre contingency flowStates are overridden.
      */
-    private double[] calculatePostContingencyAndOperatorStrategyStatesForAContingency(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
-                                                                                      PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                                      Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches,
-                                                                                      List<LfAction> operatorStrategyLfActions, Map<String, ComputedTapPositionChangeElement> tapPositionChangeElementByBranch,
-                                                                                      DenseMatrix actionsStates, ReportNode reportNode) {
+    private double[] calculatePostContingencyAndOperatorStrategyStates(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
+                                                                       PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                       Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches,
+                                                                       List<LfAction> operatorStrategyLfActions, Map<String, ComputedTapPositionChangeElement> tapPositionChangeElementByBranch,
+                                                                       DenseMatrix actionsStates, ReportNode reportNode) {
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
@@ -173,7 +173,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             }
         }
 
-        return calculatePostContingencyAndOperatorStrategyStatesForAContingency(loadFlowContext, contingenciesStates, flowStates,
+        return calculatePostContingencyAndOperatorStrategyStates(loadFlowContext, contingenciesStates, flowStates,
                 contingency, contingencyElementByBranch, disabledBuses, connectivityAnalysisResult.getElementsToReconnect(),
                 connectivityAnalysisResult.getPartialDisabledBranches(), operatorStrategyLfActions, tapPositionChangeElementByBranch, actionsStates, reportNode);
     }
@@ -248,7 +248,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     /**
-     * Returns the operator strategy result associated to given post contingency and post operator strategy states.
+     * Returns the operator strategy result associated to the given post contingency and post operator strategy states.
      */
     private OperatorStrategyResult computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(DcLoadFlowContext loadFlowContext, LfContingency lfContingency, OperatorStrategy operatorStrategy,
                                                                                                              List<LfAction> operatorStrategyLfActions, LimitViolationManager preContingencyLimitViolationManager,
@@ -286,7 +286,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                                  LimitViolationManager preContingencyLimitViolationManager, PostContingencyResult postContingencyResult,
                                                                  Map<String, LfAction> lfActionById, boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  List<LimitReduction> limitReductions) {
-        // get the lf actions associated to the operator strategy
+        // get the actions associated to the operator strategy
         List<String> actionIds = checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult());
         List<LfAction> operatorStrategyLfActions = actionIds.stream()
                 .map(lfActionById::get)
@@ -305,6 +305,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         return operatorStrategyResult;
     }
 
+    /**
+     * Add the post contingency and operator strategy results, associated to given contingency, in the given list of results.
+     * The post contingency and post operator strategy states are computed with given supplier and function.
+     */
     private void addPostContingencyAndOperatorStrategyResults(DcLoadFlowContext context, PropagatedContingency contingency, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
                                                               Map<String, LfAction> lfActionById, Supplier<double[]> toPostContingencyStates, Function<List<LfAction>, double[]> toPostContingencyAndOperatorStrategyStates,
                                                               Runnable restorePreContingencyStates, LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
@@ -330,7 +334,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                     lfNetwork.setReportNode(osSimReportNode);
 
-                    // process post contingency result with supplier giving post contingency states
+                    // process post contingency result with supplier giving post contingency and post operator strategy states
                     OperatorStrategyResult operatorStrategyResult = processOperatorStrategyResult(context, lfContingency, operatorStrategy, toPostContingencyAndOperatorStrategyStates, preContingencyLimitViolationManager,
                             postContingencyResult, lfActionById, createResultExtension, violationsParameters, limitReductions);
                     operatorStrategyResults.add(operatorStrategyResult);
@@ -422,10 +426,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             LOGGER.info("Processing post contingency results for contingencies with no connectivity break");
             connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies().forEach(nonBreakingConnectivityContingency -> {
                 // supplier to compute post contingency states
-                Supplier<double[]> toPostContingencyStates = () -> calculatePostContingencyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
+                Supplier<double[]> toPostContingencyStates = () -> calculatePostContingencyStates(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
                         nonBreakingConnectivityContingency, connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), reportNode);
                 // function to compute post contingency and post operator strategy states
-                Function<List<LfAction>, double[]> toPostContingencyAndOperatorStrategyStates = operatorStrategyLfActions -> calculatePostContingencyAndOperatorStrategyStatesForAContingency(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
+                Function<List<LfAction>, double[]> toPostContingencyAndOperatorStrategyStates = operatorStrategyLfActions -> calculatePostContingencyAndOperatorStrategyStates(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
                         nonBreakingConnectivityContingency, connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
                         operatorStrategyLfActions, tapPositionChangeElementsByBranchId, actionsStates, reportNode);
                 // runnable to restore pre contingency states, after modifications applied to the lfNetwork
