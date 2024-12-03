@@ -983,6 +983,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");
         g3 = network.getGenerator("g3");
+        Bus b6 = network.getBusBreakerView().getBus("b6");
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
@@ -991,15 +992,17 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         parametersExt.setMaxVoltageRemoteControlDistance(2);
         LoadFlowResult result1 = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result1.isFullyConverged());
+        assertVoltageEquals(375.09, b6); // Bus b6 remote control is disabled
         assertReactivePowerEquals(-157.5988, g1.getTerminal());
         assertReactivePowerEquals(-189.2926, g2.getTerminal());
         assertReactivePowerEquals(41.6880, g3.getTerminal());
         LoadFlowAssert.assertReportEquals("/tooFarVoltageRemoteControlReport.txt", reportNode);
 
-        // Second check with maxRemoteVoltageControlDistance=3 which allows the controller buses
+        // Second check with maxRemoteVoltageControlDistance=3 which allows the remote control
         parametersExt.setMaxVoltageRemoteControlDistance(3);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
+        assertVoltageEquals(413.40, b6); // Controlled bus b6 reaches targetV
         assertReactivePowerEquals(-100.4356, g1.getTerminal());
         assertReactivePowerEquals(-100.4356, g2.getTerminal());
         assertReactivePowerEquals(-100.4356, g3.getTerminal());
