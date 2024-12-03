@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 
@@ -22,11 +23,17 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     private boolean distributedSlack = LoadFlowParameters.DEFAULT_DISTRIBUTED_SLACK;
 
+    private boolean areaInterchangeControl = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
+
     private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.DEFAULT_BALANCE_TYPE;
 
     private boolean setVToNan = false;
 
     private int maxOuterLoopIterations = DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
+
+    private double slackBusPMaxMismatch = OpenLoadFlowParameters.SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
+
+    private double areaInterchangePMaxMismatch = OpenLoadFlowParameters.AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE;
 
     public DcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
@@ -55,6 +62,15 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
         return this;
     }
 
+    public boolean isAreaInterchangeControl() {
+        return areaInterchangeControl;
+    }
+
+    public DcLoadFlowParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
+        this.areaInterchangeControl = areaInterchangeControl;
+        return this;
+    }
+
     public LoadFlowParameters.BalanceType getBalanceType() {
         return balanceType;
     }
@@ -70,6 +86,24 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     public DcLoadFlowParameters setSetVToNan(boolean setVToNan) {
         this.setVToNan = setVToNan;
+        return this;
+    }
+
+    public double getSlackBusPMaxMismatch() {
+        return slackBusPMaxMismatch;
+    }
+
+    public DcLoadFlowParameters setSlackBusPMaxMismatch(double slackBusPMaxMismatch) {
+        this.slackBusPMaxMismatch = slackBusPMaxMismatch;
+        return this;
+    }
+
+    public double getAreaInterchangePMaxMismatch() {
+        return areaInterchangePMaxMismatch;
+    }
+
+    public DcLoadFlowParameters setAreaInterchangePMaxMismatch(double areaInterchangePMaxMismatch) {
+        this.areaInterchangePMaxMismatch = areaInterchangePMaxMismatch;
         return this;
     }
 
