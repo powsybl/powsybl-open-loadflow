@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 
@@ -753,6 +754,121 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         createGenerator(b5, "g3", 1);
         createLoad(b4, "d4", 3);
         createLoad(b2, "d2", 1);
+        return network;
+    }
+
+    public static Network createNoCc0Sc0() {
+        // b01 -- b02 -- b03 -- b04 connected by DC lines
+        // b11 -- b12 connected by AC line
+        Network network = Network.create("test", "code");
+        Bus b01 = createBus(network, "b01");
+        Bus b02 = createBus(network, "b02");
+        Bus b03 = createBus(network, "b03");
+        Bus b04 = createBus(network, "b04");
+        Bus b11 = createBus(network, "b11");
+        Bus b12 = createBus(network, "b12");
+
+        b01.getVoltageLevel()
+                .newVscConverterStation()
+                .setId("cs1-12")
+                .setConnectableBus(b01.getId())
+                .setBus(b01.getId())
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(1.0)
+                .setReactivePowerSetpoint(0.0)
+                .setLossFactor(0.0f)
+                .add();
+        b02.getVoltageLevel()
+                .newVscConverterStation()
+                .setId("cs2-12")
+                .setConnectableBus(b02.getId())
+                .setBus(b02.getId())
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(1.0)
+                .setReactivePowerSetpoint(0.0)
+                .setLossFactor(0.0f)
+                .add();
+        network.newHvdcLine()
+                .setId("hvdc12")
+                .setConverterStationId1("cs1-12")
+                .setConverterStationId2("cs2-12")
+                .setNominalV(1.)
+                .setR(0.0)
+                .setActivePowerSetpoint(1.)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                .setMaxP(5)
+                .add();
+
+        b02.getVoltageLevel()
+                .newVscConverterStation()
+                .setId("cs1-23")
+                .setConnectableBus(b02.getId())
+                .setBus(b02.getId())
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(1.0)
+                .setReactivePowerSetpoint(0.0)
+                .setLossFactor(0.0f)
+                .add();
+        b03.getVoltageLevel()
+                .newVscConverterStation()
+                .setId("cs2-23")
+                .setConnectableBus(b03.getId())
+                .setBus(b03.getId())
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(1.0)
+                .setReactivePowerSetpoint(0.0)
+                .setLossFactor(0.0f)
+                .add();
+        network.newHvdcLine()
+                .setId("hvdc23")
+                .setConverterStationId1("cs1-23")
+                .setConverterStationId2("cs2-23")
+                .setNominalV(1.)
+                .setR(0.0)
+                .setActivePowerSetpoint(2.)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                .setMaxP(5)
+                .add();
+
+        b03.getVoltageLevel()
+                .newVscConverterStation()
+                .setId("cs1-34")
+                .setConnectableBus(b03.getId())
+                .setBus(b03.getId())
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(1.0)
+                .setReactivePowerSetpoint(0.0)
+                .setLossFactor(0.0f)
+                .add();
+        b04.getVoltageLevel()
+                .newVscConverterStation()
+                .setId("cs2-34")
+                .setConnectableBus(b04.getId())
+                .setBus(b04.getId())
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(1.0)
+                .setReactivePowerSetpoint(0.0)
+                .setLossFactor(0.0f)
+                .add();
+        network.newHvdcLine()
+                .setId("hvdc34")
+                .setConverterStationId1("cs1-34")
+                .setConverterStationId2("cs2-34")
+                .setNominalV(1.)
+                .setR(0.0)
+                .setActivePowerSetpoint(3.)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                .setMaxP(5)
+                .add();
+
+        createGenerator(b01, "g01", 1);
+        createGenerator(b02, "g02", 1);
+        createGenerator(b03, "g03", 1);
+        createGenerator(b04, "g04", 1);
+        createLoad(b04, "l04", 4);
+        createGenerator(b11, "g11", 2);
+        createLoad(b12, "l11", 2);
+        createLine(network, b11, b12, "l11-12", 0.1f);
         return network;
     }
 }

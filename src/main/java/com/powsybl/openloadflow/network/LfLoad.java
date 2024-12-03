@@ -30,6 +30,8 @@ public interface LfLoad extends PropertyBag {
 
     double getTargetP();
 
+    double getNonFictitiousLoadTargetP();
+
     void setTargetP(double targetP);
 
     double getTargetQ();

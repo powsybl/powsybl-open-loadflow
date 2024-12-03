@@ -272,7 +272,25 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
      */
     public static boolean isLoadNotParticipating(Load load) {
         // Fictitious loads that do not participate to slack distribution.
+        return isLoadFictitious(load);
+    }
+
+    /**
+     * Returns whether the load is tagged fictitious in the grid model
+     */
+    public static boolean isLoadFictitious(Load load) {
+        // Fictitious loads that do not participate to slack distribution.
         return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
+    }
+
+    @Override
+    public double getNonFictitiousLoadTargetP() {
+        return loadsRefs.values().stream()
+                .map(Ref::get)
+                .filter(Objects::nonNull)
+                .filter(l -> !isLoadFictitious(l))
+                .mapToDouble(Load::getP0)
+                .sum();
     }
 
     @Override

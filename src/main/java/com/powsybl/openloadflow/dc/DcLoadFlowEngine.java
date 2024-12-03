@@ -62,10 +62,11 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return context;
     }
 
-    public static void distributeSlack(LfNetwork network, Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, boolean useActiveLimits) {
+    public static double distributeSlack(LfNetwork network, Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, boolean useActiveLimits) {
         double mismatch = getActivePowerMismatch(buses);
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
-        activePowerDistribution.run(network.getReferenceGenerator(), buses, mismatch);
+        var result = activePowerDistribution.run(network.getReferenceGenerator(), buses, mismatch);
+        return mismatch - result.remainingMismatch();
     }
 
     public static double getActivePowerMismatch(Collection<LfBus> buses) {
@@ -191,11 +192,21 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             phaseShifterControlOuterLoop.initialize(phaseShifterControlOuterLoopContext);
         }
 
+        if (parameters.isAreaInterchangeControl() && network.hasArea()) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false, parameters.getNetworkParameters().isUseActiveLimits());
+            DcAreaInterchangeControlControlOuterLoop areaInterchangeControlOuterLoop = new DcAreaInterchangeControlControlOuterLoop(activePowerDistribution, parameters.getSlackBusPMaxMismatch(), parameters.getAreaInterchangePMaxMismatch());
+            DcOuterLoopContext areaInterchangeControlOuterLoopContext = new DcOuterLoopContext(network);
+            outerLoopsAndContexts.add(Pair.of(areaInterchangeControlOuterLoop, areaInterchangeControlOuterLoopContext));
+            areaInterchangeControlOuterLoop.initialize(areaInterchangeControlOuterLoopContext);
+        }
+
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
-        double slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
-        if (parameters.isDistributedSlack()) {
-            distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+        double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
+        double distributedActivePower = 0.0;
+        if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
+            // FIXME handle distribution failure
+            distributedActivePower = distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
@@ -205,7 +216,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         // First linear system solution
         runningContext.lastSolverSuccess = solve(targetVectorArray, context.getJacobianMatrix(), reportNode);
-
         equationSystem.getStateVector().set(targetVectorArray);
         updateNetwork(network, equationSystem, targetVectorArray);
 
@@ -238,6 +248,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
+            if (outerLoop instanceof DcAreaInterchangeControlControlOuterLoop activePowerDistributionOuterLoop) {
+                distributedActivePower += activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext);
+            }
             outerLoop.cleanup(outerLoopContext);
         }
 
@@ -248,14 +261,24 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             }
         }
 
-        Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess);
-        LOGGER.info("DC load flow completed (success={})", runningContext.lastSolverSuccess);
+        Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
 
-        boolean success = runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE;
-        slackBusActivePowerMismatch = success ? getActivePowerMismatch(network.getBuses()) : slackBusActivePowerMismatch;
+        return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
+    }
 
-        return new DcLoadFlowResult(context.getNetwork(), runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch);
-
+    DcLoadFlowResult buildDcLoadFlowResult(LfNetwork network, RunningContext runningContext, double initialSlackBusActivePowerMismatch, double finalDistributedActivePower) {
+        double slackBusActivePowerMismatch;
+        double distributedActivePower;
+        if (runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE) {
+            slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
+            distributedActivePower = finalDistributedActivePower;
+        } else {
+            slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
+            distributedActivePower = 0.0;
+        }
+        DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+        LOGGER.info("DC loadflow complete on network {} (result={})", context.getNetwork(), result);
+        return result;
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, ReportNode reportNode) {

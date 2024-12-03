@@ -251,47 +251,62 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     SecurityAnalysisResult runSimulationsOnAllComponents(LfNetworkList networks, List<PropagatedContingency> propagatedContingencies, P parameters,
                                                          SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                          List<Action> actions, List<LimitReduction> limitReductions, LoadFlowParameters lfParameters) {
-        // run simulation on main connected component network first
-        SecurityAnalysisResult result = networks.getList().stream().filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID) && n.getNumCC() == ComponentConstants.MAIN_NUM)
-                .findFirst()
-                .map(n -> runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions))
-                .orElse(createNoResult());
+
+        List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(networks, lfParameters.getConnectedComponentMode()));
+
+        if (networkToSimulate.isEmpty()) {
+            return createNoResult();
+        }
+
+        // run simulation on first lfNetwork to initialize results structures
+        LfNetwork firstNetwork = networkToSimulate.remove(0);
+        SecurityAnalysisResult result = runSimulations(firstNetwork, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions);
 
         List<PostContingencyResult> postContingencyResults = result.getPostContingencyResults();
         List<OperatorStrategyResult> operatorStrategyResults = result.getOperatorStrategyResults();
         NetworkResult mergedPreContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
-        List<LimitViolation> preContingenctViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        List<LimitViolation> preContingencyViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
 
-        if (lfParameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.ALL) {
-            Map<String, PostContingencyResult> postContingencyResultMap = new LinkedHashMap<>();
-            Map<String, OperatorStrategyResult> operatorStrategyResultMap = new LinkedHashMap<>();
-            postContingencyResults.forEach(r -> postContingencyResultMap.put(r.getContingency().getId(), r));
-            operatorStrategyResults.forEach(r -> operatorStrategyResultMap.put(r.getOperatorStrategy().getId(), r));
+        Map<String, PostContingencyResult> postContingencyResultMap = new LinkedHashMap<>();
+        Map<String, OperatorStrategyResult> operatorStrategyResultMap = new LinkedHashMap<>();
+        postContingencyResults.forEach(r -> postContingencyResultMap.put(r.getContingency().getId(), r));
+        operatorStrategyResults.forEach(r -> operatorStrategyResultMap.put(r.getOperatorStrategy().getId(), r));
 
-            // Ensure the lists are writable and can be extended
-            preContingenctViolations = new ArrayList<>(preContingenctViolations);
+        // Ensure the lists are writable and can be extended
+        preContingencyViolations = new ArrayList<>(preContingencyViolations);
 
-            List<LfNetwork> networkToSimulate = networks.getList().stream()
-                    .filter(n -> n.getNumCC() != ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-            for (LfNetwork n : networkToSimulate) {
-                SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions);
+        for (LfNetwork n : networkToSimulate) {
+            SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies, actions, limitReductions);
 
-                // Merge into first result
-                // PreContingency results first
-                preContingenctViolations.addAll(resultOtherComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
-                mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOtherComponent.getPreContingencyResult().getNetworkResult());
+            // Merge into first result
+            // PreContingency results first
+            preContingencyViolations.addAll(resultOtherComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
+            mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOtherComponent.getPreContingencyResult().getNetworkResult());
 
-                // PostContingency and OperatorStrategies results
-                mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
-            }
-            postContingencyResults = postContingencyResultMap.values().stream().toList();
-            operatorStrategyResults = operatorStrategyResultMap.values().stream().toList();
+            // PostContingency and OperatorStrategies results
+            mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
         }
+        postContingencyResults = postContingencyResultMap.values().stream().toList();
+        operatorStrategyResults = operatorStrategyResultMap.values().stream().toList();
+
         PreContingencyResult mergedPrecontingencyResult =
-                new PreContingencyResult(result.getPreContingencyResult().getStatus(),
-                        new LimitViolationsResult(preContingenctViolations),
-                        mergedPreContingencyNetworkResult);
+            new PreContingencyResult(result.getPreContingencyResult().getStatus(),
+                new LimitViolationsResult(preContingencyViolations),
+                mergedPreContingencyNetworkResult);
         return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
+    }
+
+    static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ConnectedComponentMode mode) {
+
+        if (LoadFlowParameters.ConnectedComponentMode.MAIN.equals(mode)) {
+            return networks.getList().stream()
+                .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        } else if (LoadFlowParameters.ConnectedComponentMode.ALL.equals(mode)) {
+            return networks.getList().stream()
+                .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        } else {
+            throw new PowsyblException("Unsupported ConnectedComponentMode " + mode);
+        }
     }
 
     void mergeSecurityAnalysisResult(SecurityAnalysisResult resultToMerge, Map<String, PostContingencyResult> postContingencyResults,

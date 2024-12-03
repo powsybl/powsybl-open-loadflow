@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.security.ViolationLocation;
 
 import java.util.List;
 
@@ -69,5 +70,10 @@ public class LfStarBus extends AbstractLfBus {
         Networks.setPropertyAngle(t3wt, Math.toDegrees(angle));
 
         super.updateState(parameters);
+    }
+
+    @Override
+    public ViolationLocation getViolationLocation() {
+        return null;
     }
 }
