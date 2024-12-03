@@ -16,4 +16,3 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
  */
 public interface DcOuterLoop extends OuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> {
 }
-
