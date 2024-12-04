@@ -148,6 +148,8 @@ public class LfNetworkParameters {
 
     private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
+    private boolean remoteVoltageControlIgnoreQPercent = OpenLoadFlowParameters.REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -194,6 +196,7 @@ public class LfNetworkParameters {
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
+        this.remoteVoltageControlIgnoreQPercent = other.remoteVoltageControlIgnoreQPercent;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -597,6 +600,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isRemoteVoltageControlIgnoreQPercent() {
+        return remoteVoltageControlIgnoreQPercent;
+    }
+
+    public LfNetworkParameters setRemoteVoltageControlIgnoreQPercent(boolean remoteVoltageControlIgnoreQPercent) {
+        this.remoteVoltageControlIgnoreQPercent = remoteVoltageControlIgnoreQPercent;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -638,6 +650,7 @@ public class LfNetworkParameters {
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ", areaInterchangeControl=" + areaInterchangeControl +
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
+                ", ignoreQPercent=" + remoteVoltageControlIgnoreQPercent +
                 ')';
     }
 }
