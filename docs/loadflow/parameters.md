@@ -150,6 +150,11 @@ Whether simulation of generators reactive power remote control should be enabled
 (See [remote reactive power control](inv:powsyblcore:*:*:#remote-reactive-power-control-extension)).  
 The default value is `false`.
 
+**remoteVoltageControlIgnoreQPercent**  
+Whether remote voltage control should ignore the qPercent data, an optional input that provides a repartition key for reactive power
+in case several bus control the same target, and systematically use the default repartition key instead which is based on reactive 
+power range. The default value is `false`.
+
 **secondaryVoltageControl**  
 Whether simulation of secondary voltage control should be enabled.  
 The default value is `false`.
