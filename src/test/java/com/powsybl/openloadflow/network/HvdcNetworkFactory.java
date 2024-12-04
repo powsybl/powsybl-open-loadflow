@@ -626,15 +626,14 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b2, "l12", 0.1f);
         createLine(network, b1, b2Bis, "l12Bis", 0.1f);
         createSwitch(network, b2, b2Bis, "s2").setOpen(true);
-        HvdcConverterStation cs2;
-        HvdcConverterStation cs3;
-        if (HvdcConverterStation.HvdcType.LCC.equals(type)) {
-            cs2 = createLcc(b2, "cs2");
-            cs3 = createLcc(b3, "cs3");
-        } else {
-            cs2 = createVsc(b2, "cs2", 400, 0);
-            cs3 = createVsc(b3, "cs3", 400, 0);
-        }
+        HvdcConverterStation cs2 = switch (type) {
+            case LCC -> createLcc(b2, "cs2");
+            case VSC -> createVsc(b2, "cs2", 400, 0);
+        };
+        HvdcConverterStation cs3 = switch (type) {
+            case LCC -> createLcc(b3, "cs3");
+            case VSC -> createVsc(b3, "cs3", 400, 0);
+        };
         createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 200)
                 .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
                 .withDroop(180)
@@ -674,15 +673,14 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b2Bis, "l12Bis", 0.1f);
         createSwitch(network, b2, b2Bis, "s2").setOpen(false);
         createSwitch(network, b3, b7, "s3").setOpen(false);
-        HvdcConverterStation cs2;
-        HvdcConverterStation cs3;
-        if (HvdcConverterStation.HvdcType.LCC.equals(type)) {
-            cs2 = createLcc(b2, "cs2");
-            cs3 = createLcc(b3, "cs3");
-        } else {
-            cs2 = createVsc(b2, "cs2", 400, 0);
-            cs3 = createVsc(b3, "cs3", 400, 0);
-        }
+        HvdcConverterStation cs2 = switch (type) {
+            case LCC -> createLcc(b2, "cs2");
+            case VSC -> createVsc(b2, "cs2", 400, 0);
+        };
+        HvdcConverterStation cs3 = switch (type) {
+            case LCC -> createLcc(b3, "cs3");
+            case VSC -> createVsc(b3, "cs3", 400, 0);
+        };
         createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 200)
                 .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
                 .withDroop(180)
