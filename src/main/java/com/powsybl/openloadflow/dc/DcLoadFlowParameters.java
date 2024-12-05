@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -28,6 +30,7 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
     private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.DEFAULT_BALANCE_TYPE;
 
     private boolean setVToNan = false;
+    protected List<DcOuterLoop> outerLoops = Collections.emptyList();
 
     private int maxOuterLoopIterations = DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
@@ -86,6 +89,15 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     public DcLoadFlowParameters setSetVToNan(boolean setVToNan) {
         this.setVToNan = setVToNan;
+        return this;
+    }
+
+    public List<DcOuterLoop> getOuterLoops() {
+        return outerLoops;
+    }
+
+    public DcLoadFlowParameters setOuterLoops(List<DcOuterLoop> outerLoops) {
+        this.outerLoops = Objects.requireNonNull(outerLoops);
         return this;
     }
 

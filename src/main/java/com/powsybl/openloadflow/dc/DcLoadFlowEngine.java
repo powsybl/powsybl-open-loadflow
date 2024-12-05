@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
@@ -31,10 +32,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -184,30 +185,29 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         DcLoadFlowParameters parameters = context.getParameters();
         TargetVector<DcVariableType, DcEquationType> targetVector = context.getTargetVector();
         RunningContext runningContext = new RunningContext();
+        List<DcOuterLoop> outerLoops = parameters.getOuterLoops();
 
-        // outer loop initialization
-        List<Pair<DcOuterLoop, DcOuterLoopContext>> outerLoopsAndContexts = new ArrayList<>();
+        boolean distributedSlack = parameters.isDistributedSlack() || areaInterchangeControlFallback();
 
-        if (parameters.getNetworkParameters().isPhaseControl()) {
-            DcIncrementalPhaseControlOuterLoop phaseShifterControlOuterLoop = new DcIncrementalPhaseControlOuterLoop();
-            DcOuterLoopContext phaseShifterControlOuterLoopContext = new DcOuterLoopContext(network);
-            outerLoopsAndContexts.add(Pair.of(phaseShifterControlOuterLoop, phaseShifterControlOuterLoopContext));
-            phaseShifterControlOuterLoop.initialize(phaseShifterControlOuterLoopContext);
-        }
+        List<DcOuterLoop> activeOuterLoops = outerLoops.stream()
+                .filter(DcOuterLoop::isActive)
+                .toList();
+        List<Pair<DcOuterLoop, DcOuterLoopContext>> outerLoopsAndContexts = activeOuterLoops.stream()
+                .map(outerLoop -> Pair.of(outerLoop, new DcOuterLoopContext(context.getNetwork())))
+                .toList();
 
-        if (parameters.isAreaInterchangeControl() && network.hasArea()) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false, parameters.getNetworkParameters().isUseActiveLimits());
-            DcAreaInterchangeControlControlOuterLoop areaInterchangeControlOuterLoop = new DcAreaInterchangeControlControlOuterLoop(activePowerDistribution, parameters.getSlackBusPMaxMismatch(), parameters.getAreaInterchangePMaxMismatch());
-            DcOuterLoopContext areaInterchangeControlOuterLoopContext = new DcOuterLoopContext(network);
-            outerLoopsAndContexts.add(Pair.of(areaInterchangeControlOuterLoop, areaInterchangeControlOuterLoopContext));
-            areaInterchangeControlOuterLoop.initialize(areaInterchangeControlOuterLoopContext);
+        // outer loops initialization
+        for (var outerLoopAndContext : outerLoopsAndContexts) {
+            var outerLoop = outerLoopAndContext.getLeft();
+            var outerLoopContext = outerLoopAndContext.getRight();
+            outerLoop.initialize(outerLoopContext);
         }
 
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
-        if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
+        if (distributedSlack) {
             LoadFlowParameters.BalanceType balanceType = parameters.getBalanceType();
             boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
@@ -284,7 +284,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
-            if (outerLoop instanceof DcAreaInterchangeControlControlOuterLoop activePowerDistributionOuterLoop) {
+            if (outerLoop instanceof DcAreaInterchangeControlOuterLoop activePowerDistributionOuterLoop) {
                 distributedActivePower += activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext);
             }
             outerLoop.cleanup(outerLoopContext);
@@ -331,6 +331,23 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                     return DcLoadFlowResult.createNoCalculationResult(n);
                 })
                 .toList();
+    }
+
+    /**
+     * If Area Interchange Control is activated but the network has no area, we fall back to distributed slack
+     */
+    boolean areaInterchangeControlFallback() {
+        List<DcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
+        Optional<DcAreaInterchangeControlOuterLoop> aicOuterLoop = outerLoops.stream()
+                .filter(DcAreaInterchangeControlOuterLoop.class::isInstance)
+                .filter(OuterLoop::isActive)
+                .map(DcAreaInterchangeControlOuterLoop.class::cast)
+                .findFirst();
+        if (aicOuterLoop.isPresent() && !context.getNetwork().hasArea()) {
+            aicOuterLoop.get().setActive(false);
+            return true;
+        }
+        return false;
     }
 
 }
