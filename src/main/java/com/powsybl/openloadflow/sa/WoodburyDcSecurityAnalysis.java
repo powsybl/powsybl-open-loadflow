@@ -83,7 +83,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                     PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                     Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches, ReportNode reportNode) {
         return calculatePostContingencyAndOperatorStrategyStates(loadFlowContext, contingenciesStates, flowStates, contingency, contingencyElementByBranch, disabledBuses, elementsToReconnect,
-                partialDisabledBranches, Collections.emptyList(), Collections.emptyMap(), WoodburyEngine.EMPTY_DENSE_MATRIX, reportNode);
+                partialDisabledBranches, Collections.emptyList(), Collections.emptyMap(), DenseMatrix.EMPTY, reportNode);
     }
 
     /**
@@ -151,7 +151,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                                                        Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
                                                                                        ReportNode reportNode) {
         return calculatePostContingencyAndOperatorStrategyStatesForAContingencyBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, contingencyElementByBranch, flowStates,
-                contingenciesStates, Collections.emptyList(), Collections.emptyMap(), WoodburyEngine.EMPTY_DENSE_MATRIX, reportNode);
+                contingenciesStates, Collections.emptyList(), Collections.emptyMap(), DenseMatrix.EMPTY, reportNode);
     }
 
     /**

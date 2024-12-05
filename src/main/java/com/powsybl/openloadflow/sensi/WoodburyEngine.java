@@ -42,16 +42,13 @@ public class WoodburyEngine {
 
     private final DenseMatrix tapPositionChangeStates;
 
-    // TODO : should be removed after refactoring in powsybl-core
-    public static final DenseMatrix EMPTY_DENSE_MATRIX = new DenseMatrix(0, 0);
-
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
         this.tapPositionChangeElements = Collections.emptyList();
-        this.tapPositionChangeStates = EMPTY_DENSE_MATRIX;
+        this.tapPositionChangeStates = DenseMatrix.EMPTY;
     }
 
     public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
