@@ -12,7 +12,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaphsonParameters> {
+public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaphsonParameters> implements AcSolverParameters {
 
     public static final int DEFAULT_MAX_ITERATIONS = 15;
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;

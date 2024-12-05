@@ -18,7 +18,8 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.solver.AcSolverType;
+import com.powsybl.openloadflow.ac.solver.NewtonKrylovFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -46,7 +47,7 @@ class NewtonKrylovTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcSolverType(AcSolverType.NEWTON_KRYLOV)
+                .setAcSolverType(NewtonKrylovFactory.NAME)
                 .setMaxNewtonKrylovIterations(20);
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory())); // sparse matrix solver only
     }
@@ -75,9 +76,9 @@ class NewtonKrylovTest {
     }
 
     @Test
-    void illConditionnedTest() {
+    void illConditionedTest() {
         Network network = Network.read(new ResourceDataSource("two_area_case", new ResourceSet("/illinois/literature-based", "two_area_case.RAW")));
-        parametersExt.setAcSolverType(AcSolverType.NEWTON_RAPHSON);
+        parametersExt.setAcSolverType(NewtonRaphsonFactory.NAME);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
@@ -87,7 +88,7 @@ class NewtonKrylovTest {
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(7, result.getComponentResults().get(0).getIterationCount());
 
-        parametersExt.setAcSolverType(AcSolverType.NEWTON_KRYLOV);
+        parametersExt.setAcSolverType(NewtonKrylovFactory.NAME);
 
         result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
