@@ -138,14 +138,14 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     static List<AcOuterLoop> filterInconsistentOuterLoops(List<AcOuterLoop> outerLoops) {
         if (outerLoops.stream().anyMatch(AcAreaInterchangeControlOuterLoop.class::isInstance)) {
-            return outerLoops.stream().filter(o -> {
-                if (o instanceof DistributedSlackOuterLoop) {
-                    LOGGER.warn("Distributed slack and area interchange control are both enabled. " +
-                            "Distributed slack outer loop will be disabled, slack will be distributed by the area interchange control.");
-                    return false;
-                }
-                return true;
-            }).toList();
+            outerLoops.stream()
+                    .filter(DistributedSlackOuterLoop.class::isInstance)
+                    .map(DistributedSlackOuterLoop.class::cast)
+                    .forEach(distributedSlackOuterLoop -> {
+                        LOGGER.warn("Distributed slack and area interchange control are both enabled. " +
+                                "Distributed slack outer loop will be disabled, slack will be distributed by the area interchange control.");
+                        distributedSlackOuterLoop.setActive(false);
+                    });
         }
         return outerLoops;
     }
