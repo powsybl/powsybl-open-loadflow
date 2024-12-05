@@ -54,7 +54,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>6.5.1</powsybl-core.version>
+        <powsybl-core.version>6.6.0-RC1</powsybl-core.version>
     </properties>
 
     <build>
@@ -66,6 +66,25 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>templating-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>com/powsybl/openloadflow/network/**/*Factory*.class</include>
+                                <include>com/powsybl/openloadflow/util/LoadFlowAssert.class</include>
+                                <include>com/powsybl/openloadflow/util/LoadFlowResultBuilder.class</include>
+                                <include>com/powsybl/openloadflow/sa/AbstractOpenSecurityAnalysisTest.class</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <pluginManagement>

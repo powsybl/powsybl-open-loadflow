@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
+ * Copyright (c) 2024, Artelys (http://www.artelys.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,9 +8,8 @@
 package com.powsybl.openloadflow.ac.solver;
 
 /**
- * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * Parameters specific to an AC Solver
+ * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
-public enum AcSolverType {
-    NEWTON_RAPHSON,
-    NEWTON_KRYLOV
+public interface AcSolverParameters {
 }
