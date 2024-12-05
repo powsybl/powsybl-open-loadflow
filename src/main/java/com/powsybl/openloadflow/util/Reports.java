@@ -327,10 +327,11 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportDcLfComplete(ReportNode reportNode, boolean succeeded) {
+    public static void reportDcLfComplete(ReportNode reportNode, boolean succeeded, String outerloopStatus) {
         reportNode.newReportNode()
-                .withMessageTemplate("dcLfComplete", "DC load flow completed (status=${succeeded})")
+                .withMessageTemplate("dcLfComplete", "DC load flow completed (solverSuccess=${succeeded}, outerloopStatus=${outerloopStatus})")
                 .withUntypedValue("succeeded", succeeded)
+                .withUntypedValue("outerloopStatus", outerloopStatus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
@@ -606,14 +607,20 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
-        reportNode.newReportNode()
-                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfRealisticVoltageRange}")
+        ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
+                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
                 .withUntypedValue("minRealisticVoltage", minRealisticVoltage)
                 .withUntypedValue("maxRealisticVoltage", maxRealisticVoltage)
-                .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+
+        busesOutOfRealisticVoltageRange.forEach((id, voltage) -> voltageOutOfRangeReport.newReportNode()
+            .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRangeDetails", "Bus ${busId} has an unrealistic voltage magnitude: ${voltage} p.u.")
+            .withUntypedValue(BUS_ID, id)
+            .withUntypedValue("voltage", voltage)
+            .withSeverity(TypedValue.TRACE_SEVERITY)
+            .add());
     }
 
     public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {
