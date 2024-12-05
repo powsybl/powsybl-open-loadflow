@@ -605,7 +605,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double areaInterchangePMaxMismatch = AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE;
 
-    private boolean remoteVoltageControlIgnoreQpercent = REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE;
+    private boolean remoteVoltageControlIgnoreQPercent = REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1332,12 +1332,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isRemoteVoltageControlIgnoreQpercent() {
-        return remoteVoltageControlIgnoreQpercent;
+    public boolean isRemoteVoltageControlIgnoreQPercent() {
+        return remoteVoltageControlIgnoreQPercent;
     }
 
-    public OpenLoadFlowParameters setRemoteVoltageControlIgnoreQpercent(boolean remoteVoltageControlIgnoreQpercent) {
-        this.remoteVoltageControlIgnoreQpercent = remoteVoltageControlIgnoreQpercent;
+    public OpenLoadFlowParameters setRemoteVoltageControlIgnoreQPercent(boolean remoteVoltageControlIgnoreQPercent) {
+        this.remoteVoltageControlIgnoreQPercent = remoteVoltageControlIgnoreQPercent;
         return this;
     }
 
@@ -1420,7 +1420,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControl(config.getBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME, AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE))
                 .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE))
                 .setAreaInterchangePMaxMismatch(config.getDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE))
-                .setRemoteVoltageControlIgnoreQpercent(config.getBooleanProperty(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE)));
+                .setRemoteVoltageControlIgnoreQPercent(config.getBooleanProperty(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1582,7 +1582,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setAreaInterchangePMaxMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME))
-                .ifPresent(prop -> this.setRemoteVoltageControlIgnoreQpercent(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setRemoteVoltageControlIgnoreQPercent(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1659,7 +1659,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(AREA_INTERCHANGE_CONTROL_PARAM_NAME, areaInterchangeControl);
         map.put(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, areaInterchangeControlAreaType);
         map.put(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, areaInterchangePMaxMismatch);
-        map.put(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, remoteVoltageControlIgnoreQpercent);
+        map.put(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, remoteVoltageControlIgnoreQPercent);
         return map;
     }
 
@@ -1817,7 +1817,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode())
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
-                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQpercent());
+                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQPercent());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1917,7 +1917,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
-                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQpercent());
+                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQPercent());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
@@ -2046,7 +2046,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isAreaInterchangeControl() == extension2.isAreaInterchangeControl() &&
                 Objects.equals(extension1.getAreaInterchangeControlAreaType(), extension2.getAreaInterchangeControlAreaType()) &&
                 extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch() &&
-                extension1.isRemoteVoltageControlIgnoreQpercent() == extension2.isRemoteVoltageControlIgnoreQpercent();
+                extension1.isRemoteVoltageControlIgnoreQPercent() == extension2.isRemoteVoltageControlIgnoreQPercent();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2143,7 +2143,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setAreaInterchangeControl(extension.isAreaInterchangeControl())
                     .setAreaInterchangeControlAreaType(extension.getAreaInterchangeControlAreaType())
                     .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch())
-                    .setRemoteVoltageControlIgnoreQpercent(extension.isRemoteVoltageControlIgnoreQpercent());
+                    .setRemoteVoltageControlIgnoreQPercent(extension.isRemoteVoltageControlIgnoreQPercent());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
