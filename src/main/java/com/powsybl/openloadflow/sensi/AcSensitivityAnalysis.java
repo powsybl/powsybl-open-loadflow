@@ -232,7 +232,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setAreaInterchangeControlAreaType(lfParametersExt.getAreaInterchangeControlAreaType())
                 .setForceTargetQInReactiveLimits(lfParametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(lfParametersExt.isDisableInconsistentVoltageControls())
-                .setRemoteVoltageControlIgnoreQPercent(lfParametersExt.isRemoteVoltageControlIgnoreQpercent());
+                .setRemoteVoltageControlIgnoreQPercent(lfParametersExt.isRemoteVoltageControlIgnoreQPercent());
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {

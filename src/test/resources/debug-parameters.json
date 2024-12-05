@@ -94,7 +94,7 @@
         "areaInterchangePMaxMismatch" : 2.0,
         "forceTargetQInReactiveLimits" : false,
         "disableInconsistentVoltageControls" : false,
-        "remoteVoltageControlIgnoreQpercent" : false
+        "remoteVoltageControlIgnoreQPercent" : false
       }
     }
   },

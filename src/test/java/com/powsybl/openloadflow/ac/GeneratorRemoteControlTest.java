@@ -195,7 +195,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-63.07, g2.getTerminal());
         assertReactivePowerEquals(-21.023, g3.getTerminal());
 
-        parametersExt.setRemoteVoltageControlIgnoreQpercent(true);
+        parametersExt.setRemoteVoltageControlIgnoreQPercent(true);
         g1.newMinMaxReactiveLimits().setMaxQ(100).setMinQ(-100).add();
         g2.newMinMaxReactiveLimits().setMaxQ(100).setMinQ(-100).add();
         g3.newMinMaxReactiveLimits().setMaxQ(200).setMinQ(-200).add();

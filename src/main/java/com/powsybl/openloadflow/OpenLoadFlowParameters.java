@@ -634,7 +634,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean disableInconsistentVoltageControls = LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
 
-    private boolean remoteVoltageControlIgnoreQpercent = REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE;
+    private boolean remoteVoltageControlIgnoreQPercent = REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1388,12 +1388,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isRemoteVoltageControlIgnoreQpercent() {
-        return remoteVoltageControlIgnoreQpercent;
+    public boolean isRemoteVoltageControlIgnoreQPercent() {
+        return remoteVoltageControlIgnoreQPercent;
     }
 
-    public OpenLoadFlowParameters setRemoteVoltageControlIgnoreQpercent(boolean remoteVoltageControlIgnoreQpercent) {
-        this.remoteVoltageControlIgnoreQpercent = remoteVoltageControlIgnoreQpercent;
+    public OpenLoadFlowParameters setRemoteVoltageControlIgnoreQPercent(boolean remoteVoltageControlIgnoreQPercent) {
+        this.remoteVoltageControlIgnoreQPercent = remoteVoltageControlIgnoreQPercent;
         return this;
     }
 
@@ -1477,7 +1477,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE))
                 .setAreaInterchangePMaxMismatch(config.getDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE))
                 .setDisableInconsistentVoltageControls(config.getBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE))
-                .setRemoteVoltageControlIgnoreQpercent(config.getBooleanProperty(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE)));
+                .setRemoteVoltageControlIgnoreQPercent(config.getBooleanProperty(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1645,7 +1645,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME))
                 .ifPresent(prop -> this.setDisableInconsistentVoltageControls(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME))
-                .ifPresent(prop -> this.setRemoteVoltageControlIgnoreQpercent(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setRemoteVoltageControlIgnoreQPercent(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1725,7 +1725,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, voltageRemoteControlRobustMode);
         map.put(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, forceTargetQInReactiveLimits);
         map.put(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, disableInconsistentVoltageControls);
-        map.put(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, remoteVoltageControlIgnoreQpercent);
+        map.put(REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_PARAM_NAME, remoteVoltageControlIgnoreQPercent);
         return map;
     }
 
@@ -1885,7 +1885,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
-                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQpercent());
+                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQPercent());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1996,7 +1996,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
-                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQpercent());
+                .setRemoteVoltageControlIgnoreQPercent(parametersExt.isRemoteVoltageControlIgnoreQPercent());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
@@ -2128,7 +2128,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isVoltageRemoteControlRobustMode() == extension2.isVoltageRemoteControlRobustMode() &&
                 extension1.isForceTargetQInReactiveLimits() == extension2.isForceTargetQInReactiveLimits() &&
                 extension1.isDisableInconsistentVoltageControls() == extension2.isDisableInconsistentVoltageControls() &&
-                extension1.isRemoteVoltageControlIgnoreQpercent() == extension2.isRemoteVoltageControlIgnoreQpercent();
+                extension1.isRemoteVoltageControlIgnoreQPercent() == extension2.isRemoteVoltageControlIgnoreQPercent();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2228,7 +2228,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setVoltageRemoteControlRobustMode(extension.isVoltageRemoteControlRobustMode())
                     .setForceTargetQInReactiveLimits(extension.isForceTargetQInReactiveLimits())
                     .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls())
-                    .setRemoteVoltageControlIgnoreQpercent(extension.isRemoteVoltageControlIgnoreQpercent());
+                    .setRemoteVoltageControlIgnoreQPercent(extension.isRemoteVoltageControlIgnoreQPercent());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
