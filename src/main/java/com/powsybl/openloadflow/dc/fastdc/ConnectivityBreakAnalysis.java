@@ -5,17 +5,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.sensi;
+package com.powsybl.openloadflow.dc.fastdc;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.ElementType;
@@ -123,7 +120,7 @@ public final class ConnectivityBreakAnalysis {
             for (ComputedContingencyElement element2 : contingencyElements) {
                 LfBranch branch = lfNetwork.getBranchById(element2.getElement().getId());
                 ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                double value = Math.abs(p.calculateSensi(contingenciesStates, element.getContingencyIndex()));
+                double value = Math.abs(p.calculateSensi(contingenciesStates, element.getComputedElementIndex()));
                 sum += value;
             }
             if (sum > 1d - CONNECTIVITY_LOSS_THRESHOLD) {
@@ -228,55 +225,8 @@ public final class ConnectivityBreakAnalysis {
                                 (existing, replacement) -> existing,
                                 LinkedHashMap::new
                         ));
-        ComputedContingencyElement.setContingencyIndexes(contingencyElementByBranch.values());
+        ComputedElement.setComputedElementIndexes(contingencyElementByBranch.values());
         return contingencyElementByBranch;
-    }
-
-    public static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
-        // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        int maxContingencyElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
-        if (contingencyElements.size() > maxContingencyElements) {
-            throw new PowsyblException("Too many contingency elements " + contingencyElements.size()
-                    + ", maximum is " + maxContingencyElements + " for a system with " + equationCount + " equations");
-        }
-
-        DenseMatrix rhs = new DenseMatrix(equationCount, contingencyElements.size());
-        fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
-        return rhs;
-    }
-
-    private static DenseMatrix calculateContingenciesStates(DcLoadFlowContext loadFlowContext, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
-        DenseMatrix contingenciesStates = initContingencyRhs(loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
-        loadFlowContext.getJacobianMatrix().solveTransposed(contingenciesStates);
-        return contingenciesStates;
-    }
-
-    /**
-     * Fills the right hand side with +1/-1 to model a branch contingency.
-     */
-    private static void fillRhsContingency(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                           Collection<ComputedContingencyElement> contingencyElements, Matrix rhs) {
-        for (ComputedContingencyElement element : contingencyElements) {
-            LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
-            if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
-                continue;
-            }
-            LfBus bus1 = lfBranch.getBus1();
-            LfBus bus2 = lfBranch.getBus2();
-            if (bus1.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
-            } else if (bus2.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
-            } else {
-                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
-                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
-            }
-        }
     }
 
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
@@ -284,7 +234,7 @@ public final class ConnectivityBreakAnalysis {
         Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem());
 
         // compute states with +1 -1 to model the contingencies
-        DenseMatrix contingenciesStates = calculateContingenciesStates(loadFlowContext, contingencyElementByBranch);
+        DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(loadFlowContext, contingencyElementByBranch.values());
 
         // connectivity analysis by contingency
         // we have to compute sensitivities and reference functions in a different way depending on either or not the contingency breaks connectivity
