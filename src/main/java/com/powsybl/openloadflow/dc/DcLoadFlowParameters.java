@@ -28,6 +28,7 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
     private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.DEFAULT_BALANCE_TYPE;
 
     private boolean setVToNan = false;
+
     protected List<DcOuterLoop> outerLoops = Collections.emptyList();
 
     private int maxOuterLoopIterations = DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
