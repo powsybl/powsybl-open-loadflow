@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.sensi;
+package com.powsybl.openloadflow.dc.fastdc;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
