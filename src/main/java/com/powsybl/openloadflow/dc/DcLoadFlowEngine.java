@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -207,8 +208,23 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
-            // FIXME handle distribution failure
             distributedActivePower = distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+            double remainingMismatch = getActivePowerMismatch(network.getBuses());
+            if (remainingMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
+                switch (context.getParameters().getSlackDistributionFailureBehavior()) {
+                    case FAIL -> {
+                        LOGGER.error("DC loadflow failed to distribute slack bus active power on network {}", context.getNetwork());
+                        // TODO : how to return the failure in the DCLoadFlow result since it is not in an OuterLoop ?
+                    }
+                    case THROW -> throw new PowsyblException("DC loadflow failed to distribute slack bus active power on network");
+                    case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
+                        LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
+                        Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
+                        referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
+                        LOGGER.warn("Could not distribute slack bus active power, remaining mismatch {} is redistributed to reference generator {}", remainingMismatch, referenceGenerator.getId());
+                    }
+                }
+            }
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
@@ -274,15 +290,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         if (runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE) {
             slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
             distributedActivePower = finalDistributedActivePower;
-            if (context.getParameters().getSlackDistributionFailureBehavior().equals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL)
-            && slackBusActivePowerMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
-                DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, false, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
-                LOGGER.error("DC loadflow failed to distribute slack bus active power on network {} (result={})", context.getNetwork(), result);
-                return result;
-            } else if (context.getParameters().getSlackDistributionFailureBehavior().equals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW)
-                    && slackBusActivePowerMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
-                throw new PowsyblException("DC loadflow failed to distribute slack bus active power on network");
-            }
         } else {
             slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
             distributedActivePower = 0.0;
