@@ -11,6 +11,7 @@ import com.google.common.collect.Lists;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -275,6 +276,11 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         } else {
             slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
             distributedActivePower = 0.0;
+            if (context.getParameters().getSlackDistributionFailureBehavior().equals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL)){
+                DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, false, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+                LOGGER.info("DC loadflow failed to distribute slack bus active power on network {} (result={})", context.getNetwork(), result);
+                return result;
+            }
         }
         DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
         LOGGER.info("DC loadflow complete on network {} (result={})", context.getNetwork(), result);
