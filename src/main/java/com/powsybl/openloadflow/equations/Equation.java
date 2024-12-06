@@ -156,6 +156,9 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         for (EquationTerm<V, E> term : terms) {
             if (term.isActive()) {
                 value += term.eval();
+                if (term.hasRhs()) {
+                    value -= term.rhs();
+                }
             }
         }
         return value;
