@@ -221,6 +221,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                         Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
                         referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
                         LOGGER.warn("Could not distribute slack bus active power, remaining mismatch {} is redistributed to reference generator {}", remainingMismatch, referenceGenerator.getId());
+                        distributedActivePower += remainingMismatch;
                     }
                 }
             }

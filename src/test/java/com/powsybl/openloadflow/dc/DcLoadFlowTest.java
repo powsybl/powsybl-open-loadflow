@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -28,11 +29,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
@@ -462,5 +463,30 @@ class DcLoadFlowTest {
         assertEquals(-292.563, line1.getTerminal2().getP(), 0.01);
         assertEquals(307.436, line2.getTerminal1().getP(), 0.01);
         assertEquals(-307.436, line2.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void testDcSlackDistributionFailureBehavior() {
+        Network network = IeeeCdfNetworkFactory.create57();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        Generator referenceGenerator = network.getGenerator("B1-G");
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(321.9,result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(0,result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertActivePowerEquals(-128.9,referenceGenerator.getTerminal());
+        // TODO : receive failure
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("DC loadflow failed to distribute slack bus active power on network", e.getCause().getMessage());
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(321.9, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertActivePowerEquals(-450.8,referenceGenerator.getTerminal()); // -128.9 - 321.9 = -450.8
     }
 }
