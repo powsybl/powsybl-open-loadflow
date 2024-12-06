@@ -34,8 +34,4 @@ public interface OuterLoop<V extends Enum<V> & Quantity,
 
     default void cleanup(O context) {
     }
-
-    default boolean isActive() {
-        return true;
-    }
 }

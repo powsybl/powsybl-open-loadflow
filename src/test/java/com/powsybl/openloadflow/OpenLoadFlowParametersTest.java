@@ -23,8 +23,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.ac.outerloop.AcAreaInterchangeControlOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.network.*;
@@ -435,20 +433,13 @@ class OpenLoadFlowParametersTest {
         assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setAreaInterchangeControl(true);
-        var outerLoops = OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt);
-        assertEquals(List.of("DistributedSlack", "AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"), outerLoops.stream().map(OuterLoop::getType).toList());
-        assertTrue(outerLoops.stream().anyMatch(ol -> ol instanceof AcAreaInterchangeControlOuterLoop && ol.isActive()));
-        assertFalse(outerLoops.stream().anyMatch(ol -> ol instanceof DistributedSlackOuterLoop && ol.isActive()));
+        assertEquals(List.of("AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("DistributedSlack", "AreaInterchangeControl"));
-        outerLoops = OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt);
-        assertEquals(List.of("DistributedSlack", "AreaInterchangeControl"), outerLoops.stream().map(OuterLoop::getType).toList());
-        assertTrue(outerLoops.stream().anyMatch(ol -> ol instanceof AcAreaInterchangeControlOuterLoop && ol.isActive()));
-        assertFalse(outerLoops.stream().anyMatch(ol -> ol instanceof DistributedSlackOuterLoop && ol.isActive()));
+        assertEquals(List.of("AreaInterchangeControl"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("DistributedSlack"));
         assertEquals(List.of("DistributedSlack"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
-
     }
 
     @Test
