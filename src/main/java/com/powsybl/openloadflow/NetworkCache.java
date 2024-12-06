@@ -339,7 +339,7 @@ public enum NetworkCache {
         }
 
         @Override
-        public void onExtensionUpdate(Extension<?> extension, String attribute, Object oldValue, Object newValue) {
+        public void onExtensionUpdate(Extension<?> extension, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null || pause) {
                 return;
             }
@@ -391,17 +391,17 @@ public enum NetworkCache {
         }
 
         @Override
-        public void onElementAdded(Identifiable identifiable, String attribute, Object newValue) {
+        public void onPropertyAdded(Identifiable identifiable, String attribute, Object newValue) {
             onPropertyChange();
         }
 
         @Override
-        public void onElementReplaced(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
+        public void onPropertyReplaced(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
             onPropertyChange();
         }
 
         @Override
-        public void onElementRemoved(Identifiable identifiable, String attribute, Object oldValue) {
+        public void onPropertyRemoved(Identifiable identifiable, String attribute, Object oldValue) {
             onPropertyChange();
         }
 
