@@ -8,8 +8,6 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -179,21 +177,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private Equation<V, E> addEquation(Pair<Integer, E> p) {
-        Equation<V, E> equation = newEquation(p.getLeft(), p.getRight());
+        Equation<V, E> equation = new Equation<>(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
         Pair<ElementType, Integer> element = Pair.of(p.getRight().getElementType(), p.getLeft());
         equationsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                 .add(equation);
         notifyEquationChange(equation, EquationEventType.EQUATION_CREATED);
         return equation;
-    }
-
-    private Equation<V, E> newEquation(int num, E type) {
-        if (DcEquationType.BUS_TARGET_P.equals(type) || AcEquationType.BUS_TARGET_P.equals(type) || AcEquationType.BUS_TARGET_Q.equals(type)) {
-            return new BusPowerEquation<>(num, type, this);
-        } else {
-            return new Equation<>(num, type, this);
-        }
     }
 
     public List<Equation<V, E>> getEquations(ElementType elementType, int elementNum) {
