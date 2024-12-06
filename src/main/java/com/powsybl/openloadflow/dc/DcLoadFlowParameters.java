@@ -25,8 +25,6 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     private boolean distributedSlack = LoadFlowParameters.DEFAULT_DISTRIBUTED_SLACK;
 
-    private boolean areaInterchangeControl = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
-
     private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.DEFAULT_BALANCE_TYPE;
 
     private boolean setVToNan = false;
@@ -62,15 +60,6 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     public DcLoadFlowParameters setDistributedSlack(boolean distributedSlack) {
         this.distributedSlack = distributedSlack;
-        return this;
-    }
-
-    public boolean isAreaInterchangeControl() {
-        return areaInterchangeControl;
-    }
-
-    public DcLoadFlowParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
-        this.areaInterchangeControl = areaInterchangeControl;
         return this;
     }
 

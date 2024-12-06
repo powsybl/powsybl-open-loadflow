@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
@@ -35,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -190,7 +188,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         boolean distributedSlack = parameters.isDistributedSlack() || areaInterchangeControlFallback();
 
         List<DcOuterLoop> activeOuterLoops = outerLoops.stream()
-                .filter(DcOuterLoop::isActive)
                 .toList();
         List<Pair<DcOuterLoop, DcOuterLoopContext>> outerLoopsAndContexts = activeOuterLoops.stream()
                 .map(outerLoop -> Pair.of(outerLoop, new DcOuterLoopContext(context.getNetwork())))
@@ -334,17 +331,15 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     /**
-     * If Area Interchange Control is activated but the network has no area, we fall back to distributed slack
+     * If Area Interchange Control is activated but the network has no area, we remove the AIC outer loop and fall back to distributed slack
      */
     boolean areaInterchangeControlFallback() {
         List<DcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
-        Optional<DcAreaInterchangeControlOuterLoop> aicOuterLoop = outerLoops.stream()
-                .filter(DcAreaInterchangeControlOuterLoop.class::isInstance)
-                .filter(OuterLoop::isActive)
-                .map(DcAreaInterchangeControlOuterLoop.class::cast)
-                .findFirst();
-        if (aicOuterLoop.isPresent() && !context.getNetwork().hasArea()) {
-            aicOuterLoop.get().setActive(false);
+        boolean aicOuterLoop = outerLoops.stream().anyMatch(DcAreaInterchangeControlOuterLoop.class::isInstance);
+        if (aicOuterLoop && !context.getNetwork().hasArea()) {
+            context.getParameters().setOuterLoops(outerLoops.stream()
+                    .filter(ol -> !(ol instanceof DcAreaInterchangeControlOuterLoop))
+                    .toList());
             return true;
         }
         return false;

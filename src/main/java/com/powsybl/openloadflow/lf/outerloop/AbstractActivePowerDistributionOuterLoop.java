@@ -21,17 +21,6 @@ public abstract class AbstractActivePowerDistributionOuterLoop<V extends Enum<V>
         O extends OuterLoopContext<V, E, P, C>>
         implements ActivePowerDistributionOuterLoop<V, E, P, C, O> {
 
-    boolean active = true;
-
-    @Override
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
     @Override
     public double getDistributedActivePower(O context) {
         var contextData = context.getData();

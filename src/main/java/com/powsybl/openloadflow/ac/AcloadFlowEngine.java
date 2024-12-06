@@ -150,7 +150,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
-                .filter(AcOuterLoop::isActive)
                 .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
                 .toList();
 
