@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -213,8 +212,8 @@ class DcLoadFlowTest {
                 .setVoltageRegulatorOn(false)
                 .add();
         for (Line l : List.of(network.getLine("L13-14-1"),
-                              network.getLine("L6-13-1"),
-                              network.getLine("L6-12-1"))) {
+                network.getLine("L6-13-1"),
+                network.getLine("L6-12-1"))) {
             l.getTerminal1().disconnect();
             l.getTerminal2().disconnect();
         }
@@ -274,8 +273,8 @@ class DcLoadFlowTest {
                 .setBus("NLOAD")
                 .setSectionCount(1)
                 .newLinearModel()
-                    .setBPerSection(0.111)
-                    .setMaximumSectionCount(1)
+                .setBPerSection(0.111)
+                .setMaximumSectionCount(1)
                 .add()
                 .add();
         loadFlowRunner.run(network, parameters);
@@ -427,7 +426,7 @@ class DcLoadFlowTest {
 
         // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.
         parametersExt.setAreaInterchangePMaxMismatch(1)
-                    .setMaxOuterLoopIterations(1);
+                .setMaxOuterLoopIterations(1);
         var result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
@@ -473,9 +472,9 @@ class DcLoadFlowTest {
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         var result = loadFlowRunner.run(network, parameters);
-        assertEquals(321.9,result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
-        assertEquals(0,result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
-        assertActivePowerEquals(-128.9,referenceGenerator.getTerminal());
+        assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertActivePowerEquals(-128.9, referenceGenerator.getTerminal());
         // TODO : receive failure
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
@@ -487,6 +486,6 @@ class DcLoadFlowTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
         assertEquals(321.9, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
-        assertActivePowerEquals(-450.8,referenceGenerator.getTerminal()); // -128.9 - 321.9 = -450.8
+        assertActivePowerEquals(-450.8, referenceGenerator.getTerminal()); // -128.9 - 321.9 = -450.8
     }
 }
