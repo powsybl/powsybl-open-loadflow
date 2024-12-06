@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.google.common.collect.Lists;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
@@ -273,14 +274,18 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         if (runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE) {
             slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
             distributedActivePower = finalDistributedActivePower;
+            if (context.getParameters().getSlackDistributionFailureBehavior().equals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL)
+            && slackBusActivePowerMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
+                DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, false, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+                LOGGER.error("DC loadflow failed to distribute slack bus active power on network {} (result={})", context.getNetwork(), result);
+                return result;
+            } else if (context.getParameters().getSlackDistributionFailureBehavior().equals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW)
+                    && slackBusActivePowerMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
+                throw new PowsyblException("DC loadflow failed to distribute slack bus active power on network");
+            }
         } else {
             slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
             distributedActivePower = 0.0;
-            if (context.getParameters().getSlackDistributionFailureBehavior().equals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL)){
-                DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, false, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
-                LOGGER.info("DC loadflow failed to distribute slack bus active power on network {} (result={})", context.getNetwork(), result);
-                return result;
-            }
         }
         DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
         LOGGER.info("DC loadflow complete on network {} (result={})", context.getNetwork(), result);
