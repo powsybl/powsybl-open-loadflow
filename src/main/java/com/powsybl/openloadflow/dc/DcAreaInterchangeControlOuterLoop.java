@@ -20,11 +20,11 @@ import java.util.List;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class DcAreaInterchangeControlControlOuterLoop extends AbstractAreaInterchangeControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> implements DcOuterLoop {
+public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> implements DcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DcAreaInterchangeControlControlOuterLoop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcAreaInterchangeControlOuterLoop.class);
 
-    protected DcAreaInterchangeControlControlOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
+    public DcAreaInterchangeControlOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
         super(activePowerDistribution, null, slackBusPMaxMismatch, areaInterchangePMaxMismatch, LOGGER);
     }
 
