@@ -198,7 +198,7 @@ class DcLoadFlowTest {
     }
 
     @Test
-    void nonImpedantBranchAndPhaseShiftingTest() {
+        void nonImpedantBranchAndPhaseShiftingTest() {
         Network network = PhaseShifterTestCaseFactory.create();
         network.getLine("L2").setX(0).setR(0);
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(1).setAlpha(2);
@@ -206,6 +206,39 @@ class DcLoadFlowTest {
         assertEquals(16.5316, network.getLine("L1").getTerminal1().getP(), 0.01);
         assertEquals(83.4683, network.getLine("L2").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
         assertEquals(-83.4683, network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), 0.01);
+
+        // With e second zero impedance line and a second load
+        VoltageLevel vl2 = network.getVoltageLevel("VL2");
+        Bus b2 = vl2.getBusBreakerView().newBus()
+                .setId("B2Bis")
+                .add();
+        Load ld2 = vl2.newLoad()
+                .setId("LD2Bis")
+                .setConnectableBus("B2Bis")
+                .setBus("B2Bis")
+                .setP0(100.0)
+                .setQ0(50.0)
+                .add();
+        Line l2Bis = network.newLine()
+                .setId("L2Bis")
+                .setVoltageLevel1("VL3")
+                .setConnectableBus1("B3")
+                .setBus1("B3")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2Bis")
+                .setBus2("B2Bis")
+                .setR(0.0)
+                .setX(0.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
+                .add();
+        network.getGenerator("G1").setMaxP(500);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        // assertEquals(16.5316, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(0, network.getTwoWindingsTransformer("PS1").getTerminal2().getP() + network.getLine("L2").getTerminal1().getP() + network.getLine("L2Bis").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
+        assertEquals(-200, network.getGenerator("G1").getTerminal().getP());
     }
 
     @Test
