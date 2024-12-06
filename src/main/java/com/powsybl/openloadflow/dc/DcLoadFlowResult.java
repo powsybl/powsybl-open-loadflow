@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.PerUnit;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -21,11 +22,11 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
     private final boolean solverSuccess;
 
     public static DcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new DcLoadFlowResult(network, 0, false, OuterLoopResult.stable(), Double.NaN);
+        return new DcLoadFlowResult(network, 0, false, OuterLoopResult.stable(), Double.NaN, Double.NaN);
     }
 
-    public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch) {
-        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult);
+    public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch, double distributedActivePower) {
+        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverSuccess = solverSuccess;
     }
 
@@ -48,5 +49,15 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
             return new Status(LoadFlowResult.ComponentResult.Status.CONVERGED, "Converged");
         }
         return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Solver Failed");
+    }
+
+    @Override
+    public String toString() {
+        return "DcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
+                + ", solverSuccess=" + solverSuccess
+                + ", outerLoopStatus=" + outerLoopResult.status()
+                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
+                + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
+                + ")";
     }
 }

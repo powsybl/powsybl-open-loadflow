@@ -11,12 +11,10 @@ import com.google.common.collect.Lists;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.outerloop.AcActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.AreaInterchangeControlOuterloop;
-import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
-import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -45,12 +43,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     private final AcSolverFactory solverFactory;
 
     public AcloadFlowEngine(AcLoadFlowContext context) {
-        this(context, new NewtonRaphsonFactory());
-    }
-
-    public AcloadFlowEngine(AcLoadFlowContext context, AcSolverFactory solverFactory) {
         this.context = Objects.requireNonNull(context);
-        this.solverFactory = Objects.requireNonNull(solverFactory);
+        this.solverFactory = context.getParameters().getSolverFactory();
     }
 
     @Override
@@ -209,8 +203,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
-            if (outerLoop instanceof DistributedSlackOuterLoop || outerLoop instanceof AreaInterchangeControlOuterloop) {
-                distributedActivePower = ((DistributedSlackContextData) outerLoopContext.getData()).getDistributedActivePower();
+            if (outerLoop instanceof AcActivePowerDistributionOuterLoop activePowerDistributionOuterLoop) {
+                distributedActivePower = activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext);
             }
             outerLoop.cleanup(outerLoopContext);
         }
@@ -237,7 +231,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                        distributedActivePower
                                                        );
 
-        LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
+        LOGGER.info("AC loadflow complete on network {} (result={})", context.getNetwork(), result);
 
         Reports.reportAcLfComplete(context.getNetwork().getReportNode(), result.isSuccess(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
 
@@ -251,7 +245,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .map(n -> {
                     if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
-                            return new AcloadFlowEngine(context, parameters.getSolverFactory())
+                            return new AcloadFlowEngine(context)
                                     .run();
                         }
                     }

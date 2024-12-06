@@ -30,15 +30,12 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     private final AcSolverStatus solverStatus;
 
-    private final double distributedActivePower;
-
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
                             AcSolverStatus solverStatus, OuterLoopResult outerLoopResult,
                             double slackBusActivePowerMismatch, double distributedActivePower) {
-        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult);
+        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
-        this.distributedActivePower = distributedActivePower;
     }
 
     public int getSolverIterations() {
@@ -47,10 +44,6 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public AcSolverStatus getSolverStatus() {
         return solverStatus;
-    }
-
-    public double getDistributedActivePower() {
-        return distributedActivePower;
     }
 
     @Override

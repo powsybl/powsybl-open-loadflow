@@ -26,8 +26,6 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.usefultoys.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -40,8 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
  */
 class DcLoadFlowTest {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowTest.class);
 
     private LoadFlowParameters parameters;
 
@@ -77,7 +73,10 @@ class DcLoadFlowTest {
         assertEquals(Double.NaN, line2.getTerminal1().getP(), 0);
         assertEquals(Double.NaN, line2.getTerminal2().getP(), 0);
 
-        loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(-7.0, result.getComponentResults().get(0).getDistributedActivePower(), 1e-3);
 
         assertEquals(300, line1.getTerminal1().getP(), 0.01);
         assertEquals(-300, line1.getTerminal2().getP(), 0.01);
@@ -106,7 +105,10 @@ class DcLoadFlowTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLoad("LOAD").setP0(450);
 
-        loadFlowRunner.run(network, parameters);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(-157.0, result.getComponentResults().get(0).getDistributedActivePower(), 1e-3);
 
         assertTrue(Double.isNaN(line1.getTerminal1().getP()));
         assertTrue(Double.isNaN(line1.getTerminal2().getP()));
@@ -296,7 +298,7 @@ class DcLoadFlowTest {
         Switch c1 = network.getSwitch("C1");
         c1.setOpen(true);
 
-        LoadFlowParameters parameters = new LoadFlowParameters()
+        parameters = new LoadFlowParameters()
                 .setDc(true);
         loadFlowRunner.run(network, parameters);
 
@@ -381,18 +383,71 @@ class DcLoadFlowTest {
     }
 
     @Test
+    void multipleOuterLoopsTest() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
+        Area a1 = network.getArea("A1");
+        Area a2 = network.getArea("A2");
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setAreaInterchangeControl(true);
+        parametersExt.setAreaInterchangePMaxMismatch(1);
+
+        var result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertEquals(0.0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        assertEquals(a1.getInterchangeTarget().orElseThrow(), a1.getInterchange(), 1);
+        assertEquals(a2.getInterchangeTarget().orElseThrow(), a2.getInterchange(), 1);
+
+        assertEquals(17.86, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-17.86, l1.getTerminal2().getP(), 0.01);
+        assertEquals(80.87, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-80.87, l2.getTerminal2().getP(), 0.01);
+        assertEquals(80.87, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-80.87, ps1.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void outerLoopFailedTest() {
+        Network network = MultiAreaNetworkFactory.createOneAreaBase();
+
+        Generator g1 = network.getGenerator("g1");
+        g1.setMinP(99); // makes the power distribution fail
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setAreaInterchangeControl(true);
+        parametersExt.setAreaInterchangePMaxMismatch(1)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Outer loop failed: Failed to distribute interchange active power mismatch", result.getComponentResults().get(0).getStatusText());
+    }
+
+    @Test
     void outerLoopMaxTotalIterationTest() {
-        // Will soon be used to test with the AIC outer loop too
         Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
         parameters.setPhaseShifterRegulationOn(true);
         parametersExt.setAreaInterchangeControl(true);
 
+        // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.
         parametersExt.setAreaInterchangePMaxMismatch(1)
-                .setMaxOuterLoopIterations(1);
+                    .setMaxOuterLoopIterations(1);
         var result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
         assertEquals("Reached outer loop max iterations limit. Last outer loop name: DC Incremental phase control", result.getComponentResults().get(0).getStatusText());
+
+        parametersExt.setMaxOuterLoopIterations(3);
+        result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: AreaInterchangeControl", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
