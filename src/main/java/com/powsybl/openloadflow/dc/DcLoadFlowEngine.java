@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.google.common.collect.Lists;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
@@ -18,6 +19,7 @@ import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -205,8 +207,24 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
-            // FIXME handle distribution failure
             distributedActivePower = distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+            double remainingMismatch = getActivePowerMismatch(network.getBuses());
+            if (remainingMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
+                switch (context.getParameters().getSlackDistributionFailureBehavior()) {
+                    case FAIL -> {
+                        LOGGER.error("DC loadflow failed to distribute slack bus active power on network {}", context.getNetwork());
+                        // TODO : how to return the failure in the DCLoadFlow result since it is not in an OuterLoop ?
+                    }
+                    case THROW -> throw new PowsyblException("DC loadflow failed to distribute slack bus active power on network");
+                    case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
+                        LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
+                        Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
+                        referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
+                        LOGGER.warn("Could not distribute slack bus active power, remaining mismatch {} is redistributed to reference generator {}", remainingMismatch, referenceGenerator.getId());
+                        distributedActivePower += remainingMismatch;
+                    }
+                }
+            }
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member

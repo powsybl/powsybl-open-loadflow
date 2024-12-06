@@ -28,11 +28,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
@@ -212,8 +212,8 @@ class DcLoadFlowTest {
                 .setVoltageRegulatorOn(false)
                 .add();
         for (Line l : List.of(network.getLine("L13-14-1"),
-                              network.getLine("L6-13-1"),
-                              network.getLine("L6-12-1"))) {
+                network.getLine("L6-13-1"),
+                network.getLine("L6-12-1"))) {
             l.getTerminal1().disconnect();
             l.getTerminal2().disconnect();
         }
@@ -273,8 +273,8 @@ class DcLoadFlowTest {
                 .setBus("NLOAD")
                 .setSectionCount(1)
                 .newLinearModel()
-                    .setBPerSection(0.111)
-                    .setMaximumSectionCount(1)
+                .setBPerSection(0.111)
+                .setMaximumSectionCount(1)
                 .add()
                 .add();
         loadFlowRunner.run(network, parameters);
@@ -426,7 +426,7 @@ class DcLoadFlowTest {
 
         // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.
         parametersExt.setAreaInterchangePMaxMismatch(1)
-                    .setMaxOuterLoopIterations(1);
+                .setMaxOuterLoopIterations(1);
         var result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
@@ -462,5 +462,30 @@ class DcLoadFlowTest {
         assertEquals(-292.563, line1.getTerminal2().getP(), 0.01);
         assertEquals(307.436, line2.getTerminal1().getP(), 0.01);
         assertEquals(-307.436, line2.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void testDcSlackDistributionFailureBehavior() {
+        Network network = IeeeCdfNetworkFactory.create57();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        Generator referenceGenerator = network.getGenerator("B1-G");
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertActivePowerEquals(-128.9, referenceGenerator.getTerminal());
+        // TODO : receive failure
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("DC loadflow failed to distribute slack bus active power on network", e.getCause().getMessage());
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(321.9, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertActivePowerEquals(-450.8, referenceGenerator.getTerminal()); // -128.9 - 321.9 = -450.8
     }
 }
