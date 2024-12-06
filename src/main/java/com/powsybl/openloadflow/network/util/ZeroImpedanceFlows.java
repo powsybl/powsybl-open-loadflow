@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 
@@ -163,11 +165,26 @@ public class ZeroImpedanceFlows {
         }
 
         private PQ getBranchFlow(LfBranch branch, LfBus bus) {
+            Evaluable pEvaluable;
+            Evaluable qEvaluable;
             if (branch.getBus1() != null && branch.getBus1().equals(bus)) {
-                return new PQ(branch.getP1().eval(), branch.getQ1().eval());
+                pEvaluable = branch.getP1();
+                qEvaluable = branch.getQ1();
             } else {
-                return new PQ(branch.getP2().eval(), branch.getQ2().eval());
+                pEvaluable = branch.getP2();
+                qEvaluable = branch.getQ2();
             }
+
+            double p = Double.NaN;
+            double q = Double.NaN;
+            if (pEvaluable instanceof EquationTerm equationTerm) {
+                p = equationTerm.eval() - equationTerm.rhs();
+            }
+            if (qEvaluable instanceof EquationTerm equationTerm) {
+                q = equationTerm.eval() - equationTerm.rhs();
+            }
+            return new PQ(p, q);
+
         }
     }
 
