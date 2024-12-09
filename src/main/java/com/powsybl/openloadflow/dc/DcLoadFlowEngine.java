@@ -163,6 +163,34 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
+    private double handleDistributionBehaviour(DcLoadFlowContext context, double distributedActivePower) {
+        double remainingMismatch = getActivePowerMismatch(context.getNetwork().getBuses());
+        if (remainingMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
+            switch (context.getParameters().getSlackDistributionFailureBehavior()) {
+                case FAIL -> {
+                    LOGGER.error("DC loadflow failed to distribute slack bus active power on network {}", context.getNetwork());
+                    // TODO : how to return the failure in the DCLoadFlow result since it is not in an OuterLoop ?
+                    return distributedActivePower;
+                }
+                case THROW -> throw new PowsyblException("DC loadflow failed to distribute slack bus active power on network");
+                case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
+                    if (!context.getParameters().isAreaInterchangeControl()) {
+                        LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
+                        Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
+                        referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
+                        LOGGER.warn("Could not distribute slack bus active power, remaining mismatch {} is redistributed to reference generator {}", remainingMismatch, referenceGenerator.getId());
+                        return distributedActivePower + remainingMismatch;
+                    } else {
+                        // If AreaInterchangeControl is activated, do not distribute in reference generator and behave like fail case
+                        LOGGER.error("DC loadflow failed to distribute slack bus active power on network {}", context.getNetwork());
+                        return distributedActivePower;
+                    }
+                }
+            }
+        }
+        return distributedActivePower;
+    }
+
     public static boolean solve(double[] targetVectorArray,
                                 JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
                                 ReportNode reportNode) {
@@ -208,23 +236,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         double distributedActivePower = 0.0;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
             distributedActivePower = distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
-            double remainingMismatch = getActivePowerMismatch(network.getBuses());
-            if (remainingMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
-                switch (context.getParameters().getSlackDistributionFailureBehavior()) {
-                    case FAIL -> {
-                        LOGGER.error("DC loadflow failed to distribute slack bus active power on network {}", context.getNetwork());
-                        // TODO : how to return the failure in the DCLoadFlow result since it is not in an OuterLoop ?
-                    }
-                    case THROW -> throw new PowsyblException("DC loadflow failed to distribute slack bus active power on network");
-                    case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
-                        LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
-                        Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
-                        referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
-                        LOGGER.warn("Could not distribute slack bus active power, remaining mismatch {} is redistributed to reference generator {}", remainingMismatch, referenceGenerator.getId());
-                        distributedActivePower += remainingMismatch;
-                    }
-                }
-            }
+            distributedActivePower = handleDistributionBehaviour(context, distributedActivePower);
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
