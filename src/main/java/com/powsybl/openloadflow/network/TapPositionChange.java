@@ -9,6 +9,10 @@ package com.powsybl.openloadflow.network;
 
 import java.util.Objects;
 
+/**
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
+ */
 public class TapPositionChange {
     private final LfBranch branch;
     private final int value;

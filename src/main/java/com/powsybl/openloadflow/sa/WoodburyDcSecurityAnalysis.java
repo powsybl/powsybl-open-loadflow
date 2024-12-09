@@ -337,7 +337,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                     lfNetwork.setReportNode(osSimReportNode);
 
-                    // process post contingency result with supplier giving post contingency and post operator strategy states
+                    // process operator strategy result with supplier giving post contingency and post operator strategy states
                     OperatorStrategyResult operatorStrategyResult = processOperatorStrategyResult(context, lfContingency, operatorStrategy, toPostContingencyAndOperatorStrategyStates, preContingencyLimitViolationManager,
                             postContingencyResult, lfActionById, createResultExtension, violationsParameters, limitReductions);
                     operatorStrategyResults.add(operatorStrategyResult);
