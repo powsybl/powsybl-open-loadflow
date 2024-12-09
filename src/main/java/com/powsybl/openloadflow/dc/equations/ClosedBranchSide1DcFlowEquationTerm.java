@@ -36,7 +36,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    protected double calculateSensi(double ph1, double ph2, double a1) {
+    protected double eval(double ph1, double ph2, double a1) {
         double deltaPhase = ph2 - ph1 + A2 - a1;
         return -power * deltaPhase;
     }
