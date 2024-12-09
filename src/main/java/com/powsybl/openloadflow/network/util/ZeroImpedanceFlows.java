@@ -178,10 +178,10 @@ public class ZeroImpedanceFlows {
             double p = Double.NaN;
             double q = Double.NaN;
             if (pEvaluable instanceof EquationTerm equationTerm) {
-                p = equationTerm.eval() - equationTerm.rhs();
+                p = equationTerm.eval();
             }
             if (qEvaluable instanceof EquationTerm equationTerm) {
-                q = equationTerm.eval() - equationTerm.rhs();
+                q = equationTerm.eval();
             }
             return new PQ(p, q);
 

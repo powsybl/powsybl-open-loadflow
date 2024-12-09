@@ -202,10 +202,18 @@ class DcLoadFlowTest {
         Network network = PhaseShifterTestCaseFactory.create();
         network.getLine("L2").setX(0).setR(0);
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(1).setAlpha(2);
+        // parameters.setDc(false);
         loadFlowRunner.run(network, parameters);
+
+        network.getBusBreakerView().getBusStream()
+                .forEach(b -> System.out.println(b.getId() + " " + b.getAngle()));
+
         assertEquals(16.5316, network.getLine("L1").getTerminal1().getP(), 0.01);
         assertEquals(83.4683, network.getLine("L2").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
         assertEquals(-83.4683, network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), 0.01);
+
+        network.getBusBreakerView().getBusStream()
+                .forEach(b -> System.out.println(b.getId() + " " + b.getAngle()));
 
         // With e second zero impedance line and a second load
         VoltageLevel vl2 = network.getVoltageLevel("VL2");
@@ -235,8 +243,10 @@ class DcLoadFlowTest {
                 .setB2(0.0)
                 .add();
         network.getGenerator("G1").setMaxP(500);
+        parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        // assertEquals(16.5316, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(49.86, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(150.13, network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), 0.01);
         assertEquals(0, network.getTwoWindingsTransformer("PS1").getTerminal2().getP() + network.getLine("L2").getTerminal1().getP() + network.getLine("L2Bis").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
         assertEquals(-200, network.getGenerator("G1").getTerminal().getP());
     }

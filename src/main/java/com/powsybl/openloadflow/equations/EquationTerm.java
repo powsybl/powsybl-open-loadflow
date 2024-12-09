@@ -178,6 +178,14 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     double eval();
 
     /**
+     * Evaluate equation lhs of the equation term
+     * @return value of the equation term
+     */
+    default double evalLhs() {
+        return eval() + (hasRhs() ? rhs() : 0);
+    }
+
+    /**
      * Evaluate the equation term with an alternative state vector.
      * @return value of the equation term
      */
