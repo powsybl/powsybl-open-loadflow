@@ -65,7 +65,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
     }
 
     /**
-     * Update power only if pi model tap position has changed since last calculation.
+     * Update power only if the branch is a PiModelArray.
      */
     protected double getPower() {
         return isPowerPreComputed ? power : computePower(useTransformerRatio, dcApproximationType, element.getPiModel());
