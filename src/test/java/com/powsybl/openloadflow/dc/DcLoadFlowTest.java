@@ -117,6 +117,33 @@ class DcLoadFlowTest {
     }
 
     @Test
+    void testSlackDistributionEnabledResults() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        var componentResults = result.getComponentResults();
+        assertEquals(1, componentResults.size());
+        assertEquals(1, componentResults.get(0).getSlackBusResults().size());
+        assertEquals(-7.0, componentResults.get(0).getDistributedActivePower(), 1e-3);
+        assertEquals(0.0, componentResults.get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    }
+
+    @Test
+    void testSlackDistributionDisabledResults() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        parameters.setDistributedSlack(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        var componentResults = result.getComponentResults();
+        assertEquals(1, componentResults.size());
+        assertEquals(1, componentResults.get(0).getSlackBusResults().size());
+        assertEquals(0.0, componentResults.get(0).getDistributedActivePower(), 1e-3);
+        assertEquals(-7.0, componentResults.get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    }
+
+    @Test
     void fourBusesTest() {
         Network network = FourBusNetworkFactory.create();
 
@@ -470,16 +497,26 @@ class DcLoadFlowTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         Generator referenceGenerator = network.getGenerator("B1-G");
 
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         var result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
         assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
-        assertActivePowerEquals(-128.9, referenceGenerator.getTerminal());
-        // TODO : receive failure
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 321.90 MW remains", result.getComponentResults().get(0).getStatusText());
+        assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("DC loadflow failed to distribute slack bus active power on network", e.getCause().getMessage());
+        assertEquals("Failed to distribute slack bus active power mismatch, 321.90 MW remains", e.getCause().getMessage());
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);

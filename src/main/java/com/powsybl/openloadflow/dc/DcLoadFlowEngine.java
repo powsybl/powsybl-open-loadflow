@@ -8,10 +8,10 @@
 package com.powsybl.openloadflow.dc;
 
 import com.google.common.collect.Lists;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -163,34 +164,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    private double handleDistributionBehaviour(DcLoadFlowContext context, double distributedActivePower) {
-        double remainingMismatch = getActivePowerMismatch(context.getNetwork().getBuses());
-        if (remainingMismatch > context.getParameters().getSlackBusPMaxMismatch()) {
-            switch (context.getParameters().getSlackDistributionFailureBehavior()) {
-                case FAIL -> {
-                    LOGGER.error("DC loadflow failed to distribute slack bus active power on network {}", context.getNetwork());
-                    // TODO : how to return the failure in the DCLoadFlow result since it is not in an OuterLoop ?
-                    return distributedActivePower;
-                }
-                case THROW -> throw new PowsyblException("DC loadflow failed to distribute slack bus active power on network");
-                case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
-                    if (!context.getParameters().isAreaInterchangeControl()) {
-                        LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
-                        Objects.requireNonNull(referenceGenerator, () -> "No reference generator in " + context.getNetwork());
-                        referenceGenerator.setTargetP(referenceGenerator.getTargetP() + remainingMismatch);
-                        LOGGER.warn("Could not distribute slack bus active power, remaining mismatch {} is redistributed to reference generator {}", remainingMismatch, referenceGenerator.getId());
-                        return distributedActivePower + remainingMismatch;
-                    } else {
-                        // If AreaInterchangeControl is activated, do not distribute in reference generator and behave like fail case
-                        LOGGER.error("DC loadflow failed to distribute slack bus active power on network {}", context.getNetwork());
-                        return distributedActivePower;
-                    }
-                }
-            }
-        }
-        return distributedActivePower;
-    }
-
     public static boolean solve(double[] targetVectorArray,
                                 JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
                                 ReportNode reportNode) {
@@ -235,8 +208,41 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
-            distributedActivePower = distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
-            distributedActivePower = handleDistributionBehaviour(context, distributedActivePower);
+            LoadFlowParameters.BalanceType balanceType = parameters.getBalanceType();
+            boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
+            var result = activePowerDistribution.run(network, initialSlackBusActivePowerMismatch);
+            final LfGenerator referenceGenerator;
+            final OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior;
+            if (parameters.isAreaInterchangeControl()) {
+                // actual behavior will be handled by the outerloop itself, just leave on slack bus here
+                behavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
+                referenceGenerator = null;
+            } else {
+                behavior = parameters.getSlackDistributionFailureBehavior();
+                referenceGenerator = context.getNetwork().getReferenceGenerator();
+            }
+            ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
+                    behavior,
+                    referenceGenerator,
+                    initialSlackBusActivePowerMismatch,
+                    result,
+                    "Failed to distribute slack bus active power mismatch, %.2f MW remains"
+            );
+            double remainingMismatch = resultWbh.remainingMismatch();
+            distributedActivePower = initialSlackBusActivePowerMismatch - remainingMismatch;
+            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+                Reports.reportMismatchDistributionFailure(reportNode, remainingMismatch * PerUnit.SB);
+            } else {
+                ActivePowerDistribution.reportAndLogSuccess(reportNode, initialSlackBusActivePowerMismatch, resultWbh);
+            }
+            if (resultWbh.failed()) {
+                distributedActivePower -= resultWbh.failedDistributedActivePower();
+                runningContext.lastSolverSuccess = false;
+                runningContext.lastOuterLoopResult = new OuterLoopResult("DistributedSlack", OuterLoopStatus.FAILED, resultWbh.failedMessage());
+                Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
+                return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
+            }
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
