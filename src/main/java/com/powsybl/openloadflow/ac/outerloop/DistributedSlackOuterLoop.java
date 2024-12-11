@@ -68,27 +68,27 @@ public class DistributedSlackOuterLoop
         }
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
-        ActivePowerDistribution.ResultAfterFailureBehaviorHandling resultAfterBh = ActivePowerDistribution.handleDistributionFailureBehavior(
+        ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
                 context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior(),
                 context.getNetwork().getReferenceGenerator(),
                 slackBusActivePowerMismatch,
                 result,
                 "Failed to distribute slack bus active power mismatch, %.2f MW remains"
         );
-        double remainingMismatch = resultAfterBh.remainingMismatch();
+        double remainingMismatch = resultWbh.remainingMismatch();
         double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
         if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
             Reports.reportMismatchDistributionFailure(iterationReportNode, remainingMismatch * PerUnit.SB);
         } else {
-            reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, resultAfterBh);
+            reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, resultWbh);
         }
         DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
         contextData.addDistributedActivePower(distributedActivePower);
-        contextData.addDistributedActivePower(resultAfterBh.additionalDistributedActivePower());
-        if (resultAfterBh.failed()) {
-            return new OuterLoopResult(this, OuterLoopStatus.FAILED, resultAfterBh.failedMessage());
+        if (resultWbh.failed()) {
+            contextData.addDistributedActivePower(-resultWbh.failedDistributedActivePower());
+            return new OuterLoopResult(this, OuterLoopStatus.FAILED, resultWbh.failedMessage());
         } else {
-            return new OuterLoopResult(this, resultAfterBh.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
+            return new OuterLoopResult(this, resultWbh.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
         }
     }
 
@@ -97,7 +97,7 @@ public class DistributedSlackOuterLoop
         return context.getLastSolverResult().getSlackBusActivePowerMismatch();
     }
 
-    private static void reportAndLogSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, ActivePowerDistribution.ResultAfterFailureBehaviorHandling result) {
+    private static void reportAndLogSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, ActivePowerDistribution.ResultWithFailureBehaviorHandling result) {
         Reports.reportMismatchDistributionSuccess(reportNode, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
         LOGGER.info("Slack bus active power ({} MW) distributed in {} distribution iteration(s)",

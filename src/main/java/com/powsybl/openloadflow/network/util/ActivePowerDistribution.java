@@ -109,18 +109,18 @@ public final class ActivePowerDistribution {
         };
     }
 
-    public record ResultAfterFailureBehaviorHandling(boolean failed, String failedMessage, int iteration, double remainingMismatch, boolean movedBuses, double additionalDistributedActivePower) { }
+    public record ResultWithFailureBehaviorHandling(boolean failed, String failedMessage, int iteration, double remainingMismatch, boolean movedBuses, double failedDistributedActivePower) { }
 
-    public static ResultAfterFailureBehaviorHandling handleDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior,
-                                                                                       LfGenerator referenceGenerator,
-                                                                                       double requestedActivePower,
-                                                                                       Result result, String failMessageTemplate) {
+    public static ResultWithFailureBehaviorHandling handleDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior,
+                                                                                      LfGenerator referenceGenerator,
+                                                                                      double activePowerMismatch,
+                                                                                      Result result, String failMessageTemplate) {
         Objects.requireNonNull(behavior);
         Objects.requireNonNull(result);
-        ResultAfterFailureBehaviorHandling resultAfterFailureBehaviorHandling;
-        final OpenLoadFlowParameters.SlackDistributionFailureBehavior effectiveBehavior;
+        ResultWithFailureBehaviorHandling resultWithFailureBehaviorHandling;
 
-        // if requested behavior is to distribute on reference generator, but there is no reference generation, we fall back internally to FAIL mode
+        final OpenLoadFlowParameters.SlackDistributionFailureBehavior effectiveBehavior;
+        // if requested behavior is to distribute on reference generator, but there is no reference generator, we fall back internally to FAIL mode
         if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == behavior && referenceGenerator == null) {
             effectiveBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
             LOGGER.debug("Distribution failure behavior is DISTRIBUTE_ON_REFERENCE_GENERATOR but no reference generator selected, switching to FAIL mode");
@@ -128,7 +128,7 @@ public final class ActivePowerDistribution {
             effectiveBehavior = behavior;
         }
 
-        final double distributedActivePower = requestedActivePower - result.remainingMismatch();
+        final double distributedActivePower = activePowerMismatch - result.remainingMismatch();
 
         if (Math.abs(result.remainingMismatch()) > ActivePowerDistribution.P_RESIDUE_EPS) {
 
@@ -139,14 +139,14 @@ public final class ActivePowerDistribution {
 
                 case LEAVE_ON_SLACK_BUS -> {
                     LOGGER.warn(statusText);
-                    resultAfterFailureBehaviorHandling = new ResultAfterFailureBehaviorHandling(false, statusText, result.iteration(), result.remainingMismatch(), result.movedBuses(), 0.0);
+                    resultWithFailureBehaviorHandling = new ResultWithFailureBehaviorHandling(false, statusText, result.iteration(), result.remainingMismatch(), result.movedBuses(), 0.0);
                 }
                 case FAIL -> {
                     LOGGER.error(statusText);
                     // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last solver (DC, NR, ...) run.
                     // Since we will not be re-running the solver, revert distributedActivePower reporting which would otherwise be misleading.
                     // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
-                    resultAfterFailureBehaviorHandling = new ResultAfterFailureBehaviorHandling(true, statusText, result.iteration(), result.remainingMismatch(), result.movedBuses(), -distributedActivePower);
+                    resultWithFailureBehaviorHandling = new ResultWithFailureBehaviorHandling(true, statusText, result.iteration(), result.remainingMismatch(), result.movedBuses(), distributedActivePower);
                 }
                 case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
                     Objects.requireNonNull(referenceGenerator, "No reference generator");
@@ -155,14 +155,14 @@ public final class ActivePowerDistribution {
                             result.remainingMismatch() * PerUnit.SB, referenceGenerator.getId());
                     referenceGenerator.setTargetP(referenceGenerator.getTargetP() + result.remainingMismatch());
                     // one more iteration, no more remaining mismatch, bus moved
-                    resultAfterFailureBehaviorHandling = new ResultAfterFailureBehaviorHandling(false, statusText, result.iteration() + 1, 0.0, true, 0.0);
+                    resultWithFailureBehaviorHandling = new ResultWithFailureBehaviorHandling(false, statusText, result.iteration() + 1, 0.0, true, 0.0);
                 }
                 default -> throw new IllegalArgumentException("Unknown slackDistributionFailureBehavior");
             }
         } else {
-            resultAfterFailureBehaviorHandling = new ResultAfterFailureBehaviorHandling(false, "", result.iteration(), result.remainingMismatch(), result.movedBuses(), 0.0);
+            resultWithFailureBehaviorHandling = new ResultWithFailureBehaviorHandling(false, "", result.iteration(), result.remainingMismatch(), result.movedBuses(), 0.0);
         }
 
-        return resultAfterFailureBehaviorHandling;
+        return resultWithFailureBehaviorHandling;
     }
 }
