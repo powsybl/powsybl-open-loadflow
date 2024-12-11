@@ -30,9 +30,6 @@ public final class LfAction {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
 
-    private record TapPositionChange(LfBranch branch, int value, boolean isRelative) {
-    }
-
     private record LoadShift(String loadId, LfLoad lfLoad, PowerShift powerShift) {
     }
 
@@ -233,6 +230,10 @@ public final class LfAction {
         return enabledBranch;
     }
 
+    public TapPositionChange getTapPositionChange() {
+        return tapPositionChange;
+    }
+
     public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
@@ -298,10 +299,8 @@ public final class LfAction {
     }
 
     private void applyTapPositionChange() {
-        LfBranch branch = tapPositionChange.branch();
-        int tapPosition = branch.getPiModel().getTapPosition();
-        int value = tapPositionChange.value();
-        int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
+        LfBranch branch = tapPositionChange.getBranch();
+        int newTapPosition = tapPositionChange.getNewTapPosition();
         branch.getPiModel().setTapPosition(newTapPosition);
     }
 

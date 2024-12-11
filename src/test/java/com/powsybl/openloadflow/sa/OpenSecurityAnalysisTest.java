@@ -62,7 +62,6 @@ import java.util.stream.Stream;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -1932,6 +1931,44 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+    }
+
+    @Test
+    void testDcFastModeInFirstSlackComponentOnly() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34"), new BranchContingency("l45")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+
+        // Run fast DC security analysis
+        parameters.getLoadFlowParameters().setDc(true);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(parameters.getLoadFlowParameters())
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        parameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        List<List<String>> slackBusesIdList = List.of(List.of("b3_vl"), List.of("b3_vl", "b7_vl"), List.of("b3_vl", "b7_vl", "b10_vl"));
+        // verify that for each list of slacks buses, fast dc sa runs only in component of first slack bus
+        slackBusesIdList.forEach(slackBusesId -> {
+            openLoadFlowParameters.setSlackBusesIds(slackBusesId)
+                    .setMaxSlackBusCount(slackBusesId.size());
+            SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+            PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+            assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+
+            // verify only flows in slack component have been computed
+            assertEquals(3, postContingencyResult.getNetworkResult().getBranchResults().size());
+
+            // verify flows on the branches
+            assertEquals(-1, postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(1, postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+            // verify active load and generation of other components have been lost
+            assertEquals(6, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(7, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), LoadFlowAssert.DELTA_POWER);
+        });
     }
 
     @Test
