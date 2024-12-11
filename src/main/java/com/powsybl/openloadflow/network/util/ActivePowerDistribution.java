@@ -123,6 +123,7 @@ public final class ActivePowerDistribution {
         // if requested behavior is to distribute on reference generator, but there is no reference generation, we fall back internally to FAIL mode
         if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == behavior && referenceGenerator == null) {
             effectiveBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
+            LOGGER.debug("Distribution failure behavior is DISTRIBUTE_ON_REFERENCE_GENERATOR but no reference generator selected, switching to FAIL mode");
         } else {
             effectiveBehavior = behavior;
         }
