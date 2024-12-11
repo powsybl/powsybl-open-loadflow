@@ -38,18 +38,18 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     @Override
     protected double eval(double ph1, double ph2, double a1) {
         double deltaPhase = ph2 - ph1 + A2 - a1;
-        return -power * deltaPhase;
+        return -getPower() * deltaPhase;
     }
 
     @Override
     public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return power;
+            return getPower();
         } else if (variable.equals(ph2Var)) {
-            return -power;
+            return -getPower();
         } else if (variable.equals(a1Var)) {
-            return power;
+            return getPower();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -58,9 +58,9 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     @Override
     public double rhs() {
         if (a1Var != null) {
-            return -power * A2;
+            return -getPower() * A2;
         } else {
-            return -power * (A2 - a1());
+            return -getPower() * (A2 - a1());
         }
     }
 
