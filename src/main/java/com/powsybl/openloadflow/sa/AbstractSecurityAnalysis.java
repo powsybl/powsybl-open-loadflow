@@ -805,8 +805,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                          Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
                                                          LfNetworkParameters networkParameters, List<LimitReduction> limitReductions) {
-        LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
-                operatorStrategy.getContingencyContext().getContingencyId(), network);
+        logActionStart(network, operatorStrategy);
 
         // get LF action for this operator strategy, as all actions have been previously checked against IIDM
         // network, an empty LF action means it is for another component (so another LF network) so we can
@@ -835,14 +834,23 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         stopwatch.stop();
 
-        LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
-                operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        logActionEnd(network, operatorStrategy, stopwatch);
 
         return new OperatorStrategyResult(operatorStrategy, status,
                                           new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
                                           new NetworkResult(postActionsNetworkResult.getBranchResults(),
                                                             postActionsNetworkResult.getBusResults(),
                                                             postActionsNetworkResult.getThreeWindingsTransformerResults()));
+    }
+
+    protected static void logActionStart(LfNetwork network, OperatorStrategy operatorStrategy) {
+        LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
+                operatorStrategy.getContingencyContext().getContingencyId(), network);
+    }
+
+    protected static void logActionEnd(LfNetwork network, OperatorStrategy operatorStrategy, Stopwatch stopwatch) {
+        LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
+                operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     protected void beforeActionLoadFlowRun(C context) {
