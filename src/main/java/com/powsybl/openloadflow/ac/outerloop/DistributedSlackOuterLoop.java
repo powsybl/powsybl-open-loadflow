@@ -80,7 +80,7 @@ public class DistributedSlackOuterLoop
         if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
             Reports.reportMismatchDistributionFailure(iterationReportNode, remainingMismatch * PerUnit.SB);
         } else {
-            reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, resultWbh);
+            ActivePowerDistribution.reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, resultWbh);
         }
         DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
         contextData.addDistributedActivePower(distributedActivePower);
@@ -97,10 +97,4 @@ public class DistributedSlackOuterLoop
         return context.getLastSolverResult().getSlackBusActivePowerMismatch();
     }
 
-    private static void reportAndLogSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, ActivePowerDistribution.ResultWithFailureBehaviorHandling result) {
-        Reports.reportMismatchDistributionSuccess(reportNode, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
-
-        LOGGER.info("Slack bus active power ({} MW) distributed in {} distribution iteration(s)",
-                slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
-    }
 }
