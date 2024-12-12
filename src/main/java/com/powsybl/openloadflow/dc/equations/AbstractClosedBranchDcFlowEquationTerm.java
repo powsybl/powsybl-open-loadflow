@@ -97,7 +97,8 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         double dph1 = dx.get(ph1Var.getRow(), column);
         double dph2 = dx.get(ph2Var.getRow(), column);
         double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : 0;
-        return calculateSensi(dph1, dph2, da1);
+        // - eval(0,0,0) to have an exact epression and remove the constant term of the affine function (wich is 0 in practe because A2 = 0)
+        return eval(dph1, dph2, da1) - eval(0, 0, 0);
     }
 
     protected double ph1(StateVector sv) {
@@ -116,16 +117,11 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         return ph2(sv);
     }
 
-    protected abstract double calculateSensi(double ph1, double ph2, double a1);
+    protected abstract double eval(double ph1, double ph2, double a1);
 
     @Override
     public double eval() {
-        return calculateSensi(ph1(), ph2(), a1());
-    }
-
-    @Override
-    public double eval(StateVector sv) {
-        return calculateSensi(ph1(sv), ph2(sv), a1(sv));
+        return eval(ph1(), ph2(), a1());
     }
 
     protected double a1(StateVector sv) {
