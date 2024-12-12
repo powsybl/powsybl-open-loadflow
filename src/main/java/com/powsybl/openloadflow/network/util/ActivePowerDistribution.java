@@ -8,12 +8,14 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,5 +166,12 @@ public final class ActivePowerDistribution {
         }
 
         return resultWithFailureBehaviorHandling;
+    }
+
+    public static void reportAndLogSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, ResultWithFailureBehaviorHandling result) {
+        Reports.reportMismatchDistributionSuccess(reportNode, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
+
+        LOGGER.info("Slack bus active power ({} MW) distributed in {} distribution iteration(s)",
+                slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
     }
 }
