@@ -27,6 +27,8 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.concurrent.CompletionException;
@@ -118,31 +120,19 @@ class DcLoadFlowTest {
         assertEquals(-450, line2.getTerminal2().getP(), 0.01);
     }
 
-    @Test
-    void testSlackDistributionEnabledResults() {
+    @ParameterizedTest(name = "distributedSlack={0}")
+    @ValueSource(booleans = {true, false})
+    void testSlackDistributionEnabledDisabledResults(boolean distributedSlack) {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
+        parameters.setDistributedSlack(distributedSlack);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         var componentResults = result.getComponentResults();
         assertEquals(1, componentResults.size());
         assertEquals(1, componentResults.get(0).getSlackBusResults().size());
-        assertEquals(-7.0, componentResults.get(0).getDistributedActivePower(), 1e-3);
-        assertEquals(0.0, componentResults.get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
-    }
-
-    @Test
-    void testSlackDistributionDisabledResults() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-
-        parameters.setDistributedSlack(false);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        var componentResults = result.getComponentResults();
-        assertEquals(1, componentResults.size());
-        assertEquals(1, componentResults.get(0).getSlackBusResults().size());
-        assertEquals(0.0, componentResults.get(0).getDistributedActivePower(), 1e-3);
-        assertEquals(-7.0, componentResults.get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        assertEquals(distributedSlack ? -7.0 : 0.0, componentResults.get(0).getDistributedActivePower(), 1e-3);
+        assertEquals(distributedSlack ? 0.0 : -7.0, componentResults.get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
     @Test
