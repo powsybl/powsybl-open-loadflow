@@ -16,12 +16,14 @@ import com.powsybl.loadflow.LoadFlowResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -116,5 +118,23 @@ public final class LoadFlowAssert {
         String refLogExport = normalizeLineSeparator(reportTxt);
         String logExport = normalizeLineSeparator(sw.toString());
         assertEquals(refLogExport, logExport);
+    }
+
+    public static Stream<ReportNode> streamReportNodes(final ReportNode node) {
+        return Stream.concat(Stream.of(node), node.getChildren().stream().flatMap(LoadFlowAssert::streamReportNodes));
+    }
+
+    public static void assertReportContains(String regex, ReportNode reportNode) {
+        List<ReportNode> matching = streamReportNodes(reportNode).filter(node -> node.getMessage().matches(regex)).toList();
+        assertFalse(matching.isEmpty(), () -> {
+            StringWriter sw = new StringWriter();
+            try {
+                reportNode.print(sw);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            String txtReport = normalizeLineSeparator(sw.toString());
+            return "Report does not contain '" + regex + "': \n-----\n" + txtReport;
+        });
     }
 }
