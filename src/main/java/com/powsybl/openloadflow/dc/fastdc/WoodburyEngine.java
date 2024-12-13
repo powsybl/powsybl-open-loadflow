@@ -72,7 +72,7 @@ public class WoodburyEngine {
      * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
-    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> pstActions) {
+    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> lfActions) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -109,9 +109,17 @@ public class WoodburyEngine {
                     .forEach(column -> targetVectorArray[column] = 0);
         }
 
-        if (!pstActions.isEmpty()) {
+        if (!lfActions.isEmpty()) {
+            // set transformer phase shift to 0 for disconnected phase tap changers
+            lfActions.stream()
+                    .map(LfAction::getDisabledBranch)
+                    .filter(Objects::nonNull)
+                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .map(Equation::getColumn)
+                    .forEach(column -> targetVectorArray[column] = 0);
+
             // set transformer phase shift to new shifting value
-            pstActions.stream()
+            lfActions.stream()
                     .map(LfAction::getTapPositionChange)
                     .filter(Objects::nonNull)
                     .forEach(tapPositionChange -> {
@@ -148,8 +156,7 @@ public class WoodburyEngine {
             TapPositionChange tapPositionChange = ((ComputedTapPositionChangeElement) computedElement).getTapPositionChange();
             PiModel newPiModel = tapPositionChange.getNewPiModel();
             newAlpha = newPiModel.getA1();
-        } else if (computedElement instanceof ComputedSwitchBranchElement) {
-            // FIXME : need to add the new alpha
+        } else if (computedElement instanceof ComputedSwitchBranchElement && ((ComputedSwitchBranchElement) computedElement).isEnabled()) {
             newAlpha = computedElement.getLfBranch().getPiModel().getA1();
         }
         return states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
