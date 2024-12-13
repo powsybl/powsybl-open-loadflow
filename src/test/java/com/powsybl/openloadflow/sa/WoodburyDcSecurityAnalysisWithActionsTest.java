@@ -448,7 +448,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
         CompletionException thrown = assertThrows(CompletionException.class,
                 () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
-        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction and TerminalsConnectionAction are allowed in WoodburyDcSecurityAnalysis"));
+        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction and SwitchAction are allowed in WoodburyDcSecurityAnalysis"));
     }
 
     @Test
@@ -513,6 +513,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(100.0, getOperatorStrategyResult(result, "strategyOpenPS1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
+    // TODO : this test breaks connectivity and should not work ! So, it seems to work as expected
     @Test
     void testFastSaDcTransformerDisconnectionActionBreakingConnectivity() {
         Network network = PhaseControlFactory.createNetworkWith3Buses();
@@ -526,7 +527,6 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDc(true);
-        parameters.setDistributedSlack(true);
         securityAnalysisParameters.setLoadFlowParameters(parameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
         openSecurityAnalysisParameters.setDcFastMode(true);
@@ -639,7 +639,4 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getLine("L2").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("L1").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
-
-
-    // FIXME : cases with actions that modify the connectivity (i.e. add network or remove some part are) are not yet handled
 }
