@@ -11,6 +11,7 @@ import com.google.common.collect.Lists;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -18,11 +19,13 @@ import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -205,8 +208,41 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
-            // FIXME handle distribution failure
-            distributedActivePower = distributeSlack(network, network.getBuses(), parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
+            LoadFlowParameters.BalanceType balanceType = parameters.getBalanceType();
+            boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
+            var result = activePowerDistribution.run(network, initialSlackBusActivePowerMismatch);
+            final LfGenerator referenceGenerator;
+            final OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior;
+            if (parameters.isAreaInterchangeControl()) {
+                // actual behavior will be handled by the outerloop itself, just leave on slack bus here
+                behavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
+                referenceGenerator = null;
+            } else {
+                behavior = parameters.getSlackDistributionFailureBehavior();
+                referenceGenerator = context.getNetwork().getReferenceGenerator();
+            }
+            ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
+                    behavior,
+                    referenceGenerator,
+                    initialSlackBusActivePowerMismatch,
+                    result,
+                    "Failed to distribute slack bus active power mismatch, %.2f MW remains"
+            );
+            double remainingMismatch = resultWbh.remainingMismatch();
+            distributedActivePower = initialSlackBusActivePowerMismatch - remainingMismatch;
+            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+                Reports.reportMismatchDistributionFailure(reportNode, remainingMismatch * PerUnit.SB);
+            } else {
+                ActivePowerDistribution.reportAndLogSuccess(reportNode, initialSlackBusActivePowerMismatch, resultWbh);
+            }
+            if (resultWbh.failed()) {
+                distributedActivePower -= resultWbh.failedDistributedActivePower();
+                runningContext.lastSolverSuccess = false;
+                runningContext.lastOuterLoopResult = new OuterLoopResult("DistributedSlack", OuterLoopStatus.FAILED, resultWbh.failedMessage());
+                Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
+                return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
+            }
         }
 
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
