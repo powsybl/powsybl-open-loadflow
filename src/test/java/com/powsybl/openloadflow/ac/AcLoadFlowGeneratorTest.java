@@ -68,5 +68,37 @@ class AcLoadFlowGeneratorTest {
         assertReactivePowerEquals(0.0, g1Bis.getTerminal());
         assertReactivePowerEquals(-0.570, g1.getTerminal());
     }
+
+    @Test
+    void testGeneratorForceTargetQInDiagram() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g1 = network.getGenerator("g1");
+        g1.newMinMaxReactiveLimits().setMinQ(-1).setMaxQ(-1).add();
+
+        // targetQ > diagram
+        g1.setTargetQ(0);
+        parametersExt.setForceTargetQInReactiveLimits(true);
+
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(0.884231, b1);
+        assertAngleEquals(0, b1);
+        assertVoltageEquals(1.0, b4);
+        assertAngleEquals(-1.089083, b4);
+        assertReactivePowerEquals(1, g1.getTerminal());
+
+        // targetQ < diagram
+        g1.setTargetQ(-2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(0.884231, b1);
+        assertAngleEquals(0, b1);
+        assertVoltageEquals(1.0, b4);
+        assertAngleEquals(-1.089083, b4);
+        assertReactivePowerEquals(1, g1.getTerminal());
+    }
 }
 
