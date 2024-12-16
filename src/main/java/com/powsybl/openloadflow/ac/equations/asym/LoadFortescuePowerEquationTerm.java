@@ -75,39 +75,24 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
     }
 
     public double ph(Fortescue.SequenceType g) {
-        switch (g) {
-            case ZERO:
-                return sv.get(phVarZero.getRow());
-
-            case POSITIVE:
-                return sv.get(phVar.getRow());
-
-            case NEGATIVE:
-                return sv.get(phVarNegative.getRow());
-
-            default:
-                throw new IllegalStateException("Unknown Phi variable at bus: " + element.getId());
-        }
+        return switch (g) {
+            case ZERO -> sv.get(phVarZero.getRow());
+            case POSITIVE -> sv.get(phVar.getRow());
+            case NEGATIVE -> sv.get(phVarNegative.getRow());
+        };
     }
 
     public double v(Fortescue.SequenceType g) {
-        switch (g) {
-            case ZERO:
-                return sv.get(vVarZero.getRow());
-
-            case POSITIVE:
-                return sv.get(vVar.getRow());
-
-            case NEGATIVE:
-                return sv.get(vVarNegative.getRow());
-
-            default:
-                throw new IllegalStateException("Unknown V variable at bus: " + element.getId());
-        }
+        return switch (g) {
+            case ZERO -> sv.get(vVarZero.getRow());
+            case POSITIVE -> sv.get(vVar.getRow());
+            case NEGATIVE -> sv.get(vVarNegative.getRow());
+        };
     }
 
     /**
      * We use the formula with complex matrices:
+     * <pre>{@literal
      *
      *  [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
      *  [Sd] =  [0  Vd   0]. 1/3 . [F] . [0  1/Vb  0] . [Sb]
@@ -116,6 +101,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
      *                                  term (Ifortescue)*
      *          <------------------------------------------->
      *                     term Sfortescue
+     * }</pre>
      */
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
         LfAsymBus asymBus = bus.getAsym();
@@ -143,24 +129,21 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mIfortescueConjugate = Fortescue.createMatrix().times(m0T0);
         DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
 
-        switch (sequenceType) {
-            case ZERO:
-                return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
+        return switch (sequenceType) {
+            case ZERO ->
+                    complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
 
-            case POSITIVE:
-                return complexPart == ComplexPart.REAL ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
+            case POSITIVE ->
+                    complexPart == ComplexPart.REAL ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
 
-            case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
-
-            default:
-                throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
-        }
+            case NEGATIVE ->
+                    complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
+        };
     }
 
     /**
      * We derivate the PQ formula with complex matrices:
-     *
+     * <pre>{@literal
      *     [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
      *  d( [Sd] )/dx = 1/3 . [0  dVd/dx   0] . [F] . [0  1/Vb  0] . [Sb]    +   [0  Vd  0] . [F] .(-1/3). [0   Sb  0] . [0  1/Vb  0] . [0  1/Vb  0] . [F] . [dVd/dx]
      *     [Si]              [0   0  dVi/dx]         [0   0 1/Vc]   [Sc]        [0   0 Vi]                [0   0  Sc]   [0   0 1/Vc]   [0   0 1/Vc]         [dVi/dx]
@@ -168,6 +151,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
      *                                       term T1                                                           term (dIfortescue)*
      *                                                                          <----------------------------------------------------------------------------------->
      *                                                                                                           term T2
+     * }</pre>
      */
     public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
         LfAsymBus asymBus = bus.getAsym();
@@ -243,19 +227,16 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mdIFortescueConjugate = Fortescue.createMatrix().times(m3T2);
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
-        switch (sequenceType) {
-            case ZERO:
-                return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
+        return switch (sequenceType) {
+            case ZERO ->
+                    complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
 
-            case POSITIVE:
-                return complexPart == ComplexPart.REAL ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
+            case POSITIVE ->
+                    complexPart == ComplexPart.REAL ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
 
-            case NEGATIVE:
-                return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
-
-            default:
-                throw new IllegalStateException("Unknown sequence at bus : " + bus.getId());
-        }
+            case NEGATIVE ->
+                    complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
+        };
     }
 
     @Override
@@ -312,13 +293,14 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
     /**
      * if this is a vector we build: m = [m1x;m1y;m2x;m2y;m3x;m3y] equivalent in complex to [m1;m2;m3]
      *  if not, this is a 6x6 square matrix expected:
-     *
+     *  <pre>
      *       [m1x -m1y  0    0    0    0 ]
      *       [m1y  m1x  0    0    0    0 ]
      *       [ 0    0  m2x -m2y   0    0 ]                           [m1  0   0]
      *   m = [ 0    0  m2y  m2x   0    0 ]  equivalent in complex to [ 0  m2  0]
      *       [ 0    0   0    0   m3x -m3y]                           [ 0  0  m3]
      *       [ 0    0   0    0   m3y  m3x]
+     * </pre>
      */
     public static DenseMatrix createCartesianMatrix(double m1x, double m1y, double m2x, double m2y, double m3x, double m3y, boolean isVector) {
         DenseMatrix mCartesian;

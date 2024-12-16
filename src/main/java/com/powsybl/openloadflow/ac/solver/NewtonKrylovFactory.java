@@ -7,6 +7,9 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.google.auto.service.AutoService;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -19,12 +22,28 @@ import com.powsybl.openloadflow.network.LfNetwork;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@AutoService(AcSolverFactory.class)
 public class NewtonKrylovFactory implements AcSolverFactory {
+
+    public static final String NAME = "NEWTON_KRYLOV";
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
+    @Override
+    public AcSolverParameters createParameters(LoadFlowParameters parameters) {
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
+        return new NewtonKrylovParameters()
+                .setLineSearch(parametersExt.isNewtonKrylovLineSearch())
+                .setMaxIterations(parametersExt.getMaxNewtonKrylovIterations());
+    }
 
     @Override
     public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                            JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                            EquationVector<AcVariableType, AcEquationType> equationVector) {
-        return new NewtonKrylov(network, parameters.getNewtonKrylovParameters(), equationSystem, j, targetVector, equationVector);
+        return new NewtonKrylov(network, (NewtonKrylovParameters) parameters.getAcSolverParameters(), equationSystem, j, targetVector, equationVector);
     }
 }

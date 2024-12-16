@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.PiModelArray;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +35,13 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
 
     protected final List<Variable<DcVariableType>> variables;
 
-    protected final double power;
+    private final double power;
+
+    private final boolean isPowerPreComputed;
+
+    protected final boolean useTransformerRatio;
+
+    protected DcApproximationType dcApproximationType;
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                      boolean deriveA1, boolean useTransformerRatio, DcApproximationType dcApproximationType) {
@@ -46,7 +53,10 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
-        power = calculatePower(useTransformerRatio, dcApproximationType, piModel);
+        this.useTransformerRatio = useTransformerRatio;
+        this.dcApproximationType = dcApproximationType;
+        isPowerPreComputed = !(piModel instanceof PiModelArray);
+        power = isPowerPreComputed ? computePower(useTransformerRatio, dcApproximationType, piModel) : Double.NaN;
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {
@@ -54,7 +64,14 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         }
     }
 
-    public static double calculatePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel) {
+    /**
+     * Update power only if the branch is a PiModelArray.
+     */
+    protected double getPower() {
+        return isPowerPreComputed ? power : computePower(useTransformerRatio, dcApproximationType, element.getPiModel());
+    }
+
+    public static double computePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel) {
         double b = switch (dcApproximationType) {
             case IGNORE_R -> 1d / piModel.getX();
             case IGNORE_G -> {
@@ -80,7 +97,8 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         double dph1 = dx.get(ph1Var.getRow(), column);
         double dph2 = dx.get(ph2Var.getRow(), column);
         double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : 0;
-        return calculateSensi(dph1, dph2, da1);
+        // - eval(0,0,0) to have an exact epression and remove the constant term of the affine function (wich is 0 in practe because A2 = 0)
+        return eval(dph1, dph2, da1) - eval(0, 0, 0);
     }
 
     protected double ph1(StateVector sv) {
@@ -99,16 +117,11 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         return ph2(sv);
     }
 
-    protected abstract double calculateSensi(double ph1, double ph2, double a1);
+    protected abstract double eval(double ph1, double ph2, double a1);
 
     @Override
     public double eval() {
-        return calculateSensi(ph1(), ph2(), a1());
-    }
-
-    @Override
-    public double eval(StateVector sv) {
-        return calculateSensi(ph1(sv), ph2(sv), a1(sv));
+        return eval(ph1(), ph2(), a1());
     }
 
     protected double a1(StateVector sv) {

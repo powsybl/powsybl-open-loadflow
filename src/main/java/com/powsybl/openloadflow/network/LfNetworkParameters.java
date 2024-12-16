@@ -150,6 +150,8 @@ public class LfNetworkParameters {
 
     private boolean remoteVoltageControlIgnoreQPercent = OpenLoadFlowParameters.REMOTE_VOLTAGE_CONTROL_IGNORE_QPERCENT_DEFAULT_VALUE;
 
+    private boolean forceTargetQInReactiveLimits = OpenLoadFlowParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -197,6 +199,7 @@ public class LfNetworkParameters {
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
         this.remoteVoltageControlIgnoreQPercent = other.remoteVoltageControlIgnoreQPercent;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -609,6 +612,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isForceTargetQInReactiveLimits() {
+        return forceTargetQInReactiveLimits;
+    }
+
+    public LfNetworkParameters setForceTargetQInReactiveLimits(boolean forceTargetQInReactiveLimits) {
+        this.forceTargetQInReactiveLimits = forceTargetQInReactiveLimits;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -651,6 +663,7 @@ public class LfNetworkParameters {
                 ", areaInterchangeControl=" + areaInterchangeControl +
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
                 ", ignoreQPercent=" + remoteVoltageControlIgnoreQPercent +
+                ", forceTargetQInReactiveLimits=" + forceTargetQInReactiveLimits +
                 ')';
     }
 }

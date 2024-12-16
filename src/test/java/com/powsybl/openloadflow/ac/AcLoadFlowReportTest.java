@@ -284,7 +284,8 @@ class AcLoadFlowReportTest {
                         Angle reference bus: VLHV1_0
                         Slack bus: VLHV1_0
                      + Outer loop DistributedSlack
-                        Outer loop iteration 1
+                        + Outer loop iteration 1
+                           Failed to distribute slack bus active power mismatch, -1.4404045651219555 MW remains
                      Outer loop VoltageMonitoring
                      Outer loop ReactiveLimits
                      + 4 buses have a voltage magnitude out of the configured realistic range [0.99, 1.01] p.u.

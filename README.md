@@ -69,7 +69,7 @@ Heterogeneous voltage controls management has become a key feature. All well-mod
  - Complex cases where the contingency leads to another synchronous component where a new resolution has to be performed are not supported at that stage. The loss of slack bus during a contingency is not supported yet, but the work is in progress.
  - The active and reactive power flows on branches, as well as angle and voltage at buses, can be monitored and collected for later analysis after the base case and after each contingency.
  - Remedial actions such as: switch action, terminal(s) connection action, re-dispatching action
- - Fast DC mode available, based on Woodbury's formula for calculating post-contingency states. Note that this mode has limitations for the moment. Remedial actions are not yet taken into account, as well as contingencies on HVDC lines in AC emulation mode.
+ - Fast DC mode available, based on Woodbury's formula for calculating post-contingency states. Note that this mode has limitations for the moment. Only PST remedial actions are taken into account now. Contingencies on HVDC lines are not yet taken into account in AC emulation mode.
 
 ### Sensitivity analysis implementation 
 
@@ -93,12 +93,12 @@ dependencies to respectively have access to network model, IEEE test networks an
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>6.5.1</version>
+    <version>6.6.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>6.5.1</version>
+    <version>6.6.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -117,7 +117,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.13.2</version>
+    <version>1.14.0</version>
 </dependency>
 ```
 
