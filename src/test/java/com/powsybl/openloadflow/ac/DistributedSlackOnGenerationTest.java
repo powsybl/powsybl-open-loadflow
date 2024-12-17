@@ -642,4 +642,14 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-90.000, g3.getTerminal());
         assertActivePowerEquals(-90.000, g4.getTerminal());
     }
+
+    @Test
+    void testEpsilonDistribution() {
+        parametersExt.setSlackBusPMaxMismatch(0.1);
+        network = DistributedSlackNetworkFactory.createWithEpsilonDistribution();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(0.0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
 }
