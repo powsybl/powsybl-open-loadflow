@@ -86,8 +86,8 @@ public final class ActivePowerDistribution {
             iteration++;
         }
 
-        final boolean movedBuses = initialP.entrySet().stream()
-                .anyMatch(e -> Math.abs(e.getKey().getTargetP() - e.getValue()) > P_RESIDUE_EPS);
+        final boolean movedBuses = Math.abs(initialP.entrySet().stream()
+                .mapToDouble(e -> e.getKey().getTargetP() - e.getValue()).sum()) > P_RESIDUE_EPS;
 
         return new Result(iteration, remainingMismatch, movedBuses);
     }
