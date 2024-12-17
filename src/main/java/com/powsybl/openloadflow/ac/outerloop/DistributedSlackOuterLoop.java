@@ -88,7 +88,7 @@ public class DistributedSlackOuterLoop
             contextData.addDistributedActivePower(-resultWbh.failedDistributedActivePower());
             return new OuterLoopResult(this, OuterLoopStatus.FAILED, resultWbh.failedMessage());
         } else {
-            return new OuterLoopResult(this, resultWbh.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
+            return new OuterLoopResult(this, Math.abs(distributedActivePower) > ActivePowerDistribution.P_RESIDUE_EPS || resultWbh.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
         }
     }
 
