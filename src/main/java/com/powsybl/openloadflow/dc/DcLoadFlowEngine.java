@@ -185,7 +185,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         RunningContext runningContext = new RunningContext();
         List<DcOuterLoop> outerLoops = parameters.getOuterLoops();
 
-        boolean distributedSlack = parameters.isDistributedSlack() || areaInterchangeControlFallback();
+        boolean distributedSlack = isDistributedSlack();
 
         List<DcOuterLoop> activeOuterLoops = outerLoops.stream()
                 .toList();
@@ -209,16 +209,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
             var result = activePowerDistribution.run(network, initialSlackBusActivePowerMismatch);
-            final LfGenerator referenceGenerator;
-            final OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior;
-            if (parameters.isAreaInterchangeControl()) {
-                // actual behavior will be handled by the outerloop itself, just leave on slack bus here
-                behavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
-                referenceGenerator = null;
-            } else {
-                behavior = parameters.getSlackDistributionFailureBehavior();
-                referenceGenerator = context.getNetwork().getReferenceGenerator();
-            }
+            final LfGenerator referenceGenerator = context.getNetwork().getReferenceGenerator();
+            final OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior = parameters.getSlackDistributionFailureBehavior();
+
             ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
                     behavior,
                     referenceGenerator,
@@ -331,18 +324,16 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     /**
-     * If Area Interchange Control is activated but the network has no area, we remove the AIC outer loop and fall back to distributed slack
+     * If Area Interchange Control is activated, slack distribution is used only if the network has no Area. Otherwise, it will be entirely handled by the AIC outer loop
+     * If Area Interchange Control is not activated, slack distribution is used according to the parameter
      */
-    boolean areaInterchangeControlFallback() {
-        List<DcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
-        boolean aicOuterLoop = outerLoops.stream().anyMatch(DcAreaInterchangeControlOuterLoop.class::isInstance);
-        if (aicOuterLoop && !context.getNetwork().hasArea()) {
-            context.getParameters().setOuterLoops(outerLoops.stream()
-                    .filter(ol -> !(ol instanceof DcAreaInterchangeControlOuterLoop))
-                    .toList());
-            return true;
+    boolean isDistributedSlack() {
+        boolean hasAicOuterLoop = context.getParameters().getOuterLoops().stream().anyMatch(DcAreaInterchangeControlOuterLoop.class::isInstance);
+        if (hasAicOuterLoop) {
+            return !context.getNetwork().hasArea();
+        } else {
+            return context.getParameters().isDistributedSlack();
         }
-        return false;
     }
 
 }
