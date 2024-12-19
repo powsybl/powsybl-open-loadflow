@@ -33,7 +33,7 @@ public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
 
     @Override
     public String getName() {
-        return "AreaInterchangeControl";
+        return NAME;
     }
 
     @Override
