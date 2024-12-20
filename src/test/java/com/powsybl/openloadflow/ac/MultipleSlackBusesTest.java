@@ -91,8 +91,8 @@ class MultipleSlackBusesTest {
     }
 
     static Stream<Arguments> allModelTypesAndNbSlackbuses() {
-        return Stream.concat(IntStream.range(1,5).mapToObj(i -> Arguments.of(true, i)),
-                IntStream.range(1,5).mapToObj(i -> Arguments.of(false, i)));
+        return Stream.concat(IntStream.range(1, 5).mapToObj(i -> Arguments.of(true, i)),
+                IntStream.range(1, 5).mapToObj(i -> Arguments.of(false, i)));
     }
 
     static Stream<Arguments> allModelTypes() {
@@ -171,14 +171,12 @@ class MultipleSlackBusesTest {
         parameters.setDc(!ac).setReadSlackBus(false);
         parametersExt.setMaxSlackBusCount(nbSlackbuses); // Testing from 1 to 4 slack buses and expecting same global mismatch
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertEquals(ac ? -0.006 : -13.4,
-                result.getComponentResults()
+        double slackMismatch = result.getComponentResults()
                 .get(0)
                 .getSlackBusResults()
                 .stream()
-                .mapToDouble(LoadFlowResult.SlackBusResult::getActivePowerMismatch).sum()
-        ,0.001);
-
+                .mapToDouble(LoadFlowResult.SlackBusResult::getActivePowerMismatch).sum();
+        assertEquals(ac ? -0.006 : -13.4, slackMismatch, 0.001);
     }
 
     @ParameterizedTest(name = "ac : {0}, switchSlacks : {1}")
