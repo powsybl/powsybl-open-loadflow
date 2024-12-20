@@ -16,8 +16,11 @@ import java.util.List;
  */
 public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
-    public GeneratorVoltageControl(LfBus controlledBus, int targetPriority, double targetValue) {
+    private final boolean ignoreQPercent;
+
+    public GeneratorVoltageControl(LfBus controlledBus, int targetPriority, double targetValue, boolean ignoreQPercent) {
         super(targetValue, Type.GENERATOR, targetPriority, controlledBus);
+        this.ignoreQPercent = ignoreQPercent;
     }
 
     @Override
@@ -63,7 +66,7 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     public void updateReactiveKeys() {
         List<LfBus> controllerBuses = getMergedControllerElements();
 
-        double[] reactiveKeys = createReactiveKeys(controllerBuses, LfGenerator.GeneratorControlType.VOLTAGE);
+        double[] reactiveKeys = createReactiveKeys(controllerBuses, LfGenerator.GeneratorControlType.VOLTAGE, ignoreQPercent);
 
         // no reactive dispatch on PQ buses, so we set the key to 0
         for (int i = 0; i < controllerBuses.size(); i++) {
