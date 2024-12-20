@@ -79,6 +79,15 @@ class MultipleSlackBusesTest {
         return Stream.concat(acStream, dcStream);
     }
 
+    static Stream<Arguments> allModelAndSwitchingTypes() {
+        return Stream.of(
+                Arguments.of(true, true),
+                Arguments.of(true, false),
+                Arguments.of(false, true),
+                Arguments.of(false, false)
+        );
+    }
+
     static Stream<Arguments> allModelTypes() {
         return Stream.of(Arguments.of(true), Arguments.of(false));
     }
@@ -148,12 +157,17 @@ class MultipleSlackBusesTest {
         assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
     }
 
-    @ParameterizedTest(name = "ac : {0}")
-    @MethodSource("allModelTypes")
-    void loadOnSlackBusTest(boolean ac) {
+    @ParameterizedTest(name = "ac : {0}, switchSlacks : {1}")
+    @MethodSource("allModelAndSwitchingTypes")
+    void loadOnSlackBusTest(boolean ac, boolean switchSlacks) {
         parameters.setDc(!ac);
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
-        parametersExt.setSlackBusesIds(List.of("VLHV2", "VLLOAD"));
+        if (switchSlacks) { //switching slack buses order (expecting the same result)
+            parametersExt.setSlackBusesIds(List.of("VLHV2", "VLLOAD"));
+        } else {
+            parametersExt.setSlackBusesIds(List.of("VLLOAD", "VLHV2"));
+        }
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
@@ -161,7 +175,8 @@ class MultipleSlackBusesTest {
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
 
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
-        assertEquals(List.of("VLHV2_0", "VLLOAD_0"), slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
+        assertEquals(switchSlacks ? List.of("VLHV2_0", "VLLOAD_0") : List.of("VLLOAD_0", "VLHV2_0"),
+                slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
         double expectedSlackBusMismatch = ac ? -0.711 : -3.5;
         assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
 
