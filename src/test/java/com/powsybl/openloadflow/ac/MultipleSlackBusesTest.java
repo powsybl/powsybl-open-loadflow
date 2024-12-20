@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Line;
@@ -31,6 +32,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
@@ -86,6 +88,11 @@ class MultipleSlackBusesTest {
                 Arguments.of(false, true),
                 Arguments.of(false, false)
         );
+    }
+
+    static Stream<Arguments> allModelTypesAndNbSlackbuses() {
+        return Stream.concat(IntStream.range(1,5).mapToObj(i -> Arguments.of(true, i)),
+                IntStream.range(1,5).mapToObj(i -> Arguments.of(false, i)));
     }
 
     static Stream<Arguments> allModelTypes() {
@@ -155,6 +162,23 @@ class MultipleSlackBusesTest {
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
         expectedSlackBusMismatch = ac ? -0.005 : 0;
         assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
+    }
+
+    @ParameterizedTest(name = "ac : {0}, nbSlackbuses : {1}")
+    @MethodSource("allModelTypesAndNbSlackbuses")
+    void differentNbSlackbusesTest(boolean ac, int nbSlackbuses) {
+        network = IeeeCdfNetworkFactory.create14();
+        parameters.setDc(!ac).setReadSlackBus(false);
+        parametersExt.setMaxSlackBusCount(nbSlackbuses); // Testing from 1 to 4 slack buses and expecting same global mismatch
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(ac ? -0.006 : -13.4,
+                result.getComponentResults()
+                .get(0)
+                .getSlackBusResults()
+                .stream()
+                .mapToDouble(LoadFlowResult.SlackBusResult::getActivePowerMismatch).sum()
+        ,0.001);
+
     }
 
     @ParameterizedTest(name = "ac : {0}, switchSlacks : {1}")
