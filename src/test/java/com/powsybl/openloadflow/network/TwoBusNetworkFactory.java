@@ -56,4 +56,13 @@ public class TwoBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
         return network;
     }
+
+    public static Network createWithAThirdBus() {
+        Network network = create();
+        // On a different and higher voltage level then b1 and b2
+        Bus b3 = createBus(network, "b3", 1.5);
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        createLine(network, b2, b3, "l23", 0.1f);
+        return network;
+    }
 }

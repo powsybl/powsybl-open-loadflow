@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @author Pierre Arvy <pierre.arvy at artelys.com>
+ * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
 public class TransformerReactivePowerControl extends ReactivePowerControl {
 

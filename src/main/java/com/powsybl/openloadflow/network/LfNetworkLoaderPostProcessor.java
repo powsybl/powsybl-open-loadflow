@@ -35,4 +35,8 @@ public interface LfNetworkLoaderPostProcessor {
     void onBranchAdded(Object element, LfBranch lfBranch);
 
     void onInjectionAdded(Object element, LfBus lfBus);
+
+    void onAreaAdded(Object element, LfArea lfArea);
+
+    void onLfNetworkLoaded(Object element, LfNetwork lfNetwork);
 }

@@ -222,4 +222,15 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .add();
         return network;
     }
+
+    public static Network createWithEpsilonDistribution() {
+        // 0.15 MW slack mismatch to be distributed over 1000 generators
+        Network network = Network.create("distributed-generation-slack-bus", "code");
+        Bus b = createBus(network, "bus");
+        createLoad(b, "load", 1000.15);
+        for (int i = 0; i < 1000; i++) {
+            createGenerator(b, "g" + i, 1.0);
+        }
+        return network;
+    }
 }

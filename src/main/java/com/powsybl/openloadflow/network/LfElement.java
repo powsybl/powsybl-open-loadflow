@@ -20,6 +20,8 @@ public interface LfElement extends PropertyBag {
 
     List<String> getOriginalIds();
 
+    String getMainOriginalId();
+
     ElementType getType();
 
     int getNum();

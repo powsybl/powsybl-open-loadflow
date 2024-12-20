@@ -7,10 +7,14 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.LoadType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
+import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -21,6 +25,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,8 +115,7 @@ class DistributedSlackOnLoadTest {
 
     private void assertPowerFactor(Network network) {
         switch (parameters.getBalanceType()) {
-            case PROPORTIONAL_TO_CONFORM_LOAD:
-            case PROPORTIONAL_TO_LOAD:
+            case PROPORTIONAL_TO_CONFORM_LOAD, PROPORTIONAL_TO_LOAD:
                 for (Load load : network.getLoads()) {
                     assertEquals(load.getP0() / load.getQ0(),
                             load.getTerminal().getP() / load.getTerminal().getQ(),
@@ -182,31 +186,66 @@ class DistributedSlackOnLoadTest {
     @Test
     void testNetworkWithoutConformingLoad() {
         parameters
-                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .getExtension(OpenLoadFlowParameters.class)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        parametersExt
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
         assertEquals(-60., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-6);
+        assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
 
-        parameters.getExtension(OpenLoadFlowParameters.class)
+        parametersExt
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
-        result = loadFlowRunner.run(network, parameters);
+        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         componentResult = result.getComponentResults().get(0);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
         assertEquals(-60., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-6);
+        assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
 
-        parameters.getExtension(OpenLoadFlowParameters.class)
+        parametersExt
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+
+        parametersExt
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+        ReferencePriority.set(network.getGenerator("g1"), 1);
+        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(-60., componentResult.getDistributedActivePower(), 1e-6);
+        assertActivePowerEquals(-40., network.getGenerator("g1").getTerminal());
+        assertReportContains("Slack bus active power \\([-+]?\\d*\\.\\d* MW\\) distributed in 1 distribution iteration\\(s\\)", reportNode);
+    }
+
+    @Test
+    void testNetworkWithPqPvTypeSwitch() {
+        // network has no conforming load, everything goes to reference generator
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        parameters
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        parametersExt
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+        ReferencePriority.set(network.getGenerator("g1"), 1);
+        var result = loadFlowRunner.run(network, parameters);
+        var componentResult = result.getComponentResults().get(0);
+        assertTrue(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, componentResult.getStatus());
+        assertEquals(120.193, componentResult.getDistributedActivePower(), 1e-3);
+        assertActivePowerEquals(-220.193, network.getGenerator("g1").getTerminal());
     }
 
     @Test
     void testPowerFactorConstant2() {
-        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
+        network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         parametersExt.setLoadPowerFactorConstant(true).setNewtonRaphsonConvEpsPerEq(1e-6);
         network.getLoad("l4").newExtension(LoadDetailAdder.class)
@@ -225,11 +264,11 @@ class DistributedSlackOnLoadTest {
 
     @Test
     void testPowerFactorConstant3() {
-        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
+        network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
         network.getGenerator("g1").setTargetP(-208);
-        Load l4 = network.getLoad("l4");
+        l4 = network.getLoad("l4");
         l4.setP0(0.0).setQ0(-50);
         l4.newExtension(LoadDetailAdder.class)
                 .withFixedActivePower(0)
@@ -237,7 +276,7 @@ class DistributedSlackOnLoadTest {
                 .withVariableActivePower(0)
                 .withVariableReactivePower(-50)
                 .add();
-        Load l5 = network.getLoad("l5");
+        l5 = network.getLoad("l5");
         l5.setP0(-10.0).setQ0(0.0);
         l5.newExtension(LoadDetailAdder.class)
                 .withFixedActivePower(-10)
@@ -253,16 +292,16 @@ class DistributedSlackOnLoadTest {
 
     @Test
     void testPowerFactorConstant4() {
-        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
+        network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
                 .setMaxActivePowerMismatch(1e-2)
                 .setMaxReactivePowerMismatch(1e-2);
         // network has 300 MW generation, we set 400MW total P0 load
-        Load l4 = network.getLoad("l4");
+        l4 = network.getLoad("l4");
         l4.setP0(0.0).setQ0(50.0); // 0MW -> 0% participation factor
-        Load l5 = network.getLoad("l5");
+        l5 = network.getLoad("l5");
         l5.setP0(400.0).setQ0(50.0); // only non-zero load -> 100% participation factor
 
         // test with l4 being reactive only load
@@ -297,5 +336,51 @@ class DistributedSlackOnLoadTest {
         }
         assertEquals(0.0, sumP, pTol);
         assertEquals(0.0, sumQ, qTol);
+    }
+
+    @Test
+    void testFictitiousLoadBoolean() {
+        l1.setFictitious(true);
+        l2.setFictitious(true);
+        l3.setFictitious(true);
+        l4.setFictitious(false);
+        l5.setFictitious(true);
+        l6.setFictitious(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(l1.getP0(), l1.getTerminal());
+        assertActivePowerEquals(l2.getP0(), l2.getTerminal());
+        assertActivePowerEquals(l3.getP0(), l3.getTerminal());
+        assertActivePowerEquals(l4.getP0() + 60, l4.getTerminal());
+        assertActivePowerEquals(l5.getP0(), l5.getTerminal());
+        assertActivePowerEquals(l6.getP0(), l6.getTerminal());
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 4.0392134081912445E-9)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected, result);
+    }
+
+    @Test
+    void testFictitiousLoadType() {
+        l1.setLoadType(LoadType.AUXILIARY); // 30 MW
+        l2.setLoadType(LoadType.UNDEFINED); // 60 MW
+        l3.setLoadType(LoadType.FICTITIOUS); // 50 MW
+        l4.setLoadType(LoadType.AUXILIARY); // 140 MW
+        l5.setLoadType(LoadType.UNDEFINED); // 10 MW
+        l6.setLoadType(LoadType.FICTITIOUS); // -50 MW
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(l1.getP0() + 7.5, l1.getTerminal());
+        assertActivePowerEquals(l2.getP0() + 15, l2.getTerminal());
+        assertActivePowerEquals(l3.getP0(), l3.getTerminal());
+        assertActivePowerEquals(l4.getP0() + 35, l4.getTerminal());
+        assertActivePowerEquals(l5.getP0() + 2.5, l5.getTerminal());
+        assertActivePowerEquals(l6.getP0(), l6.getTerminal());
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 4.0392134081912445E-9)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected, result);
     }
 }

@@ -59,7 +59,7 @@ class NewtonRaphsonStoppingCriteriaTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
@@ -112,7 +112,7 @@ class NewtonRaphsonStoppingCriteriaTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(11, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test

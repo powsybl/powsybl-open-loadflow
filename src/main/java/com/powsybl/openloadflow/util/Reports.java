@@ -22,6 +22,7 @@ public final class Reports {
     private static final String NETWORK_NUM_CC = "networkNumCc";
     private static final String NETWORK_NUM_SC = "networkNumSc";
     private static final String ITERATION = "iteration";
+    private static final String ITERATION_COUNT = "iterationCount";
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
 
@@ -31,6 +32,7 @@ public final class Reports {
     private static final String BUS_ID = "busId";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
+    public static final String MISMATCH = "mismatch";
 
     public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
     }
@@ -129,7 +131,7 @@ public final class Reports {
     public static void reportMismatchDistributionFailure(ReportNode reportNode, double remainingMismatch) {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionFailure", "Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
-                .withTypedValue("mismatch", remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue(MISMATCH, remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
@@ -138,7 +140,42 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionSuccess", "Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withUntypedValue("iterationCount", iterationCount)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControl(ReportNode reportNode, String area, String reason) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaNoInterchangeControl", "Area ${area} will not be considered in area interchange control, reason: ${reason}")
+                .withUntypedValue("area", area)
+                .withUntypedValue("reason", reason)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportAreaInterchangeControlDistributionFailure(ReportNode reportNode) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlDistributionFailure", "Failed to distribute interchange active power mismatch")
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaInterchangeControlAreaMismatch(ReportNode reportNode, String area, double mismatch) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlAreaMismatch", "Remaining mismatch for Area ${area}: ${mismatch} MW")
+                .withUntypedValue("area", area)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaInterchangeControlAreaDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("areaInterchangeControlAreaDistributionSuccess", "Area ${area} interchange mismatch (${mismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
+                .withUntypedValue("area", area)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
@@ -210,6 +247,30 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double vcTargetValue, double targetValue) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlAlreadyExistsWithDifferentTargetV", "Transformers ${firstControllerId} and ${newControllerId} control voltage at bus ${controlledBusId} with different target voltages: ${vcTargetValue}kV (kept) and ${targetValue}kV (rejected)")
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("firstControllerId", firstControllerId)
+                .withUntypedValue("newControllerId", newControllerId)
+                .withUntypedValue("vcTargetValue", vcTargetValue)
+                .withUntypedValue("targetValue", targetValue)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double newTargetDeadband, Double oldTargetDeadband) {
+        reportNode.newReportNode()
+                .withMessageTemplate("transformerControlAlreadyExistsUpdateDeadband", "Transformers ${firstControllerId} and ${newControllerId} control voltage at bus ${controlledBusId} with different deadbands, thinnest will be kept: ${newTargetDeadband}kV (kept) and ${oldTargetDeadband}kV (rejected)")
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("firstControllerId", firstControllerId)
+                .withUntypedValue("newControllerId", newControllerId)
+                .withUntypedValue("newTargetDeadband", newTargetDeadband)
+                .withUntypedValue("oldTargetDeadband", oldTargetDeadband == null ? "---" : oldTargetDeadband.toString())
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportTransformerControlBusesOutsideDeadband(ReportNode reportNode, int numTransformerControlBusesOutsideDeadband) {
         reportNode.newReportNode()
                 .withMessageTemplate("transformerControlBusesOutsideDeadband", "${numTransformerControlBusesOutsideDeadband} voltage-controlled buses are outside of their target deadbands")
@@ -266,10 +327,11 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportDcLfComplete(ReportNode reportNode, boolean succeeded) {
+    public static void reportDcLfComplete(ReportNode reportNode, boolean succeeded, String outerloopStatus) {
         reportNode.newReportNode()
-                .withMessageTemplate("dcLfComplete", "DC load flow completed (status=${succeeded})")
+                .withMessageTemplate("dcLfComplete", "DC load flow completed (solverSuccess=${succeeded}, outerloopStatus=${outerloopStatus})")
                 .withUntypedValue("succeeded", succeeded)
+                .withUntypedValue("outerloopStatus", outerloopStatus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
@@ -394,6 +456,13 @@ public final class Reports {
                 .add();
     }
 
+    public static ReportNode createWoodburyDcSecurityAnalysis(ReportNode reportNode, String networkId) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("woodburyDcSecurityAnalysis", "Woodbury DC security analysis on network '${networkId}'")
+                .withUntypedValue(NETWORK_ID, networkId)
+                .add();
+    }
+
     public static ReportNode createPreContingencySimulation(ReportNode reportNode) {
         return reportNode.newReportNode()
                 .withMessageTemplate("preContingencySimulation", "Pre-contingency simulation")
@@ -493,7 +562,7 @@ public final class Reports {
         ReportNode subReportNode = reportNode.newReportNode()
                 .withMessageTemplate("NRMismatch", "Largest ${equationType} mismatch: ${mismatch} ${mismatchUnit}")
                 .withUntypedValue("equationType", acEquationType)
-                .withTypedValue("mismatch", mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue(MISMATCH, mismatchUnitConverter * busReport.mismatch(), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withUntypedValue("mismatchUnit", mismatchUnit)
                 .add();
 
@@ -538,14 +607,20 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
-        reportNode.newReportNode()
-                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.: ${busesOutOfRealisticVoltageRange}")
+        ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
+                .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRange", "${busCountOutOfRealisticVoltageRange} buses have a voltage magnitude out of the configured realistic range [${minRealisticVoltage}, ${maxRealisticVoltage}] p.u.")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
                 .withUntypedValue("minRealisticVoltage", minRealisticVoltage)
                 .withUntypedValue("maxRealisticVoltage", maxRealisticVoltage)
-                .withUntypedValue("busesOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.toString())
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+
+        busesOutOfRealisticVoltageRange.forEach((id, voltage) -> voltageOutOfRangeReport.newReportNode()
+            .withMessageTemplate("newtonRaphsonBusesOutOfRealisticVoltageRangeDetails", "Bus ${busId} has an unrealistic voltage magnitude: ${voltage} p.u.")
+            .withUntypedValue(BUS_ID, id)
+            .withUntypedValue("voltage", voltage)
+            .withSeverity(TypedValue.TRACE_SEVERITY)
+            .add());
     }
 
     public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {

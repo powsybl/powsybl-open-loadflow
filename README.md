@@ -19,23 +19,25 @@ within the energy and electricity sectors.
 
 Read more at https://www.powsybl.org !
 
-This project and everyone participating in it is under the [Linux Foundation Energy governance principles](https://www.powsybl.org/pages/overview/governance) and must respect the [PowSyBl Code of Conduct](https://github.com/powsybl/.github/blob/main/CODE_OF_CONDUCT.md).
+This project and everyone participating in it is under the [Linux Foundation Energy governance principles](https://www.powsybl.org/pages/project/governance.html) and must respect the [PowSyBl Code of Conduct](https://github.com/powsybl/.github/blob/main/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior to [powsybl-tsc@lists.lfenergy.org](mailto:powsybl-tsc@lists.lfenergy.org).
 
 ## PowSyBl vs PowSyBl Open Load Flow
 
 PowSyBl Open Load Flow provides:
-- An open-source implementation of the [LoadFlow API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/powerflow/), supporting DC and AC calculations.
-- An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/securityanalysis/), supporting DC and AC calculations.
-- An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](https://www.powsybl.org/pages/documentation/simulation/sensitivity/), supporting DC and AC calculations.
+- An open-source implementation of the [LoadFlow API from PowSyBl Core](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/simulation/loadflow/index.html), supporting DC and AC calculations.
+- An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/simulation/security/index.html), supporting DC and AC calculations.
+- An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/simulation/sensitivity/index.html), supporting DC and AC calculations.
 
 Most of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse linear solver. Linux, Windows and MacOS are supported. KLU is distributed with license LGPL-2.1+.
+
+Let's visit our work-in-progress [functional documentation](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/latest/loadflow/parameters.html)! 
 
 ### Common features
 
 The AC calculations are based on full Newton-Raphson algorithm. The DC calculations are based on direct current linear approximation. Open Load Flow relies on:
  - Fast and robust convergence, based on [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse solver.
- - Distributed slack (on generators, on loads, or on conform loads); Manual or automatic slack bus selection as explained [here](https://www.powsybl.org/pages/documentation/simulation/powerflow/openlf.html#parameters).
+ - Distributed slack (on generators, on loads, or on conform loads); Manual or automatic slack bus selection as explained [here](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/latest/loadflow/parameters.html).
  - Support of generators' active and reactive power limits, including the support of reactive capability curves.
  - 5 voltage initialization modes: flat, warm, angles-only based on a DC load flow, magnitude-only initialization based on a specific initializer, or both voltages angle and magnitude initialization based on the two previous methods.
  - Support of zero impedance branches, including complex zero impedance subnetworks, particularly important in case of voltage controls and topology changes involved in contingencies or in remedial actions.
@@ -48,7 +50,7 @@ The AC calculations are based on full Newton-Raphson algorithm. The DC calculati
 
  Open Load Flow supports:
  - Generator and static var compensator voltage remote control through PQV bus modelling. It supports any kind of shared voltage control between controllers that can be generators, static var compensators, or VSC converter stations.
- - Static var compensator local voltage control with a slope (support the powsybl-core extension [```VoltagePerReactivePowerControl```](https://www.powsybl.org/pages/documentation/grid/model/extensions.html).
+ - Static var compensator local voltage control with a slope (support the powsybl-core extension [```VoltagePerReactivePowerControl```](https://powsybl.readthedocs.io/projects/powsybl-core/en/latest/grid_model/extensions.html#voltage-per-reactive-power-control).
  - Local and remote phase control: phase tap changers can regulate active power flows or limit currents at given terminals.
  - Local and remote voltage control by transformers, including shared controls.
  - Local and remote voltage control by shunts, including shared controls.
@@ -67,10 +69,11 @@ Heterogeneous voltage controls management has become a key feature. All well-mod
  - Complex cases where the contingency leads to another synchronous component where a new resolution has to be performed are not supported at that stage. The loss of slack bus during a contingency is not supported yet, but the work is in progress.
  - The active and reactive power flows on branches, as well as angle and voltage at buses, can be monitored and collected for later analysis after the base case and after each contingency.
  - Remedial actions such as: switch action, terminal(s) connection action, re-dispatching action
+ - Fast DC mode available, based on Woodbury's formula for calculating post-contingency states. Note that this mode has limitations for the moment. Only PST remedial actions are taken into account now. Contingencies on HVDC lines are not yet taken into account in AC emulation mode.
 
 ### Sensitivity analysis implementation 
 
- Open Load Flow both supports both AC and DC calculations. Even though it comes from the same powsybl-core API, the calculations behind are radically different. The AC post-contingency sensitivities calculation is based on the same principles than the AC security analysis. The DC post-contingency sensitivities calculation is highly optimized and fully documented [here](https://www.powsybl.org/pages/documentation/simulation/sensitivity/openlf.html).
+ Open Load Flow both supports both AC and DC calculations. Even though it comes from the same powsybl-core API, the calculations behind are radically different. The AC post-contingency sensitivities calculation is based on the same principles than the AC security analysis. The DC post-contingency sensitivities calculation is highly optimized and fully documented [here](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/latest/sensitivity/index.html).
 
 It supports all types of sensitivity factors that can be found in the API: 
 - Variables: injection increase, phase angle shift, HVDC set point increase. For AC calculations only: voltage target increase of generator, static var compensator, transformers or shunt.
@@ -90,12 +93,12 @@ dependencies to respectively have access to network model, IEEE test networks an
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>6.4.1</version>
+    <version>6.6.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>6.4.1</version>
+    <version>6.6.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -114,7 +117,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.12.0</version>
+    <version>1.14.0</version>
 </dependency>
 ```
 

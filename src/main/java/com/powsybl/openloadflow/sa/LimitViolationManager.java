@@ -7,17 +7,13 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.iidm.network.LimitType;
-import com.powsybl.iidm.network.ThreeSides;
-import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.LimitViolation;
-import com.powsybl.security.LimitViolationType;
-import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.*;
 import com.powsybl.security.limitreduction.LimitReduction;
 import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
@@ -164,9 +160,10 @@ public class LimitViolationManager {
     private static LimitViolation createLimitViolation(LfBranch branch, LfBranch.LfLimit temporaryLimit,
                                                        LimitViolationType type, double scale, double value,
                                                        TwoSides side) {
-        return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
+        return new LimitViolation(branch.getMainOriginalId(), null, type, temporaryLimit.getName(),
                 temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
-                temporaryLimit.getReduction(), value * scale, side);
+                temporaryLimit.getReduction(), value * scale,
+                branch.getOriginalSide().orElse(side.toThreeSides()));
     }
 
     /**
@@ -179,12 +176,12 @@ public class LimitViolationManager {
         double busV = bus.getV();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
             LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
-                    (float) 1., busV * scale);
+                    (float) 1., busV * scale, bus.getViolationLocation());
             addBusLimitViolation(limitViolation1, bus);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
             LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
-                    (float) 1., busV * scale);
+                    (float) 1., busV * scale, bus.getViolationLocation());
             addBusLimitViolation(limitViolation2, bus);
         }
     }

@@ -269,50 +269,53 @@ public final class Networks {
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
         // used only for hvdc lines.
         // this criteria can be improved later depending on use case
-        return connectivity.getConnectedComponent(bus).size() == 1 && bus.getLoadTargetP() == 0.0
+        return connectivity.getConnectedComponent(bus).size() == 1 && bus.getNonFictitiousLoadTargetP() == 0.0
                 && bus.getGenerators().stream().noneMatch(LfGeneratorImpl.class::isInstance);
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, Set<LfBus> disabledBuses) {
         // used only for hvdc lines for DC sensitivity analysis where we don't have the connectivity.
         // this criteria can be improved later depending on use case
-        return disabledBuses.contains(bus) && bus.getLoadTargetP() == 0.0
+        return disabledBuses.contains(bus) && bus.getNonFictitiousLoadTargetP() == 0.0
                 && bus.getGenerators().stream().noneMatch(LfGeneratorImpl.class::isInstance);
     }
 
     public static Optional<Terminal> getEquipmentRegulatingTerminal(Network network, String equipmentId) {
-        Generator generator = network.getGenerator(equipmentId);
-        if (generator != null) {
-            return Optional.of(generator.getRegulatingTerminal());
-        }
-        StaticVarCompensator staticVarCompensator = network.getStaticVarCompensator(equipmentId);
-        if (staticVarCompensator != null) {
-            return Optional.of(staticVarCompensator.getRegulatingTerminal());
-        }
-        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(equipmentId);
-        if (t2wt != null) {
-            RatioTapChanger rtc = t2wt.getRatioTapChanger();
-            if (rtc != null) {
-                return Optional.of(rtc.getRegulationTerminal());
-            }
-        }
-        ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
-        if (t3wt != null) {
-            for (ThreeWindingsTransformer.Leg leg : t3wt.getLegs()) {
-                RatioTapChanger rtc = leg.getRatioTapChanger();
-                if (rtc != null && rtc.isRegulating()) {
-                    return Optional.of(rtc.getRegulationTerminal());
-                }
-            }
-        }
-        ShuntCompensator shuntCompensator = network.getShuntCompensator(equipmentId);
-        if (shuntCompensator != null) {
-            return Optional.of(shuntCompensator.getRegulatingTerminal());
-        }
-        VscConverterStation vsc = network.getVscConverterStation(equipmentId);
-        if (vsc != null) {
-            return Optional.of(vsc.getTerminal()); // local regulation only
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(equipmentId);
+        Identifiable<?> identifiable = network.getIdentifiable(equipmentId);
+        if (identifiable != null) {
+            return getEquipmentRegulatingTerminal(identifiable);
         }
         return Optional.empty();
+    }
+
+    public static Optional<Terminal> getEquipmentRegulatingTerminal(Identifiable<?> identifiable) {
+        Objects.requireNonNull(identifiable);
+        return switch (identifiable.getType()) {
+            case TWO_WINDINGS_TRANSFORMER -> {
+                RatioTapChanger rtc = ((TwoWindingsTransformer) identifiable).getRatioTapChanger();
+                if (rtc != null) {
+                    yield Optional.of(rtc.getRegulationTerminal());
+                }
+                yield Optional.empty();
+            }
+            case THREE_WINDINGS_TRANSFORMER -> {
+                for (ThreeWindingsTransformer.Leg leg : ((ThreeWindingsTransformer) identifiable).getLegs()) {
+                    RatioTapChanger rtc = leg.getRatioTapChanger();
+                    if (rtc != null && rtc.isRegulating()) {
+                        yield Optional.of(rtc.getRegulationTerminal());
+                    }
+                }
+                yield Optional.empty();
+            }
+            case GENERATOR -> Optional.of(((Generator) identifiable).getRegulatingTerminal());
+            case SHUNT_COMPENSATOR -> Optional.of(((ShuntCompensator) identifiable).getRegulatingTerminal());
+            case STATIC_VAR_COMPENSATOR -> Optional.of(((StaticVarCompensator) identifiable).getRegulatingTerminal());
+            case HVDC_CONVERTER_STATION -> ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC
+                    ? Optional.of(((VscConverterStation) identifiable).getTerminal()) // local regulation only
+                    : Optional.empty();
+            default -> Optional.empty();
+        };
     }
 }

@@ -12,7 +12,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -48,7 +47,7 @@ public class PropagatedContingency {
 
     private final Set<String> generatorIdsToLose = new HashSet<>();
 
-    private final Map<String, PowerShift> loadIdsToLoose = new HashMap<>();
+    private final Map<String, PowerShift> loadIdsToLose = new HashMap<>();
 
     private final Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
 
@@ -72,8 +71,8 @@ public class PropagatedContingency {
         return generatorIdsToLose;
     }
 
-    public Map<String, PowerShift> getLoadIdsToLoose() {
-        return loadIdsToLoose;
+    public Map<String, PowerShift> getLoadIdsToLose() {
+        return loadIdsToLose;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
@@ -83,19 +82,6 @@ public class PropagatedContingency {
         this.switchesToOpen = Objects.requireNonNull(switchesToOpen);
         this.terminalsToDisconnect = Objects.requireNonNull(terminalsToDisconnect);
         this.busIdsToLose = Objects.requireNonNull(busIdsToLose);
-    }
-
-    private static PowerShift getLoadPowerShift(Load load, boolean slackDistributionOnConformLoad) {
-        double variableActivePower;
-        if (slackDistributionOnConformLoad) {
-            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-            variableActivePower = loadDetail == null ? 0.0 : Math.abs(loadDetail.getVariableActivePower());
-        } else {
-            variableActivePower = Math.abs(load.getP0());
-        }
-        return new PowerShift(load.getP0() / PerUnit.SB,
-                              variableActivePower / PerUnit.SB,
-                              load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, LfTopoConfig topoConfig,
@@ -223,7 +209,7 @@ public class PropagatedContingency {
 
                 case LOAD:
                     Load load = (Load) connectable;
-                    loadIdsToLoose.put(load.getId(), getLoadPowerShift(load, creationParameters.isSlackDistributionOnConformLoad()));
+                    loadIdsToLose.put(load.getId(), PowerShift.createPowerShift(load, creationParameters.isSlackDistributionOnConformLoad()));
                     break;
 
                 case SHUNT_COMPENSATOR:
@@ -248,7 +234,7 @@ public class PropagatedContingency {
                         LccConverterStation lcc = (LccConverterStation) connectable;
                         PowerShift lccPowerShift = new PowerShift(HvdcUtils.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
                                 HvdcUtils.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
-                        loadIdsToLoose.put(lcc.getId(), lccPowerShift);
+                        loadIdsToLose.put(lcc.getId(), lccPowerShift);
                     }
                     break;
 
@@ -358,7 +344,7 @@ public class PropagatedContingency {
     public boolean hasNoImpact() {
         return branchIdsToOpen.isEmpty()
                 && hvdcIdsToOpen.isEmpty() && generatorIdsToLose.isEmpty()
-                && loadIdsToLoose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
+                && loadIdsToLose.isEmpty() && shuntIdsToShift.isEmpty() && busIdsToLose.isEmpty();
     }
 
     private static boolean isSlackBusIsolated(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus slackBus) {
@@ -397,8 +383,9 @@ public class PropagatedContingency {
     record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost, Set<LfHvdc> hvdcsWithoutPower) {
     }
 
-    private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen) {
+    private ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus) {
         // update connectivity with triggered branches of this network
+        // note that this will define the main component as the one containing the first slack bus
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
         try {
@@ -406,7 +393,7 @@ public class PropagatedContingency {
                     .filter(LfBranch::isConnectedAtBothSides)
                     .forEach(connectivity::removeEdge);
 
-            if (isSlackBusIsolated(connectivity, network.getSlackBus())) {
+            if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSlackBus())) {
                 LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
                         contingency.getId());
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
@@ -454,12 +441,16 @@ public class PropagatedContingency {
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
+        return toLfContingency(network, true);
+    }
+
+    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean relocateSlackBus) {
         // find branch to open because of direct impact of the contingency (including propagation is activated)
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = findBranchToOpenDirectlyImpactedByContingency(network);
 
         // find branches to open and buses to lost not directly from the contingency impact but as a consequence of
         // loss of connectivity once contingency applied on the network
-        ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen);
+        ContingencyConnectivityLossImpact connectivityLossImpact = findBusesAndBranchesImpactedBecauseOfConnectivityLoss(network, branchesToOpen, relocateSlackBus);
         if (!connectivityLossImpact.ok) {
             return Optional.empty();
         }
@@ -502,7 +493,7 @@ public class PropagatedContingency {
         }
 
         Map<LfLoad, LfLostLoad> loads = new LinkedHashMap<>(1);
-        for (var e : loadIdsToLoose.entrySet()) {
+        for (var e : loadIdsToLose.entrySet()) {
             String loadId = e.getKey();
             PowerShift powerShift = e.getValue();
             LfLoad load = network.getLoadById(loadId);
@@ -510,6 +501,7 @@ public class PropagatedContingency {
                 LfLostLoad lostLoad = loads.computeIfAbsent(load, k -> new LfLostLoad());
                 lostLoad.getPowerShift().add(powerShift);
                 lostLoad.getOriginalIds().add(loadId);
+                lostLoad.updateNotParticipatingLoadP0(load, loadId, powerShift);
             }
         }
 
@@ -539,5 +531,59 @@ public class PropagatedContingency {
         return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents,
                            new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
                            connectivityLossImpact.hvdcsWithoutPower()));
+    }
+
+    /**
+     * In general, a {@link PropagatedContingency} is translated to a {@link LfContingency}. During the translation,
+     * cleans are performed to deal with branches connected at one side and slack bus loss. But in some fast DC computations,
+     * we don't want to use {@link LfContingency} object, so a dedicated clean method directly available on a {@link PropagatedContingency}
+     * is needed. It contains:
+     *  - Removing branches out of this synchronous component from branches to open.
+     *  - Removing branches connected at one side from branches to open.
+     *  - Removing slack bus from buses lost (not supported yet).
+     *  - Adding branches connected to buses lost in branches to open.
+     */
+    public static void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        for (PropagatedContingency contingency : contingencies) {
+            // Elements have already been checked and found in PropagatedContingency, so there is no need to
+            // check them again
+            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+            for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
+                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+                if (lfBranch == null) {
+                    branchesToRemove.add(branchId); // disconnected branch
+                    continue;
+                }
+                if (!lfBranch.isConnectedAtBothSides()) {
+                    branchesToRemove.add(branchId); // branch connected only on one side
+                }
+            }
+            branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
+
+            // update branches to open connected with buses in contingency. This is an approximation:
+            // these branches are indeed just open at one side.
+            String slackBusId = null;
+            for (String busId : contingency.getBusIdsToLose()) {
+                LfBus bus = lfNetwork.getBusById(busId);
+                if (bus != null) {
+                    if (bus.isSlack()) {
+                        // slack bus disabling is not supported in DC because the relocation is done from propagated contingency
+                        // to LfContingency
+                        // we keep the slack bus enabled and the connected branches
+                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                        slackBusId = busId;
+                    } else {
+                        bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
+                    }
+                }
+            }
+            if (slackBusId != null) {
+                contingency.getBusIdsToLose().remove(slackBusId);
+            }
+
+            if (contingency.hasNoImpact()) {
+                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
+            }
+        }
     }
 }

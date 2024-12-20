@@ -37,7 +37,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB);
-        this.hvdcDandlingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station, parameters);
+        this.hvdcDandlingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
@@ -123,5 +123,11 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         if (hvdc == null || !hvdc.isAcEmulation()) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
             station.getTerminal().setP(-getTargetP() * PerUnit.SB);
         }
+    }
+
+    @Override
+    public int getReferencePriority() {
+        // never selected
+        return -1;
     }
 }

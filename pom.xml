@@ -15,12 +15,12 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent</artifactId>
-        <version>18</version>
+        <version>20</version>
         <relativePath/>
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.13.0-SNAPSHOT</version>
+    <version>1.15.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -54,7 +54,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>6.4.1</powsybl-core.version>
+        <powsybl-core.version>6.6.0</powsybl-core.version>
     </properties>
 
     <build>
@@ -66,6 +66,25 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>templating-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>com/powsybl/openloadflow/network/**/*Factory*.class</include>
+                                <include>com/powsybl/openloadflow/util/LoadFlowAssert.class</include>
+                                <include>com/powsybl/openloadflow/util/LoadFlowResultBuilder.class</include>
+                                <include>com/powsybl/openloadflow/sa/AbstractOpenSecurityAnalysisTest.class</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <pluginManagement>

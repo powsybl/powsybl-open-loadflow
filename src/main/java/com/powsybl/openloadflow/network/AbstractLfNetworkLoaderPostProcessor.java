@@ -31,4 +31,14 @@ public abstract class AbstractLfNetworkLoaderPostProcessor implements LfNetworkL
     public void onInjectionAdded(Object element, LfBus lfBus) {
         // to implement
     }
+
+    @Override
+    public void onAreaAdded(Object element, LfArea lfArea) {
+        // to implement
+    }
+
+    @Override
+    public void onLfNetworkLoaded(Object element, LfNetwork lfNetwork) {
+        // to implement
+    }
 }

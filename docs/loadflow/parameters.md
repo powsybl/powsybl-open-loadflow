@@ -111,12 +111,28 @@ $$
 If `balanceType` equals to `PROPORTIONAL_TO_LOAD`, the power factor remains constant scaling the global $P0$ and $Q0$ of the load.
 If `balanceType` equals to `PROPORTIONAL_TO_CONFORM_LOAD`, the power factor remains constant scaling only the variable parts. Thus, we fully rely on [load detail extension](inv:powsyblcore:*:*:#load-detail-extension).
 
+In both cases, slack is not distributed to fictitious loads. A load can be fictitious by setting its boolean attribute `isFictitious` or by having a `loadType` equal to `LoadType.FICTITIOUS`.
+
 The default value for `loadPowerFactorConstant` property is `false`.
 
 **slackBusPMaxMismatch**  
 When slack distribution is enabled (`distributedSlack` set to `true` in LoadFlowParameters), this is the threshold below which slack power
 is considered to be distributed.  
 The default value is `1 MW` and it must be greater or equal to `0 MW`.
+
+**areaInterchangeControl**  
+The `areaInterchangeControl` property is an optional property that defines if the [area interchange control](loadflow.md#area-interchange-control) outer loop is enabled.
+If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.  
+The default value is `false`.
+
+**areaInterchangeControlAreaType**  
+Defines the `areaType` of the areas on which the [area interchange control](loadflow.md#area-interchange-control) is applied.
+Only the areas of the input network that have this type will be considered.  
+The default value is `ControlArea`.
+
+**areaInterchangePMaxMismatch**  
+Defines the maximum interchange mismatch tolerance for [area interchange control](loadflow.md#area-interchange-control).
+The default value is `2 MW` and it must be greater than `0 MW`.
 
 **voltageRemoteControl**  
 The `voltageRemoteControl` property is an optional property that defines if the remote control for voltage controllers has to be modeled.
@@ -299,7 +315,7 @@ Newton-Raphson iterations report consist in reporting:
 The default value is an empty set of features to report.
 
 **networkCacheEnabled**  
-This parameter is used to run fast simulations by applying incremental modifications on the network directly to the Open Load Flow internal modelling.
+This parameter is used to run fast simulations by applying incremental modifications on the network directly to the Open Load Flow internal modeling.
 The cache mode allows faster runs when modifications on the network are light.
 Not all modifications types are supported yet, currently supported modifications are:
 - target voltage modification

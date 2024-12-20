@@ -13,6 +13,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
@@ -21,7 +22,9 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
+import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
+import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -40,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanContingencies;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
 /**
@@ -85,63 +89,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .collect(Collectors.toSet()), BusState::save);
         }
 
-        double[] dx = runDcLoadFlow(loadFlowContext, disabledNetwork, reportNode);
+        double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode);
 
         if (parameters.isDistributedSlack()) {
             ElementState.restore(busStates);
         }
 
         return new DenseMatrix(dx.length, 1, dx);
-    }
-
-    /**
-     * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling and that do not
-     * update the state vector and the network at the end (because we don't need it to just evaluate a few equations)
-     */
-    public double[] runDcLoadFlow(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork,
-                                  ReportNode reportNode) {
-        Collection<LfBus> remainingBuses;
-        if (disabledNetwork.getBuses().isEmpty()) {
-            remainingBuses = loadFlowContext.getNetwork().getBuses();
-        } else {
-            remainingBuses = new LinkedHashSet<>(loadFlowContext.getNetwork().getBuses());
-            remainingBuses.removeAll(disabledNetwork.getBuses());
-        }
-
-        DcLoadFlowParameters parameters = loadFlowContext.getParameters();
-        if (parameters.isDistributedSlack()) {
-            DcLoadFlowEngine.distributeSlack(remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
-        }
-
-        // we need to copy the target array because:
-        //  - in case of disabled buses or branches some elements could be overwritten to zero
-        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
-        //    to fill with the solution
-        // so we need to copy to later the target as it is and reusable for next run
-        var targetVectorArray = loadFlowContext.getTargetVector().getArray().clone();
-
-        if (!disabledNetwork.getBuses().isEmpty()) {
-            // set buses injections and transformers to 0
-            disabledNetwork.getBuses().stream()
-                    .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
-                    .map(Equation::getColumn)
-                    .forEach(column -> targetVectorArray[column] = 0);
-        }
-
-        if (!disabledNetwork.getBranches().isEmpty()) {
-            // set transformer phase shift to 0
-            disabledNetwork.getBranches().stream()
-                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
-                    .map(Equation::getColumn)
-                    .forEach(column -> targetVectorArray[column] = 0);
-        }
-
-        boolean succeeded = DcLoadFlowEngine.solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);
-        if (!succeeded) {
-            throw new PowsyblException("DC solver failed");
-        }
-
-        return targetVectorArray; // now contains dx
     }
 
     /**
@@ -237,6 +191,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      * if the factorsStates should be overridden or not in this method.
      * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency,
      * the flowStates are overridden.
+     * The matrices factorStates and flowStates are modified by this method.
      */
     private void calculateSensitivityValuesForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder,
                                                            SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates, DenseMatrix flowStates,
@@ -257,7 +212,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
 
-        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLoose().isEmpty()) {
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
             DenseMatrix newFlowStates = flowStates;
             // we need to recompute the factor states because the connectivity changed
             if (rhsChangedAfterConnectivityBreak) {
@@ -277,10 +232,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, reportNode);
             }
 
-            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
-            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
-            calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
-
+            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyStates(newFactorStates);
+            calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
             // write contingency status
             if (contingency.hasNoImpact()) {
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
@@ -307,7 +261,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             .collect(Collectors.toList());
                     normalizeParticipationFactors(newParticipatingElements);
                     participatingElementsChanged = true;
-                } else if (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLoose().isEmpty()) {
+                } else if (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLose().isEmpty()) {
                     newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
                     participatingElementsChanged = true;
                 }
@@ -329,9 +283,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateFlowStates(loadFlowContext, newParticipatingElements, disabledNetwork, reportNode);
 
-            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
-            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
-            calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
+            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyStates(newFactorStates);
+            calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();
         }
@@ -386,50 +340,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 validFactorHolder, factorGroups, factorsStates, contingenciesStates, flowStates,
                 contingency, contingencyElementByBranch, disabledBuses, participatingElementsForThisConnectivity,
                 connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reportNode, partialDisabledBranches, rhsChanged);
-    }
-
-    protected void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
-        for (PropagatedContingency contingency : contingencies) {
-            // Elements have already been checked and found in PropagatedContingency, so there is no need to
-            // check them again
-            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
-            for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
-                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                if (lfBranch == null) {
-                    branchesToRemove.add(branchId); // disconnected branch
-                    continue;
-                }
-                if (!lfBranch.isConnectedAtBothSides()) {
-                    branchesToRemove.add(branchId); // branch connected only on one side
-                }
-            }
-            branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
-
-            // update branches to open connected with buses in contingency. This is an approximation:
-            // these branches are indeed just open at one side.
-            String slackBusId = null;
-            for (String busId : contingency.getBusIdsToLose()) {
-                LfBus bus = lfNetwork.getBusById(busId);
-                if (bus != null) {
-                    if (bus.isSlack()) {
-                        // slack bus disabling is not supported in DC because the relocation is done from propagated contingency
-                        // to LfContingency
-                        // we keep the slack bus enabled and the connected branches
-                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
-                        slackBusId = busId;
-                    } else {
-                        bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
-                    }
-                }
-            }
-            if (slackBusId != null) {
-                contingency.getBusIdsToLose().remove(slackBusId);
-            }
-
-            if (contingency.hasNoImpact()) {
-                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
-            }
-        }
     }
 
     @Override
@@ -531,13 +441,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         : Collections.emptyList();
 
                 // run DC load on pre-contingency network
-                DenseMatrix flowStates = calculateFlowStates(loadFlowContext, participatingElements, new DisabledNetwork(), reportNode);
+                DenseMatrix baseFlowStates = calculateFlowStates(loadFlowContext, participatingElements, new DisabledNetwork(), reportNode);
+                // create workingFlowStates matrix that will be a working copy of baseFlowStates
+                DenseMatrix workingFlowStates = new DenseMatrix(baseFlowStates.getRowCount(), baseFlowStates.getColumnCount());
 
                 // compute the pre-contingency factor states
-                DenseMatrix factorsStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
+                DenseMatrix baseFactorStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
+                // create workingFactorStates matrix that will be a working copy of baseFactorStates
+                DenseMatrix workingFactorStates = new DenseMatrix(baseFactorStates.getRowCount(), baseFactorStates.getColumnCount());
 
                 // calculate sensitivity values for pre-contingency network
-                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, flowStates, null, resultWriter, new DisabledNetwork());
+                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), baseFactorStates, baseFlowStates, null, resultWriter, new DisabledNetwork());
 
                 // filter contingencies without factors
                 List<PropagatedContingency> contingenciesWithFactors = new ArrayList<>();
@@ -557,8 +471,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with no connectivity break
                 for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
+                    matrixCopyValues(baseFlowStates, workingFlowStates);
+                    matrixCopyValues(baseFactorStates, workingFactorStates);
+
                     calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
-                            factorsStates, connectivityBreakAnalysisResults.contingenciesStates(), flowStates, contingency,
+                            workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, contingency,
                             connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, reportNode, Collections.emptySet(), false);
                 }
 
@@ -566,9 +483,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with connectivity break
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
+                    matrixCopyValues(baseFlowStates, workingFlowStates);
+                    matrixCopyValues(baseFactorStates, workingFactorStates);
+
                     processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
                             validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
-                            flowStates, factorsStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
+                            workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
                 }
             }
 
@@ -576,4 +496,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
+
+    /**
+     * Copy all the values that are in an originalMatrix and paste it in the copyMatrix (without allocating new memory spaces)
+     * The dimensions of both matrices must be the same
+     */
+    // TODO : implement this method for DenseMatrix in powsybl-core ?
+    private static void matrixCopyValues(DenseMatrix originalMatrix, DenseMatrix copyMatrix) {
+        if (originalMatrix.getRowCount() == copyMatrix.getRowCount() && originalMatrix.getColumnCount() == copyMatrix.getColumnCount()) {
+            for (int columnIndex = 0; columnIndex < originalMatrix.getColumnCount(); columnIndex++) {
+                for (int rowIndex = 0; rowIndex < originalMatrix.getRowCount(); rowIndex++) {
+                    copyMatrix.set(rowIndex, columnIndex, originalMatrix.get(rowIndex, columnIndex));
+                }
+            }
+        } else {
+            throw new MatrixException("Incompatible matrices dimensions when copying values. Received (" + originalMatrix.getRowCount() + ", " + originalMatrix.getColumnCount() + ") and (" + copyMatrix.getRowCount() + ", " + copyMatrix.getColumnCount() + ")");
+        }
+    }
+
 }
