@@ -168,15 +168,16 @@ class MultipleSlackBusesTest {
     @MethodSource("allModelTypesAndNbSlackbuses")
     void differentNbSlackbusesTest(boolean ac, int nbSlackbuses) {
         network = IeeeCdfNetworkFactory.create14();
-        parameters.setDc(!ac).setReadSlackBus(false);
-        parametersExt.setMaxSlackBusCount(nbSlackbuses); // Testing from 1 to 4 slack buses and expecting same global mismatch
+        parameters.setDc(!ac).setReadSlackBus(false).setDistributedSlack(true);
+        parametersExt.setMaxSlackBusCount(nbSlackbuses) // Testing from 1 to 4 slack buses and expecting same global mismatch
+                .setSlackBusPMaxMismatch(0.001)
+                .setPlausibleActivePowerLimit(10000); // IEEE14 Network has generators with maxP = 9999 we want to keep for distribution
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        double slackMismatch = result.getComponentResults()
-                .get(0)
-                .getSlackBusResults()
-                .stream()
-                .mapToDouble(LoadFlowResult.SlackBusResult::getActivePowerMismatch).sum();
+        double slackMismatch = result.getComponentResults().get(0).getDistributedActivePower();
         assertEquals(ac ? -0.006 : -13.4, slackMismatch, 0.001);
+        assertActivePowerEquals(ac ? -39.996 : -33.300, network.getGenerator("B2-G").getTerminal());
+        assertActivePowerEquals(ac ? 156.886 : 153.453, network.getLine("L1-2-1").getTerminal1());
+        assertActivePowerEquals(ac ? 56.131 : 54.768, network.getLine("L2-4-1").getTerminal1());
     }
 
     @ParameterizedTest(name = "ac : {0}, switchSlacks : {1}")
