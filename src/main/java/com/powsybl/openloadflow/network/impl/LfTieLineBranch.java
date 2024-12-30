@@ -121,10 +121,10 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits2(type, getHalf2()::getActivePowerLimits, limitReductionManager);
-            case CURRENT:
-                return getLimits2(type, getHalf2()::getCurrentLimits, limitReductionManager);
             case APPARENT_POWER:
                 return getLimits2(type, getHalf2()::getApparentPowerLimits, limitReductionManager);
+            case CURRENT:
+                return getLimits2(type, getHalf2()::getCurrentLimits, limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
