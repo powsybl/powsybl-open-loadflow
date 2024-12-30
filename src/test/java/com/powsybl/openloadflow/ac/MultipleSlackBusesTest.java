@@ -95,8 +95,8 @@ class MultipleSlackBusesTest {
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
 
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
-        double expectedSlackBusMismatch = ac ? -0.7164 : -3.5;
-        assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
+        List<Double> expectedSlackBusMismatches = ac ? List.of(-0.7150, -0.7178) : List.of(-3.5, -3.5); // Mismatch values are not exactly the same between both slack buses
+        assertSlackBusResults(slackBusResults, expectedSlackBusMismatches, 2);
 
         if (ac) {
             assertActivePowerValues(302.807, 302.807, 600.868);
@@ -111,8 +111,8 @@ class MultipleSlackBusesTest {
         slackBusResults = componentResult.getSlackBusResults();
         expectedIterationCount = ac ? 4 : 0;
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
-        expectedSlackBusMismatch = ac ? -0.005 : 0;
-        assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
+        expectedSlackBusMismatches = ac ? List.of(-0.00576, -0.00572) : List.of(0d, 0d);
+        assertSlackBusResults(slackBusResults, expectedSlackBusMismatches, 2);
     }
 
     @ParameterizedTest(name = "ac : {0}")
@@ -128,8 +128,8 @@ class MultipleSlackBusesTest {
         int expectedIterationCount = ac ? 3 : 0;
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
-        double expectedSlackBusMismatch = ac ? -2.755 : -3.5;
-        assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
+        List<Double> expectedSlackBusMismatches = ac ? List.of(-2.7551, -2.7547) : List.of(-3.5, -3.5);
+        assertSlackBusResults(slackBusResults, expectedSlackBusMismatches, 2);
 
         if (ac) {
             assertActivePowerValues(603.567, 0.0, 600.812);
@@ -144,8 +144,8 @@ class MultipleSlackBusesTest {
         slackBusResults = componentResult.getSlackBusResults();
         expectedIterationCount = ac ? 4 : 0;
         assertEquals(expectedIterationCount, componentResult.getIterationCount());
-        expectedSlackBusMismatch = ac ? -0.005 : 0;
-        assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
+        expectedSlackBusMismatches = ac ? List.of(-0.0054, -0.0056) : List.of(0d, 0d);
+        assertSlackBusResults(slackBusResults, expectedSlackBusMismatches, 2);
     }
 
     @ParameterizedTest(name = "ac : {0}")
@@ -162,8 +162,8 @@ class MultipleSlackBusesTest {
 
         List<LoadFlowResult.SlackBusResult> slackBusResults = componentResult.getSlackBusResults();
         assertEquals(List.of("VLHV2_0", "VLLOAD_0"), slackBusResults.stream().map(LoadFlowResult.SlackBusResult::getId).toList());
-        double expectedSlackBusMismatch = ac ? -0.711 : -3.5;
-        assertSlackBusResults(slackBusResults, expectedSlackBusMismatch, 2);
+        List<Double> expectedSlackBusMismatches = ac ? List.of(-0.7118, -0.7108) : List.of(-3.5, -3.5);
+        assertSlackBusResults(slackBusResults, expectedSlackBusMismatches, 2);
 
         if (ac) {
             assertActivePowerValues(303.165, 303.165, 601.58);
@@ -180,10 +180,11 @@ class MultipleSlackBusesTest {
         assertActivePowerEquals(-607, generator.getTerminal());
     }
 
-    void assertSlackBusResults(List<LoadFlowResult.SlackBusResult> slackBusResults, double expectedMismatch, int slackBusCount) {
+    void assertSlackBusResults(List<LoadFlowResult.SlackBusResult> slackBusResults, List<Double> expectedMismatches, int slackBusCount) {
         assertEquals(slackBusCount, slackBusResults.size());
+        int i = 0;
         for (LoadFlowResult.SlackBusResult slackBusResult : slackBusResults) {
-            assertEquals(expectedMismatch, slackBusResult.getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(expectedMismatches.get(i++), slackBusResult.getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         }
     }
 }
