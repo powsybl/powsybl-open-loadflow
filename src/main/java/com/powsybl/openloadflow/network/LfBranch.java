@@ -48,11 +48,14 @@ public interface LfBranch extends LfElement {
 
         private final double reduction;
 
+        private final double reducedValue;
+
         public LfLimit(String name, int acceptableDuration, double value, double reduction) {
             this.name = name;
             this.acceptableDuration = acceptableDuration;
             this.value = value;
             this.reduction = reduction;
+            reducedValue = value * reduction;
         }
 
         public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double reduction) {
@@ -76,7 +79,7 @@ public interface LfBranch extends LfElement {
         }
 
         public double getReducedValue() {
-            return value * reduction;
+            return reducedValue;
         }
 
         public void setAcceptableDuration(int acceptableDuration) {

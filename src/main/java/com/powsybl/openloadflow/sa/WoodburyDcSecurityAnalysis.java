@@ -215,22 +215,14 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // detect violations
         boolean[] disabled = new boolean[lfNetwork.getBranches().size()];
-        Arrays.fill(disabled, false);
-        for (LfBranch disabledBranch : lfContingency.getDisabledNetwork().getBranches()) {
-            disabled[disabledBranch.getNum()] = true;
-        }
         double[] p1 = new double[lfNetwork.getBranches().size()];
         double[] i1 = new double[lfNetwork.getBranches().size()];
         double[] p2 = new double[lfNetwork.getBranches().size()];
         double[] i2 = new double[lfNetwork.getBranches().size()];
-        StateVector sv = new StateVector(postContingencyStates);
         double dcPowerFactor = 1; // FIXME
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            p1[branch.getNum()] = branch.getP1() instanceof  ClosedBranchSide1DcFlowEquationTerm ? ((ClosedBranchSide1DcFlowEquationTerm) branch.getP1()).eval(sv) : Double.NaN;
-            i1[branch.getNum()] = Math.abs(p1[branch.getNum()]) / dcPowerFactor;
-            p2[branch.getNum()] = branch.getP2() instanceof  ClosedBranchSide2DcFlowEquationTerm ? ((ClosedBranchSide2DcFlowEquationTerm) branch.getP2()).eval(sv) : Double.NaN;
-            i2[branch.getNum()] = Math.abs(p2[branch.getNum()]) / dcPowerFactor;
-        }
+
+        StateVector sv = new StateVector(postContingencyStates);
+        computeFlows(lfNetwork, lfContingency, sv, disabled, p1, i1, p2, i2, dcPowerFactor);
 
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
         postContingencyLimitViolationManager.detectBranchesViolations(lfNetwork,
@@ -260,6 +252,19 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 postContingencyNetworkResult.getBusResults(),
                 postContingencyNetworkResult.getThreeWindingsTransformerResults(),
                 connectivityResult);
+    }
+
+    private static void computeFlows(LfNetwork lfNetwork, LfContingency lfContingency, StateVector sv, boolean[] disabled, double[] p1, double[] i1, double[] p2, double[] i2, double dcPowerFactor) {
+        Arrays.fill(disabled, false);
+        for (LfBranch disabledBranch : lfContingency.getDisabledNetwork().getBranches()) {
+            disabled[disabledBranch.getNum()] = true;
+        }
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            p1[branch.getNum()] = branch.getP1() instanceof  ClosedBranchSide1DcFlowEquationTerm ? ((ClosedBranchSide1DcFlowEquationTerm) branch.getP1()).eval(sv) : Double.NaN;
+            i1[branch.getNum()] = Math.abs(p1[branch.getNum()]) / dcPowerFactor;
+            p2[branch.getNum()] = branch.getP2() instanceof  ClosedBranchSide2DcFlowEquationTerm ? ((ClosedBranchSide2DcFlowEquationTerm) branch.getP2()).eval(sv) : Double.NaN;
+            i2[branch.getNum()] = Math.abs(p2[branch.getNum()]) / dcPowerFactor;
+        }
     }
 
     /**

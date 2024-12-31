@@ -130,35 +130,38 @@ public class LimitViolationManager {
         List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
         if (!limits.isEmpty()) {
             double i = iGetter.applyAsDouble(branch);
-//            limits.stream()
-//                    .filter(temporaryLimit -> i > temporaryLimit.getReducedValue())
-//                    .findFirst()
-//                    .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side))
-//                    .ifPresent(this::addBranchLimitViolation);
+            for (LfBranch.LfLimit temporaryLimit : limits) {
+                if (i > temporaryLimit.getReducedValue()) {
+                    addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
+                    break;
+                }
+            }
         }
-//
-//        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
-//        if (!limits.isEmpty()) {
-//            double p = pGetter.apply(branch).eval();
-//            limits.stream()
-//                    .filter(temporaryLimit -> Math.abs(p) > temporaryLimit.getReducedValue())
-//                    .findFirst()
-//                    .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side))
-//                    .ifPresent(this::addBranchLimitViolation);
-//        }
-//
-//        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
-//        if (!limits.isEmpty()) {
-//            //Apparent power is not relevant for fictitious branches and may be NaN
-//            double s = sGetter.applyAsDouble(branch);
-//            if (!Double.isNaN(s)) {
-//                limits.stream()
-//                        .filter(temporaryLimit -> s > temporaryLimit.getReducedValue())
-//                        .findFirst()
-//                        .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side))
-//                        .ifPresent(this::addBranchLimitViolation);
-//            }
-//        }
+
+        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
+        if (!limits.isEmpty()) {
+            double p = pGetter.applyAsDouble(branch);
+            for (LfBranch.LfLimit temporaryLimit : limits) {
+                if (p > temporaryLimit.getReducedValue()) {
+                    addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
+                    break;
+                }
+            }
+        }
+
+        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
+        if (!limits.isEmpty()) {
+            //Apparent power is not relevant for fictitious branches and may be NaN
+            double s = sGetter.applyAsDouble(branch);
+            if (!Double.isNaN(s)) {
+                for (LfBranch.LfLimit temporaryLimit : limits) {
+                    if (s > temporaryLimit.getReducedValue()) {
+                        addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side));
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /**

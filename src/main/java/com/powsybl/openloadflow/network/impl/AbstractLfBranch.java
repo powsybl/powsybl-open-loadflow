@@ -30,9 +30,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected final LfBus bus2;
 
-    private final Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
+    private List<LfLimit> currentLimits1;
+    private List<LfLimit> activePowerLimits1;
+    private List<LfLimit> apparentPowerLimits1;
 
-    private final Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
+    private List<LfLimit> currentLimits2;
+    private List<LfLimit> activePowerLimits2;
+    private List<LfLimit> apparentPowerLimits2;
 
     protected final PiModel piModel;
 
@@ -133,22 +137,76 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
+    private List<LfLimit> getLimits1(LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER -> {
+                return activePowerLimits1;
+            }
+            case APPARENT_POWER -> {
+                return apparentPowerLimits1;
+            }
+            case CURRENT -> {
+                return currentLimits1;
+            }
+            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+        }
+    }
+
+    private void setLimits1(LimitType type, List<LfLimit> limits) {
+        switch (type) {
+            case ACTIVE_POWER -> activePowerLimits1 = limits;
+            case APPARENT_POWER -> apparentPowerLimits1 = limits;
+            case CURRENT -> currentLimits1 = limits;
+            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+        }
+    }
+
+    private List<LfLimit> getLimits2(LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER -> {
+                return activePowerLimits2;
+            }
+            case APPARENT_POWER -> {
+                return apparentPowerLimits2;
+            }
+            case CURRENT -> {
+                return currentLimits2;
+            }
+            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+        }
+    }
+
+    private void setLimits2(LimitType type, List<LfLimit> limits) {
+        switch (type) {
+            case ACTIVE_POWER -> activePowerLimits2 = limits;
+            case APPARENT_POWER -> apparentPowerLimits2 = limits;
+            case CURRENT -> currentLimits2 = limits;
+            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+        }
+    }
+
     public <T extends LoadingLimits> List<LfLimit> getLimits1(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
-        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-        return limits1.computeIfAbsent(type, v -> {
+        var limits = getLimits1(type);
+        if (limits == null) {
+            // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
             var loadingLimits = loadingLimitsSupplier.get().orElse(null);
-            return createSortedLimitsList(loadingLimits, bus1,
+            limits = createSortedLimitsList(loadingLimits, bus1,
                     getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits));
-        });
+            setLimits1(type, limits);
+        }
+        return limits;
     }
 
     public <T extends LoadingLimits> List<LfLimit> getLimits2(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
-        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-        return limits2.computeIfAbsent(type, v -> {
+        var limits = getLimits2(type);
+        if (limits == null) {
+            // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
             var loadingLimits = loadingLimitsSupplier.get().orElse(null);
-            return createSortedLimitsList(loadingLimits, bus2,
+            limits = createSortedLimitsList(loadingLimits, bus2,
                     getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits));
-        });
+            setLimits2(type, limits);
+        }
+        return limits;
     }
 
     @Override
