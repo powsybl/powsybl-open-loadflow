@@ -61,6 +61,9 @@ public final class ActivePowerDistribution {
     }
 
     public Result run(LfGenerator referenceGenerator, Collection<LfBus> buses, double activePowerMismatch) {
+        if (Math.abs(activePowerMismatch) <= P_RESIDUE_EPS) {
+            return new Result(0, activePowerMismatch, false);
+        }
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         final Map<ParticipatingElement, Double> initialP = participatingElements.stream()
                 .collect(Collectors.toUnmodifiableMap(Function.identity(), ParticipatingElement::getTargetP));

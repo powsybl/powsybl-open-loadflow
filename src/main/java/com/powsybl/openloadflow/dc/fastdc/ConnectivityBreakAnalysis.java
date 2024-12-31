@@ -38,7 +38,7 @@ public final class ConnectivityBreakAnalysis {
 
     public static final class ConnectivityAnalysisResult {
 
-        private PropagatedContingency contingency;
+        private final PropagatedContingency propagatedContingency;
 
         private final Set<String> elementsToReconnect;
 
@@ -48,21 +48,21 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBranch> partialDisabledBranches; // branches disabled because of connectivity loss.
 
-        private ConnectivityAnalysisResult(Set<String> elementsToReconnect,
-                                           GraphConnectivity<LfBus, LfBranch> connectivity,
-                                           LfNetwork lfNetwork) {
+        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency) {
+            this(propagatedContingency, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        }
+
+        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, Set<String> elementsToReconnect, Set<LfBus> disabledBuses,
+                                          Set<LfBus> slackConnectedComponent, Set<LfBranch> partialDisabledBranches) {
+            this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
             this.elementsToReconnect = elementsToReconnect;
-            slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
-            disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
-            partialDisabledBranches = connectivity.getEdgesRemovedFromMainComponent();
+            this.disabledBuses = disabledBuses;
+            this.slackConnectedComponent = slackConnectedComponent;
+            this.partialDisabledBranches = partialDisabledBranches;
         }
 
         public PropagatedContingency getPropagatedContingency() {
-            return contingency;
-        }
-
-        public void setPropagatedContingency(PropagatedContingency contingency) {
-            this.contingency = contingency;
+            return propagatedContingency;
         }
 
         public Set<String> getElementsToReconnect() {
@@ -160,8 +160,8 @@ public final class ConnectivityBreakAnalysis {
                 } else {
                     // only compute for factors that have to be computed for this contingency lost
                     Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
-                    ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
-                    connectivityAnalysisResult.setPropagatedContingency(contingency);
+                    ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, elementsToReconnect, connectivity.getVerticesRemovedFromMainComponent(),
+                            connectivity.getConnectedComponent(lfNetwork.getSlackBus()), connectivity.getEdgesRemovedFromMainComponent());
                     connectivityAnalysisResults.add(connectivityAnalysisResult);
                 }
             } finally {
