@@ -63,6 +63,13 @@ As a result, security analysis is carried out only in slack component, and not n
 
 The default value is `false`.
 
+**contingencyActivePowerLossDistribution**
+
+[//]: <> (TODO)
+
+The default value is `Default`.
+
+
 ## Configuration file example
 See below an extract of a config file that could help:
 
@@ -72,6 +79,7 @@ open-security-analysis-default-parameters:
   createResultExtension: false
   threadCount: 1
   dcFastMode: false
+  contingencyActivePowerLossDistribution: Default
 ```
 
 At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
