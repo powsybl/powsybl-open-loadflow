@@ -91,7 +91,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
      * The resulting list will contain the permanent limit
      */
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus, double[] limitReductions) {
-        LinkedList<LfLimit> sortedLimits = new LinkedList<>();
+        List<LfLimit> sortedLimits = new ArrayList<>(3);
         if (loadingLimits != null) {
             double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
 
@@ -103,13 +103,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                     // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
                     double reduction = limitReductions.length == 0 ? 1d : limitReductions[i + 1]; // Temporary limit's reductions are stored starting from index 1 in `limitReductions`
                     double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
-                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
+                    sortedLimits.add(0, LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
                             originalValuePerUnit, reduction));
                 }
                 i++;
             }
             double reduction = limitReductions.length == 0 ? 1d : limitReductions[0];
-            sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));
+            sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));
         }
         if (sortedLimits.size() > 1) {
             // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -117,7 +117,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 // From the permanent limit to the most serious temporary limit.
                 sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
             }
-            sortedLimits.getFirst().setAcceptableDuration(0);
+            sortedLimits.get(0).setAcceptableDuration(0);
         }
         return sortedLimits;
     }
