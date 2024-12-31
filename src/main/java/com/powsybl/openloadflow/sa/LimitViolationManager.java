@@ -20,6 +20,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 
 /**
@@ -61,17 +62,32 @@ public class LimitViolationManager {
      */
     public void detectViolations(LfNetwork network) {
         Objects.requireNonNull(network);
+        detectBranchesViolations(network, LfBranch::isDisabled, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2);
+        detectBusesViolations(network);
+        detectVoltageAngleLimitsViolations(network);
+    }
 
-        // Detect violation limits on branches
-        network.getBranches().stream().filter(b -> !b.isDisabled()).forEach(this::detectBranchViolations);
-
-        // Detect violation limits on buses
-        network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);
-
-        // Detect voltage angle limits
+    private void detectVoltageAngleLimitsViolations(LfNetwork network) {
         network.getVoltageAngleLimits().stream()
                 .filter(limit -> !limit.getFrom().isDisabled() && !limit.getTo().isDisabled())
                 .forEach(this::detectVoltageAngleLimitViolations);
+    }
+
+    private void detectBusesViolations(LfNetwork network) {
+        network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);
+    }
+
+    public void detectBranchesViolations(LfNetwork network,
+                                         Predicate<LfBranch> isDisabled,
+                                         Function<LfBranch, Evaluable> i1Getter,
+                                         Function<LfBranch, Evaluable> p1Getter,
+                                         ToDoubleFunction<LfBranch> s1Getter,
+                                         Function<LfBranch, Evaluable> i2Getter,
+                                         Function<LfBranch, Evaluable> p2Getter,
+                                         ToDoubleFunction<LfBranch> s2Getter) {
+        network.getBranches().stream()
+                .filter(b -> !isDisabled.test(b))
+                .forEach(branch -> detectBranchViolations(branch, i1Getter, p1Getter, s1Getter, i2Getter, p2Getter, s2Getter));
     }
 
     private static Pair<String, ThreeSides> getSubjectIdSide(LimitViolation limitViolation) {
@@ -145,15 +161,21 @@ public class LimitViolationManager {
      * Detect violation limits on one branch and add them to the given list
      * @param branch branch of interest
      */
-    private void detectBranchViolations(LfBranch branch) {
+    private void detectBranchViolations(LfBranch branch,
+                                        Function<LfBranch, Evaluable> i1Getter,
+                                        Function<LfBranch, Evaluable> p1Getter,
+                                        ToDoubleFunction<LfBranch> s1Getter,
+                                        Function<LfBranch, Evaluable> i2Getter,
+                                        Function<LfBranch, Evaluable> p2Getter,
+                                        ToDoubleFunction<LfBranch> s2Getter) {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
-            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
+            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, i1Getter, p1Getter, s1Getter, TwoSides.ONE);
         }
 
         if (branch.getBus2() != null) {
-            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, TwoSides.TWO);
+            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, i2Getter, p2Getter, s2Getter, TwoSides.TWO);
         }
     }
 

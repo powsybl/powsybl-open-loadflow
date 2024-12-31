@@ -119,6 +119,10 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
 
     protected abstract double eval(double ph1, double ph2, double a1);
 
+    public double eval(StateVector sv) {
+        return eval(ph1(sv), ph2(sv), a1(sv));
+    }
+
     @Override
     public double eval() {
         return eval(ph1(), ph2(), a1());
