@@ -75,6 +75,14 @@ public class PropagatedContingency {
         return loadIdsToLose;
     }
 
+    public Map<String, AdmittanceShift> getShuntIdsToShift() {
+        return shuntIdsToShift;
+    }
+
+    public Set<String> getHvdcIdsToOpen() {
+        return hvdcIdsToOpen;
+    }
+
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
                                  Set<String> busIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
@@ -162,7 +170,7 @@ public class PropagatedContingency {
         return propagatedContingency;
     }
 
-    private <K> void addBranchToOpen(K branchId, DisabledBranchStatus status, Map<K, DisabledBranchStatus> branchIdsToOpen) {
+    private static <K> void addBranchToOpen(K branchId, DisabledBranchStatus status, Map<K, DisabledBranchStatus> branchIdsToOpen) {
         DisabledBranchStatus oldStatus = branchIdsToOpen.get(branchId);
         if (oldStatus == null) {
             branchIdsToOpen.put(branchId, status);
@@ -359,7 +367,7 @@ public class PropagatedContingency {
         return false;
     }
 
-    private Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {
+    public Map<LfBranch, DisabledBranchStatus> findBranchToOpenDirectlyImpactedByContingency(LfNetwork network) {
         // we add the branches connected to buses to lose.
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = branchIdsToOpen.entrySet().stream()
                 .map(e -> Pair.of(network.getBranchById(e.getKey()), e.getValue()))
@@ -456,6 +464,14 @@ public class PropagatedContingency {
         }
         Set<LfBus> busesToLost = connectivityLossImpact.busesToLost(); // nothing else
 
+        return toLfContingency(contingency.getId(), index, network, branchesToOpen, busesToLost, connectivityLossImpact.createdSynchronousComponents,
+                shuntIdsToShift, generatorIdsToLose, loadIdsToLose, hvdcIdsToOpen, connectivityLossImpact.hvdcsWithoutPower());
+    }
+
+    public static Optional<LfContingency> toLfContingency(String contingencyId, int index, LfNetwork network, Map<LfBranch, DisabledBranchStatus> branchesToOpen,
+                                                          Set<LfBus> busesToLost, int createdSynchronousComponents, Map<String, AdmittanceShift> shuntIdsToShift,
+                                                          Set<String> generatorIdsToLose, Map<String, PowerShift> loadIdsToLose, Set<String> hvdcIdsToOpen,
+                                                          Set<LfHvdc> hvdcsWithoutPower) {
         for (LfBus busToLost : busesToLost) {
             busToLost.getBranches()
                     .forEach(branch -> {
@@ -523,14 +539,14 @@ public class PropagatedContingency {
                 && loads.isEmpty()
                 && generators.isEmpty()
                 && lostHvdcs.isEmpty()
-                && connectivityLossImpact.hvdcsWithoutPower().isEmpty()) {
-            LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
+                && hvdcsWithoutPower.isEmpty()) {
+            LOGGER.debug("Contingency '{}' has no impact", contingencyId);
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, connectivityLossImpact.createdSynchronousComponents,
-                           new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
-                           connectivityLossImpact.hvdcsWithoutPower()));
+        return Optional.of(new LfContingency(contingencyId, index, createdSynchronousComponents,
+                new DisabledNetwork(busesToLost, branchesToOpen, lostHvdcs), shunts, loads, generators,
+                hvdcsWithoutPower));
     }
 
     /**

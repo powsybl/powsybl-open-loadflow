@@ -37,6 +37,8 @@ public final class ConnectivityBreakAnalysis {
 
         private final PropagatedContingency propagatedContingency;
 
+        private final LfNetwork network;
+
         private final Set<String> elementsToReconnect;
 
         private final Set<LfBus> disabledBuses;
@@ -45,13 +47,15 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBranch> partialDisabledBranches; // branches disabled because of connectivity loss.
 
-        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency) {
-            this(propagatedContingency, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network) {
+            this(propagatedContingency, network, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
         }
 
-        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, Set<String> elementsToReconnect, Set<LfBus> disabledBuses,
-                                          Set<LfBus> slackConnectedComponentBuses, Set<LfBranch> partialDisabledBranches) {
+        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network, Set<String> elementsToReconnect,
+                                          Set<LfBus> disabledBuses, Set<LfBus> slackConnectedComponentBuses,
+                                          Set<LfBranch> partialDisabledBranches) {
             this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
+            this.network = Objects.requireNonNull(network);
             this.elementsToReconnect = elementsToReconnect;
             this.disabledBuses = disabledBuses;
             this.slackConnectedComponentBuses = slackConnectedComponentBuses;
@@ -78,9 +82,18 @@ public final class ConnectivityBreakAnalysis {
             return partialDisabledBranches;
         }
 
-        public LfContingency toLfContingency() {
-            // TODO
-            return null;
+        public Optional<LfContingency> toLfContingency() {
+            return PropagatedContingency.toLfContingency(propagatedContingency.getContingency().getId(),
+                                                         propagatedContingency.getIndex(),
+                                                         network,
+                                                         propagatedContingency.findBranchToOpenDirectlyImpactedByContingency(network),
+                                                         disabledBuses,
+                                                         0, // FIXME
+                                                         propagatedContingency.getShuntIdsToShift(),
+                                                         propagatedContingency.getGeneratorIdsToLose(),
+                                                         propagatedContingency.getLoadIdsToLose(),
+                                                         propagatedContingency.getHvdcIdsToOpen(),
+                                                         Collections.emptySet()); // FIXME
         }
     }
 
@@ -162,7 +175,7 @@ public final class ConnectivityBreakAnalysis {
                 } else {
                     // only compute for factors that have to be computed for this contingency lost
                     Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
-                    ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, elementsToReconnect, connectivity.getVerticesRemovedFromMainComponent(),
+                    ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfNetwork, elementsToReconnect, connectivity.getVerticesRemovedFromMainComponent(),
                             connectivity.getConnectedComponent(lfNetwork.getSlackBus()), connectivity.getEdgesRemovedFromMainComponent());
                     connectivityAnalysisResults.add(connectivityAnalysisResult);
                 }
