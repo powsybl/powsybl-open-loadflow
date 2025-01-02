@@ -65,14 +65,15 @@ public class WoodburyEngine {
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
-        return runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, Collections.emptyList());
+        return runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, null, Collections.emptyList());
     }
 
     /**
      * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
-    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> pstActions) {
+    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode,
+                                                                 LfContingency contingency, List<LfAction> pstActions) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -107,6 +108,34 @@ public class WoodburyEngine {
                     .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        if (contingency != null) {
+            // apply lost generators
+            contingency.getLostGenerators().stream()
+                    .forEach(generator -> {
+                        LfBus lfBus = generator.getBus();
+                        double lostTargetP = generator.getTargetP();
+                        loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).ifPresent(
+                                dcVariableTypeDcEquationTypeEquation -> {
+                                    int column = dcVariableTypeDcEquationTypeEquation.getColumn();
+                                    targetVectorArray[column] -= lostTargetP;
+                                }
+                        );
+                    });
+            // apply lost loads
+            for (var e : contingency.getLostLoads().entrySet()) {
+                LfLoad load = e.getKey();
+                LfBus lfBus = load.getBus();
+                double lostTargetP = e.getValue().getPowerShift().getActive();
+                loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).ifPresent(
+                        dcVariableTypeDcEquationTypeEquation -> {
+                            int column = dcVariableTypeDcEquationTypeEquation.getColumn();
+                            targetVectorArray[column] -= lostTargetP;
+                        }
+                );
+            }
+            // TODO: apply hvdc without power
         }
 
         if (!pstActions.isEmpty()) {
