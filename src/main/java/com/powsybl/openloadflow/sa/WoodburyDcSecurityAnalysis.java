@@ -184,7 +184,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 });
     }
 
-    class NetworkDcVectorState {
+    static class NetworkDcVectorState {
         final boolean[] disabled;
         final double[] p1;
         final double[] i1;
@@ -216,7 +216,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             }
         }
 
-        public void detectBranchViolations(LimitViolationManager limitViolationManager, LfNetwork lfNetwork) {
+        void detectBranchViolations(LimitViolationManager limitViolationManager, LfNetwork lfNetwork) {
             limitViolationManager.detectBranchesViolations(lfNetwork,
                     branch -> disabled[branch.getNum()],
                     branch -> i1[branch.getNum()],
