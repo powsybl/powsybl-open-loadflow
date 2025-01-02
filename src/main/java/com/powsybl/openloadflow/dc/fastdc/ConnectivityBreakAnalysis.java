@@ -83,17 +83,12 @@ public final class ConnectivityBreakAnalysis {
         }
 
         public Optional<LfContingency> toLfContingency() {
-            return PropagatedContingency.toLfContingency(propagatedContingency.getContingency().getId(),
-                                                         propagatedContingency.getIndex(),
-                                                         network,
-                                                         propagatedContingency.findBranchToOpenDirectlyImpactedByContingency(network),
-                                                         disabledBuses,
-                                                         0, // FIXME
-                                                         propagatedContingency.getShuntIdsToShift(),
-                                                         propagatedContingency.getGeneratorIdsToLose(),
-                                                         propagatedContingency.getLoadIdsToLose(),
-                                                         propagatedContingency.getHvdcIdsToOpen(),
-                                                         Collections.emptySet()); // FIXME
+            return propagatedContingency.toLfContingency(network, false, (network, contingencyId, branchesToOpen, relocateSlackBus) -> {
+                return new PropagatedContingency.ContingencyConnectivityLossImpact(true,
+                        0, // FIXME
+                        disabledBuses,
+                        Collections.emptySet()); // FIXME
+            });
         }
     }
 
