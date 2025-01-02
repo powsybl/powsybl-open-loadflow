@@ -47,19 +47,22 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBranch> partialDisabledBranches; // branches disabled because of connectivity loss.
 
+        private final int createdSynchronousComponents;
+
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network) {
-            this(propagatedContingency, network, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+            this(propagatedContingency, network, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), 0);
         }
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network, Set<String> elementsToReconnect,
                                           Set<LfBus> disabledBuses, Set<LfBus> slackConnectedComponentBuses,
-                                          Set<LfBranch> partialDisabledBranches) {
+                                          Set<LfBranch> partialDisabledBranches, int createdSynchronousComponents) {
             this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
             this.network = Objects.requireNonNull(network);
             this.elementsToReconnect = elementsToReconnect;
             this.disabledBuses = disabledBuses;
             this.slackConnectedComponentBuses = slackConnectedComponentBuses;
             this.partialDisabledBranches = partialDisabledBranches;
+            this.createdSynchronousComponents = createdSynchronousComponents;
         }
 
         public PropagatedContingency getPropagatedContingency() {
@@ -85,7 +88,7 @@ public final class ConnectivityBreakAnalysis {
         public Optional<LfContingency> toLfContingency() {
             return propagatedContingency.toLfContingency(network, false, (network, contingencyId, branchesToOpen, relocateSlackBus) -> {
                 return new PropagatedContingency.ContingencyConnectivityLossImpact(true,
-                        0, // FIXME
+                        createdSynchronousComponents,
                         disabledBuses,
                         Collections.emptySet()); // FIXME
             });
@@ -170,8 +173,9 @@ public final class ConnectivityBreakAnalysis {
                 } else {
                     // only compute for factors that have to be computed for this contingency lost
                     Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
+                    int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
                     ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfNetwork, elementsToReconnect, connectivity.getVerticesRemovedFromMainComponent(),
-                            connectivity.getConnectedComponent(lfNetwork.getSlackBus()), connectivity.getEdgesRemovedFromMainComponent());
+                            connectivity.getConnectedComponent(lfNetwork.getSlackBus()), connectivity.getEdgesRemovedFromMainComponent(), createdSynchronousComponents);
                     connectivityAnalysisResults.add(connectivityAnalysisResult);
                 }
             } finally {
