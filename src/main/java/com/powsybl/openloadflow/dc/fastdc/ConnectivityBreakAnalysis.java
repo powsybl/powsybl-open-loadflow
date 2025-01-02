@@ -15,10 +15,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +41,7 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBus> disabledBuses;
 
-        private final Set<LfBus> slackConnectedComponent;
+        private final Set<LfBus> slackConnectedComponentBuses; // buses of connected component where the slack is
 
         private final Set<LfBranch> partialDisabledBranches; // branches disabled because of connectivity loss.
 
@@ -53,11 +50,11 @@ public final class ConnectivityBreakAnalysis {
         }
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, Set<String> elementsToReconnect, Set<LfBus> disabledBuses,
-                                          Set<LfBus> slackConnectedComponent, Set<LfBranch> partialDisabledBranches) {
+                                          Set<LfBus> slackConnectedComponentBuses, Set<LfBranch> partialDisabledBranches) {
             this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
             this.elementsToReconnect = elementsToReconnect;
             this.disabledBuses = disabledBuses;
-            this.slackConnectedComponent = slackConnectedComponent;
+            this.slackConnectedComponentBuses = slackConnectedComponentBuses;
             this.partialDisabledBranches = partialDisabledBranches;
         }
 
@@ -73,12 +70,17 @@ public final class ConnectivityBreakAnalysis {
             return disabledBuses;
         }
 
-        public Set<LfBus> getSlackConnectedComponent() {
-            return slackConnectedComponent;
+        public Set<LfBus> getSlackConnectedComponentBuses() {
+            return slackConnectedComponentBuses;
         }
 
         public Set<LfBranch> getPartialDisabledBranches() {
             return partialDisabledBranches;
+        }
+
+        public LfContingency toLfContingency() {
+            // TODO
+            return null;
         }
     }
 
