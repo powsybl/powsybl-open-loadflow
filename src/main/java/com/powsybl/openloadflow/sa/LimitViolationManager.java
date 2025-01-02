@@ -142,7 +142,7 @@ public class LimitViolationManager {
         if (!limits.isEmpty()) {
             double p = pGetter.applyAsDouble(branch);
             for (LfBranch.LfLimit temporaryLimit : limits) {
-                if (p > temporaryLimit.getReducedValue()) {
+                if (Math.abs(p) > temporaryLimit.getReducedValue()) {
                     addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
                     break;
                 }
