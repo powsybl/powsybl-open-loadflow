@@ -291,16 +291,16 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                                LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
                                                                boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                List<LimitReduction> limitReductions) {
-        logPostContingencyStart(context.getNetwork(), lfContingency);
-        Stopwatch stopwatch = Stopwatch.createStarted();
+//        logPostContingencyStart(context.getNetwork(), lfContingency);
+//        Stopwatch stopwatch = Stopwatch.createStarted();
 
         double[] postContingencyStates = postContingencyStatesSupplier.get();
         PostContingencyResult postContingencyResult = computePostContingencyResultFromPostContingencyStates(context, contingency,
                 lfContingency, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
                 violationsParameters, postContingencyStates, limitReductions);
 
-        stopwatch.stop();
-        logPostContingencyEnd(context.getNetwork(), lfContingency, stopwatch);
+//        stopwatch.stop();
+//        logPostContingencyEnd(context.getNetwork(), lfContingency, stopwatch);
 
         return postContingencyResult;
     }
