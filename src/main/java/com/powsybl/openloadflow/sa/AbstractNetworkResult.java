@@ -33,14 +33,26 @@ public abstract class AbstractNetworkResult {
 
     protected final boolean createResultExtension;
 
+    public interface BranchResultCreator {
+        List<BranchResult> create(LfBranch branch, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
+    }
+
+    protected final BranchResultCreator branchResultsCreator;
+
     protected final List<BusResult> busResults = new ArrayList<>();
 
     protected final List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
+        this(network, monitorIndex, createResultExtension, LfBranch::createBranchResult);
+    }
+
+    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension,
+                                    BranchResultCreator branchResultsCreator) {
         this.network = Objects.requireNonNull(network);
         this.monitorIndex = Objects.requireNonNull(monitorIndex);
         this.createResultExtension = createResultExtension;
+        this.branchResultsCreator = Objects.requireNonNull(branchResultsCreator);
     }
 
     protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer) {

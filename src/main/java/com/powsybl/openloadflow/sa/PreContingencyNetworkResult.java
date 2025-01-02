@@ -25,6 +25,11 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         super(network, monitorIndex, createResultExtension);
     }
 
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension,
+                                       BranchResultCreator branchResultsCreator) {
+        super(network, monitorIndex, createResultExtension, branchResultsCreator);
+    }
+
     @Override
     protected void clear() {
         super.clear();
@@ -32,10 +37,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
     }
 
     private void addResults(StateMonitor monitor) {
-        addResults(monitor, branch -> {
-            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension)
-                    .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
-        });
+        addResults(monitor, branch -> branchResultsCreator.create(branch, Double.NaN, Double.NaN, createResultExtension)
+                .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult)));
     }
 
     @Override

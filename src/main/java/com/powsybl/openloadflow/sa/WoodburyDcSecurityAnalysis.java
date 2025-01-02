@@ -20,10 +20,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide2DcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.dc.fastdc.*;
 import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis.ConnectivityAnalysisResult;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -32,9 +29,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
-import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
-import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
 import com.powsybl.security.PostContingencyComputationStatus;
@@ -189,6 +184,69 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 });
     }
 
+    class NetworkDcVectorState {
+        final boolean[] disabled;
+        final double[] p1;
+        final double[] i1;
+        final double[] p2;
+        final double[] i2;
+
+        public NetworkDcVectorState(double[] postContingencyStates, LfNetwork lfNetwork, PropagatedContingency propagatedContingency, DcEquationSystemCreationParameters parameters) {
+            Objects.requireNonNull(postContingencyStates);
+            Objects.requireNonNull(lfNetwork);
+            Objects.requireNonNull(propagatedContingency);
+            Objects.requireNonNull(parameters);
+            disabled = new boolean[lfNetwork.getBranches().size()];
+            p1 = new double[lfNetwork.getBranches().size()];
+            i1 = new double[lfNetwork.getBranches().size()];
+            p2 = new double[lfNetwork.getBranches().size()];
+            i2 = new double[lfNetwork.getBranches().size()];
+            StateVector sv = new StateVector(postContingencyStates);
+            Arrays.fill(disabled, false);
+            for (String disabledBranchId : propagatedContingency.getBranchIdsToOpen().keySet()) {
+                LfBranch disabledBranch = lfNetwork.getBranchById(disabledBranchId);
+                disabled[disabledBranch.getNum()] = true;
+            }
+            double dcPowerFactor = parameters.getDcPowerFactor();
+            for (LfBranch branch : lfNetwork.getBranches()) {
+                p1[branch.getNum()] = branch.getP1() instanceof ClosedBranchSide1DcFlowEquationTerm ? ((ClosedBranchSide1DcFlowEquationTerm) branch.getP1()).eval(sv) : Double.NaN;
+                i1[branch.getNum()] = Math.abs(p1[branch.getNum()]) / dcPowerFactor;
+                p2[branch.getNum()] = branch.getP2() instanceof ClosedBranchSide2DcFlowEquationTerm ? ((ClosedBranchSide2DcFlowEquationTerm) branch.getP2()).eval(sv) : Double.NaN;
+                i2[branch.getNum()] = Math.abs(p2[branch.getNum()]) / dcPowerFactor;
+            }
+        }
+
+        public void detectBranchViolations(LimitViolationManager limitViolationManager, LfNetwork lfNetwork) {
+            limitViolationManager.detectBranchesViolations(lfNetwork,
+                    branch -> disabled[branch.getNum()],
+                    branch -> i1[branch.getNum()],
+                    branch -> p1[branch.getNum()],
+                    branch -> {
+                        throw new PowsyblException("s1 useless");
+                    },
+                    branch -> i2[branch.getNum()],
+                    branch -> p2[branch.getNum()],
+                    branch -> {
+                        throw new PowsyblException("s2 useless");
+                    });
+        }
+
+        AbstractNetworkResult.BranchResultCreator createBranchResultCreator() {
+            return (branch, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension) -> {
+                int num = branch.getNum();
+                double flowTransfer = Double.NaN;
+                if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
+                    flowTransfer = (p1[num] * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+                }
+                double currentScale1 = PerUnit.ib(branch.getBus1().getNominalV());
+                double currentScale2 = PerUnit.ib(branch.getBus2().getNominalV());
+                var branchResult = new BranchResult(branch.getId(), p1[num] * PerUnit.SB, Double.NaN, currentScale1 * i1[num],
+                        p2[num] * PerUnit.SB, Double.NaN, currentScale2 * i2[num], flowTransfer);
+                return List.of(branchResult);
+            };
+        }
+    }
+
     /**
      * Returns the post contingency result associated to given contingency and post contingency states.
      */
@@ -200,36 +258,17 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         // update network state with post contingency states
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
 
-        // update post contingency network result
-        // FIXME to implement without getting flow in the network
         PropagatedContingency propagatedContingency = connectivityAnalysisResult.getPropagatedContingency();
-        var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, preContingencyNetworkResult, propagatedContingency.getContingency());
-//        postContingencyNetworkResult.update();
+        NetworkDcVectorState dcVecState = new NetworkDcVectorState(postContingencyStates, lfNetwork, propagatedContingency, loadFlowContext.getParameters().getEquationSystemCreationParameters());
+
+        // update post contingency network result
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension,
+                dcVecState.createBranchResultCreator(), preContingencyNetworkResult, propagatedContingency.getContingency());
+        postContingencyNetworkResult.update();
 
         // detect violations
-        boolean[] disabled = new boolean[lfNetwork.getBranches().size()];
-        double[] p1 = new double[lfNetwork.getBranches().size()];
-        double[] i1 = new double[lfNetwork.getBranches().size()];
-        double[] p2 = new double[lfNetwork.getBranches().size()];
-        double[] i2 = new double[lfNetwork.getBranches().size()];
-        double dcPowerFactor = loadFlowContext.getParameters().getEquationSystemCreationParameters().getDcPowerFactor();
-
-        StateVector sv = new StateVector(postContingencyStates);
-        computeFlows(lfNetwork, propagatedContingency, sv, disabled, p1, i1, p2, i2, dcPowerFactor);
-
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
-        postContingencyLimitViolationManager.detectBranchesViolations(lfNetwork,
-                branch -> disabled[branch.getNum()],
-                branch -> i1[branch.getNum()],
-                branch -> p1[branch.getNum()],
-                branch -> {
-                    throw new PowsyblException("s1 useless");
-                },
-                branch -> i2[branch.getNum()],
-                branch -> p2[branch.getNum()],
-                branch -> {
-                    throw new PowsyblException("s2 useless");
-                });
+        dcVecState.detectBranchViolations(postContingencyLimitViolationManager, lfNetwork);
 
         var connectivityResult = createConnectivityResult(connectivityAnalysisResult, lfNetwork);
 
@@ -246,13 +285,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         PropagatedContingency propagatedContingency = connectivityAnalysisResult.getPropagatedContingency();
 
         // load and generation lost directly by the contingency
-        double disconnectedLoadActivePower = propagatedContingency.getLoadIdsToLose().entrySet().stream().mapToDouble(e ->  {
+        double disconnectedLoadActivePower = propagatedContingency.getLoadIdsToLose().entrySet().stream().mapToDouble(e -> {
             LfLoad load = lfNetwork.getLoadById(e.getKey());
-            return load != null ? e.getValue().getActive(): 0;
+            return load != null ? e.getValue().getActive() : 0;
         }).sum();
-        double disconnectedGenerationActivePower = propagatedContingency.getGeneratorIdsToLose().stream().mapToDouble(generatorId ->  {
+        double disconnectedGenerationActivePower = propagatedContingency.getGeneratorIdsToLose().stream().mapToDouble(generatorId -> {
             LfGenerator gen = lfNetwork.getGeneratorById(generatorId);
-            return gen != null ? gen.getTargetP(): 0;
+            return gen != null ? gen.getTargetP() : 0;
         }).sum();
         Set<String> disconnectedElements = new HashSet<>();
         disconnectedElements.addAll(propagatedContingency.getGeneratorIdsToLose());
@@ -280,20 +319,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 disconnectedLoadActivePower,
                 disconnectedGenerationActivePower,
                 disconnectedElements);
-    }
-
-    private static void computeFlows(LfNetwork lfNetwork, PropagatedContingency propagatedContingency, StateVector sv, boolean[] disabled, double[] p1, double[] i1, double[] p2, double[] i2, double dcPowerFactor) {
-        Arrays.fill(disabled, false);
-        for (String disabledBranchId : propagatedContingency.getBranchIdsToOpen().keySet()) {
-            LfBranch disabledBranch = lfNetwork.getBranchById(disabledBranchId);
-            disabled[disabledBranch.getNum()] = true;
-        }
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            p1[branch.getNum()] = branch.getP1() instanceof  ClosedBranchSide1DcFlowEquationTerm ? ((ClosedBranchSide1DcFlowEquationTerm) branch.getP1()).eval(sv) : Double.NaN;
-            i1[branch.getNum()] = Math.abs(p1[branch.getNum()]) / dcPowerFactor;
-            p2[branch.getNum()] = branch.getP2() instanceof  ClosedBranchSide2DcFlowEquationTerm ? ((ClosedBranchSide2DcFlowEquationTerm) branch.getP2()).eval(sv) : Double.NaN;
-            i2[branch.getNum()] = Math.abs(p2[branch.getNum()]) / dcPowerFactor;
-        }
     }
 
     /**
@@ -521,7 +546,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                 operatorStrategyLfActions, tapPositionChangeElementsByBranchId, actionsStates, reportNode);
                         // runnable to restore pre contingency states, after modifications applied to the lfNetwork
                         // no need to update workingContingencyStates as an override of flow states will be computed
-                        Runnable restorePreContingencyStates = () -> {};
+                        Runnable restorePreContingencyStates = () -> { };
                         addPostContingencyAndOperatorStrategyResults(context, connectivityAnalysisResult, operatorStrategiesByContingencyId, lfActionById, toPostContingencyStates,
                                 toPostContingencyAndOperatorStrategyStates, restorePreContingencyStates, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
                                 securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions, postContingencyResults, operatorStrategyResults);
