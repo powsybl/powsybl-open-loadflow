@@ -13,10 +13,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.network.*;
 
@@ -84,6 +81,7 @@ public class WoodburyEngine {
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
+            // FIXME, distribution keys has changed...
             distributeSlack(loadFlowContext.getNetwork(), remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
@@ -112,28 +110,29 @@ public class WoodburyEngine {
 
         if (contingency != null) {
             // apply lost generators
-            contingency.getLostGenerators().stream()
-                    .forEach(generator -> {
-                        LfBus lfBus = generator.getBus();
-                        double lostTargetP = generator.getTargetP();
-                        loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).ifPresent(
-                                dcVariableTypeDcEquationTypeEquation -> {
-                                    int column = dcVariableTypeDcEquationTypeEquation.getColumn();
-                                    targetVectorArray[column] -= lostTargetP;
-                                }
-                        );
-                    });
+            for (LfGenerator generator : contingency.getLostGenerators()) {
+                LfBus lfBus = generator.getBus();
+                double lostTargetP = generator.getTargetP();
+                var eq = loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P);
+                if (eq.isPresent()) {
+                    int column = eq.get().getColumn();
+                    if (column != -1) { // inactive, could be slack bus
+                        targetVectorArray[column] -= lostTargetP;
+                    }
+                }
+            }
             // apply lost loads
             for (var e : contingency.getLostLoads().entrySet()) {
                 LfLoad load = e.getKey();
                 LfBus lfBus = load.getBus();
                 double lostTargetP = e.getValue().getPowerShift().getActive();
-                loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).ifPresent(
-                        dcVariableTypeDcEquationTypeEquation -> {
-                            int column = dcVariableTypeDcEquationTypeEquation.getColumn();
-                            targetVectorArray[column] -= lostTargetP;
-                        }
-                );
+                var eq = loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P);
+                if (eq.isPresent()) {
+                    int column = eq.get().getColumn();
+                    if (column != -1) { // inactive, could be slack bus
+                        targetVectorArray[column] += lostTargetP;
+                    }
+                }
             }
             // TODO: apply hvdc without power
         }
