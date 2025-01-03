@@ -386,7 +386,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getGenerationTargetP() {
         if (generationTargetP == null) {
-            generationTargetP = generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
+            generationTargetP = 0.0;
+            for (LfGenerator generator : generators) {
+                generationTargetP += generator.getTargetP();
+            }
         }
         return generationTargetP;
     }
@@ -415,9 +418,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getLoadTargetP() {
         if (loadTargetP == null) {
-            loadTargetP = loads.stream()
-                    .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
-                    .sum();
+            loadTargetP = 0.0;
+            for (LfLoad load : loads) {
+                loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
+            }
         }
         return loadTargetP;
     }
