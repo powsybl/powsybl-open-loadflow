@@ -65,6 +65,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfLoad> loads = new ArrayList<>();
 
+    protected Double loadTargetP;
+
     protected final List<LfBranch> branches = new ArrayList<>();
 
     protected final List<LfHvdc> hvdcs = new ArrayList<>();
@@ -406,10 +408,18 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void invalidateLoadTargetP() {
+        loadTargetP = null;
+    }
+
+    @Override
     public double getLoadTargetP() {
-        return loads.stream()
-                .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
-                .sum();
+        if (loadTargetP == null) {
+            loadTargetP = loads.stream()
+                    .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
+                    .sum();
+        }
+        return loadTargetP;
     }
 
     @Override
