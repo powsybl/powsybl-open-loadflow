@@ -275,8 +275,12 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         // replace last row for each of the secondary voltage control block
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> controllerBuses = secondaryVoltageControl.getEnabledControllerBuses();
-            LfBus lastControllerBus = controllerBuses.get(controllerBuses.size() - 1);
-            int i = controllerBusIndex.get(lastControllerBus.getNum());
+            List<LfBus> controlledBuses = controllerBuses.stream()
+                    .map(bus -> bus.getGeneratorVoltageControl().orElseThrow().getControlledBus())
+                    .distinct()
+                    .toList();
+            LfBus lastControlledBus = controlledBuses.get(controlledBuses.size() - 1);
+            int i = controlledBusIndex.get(lastControlledBus.getNum());
 
             DenseMatrix jVpp = createJvpp(sensitivityContext, secondaryVoltageControl.getPilotBus(), allControlledBuses, controlledBusIndex);
             for (int j = 0; j < b.getColumnCount(); j++) {
