@@ -14,6 +14,10 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -22,11 +26,11 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
     private final boolean solverSuccess;
 
     public static DcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new DcLoadFlowResult(network, 0, false, OuterLoopResult.stable(), Double.NaN, Double.NaN);
+        return new DcLoadFlowResult(network, 0, false, OuterLoopResult.stable(), Collections.EMPTY_LIST, Double.NaN);
     }
 
-    public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch, double distributedActivePower) {
-        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
+    public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, List<LoadFlowResult.SlackBusResult> slackBusResults, double distributedActivePower) {
+        super(network, slackBusResults, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverSuccess = solverSuccess;
     }
 
@@ -56,7 +60,11 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         return "DcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
                 + ", solverSuccess=" + solverSuccess
                 + ", outerLoopStatus=" + outerLoopResult.status()
-                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
+                + ", slackBusResults=SlackBusResult("
+                    + slackBusResults.stream()
+                    .map(s -> "(id=" + s.getId() + ", activePowerMismatch=" + s.getActivePowerMismatch() + ")")
+                    .collect(Collectors.joining(""))
+                    + ")"
                 + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
                 + ")";
     }

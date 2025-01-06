@@ -15,7 +15,10 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -23,7 +26,7 @@ import java.util.Objects;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), Double.NaN, Double.NaN);
+        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), Collections.EMPTY_LIST, Double.NaN);
     }
 
     private final int solverIterations;
@@ -32,8 +35,8 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
                             AcSolverStatus solverStatus, OuterLoopResult outerLoopResult,
-                            double slackBusActivePowerMismatch, double distributedActivePower) {
-        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
+                            List<LoadFlowResult.SlackBusResult> slackBusResults, double distributedActivePower) {
+        super(network, slackBusResults, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
     }
@@ -85,7 +88,11 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
                 + ", newtonRaphsonIterations=" + solverIterations
                 + ", solverStatus=" + solverStatus
                 + ", outerLoopStatus=" + outerLoopResult.status()
-                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
+                + ", slackBusResults=SlackBusResult("
+                    + slackBusResults.stream()
+                    .map(s -> "(id=" + s.getId() + ", activePowerMismatch=" + s.getActivePowerMismatch() + ")")
+                    .collect(Collectors.joining(""))
+                    + ")"
                 + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
                 + ")";
     }

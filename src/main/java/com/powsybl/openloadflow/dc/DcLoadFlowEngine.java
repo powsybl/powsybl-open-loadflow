@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.dc;
 import com.google.common.collect.Lists;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
@@ -78,6 +80,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
         }
         return -mismatch;
+    }
+
+    public static List<LoadFlowResult.SlackBusResult> getSlackBusResults(LfNetwork network) {
+        return network.getSlackBuses().stream().map(
+                b -> (LoadFlowResult.SlackBusResult) new LoadFlowResultImpl.SlackBusResultImpl(b.getId(),
+                        b.getMismatchP() * PerUnit.SB)).toList();
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
@@ -241,7 +249,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 runningContext.lastSolverSuccess = false;
                 runningContext.lastOuterLoopResult = new OuterLoopResult("DistributedSlack", OuterLoopStatus.FAILED, resultWbh.failedMessage());
                 Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
-                return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
+                return buildDcLoadFlowResult(network, runningContext, distributedActivePower);
             }
         }
 
@@ -299,20 +307,19 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
 
-        return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
+        return buildDcLoadFlowResult(network, runningContext, distributedActivePower);
     }
 
-    DcLoadFlowResult buildDcLoadFlowResult(LfNetwork network, RunningContext runningContext, double initialSlackBusActivePowerMismatch, double finalDistributedActivePower) {
-        double slackBusActivePowerMismatch;
+    DcLoadFlowResult buildDcLoadFlowResult(LfNetwork network, RunningContext runningContext, double finalDistributedActivePower) {
+        List<LoadFlowResult.SlackBusResult> slackBusResults;
         double distributedActivePower;
         if (runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE) {
-            slackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
             distributedActivePower = finalDistributedActivePower;
         } else {
-            slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
             distributedActivePower = 0.0;
         }
-        DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+        slackBusResults = getSlackBusResults(network);
+        DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusResults, distributedActivePower);
         LOGGER.info("DC loadflow complete on network {} (result={})", context.getNetwork(), result);
         return result;
     }

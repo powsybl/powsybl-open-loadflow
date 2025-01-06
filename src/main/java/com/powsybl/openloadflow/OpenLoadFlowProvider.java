@@ -191,13 +191,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result) {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
-        //double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
         if (result.getNetwork().getValidity() == LfNetwork.Validity.VALID) {
             referenceBusId = result.getNetwork().getReferenceBus().getId();
-            List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
-            slackBusResultList = slackBuses.stream().map(
-                    b -> (LoadFlowResult.SlackBusResult) new LoadFlowResultImpl.SlackBusResultImpl(b.getId(),
-                            b.getMismatchP() * PerUnit.SB)).toList();
+            slackBusResultList = result.getSlackBusResults();
         }
         return new ReferenceBusAndSlackBusesResults(referenceBusId, slackBusResultList);
     }
