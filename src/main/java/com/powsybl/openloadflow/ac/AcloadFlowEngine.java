@@ -118,7 +118,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     @Override
     public AcLoadFlowResult run() {
-        LOGGER.info("Start ACslackBusResults loadflow on network {}", context.getNetwork());
+        LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
         VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
         // in case of a DC voltage initializer, an DC equation system in created and equations are attached
