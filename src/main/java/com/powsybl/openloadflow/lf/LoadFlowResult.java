@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.lf;
 
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -21,7 +23,7 @@ public interface LoadFlowResult {
 
     LfNetwork getNetwork();
 
-    double getSlackBusActivePowerMismatch();
+    List<com.powsybl.loadflow.LoadFlowResult.SlackBusResult> getSlackBusResults();
 
     Status toComponentResultStatus();
 }
