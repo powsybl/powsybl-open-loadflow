@@ -7,9 +7,12 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
@@ -25,7 +28,7 @@ public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
     private static final Logger LOGGER = LoggerFactory.getLogger(DcAreaInterchangeControlOuterLoop.class);
 
     public DcAreaInterchangeControlOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
-        super(activePowerDistribution, null, slackBusPMaxMismatch, areaInterchangePMaxMismatch, LOGGER);
+        super(activePowerDistribution, new DcNoAreaOuterLoop(), slackBusPMaxMismatch, areaInterchangePMaxMismatch, LOGGER);
     }
 
     @Override
@@ -37,5 +40,22 @@ public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
     public double getSlackBusActivePowerMismatch(DcOuterLoopContext context) {
         List<LfBus> buses = context.getNetwork().getBuses();
         return DcLoadFlowEngine.getActivePowerMismatch(buses);
+    }
+
+    /**
+     * If the network has no area, the area interchange control is replaced by slack distribution.
+     * In DC mode, the slack distribution is handled directly by the load flow engine, without any outer loop.
+     * This class will be used as fallback outerloop in case the network has no area, and has no need to do anything.
+     */
+    private static class DcNoAreaOuterLoop implements DcOuterLoop {
+        @Override
+        public String getName() {
+            return "DcNoAreaOuterLoop";
+        }
+
+        @Override
+        public OuterLoopResult check(DcOuterLoopContext context, ReportNode reportNode) {
+            return new OuterLoopResult(this, OuterLoopStatus.STABLE);
+        }
     }
 }

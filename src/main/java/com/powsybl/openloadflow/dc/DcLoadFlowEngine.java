@@ -185,12 +185,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         RunningContext runningContext = new RunningContext();
         List<DcOuterLoop> outerLoops = parameters.getOuterLoops();
 
-        // remove area interchange control outer loop if no area in the network, active power will be distributed with classical slack distribution
-        boolean areaInterchangeControl = outerLoops.stream().anyMatch(DcAreaInterchangeControlOuterLoop.class::isInstance);
-        if (!network.hasArea()) {
-            outerLoops.removeIf(DcAreaInterchangeControlOuterLoop.class::isInstance);
-        }
-
         List<Pair<DcOuterLoop, DcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
                 .map(outerLoop -> Pair.of(outerLoop, new DcOuterLoopContext(network)))
                 .toList();
@@ -206,14 +200,16 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
-        if (parameters.isDistributedSlack() || areaInterchangeControl) {
+
+        boolean isAreaInterchangeControl = outerLoops.stream().anyMatch(DcAreaInterchangeControlOuterLoop.class::isInstance);
+        if (parameters.isDistributedSlack() || isAreaInterchangeControl) {
             LoadFlowParameters.BalanceType balanceType = parameters.getBalanceType();
             boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
             var result = activePowerDistribution.run(network, initialSlackBusActivePowerMismatch);
             final LfGenerator referenceGenerator;
             final OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior;
-            if (areaInterchangeControl) {
+            if (isAreaInterchangeControl && network.hasArea()) {
                 // actual behavior will be handled by the outerloop itself, just leave on slack bus here
                 behavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
                 referenceGenerator = null;
