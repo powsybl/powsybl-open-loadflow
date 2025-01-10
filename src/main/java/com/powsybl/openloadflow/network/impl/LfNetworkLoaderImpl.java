@@ -1111,7 +1111,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         //   for a given shared voltage control as a unique controlled bus cannot help to align reactive
                         //   power of generators)
                         Set<GeneratorVoltageControl> splitGeneratorVoltageControls = generatorVoltageControls.stream()
-                                .flatMap(vc -> vc.split().stream())
+                                .flatMap(vc -> vc.toLocalVoltageControls().stream())
                                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
                         Set<String> participatingControlUnitIds = controlZone.getControlUnits().stream()
