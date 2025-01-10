@@ -15,3 +15,4 @@ With Open Load Flow only the following remedial actions are currently implemente
 - `GeneratorAction`
 - `HvdcAction`
 
+Note: Some limitations in the use of these actions exist, please read the documentation about the [security analysis specific parameters](parameters).
