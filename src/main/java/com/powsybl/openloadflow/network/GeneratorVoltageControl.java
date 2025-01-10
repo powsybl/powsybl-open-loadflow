@@ -85,7 +85,7 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     /**
      * Returns itself in case of local control, split into several local voltage controls in case of remote control.
      */
-    public List<GeneratorVoltageControl> split() {
+    public List<GeneratorVoltageControl> toLocalVoltageControls() {
         if (isLocalControl()) {
             return List.of(this);
         } else {
