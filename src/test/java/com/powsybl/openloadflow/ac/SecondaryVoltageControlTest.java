@@ -513,5 +513,16 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(4.93, b992);
         assertReactivePowerEquals(-9.172, g991.getTerminal());
         assertReactivePowerEquals(4.742, g992.getTerminal());
+
+        // With secondary voltage set to false, check that the remote control remains active
+        parametersExt.setSecondaryVoltageControl(false);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(12.8, b6);
+        assertVoltageEquals(5.52, b991);
+        // Compare voltage in pu
+        assertEquals(1.066, b6.getV() / b6.getVoltageLevel().getNominalV(), 1e-3);
+        assertEquals(0.92, b991.getV() / b991.getVoltageLevel().getNominalV(), 1e-3);
     }
 }
