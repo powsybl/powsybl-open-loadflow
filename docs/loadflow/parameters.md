@@ -157,7 +157,7 @@ alignment process that controls the voltage of a remote pilot point.
 This reactive power alignment process typically takes several minutes on the network.
 The default value is `false`.
 
-Please note that the secondaryVoltageControl implementation has the folowing limitation:
+Please note that the secondaryVoltageControl implementation has the folowing limitation:  
 Generators that belongs to a secondary voltage control zone should be in local voltage control only.
 If secondaryVoltageControl is set to `true`, generators that belongs to a secondary voltage control zone and that are configured 
 for remote voltage control are switched to local voltage control with an initial local target equals to remoteTarget / remoteNominalV * localNominalV . 
