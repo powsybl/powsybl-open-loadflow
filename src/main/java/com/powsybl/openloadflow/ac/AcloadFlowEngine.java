@@ -109,9 +109,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
         if (!canCheckUnrealistic && runningContext.lastUnrealisticStateFixingLoop == outerLoop && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED) {
-            // This is time to check the unrealistic state
-
-            if (solver.isStateUnrealisticForSolver(context.getNetwork().getReportNode())) {
+            // This is time to check the unrealistic state and create a report if needed
+            boolean isStateUnrealistic = solver.isStateUnrealisticForSolver(context.getNetwork().getReportNode());
+            if (isStateUnrealistic) {
                 runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE,
                                                                      runningContext.lastSolverResult.getIterations(),
                                                                      runningContext.lastSolverResult.getSlackBusActivePowerMismatch());
@@ -184,7 +184,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .filter(AcOuterLoop::canFixUnrealisticState)
                 .reduce((first, second) -> second).orElse(null);
 
-        // Don't check unrealitic voltage yet if an outerloop can fix them
+        // Don't check unreaslitic voltage yet if an outerloop can fix them
         boolean canCheckUnrealisticStates = runningContext.lastUnrealisticStateFixingLoop == null;
 
         // initial solver run
