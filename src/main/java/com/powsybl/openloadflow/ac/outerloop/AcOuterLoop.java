@@ -20,10 +20,10 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 public interface AcOuterLoop extends OuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext> {
 
     /**
-     * Returns true if the outerloop can fix irrealistic states. For an outerloop returning True, Irrealistic sates should not interrupt
+     * Returns true if the outerloop can fix unrealistic states. For an outerloop returning True, unrealistic states should not interrupt
      * the solving process before this outerloop is stabilized.
      */
-    default boolean canFixUnrealisticSate() {
+    default boolean canFixUnrealisticState() {
         return false;
     }
 

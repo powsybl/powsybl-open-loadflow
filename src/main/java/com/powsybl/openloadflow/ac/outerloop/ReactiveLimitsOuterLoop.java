@@ -237,9 +237,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             controllerBus.setV(1);
         }
 
-        // If Q not out of bounds, check V stator for remote coltage control, which is another criteria for blocking the group
+        // If Q not out of bounds, check V stator for remote voltage control, which is another criteria for blocking the group
         if (remainsPV && generatorRemoteController) {
-            // At this point Q boudns are not reached and is still larger than waht coauses irrealistic voltage.
+            // At this point Q bounds are not reached and is still larger than what causes unrealistic voltage.
             // Just deactivate remote tension control and set generation targetQ to initial value
             // Move V to a safe one for next computation
             if (isUnrealisticLowVoltage(controllerBus)) {
@@ -412,7 +412,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public boolean canFixUnrealisticSate() {
+    public boolean canFixUnrealisticState() {
         return true;
     }
 }
