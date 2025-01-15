@@ -155,8 +155,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     }
 
     @Override
-    public boolean canFixUnrealisticSate() {
-        // Irrealistic voltage can happen before tap discretization
+    public boolean canFixUnrealisticState() {
+        // Unrealistic voltage can happen before tap discretization
         return true;
     }
 }
