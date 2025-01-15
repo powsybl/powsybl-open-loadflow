@@ -184,7 +184,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .filter(AcOuterLoop::canFixUnrealisticState)
                 .reduce((first, second) -> second).orElse(null);
 
-        // Don't check unreaslitic voltage yet if an outerloop can fix them
+        // Don't check unrealistic voltage yet if an outer loop can fix them
         boolean canCheckUnrealisticStates = runningContext.lastUnrealisticStateFixingLoop == null;
 
         // initial solver run
