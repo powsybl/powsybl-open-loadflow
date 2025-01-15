@@ -23,6 +23,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -152,9 +153,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             return true;
         } else {
             if (throwsExceptionIfNoConvergence) {
-                throw new PowsyblException("Load flow ended with status " + result.getSolverStatus());
+                if (result.getSolverStatus() != AcSolverStatus.CONVERGED) {
+                    throw new PowsyblException("Load flow ended with solver status " + result.getSolverStatus());
+                } else if (result.getOuterLoopResult().status() != OuterLoopStatus.STABLE) {
+                    throw new PowsyblException("Load flow ended with outer loop status " + result.getOuterLoopResult().statusText());
+                } else {
+                    throw new PowsyblException("Load flow failed");
+                }
             } else {
-                LOGGER.warn("Load flow ended with status {}", result.getSolverStatus());
+                LOGGER.warn("Load flow failed with result={}", result);
                 return false;
             }
         }
