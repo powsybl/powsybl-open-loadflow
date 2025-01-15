@@ -153,12 +153,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             return true;
         } else {
             if (throwsExceptionIfNoConvergence) {
-                if (result.getSolverStatus() != AcSolverStatus.CONVERGED) {
-                    throw new PowsyblException("Load flow ended with solver status " + result.getSolverStatus());
-                } else if (result.getOuterLoopResult().status() != OuterLoopStatus.STABLE) {
+                if (result.getOuterLoopResult().status() != OuterLoopStatus.STABLE) {
                     throw new PowsyblException("Load flow ended with outer loop status " + result.getOuterLoopResult().statusText());
                 } else {
-                    throw new PowsyblException("Load flow failed");
+                    throw new PowsyblException("Load flow ended with solver status " + result.getSolverStatus());
                 }
             } else {
                 LOGGER.warn("Load flow failed with result={}", result);
