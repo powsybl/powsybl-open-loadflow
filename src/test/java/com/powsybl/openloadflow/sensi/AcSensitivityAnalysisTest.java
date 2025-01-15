@@ -1526,19 +1526,20 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 "g1",
                 false,
                 ContingencyContext.all()));
-
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0");
         sensiParameters.getLoadFlowParameters().setDistributedSlack(true);
 
         OpenLoadFlowParameters olfParameters = sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class);
         olfParameters.setMaxNewtonRaphsonIterations(1);
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertEquals("Load flow ended with solver status MAX_ITERATION_REACHED", e.getCause().getMessage());
 
         olfParameters.setMaxNewtonRaphsonIterations(10)
                 .setSlackBusPMaxMismatch(0.00001)
                 .setMaxOuterLoopIterations(1);
-        e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertEquals("Load flow ended with outer loop status UNSTABLE", e.getCause().getMessage());
     }
 }
