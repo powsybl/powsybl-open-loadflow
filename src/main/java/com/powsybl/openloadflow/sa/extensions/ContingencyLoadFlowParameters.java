@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa.extensions;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -34,12 +35,24 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
         return Optional.ofNullable(distributedSlack);
     }
 
+    public boolean isDistributedSlack(LoadFlowParameters loadFlowParameters) {
+        return distributedSlack != null ? distributedSlack : loadFlowParameters.isDistributedSlack();
+    }
+
     public Optional<Boolean> isAreaInterchangeControl() {
         return Optional.ofNullable(areaInterchangeControl);
     }
 
+    public boolean isAreaInterchangeControl(OpenLoadFlowParameters loadFlowParametersExt) {
+        return areaInterchangeControl != null ? areaInterchangeControl : loadFlowParametersExt.isAreaInterchangeControl();
+    }
+
     public Optional<LoadFlowParameters.BalanceType> getBalanceType() {
         return Optional.ofNullable(balanceType);
+    }
+
+    public LoadFlowParameters.BalanceType getBalanceType(LoadFlowParameters loadFlowParameters) {
+        return balanceType != null ? balanceType : loadFlowParameters.getBalanceType();
     }
 
     public ContingencyLoadFlowParameters setDistributedSlack(boolean distributedSlack) {
