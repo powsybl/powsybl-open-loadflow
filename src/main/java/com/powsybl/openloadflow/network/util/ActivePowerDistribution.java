@@ -86,8 +86,10 @@ public final class ActivePowerDistribution {
             iteration++;
         }
 
+        // Identify if injections moved significantly, used e.g. to establish stable/unstable outer loop status.
+        // The 0.9 magic factor is to handle potential rounding issues.
         final boolean movedBuses = initialP.entrySet().stream()
-                .anyMatch(e -> Math.abs(e.getKey().getTargetP() - e.getValue()) > P_RESIDUE_EPS);
+                .mapToDouble(e -> Math.abs(e.getKey().getTargetP() - e.getValue())).sum() > P_RESIDUE_EPS * 0.9;
 
         return new Result(iteration, remainingMismatch, movedBuses);
     }

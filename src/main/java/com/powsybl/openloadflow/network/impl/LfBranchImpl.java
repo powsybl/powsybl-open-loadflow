@@ -237,11 +237,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, branch.getActivePowerLimits1().orElse(null), limitReductionManager);
+                return getLimits1(type, branch::getActivePowerLimits1, limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null), limitReductionManager);
+                return getLimits1(type, branch::getApparentPowerLimits1, limitReductionManager);
             case CURRENT:
-                return getLimits1(type, branch.getCurrentLimits1().orElse(null), limitReductionManager);
+                return getLimits1(type, branch::getCurrentLimits1, limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -253,11 +253,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, branch.getActivePowerLimits2().orElse(null), limitReductionManager);
+                return getLimits2(type, branch::getActivePowerLimits2, limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null), limitReductionManager);
+                return getLimits2(type, branch::getApparentPowerLimits2, limitReductionManager);
             case CURRENT:
-                return getLimits2(type, branch.getCurrentLimits2().orElse(null), limitReductionManager);
+                return getLimits2(type, branch::getCurrentLimits2, limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
