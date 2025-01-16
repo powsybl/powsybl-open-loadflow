@@ -671,15 +671,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
-    protected static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
-                                           OpenLoadFlowParameters openLoadFlowParameters, ContingencyLoadFlowParameters nullableContingencyLfParameters) {
+    protected static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, ContingencyLoadFlowParameters nullableContingencyLfParameters) {
         ContingencyLoadFlowParameters contingencyLfParameters = Objects.requireNonNullElse(nullableContingencyLfParameters, new ContingencyLoadFlowParameters());
-        boolean distributedSlack = contingencyLfParameters.isDistributedSlack().orElse(loadFlowParameters.isDistributedSlack());
-        boolean areaInterchangeControl = contingencyLfParameters.isAreaInterchangeControl().orElse(openLoadFlowParameters.isAreaInterchangeControl());
-        LoadFlowParameters.BalanceType balanceType = contingencyLfParameters.getBalanceType().orElse(loadFlowParameters.getBalanceType());
-
-        if ((distributedSlack || areaInterchangeControl) && Math.abs(mismatch) > 0) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
+        if ((contingencyLfParameters.isDistributedSlack(loadFlowParameters) || contingencyLfParameters.isAreaInterchangeControl(openLoadFlowParameters)) && Math.abs(mismatch) > 0) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(contingencyLfParameters.getBalanceType(loadFlowParameters), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
             activePowerDistribution.run(network, mismatch);
         }
     }
