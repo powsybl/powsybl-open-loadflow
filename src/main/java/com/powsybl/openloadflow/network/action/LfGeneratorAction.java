@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.GeneratorAction;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -25,7 +24,7 @@ public class LfGeneratorAction extends AbstractLfAction<GeneratorAction> {
     }
 
     @Override
-    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters, GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         LfGenerator generator = network.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
             OptionalDouble activePowerValue = action.getActivePowerValue();

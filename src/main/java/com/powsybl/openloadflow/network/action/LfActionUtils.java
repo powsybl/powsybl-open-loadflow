@@ -24,7 +24,7 @@ public final class LfActionUtils {
     private LfActionUtils() {
     }
 
-    public static AbstractLfAction<?> createLfAction(Action action, Network network, boolean breakers, LfNetwork lfNetwork) {
+    public static LfAction createLfAction(Action action, Network network, boolean breakers, LfNetwork lfNetwork) {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         return switch (action.getType()) {
@@ -47,23 +47,23 @@ public final class LfActionUtils {
         };
     }
 
-    public static void applyListOfActions(List<AbstractLfAction<?>> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
+    public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
         // first apply action modifying connectivity
-        List<AbstractLfAction<?>> branchActions = actions.stream()
+        List<LfAction> branchActions = actions.stream()
             .filter(action -> action instanceof AbstractLfBranchAction<?>)
             .toList();
-        updateConnectivity(branchActions, network, contingency, networkParameters);
+        updateConnectivity(branchActions, network, contingency);
 
         // then process remaining changes of actions
         actions.stream()
             .filter(action -> !(action instanceof AbstractLfBranchAction<?>))
-            .forEach(action -> action.apply(network, contingency, networkParameters, network.getConnectivity()));
+            .forEach(action -> action.apply(network, contingency, networkParameters));
     }
 
-    private static void updateConnectivity(List<AbstractLfAction<?>> branchActions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
+    private static void updateConnectivity(List<LfAction> branchActions, LfNetwork network, LfContingency contingency) {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
@@ -73,7 +73,7 @@ public final class LfActionUtils {
         // update connectivity according to post action state
         connectivity.startTemporaryChanges();
 
-        branchActions.forEach(action -> ((AbstractLfBranchAction<?>) action).applyOnConnectivity(connectivity));
+        branchActions.forEach(action -> ((AbstractLfBranchAction<?>) action).applyOnConnectivity(network, connectivity));
 
         updateBusesAndBranchStatus(connectivity);
 

@@ -26,7 +26,7 @@ import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.AbstractLfAction;
+import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -458,10 +458,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
-    protected static Map<String, AbstractLfAction<?>> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
+    protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
         return actions.stream()
                 .map(action -> LfActionUtils.createLfAction(action, network, parameters.isBreakers(), lfNetwork))
-                .collect(Collectors.toMap(AbstractLfAction::getId, Function.identity()));
+                .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
     protected static Map<String, Action> indexActionsById(List<Action> actions) {
@@ -626,7 +626,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-        Map<String, AbstractLfAction<?>> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters()); // only convert needed actions
+        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters()); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
@@ -736,7 +736,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                                 Map<String, AbstractLfAction<?>> lfActionById, boolean createResultExtension, LfContingency contingency,
+                                                                 Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
                                                                  LimitViolationsResult postContingencyLimitViolations, LfNetworkParameters networkParameters,
                                                                  List<LimitReduction> limitReductions) {
         OperatorStrategyResult operatorStrategyResult = null;
@@ -804,19 +804,19 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          List<String> actionsIds,
                                                          LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                         Map<String, AbstractLfAction<?>> lfActionById, boolean createResultExtension, LfContingency contingency,
+                                                         Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
                                                          LfNetworkParameters networkParameters, List<LimitReduction> limitReductions) {
         logActionStart(network, operatorStrategy);
 
         // get LF action for this operator strategy, as all actions have been previously checked against IIDM
         // network, an empty LF action means it is for another component (so another LF network) so we can
         // skip it
-        List<? extends AbstractLfAction<?>> operatorStrategyLfActions = actionsIds.stream()
+        List<LfAction> operatorStrategyLfActions = actionsIds.stream()
                 .map(lfActionById::get)
                 .filter(Objects::nonNull)
                 .toList();
 
-        LfActionUtils.applyListOfActions((List<AbstractLfAction<?>>) operatorStrategyLfActions, network, contingency, networkParameters);
+        LfActionUtils.applyListOfActions(operatorStrategyLfActions, network, contingency, networkParameters);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 

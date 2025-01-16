@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 
@@ -32,7 +31,7 @@ public class LfLoadAction extends AbstractLfAction<LoadAction> {
     }
 
     @Override
-    public boolean apply(LfNetwork lfNetwork, LfContingency contingency, LfNetworkParameters networkParameters, GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean apply(LfNetwork lfNetwork, LfContingency contingency, LfNetworkParameters networkParameters) {
         Load load = network.getLoad(action.getLoadId());
         Terminal terminal = load.getTerminal();
         Bus bus = Networks.getBus(terminal, breakers);

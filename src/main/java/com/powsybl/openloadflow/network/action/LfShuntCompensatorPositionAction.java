@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.ShuntCompensatorPositionAction;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import org.slf4j.Logger;
@@ -26,7 +25,7 @@ public class LfShuntCompensatorPositionAction extends AbstractLfAction<ShuntComp
     }
 
     @Override
-    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters, GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         LfShunt shunt = network.getShuntById(action.getShuntCompensatorId());
         if (shunt instanceof LfShuntImpl) { // no svc here
             if (shunt.getVoltageControl().isPresent()) {

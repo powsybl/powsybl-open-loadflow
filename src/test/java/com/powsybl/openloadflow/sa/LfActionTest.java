@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.AbstractLfAction;
+import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.action.LfSwitchAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -69,7 +69,7 @@ class LfActionTest extends AbstractSerDeTest {
         topoConfig.getSwitchesToOpen().add(network.getSwitch("C"));
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), topoConfig, ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            AbstractLfAction<?> lfAction = LfActionUtils.createLfAction(switchAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            LfAction lfSwitchAction = LfActionUtils.createLfAction(switchAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
             PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
@@ -77,28 +77,27 @@ class LfActionTest extends AbstractSerDeTest {
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
                     Collections.singletonList(contingency), new LfTopoConfig(), creationParameters).get(0);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
-                lfAction.apply(lfNetwork, lfContingency, acParameters.getNetworkParameters(), lfNetwork.getConnectivity());
+                lfSwitchAction.apply(lfNetwork, lfContingency, acParameters.getNetworkParameters());
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());
-                LfSwitchAction lfSwitchAction = (LfSwitchAction) lfAction;
-                assertEquals("C", lfSwitchAction.getDisabledBranch().getId());
-                assertNull(lfSwitchAction.getEnabledBranch());
+                assertEquals("C", ((LfSwitchAction) lfSwitchAction).getDisabledBranch().getId());
+                assertNull(((LfSwitchAction) lfSwitchAction).getEnabledBranch());
             });
 
-            AbstractLfAction<?> lfSwitchAction = LfActionUtils.createLfAction(new SwitchAction("switchAction", "S", true),
+            LfAction lfInvalidSwitchAction = LfActionUtils.createLfAction(new SwitchAction("switchAction", "S", true),
                 network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
-            AbstractLfAction<?> lfTerminalsConnectionAction = LfActionUtils.createLfAction(new TerminalsConnectionAction("A line action", "x", true),
+            LfAction lfInvalidTerminalsConnectionAction = LfActionUtils.createLfAction(new TerminalsConnectionAction("A line action", "x", true),
                 network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
-            AbstractLfAction<?> lfPhaseTapChangerTapPositionAction = LfActionUtils.createLfAction(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3),
+            LfAction lfInvalidPhaseTapChangerTapPositionAction = LfActionUtils.createLfAction(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3),
                 network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
 
-            assertFalse(lfSwitchAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity()));
-            assertFalse(lfTerminalsConnectionAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity()));
-            assertFalse(lfPhaseTapChangerTapPositionAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity()));
+            assertFalse(lfInvalidSwitchAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+            assertFalse(lfInvalidTerminalsConnectionAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+            assertFalse(lfInvalidPhaseTapChangerTapPositionAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
 
             var lineAction = new TerminalsConnectionAction("A line action", "L1", ThreeSides.ONE, false);
-            AbstractLfAction<?> lfTerminalAction = LfActionUtils.createLfAction(lineAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            LfAction lfTerminalAction = LfActionUtils.createLfAction(lineAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
             assertEquals("Terminals connection action: only open or close branch at both sides is supported yet.",
-                assertThrows(UnsupportedOperationException.class, () -> lfTerminalAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity())).getMessage());
+                assertThrows(UnsupportedOperationException.class, () -> lfTerminalAction.apply(lfNetwork, null, acParameters.getNetworkParameters())).getMessage());
         }
     }
 
@@ -116,8 +115,8 @@ class LfActionTest extends AbstractSerDeTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            AbstractLfAction<?> lfGeneratorAction = LfActionUtils.createLfAction(generatorAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
-            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> lfGeneratorAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity()));
+            LfAction lfGeneratorAction = LfActionUtils.createLfAction(generatorAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> lfGeneratorAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
             assertEquals("Generator action on G : configuration not supported yet.", e.getMessage());
         }
     }
@@ -141,8 +140,8 @@ class LfActionTest extends AbstractSerDeTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            AbstractLfAction<?> lfAction = LfActionUtils.createLfAction(generatorAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
-            lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity());
+            LfAction lfAction = LfActionUtils.createLfAction(generatorAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters());
             assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
             assertEquals(genId, generatorAction.getGeneratorId());
             assertEquals(oldTargetP, network.getGenerator(genId).getTargetP());
@@ -170,8 +169,8 @@ class LfActionTest extends AbstractSerDeTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            AbstractLfAction<?> lfAction = LfActionUtils.createLfAction(hvdcAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
-            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity()));
+            LfAction lfAction = LfActionUtils.createLfAction(hvdcAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
             assertEquals("Hvdc action: line is already in AC emulation, not supported yet.", e.getMessage());
         }
     }
@@ -201,11 +200,11 @@ class LfActionTest extends AbstractSerDeTest {
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
 
-            AbstractLfAction<?> lfAction = LfActionUtils.createLfAction(hvdcAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
-            assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity()));
+            LfAction lfHvdcAction = LfActionUtils.createLfAction(hvdcAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            assertFalse(lfHvdcAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
 
-            AbstractLfAction<?> lfAction2 = LfActionUtils.createLfAction(hvdcAction2, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
-            assertFalse(lfAction2.apply(lfNetwork, null, acParameters.getNetworkParameters(), lfNetwork.getConnectivity()));
+            LfAction lfHvdcAction2 = LfActionUtils.createLfAction(hvdcAction2, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            assertFalse(lfHvdcAction2.apply(lfNetwork, null, acParameters.getNetworkParameters()));
         }
     }
 }

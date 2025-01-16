@@ -49,32 +49,38 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
      * Standalone apply
      */
     @Override
-    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters, GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         boolean found = findEnabledDisabledBranches(network);
-        GraphConnectivity<LfBus, LfBranch> connectivityTmp = network.getConnectivity();
+        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
-        connectivityTmp.startTemporaryChanges();
+        connectivity.startTemporaryChanges();
         if (contingency != null) {
-            contingency.getDisabledNetwork().getBranches().forEach(connectivityTmp::removeEdge);
+            contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
         }
 
         // update connectivity according to post action state
-        connectivityTmp.startTemporaryChanges();
+        connectivity.startTemporaryChanges();
 
-        applyOnConnectivity(connectivityTmp);
-        updateBusesAndBranchStatus(connectivityTmp);
+        applyOnConnectivity(network, connectivity);
+        updateBusesAndBranchStatus(connectivity);
 
         // reset connectivity to discard post contingency connectivity and post action connectivity
-        connectivityTmp.undoTemporaryChanges();
-        connectivityTmp.undoTemporaryChanges();
+        connectivity.undoTemporaryChanges();
+        connectivity.undoTemporaryChanges();
         return found;
     }
 
     /**
-     * Optimized apply on an existing connectivity (to apply several branch actions together)
+     * Optimized apply on an existing connectivity (to apply several branch actions at the same time)
      */
-    public void applyOnConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean applyOnConnectivity(LfNetwork network, GraphConnectivity<LfBus, LfBranch> connectivity) {
+        boolean found = findEnabledDisabledBranches(network);
+        updateConnectivity(connectivity);
+        return found;
+    }
+
+    private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         if (disabledBranch != null && disabledBranch.getBus1() != null && disabledBranch.getBus2() != null) {
             connectivity.removeEdge(disabledBranch);
         }

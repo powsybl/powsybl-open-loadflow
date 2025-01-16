@@ -8,13 +8,11 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.Action;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.network.*;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
-public abstract class AbstractLfAction<A extends Action> {
+public abstract class AbstractLfAction<A extends Action> implements LfAction {
 
     protected final String id;
 
@@ -25,9 +23,8 @@ public abstract class AbstractLfAction<A extends Action> {
         this.action = action;
     }
 
+    @Override
     public String getId() {
         return id;
     }
-
-    public abstract boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters, GraphConnectivity<LfBus, LfBranch> connectivity);
 }

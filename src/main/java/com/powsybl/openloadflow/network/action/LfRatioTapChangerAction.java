@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.RatioTapChangerTapPositionAction;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +24,7 @@ public class LfRatioTapChangerAction extends AbstractLfTapChangerAction<RatioTap
     }
 
     @Override
-    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters, GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         if (this.branch != null) {
             if (branch.getVoltageControl().isPresent()) {
                 LOGGER.warn("Ratio tap changer tap position action: voltage control is present on the tap changer, tap position could be overriden.");

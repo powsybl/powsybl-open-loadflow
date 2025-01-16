@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.HvdcAction;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +26,7 @@ public class LfHvdcAction extends AbstractLfAction<HvdcAction> {
     }
 
     @Override
-    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters, GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         LfHvdc lfHvdc = network.getHvdcById(action.getHvdcId());
         Optional<Boolean> acEmulationEnabled = action.isAcEmulationEnabled();
         if (lfHvdc != null && acEmulationEnabled.isPresent()) {
