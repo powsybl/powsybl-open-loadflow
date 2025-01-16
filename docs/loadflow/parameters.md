@@ -378,13 +378,23 @@ This parameter allows to disable the voltage control of generators which `target
 This parameter allows to configure both the list of outer loops that can be executed and their explicit execution order.
 Each outer loop name specified in the list must be unique and match the `NAME` attribute of the respective outer loop.
 
-By default, this parameter is set to `null`, and the activated outer loops are executed in a default order (defined in DefaultAcOuterLoopConfig or DefaultDcOuterLoopConfig).
+By default, this parameter is set to `null`, and the activated outer loops are executed in a default order
+(as defined in `DefaultAcOuterLoopConfig` for AC Load Flow and `DefaultDcOuterLoopConfig` for DC Load Flow).
 
-The supported outer loop names for AC load flow are : "IncrementalPhaseControl", "DistributedSlack", "IncrementalShuntVoltageControl", "IncrementalTransformerVoltageControl", "VoltageMonitoring",
-"PhaseControl", "ReactiveLimits", "SecondaryVoltageControl", "ShuntVoltageControl", "SimpleTransformerVoltageControl", "TransformerVoltageControl", "AutomationSystem",
-"IncrementalTransformerReactivePowerControl", "AreaInterchangeControl".
+The supported outer loop names for AC load flow and their default order are:
+1. `DistributedSlack` / `AreaInterchangeControl`
+2. `SecondaryVoltageControl`
+3. `VoltageMonitoring`
+4. `ReactiveLimits`
+5. `PhaseControl` / `IncrementalPhaseControl`
+6. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl`
+7. `IncrementalTransformerReactivePowerControl`
+8. `ShuntVoltageControl` / `IncrementalShuntVoltageControl`
+9. `AutomationSystem`
 
-And for DC load flow : "IncrementalPhaseControl", "AreaInterchangeControl".
+And for DC load flow:
+1. `IncrementalPhaseControl`
+2. `AreaInterchangeControl`
 
 **linePerUnitMode**  
 This parameter defines how lines ending in different nominal voltages at both sides are perunit-ed.
