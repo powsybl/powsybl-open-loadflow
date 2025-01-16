@@ -207,4 +207,48 @@ class LfActionTest extends AbstractSerDeTest {
             assertFalse(lfHvdcAction2.apply(lfNetwork, null, acParameters.getNetworkParameters()));
         }
     }
+
+    @Test
+    void testLfAreaInterchangeTargetAction() {
+
+        AreaInterchangeTargetAction targetAction = new AreaInterchangeTargetActionBuilder()
+            .withId("action")
+            .withAreaId("a1")
+            .withTarget(20.0)
+            .build();
+
+        AreaInterchangeTargetAction invalidTargetAction = new AreaInterchangeTargetActionBuilder()
+            .withId("action")
+            .withAreaId("DUMMMY")
+            .withTarget(20.0)
+            .build();
+
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
+
+        var matrixFactory = new DenseMatrixFactory();
+
+        // With area interchange target control enabled
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+            new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        acParameters.getNetworkParameters().setAreaInterchangeControl(true);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+
+            LfAction lfAreaTargetAction = LfActionUtils.createLfAction(targetAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            assertTrue(lfAreaTargetAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+
+            LfAction lfAreaTargetAction2 = LfActionUtils.createLfAction(invalidTargetAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            assertFalse(lfAreaTargetAction2.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+        }
+
+        // With area interchange target control disabled
+        acParameters.getNetworkParameters().setAreaInterchangeControl(false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            acParameters.getNetworkParameters().setAreaInterchangeControl(false);
+
+            LfAction lfAreaTargetAction = LfActionUtils.createLfAction(targetAction, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
+            assertFalse(lfAreaTargetAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+        }
+    }
 }
