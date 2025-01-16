@@ -15,6 +15,7 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -45,12 +46,25 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
         ContingencyLoadFlowParameters extension = contingency.getExtension(ContingencyLoadFlowParameters.class);
         assertEquals(extension, contingency.getExtensionByName("contingency-load-flow-parameters"));
 
+        // test base getters
         assertFalse(extension.isDistributedSlack().isPresent());
         assertTrue(extension.isAreaInterchangeControl().isPresent());
         assertTrue(extension.getBalanceType().isPresent());
 
         assertTrue(extension.isAreaInterchangeControl().get());
         assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, extension.getBalanceType().get());
+
+        // test getters with default values
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
+
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(loadFlowParameters)
+                .setAreaInterchangeControl(false);
+
+        assertTrue(extension.isDistributedSlack(loadFlowParameters));
+        assertTrue(extension.isAreaInterchangeControl(openLoadFlowParameters));
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, extension.getBalanceType(loadFlowParameters));
     }
 
     @Test
