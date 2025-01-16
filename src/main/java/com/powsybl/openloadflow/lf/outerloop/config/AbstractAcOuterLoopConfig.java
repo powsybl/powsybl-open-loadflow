@@ -20,7 +20,7 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
+public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAcOuterLoopConfig.class);
 
@@ -136,7 +136,7 @@ abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    static List<AcOuterLoop> filterInconsistentOuterLoops(List<AcOuterLoop> outerLoops) {
+    public static List<AcOuterLoop> filterInconsistentOuterLoops(List<AcOuterLoop> outerLoops) {
         if (outerLoops.stream().anyMatch(AcAreaInterchangeControlOuterLoop.class::isInstance)) {
             return outerLoops.stream().filter(o -> {
                 if (o instanceof DistributedSlackOuterLoop) {
