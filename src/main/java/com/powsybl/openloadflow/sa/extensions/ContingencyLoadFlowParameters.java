@@ -12,7 +12,6 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -55,18 +54,18 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
         return balanceType != null ? balanceType : loadFlowParameters.getBalanceType();
     }
 
-    public ContingencyLoadFlowParameters setDistributedSlack(boolean distributedSlack) {
+    public ContingencyLoadFlowParameters setDistributedSlack(Boolean distributedSlack) {
         this.distributedSlack = distributedSlack;
         return this;
     }
 
-    public ContingencyLoadFlowParameters setAreaInterchangeControl(boolean areaInterchangeControl) {
+    public ContingencyLoadFlowParameters setAreaInterchangeControl(Boolean areaInterchangeControl) {
         this.areaInterchangeControl = areaInterchangeControl;
         return this;
     }
 
     public ContingencyLoadFlowParameters setBalanceType(LoadFlowParameters.BalanceType balanceType) {
-        this.balanceType = Objects.requireNonNull(balanceType);
+        this.balanceType = balanceType;
         return this;
     }
 }
