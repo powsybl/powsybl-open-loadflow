@@ -87,9 +87,13 @@ the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) sp
 - `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
 
 To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
-The behavior is as follows:
+
+The behaviour is not implemented yet.
+It will be as follows:
 - When the extension is added: The specified parameters override the corresponding SA input parameters.
 - When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
 
 Note that if the operator strategies are defined for the contingency, the overridden load flow parameters will apply to
 the operator strategies actions simulation too.
+
+This extension does not override any parameter in case of a sensitivity analysis.
