@@ -13,9 +13,11 @@ import com.powsybl.commons.json.JsonUtil;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -35,26 +37,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
 
-    @Test
-    void testContingencyLoadFlowParametersExtension() {
-        Contingency contingency = new Contingency("L2", new BranchContingency("L2"));
-        ContingencyLoadFlowParameters contingencyLoadFlowParameters = new ContingencyLoadFlowParameters()
+    Contingency contingency;
+    ContingencyLoadFlowParameters contingencyLoadFlowParameters;
+
+    @BeforeEach
+    void setUpContingency() {
+        contingency = new Contingency("L2", new BranchContingency("L2"));
+        contingencyLoadFlowParameters = new ContingencyLoadFlowParameters()
                 .setAreaInterchangeControl(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         contingency.addExtension(ContingencyLoadFlowParameters.class, contingencyLoadFlowParameters);
+    }
 
-        ContingencyLoadFlowParameters extension = contingency.getExtension(ContingencyLoadFlowParameters.class);
-        assertEquals(extension, contingency.getExtensionByName("contingency-load-flow-parameters"));
+    @Test
+    void testContingencyLoadFlowParametersExtension() {
+        assertEquals(contingencyLoadFlowParameters, contingency.getExtensionByName("contingency-load-flow-parameters"));
 
         // test base getters
-        assertFalse(extension.isDistributedSlack().isPresent());
-        assertTrue(extension.isAreaInterchangeControl().isPresent());
-        assertTrue(extension.getBalanceType().isPresent());
+        assertFalse(contingencyLoadFlowParameters.isDistributedSlack().isPresent());
+        assertTrue(contingencyLoadFlowParameters.isAreaInterchangeControl().isPresent());
+        assertTrue(contingencyLoadFlowParameters.getBalanceType().isPresent());
 
-        assertTrue(extension.isAreaInterchangeControl().get());
-        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, extension.getBalanceType().get());
+        assertTrue(contingencyLoadFlowParameters.isAreaInterchangeControl().get());
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, contingencyLoadFlowParameters.getBalanceType().get());
+    }
 
-        // test getters with default values
+    @Test
+    void testContingencyLoadFlowParametersExtensionDefaults() {
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
@@ -62,23 +71,36 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(loadFlowParameters)
                 .setAreaInterchangeControl(false);
 
-        assertTrue(extension.isDistributedSlack(loadFlowParameters));
-        assertTrue(extension.isAreaInterchangeControl(openLoadFlowParameters));
-        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, extension.getBalanceType(loadFlowParameters));
+        assertTrue(contingencyLoadFlowParameters.isDistributedSlack(loadFlowParameters));
+        assertTrue(contingencyLoadFlowParameters.isAreaInterchangeControl(openLoadFlowParameters));
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, contingencyLoadFlowParameters.getBalanceType(loadFlowParameters));
+
+        //switch between overriden and default values
+
+        contingencyLoadFlowParameters.setDistributedSlack(true);
+        contingencyLoadFlowParameters.setAreaInterchangeControl(null);
+        contingencyLoadFlowParameters.setBalanceType(null);
+
+        assertFalse(contingencyLoadFlowParameters.isAreaInterchangeControl(openLoadFlowParameters));
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN, contingencyLoadFlowParameters.getBalanceType(loadFlowParameters));
     }
 
     @Test
     void testContingencyLoadFlowParametersExtensionJson() throws IOException {
-        Contingency contingency = new Contingency("L2", new BranchContingency("L2"));
-        ContingencyLoadFlowParameters contingencyLoadFlowParameters = new ContingencyLoadFlowParameters().setDistributedSlack(false)
-                                                                                                            .setAreaInterchangeControl(true)
-                                                                                                            .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        contingencyLoadFlowParameters.setDistributedSlack(false);
         contingency.addExtension(ContingencyLoadFlowParameters.class, contingencyLoadFlowParameters);
         assertEquals(ContingencyLoadFlowParameters.class, new ContingencyLoadFlowParametersJsonSerializer().getExtensionClass());
-        roundTripTest(contingency, OpenSecurityAnalysisExtensionsTest::writeContingency, OpenSecurityAnalysisExtensionsTest::readContingency, "/contingencies.json");
+
+        ContingencyLoadFlowParameters contingencyLoadFlowParameters2 = new ContingencyLoadFlowParameters();
+        Contingency contingency2 = new Contingency("L5", new BranchContingency("L5"));
+        contingency2.addExtension(ContingencyLoadFlowParameters.class, contingencyLoadFlowParameters2);
+
+        DefaultContingencyList contingencyList = new DefaultContingencyList(contingency, contingency2);
+
+        roundTripTest(contingencyList, OpenSecurityAnalysisExtensionsTest::writeContingency, OpenSecurityAnalysisExtensionsTest::readContingencyList, "/contingencies.json");
     }
 
-    public static Contingency readContingency(Path jsonFile) {
+    public static DefaultContingencyList readContingencyList(Path jsonFile) {
         Objects.requireNonNull(jsonFile);
 
         try (InputStream is = Files.newInputStream(jsonFile)) {
@@ -86,14 +108,14 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
             ContingencyJsonModule module = new ContingencyJsonModule();
             objectMapper.registerModule(module);
 
-            return objectMapper.readValue(is, Contingency.class);
+            return objectMapper.readValue(is, DefaultContingencyList.class);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    public static void writeContingency(Contingency contingency, Path jsonFile) {
-        Objects.requireNonNull(contingency);
+    public static void writeContingency(DefaultContingencyList contingencyList, Path jsonFile) {
+        Objects.requireNonNull(contingencyList);
         Objects.requireNonNull(jsonFile);
 
         try (OutputStream os = Files.newOutputStream(jsonFile)) {
@@ -102,7 +124,7 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
             mapper.registerModule(module);
 
             ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
-            writer.writeValue(os, contingency);
+            writer.writeValue(os, contingencyList);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
