@@ -37,6 +37,14 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         this.contingency = Objects.requireNonNull(contingency);
     }
 
+    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension,
+                                        BranchResultCreator branchResultsCreator, PreContingencyNetworkResult preContingencyMonitorInfos,
+                                        Contingency contingency) {
+        super(network, monitorIndex, createResultExtension, branchResultsCreator);
+        this.preContingencyMonitorInfos = Objects.requireNonNull(preContingencyMonitorInfos);
+        this.contingency = Objects.requireNonNull(contingency);
+    }
+
     @Override
     protected void clear() {
         super.clear();
@@ -60,7 +68,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                     }
                 }
             }
-            branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
+            branchResults.addAll(branchResultsCreator.create(branch, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
         });
     }
 
