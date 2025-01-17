@@ -26,6 +26,8 @@ import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Lists2;
@@ -450,6 +452,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case AreaInterchangeTargetAction.NAME: {
+                    AreaInterchangeTargetAction areaInterchangeAction = (AreaInterchangeTargetAction) action;
+                    if (network.getArea(areaInterchangeAction.getAreaId()) == null) {
+                        throw new PowsyblException("Area '" + areaInterchangeAction.getAreaId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
@@ -458,8 +468,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
         return actions.stream()
-                .map(action -> LfAction.create(action, lfNetwork, network, parameters.isBreakers()))
-                .flatMap(Optional::stream)
+                .map(action -> LfActionUtils.createLfAction(action, network, parameters.isBreakers(), lfNetwork))
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
@@ -815,7 +824,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .toList();
 
-        LfAction.apply(operatorStrategyLfActions, network, contingency, networkParameters);
+        LfActionUtils.applyListOfActions(operatorStrategyLfActions, network, contingency, networkParameters);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
