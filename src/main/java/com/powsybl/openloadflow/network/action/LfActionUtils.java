@@ -12,6 +12,8 @@ import com.powsybl.action.*;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -23,6 +25,8 @@ import static com.powsybl.openloadflow.network.action.AbstractLfBranchAction.upd
  * @author Jean-Luc Bouchot {@literal <jlbouchot at gmail.com>}
  */
 public final class LfActionUtils {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfActionUtils.class);
 
     private LfActionUtils() {
     }
@@ -63,7 +67,11 @@ public final class LfActionUtils {
         // then process remaining changes of actions
         actions.stream()
             .filter(action -> !(action instanceof AbstractLfBranchAction<?>))
-            .forEach(action -> action.apply(network, contingency, networkParameters));
+            .forEach(action -> {
+                if (!action.apply(network, contingency, networkParameters)) {
+                    LOGGER.warn("Action {} : may not have been applied successfully.", action.getId());
+                }
+            });
     }
 
     private static void updateConnectivity(List<LfAction> branchActions, LfNetwork network, LfContingency contingency) {
@@ -76,7 +84,11 @@ public final class LfActionUtils {
         // update connectivity according to post action state
         connectivity.startTemporaryChanges();
 
-        branchActions.forEach(action -> ((AbstractLfBranchAction<?>) action).applyOnConnectivity(network, connectivity));
+        branchActions.forEach(action -> {
+            if (((AbstractLfBranchAction<?>) action).applyOnConnectivity(network, connectivity)) {
+                LOGGER.warn("Action {} : may not have been applied successfully.", action.getId());
+            }
+        });
 
         updateBusesAndBranchStatus(connectivity);
 

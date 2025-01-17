@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  */
 public class LfAreaInterchangeTargetAction extends AbstractLfAction<AreaInterchangeTargetAction> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AreaInterchangeTargetAction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfAreaInterchangeTargetAction.class);
 
     public LfAreaInterchangeTargetAction(String id, AreaInterchangeTargetAction action) {
         super(id, action);
