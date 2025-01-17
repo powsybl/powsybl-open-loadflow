@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.AreaInterchangeTargetAction;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,7 @@ public class LfAreaInterchangeTargetAction extends AbstractLfAction<AreaIntercha
         }
         LfArea area = network.getAreaById(action.getAreaId());
         if (area != null) {
-            area.setInterchangeTarget(action.getInterchangeTarget());
+            area.setInterchangeTarget(action.getInterchangeTarget() / PerUnit.SB);
             return true;
         }
         return false;

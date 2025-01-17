@@ -452,6 +452,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case AreaInterchangeTargetAction.NAME: {
+                    AreaInterchangeTargetAction areaInterchangeAction = (AreaInterchangeTargetAction) action;
+                    if (network.getArea(areaInterchangeAction.getAreaId()) == null) {
+                        throw new PowsyblException("Area '" + areaInterchangeAction.getAreaId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
