@@ -375,26 +375,39 @@ The default value is `Q_EQUAL_PROPORTION`.
 This parameter allows to disable the voltage control of generators which `targetP` is lower than `minP` or greater than `maxP`. The default value is `false`.
 
 **outerLoopNames**  
+
+> **Note**: This is an advanced parameter.
+> Unless you have specific needs, use the default outer loop order built-in PowSyBl Open Load Flow.
+
 This parameter allows to configure both the list of outer loops that can be executed and their explicit execution order.
 Each outer loop name specified in the list must be unique and match the `NAME` attribute of the respective outer loop.
 
 By default, this parameter is set to `null`, and the activated outer loops are executed in a default order
 (as defined in `DefaultAcOuterLoopConfig` for AC Load Flow and `DefaultDcOuterLoopConfig` for DC Load Flow).
 
-The supported outer loop names for AC load flow and their default order are:
-1. `DistributedSlack` / `AreaInterchangeControl`
-2. `SecondaryVoltageControl`
-3. `VoltageMonitoring`
-4. `ReactiveLimits`
-5. `PhaseControl` / `IncrementalPhaseControl`
-6. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl`
-7. `IncrementalTransformerReactivePowerControl`
-8. `ShuntVoltageControl` / `IncrementalShuntVoltageControl`
-9. `AutomationSystem`
+Here an example with slack distribution and reactive limits consideration, in AC Load Flow, when `outerLoopNames` is **not** used:
+- the creation of the `DistributedSlack` *outerloop* is driven by the parameter `distributedSlack` *parameter*.
+- the creation of the `ReactiveLimits` *outerloop* is driven by the parameter `useReactiveLimits` *parameter*.
+- PowSyBl Open Load Flow default order is to run the `DistributedSlack` outerloop first, and then the `ReactiveLimits` outerloop.
+
+Continuing this example, the outer loops creation and execution order can be modified by setting `outerLoopNames` to
+value `['ReactiveLimits', 'DistributedSlack']`, in this case PowSyBl Open Load Flow will the `ReactiveLimits` outerloop first,
+and then the `DistributedSlack` outerloop.
+
+For AC load flow the supported outer loop names, their default execution order, and their corresponding high-level parameter, are:
+1. `DistributedSlack` / `AreaInterchangeControl` (parameters: `distributedSlack` / `areaInterchangeControl`)
+2. `SecondaryVoltageControl` (parameter: `secondaryVoltageControl`)
+3. `VoltageMonitoring` (parameter: `svcVoltageMonitoring`)
+4. `ReactiveLimits` (parameter: `useReactiveLimits`)
+5. `PhaseControl` / `IncrementalPhaseControl` (parameters: `phaseShifterRegulationOn` and `phaseShifterControlMode`)
+6. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: `transformerVoltageControlOn` and `transformerVoltageControlMode`)
+7. `IncrementalTransformerReactivePowerControl` (parameter: `transformerReactivePowerControl`)
+8. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: `shuntVoltageControl` and `shuntVoltageControlMode`)
+9. `AutomationSystem` (parameter: `simulateAutomationSystems`)
 
 And for DC load flow:
-1. `IncrementalPhaseControl`
-2. `AreaInterchangeControl`
+1. `IncrementalPhaseControl` (parameter: `phaseShifterRegulationOn`)
+2. `AreaInterchangeControl` (parameter: `areaInterchangeControl`)
 
 **linePerUnitMode**  
 This parameter defines how lines ending in different nominal voltages at both sides are perunit-ed.
