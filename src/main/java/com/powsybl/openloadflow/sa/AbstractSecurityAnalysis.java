@@ -814,6 +814,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
+    /**
+     * @return a consumer for ac/dcLoadFlowParameters that resets them to their original state, in case they have been modified accordingly to the ContinencyLoadFlowParameters extension with {@link #applyContingencyParameters}.
+     */
     private Consumer<P> createParametersResetter(P parameters) {
         if (parameters instanceof DcLoadFlowParameters dcLoadFlowParameters) {
             boolean oldDistributedSlack = dcLoadFlowParameters.isDistributedSlack();
@@ -832,6 +835,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
+    /**
+     * Applies the custom parameters that are contained in the ContingencyLoadFlowParameters extension for a specific contingency.
+     * If the extension is present, modifies the ac/dcLoadFlowParameters contained in the LoadFlowContext accordingly.
+     */
     private void applyContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyLoadFlowParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters parametersExt) {
         if (contingencyLoadFlowParameters != null) {
             if (parameters instanceof DcLoadFlowParameters dcLoadFlowParameters) {
