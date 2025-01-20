@@ -835,7 +835,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     private void applyContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyLoadFlowParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters parametersExt) {
         if (contingencyLoadFlowParameters != null) {
             if (parameters instanceof DcLoadFlowParameters dcLoadFlowParameters) {
-                applyDcContingencyLoadFlowParameters(dcLoadFlowParameters, contingencyLoadFlowParameters, parametersExt, loadFlowParameters);
+                applyDcContingencyLoadFlowParameters(dcLoadFlowParameters, contingencyLoadFlowParameters, loadFlowParameters, parametersExt);
             } else if (parameters instanceof AcLoadFlowParameters acLoadFlowParameters) {
                 applyAcContingencyLoadFlowParameters(acLoadFlowParameters, contingencyLoadFlowParameters, loadFlowParameters, parametersExt);
             } else {
@@ -868,7 +868,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         acLoadFlowParameters.setOuterLoops(AbstractAcOuterLoopConfig.filterInconsistentOuterLoops(acLoadFlowParameters.getOuterLoops()));
     }
 
-    private void applyDcContingencyLoadFlowParameters(DcLoadFlowParameters dcLoadFlowParameters, ContingencyLoadFlowParameters contingencyLoadFlowParameters, OpenLoadFlowParameters parametersExt, LoadFlowParameters loadFlowParameters) {
+    private void applyDcContingencyLoadFlowParameters(DcLoadFlowParameters dcLoadFlowParameters, ContingencyLoadFlowParameters contingencyLoadFlowParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters parametersExt) {
         contingencyLoadFlowParameters.isAreaInterchangeControl().ifPresent(aic -> {
             List<DcOuterLoop> newOuterLoops = new ArrayList<>(dcLoadFlowParameters.getOuterLoops().stream().filter(o -> !(o instanceof DcAreaInterchangeControlOuterLoop)).toList());
             if (Boolean.TRUE.equals(aic)) {
