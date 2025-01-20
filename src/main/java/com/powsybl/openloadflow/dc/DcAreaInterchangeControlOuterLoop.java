@@ -32,11 +32,6 @@ public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
     public double getSlackBusActivePowerMismatch(DcOuterLoopContext context) {
         List<LfBus> buses = context.getNetwork().getBuses();
         return DcLoadFlowEngine.getActivePowerMismatch(buses);

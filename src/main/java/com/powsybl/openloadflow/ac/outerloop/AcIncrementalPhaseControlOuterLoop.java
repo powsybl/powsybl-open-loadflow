@@ -44,11 +44,6 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
     public void initialize(AcOuterLoopContext context) {
         var contextData = new IncrementalContextData();
         context.setData(contextData);

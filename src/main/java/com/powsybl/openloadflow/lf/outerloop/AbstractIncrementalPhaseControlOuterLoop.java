@@ -63,6 +63,11 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         return Math.max(phaseControl.getTargetDeadband(), MIN_TARGET_DEADBAND) / 2;
     }
 
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
     public abstract static class AbstractSensitivityContext<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         private final List<LfBranch> controllerBranches;

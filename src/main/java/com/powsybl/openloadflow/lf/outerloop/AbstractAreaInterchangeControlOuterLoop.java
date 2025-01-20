@@ -268,4 +268,9 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
         }
         return areaSlackDistributionParticipationFactor;
     }
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
 }
