@@ -68,8 +68,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     @Override
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
-        // connectivity break analysis does not handle zero impedance lines
-        dcParameters.getNetworkParameters().setMinImpedance(true);
+        dcParameters.getNetworkParameters()
+                // connectivity break analysis does not handle zero impedance lines
+                .setMinImpedance(true)
+                // ac emulation is not yet supported
+                .setHvdcAcEmulation(false);
         // needed an equation to force angle to zero when a PST is lost
         dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
         return dcParameters;
