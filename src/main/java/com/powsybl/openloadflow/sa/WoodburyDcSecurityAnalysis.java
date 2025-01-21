@@ -220,6 +220,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         AbstractNetworkResult.BranchResultCreator createBranchResultCreator() {
             return (branch, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension) -> {
+                // no result if the branch is disabled
+                if (disabled[branch.getNum()]) {
+                    return Collections.emptyList();
+                }
+
                 int num = branch.getNum();
                 double flowTransfer = Double.NaN;
                 if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
