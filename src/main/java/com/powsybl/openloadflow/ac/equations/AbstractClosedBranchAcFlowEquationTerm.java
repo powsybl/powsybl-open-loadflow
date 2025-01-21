@@ -68,10 +68,16 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         v2Var = variableSet.getVariable(bus2.getNum(), vType);
         ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
         ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
-        branchAcDataVector.v1Var[branch.getNum()] = v1Var;
-        branchAcDataVector.v2Var[branch.getNum()] = v2Var;
-        branchAcDataVector.ph1Var[branch.getNum()] = ph1Var;
-        branchAcDataVector.ph2Var[branch.getNum()] = ph2Var;
+        // Just equations with V and phi are vectorized
+        if (vType == AcVariableType.BUS_V) {
+            branchAcDataVector.v1Var[branch.getNum()] = v1Var;
+            branchAcDataVector.v2Var[branch.getNum()] = v2Var;
+        }
+        if (angleType == AcVariableType.BUS_PHI) {
+            branchAcDataVector.ph1Var[branch.getNum()] = ph1Var;
+            branchAcDataVector.ph2Var[branch.getNum()] = ph2Var;
+        }
+
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
         variables.add(v1Var);
