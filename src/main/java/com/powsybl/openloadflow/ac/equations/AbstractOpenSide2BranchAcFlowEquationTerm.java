@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -22,8 +22,8 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
     protected final List<Variable<AcVariableType>> variables;
 
     protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
-                                                        LfBus bus, VariableSet<AcVariableType> variableSet) {
-        super(branch);
+                                                        LfBus bus, VariableSet<AcVariableType> variableSet, BranchAcDataVector branchAcDataVector) {
+        super(branch, branchAcDataVector);
         variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
     }
 

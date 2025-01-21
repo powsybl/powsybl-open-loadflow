@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -16,29 +16,57 @@ import com.powsybl.openloadflow.network.PiModel;
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
-    protected final double b1;
-    protected final double b2;
-    protected final double g1;
-    protected final double g2;
-    protected final double y;
-    protected final double ksi;
-    protected final double g12;
-    protected final double b12;
+    private final BranchAcDataVector branchAcDataVector;
+    private final int branchNum;
 
-    protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
+    protected AbstractBranchAcFlowEquationTerm(LfBranch branch, BranchAcDataVector branchAcDataVector) {
         super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
         }
-        b1 = piModel.getB1();
-        b2 = piModel.getB2();
-        g1 = piModel.getG1();
-        g2 = piModel.getG2();
-        y = piModel.getY();
-        ksi = piModel.getKsi();
+        branchNum = branch.getNum();
+        this.branchAcDataVector = branchAcDataVector;
+        branchAcDataVector.b1[branchNum] = piModel.getB1();
+        branchAcDataVector.b2[branchNum] = piModel.getB2();
+        branchAcDataVector.g1[branchNum] = piModel.getG1();
+        branchAcDataVector.g2[branchNum] = piModel.getG2();
+        branchAcDataVector.y[branchNum] = piModel.getY();
+        branchAcDataVector.ksi[branchNum] = piModel.getKsi();
         // y12 = g12+j.b12 = 1/(r+j.x)
-        g12 = piModel.getR() * y * y;
-        b12 = -piModel.getX() * y * y;
+        branchAcDataVector.g12[branchNum] = piModel.getR() * y() * y();
+        branchAcDataVector.b12[branchNum] = -piModel.getX() * y() * y();
+    }
+
+    protected double b1() {
+        return branchAcDataVector.b1[branchNum];
+    }
+
+    protected double b2() {
+        return branchAcDataVector.b2[branchNum];
+    }
+
+    protected double g1() {
+        return branchAcDataVector.g1[branchNum];
+    }
+
+    protected double g2() {
+        return branchAcDataVector.g2[branchNum];
+    }
+
+    protected double y() {
+        return branchAcDataVector.y[branchNum];
+    }
+
+    protected double ksi() {
+        return branchAcDataVector.ksi[branchNum];
+    }
+
+    protected double g12() {
+        return branchAcDataVector.g12[branchNum];
+    }
+
+    protected double b12() {
+        return branchAcDataVector.b12[branchNum];
     }
 }

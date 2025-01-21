@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,13 +25,13 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+                                                     boolean deriveA1, boolean deriveR1, BranchAcDataVector branchAcDataVector) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, branchAcDataVector);
     }
 
     public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, BranchAcDataVector branchAcDataVector) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, branchAcDataVector);
     }
 
     public static double calculateSensi(double y, double ksi, double b2,
@@ -50,7 +50,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
 
     @Override
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        return calculateSensi(y, ksi, b2, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
+        return calculateSensi(y(), ksi(), b2(), v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     public static double q2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {
@@ -83,25 +83,25 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
 
     @Override
     public double eval() {
-        return q2(y, FastMath.cos(ksi), b2, v1(), r1(), v2(), FastMath.cos(theta2(ksi, ph1(), a1(), ph2())));
+        return q2(y(), FastMath.cos(ksi()), b2(), v1(), r1(), v2(), FastMath.cos(theta2(ksi(), ph1(), a1(), ph2())));
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double theta = theta2(ksi, ph1(), a1(), ph2());
+        double theta = theta2(ksi(), ph1(), a1(), ph2());
         if (variable.equals(v1Var)) {
-            return dq2dv1(y, r1(), v2(), FastMath.cos(theta));
+            return dq2dv1(y(), r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(v2Var)) {
-            return dq2dv2(y, FastMath.cos(ksi), b2, v1(), r1(), v2(), FastMath.cos(theta));
+            return dq2dv2(y(), FastMath.cos(ksi()), b2(), v1(), r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(ph1Var)) {
-            return dq2dph1(y, v1(), r1(), v2(), FastMath.sin(theta));
+            return dq2dph1(y(), v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(ph2Var)) {
-            return dq2dph2(y, v1(), r1(), v2(), FastMath.sin(theta));
+            return dq2dph2(y(), v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(a1Var)) {
-            return dq2da1(y, v1(), r1(), v2(), FastMath.sin(theta));
+            return dq2da1(y(), v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(r1Var)) {
-            return dq2dr1(y, v1(), v2(), FastMath.cos(theta));
+            return dq2dr1(y(), v1(), v2(), FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2021-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -22,11 +22,13 @@ import java.util.Objects;
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
     private final AcEquationSystemCreationParameters parameters;
+    private final BranchAcDataVector branchAcDataVector;
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                   AcEquationSystemCreationParameters parameters) {
+                                   AcEquationSystemCreationParameters parameters, BranchAcDataVector branchAcDataVector) {
         super(equationSystem, LoadFlowModel.AC);
         this.parameters = Objects.requireNonNull(parameters);
+        this.branchAcDataVector = branchAcDataVector;
     }
 
     private void updateVoltageControls(LfBus bus) {
@@ -131,7 +133,8 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(bus.getNetwork(), voltageControl, equationSystem, parameters));
+                    .ifPresent(voltageControl -> AcEquationSystemCreator
+                            .recreateReactivePowerDistributionEquations(bus.getNetwork(), voltageControl, equationSystem, parameters, branchAcDataVector));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(bus.getNetwork(), voltageControl, equationSystem));

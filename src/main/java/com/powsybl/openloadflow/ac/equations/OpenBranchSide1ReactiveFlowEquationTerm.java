@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -24,8 +24,8 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     private final Variable<AcVariableType> v2Var;
 
-    public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet) {
-        super(branch, AcVariableType.BUS_V, bus2, variableSet);
+    public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet, BranchAcDataVector branchAcDataVector) {
+        super(branch, AcVariableType.BUS_V, bus2, variableSet, branchAcDataVector);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
     }
 
@@ -45,14 +45,14 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     @Override
     public double eval() {
-        return q2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, b2, v2());
+        return q2(y(), FastMath.cos(ksi()), FastMath.sin(ksi()), g1(), b1(), b2(), v2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return dq2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, b2, v2());
+            return dq2dv2(y(), FastMath.cos(ksi()), FastMath.sin(ksi()), g1(), b1(), b2(), v2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
