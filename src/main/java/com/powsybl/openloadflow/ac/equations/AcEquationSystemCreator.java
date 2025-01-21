@@ -1059,7 +1059,7 @@ public class AcEquationSystemCreator {
     public EquationSystem<AcVariableType, AcEquationType> create() {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
-        BranchAcDataVector branchAcDataVector = new BranchAcDataVector(this.network.getBranches().size());
+        BranchAcDataVector branchAcDataVector = new BranchAcDataVector(this.network.getBranches().size(), equationSystem);
 
         createBusesEquations(equationSystem);
         createMultipleSlackBusesEquations(equationSystem, branchAcDataVector);

@@ -37,6 +37,11 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         }
     }
 
+    @Override
+    public void updateVectorSuppliers() {
+        // Do nothing for now. No vectorization supported
+    }
+
     private double v1() {
         return sv.get(v1Var.getRow());
     }

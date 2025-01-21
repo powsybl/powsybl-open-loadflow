@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.PiModelArray;
 import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
@@ -67,6 +68,10 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         v2Var = variableSet.getVariable(bus2.getNum(), vType);
         ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
         ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
+        branchAcDataVector.v1Var[branch.getNum()] = v1Var;
+        branchAcDataVector.v2Var[branch.getNum()] = v2Var;
+        branchAcDataVector.ph1Var[branch.getNum()] = ph1Var;
+        branchAcDataVector.ph2Var[branch.getNum()] = ph2Var;
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
         variables.add(v1Var);
@@ -75,9 +80,27 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         variables.add(ph2Var);
         if (a1Var != null) {
             variables.add(a1Var);
+        } else {
+            branchAcDataVector.a1[branch.getNum()] = branch.getPiModel().getA1();
         }
         if (r1Var != null) {
             variables.add(r1Var);
+        }
+    }
+
+    @Override
+    public void updateVectorSuppliers() {
+        // if a1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
+        if (a1Var != null || element.getPiModel() instanceof PiModelArray) {
+            branchAcDataVector.a1Supplier[element.getNum()] = () -> a1();
+        } else {
+            branchAcDataVector.a1[element.getNum()] = element.getPiModel().getA1();
+        }
+        // if r1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
+        if (r1Var != null || element.getPiModel() instanceof PiModelArray) {
+            branchAcDataVector.r1Supplier[element.getNum()] = () -> r1();
+        } else {
+            branchAcDataVector.r1[element.getNum()] = element.getPiModel().getR1();
         }
     }
 

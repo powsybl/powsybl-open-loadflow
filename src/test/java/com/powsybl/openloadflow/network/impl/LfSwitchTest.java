@@ -54,7 +54,7 @@ class LfSwitchTest {
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
-        branchAcDataVector = new BranchAcDataVector(lfNetwork.getBranches().size());
+        branchAcDataVector = new BranchAcDataVector(lfNetwork.getBranches().size(), null);
     }
 
     @Test

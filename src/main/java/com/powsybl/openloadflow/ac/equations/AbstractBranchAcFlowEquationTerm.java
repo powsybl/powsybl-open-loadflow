@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.PiModel;
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
-    private final BranchAcDataVector branchAcDataVector;
+    protected final BranchAcDataVector branchAcDataVector;
     private final int branchNum;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch, BranchAcDataVector branchAcDataVector) {
@@ -40,6 +40,8 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
             branchAcDataVector.networkDataInitialized[branchNum] = true;
         }
     }
+
+    public abstract void updateVectorSuppliers();
 
     protected double b1() {
         return branchAcDataVector.b1[branchNum];
@@ -71,5 +73,20 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
 
     protected double b12() {
         return branchAcDataVector.b12[branchNum];
+    }
+
+    // eval variables
+
+    protected boolean p2Valid() {
+        return branchAcDataVector.p2Valid[branchNum];
+    }
+
+    protected double p2() {
+        return branchAcDataVector.p2[branchNum];
+    }
+
+    protected void setP2(double value) {
+        branchAcDataVector.p2[branchNum] = value;
+        branchAcDataVector.p2Valid[branchNum] = true;
     }
 }

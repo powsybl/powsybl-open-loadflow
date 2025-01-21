@@ -26,12 +26,18 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1, BranchAcDataVector branchAcDataVector) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, branchAcDataVector);
+        this(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, branchAcDataVector);
     }
 
     public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, BranchAcDataVector branchAcDataVector) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, branchAcDataVector);
+    }
+
+    @Override
+    public void updateVectorSuppliers() {
+        super.updateVectorSuppliers();
+        branchAcDataVector.vecToP2[element.getNum()] = ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;
     }
 
     public static double calculateSensi(double y, double ksi, double g2,
@@ -51,6 +57,11 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     @Override
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
         return calculateSensi(y(), ksi(), g2(), v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
+    }
+
+    public static double vec2p2(double v1, double v2, double ph1, double ph2, double b1, double b2, double g1, double g2, double y,
+                                double ksi, double g12, double b12, double a1, double r1) {
+        return p2(y, FastMath.sin(ksi), g2, v1, r1, v2, FastMath.sin(theta2(ksi, ph1, a1, ph2)));
     }
 
     public static double p2(double y, double sinKsi, double g2, double v1, double r1, double v2, double sinTheta) {
@@ -83,7 +94,11 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     @Override
     public double eval() {
-        return p2(y(), FastMath.sin(ksi()), g2(), v1(), r1(), v2(), FastMath.sin(theta2(ksi(), ph1(), a1(), ph2())));
+        if (!p2Valid()) {
+            // To avoid code duplication, use the vectorized fonction with standard arguments. Pass Nan for variables that are not used.
+            setP2(vec2p2(v1(), v2(), ph1(), ph2(), Double.NaN, Double.NaN, Double.NaN, g2(), y(), ksi(), Double.NaN, Double.NaN, a1(), r1()));
+        }
+        return p2();
     }
 
     @Override

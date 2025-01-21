@@ -106,7 +106,7 @@ class EquationsTest {
 
     @BeforeEach
     void setUp() {
-        branchAcDataVector = new BranchAcDataVector(1);
+        branchAcDataVector = new BranchAcDataVector(1, null);
         branch = Mockito.mock(LfBranch.class, ANSWER);
         Mockito.doReturn(0).when(branch).getNum();
         Mockito.doReturn(false).when(branch).isDisabled();
