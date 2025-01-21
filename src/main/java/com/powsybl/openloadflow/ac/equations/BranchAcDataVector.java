@@ -17,6 +17,7 @@ package com.powsybl.openloadflow.ac.equations;
  * efficiently to avoid memory cache misses
  */
 public class BranchAcDataVector {
+    public final boolean[] networkDataInitialized;
     public final double[] b1;
     public final double[] b2;
     public final double[] g1;
@@ -35,6 +36,7 @@ public class BranchAcDataVector {
         ksi = new double[branchCount];
         g12 = new double[branchCount];
         b12 = new double[branchCount];
+        networkDataInitialized = new boolean[branchCount];
     }
 
 }

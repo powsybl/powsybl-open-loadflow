@@ -27,15 +27,18 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         }
         branchNum = branch.getNum();
         this.branchAcDataVector = branchAcDataVector;
-        branchAcDataVector.b1[branchNum] = piModel.getB1();
-        branchAcDataVector.b2[branchNum] = piModel.getB2();
-        branchAcDataVector.g1[branchNum] = piModel.getG1();
-        branchAcDataVector.g2[branchNum] = piModel.getG2();
-        branchAcDataVector.y[branchNum] = piModel.getY();
-        branchAcDataVector.ksi[branchNum] = piModel.getKsi();
-        // y12 = g12+j.b12 = 1/(r+j.x)
-        branchAcDataVector.g12[branchNum] = piModel.getR() * y() * y();
-        branchAcDataVector.b12[branchNum] = -piModel.getX() * y() * y();
+        if (!branchAcDataVector.networkDataInitialized[branchNum]) {
+            branchAcDataVector.b1[branchNum] = piModel.getB1();
+            branchAcDataVector.b2[branchNum] = piModel.getB2();
+            branchAcDataVector.g1[branchNum] = piModel.getG1();
+            branchAcDataVector.g2[branchNum] = piModel.getG2();
+            branchAcDataVector.y[branchNum] = piModel.getY();
+            branchAcDataVector.ksi[branchNum] = piModel.getKsi();
+            // y12 = g12+j.b12 = 1/(r+j.x)
+            branchAcDataVector.g12[branchNum] = piModel.getR() * y() * y();
+            branchAcDataVector.b12[branchNum] = -piModel.getX() * y() * y();
+            branchAcDataVector.networkDataInitialized[branchNum] = true;
+        }
     }
 
     protected double b1() {
