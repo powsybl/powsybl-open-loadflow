@@ -172,25 +172,33 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         final double[] i2;
 
         public NetworkDcVectorState(double[] postContingencyStates, LfNetwork lfNetwork, LfContingency lfContingency, DcEquationSystemCreationParameters parameters) {
-            Objects.requireNonNull(postContingencyStates);
+            this(postContingencyStates, lfNetwork, lfContingency, Collections.emptyMap(), parameters);
+        }
+
+        public NetworkDcVectorState(double[] postContingencyAndActionsStates, LfNetwork lfNetwork, LfContingency lfContingency,
+                                    Map<String, LfAction> pstActionsByBranch, DcEquationSystemCreationParameters parameters) {
+            Objects.requireNonNull(postContingencyAndActionsStates);
             Objects.requireNonNull(lfNetwork);
             Objects.requireNonNull(lfContingency);
+            Objects.requireNonNull(pstActionsByBranch);
             Objects.requireNonNull(parameters);
             disabled = new boolean[lfNetwork.getBranches().size()];
             p1 = new double[lfNetwork.getBranches().size()];
             i1 = new double[lfNetwork.getBranches().size()];
             p2 = new double[lfNetwork.getBranches().size()];
             i2 = new double[lfNetwork.getBranches().size()];
-            StateVector sv = new StateVector(postContingencyStates);
+            StateVector sv = new StateVector(postContingencyAndActionsStates);
             Arrays.fill(disabled, false);
             for (LfBranch disabledBranch : lfContingency.getDisabledNetwork().getBranches()) {
                 disabled[disabledBranch.getNum()] = true;
             }
             double dcPowerFactor = parameters.getDcPowerFactor();
             for (LfBranch branch : lfNetwork.getBranches()) {
-                p1[branch.getNum()] = branch.getP1() instanceof ClosedBranchSide1DcFlowEquationTerm ? ((ClosedBranchSide1DcFlowEquationTerm) branch.getP1()).eval(sv) : Double.NaN;
+                PiModel piModel = pstActionsByBranch.containsKey(branch.getId()) ? pstActionsByBranch.get(branch.getId()).getTapPositionChange().getNewPiModel()
+                        : branch.getPiModel();
+                p1[branch.getNum()] = branch.getP1() instanceof ClosedBranchSide1DcFlowEquationTerm ? ((ClosedBranchSide1DcFlowEquationTerm) branch.getP1()).eval(sv, piModel) : Double.NaN;
                 i1[branch.getNum()] = Math.abs(p1[branch.getNum()]) / dcPowerFactor;
-                p2[branch.getNum()] = branch.getP2() instanceof ClosedBranchSide2DcFlowEquationTerm ? ((ClosedBranchSide2DcFlowEquationTerm) branch.getP2()).eval(sv) : Double.NaN;
+                p2[branch.getNum()] = branch.getP2() instanceof ClosedBranchSide2DcFlowEquationTerm ? ((ClosedBranchSide2DcFlowEquationTerm) branch.getP2()).eval(sv, piModel) : Double.NaN;
                 i2[branch.getNum()] = Math.abs(p2[branch.getNum()]) / dcPowerFactor;
             }
         }
@@ -296,20 +304,24 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAndOperatorStrategyStates);
         updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyAndOperatorStrategyStates);
 
-        // apply modifications to compute results
-//        lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
-//        LfAction.apply(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
-//
+        // get the pst actions by branch id
+        // TODO : change this temporary fix
+        Map<String, LfAction> pstActionsByBranchId = operatorStrategyLfActions.stream()
+                .collect(Collectors.toMap(lfAction -> lfAction.getTapPositionChange().getBranch().getId(), Function.identity()));
+        NetworkDcVectorState dcVecState = new NetworkDcVectorState(postContingencyAndOperatorStrategyStates, lfNetwork, lfContingency,
+                pstActionsByBranchId, loadFlowContext.getParameters().getEquationSystemCreationParameters());
+
         // update network result
-        var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
+        var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension,
+                dcVecState.createBranchResultCreator());
         postActionsNetworkResult.update();
-//
-//        // detect violations
-//        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
-//        postActionsViolationManager.detectViolations(lfNetwork);
+
+        // detect violations
+        var postActionsLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
+        dcVecState.detectBranchViolations(postActionsLimitViolationManager, lfNetwork);
 
         return new OperatorStrategyResult(operatorStrategy, PostContingencyComputationStatus.CONVERGED,
-                new LimitViolationsResult(Collections.emptyList()),
+                new LimitViolationsResult(postActionsLimitViolationManager.getLimitViolations()),
                 new NetworkResult(postActionsNetworkResult.getBranchResults(),
                         postActionsNetworkResult.getBusResults(),
                         postActionsNetworkResult.getThreeWindingsTransformerResults()));
