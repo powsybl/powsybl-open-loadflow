@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,7 +17,9 @@ import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 
 /**
  * An equation term, i.e part of the equation sum.
@@ -63,8 +65,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void setEquation(Equation<V, E> equation) {
-            term.setEquation(equation);
+        public void setEquation(Equation<V, E> equation, Supplier<Boolean> activeGetter, Consumer<Boolean> activeSetter) {
+            term.setEquation(equation, activeGetter, activeSetter);
         }
 
         @Override
@@ -147,7 +149,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     Equation<V, E> getEquation();
 
-    void setEquation(Equation<V, E> equation);
+    void setEquation(Equation<V, E> equation, Supplier<Boolean> activeStatusGetter, Consumer<Boolean> activeStatusSetter);
 
     boolean isActive();
 
