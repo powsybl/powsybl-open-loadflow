@@ -11,6 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.AbstractAcOuterLoopConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -18,15 +19,21 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.outerloop.AcAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.monitor.StateMonitor;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -111,5 +118,36 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     @Override
     protected void beforeActionLoadFlowRun(AcLoadFlowContext context) {
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+    }
+
+    @Override
+    protected Consumer<AcLoadFlowParameters> createParametersResetter(AcLoadFlowParameters parameters) {
+        List<AcOuterLoop> oldOuterLoops = List.copyOf(parameters.getOuterLoops());
+        return p -> p.setOuterLoops(oldOuterLoops);
+    }
+
+    @Override
+    protected void applyContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyLoadFlowParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters parametersExt) {
+        contingencyLoadFlowParameters.isAreaInterchangeControl().ifPresent(aic -> {
+            List<AcOuterLoop> newOuterLoops = new ArrayList<>(parameters.getOuterLoops().stream().filter(o -> !(o instanceof AcAreaInterchangeControlOuterLoop)).toList());
+            if (Boolean.TRUE.equals(aic)) {
+                LoadFlowParameters.BalanceType balanceType = contingencyLoadFlowParameters.getBalanceType(loadFlowParameters);
+                AcAreaInterchangeControlOuterLoop outerLoop = AcAreaInterchangeControlOuterLoop.create(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
+                        parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch());
+                newOuterLoops.add(outerLoop);
+            }
+            parameters.setOuterLoops(newOuterLoops);
+        });
+        contingencyLoadFlowParameters.isDistributedSlack().ifPresent(distributedSlack -> {
+            List<AcOuterLoop> newOuterLoops = new ArrayList<>(parameters.getOuterLoops().stream().filter(o -> !(o instanceof DistributedSlackOuterLoop)).toList());
+            if (Boolean.TRUE.equals(distributedSlack)) {
+                LoadFlowParameters.BalanceType balanceType = contingencyLoadFlowParameters.getBalanceType(loadFlowParameters);
+                DistributedSlackOuterLoop outerLoop = DistributedSlackOuterLoop.create(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
+                        parametersExt.getSlackBusPMaxMismatch());
+                newOuterLoops.add(outerLoop);
+            }
+            parameters.setOuterLoops(newOuterLoops);
+        });
+        parameters.setOuterLoops(AbstractAcOuterLoopConfig.filterInconsistentOuterLoops(parameters.getOuterLoops()));
     }
 }

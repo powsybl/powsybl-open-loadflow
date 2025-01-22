@@ -12,19 +12,19 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
-import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.dc.*;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.monitor.StateMonitor;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcLoadFlowResult> {
 
@@ -72,5 +72,33 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     @Override
     protected PostContingencyComputationStatus postContingencyStatusFromLoadFlowResult(DcLoadFlowResult result) {
         return result.isSuccess() ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;
+    }
+
+    @Override
+    protected Consumer<DcLoadFlowParameters> createParametersResetter(DcLoadFlowParameters parameters) {
+        boolean oldDistributedSlack = parameters.isDistributedSlack();
+        LoadFlowParameters.BalanceType oldBalanceType = parameters.getBalanceType();
+        List<DcOuterLoop> oldOuterLoops = List.copyOf(parameters.getOuterLoops());
+        return p -> {
+            p.setDistributedSlack(oldDistributedSlack);
+            p.setBalanceType(oldBalanceType);
+            p.setOuterLoops(oldOuterLoops);
+        };
+    }
+
+    @Override
+    protected void applyContingencyParameters(DcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyLoadFlowParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters parametersExt) {
+        contingencyLoadFlowParameters.isAreaInterchangeControl().ifPresent(aic -> {
+            List<DcOuterLoop> newOuterLoops = new ArrayList<>(parameters.getOuterLoops().stream().filter(o -> !(o instanceof DcAreaInterchangeControlOuterLoop)).toList());
+            if (Boolean.TRUE.equals(aic)) {
+                LoadFlowParameters.BalanceType balanceType = contingencyLoadFlowParameters.getBalanceType(loadFlowParameters);
+                DcAreaInterchangeControlOuterLoop outerLoop = DcAreaInterchangeControlOuterLoop.create(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
+                        parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch());
+                newOuterLoops.add(outerLoop);
+            }
+            parameters.setOuterLoops(newOuterLoops);
+        });
+        contingencyLoadFlowParameters.isDistributedSlack().ifPresent(parameters::setDistributedSlack);
+        contingencyLoadFlowParameters.getBalanceType().ifPresent(parameters::setBalanceType);
     }
 }
