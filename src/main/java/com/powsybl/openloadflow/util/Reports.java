@@ -635,4 +635,14 @@ public final class Reports {
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
     }
+
+    public static void reportContingencyActivePowerLossDistribution(ReportNode reportNode, double mismatch, double remaining) {
+        reportNode.newReportNode()
+                .withMessageTemplate("contingencyActivePowerLossDistribution", "Contingency caused the loss of ${mismatch} MW injection: ${distributed} MW distributed, ${remaining} MW remaining.")
+                .withUntypedValue(MISMATCH, mismatch)
+                .withUntypedValue("distributed", mismatch - remaining)
+                .withUntypedValue("remaining", remaining)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
 }

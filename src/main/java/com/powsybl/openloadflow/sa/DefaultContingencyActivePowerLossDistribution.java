@@ -9,11 +9,14 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.security.SecurityAnalysisParameters;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -28,12 +31,14 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
     }
 
     @Override
-    public void run(LfNetwork network, LfContingency lfContingency, LoadFlowParameters loadFlowParameters) {
+    public void run(LfNetwork network, LfContingency lfContingency, SecurityAnalysisParameters securityAnalysisParameters, ReportNode reportNode) {
         double mismatch = lfContingency.getActivePowerLoss();
-        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
+        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
+            OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
-            activePowerDistribution.run(network, mismatch);
+            var result = activePowerDistribution.run(network, mismatch);
+            Reports.reportContingencyActivePowerLossDistribution(reportNode, mismatch, result.remainingMismatch());
         }
     }
 

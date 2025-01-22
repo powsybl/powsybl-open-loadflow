@@ -662,7 +662,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
-                                contingencyActivePowerLossDistribution.run(lfNetwork, lfContingency, loadFlowParameters);
+                                contingencyActivePowerLossDistribution.run(lfNetwork, lfContingency, securityAnalysisParameters, postContSimReportNode);
 
                                 var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
                                                                                          lfContingency, preContingencyLimitViolationManager,
