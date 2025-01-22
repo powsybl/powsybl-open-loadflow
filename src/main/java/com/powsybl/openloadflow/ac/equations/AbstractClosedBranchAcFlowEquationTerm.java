@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -91,6 +92,14 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
         if (r1Var != null) {
             variables.add(r1Var);
+        }
+    }
+
+    @Override
+    public void setEquation(Equation<AcVariableType, AcEquationType> equation) {
+        super.setEquation(equation);
+        if (equation != null) {
+            branchAcDataVector.addSupplyingTerm(this);
         }
     }
 
