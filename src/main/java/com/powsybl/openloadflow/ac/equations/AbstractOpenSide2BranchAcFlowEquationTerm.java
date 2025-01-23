@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -22,8 +23,8 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
     protected final List<Variable<AcVariableType>> variables;
 
     protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
-                                                        LfBus bus, VariableSet<AcVariableType> variableSet, BranchAcDataVector branchAcDataVector) {
-        super(branch, branchAcDataVector);
+                                                        LfBus bus, VariableSet<AcVariableType> variableSet, AcVectorEngine acVectorEngine) {
+        super(branch, acVectorEngine);
         variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
     }
 

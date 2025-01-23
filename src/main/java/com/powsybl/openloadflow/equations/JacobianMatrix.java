@@ -17,7 +17,6 @@ import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -39,11 +38,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private LUDecomposition lu;
 
-    private ArrayList<Listener> listeners = new ArrayList<>();
-
-    public interface Listener {
-        void beforeDer();
-    }
+    private VectorEngine vectorEngine;
 
     protected enum Status {
         VALID,
@@ -59,6 +54,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
+        vectorEngine = equationSystem.getVectorEngine();
     }
 
     protected void updateStatus(Status status) {
@@ -100,7 +96,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
-        listeners.forEach(Listener::beforeDer);
+        if (vectorEngine != null) {
+            vectorEngine.beforeDer();
+        }
 
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
@@ -130,7 +128,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         matrix.reset();
 
-        listeners.forEach(Listener::beforeDer);
+        if (vectorEngine != null) {
+            vectorEngine.beforeDer();
+        }
 
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             eq.der((variable, value, matrixElementIndex) -> {

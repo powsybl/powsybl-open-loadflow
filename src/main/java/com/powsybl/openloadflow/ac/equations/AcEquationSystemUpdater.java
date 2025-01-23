@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
@@ -22,13 +23,13 @@ import java.util.Objects;
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
     private final AcEquationSystemCreationParameters parameters;
-    private final BranchAcDataVector branchAcDataVector;
+    private final AcVectorEngine acVectorEnginee;
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                   AcEquationSystemCreationParameters parameters, BranchAcDataVector branchAcDataVector) {
+                                   AcEquationSystemCreationParameters parameters, AcVectorEngine acVectorEnginee) {
         super(equationSystem, LoadFlowModel.AC);
         this.parameters = Objects.requireNonNull(parameters);
-        this.branchAcDataVector = branchAcDataVector;
+        this.acVectorEnginee = acVectorEnginee;
     }
 
     private void updateVoltageControls(LfBus bus) {
@@ -134,7 +135,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             bus.getGeneratorVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator
-                            .recreateReactivePowerDistributionEquations(bus.getNetwork(), voltageControl, equationSystem, parameters, branchAcDataVector));
+                            .recreateReactivePowerDistributionEquations(bus.getNetwork(), voltageControl, equationSystem, parameters, acVectorEnginee));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(bus.getNetwork(), voltageControl, equationSystem));

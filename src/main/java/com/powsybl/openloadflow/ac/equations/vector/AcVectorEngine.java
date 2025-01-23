@@ -6,8 +6,14 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.vector;
+import com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import net.jafama.FastMath;
 
 import java.util.ArrayList;
@@ -19,8 +25,9 @@ import java.util.function.DoubleSupplier;
  *
  * A data container that contains primitive type arrays that can be iterrated
  * efficiently to avoid memory cache misses
+ * foccusses on P and Q derived by V and Phi. Other combinations are not vectorized.
  */
-public class BranchAcDataVector implements StateVectorListener, EquationSystemListener, JacobianMatrix.Listener {
+public class AcVectorEngine implements StateVectorListener, EquationSystemListener, VectorEngine {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
@@ -56,15 +63,15 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
     public final boolean[] p2Valid;
     public final double[] p2;
     public final VecToVal[] vecToP2;
-    public final boolean[] dp2dv1Valid;
-    public final double[] dp2dv1;
-    public final VecToVal[] vecToDP2dv1;
-    public final boolean[] dp2dv2Valid;
-    public final double[] dp2dv2;
-    public final VecToVal[] vecToDP2dv2;
-    public final boolean[] dp2dph1Valid;
-    public final double[] dp2dph1;
-    public final VecToVal[] vecToDP2dph1;
+
+    // indexes for derivatives per bus
+    public final int[] bus2D1PerLoc;
+    public final int[] bus2D2PerLoc;
+    // derivatives stored per bus - for each bus dp_dv(local) for each branch at the bus, then dp_dv(remote) for each branch
+    public final VecToVal[] busDpDvVecToVal;
+    public final VecToVal[] busDpDphVecToVal;
+    public final double[] busDpDv;
+    public final double[] busDpDph;
 
     public interface VecToVal {
         double value(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2,
@@ -72,8 +79,13 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
                      double g12, double b12, double a1, double r1);
     }
 
-    public BranchAcDataVector(int branchCount, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public AcVectorEngine(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         this.equationSystem = equationSystem;
+        if (equationSystem != null) {
+            equationSystem.setVectorEngine(this);
+        }
+
+        int branchCount = network == null ? 1 : network.getBranches().size();
 
         b1 = new double[branchCount];
         b2 = new double[branchCount];
@@ -103,15 +115,33 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
         p2Valid = new boolean[branchCount];
         p2 = new double[branchCount];
         vecToP2 = new VecToVal[branchCount];
-        dp2dv1Valid = new boolean[branchCount];
-        dp2dv1 = new double[branchCount];
-        vecToDP2dv1 = new VecToVal[branchCount];
-        dp2dv2Valid = new boolean[branchCount];
-        dp2dv2 = new double[branchCount];
-        vecToDP2dv2 = new VecToVal[branchCount];
-        dp2dph1Valid = new boolean[branchCount];
-        dp2dph1 = new double[branchCount];
-        vecToDP2dph1 = new VecToVal[branchCount];
+
+        bus2D1PerLoc = new int[branchCount];
+        bus2D2PerLoc = new int[branchCount];
+
+        // TODO: Should this be updated when lines are disconnected or reconnected ?
+        // count branches per bus
+        int derCount = 0;
+        if (network != null) {
+            for (LfBus b : network.getBuses()) {
+                // For each variable type (V or ph), n terms derive the local variable, and one term per branch for the remote variable
+                int busBranches = b.getBranches().size();
+                int i = 0;
+                for (LfBranch branch : b.getBranches()) {
+                    if (branch.getBus2() == b) {
+                        bus2D1PerLoc[branch.getNum()] = derCount + i + busBranches;
+                    } else {
+                        bus2D2PerLoc[branch.getNum()] = derCount + i;
+                    }
+                    i += 1;
+                }
+                derCount += 2 * busBranches;
+            }
+        }
+        busDpDv = new double[derCount];
+        busDpDvVecToVal = new VecToVal[derCount];
+        busDpDphVecToVal = new VecToVal[derCount];
+        busDpDph = new double[derCount];
 
         if (equationSystem != null) {
             equationSystem.getStateVector().addListener(this);
@@ -122,9 +152,6 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
     @Override
     public void onStateUpdate() {
         Arrays.fill(p2Valid, false);
-        Arrays.fill(dp2dv1Valid, false);
-        Arrays.fill(dp2dv2Valid, false);
-        Arrays.fill(dp2dph1Valid, false);
         updateVariables();
         vecToP2();
     }
@@ -154,6 +181,8 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
         Arrays.fill(a1, Double.NaN);
         Arrays.fill(a1Supplier, null);
         Arrays.fill(vecToP2, null);
+        Arrays.fill(busDpDvVecToVal, null);
+        Arrays.fill(busDpDphVecToVal, null);
         supplyingTerms.stream()
                 .filter(AbstractEquationTerm::isActive)
                 .filter(t -> t.getEquation().isActive())
@@ -194,6 +223,8 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
         if (!suppliersValid) {
             updateSuppliers();
         }
+        Arrays.fill(busDpDv, 0);
+        Arrays.fill(busDpDph, 0);
         for (int i = 0; i < vecToP2.length; i++) {
             double a1Evaluated = a1Supplier[i] == null ? a1[i] : a1Supplier[i].getAsDouble();
             double r1Evaluated = r1Supplier[i] == null ? r1[i] : r1Supplier[i].getAsDouble();
@@ -203,18 +234,22 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
             double cosTheta2 = FastMath.cos(theta2);
             if (vecToP2[i] != null) {
                 // All dp2 functions should be available then
-                dp2dv1[i] = vecToDP2dv1[i].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
-                        b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
-                        a1Evaluated, r1Evaluated);
-                dp2dv1Valid[i] = true;
-                dp2dv2[i] = vecToDP2dv2[i].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
-                        b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
-                        a1Evaluated, r1Evaluated);
-                dp2dv2Valid[i] = true;
-                dp2dph1[i] = vecToDP2dph1[i].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
-                        b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
-                        a1Evaluated, r1Evaluated);
-                dp2dph1Valid[i] = true;
+                if (busDpDvVecToVal[bus2D1PerLoc[i]] != null) {
+                    busDpDv[bus2D1PerLoc[i]] = busDpDvVecToVal[bus2D1PerLoc[i]].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
+                            b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
+                            a1Evaluated, r1Evaluated);
+                }
+                if (busDpDvVecToVal[bus2D2PerLoc[i]] != null) {
+                    busDpDv[bus2D2PerLoc[i]] = busDpDvVecToVal[bus2D2PerLoc[i]].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
+                            b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
+                            a1Evaluated, r1Evaluated);
+                }
+                if (busDpDphVecToVal[bus2D1PerLoc[i]] != null) {
+                    busDpDph[bus2D1PerLoc[i]] = busDpDphVecToVal[bus2D1PerLoc[i]].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
+                            b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
+                            a1Evaluated, r1Evaluated);
+
+                }
             }
         }
     }

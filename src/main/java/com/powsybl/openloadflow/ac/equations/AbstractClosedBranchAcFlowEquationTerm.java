@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
@@ -58,8 +59,8 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, BranchAcDataVector branchAcDataVector) {
-        super(branch, branchAcDataVector);
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEnginee) {
+        super(branch, acVectorEnginee);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
@@ -71,12 +72,12 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
         // Just equations with V and phi are vectorized
         if (vType == AcVariableType.BUS_V) {
-            branchAcDataVector.v1Var[branch.getNum()] = v1Var;
-            branchAcDataVector.v2Var[branch.getNum()] = v2Var;
+            acVectorEnginee.v1Var[branch.getNum()] = v1Var;
+            acVectorEnginee.v2Var[branch.getNum()] = v2Var;
         }
         if (angleType == AcVariableType.BUS_PHI) {
-            branchAcDataVector.ph1Var[branch.getNum()] = ph1Var;
-            branchAcDataVector.ph2Var[branch.getNum()] = ph2Var;
+            acVectorEnginee.ph1Var[branch.getNum()] = ph1Var;
+            acVectorEnginee.ph2Var[branch.getNum()] = ph2Var;
         }
 
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
@@ -88,7 +89,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         if (a1Var != null) {
             variables.add(a1Var);
         } else {
-            branchAcDataVector.a1[branch.getNum()] = branch.getPiModel().getA1();
+            acVectorEnginee.a1[branch.getNum()] = branch.getPiModel().getA1();
         }
         if (r1Var != null) {
             variables.add(r1Var);
@@ -99,7 +100,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     public void setEquation(Equation<AcVariableType, AcEquationType> equation) {
         super.setEquation(equation);
         if (equation != null) {
-            branchAcDataVector.addSupplyingTerm(this);
+            acVectorEnginee.addSupplyingTerm(this);
         }
     }
 
@@ -107,15 +108,15 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     public void updateVectorSuppliers() {
         // if a1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
         if (a1Var != null || element.getPiModel() instanceof PiModelArray) {
-            branchAcDataVector.a1Supplier[element.getNum()] = () -> a1();
+            acVectorEnginee.a1Supplier[element.getNum()] = () -> a1();
         } else {
-            branchAcDataVector.a1[element.getNum()] = element.getPiModel().getA1();
+            acVectorEnginee.a1[element.getNum()] = element.getPiModel().getA1();
         }
         // if r1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
         if (r1Var != null || element.getPiModel() instanceof PiModelArray) {
-            branchAcDataVector.r1Supplier[element.getNum()] = () -> r1();
+            acVectorEnginee.r1Supplier[element.getNum()] = () -> r1();
         } else {
-            branchAcDataVector.r1[element.getNum()] = element.getPiModel().getR1();
+            acVectorEnginee.r1[element.getNum()] = element.getPiModel().getR1();
         }
     }
 
@@ -140,11 +141,13 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
+        // TODO: Remove test on var row - should not be called if term is inactive
+        return r1Var != null && r1Var.getRow() >= 0 ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     protected double a1() {
-        return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
+        // TODO remove test >0 - should not be called if term is inactive
+        return a1Var != null && a1Var.getRow() >= 0 ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
     public static double theta1(double ksi, double ph1, double a1, double ph2) {

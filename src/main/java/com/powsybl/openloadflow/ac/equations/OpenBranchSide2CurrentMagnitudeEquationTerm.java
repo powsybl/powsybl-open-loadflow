@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -28,8 +29,8 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     private Variable<AcVariableType> r1Var;
 
     public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
-                                                       boolean deriveR1, BranchAcDataVector branchAcDataVector) {
-        super(branch, AcVariableType.BUS_V, bus1, variableSet, branchAcDataVector);
+                                                       boolean deriveR1, AcVectorEngine acVectorEnginee) {
+        super(branch, AcVariableType.BUS_V, bus1, variableSet, acVectorEnginee);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         if (deriveR1) {

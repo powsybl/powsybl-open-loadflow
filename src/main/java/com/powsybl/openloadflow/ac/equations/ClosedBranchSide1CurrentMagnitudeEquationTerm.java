@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -26,8 +27,8 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                         boolean deriveA1, boolean deriveR1, BranchAcDataVector branchAcDataVector) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, branchAcDataVector);
+                                                         boolean deriveA1, boolean deriveR1, AcVectorEngine acVectorEnginee) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, acVectorEnginee);
     }
 
     public static double calculateSensi(double y, double ksi, double g1, double b1,

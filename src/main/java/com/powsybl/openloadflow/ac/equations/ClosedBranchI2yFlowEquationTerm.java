@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -23,8 +24,8 @@ import java.util.Objects;
 public class ClosedBranchI2yFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchI2yFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                           boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, BranchAcDataVector branchAcDataVector) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, branchAcDataVector);
+                                           boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEnginee) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, acVectorEnginee);
     }
 
     public double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
