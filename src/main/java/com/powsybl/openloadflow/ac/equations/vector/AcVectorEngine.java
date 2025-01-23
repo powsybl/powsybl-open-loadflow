@@ -27,7 +27,7 @@ import java.util.function.DoubleSupplier;
  * efficiently to avoid memory cache misses
  * foccusses on P and Q derived by V and Phi. Other combinations are not vectorized.
  */
-public class AcVectorEngine implements StateVectorListener, EquationSystemListener, VectorEngine {
+public class AcVectorEngine implements StateVectorListener, EquationSystemListener, VectorEngine<AcVariableType> {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
@@ -175,6 +175,15 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         supplyingTerms.add(t);
     }
 
+    @Override
+    public double[] getDerivedArray(Variable<AcVariableType> v) {
+        return switch (v.getType()) {
+            case BUS_V -> busDpDv;
+            case BUS_PHI -> busDpDph;
+            default -> null;
+        };
+    }
+
     private void updateSuppliers() {
         Arrays.fill(r1, Double.NaN);
         Arrays.fill(r1Supplier, null);
@@ -248,7 +257,11 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     busDpDph[bus2D1PerLoc[i]] = busDpDphVecToVal[bus2D1PerLoc[i]].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
                             b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
                             a1Evaluated, r1Evaluated);
-
+                }
+                if (busDpDphVecToVal[bus2D2PerLoc[i]] != null) {
+                    busDpDph[bus2D2PerLoc[i]] = busDpDphVecToVal[bus2D2PerLoc[i]].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
+                            b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
+                            a1Evaluated, r1Evaluated);
                 }
             }
         }

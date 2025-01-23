@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -39,6 +39,11 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
+    private final Map<Variable<V>, List<Integer>> vectorIndexByVariable = new HashMap();
+
+    private final Map<Variable<V>, List<EquationTerm>> vectorTermByVariable = new HashMap();
+
+    private Set<Variable<V>> allVariables = new TreeSet<>();
     /**
      * Element index of a two dimensions matrix (equations * variables) indexed by variable index (order of the variable
      * in {@link @termsByVariable}.
@@ -104,9 +109,17 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
                     + term.getEquation());
         }
         terms.add(term);
+        allVariables.addAll(term.getVariables());
         for (Variable<V> v : term.getVariables()) {
-            termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
-                    .add(term);
+            if (!term.isVectorized(v)) {
+                termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                        .add(term);
+            } else {
+                vectorIndexByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                        .add(term.getVectorIndex(v));
+                vectorTermByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                        .add(term);
+            }
         }
         matrixElementIndexes = null;
         term.setEquation(this);
@@ -146,10 +159,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
-    public Map<Variable<V>, List<EquationTerm<V, E>>> getTermsByVariable() {
-        return termsByVariable;
-    }
-
     @Override
     public double eval() {
         double value = 0;
@@ -179,22 +188,41 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     public void der(DerHandler<V> handler) {
         Objects.requireNonNull(handler);
         int variableIndex = 0;
-        for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
-            Variable<V> variable = e.getKey();
+        for (Variable<V> variable : allVariables) {
             int row = variable.getRow();
             if (row != -1) {
                 double value = 0;
+                // Add vectorized part
+                List<Integer> vectorIndexes = vectorIndexByVariable.get(variable);
+                boolean debug = false;
+                int index = 0;
+                if (vectorIndexes != null) {
+                    for (int i : vectorIndexes) {
+                        value += equationSystem.getVectorEngine().getDerivedArray(variable)[i];
+                        if (debug) {
+                            EquationTerm t = vectorTermByVariable.get(variable).get(index);
+                            double expected = t.isActive() ? t.der(variable) : 0;
+                            if (expected != equationSystem.getVectorEngine().getDerivedArray(variable)[i]) {
+                                throw new IllegalStateException("Should not happen");
+                            }
+                            index += 1;
+                        }
+                    }
+                }
+                List<EquationTerm<V, E>> terms = termsByVariable.get(variable);
                 // create a derivative even if all terms are not active, to allow later reactivation of terms
                 // that won't create a new matrix element and a simple update of the matrix
-                for (EquationTerm<V, E> term : e.getValue()) {
-                    if (term.isActive()) {
-                        value += term.der(variable);
+                if (terms != null) {
+                    for (EquationTerm<V, E> term : terms) {
+                        if (term.isActive()) {
+                            value += term.der(variable);
+                        }
                     }
                 }
                 int oldMatrixElementIndex = matrixElementIndexes == null ? -1 : matrixElementIndexes[variableIndex];
                 int matrixElementIndex = handler.onDer(variable, value, oldMatrixElementIndex);
                 if (matrixElementIndexes == null) {
-                    matrixElementIndexes = new int[termsByVariable.size()];
+                    matrixElementIndexes = new int[(int) allVariables.size()];
                 }
                 matrixElementIndexes[variableIndex] = matrixElementIndex;
                 variableIndex++;

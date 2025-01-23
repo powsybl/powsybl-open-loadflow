@@ -8,6 +8,10 @@
 
 package com.powsybl.openloadflow.equations;
 
-public interface VectorEngine {
+public interface VectorEngine<V extends Enum<V> & Quantity> {
+
     void beforeDer();
+
+    double[] getDerivedArray(Variable<V> v);
+
 }

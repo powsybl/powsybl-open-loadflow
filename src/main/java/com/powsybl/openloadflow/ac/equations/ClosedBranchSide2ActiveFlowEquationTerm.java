@@ -45,6 +45,22 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         acVectorEnginee.busDpDphVecToVal[acVectorEnginee.bus2D2PerLoc[element.getNum()]] = ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dph2;
     }
 
+    @Override
+    public boolean isVectorized(Variable<AcVariableType> v) {
+        return v.getType() == AcVariableType.BUS_V || v.getType() == AcVariableType.BUS_PHI;
+    }
+
+    @Override
+    public int getVectorIndex(Variable<AcVariableType> v) {
+        if (v == v1Var || v == ph1Var) {
+            return acVectorEnginee.bus2D1PerLoc[element.getNum()];
+        }
+        if (v == v2Var || v == ph2Var) {
+            return acVectorEnginee.bus2D2PerLoc[element.getNum()];
+        }
+        return -1;
+    }
+
     public static double calculateSensi(double y, double ksi, double g2,
                                         double v1, double ph1, double r1, double a1, double v2, double ph2,
                                         double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
@@ -106,7 +122,6 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
                                      double g12, double b12, double a1, double r1) {
         return dp2dph2(y, v1, r1, v2, cosTheta2);
     }
-
 
     public static double dp2dph2(double y, double v1, double r1, double v2, double cosTheta) {
         return -dp2dph1(y, v1, r1, v2, cosTheta);
