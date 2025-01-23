@@ -19,8 +19,6 @@ import com.powsybl.openloadflow.util.Fortescue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
@@ -98,8 +96,8 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     @Override
-    public void setEquation(Equation<AcVariableType, AcEquationType> equation, Supplier<Boolean> activeGetter, Consumer<Boolean> activeSetter) {
-        super.setEquation(equation, activeGetter, activeSetter);
+    public void setEquation(Equation<AcVariableType, AcEquationType> equation) {
+        super.setEquation(equation);
         if (equation != null) {
             branchAcDataVector.addSupplyingTerm(this);
         }

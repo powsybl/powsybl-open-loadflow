@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
+/**
+ * Copyright (c) 2019, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -37,9 +37,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
-    private final Map<Variable<V>, List<Integer>> termIndexesByVariable = new TreeMap<>();
-
-    private final ArrayList<Boolean> activeTermStatus = new ArrayList<>();
+    private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
     /**
      * Element index of a two dimensions matrix (equations * variables) indexed by variable index (order of the variable
@@ -89,10 +87,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return active;
     }
 
-    private boolean isTermActive(int termCount) {
-        return activeTermStatus.get(termCount);
-    }
-
     public Equation<V, E> setActive(boolean active) {
         checkNotRemoved();
         if (active != this.active) {
@@ -109,15 +103,13 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             throw new PowsyblException("Equation term already added to another equation: "
                     + term.getEquation());
         }
-        activeTermStatus.add(term.isActive());
         terms.add(term);
-        final int termRank = activeTermStatus.size() - 1;
         for (Variable<V> v : term.getVariables()) {
-            termIndexesByVariable.computeIfAbsent(v, k -> new ArrayList<>())
-                    .add(termRank);
+            termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                    .add(term);
         }
         matrixElementIndexes = null;
-        term.setEquation(this, () -> activeTermStatus.get(termRank), s -> activeTermStatus.set(termRank, s));
+        term.setEquation(this);
         equationSystem.addEquationTerm(term);
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
@@ -154,6 +146,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
+    public Map<Variable<V>, List<EquationTerm<V, E>>> getTermsByVariable() {
+        return termsByVariable;
+    }
+
     @Override
     public double eval() {
         double value = 0;
@@ -183,22 +179,22 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     public void der(DerHandler<V> handler) {
         Objects.requireNonNull(handler);
         int variableIndex = 0;
-        for (Map.Entry<Variable<V>, List<Integer>> e : termIndexesByVariable.entrySet()) {
+        for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
             Variable<V> variable = e.getKey();
             int row = variable.getRow();
             if (row != -1) {
                 double value = 0;
                 // create a derivative even if all terms are not active, to allow later reactivation of terms
                 // that won't create a new matrix element and a simple update of the matrix
-                for (Integer termRank : e.getValue()) {
-                    if (isTermActive(termRank)) {
-                        value += terms.get(termRank).der(variable);
+                for (EquationTerm<V, E> term : e.getValue()) {
+                    if (term.isActive()) {
+                        value += term.der(variable);
                     }
                 }
                 int oldMatrixElementIndex = matrixElementIndexes == null ? -1 : matrixElementIndexes[variableIndex];
                 int matrixElementIndex = handler.onDer(variable, value, oldMatrixElementIndex);
                 if (matrixElementIndexes == null) {
-                    matrixElementIndexes = new int[termIndexesByVariable.size()];
+                    matrixElementIndexes = new int[termsByVariable.size()];
                 }
                 matrixElementIndexes[variableIndex] = matrixElementIndex;
                 variableIndex++;
