@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -37,6 +38,12 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private Matrix matrix;
 
     private LUDecomposition lu;
+
+    private ArrayList<Listener> listeners = new ArrayList<>();
+
+    public interface Listener {
+        void beforeDer();
+    }
 
     protected enum Status {
         VALID,
@@ -93,6 +100,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
+        listeners.forEach(Listener::beforeDer);
+
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
             eq.der((variable, value, matrixElementIndex) -> {
@@ -120,6 +129,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
+
+        listeners.forEach(Listener::beforeDer);
+
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             eq.der((variable, value, matrixElementIndex) -> {
                 matrix.addAtIndex(matrixElementIndex, value);

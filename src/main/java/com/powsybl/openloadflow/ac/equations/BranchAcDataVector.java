@@ -20,7 +20,7 @@ import java.util.function.DoubleSupplier;
  * A data container that contains primitive type arrays that can be iterrated
  * efficiently to avoid memory cache misses
  */
-public class BranchAcDataVector implements StateVectorListener, EquationSystemListener {
+public class BranchAcDataVector implements StateVectorListener, EquationSystemListener, JacobianMatrix.Listener {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
@@ -121,9 +121,6 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
 
     @Override
     public void onStateUpdate() {
-        if (!suppliersValid) {
-            updateSuppliers();
-        }
         Arrays.fill(p2Valid, false);
         Arrays.fill(dp2dv1Valid, false);
         Arrays.fill(dp2dv2Valid, false);
@@ -140,6 +137,11 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
     @Override
     public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
         suppliersValid = false;
+    }
+
+    @Override
+    public void beforeDer() {
+        vectToDP2();
     }
 
     public void addSupplyingTerm(AbstractClosedBranchAcFlowEquationTerm t) {
@@ -177,12 +179,30 @@ public class BranchAcDataVector implements StateVectorListener, EquationSystemLi
             double theta2 = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[i], ph1[i], a1Evaluated, ph2[i]);
             double sinTheta2 = FastMath.sin(theta2);
             double cosTheta2 = FastMath.cos(theta2);
+            // TODO - est-ce qu'on se sert de tout ?
             if (vecToP2[i] != null) {
                 // All dp2 functions should be available then
                 p2[i] = vecToP2[i].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
                         b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
                         a1Evaluated, r1Evaluated);
                 p2Valid[i] = true;
+            }
+        }
+    }
+
+    private void vectToDP2() {
+        if (!suppliersValid) {
+            updateSuppliers();
+        }
+        for (int i = 0; i < vecToP2.length; i++) {
+            double a1Evaluated = a1Supplier[i] == null ? a1[i] : a1Supplier[i].getAsDouble();
+            double r1Evaluated = r1Supplier[i] == null ? r1[i] : r1Supplier[i].getAsDouble();
+            double sinKsi = FastMath.sin(ksi[i]);
+            double theta2 = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[i], ph1[i], a1Evaluated, ph2[i]);
+            double sinTheta2 = FastMath.sin(theta2);
+            double cosTheta2 = FastMath.cos(theta2);
+            if (vecToP2[i] != null) {
+                // All dp2 functions should be available then
                 dp2dv1[i] = vecToDP2dv1[i].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
                         b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
                         a1Evaluated, r1Evaluated);
