@@ -122,6 +122,7 @@ class EquationsTest {
         Mockito.doReturn(B_2).when(piModel).getB2();
         Mockito.doReturn(KSI).when(piModel).getKsi();
         Mockito.doReturn(R_1).when(piModel).getR1();
+        Mockito.doReturn(A_1).when(piModel).getA1();
 
         bus1 = Mockito.mock(LfBus.class, ANSWER);
         bus2 = Mockito.mock(LfBus.class, ANSWER);

@@ -232,7 +232,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
     }
 
-    public VectorEngine getVectorEngine() {
+    public VectorEngine<V> getVectorEngine() {
         return vectorEngine;
     }
 

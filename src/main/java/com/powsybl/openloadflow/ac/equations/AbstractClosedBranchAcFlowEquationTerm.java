@@ -40,6 +40,12 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final Variable<AcVariableType> r1Var;
 
+    private final boolean isArrayPiModel;
+
+    private final double a1;
+
+    private final double r1;
+
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
@@ -80,6 +86,10 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
             acVectorEnginee.ph2Var[branch.getNum()] = ph2Var;
         }
 
+        isArrayPiModel = branch.getPiModel() instanceof PiModelArray;
+        a1 = isArrayPiModel ? Double.NaN : branch.getPiModel().getA1();
+        r1 = isArrayPiModel ? Double.NaN : branch.getPiModel().getR1();
+
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
         variables.add(v1Var);
@@ -107,16 +117,16 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     @Override
     public void updateVectorSuppliers() {
         // if a1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
-        if (a1Var != null || element.getPiModel() instanceof PiModelArray) {
+        if (a1Var != null || isArrayPiModel) {
             acVectorEnginee.a1Supplier[element.getNum()] = () -> a1();
         } else {
-            acVectorEnginee.a1[element.getNum()] = element.getPiModel().getA1();
+            acVectorEnginee.a1[element.getNum()] = a1;
         }
         // if r1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
-        if (r1Var != null || element.getPiModel() instanceof PiModelArray) {
+        if (r1Var != null || isArrayPiModel) {
             acVectorEnginee.r1Supplier[element.getNum()] = () -> r1();
         } else {
-            acVectorEnginee.r1[element.getNum()] = element.getPiModel().getR1();
+            acVectorEnginee.r1[element.getNum()] = r1;
         }
     }
 
@@ -142,12 +152,16 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected double r1() {
         // TODO: Remove test on var row - should not be called if term is inactive
-        return r1Var != null && r1Var.getRow() >= 0 ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
+        return r1Var != null && r1Var.getRow() >= 0 ? sv.get(r1Var.getRow()) :
+                isArrayPiModel ? element.getPiModel().getR1() : r1;
+        // to avoid memory cache miss we don't load the piModel if not necessary
     }
 
     protected double a1() {
         // TODO remove test >0 - should not be called if term is inactive
-        return a1Var != null && a1Var.getRow() >= 0 ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
+        return a1Var != null && a1Var.getRow() >= 0 ? sv.get(a1Var.getRow()) :
+                isArrayPiModel ? element.getPiModel().getA1() : a1;
+        // to avoid memory cache miss we don't load the piModel if not necessary
     }
 
     public static double theta1(double ksi, double ph1, double a1, double ph2) {

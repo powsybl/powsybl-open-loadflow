@@ -7,6 +7,7 @@
  */
 
 package com.powsybl.openloadflow.ac.equations.vector;
+import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -18,7 +19,9 @@ import net.jafama.FastMath;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.DoubleSupplier;
+import java.util.stream.IntStream;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
@@ -72,6 +75,17 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     public final VecToVal[] busDpDphVecToVal;
     public final double[] busDpDv;
     public final double[] busDpDph;
+
+    // indexes to compute derivatives
+    private boolean equationDataValid;
+    private Equation<AcVariableType, AcEquationType>[] equations;
+    private int[] variableCountPerEquation;
+    private int[] variablePerEquationIndex;
+    private Variable<AcVariableType>[] variablesPerEquation;
+    private int[] matrixIndexPerVariableAndEquation;
+    private int[] termsByVariableAndEquationIndex;
+    private int[] termCountByVariableAndEquation;
+    private EquationTerm<AcVariableType, AcEquationType>[] termsByVariableAndEquation;
 
     public interface VecToVal {
         double value(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2,
@@ -151,9 +165,10 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     @Override
     public void onStateUpdate() {
-        Arrays.fill(p2Valid, false);
-        updateVariables();
-        vecToP2();
+        // disconnected for now - does not accelerate because of need to update the suppliers (can be modified)
+        // Arrays.fill(p2Valid, false);
+        // updateVariables();
+        // vecToP2();
     }
 
     @Override
@@ -168,20 +183,16 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     @Override
     public void beforeDer() {
-        vectToDP2();
+        // disconnected for now
+        // vectToDP2();
+        if (!equationDataValid) {
+            initEquationData();
+        }
     }
 
     public void addSupplyingTerm(AbstractClosedBranchAcFlowEquationTerm t) {
         supplyingTerms.add(t);
-    }
-
-    @Override
-    public double[] getDerivedArray(Variable<AcVariableType> v) {
-        return switch (v.getType()) {
-            case BUS_V -> busDpDv;
-            case BUS_PHI -> busDpDph;
-            default -> null;
-        };
+        equationDataValid = false;
     }
 
     private void updateSuppliers() {
@@ -262,6 +273,94 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     busDpDph[bus2D2PerLoc[i]] = busDpDphVecToVal[bus2D2PerLoc[i]].value(v1[i], v2[i], sinKsi, sinTheta2, cosTheta2,
                             b1[i], b2[i], g1[i], g2[i], y[i], g12[i], b12[i],
                             a1Evaluated, r1Evaluated);
+                }
+            }
+        }
+    }
+
+    private void initEquationData() {
+        List<Equation<AcVariableType, AcEquationType>> activeEquations = equationSystem.getEquations().stream().toList();
+        int equationCount = activeEquations.size();
+        equations = new Equation[equationCount];
+        variableCountPerEquation = new int[equationCount];
+        int index = 0;
+        int variableIndexSize = 0;
+        for (Equation<AcVariableType, AcEquationType> e : activeEquations) {
+            int equationVariableCount = e.getVariableCount();
+            variableIndexSize += equationVariableCount;
+            variableCountPerEquation[index] = equationVariableCount;
+            equations[index] = e;
+            index += 1;
+        }
+        variablePerEquationIndex = new int[equationCount];
+        variablesPerEquation = new Variable[variableIndexSize];
+        matrixIndexPerVariableAndEquation = new int[variableIndexSize];
+        termsByVariableAndEquationIndex = new int[variableIndexSize];
+        termCountByVariableAndEquation = new int[variableIndexSize];
+        List<EquationTerm<AcVariableType, AcEquationType>> termsByVariableAndEquationList = new ArrayList<>();
+        int indexVar = 0;
+        int indexEq = 0;
+        int indexTerm = 0;
+        for (Equation<AcVariableType, AcEquationType> e : activeEquations) {
+            variablePerEquationIndex[indexEq] = indexVar;
+            for (Variable<AcVariableType> v : e.getVariables()) {
+                variablesPerEquation[indexVar] = v;
+                termsByVariableAndEquationIndex[indexVar] = indexTerm;
+                termCountByVariableAndEquation[indexVar] = e.getTerms(v).size();
+                for (EquationTerm<AcVariableType, AcEquationType> t : e.getTerms(v)) {
+                    termsByVariableAndEquationList.add(t);
+                    indexTerm += 1;
+                }
+                indexVar += 1;
+            }
+            indexEq += 1;
+        }
+        termsByVariableAndEquation = termsByVariableAndEquationList.toArray(new EquationTerm[0]);
+        equationDataValid = true;
+    }
+
+    @Override
+    public void der(boolean update, Matrix matrix) {
+        int[] sortedEquationIndexArray = IntStream.range(0, equations.length).boxed()
+                .sorted((i1, i2) -> equations[i1].getColumn() - equations[i2].getColumn())
+                .mapToInt(i -> i).toArray();
+        for (int sortedEqIndex = 0; sortedEqIndex < equations.length; sortedEqIndex++) {
+            int eqIndex = sortedEquationIndexArray[sortedEqIndex];
+            if (equations[eqIndex].isActive()) {
+                int col = equations[eqIndex].getColumn();
+                int varEnd = variablePerEquationIndex[eqIndex] + variableCountPerEquation[eqIndex];
+                for (int varIndex = variablePerEquationIndex[eqIndex]; varIndex < varEnd; varIndex++) {
+                    Variable<AcVariableType> v = variablesPerEquation[varIndex];
+                    int row = v.getRow();
+                    if (row >= 0) {
+                        int termEnd = termsByVariableAndEquationIndex[varIndex] + termCountByVariableAndEquation[varIndex];
+                        double value = 0;
+                        for (int termIndex = termsByVariableAndEquationIndex[varIndex];
+                             termIndex < termEnd;
+                             termIndex++) {
+                            if (termsByVariableAndEquation[termIndex].isActive()) {
+                                value += termsByVariableAndEquation[termIndex].der(v);
+                            }
+                        }
+                        boolean debug = false;
+                        if (debug) {
+                            double[] hack = new double[1];
+                            equations[eqIndex].der((var, val, matrixElement) -> {
+                                if (var == v) {
+                                    hack[0] = val;
+                                }
+                                return 0;
+                            });
+                            if (value != hack[0]) {
+                                throw new IllegalStateException("different result");
+                            }
+                        }
+                        if (update) {
+                            matrix.addAtIndex(matrixIndexPerVariableAndEquation[varIndex], value);
+                        } else {
+                            matrixIndexPerVariableAndEquation[varIndex] = matrix.addAndGetIndex(row, col, value);
+                        }
+                    }
                 }
             }
         }

@@ -8,10 +8,12 @@
 
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.Matrix;
+
 public interface VectorEngine<V extends Enum<V> & Quantity> {
 
     void beforeDer();
 
-    double[] getDerivedArray(Variable<V> v);
+    void der(boolean update, Matrix matrix);
 
 }

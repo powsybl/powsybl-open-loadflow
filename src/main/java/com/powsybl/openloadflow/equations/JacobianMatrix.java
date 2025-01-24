@@ -38,7 +38,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private LUDecomposition lu;
 
-    private VectorEngine vectorEngine;
+    private final VectorEngine<V> vectorEngine;
 
     protected enum Status {
         VALID,
@@ -98,14 +98,15 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         if (vectorEngine != null) {
             vectorEngine.beforeDer();
-        }
-
-        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
-            int column = eq.getColumn();
-            eq.der((variable, value, matrixElementIndex) -> {
-                int row = variable.getRow();
-                return matrix.addAndGetIndex(row, column, value);
-            });
+            vectorEngine.der(false, matrix);
+        } else {
+            for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+                int column = eq.getColumn();
+                eq.der((variable, value, matrixElementIndex) -> {
+                    int row = variable.getRow();
+                    return matrix.addAndGetIndex(row, column, value);
+                });
+            }
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -130,13 +131,14 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         if (vectorEngine != null) {
             vectorEngine.beforeDer();
-        }
-
-        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
-            eq.der((variable, value, matrixElementIndex) -> {
-                matrix.addAtIndex(matrixElementIndex, value);
-                return matrixElementIndex; // don't change element index
-            });
+            vectorEngine.der(true, matrix);
+        } else {
+            for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+                eq.der((variable, value, matrixElementIndex) -> {
+                    matrix.addAtIndex(matrixElementIndex, value);
+                    return matrixElementIndex; // don't change element index
+                });
+            }
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));

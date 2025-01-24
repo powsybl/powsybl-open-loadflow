@@ -137,12 +137,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     @Override
     public double eval() {
-        if (!p2Valid()) {
-            // To avoid code duplication, use the vectorized fonction with standard arguments. Pass Nan for variables that are not used.
-            setP2(vec2p2(v1(), v2(), FastMath.sin(ksi()), FastMath.sin(theta2(ksi(), ph1(), a1(), ph2())), Double.NaN,
-                    Double.NaN, Double.NaN, Double.NaN, g2(), y(), Double.NaN, Double.NaN, a1(), r1()));
-        }
-        return p2();
+        return p2(y(), FastMath.sin(ksi()), g2(), v1(), r1(), v2(), FastMath.sin(theta2(ksi(), ph1(), a1(), ph2())));
     }
 
     @Override
@@ -164,21 +159,6 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
-    }
-
-    // eval variables
-
-    protected boolean p2Valid() {
-        return acVectorEnginee.p2Valid[branchNum];
-    }
-
-    protected double p2() {
-        return acVectorEnginee.p2[branchNum];
-    }
-
-    protected void setP2(double value) {
-        acVectorEnginee.p2[branchNum] = value;
-        acVectorEnginee.p2Valid[branchNum] = true;
     }
 
     @Override
