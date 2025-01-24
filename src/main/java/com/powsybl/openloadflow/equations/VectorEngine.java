@@ -16,4 +16,5 @@ public interface VectorEngine<V extends Enum<V> & Quantity> {
 
     void der(boolean update, Matrix matrix);
 
+    void equationListUpdate();
 }

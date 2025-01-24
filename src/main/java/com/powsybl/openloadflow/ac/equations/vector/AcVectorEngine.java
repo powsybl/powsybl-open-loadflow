@@ -182,6 +182,11 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     @Override
+    public void equationListUpdate() {
+        equationDataValid = false;
+    }
+
+    @Override
     public void beforeDer() {
         // disconnected for now
         // vectToDP2();
@@ -279,13 +284,13 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     private void initEquationData() {
-        List<Equation<AcVariableType, AcEquationType>> activeEquations = equationSystem.getEquations().stream().toList();
-        int equationCount = activeEquations.size();
+        List<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations().stream().toList();
+        int equationCount = equationList.size();
         equations = new Equation[equationCount];
         variableCountPerEquation = new int[equationCount];
         int index = 0;
         int variableIndexSize = 0;
-        for (Equation<AcVariableType, AcEquationType> e : activeEquations) {
+        for (Equation<AcVariableType, AcEquationType> e : equationList) {
             int equationVariableCount = e.getVariableCount();
             variableIndexSize += equationVariableCount;
             variableCountPerEquation[index] = equationVariableCount;
@@ -301,7 +306,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         int indexVar = 0;
         int indexEq = 0;
         int indexTerm = 0;
-        for (Equation<AcVariableType, AcEquationType> e : activeEquations) {
+        for (Equation<AcVariableType, AcEquationType> e : equationList) {
             variablePerEquationIndex[indexEq] = indexVar;
             for (Variable<AcVariableType> v : e.getVariables()) {
                 variablesPerEquation[indexVar] = v;
