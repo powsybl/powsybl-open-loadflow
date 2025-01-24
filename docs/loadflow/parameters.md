@@ -152,7 +152,15 @@ The default value is `false`.
 
 **secondaryVoltageControl**  
 Whether simulation of secondary voltage control should be enabled.  
+Modeling of secondary voltage control has been designed to provide a fast, static, approximation of the equilibrium state of the generator reactive power 
+alignment process that controls the voltage of a remote pilot point.
+This reactive power alignment process typically takes several minutes on the network.
 The default value is `false`.
+
+Please note that the secondaryVoltageControl implementation has the folowing limitation:  
+Generators that belongs to a secondary voltage control zone should be in local voltage control only.
+If secondaryVoltageControl is set to `true`, generators that belongs to a secondary voltage control zone and that are configured 
+for remote voltage control are switched to local voltage control with an initial local target equals to remoteTarget / remoteNominalV * localNominalV . 
 
 **reactiveLimitsMaxPqPvSwitch**  
 When `useReactiveLimits` is set to `true`, this parameter is used to limit the number of times an equipment performing voltage control
