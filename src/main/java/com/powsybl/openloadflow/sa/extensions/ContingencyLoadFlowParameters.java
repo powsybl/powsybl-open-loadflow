@@ -12,6 +12,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -24,6 +25,8 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
     private Boolean areaInterchangeControl;
 
     private LoadFlowParameters.BalanceType balanceType;
+
+    private List<String> outerLoopNames;
 
     @Override
     public String getName() {
@@ -54,6 +57,14 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
         return balanceType != null ? balanceType : loadFlowParameters.getBalanceType();
     }
 
+    public Optional<List<String>> getOuterLoopNames() {
+        return Optional.ofNullable(outerLoopNames);
+    }
+
+    public List<String> getOuterLoopNames(OpenLoadFlowParameters loadFlowParametersExt) {
+        return outerLoopNames != null ? outerLoopNames : loadFlowParametersExt.getOuterLoopNames();
+    }
+
     public ContingencyLoadFlowParameters setDistributedSlack(Boolean distributedSlack) {
         this.distributedSlack = distributedSlack;
         return this;
@@ -66,6 +77,11 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
 
     public ContingencyLoadFlowParameters setBalanceType(LoadFlowParameters.BalanceType balanceType) {
         this.balanceType = balanceType;
+        return this;
+    }
+
+    public ContingencyLoadFlowParameters setOuterLoopNames(List<String> outerLoopNames) {
+        this.outerLoopNames = outerLoopNames;
         return this;
     }
 }

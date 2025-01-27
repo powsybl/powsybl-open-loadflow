@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 
 import java.util.List;
 import java.util.Map;
@@ -41,11 +42,11 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      IncrementalTransformerReactivePowerControlOuterLoop.NAME,
                                                      AbstractAreaInterchangeControlOuterLoop.NAME);
 
-    private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
         return switch (name) {
             case AbstractIncrementalPhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
                                                                                                OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
-            case DistributedSlackOuterLoop.NAME -> createDistributedSlackOuterLoop(parameters, parametersExt);
+            case DistributedSlackOuterLoop.NAME -> createDistributedSlackOuterLoop(parameters, parametersExt, contingencyParameters);
             case IncrementalShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
                                                                                                     OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
             case IncrementalTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
@@ -72,7 +73,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                                      parametersExt.getGeneratorVoltageControlMinNominalVoltage());
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
             case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
-            case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt);
+            case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, contingencyParameters);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for AC load flow");
         };
     }
@@ -90,8 +91,13 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
     @Override
     public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        List<AcOuterLoop> outerLoops = Objects.requireNonNull(parametersExt.getOuterLoopNames()).stream()
-                .flatMap(name -> createOuterLoop(name, parameters, parametersExt).stream())
+        return configure(parameters, parametersExt, new ContingencyLoadFlowParameters());
+    }
+
+    @Override
+    public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
+        List<AcOuterLoop> outerLoops = Objects.requireNonNull(contingencyParameters.getOuterLoopNames(parametersExt)).stream()
+                .flatMap(name -> createOuterLoop(name, parameters, parametersExt, contingencyParameters).stream())
                 .toList();
         checkTypeUnicity(outerLoops);
         return filterInconsistentOuterLoops(outerLoops);

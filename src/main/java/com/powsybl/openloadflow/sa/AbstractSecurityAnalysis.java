@@ -818,7 +818,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
      * Applies the custom parameters that are contained in the ContingencyLoadFlowParameters extension for a specific contingency.
      * If the extension is present, modifies the ac/dcLoadFlowParameters contained in the LoadFlowContext accordingly.
      */
-    protected abstract void applyContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyLoadFlowParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters parametersExt);
+    protected abstract void applyContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters);
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
                                                                  LimitViolationManager preContingencyLimitViolationManager,

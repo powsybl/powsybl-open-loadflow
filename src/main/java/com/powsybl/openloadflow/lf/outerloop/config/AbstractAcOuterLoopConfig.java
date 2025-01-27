@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.lf.outerloop.config;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,17 +28,17 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected AbstractAcOuterLoopConfig() {
     }
 
-    protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        if (parameters.isDistributedSlack()) {
-            return Optional.of(DistributedSlackOuterLoop.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
+    protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
+        if (contingencyParameters.isDistributedSlack(parameters)) {
+            return Optional.of(DistributedSlackOuterLoop.create(contingencyParameters.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
                     parametersExt.getSlackBusPMaxMismatch()));
         }
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        if (parametersExt.isAreaInterchangeControl()) {
-            return Optional.of(AcAreaInterchangeControlOuterLoop.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
+    protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
+        if (contingencyParameters.isAreaInterchangeControl(parametersExt)) {
+            return Optional.of(AcAreaInterchangeControlOuterLoop.create(contingencyParameters.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
                     parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
         }
         return Optional.empty();

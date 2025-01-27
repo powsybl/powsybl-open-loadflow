@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 
 import java.util.List;
 import java.util.Objects;
@@ -26,18 +27,23 @@ public class ExplicitDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
     public static final List<String> NAMES = List.of(AbstractIncrementalPhaseControlOuterLoop.NAME,
                                                         AbstractAreaInterchangeControlOuterLoop.NAME);
 
-    private static Optional<DcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private static Optional<DcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
         return switch (name) {
             case AbstractIncrementalPhaseControlOuterLoop.NAME -> createIncrementalPhaseControlOuterLoop(parameters);
-            case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt);
+            case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, contingencyParameters);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for DC load flow");
         };
     }
 
     @Override
     public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        return configure(parameters, parametersExt, new ContingencyLoadFlowParameters());
+    }
+
+    @Override
+    public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
         return Objects.requireNonNull(parametersExt.getOuterLoopNames()).stream()
-                .flatMap(name -> createOuterLoop(name, parameters, parametersExt).stream())
+                .flatMap(name -> createOuterLoop(name, parameters, parametersExt, contingencyParameters).stream())
                 .toList();
     }
 }
