@@ -233,8 +233,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         return multiply(-1);
     }
 
-    default boolean isVectorized(Variable<V> v) {
-        return false;
+    default VectorEngine.VecToVal getVecToVal(Variable<V> v) {
+        return null;
     }
 
     default int getVectorIndex(Variable<V> v) {

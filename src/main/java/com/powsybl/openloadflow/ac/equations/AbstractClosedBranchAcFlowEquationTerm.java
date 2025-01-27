@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.util.Fortescue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.DoubleSupplier;
 
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
@@ -114,19 +115,19 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
     }
 
-    @Override
-    public void updateVectorSuppliers() {
-        // if a1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
-        if (a1Var != null || isArrayPiModel) {
-            acVectorEnginee.a1Supplier[element.getNum()] = () -> a1();
-        } else {
-            acVectorEnginee.a1[element.getNum()] = a1;
-        }
-        // if r1 is not a variable, and cannot be changed as an input, store it, otherwise use a supplier
+    public DoubleSupplier getR1Supplier() {
         if (r1Var != null || isArrayPiModel) {
-            acVectorEnginee.r1Supplier[element.getNum()] = () -> r1();
+            return () -> r1();
         } else {
-            acVectorEnginee.r1[element.getNum()] = r1;
+            return null;
+        }
+    }
+
+    public DoubleSupplier getA1Supplier() {
+        if (a1Var != null || isArrayPiModel) {
+            return () -> a1();
+        } else {
+            return null;
         }
     }
 
@@ -150,14 +151,14 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return sv.get(ph2Var.getRow());
     }
 
-    protected double r1() {
+    public double r1() {
         // TODO: Remove test on var row - should not be called if term is inactive
         return r1Var != null && r1Var.getRow() >= 0 ? sv.get(r1Var.getRow()) :
                 isArrayPiModel ? element.getPiModel().getR1() : r1;
         // to avoid memory cache miss we don't load the piModel if not necessary
     }
 
-    protected double a1() {
+    public double a1() {
         // TODO remove test >0 - should not be called if term is inactive
         return a1Var != null && a1Var.getRow() >= 0 ? sv.get(a1Var.getRow()) :
                 isArrayPiModel ? element.getPiModel().getA1() : a1;

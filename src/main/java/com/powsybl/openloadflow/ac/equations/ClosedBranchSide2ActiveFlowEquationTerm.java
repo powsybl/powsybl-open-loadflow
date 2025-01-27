@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.equations.VectorEngine;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
@@ -36,18 +37,22 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public void updateVectorSuppliers() {
-        super.updateVectorSuppliers();
-        acVectorEnginee.vecToP2[element.getNum()] = ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;
-        acVectorEnginee.busDpDvVecToVal[acVectorEnginee.bus2D1PerLoc[element.getNum()]] = ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dv1;
-        acVectorEnginee.busDpDvVecToVal[acVectorEnginee.bus2D2PerLoc[element.getNum()]] = ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dv2;
-        acVectorEnginee.busDpDphVecToVal[acVectorEnginee.bus2D1PerLoc[element.getNum()]] = ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dph1;
-        acVectorEnginee.busDpDphVecToVal[acVectorEnginee.bus2D2PerLoc[element.getNum()]] = ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dph2;
-    }
-
-    @Override
-    public boolean isVectorized(Variable<AcVariableType> v) {
-        return v.getType() == AcVariableType.BUS_V || v.getType() == AcVariableType.BUS_PHI;
+    public VectorEngine.VecToVal getVecToVal(Variable<AcVariableType> v) {
+        if (v == v1Var) {
+            return ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dv1;
+        }
+        if (v == v2Var) {
+            return ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dv2;
+        }
+        if (v == ph1Var) {
+            return ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dph1;
+        }
+        if (v == ph2Var) {
+            return ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dph2;
+        }
+        return null;
+        // TODO return for eval
+        // acVectorEnginee.vecToP2[element.getNum()] = ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;}
     }
 
     @Override

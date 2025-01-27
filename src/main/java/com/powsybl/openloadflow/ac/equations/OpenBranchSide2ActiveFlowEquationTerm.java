@@ -28,11 +28,6 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 
-    @Override
-    public void updateVectorSuppliers() {
-        // Do nothing for now
-    }
-
     private double v1() {
         return sv.get(v1Var.getRow());
     }

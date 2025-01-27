@@ -42,8 +42,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         }
     }
 
-    public abstract void updateVectorSuppliers();
-
     protected double b1() {
         return acVectorEnginee.b1[branchNum];
     }
