@@ -119,9 +119,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         // if contingency includes the loss of a DC line or a generator or a load
         // save bus dc base state for later restoration
         List<BusDcState> busStates = ElementState.save(lfNetwork.getBuses(), BusDcState::save);
+        // FIXME : no need to create another time the contingency here
         connectivityAnalysisResult.toLfContingency()
                         .ifPresent(lfContingency -> lfContingency.applyOnGeneratorsLoadsHvdcs(loadFlowContext.getParameters().getBalanceType(), false));
-        // TODO : clean
+        // TODO : avoid rhs override if not needed
         double[] newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, connectivityAnalysisResult.toLfContingency().get(), lfActions);
         engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
         ElementState.restore(busStates);
