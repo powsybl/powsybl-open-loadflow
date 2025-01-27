@@ -30,6 +30,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private int column = -1;
 
+    private int vectorIndex = -1;
+
     /**
      * true if this equation term active, false otherwise
      */
@@ -81,6 +83,18 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public void setColumn(int column) {
         this.column = column;
+
+        if (equationSystem != null) {
+            equationSystem.notifyEquationChange(this, EquationEventType.EQUATION_COLUMN_CHANGED);
+        }
+    }
+
+    public int getVectorIndex() {
+        return vectorIndex;
+    }
+
+    public void setVectorIndex(int vectorIndex) {
+        this.vectorIndex = vectorIndex;
     }
 
     public boolean isActive() {

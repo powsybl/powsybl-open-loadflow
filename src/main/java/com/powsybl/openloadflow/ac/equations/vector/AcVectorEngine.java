@@ -83,7 +83,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // indexes to compute derivatives
     private boolean equationDataValid;
-    private Equation<AcVariableType, AcEquationType>[] equations;
     private int[] variableCountPerEquation;
     private int[] variablePerEquationIndex;
     private Variable<AcVariableType>[] variablesPerEquation;
@@ -93,7 +92,11 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     private EquationTerm<AcVariableType, AcEquationType>[] termsByVariableAndEquation;
     private int[] termStatusByVariableAndEquationsIndex;
 
-    // terma replicated data
+    // equation replicated data
+    private boolean[] equationActiveStatus;
+    private int[] equationColumn;
+
+    // term replicated data
     private boolean[] termActiveStatus;
 
     public interface VecToVal {
@@ -190,7 +193,14 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                 break;
             case EQUATION_ACTIVATED:
             case EQUATION_DEACTIVATED:
-                // nothing to do
+                if (equation.getVectorIndex() >= 0) {
+                    equationActiveStatus[equation.getVectorIndex()] = equation.isActive();
+                }
+            case EQUATION_COLUMN_CHANGED:
+                if (equation.getVectorIndex() >= 0) {
+                    equationColumn[equation.getVectorIndex()] = equation.getColumn();
+                }
+                break;
         }
     }
 
@@ -311,17 +321,20 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         Collection<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations();
         int equationCount = equationList.size();
-        equations = new Equation[equationCount];
         variableCountPerEquation = new int[equationCount];
+        equationActiveStatus = new boolean[equationCount];
+        equationColumn = new int[equationCount];
         int index = 0;
         int variableIndexSize = 0;
         int termCount = 0;
         for (Equation<AcVariableType, AcEquationType> e : equationList) {
+            e.setVectorIndex(index);
+            equationActiveStatus[index] = e.isActive();
+            equationColumn[index] = e.getColumn();
             int equationVariableCount = e.getVariableCount();
             variableIndexSize += equationVariableCount;
             variableCountPerEquation[index] = equationVariableCount;
             termCount += e.getTerms().size();
-            this.equations[index] = e;
             index += 1;
         }
         termActiveStatus = new boolean[termCount];
@@ -364,13 +377,13 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     @Override
     public void der(boolean update, Matrix matrix) {
-        int[] sortedEquationIndexArray = IntStream.range(0, equations.length).boxed()
-                .sorted((i1, i2) -> equations[i1].getColumn() - equations[i2].getColumn())
+        int[] sortedEquationIndexArray = IntStream.range(0, equationActiveStatus.length).boxed()
+                .sorted((i1, i2) -> equationColumn[i1] - equationColumn[i2])
                 .mapToInt(i -> i).toArray();
-        for (int sortedEqIndex = 0; sortedEqIndex < equations.length; sortedEqIndex++) {
+        for (int sortedEqIndex = 0; sortedEqIndex < equationActiveStatus.length; sortedEqIndex++) {
             int eqIndex = sortedEquationIndexArray[sortedEqIndex];
-            if (equations[eqIndex].isActive()) {
-                int col = equations[eqIndex].getColumn();
+            if (equationActiveStatus[eqIndex]) {
+                int col = equationColumn[eqIndex];
                 int varEnd = variablePerEquationIndex[eqIndex] + variableCountPerEquation[eqIndex];
                 for (int varIndex = variablePerEquationIndex[eqIndex]; varIndex < varEnd; varIndex++) {
                     Variable<AcVariableType> v = variablesPerEquation[varIndex];
@@ -382,20 +395,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                              termIndex < termEnd;
                              termIndex++) {
                             if (termActiveStatus[termStatusByVariableAndEquationsIndex[termIndex]]) {
-                                value += termsByVariableAndEquation[termIndex].der(v);
-                            }
-                        }
-                        boolean debug = false;
-                        if (debug) {
-                            double[] hack = new double[1];
-                            equations[eqIndex].der((var, val, matrixElement) -> {
-                                if (var == v) {
-                                    hack[0] = val;
-                                }
-                                return 0;
-                            });
-                            if (value != hack[0]) {
-                                throw new IllegalStateException("different result");
+                                value += callTermDer(termIndex, v);
                             }
                         }
                         if (update) {
@@ -407,5 +407,10 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                 }
             }
         }
+    }
+
+    // Isolate for profileing
+    private double callTermDer(int termIndex, Variable<AcVariableType> v) {
+        return termsByVariableAndEquation[termIndex].der(v);
     }
 }
