@@ -81,7 +81,6 @@ public class WoodburyEngine {
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
-            // FIXME, distribution keys has changed...
             distributeSlack(loadFlowContext.getNetwork(), remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
 
@@ -106,35 +105,6 @@ public class WoodburyEngine {
                     .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
-        }
-
-        if (contingency != null) {
-            // apply lost generators
-            for (LfGenerator generator : contingency.getLostGenerators()) {
-                LfBus lfBus = generator.getBus();
-                double lostTargetP = generator.getTargetP();
-                var eq = loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P);
-                if (eq.isPresent()) {
-                    int column = eq.get().getColumn();
-                    if (column != -1) { // inactive, could be slack bus
-                        targetVectorArray[column] -= lostTargetP;
-                    }
-                }
-            }
-            // apply lost loads
-            for (var e : contingency.getLostLoads().entrySet()) {
-                LfLoad load = e.getKey();
-                LfBus lfBus = load.getBus();
-                double lostTargetP = e.getValue().getPowerShift().getActive();
-                var eq = loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P);
-                if (eq.isPresent()) {
-                    int column = eq.get().getColumn();
-                    if (column != -1) { // inactive, could be slack bus
-                        targetVectorArray[column] += lostTargetP;
-                    }
-                }
-            }
-            // TODO: apply hvdc without power
         }
 
         if (!pstActions.isEmpty()) {

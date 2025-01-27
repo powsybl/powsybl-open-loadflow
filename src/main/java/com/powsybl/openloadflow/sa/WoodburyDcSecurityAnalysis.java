@@ -115,8 +115,16 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         DisabledNetwork disabledNetwork = new DisabledNetwork(connectivityAnalysisResult.getDisabledBuses(), disabledBranches);
 
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
+
+        // if contingency includes the loss of a DC line or a generator or a load
+        // save bus dc base state for later restoration
+        List<BusDcState> busStates = ElementState.save(lfNetwork.getBuses(), BusDcState::save);
+        connectivityAnalysisResult.toLfContingency()
+                        .ifPresent(lfContingency -> lfContingency.applyOnGeneratorsLoadsHvdcs(loadFlowContext.getParameters().getBalanceType(), true));
+        // TODO : clean
         double[] newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, connectivityAnalysisResult.toLfContingency().get(), lfActions);
         engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
+        ElementState.restore(busStates);
         return newFlowStates;
     }
 
