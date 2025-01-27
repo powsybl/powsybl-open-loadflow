@@ -143,17 +143,17 @@ public class LfContingency {
             shunt.setG(shunt.getG() - e.getValue().getG());
             shunt.setB(shunt.getB() - e.getValue().getB());
         }
-        applyOnGeneratorsLoadsHvdcs(balanceType, false);
+        applyOnGeneratorsLoadsHvdcs(balanceType, true);
     }
 
     // TODO : to be rename / clean
-    public void applyOnGeneratorsLoadsHvdcs(LoadFlowParameters.BalanceType balanceType, boolean dc) {
+    public void applyOnGeneratorsLoadsHvdcs(LoadFlowParameters.BalanceType balanceType, boolean ac) {
         for (var e : lostLoads.entrySet()) {
             LfLoad load = e.getKey();
             LfLostLoad lostLoad = e.getValue();
             PowerShift shift = lostLoad.getPowerShift();
             load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive(), lostLoad.getNotParticipatingLoadP0()));
-            if (!dc) {
+            if (ac) {
                 load.setTargetQ(load.getTargetQ() - shift.getReactive());
             }
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
@@ -166,7 +166,7 @@ public class LfContingency {
             generator.setParticipating(false);
             generator.setDisabled(true);
 
-            if (!dc) {
+            if (ac) {
                 LfBus bus = generator.getBus();
                 generatorBuses.add(bus);
                 if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
@@ -185,14 +185,12 @@ public class LfContingency {
                 }
             }
         }
-        if (!dc) {
-            for (LfBus bus : generatorBuses) {
-                if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                    bus.setGeneratorVoltageControlEnabled(false);
-                }
-                if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
-                    bus.setGeneratorReactivePowerControlEnabled(false);
-                }
+        for (LfBus bus : generatorBuses) {
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                bus.setGeneratorVoltageControlEnabled(false);
+            }
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
+                bus.setGeneratorReactivePowerControlEnabled(false);
             }
         }
         for (LfHvdc hvdc : hvdcsWithoutPower) {
