@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.ViolationLocation;
 import com.powsybl.security.results.BusResult;
 
 import java.util.*;
@@ -89,7 +90,11 @@ public interface LfBus extends LfElement {
 
     double getTargetQ();
 
+    void invalidateLoadTargetP();
+
     double getLoadTargetP();
+
+    double getNonFictitiousLoadTargetP();
 
     double getLoadTargetQ();
 
@@ -215,4 +220,10 @@ public interface LfBus extends LfElement {
     LfAsymBus getAsym();
 
     void setAsym(LfAsymBus asym);
+
+    Optional<LfArea> getArea();
+
+    void setArea(LfArea area);
+
+    ViolationLocation getViolationLocation();
 }

@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,6 +157,16 @@ public enum NetworkCache {
             return CacheUpdateResult.elementNotFound();
         }
 
+        private static CacheUpdateResult updateLfGeneratorTargetP(String id, double oldValue, double newValue, AcLoadFlowContext context, LfBus lfBus) {
+            double valueShift = newValue - oldValue;
+            LfGenerator lfGenerator = lfBus.getNetwork().getGeneratorById(id);
+            double newTargetP = lfGenerator.getInitialTargetP() + valueShift / PerUnit.SB;
+            lfGenerator.setTargetP(newTargetP);
+            lfGenerator.setInitialTargetP(newTargetP);
+            lfGenerator.reApplyActivePowerControlChecks(context.getParameters().getNetworkParameters(), null);
+            return CacheUpdateResult.elementUpdated(context);
+        }
+
         private CacheUpdateResult onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(generator, (context, lfBus) -> {
                 if (attribute.equals("targetV")) {
@@ -174,6 +185,17 @@ public enum NetworkCache {
                     }
                     context.getNetwork().validate(LoadFlowModel.AC, null);
                     return CacheUpdateResult.elementUpdated(context);
+                } else if (attribute.equals("targetP")) {
+                    return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, context, lfBus);
+                }
+                return CacheUpdateResult.unsupportedUpdate();
+            });
+        }
+
+        private CacheUpdateResult onBatteryUpdate(Battery battery, String attribute, Object oldValue, Object newValue) {
+            return onInjectionUpdate(battery, (context, lfBus) -> {
+                if (attribute.equals("targetP")) {
+                    return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, context, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate();
             });
@@ -277,8 +299,13 @@ public enum NetworkCache {
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV")) {
+                        if (attribute.equals("targetV") || attribute.equals("targetP")) {
                             result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.BATTERY) {
+                        Battery battery = (Battery) identifiable;
+                        if (attribute.equals("targetP")) {
+                            result = onBatteryUpdate(battery, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;
@@ -312,7 +339,7 @@ public enum NetworkCache {
         }
 
         @Override
-        public void onExtensionUpdate(Extension<?> extension, String attribute, Object oldValue, Object newValue) {
+        public void onExtensionUpdate(Extension<?> extension, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null || pause) {
                 return;
             }
@@ -364,17 +391,17 @@ public enum NetworkCache {
         }
 
         @Override
-        public void onElementAdded(Identifiable identifiable, String attribute, Object newValue) {
+        public void onPropertyAdded(Identifiable identifiable, String attribute, Object newValue) {
             onPropertyChange();
         }
 
         @Override
-        public void onElementReplaced(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
+        public void onPropertyReplaced(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
             onPropertyChange();
         }
 
         @Override
-        public void onElementRemoved(Identifiable identifiable, String attribute, Object oldValue) {
+        public void onPropertyRemoved(Identifiable identifiable, String attribute, Object oldValue) {
             onPropertyChange();
         }
 

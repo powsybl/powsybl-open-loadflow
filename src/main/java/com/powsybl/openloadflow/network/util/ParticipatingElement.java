@@ -47,7 +47,7 @@ public class ParticipatingElement {
 
     public static double participationFactorNorm(List<ParticipatingElement> participatingElements) {
         return participatingElements.stream()
-                .mapToDouble(participatingGenerator -> participatingGenerator.factor)
+                .mapToDouble(participatingElement -> participatingElement.factor)
                 .sum();
     }
 

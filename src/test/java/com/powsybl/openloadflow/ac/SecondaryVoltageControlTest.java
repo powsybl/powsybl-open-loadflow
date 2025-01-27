@@ -10,7 +10,9 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.extensions.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -361,5 +363,166 @@ class SecondaryVoltageControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    void testWithGeneratorRemoteVoltage() {
+        // move generator 6 to bus 5 but keep voltage control on bus 6
+        network.getGenerator("B6-G").remove();
+        var g5 = network.getVoltageLevel("VL5").newGenerator()
+                .setId("B5-G")
+                .setBus("B5")
+                .setTargetP(0)
+                .setMinP(-9999)
+                .setMaxP(9999)
+                .setTargetV(12.8)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .add();
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B5-G").add() // this control unit is a generator with remote voltage control
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(13, b10);
+        assertVoltageEquals(12.682, b6);
+        assertVoltageEquals(25.311, b8);
+        assertReactivePowerEquals(82.904, g5.getTerminal());
+        assertReactivePowerEquals(-97, g8.getTerminal());
+    }
+
+    @Test
+    void testWithDiscardedGenerator() {
+        g6.newMinMaxReactiveLimits()
+                .setMinQ(100)
+                .setMaxQ(100.00000001)
+                .add();
+        parametersExt.setSecondaryVoltageControl(true);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(13, b10);
+        assertVoltageEquals(13.090, b6);
+        assertVoltageEquals(23.381, b8);
+    }
+
+    @Test
+    void testWithGeneratorSharedRemoteVoltage() {
+        // remove generator 6 and create 2 new generators controlling voltage on bus 6
+        network.getGenerator("B6-G").remove();
+
+        var s5 = network.getSubstation("S5");
+        var vl99 = s5.newVoltageLevel()
+                .setId("VL99")
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .setNominalV(6)
+                .add();
+        var b991 = vl99.getBusBreakerView().newBus()
+                .setId("B99-1")
+                .add();
+        var b992 = vl99.getBusBreakerView().newBus()
+                .setId("B99-2")
+                .add();
+        var g991 = vl99.newGenerator()
+                .setId("B99-G1")
+                .setBus("B99-1")
+                .setTargetP(1)
+                .setMinP(-1000)
+                .setMaxP(1000)
+                .setTargetV(12.8)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .add();
+        g991.newMinMaxReactiveLimits()
+                .setMinQ(-30)
+                .setMaxQ(70)
+                .add();
+        var g992 = vl99.newGenerator()
+                .setId("B99-G2")
+                .setBus("B99-2")
+                .setTargetP(2)
+                .setMinP(-1000)
+                .setMaxP(1000)
+                .setTargetV(12.8)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .add();
+        g992.newMinMaxReactiveLimits()
+                .setMinQ(-40)
+                .setMaxQ(50)
+                .add();
+        s5.newTwoWindingsTransformer()
+                .setId("B99-T1")
+                .setVoltageLevel1("VL99")
+                .setBus1("B99-1")
+                .setVoltageLevel2("VL6")
+                .setBus2("B6")
+                .setRatedU1(5)
+                .setRatedU2(12)
+                .setR(0.1)
+                .setX(1)
+                .add();
+        s5.newTwoWindingsTransformer()
+                .setId("B99-T2")
+                .setVoltageLevel1("VL99")
+                .setBus1("B99-2")
+                .setVoltageLevel2("VL6")
+                .setBus2("B6")
+                .setRatedU1(5)
+                .setRatedU2(12)
+                .setR(0.2)
+                .setX(2)
+                .add();
+
+        parametersExt.setSecondaryVoltageControl(true);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(12.5).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B99-G1").add()
+                .newControlUnit().withId("B99-G2").add()
+                .add()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(12.5, b10);
+        assertVoltageEquals(5.548, b991);
+        assertVoltageEquals(4.93, b992);
+        assertReactivePowerEquals(-9.172, g991.getTerminal());
+        assertReactivePowerEquals(4.742, g992.getTerminal());
+
+        // With secondary voltage set to false, check that the remote control remains active
+        parametersExt.setSecondaryVoltageControl(false);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(12.8, b6);
+        assertVoltageEquals(5.52, b991);
+        // Compare voltage in pu
+        assertEquals(1.066, b6.getV() / b6.getVoltageLevel().getNominalV(), 1e-3);
+        assertEquals(0.92, b991.getV() / b991.getVoltageLevel().getNominalV(), 1e-3);
     }
 }

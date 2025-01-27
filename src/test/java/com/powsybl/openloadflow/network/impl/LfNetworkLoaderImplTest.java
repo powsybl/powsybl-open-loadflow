@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -112,6 +113,59 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
         assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
         assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
+        assertNull(lfDanglingLineBus.getViolationLocation());
+    }
+
+    @Test
+    void networkWithControlAreasTest() {
+        network = EurostagTutorialExample1Factory.createWithTieLinesAndAreas();
+        LfNetworkParameters parameters = new LfNetworkParameters();
+
+        List<LfNetwork> lfNetworks = Networks.load(network, parameters);
+        assertEquals(1, lfNetworks.size());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertFalse(mainNetwork.hasArea());
+
+        parameters.setAreaInterchangeControl(true);
+
+        lfNetworks = Networks.load(network, parameters);
+        assertEquals(1, lfNetworks.size());
+        mainNetwork = lfNetworks.get(0);
+        LfArea lfArea = mainNetwork.getAreaById("ControlArea_A");
+        // The area is not of 'ControlArea' type, so it is not created
+        assertNull(mainNetwork.getAreaById("Region_AB"));
+        assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());
+    }
+
+    @Test
+    void networkInvalidAreasTest() {
+        // The areas have no boundaries, so they are not created
+        network = MultiAreaNetworkFactory.createWithAreaWithoutBoundariesOrTarget();
+        LfNetworkParameters parameters = new LfNetworkParameters();
+        parameters.setAreaInterchangeControl(true);
+
+        List<LfNetwork> lfNetworks = Networks.load(network, parameters);
+        assertEquals(1, lfNetworks.size());
+        assertEquals(4, lfNetworks.get(0).getBuses().size());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertNull(mainNetwork.getAreaById("a1")); // no boundaries
+        assertNotNull(mainNetwork.getAreaById("a2")); // ok
+        assertNull(mainNetwork.getAreaById("a3")); // no interchange target
+        assertNull(mainNetwork.getAreaById("a4")); // no voltage levels
+    }
+
+    @Test
+    void networkWithInvalidAreasTest2() {
+        network = MultiAreaNetworkFactory.createAreaTwoComponentsWithBoundaries();
+        LfNetworkParameters parameters = new LfNetworkParameters();
+        parameters.setAreaInterchangeControl(true);
+
+        List<LfNetwork> lfNetworks = Networks.load(network, parameters);
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertNotNull(mainNetwork.getAreaById("a1"));
+        assertNull(mainNetwork.getAreaById("a2")); // fragmented area (boundaries in different components)
     }
 
     @Test
@@ -129,6 +183,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
         assertTrue(lfStarBus.getCountry().isEmpty());
+        assertNull(lfStarBus.getViolationLocation());
     }
 
     @Test

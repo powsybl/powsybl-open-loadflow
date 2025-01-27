@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -219,4 +220,75 @@ class AcLoadFlowReportTest {
         LoadFlowAssert.assertReportEquals("/shuntVoltageControlDiscarded.txt", reportNode);
     }
 
+    @Test
+    void testTransformerControlAlreadyExistsWithDifferentTargetV() throws IOException {
+        Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger().setTargetV(34.5).setTargetDeadband(3.0);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/transformerControlAlreadyExistsWithDifferentTargetVReport.txt", reportNode);
+    }
+
+    @Test
+    void areaInterchangeControl() throws IOException {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setAreaInterchangeControl(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterLoop.txt", reportNode);
+    }
+
+    @Test
+    void busesOutOfRealisticVoltageRangeTest() throws IOException {
+        Network network = EurostagTutorialExample1Factory.create();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setMinRealisticVoltage(0.99)
+                .setMaxRealisticVoltage(1.01);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertTrue(result.isFailed());
+        LoadFlowAssert.assertTxtReportEquals("""
+                        + Test Report
+                           + Load flow on network 'sim1'
+                              + Network CC0 SC0
+                                 + Network info
+                                    Network has 4 buses and 4 branches
+                                    Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+                                    Angle reference bus: VLHV1_0
+                                    Slack bus: VLHV1_0
+                                 + 4 buses have a voltage magnitude out of the configured realistic range [0.99, 1.01] p.u.
+                                    Bus VLGEN_0 has an unrealistic voltage magnitude: 1.0208333333333333 p.u.
+                                    Bus VLHV1_0 has an unrealistic voltage magnitude: 1.0582636574158686 p.u.
+                                    Bus VLHV2_0 has an unrealistic voltage magnitude: 1.0261840057810543 p.u.
+                                    Bus VLLOAD_0 has an unrealistic voltage magnitude: 0.9838500227734096 p.u.
+                                 AC load flow completed with error (solverStatus=UNREALISTIC_STATE, outerloopStatus=STABLE)
+                        """, reportNode);
+    }
 }

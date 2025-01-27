@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -28,6 +29,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -75,6 +77,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
     private final Map<String, LfLoad> loadsById = new HashMap<>();
+
+    private final Map<String, LfArea> areasById = new HashMap<>();
 
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
@@ -211,16 +215,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
-            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
-            slackBuses = selectedSlackBus.getBuses().stream()
-                    .filter(bus -> !excludedSlackBuses.contains(bus))
-                    .toList();
+            List<LfBus> selectableBuses =
+                excludedSlackBuses.isEmpty() ? busesByIndex :
+                    busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
+            slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
-                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(busesByIndex, excludedSlackBuses.size() + maxSlackBusCount);
-                slackBuses = selectedSlackBus.getBuses().stream()
-                        .filter(bus -> !excludedSlackBuses.contains(bus))
-                        .limit(maxSlackBusCount)
-                        .toList();
+                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBuses, maxSlackBusCount);
+                if (selectedSlackBus.getBuses().isEmpty()) {
+                    throw new PowsyblException("No slack bus could be selected");
+                }
+                slackBuses = selectedSlackBus.getBuses();
             }
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
@@ -298,6 +303,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
     }
 
+    public void addArea(LfArea area) {
+        Objects.requireNonNull(area);
+        areasById.put(area.getId(), area);
+    }
+
     public List<LfBus> getBuses() {
         return busesByIndex;
     }
@@ -363,6 +373,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfLoad getLoadById(String id) {
         Objects.requireNonNull(id);
         return loadsById.get(id);
+    }
+
+    public Stream<LfArea> getAreaStream() {
+        return areasById.values().stream();
+    }
+
+    public boolean hasArea() {
+        return !areasById.isEmpty();
+    }
+
+    public LfArea getAreaById(String id) {
+        Objects.requireNonNull(id);
+        return areasById.get(id);
     }
 
     public void addHvdc(LfHvdc hvdc) {

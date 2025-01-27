@@ -20,9 +20,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
-import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
-import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +38,6 @@ class ReferenceBusPrioritiesTest {
     private Generator g1;
     private Generator g2;
     private Generator g3;
-    private Generator g4;
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -54,7 +51,6 @@ class ReferenceBusPrioritiesTest {
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");
         g3 = network.getGenerator("g3");
-        g4 = network.getGenerator("g4");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
                 .setReadSlackBus(true)
@@ -97,9 +93,9 @@ class ReferenceBusPrioritiesTest {
 
     @Test
     void testMultipleComponents() {
-        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
+        network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
         // open everything at bus b4 to create 3 components
-        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(t -> t.disconnect());
+        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
         ReferencePriorities.delete(network);
         SlackTerminal.reset(network);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -115,9 +111,9 @@ class ReferenceBusPrioritiesTest {
 
     @Test
     void testNotWritingReferenceTerminals() {
-        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
+        network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
         // open everything at bus b4 to create 3 components
-        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(t -> t.disconnect());
+        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
         ReferencePriorities.delete(network);
         ReferenceTerminals.reset(network);
         SlackTerminal.reset(network);
@@ -132,9 +128,9 @@ class ReferenceBusPrioritiesTest {
 
     @Test
     void testNotWritingReferenceTerminals2() {
-        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
+        network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
         // open everything at bus b4 to create 3 components
-        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(t -> t.disconnect());
+        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
         ReferencePriorities.delete(network);
         ReferenceTerminals.reset(network);
         SlackTerminal.reset(network);
@@ -147,5 +143,32 @@ class ReferenceBusPrioritiesTest {
         assertFalse(referenceTerminals.contains(network.getGenerator("g10").getTerminal()));
         assertTrue(referenceTerminals.contains(network.getLine("l810").getTerminal2()));
         assertFalse(referenceTerminals.contains(network.getLine("l910").getTerminal2()));
+    }
+
+    @Test
+    void shouldNotSelectStaticVarCompensatorTest() {
+        network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        ReferencePriorities.delete(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
+        assertEquals("vl1_0", componentResult.getReferenceBusId());
+        assertTrue(ReferenceTerminals.getTerminals(network).contains(network.getGenerator("g1").getTerminal()));
+    }
+
+    @Test
+    void shouldNotSelectVscHvdcConverterTest() {
+        network = HvdcNetworkFactory.createVsc();
+        parametersExt.setSlackBusPMaxMismatch(0.1);
+        ReferencePriorities.delete(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        LoadFlowResult.ComponentResult componentResultSc0 = result.getComponentResults().get(0);
+        assertEquals("vl1_0", componentResultSc0.getReferenceBusId());
+        LoadFlowResult.ComponentResult componentResultSc1 = result.getComponentResults().get(1);
+        assertEquals("vl3_0", componentResultSc1.getReferenceBusId());
+        // note that no reference terminal is reported for {CC0 SC1} which does not contain real generator (only a VSC converter)
+        assertEquals(1, ReferenceTerminals.getTerminals(network).size());
+        assertTrue(ReferenceTerminals.getTerminals(network).contains(network.getGenerator("g1").getTerminal()));
     }
 }

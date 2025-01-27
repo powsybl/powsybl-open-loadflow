@@ -8,12 +8,14 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -25,21 +27,21 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.usefultoys.slf4j.LoggerFactory;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportContains;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Sylvain Leclerc {@literal <sylvain.leclerc at rte-france.com>}
  */
 class DcLoadFlowTest {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowTest.class);
 
     private LoadFlowParameters parameters;
 
@@ -75,7 +77,10 @@ class DcLoadFlowTest {
         assertEquals(Double.NaN, line2.getTerminal1().getP(), 0);
         assertEquals(Double.NaN, line2.getTerminal2().getP(), 0);
 
-        loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(-7.0, result.getComponentResults().get(0).getDistributedActivePower(), 1e-3);
 
         assertEquals(300, line1.getTerminal1().getP(), 0.01);
         assertEquals(-300, line1.getTerminal2().getP(), 0.01);
@@ -104,12 +109,30 @@ class DcLoadFlowTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLoad("LOAD").setP0(450);
 
-        loadFlowRunner.run(network, parameters);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(-157.0, result.getComponentResults().get(0).getDistributedActivePower(), 1e-3);
 
         assertTrue(Double.isNaN(line1.getTerminal1().getP()));
         assertTrue(Double.isNaN(line1.getTerminal2().getP()));
         assertEquals(450, line2.getTerminal1().getP(), 0.01);
         assertEquals(-450, line2.getTerminal2().getP(), 0.01);
+    }
+
+    @ParameterizedTest(name = "distributedSlack={0}")
+    @ValueSource(booleans = {true, false})
+    void testSlackDistributionEnabledDisabledResults(boolean distributedSlack) {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        parameters.setDistributedSlack(distributedSlack);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        var componentResults = result.getComponentResults();
+        assertEquals(1, componentResults.size());
+        assertEquals(1, componentResults.get(0).getSlackBusResults().size());
+        assertEquals(distributedSlack ? -7.0 : 0.0, componentResults.get(0).getDistributedActivePower(), 1e-3);
+        assertEquals(distributedSlack ? 0.0 : -7.0, componentResults.get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
     @Test
@@ -194,6 +217,53 @@ class DcLoadFlowTest {
     }
 
     @Test
+        void nonImpedantBranchAndPhaseShiftingTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        network.getLine("L2").setX(0).setR(0);
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(1).setAlpha(2);
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(16.5316, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(83.4683, network.getLine("L2").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
+        assertEquals(-83.4683, network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), 0.01);
+
+        // With e second zero impedance line and a second load
+        VoltageLevel vl2 = network.getVoltageLevel("VL2");
+        vl2.getBusBreakerView().newBus()
+                .setId("B2Bis")
+                .add();
+        vl2.newLoad()
+                .setId("LD2Bis")
+                .setConnectableBus("B2Bis")
+                .setBus("B2Bis")
+                .setP0(100.0)
+                .setQ0(50.0)
+                .add();
+        network.newLine()
+                .setId("L2Bis")
+                .setVoltageLevel1("VL3")
+                .setConnectableBus1("B3")
+                .setBus1("B3")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2Bis")
+                .setBus2("B2Bis")
+                .setR(0.0)
+                .setX(0.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
+                .add();
+        network.getGenerator("G1").setMaxP(500);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(49.86, network.getLine("L1").getTerminal1().getP(), 0.01);
+        assertEquals(150.13, network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), 0.01);
+        assertEquals(0, network.getTwoWindingsTransformer("PS1").getTerminal2().getP() + network.getLine("L2").getTerminal1().getP() + network.getLine("L2Bis").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
+        assertEquals(-200, network.getGenerator("G1").getTerminal().getP());
+    }
+
+    @Test
     void multiCcTest() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getVoltageLevel("VL12").newGenerator()
@@ -208,8 +278,8 @@ class DcLoadFlowTest {
                 .setVoltageRegulatorOn(false)
                 .add();
         for (Line l : List.of(network.getLine("L13-14-1"),
-                              network.getLine("L6-13-1"),
-                              network.getLine("L6-12-1"))) {
+                network.getLine("L6-13-1"),
+                network.getLine("L6-12-1"))) {
             l.getTerminal1().disconnect();
             l.getTerminal2().disconnect();
         }
@@ -269,8 +339,8 @@ class DcLoadFlowTest {
                 .setBus("NLOAD")
                 .setSectionCount(1)
                 .newLinearModel()
-                    .setBPerSection(0.111)
-                    .setMaximumSectionCount(1)
+                .setBPerSection(0.111)
+                .setMaximumSectionCount(1)
                 .add()
                 .add();
         loadFlowRunner.run(network, parameters);
@@ -283,7 +353,7 @@ class DcLoadFlowTest {
         Switch c1 = network.getSwitch("C1");
         c1.setOpen(true);
 
-        LoadFlowParameters parameters = new LoadFlowParameters()
+        parameters = new LoadFlowParameters()
                 .setDc(true);
         loadFlowRunner.run(network, parameters);
 
@@ -368,6 +438,74 @@ class DcLoadFlowTest {
     }
 
     @Test
+    void multipleOuterLoopsTest() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
+        Area a1 = network.getArea("A1");
+        Area a2 = network.getArea("A2");
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setAreaInterchangeControl(true);
+        parametersExt.setAreaInterchangePMaxMismatch(1);
+
+        var result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        assertEquals(0.0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        assertEquals(a1.getInterchangeTarget().orElseThrow(), a1.getInterchange(), 1);
+        assertEquals(a2.getInterchangeTarget().orElseThrow(), a2.getInterchange(), 1);
+
+        assertEquals(17.86, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-17.86, l1.getTerminal2().getP(), 0.01);
+        assertEquals(80.87, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-80.87, l2.getTerminal2().getP(), 0.01);
+        assertEquals(80.87, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-80.87, ps1.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void outerLoopFailedTest() {
+        Network network = MultiAreaNetworkFactory.createOneAreaBase();
+
+        Generator g1 = network.getGenerator("g1");
+        g1.setMinP(99); // makes the power distribution fail
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setAreaInterchangeControl(true);
+        parametersExt.setAreaInterchangePMaxMismatch(1)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Outer loop failed: Failed to distribute interchange active power mismatch", result.getComponentResults().get(0).getStatusText());
+    }
+
+    @Test
+    void outerLoopMaxTotalIterationTest() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setAreaInterchangeControl(true);
+
+        // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.
+        parametersExt.setAreaInterchangePMaxMismatch(1)
+                .setMaxOuterLoopIterations(1);
+        var result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: DC Incremental phase control", result.getComponentResults().get(0).getStatusText());
+
+        parametersExt.setMaxOuterLoopIterations(3);
+        result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: AreaInterchangeControl", result.getComponentResults().get(0).getStatusText());
+    }
+
+    @Test
     void testDcApproxIgnoreG() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Line line1 = network.getLine("NHV1_NHV2_1");
@@ -390,5 +528,46 @@ class DcLoadFlowTest {
         assertEquals(-292.563, line1.getTerminal2().getP(), 0.01);
         assertEquals(307.436, line2.getTerminal1().getP(), 0.01);
         assertEquals(-307.436, line2.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void testDcSlackDistributionFailureBehavior() {
+        Network network = IeeeCdfNetworkFactory.create57();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        Generator referenceGenerator = network.getGenerator("B1-G");
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        assertFalse(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 321.90 MW remains", result.getComponentResults().get(0).getStatusText());
+        assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Failed to distribute slack bus active power mismatch, 321.90 MW remains", e.getCause().getMessage());
+
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
+        assertEquals(321.9, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
+        assertActivePowerEquals(-450.8, referenceGenerator.getTerminal()); // -128.9 - 321.9 = -450.8
+        assertReportContains("Slack bus active power \\([-+]?321\\.\\d* MW\\) distributed in 1 distribution iteration\\(s\\)", reportNode);
     }
 }

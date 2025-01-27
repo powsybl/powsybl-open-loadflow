@@ -9,23 +9,30 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.PerUnit;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
-    private final boolean success;
+    private final boolean solverSuccess;
 
-    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean success) {
-        super(network, slackBusActivePowerMismatch);
-        this.success = success;
+    public static DcLoadFlowResult createNoCalculationResult(LfNetwork network) {
+        return new DcLoadFlowResult(network, 0, false, OuterLoopResult.stable(), Double.NaN, Double.NaN);
+    }
+
+    public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch, double distributedActivePower) {
+        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
+        this.solverSuccess = solverSuccess;
     }
 
     @Override
     public boolean isSuccess() {
-        return success;
+        return solverSuccess && getOuterLoopResult().status() == OuterLoopStatus.STABLE;
     }
 
     @Override
@@ -33,9 +40,24 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         if (network.getValidity() != LfNetwork.Validity.VALID) {
             return new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, network.getValidity().toString());
         }
-        if (success) {
+        if (getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
+            return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit. Last outer loop name: " + getOuterLoopResult().outerLoopName());
+        } else if (getOuterLoopResult().status() == OuterLoopStatus.FAILED) {
+            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Outer loop failed: " + getOuterLoopResult().statusText());
+        }
+        if (solverSuccess) {
             return new Status(LoadFlowResult.ComponentResult.Status.CONVERGED, "Converged");
         }
         return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Solver Failed");
+    }
+
+    @Override
+    public String toString() {
+        return "DcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
+                + ", solverSuccess=" + solverSuccess
+                + ", outerLoopStatus=" + outerLoopResult.status()
+                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
+                + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
+                + ")";
     }
 }

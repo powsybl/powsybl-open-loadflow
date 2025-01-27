@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -76,6 +77,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    @Override
+    public Optional<ThreeSides> getOriginalSide() {
+        return Optional.empty();
+    }
+
     /**
      * Create the list of LfLimits from a LoadingLimits and a list of reductions.
      * The resulting list will contain the permanent limit
@@ -127,16 +133,22 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
+    public <T extends LoadingLimits> List<LfLimit> getLimits1(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
         // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1,
-                getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits)));
+        return limits1.computeIfAbsent(type, v -> {
+            var loadingLimits = loadingLimitsSupplier.get().orElse(null);
+            return createSortedLimitsList(loadingLimits, bus1,
+                    getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits));
+        });
     }
 
-    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits, LimitReductionManager limitReductionManager) {
+    public <T extends LoadingLimits> List<LfLimit> getLimits2(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
         // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2,
-                getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits)));
+        return limits2.computeIfAbsent(type, v -> {
+            var loadingLimits = loadingLimitsSupplier.get().orElse(null);
+            return createSortedLimitsList(loadingLimits, bus2,
+                    getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits));
+        });
     }
 
     @Override
