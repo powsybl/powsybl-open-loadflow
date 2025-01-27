@@ -16,9 +16,12 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import net.jafama.FastMath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 import java.util.stream.IntStream;
@@ -31,6 +34,8 @@ import java.util.stream.IntStream;
  * foccusses on P and Q derived by V and Phi. Other combinations are not vectorized.
  */
 public class AcVectorEngine implements StateVectorListener, EquationSystemListener, VectorEngine<AcVariableType> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcVectorEngine.class);
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
@@ -86,6 +91,10 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     private int[] termsByVariableAndEquationIndex;
     private int[] termCountByVariableAndEquation;
     private EquationTerm<AcVariableType, AcEquationType>[] termsByVariableAndEquation;
+    private int[] termStatusByVariableAndEquationsIndex;
+
+    // terma replicated data
+    private boolean[] termActiveStatus;
 
     public interface VecToVal {
         double value(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2,
@@ -174,22 +183,33 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     @Override
     public void onEquationChange(Equation equation, EquationEventType eventType) {
         suppliersValid = false;
+        switch (eventType) {
+            case EQUATION_CREATED:
+            case EQUATION_REMOVED:
+                equationDataValid = false;
+                break;
+            case EQUATION_ACTIVATED:
+            case EQUATION_DEACTIVATED:
+                // nothing to do
+        }
     }
 
     @Override
     public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+        if (eventType == EquationTermEventType.EQUATION_TERM_ACTIVATED || eventType == EquationTermEventType.EQUATION_TERM_DEACTIVATED) {
+            if (term.getVectorIndex() >= 0) {
+                termActiveStatus[term.getVectorIndex()] = term.isActive();
+            }
+        }
         suppliersValid = false;
-    }
-
-    @Override
-    public void equationListUpdate() {
-        equationDataValid = false;
     }
 
     @Override
     public void beforeDer() {
         // disconnected for now
         // vectToDP2();
+
+        LOGGER.info("beforeDer equationDataValid = " + equationDataValid);
         if (!equationDataValid) {
             initEquationData();
         }
@@ -284,19 +304,27 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     private void initEquationData() {
-        List<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations().stream().toList();
+        // reset all term vector index
+        if (termsByVariableAndEquation != null) {
+            Arrays.stream(termsByVariableAndEquation).forEach(t -> t.setVectorIndex(-1));
+        }
+
+        Collection<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations();
         int equationCount = equationList.size();
         equations = new Equation[equationCount];
         variableCountPerEquation = new int[equationCount];
         int index = 0;
         int variableIndexSize = 0;
+        int termCount = 0;
         for (Equation<AcVariableType, AcEquationType> e : equationList) {
             int equationVariableCount = e.getVariableCount();
             variableIndexSize += equationVariableCount;
             variableCountPerEquation[index] = equationVariableCount;
-            equations[index] = e;
+            termCount += e.getTerms().size();
+            this.equations[index] = e;
             index += 1;
         }
+        termActiveStatus = new boolean[termCount];
         variablePerEquationIndex = new int[equationCount];
         variablesPerEquation = new Variable[variableIndexSize];
         matrixIndexPerVariableAndEquation = new int[variableIndexSize];
@@ -306,7 +334,13 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         int indexVar = 0;
         int indexEq = 0;
         int indexTerm = 0;
+        int indexForTermStatus = 0;
         for (Equation<AcVariableType, AcEquationType> e : equationList) {
+            for (EquationTerm<AcVariableType, AcEquationType> t : e.getTerms()) {
+                t.setVectorIndex(indexForTermStatus);
+                termActiveStatus[indexForTermStatus] = t.isActive();
+                indexForTermStatus += 1;
+            }
             variablePerEquationIndex[indexEq] = indexVar;
             for (Variable<AcVariableType> v : e.getVariables()) {
                 variablesPerEquation[indexVar] = v;
@@ -321,6 +355,10 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             indexEq += 1;
         }
         termsByVariableAndEquation = termsByVariableAndEquationList.toArray(new EquationTerm[0]);
+        termStatusByVariableAndEquationsIndex = new int[termsByVariableAndEquation.length];
+        for (int i = 0; i < termsByVariableAndEquation.length; i++) {
+            termStatusByVariableAndEquationsIndex[i] = termsByVariableAndEquation[i].getVectorIndex();
+        }
         equationDataValid = true;
     }
 
@@ -343,7 +381,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                         for (int termIndex = termsByVariableAndEquationIndex[varIndex];
                              termIndex < termEnd;
                              termIndex++) {
-                            if (termsByVariableAndEquation[termIndex].isActive()) {
+                            if (termActiveStatus[termStatusByVariableAndEquationsIndex[termIndex]]) {
                                 value += termsByVariableAndEquation[termIndex].der(v);
                             }
                         }

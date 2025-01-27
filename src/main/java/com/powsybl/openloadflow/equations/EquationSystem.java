@@ -127,9 +127,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             equation = addEquation(p)
                     .setActive(!element.isDisabled());
         }
-        if (vectorEngine != null) {
-            vectorEngine.equationListUpdate();
-        }
         return equation;
     }
 
@@ -138,9 +135,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Equation<V, E> equation = equations.get(p);
         if (equation == null) {
             equation = addEquation(p);
-        }
-        if (vectorEngine != null) {
-            vectorEngine.equationListUpdate();
         }
         return equation;
     }
@@ -180,9 +174,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             }
             equation.setRemoved(); // to ensure it is not used anymore
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
-        }
-        if (vectorEngine != null) {
-            vectorEngine.equationListUpdate();
         }
         return equation;
     }

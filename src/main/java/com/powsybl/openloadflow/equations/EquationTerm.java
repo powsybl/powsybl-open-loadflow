@@ -78,6 +78,16 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
+        public void setVectorIndex(int n) {
+            term.setVectorIndex(n);
+        }
+
+        @Override
+        public int getVectorIndex() {
+            return term.getVectorIndex();
+        }
+
+        @Override
         public void setSelf(EquationTerm<V, E> self) {
             term.setSelf(self);
         }
@@ -133,6 +143,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
             writer.write(" * ");
             term.write(writer);
         }
+
     }
 
     static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> multiply(EquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
@@ -229,4 +240,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     default int getVectorIndex(Variable<V> v) {
         return -1;
     }
+
+    void setVectorIndex(int n);
+
+    int getVectorIndex();
 }
