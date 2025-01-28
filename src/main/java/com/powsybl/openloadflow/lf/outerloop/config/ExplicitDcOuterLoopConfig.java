@@ -42,7 +42,7 @@ public class ExplicitDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
 
     @Override
     public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
-        return Objects.requireNonNull(parametersExt.getOuterLoopNames()).stream()
+        return Objects.requireNonNull(contingencyParameters.getOuterLoopNames(parametersExt)).stream()
                 .flatMap(name -> createOuterLoop(name, parameters, parametersExt, contingencyParameters).stream())
                 .toList();
     }
