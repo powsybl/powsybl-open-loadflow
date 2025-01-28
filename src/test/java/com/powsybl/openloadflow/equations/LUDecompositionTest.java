@@ -112,13 +112,13 @@ class LUDecompositionTest {
 
         LfBus bus = network.getBus(0);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm())
                 .setActive(true);
 
         double[] values = new double[] {0.1};
 
-        try (JacobianMatrix j = new JacobianMatrix(equationSystem, spyMatrixFactory)) {
+        try (JacobianMatrix<AcVariableType, AcEquationType> j = new JacobianMatrix<>(equationSystem, spyMatrixFactory)) {
             // First update
             j.solve(values);
             assertFalse(spyMatrixFactory.exceptionThrown);

@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.network.ElementType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
-public class DerivableTest {
+class DerivableTest {
 
     static class ToBeFilteredEquationTerm extends AbstractEquationTerm<AcVariableType, AcVariableType> {
 
@@ -58,14 +57,15 @@ public class DerivableTest {
         }
 
         @Override
-        public void write(Writer writer) throws IOException {
+        public void write(Writer writer) {
+            // empty
         }
     }
 
     static class MyBranchEquationTerm extends AbstractEquationTerm<AcVariableType, AcVariableType> {
 
-        static double VALUE = 123456;
-        static double DER = 987654321;
+        static final double VALUE = 123456;
+        static final double DER = 987654321;
 
         @Override
         public ElementType getElementType() {
@@ -93,25 +93,25 @@ public class DerivableTest {
         }
 
         @Override
-        public void write(Writer writer) throws IOException {
+        public void write(Writer writer) {
+            // empty
         }
     }
 
     @Test
     public void testDelegateFunction() {
-        EquationSystem equationSystem = Mockito.mock(EquationSystem.class);
+        EquationSystem<AcVariableType, AcVariableType> equationSystem = Mockito.mock(EquationSystem.class);
         Equation<AcVariableType, AcVariableType> equation = new Equation<>(0, AcVariableType.BUS_V, equationSystem);
         equation.addTerm(new ToBeFilteredEquationTerm(ElementType.BUS));
         equation.addTerm(new ToBeFilteredEquationTerm(ElementType.SHUNT_COMPENSATOR));
         equation.addTerm(new ToBeFilteredEquationTerm(ElementType.HVDC));
-        EquationTerm inactive = new ToBeFilteredEquationTerm(ElementType.BRANCH);
+        EquationTerm<AcVariableType, AcVariableType> inactive = new ToBeFilteredEquationTerm(ElementType.BRANCH);
         equation.addTerm(inactive);
         inactive.setActive(false);
         equation.addTerm(new MyBranchEquationTerm());
         InjectionDerivable<AcVariableType> derivable = new InjectionDerivable<>(equation);
         // Check that only my term is called and that result is delegated to the active branch term
         assertEquals(-MyBranchEquationTerm.VALUE, derivable.eval());
-        assertEquals(-MyBranchEquationTerm.DER, derivable.der(new Variable<>(0, AcVariableType.BUS_V)));
-
+        assertEquals(-MyBranchEquationTerm.DER, derivable.der(new Variable<>(0, AcVariableType.BUS_V, 0)));
     }
 }

@@ -48,7 +48,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term number, list of dependent variables
     private final List<List<Variable<V>>> termVariables = new ArrayList<>();
 
-    // for each term number, first variable index in {@link flattenTermVariableNums}
+    // for each term number, first variable index in {@link termsVariableNums}
     private final TIntArrayList termFirstVariableIndex = new TIntArrayList();
 
     // flatten list of terms variable numbers
