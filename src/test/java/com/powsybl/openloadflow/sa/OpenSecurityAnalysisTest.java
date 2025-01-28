@@ -4209,8 +4209,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
 
         // Create 3 times the same contingency
-        Contingency contingency1 = new Contingency("load3_outerloopNames", new LoadContingency("load3"));
-        Contingency contingency2 = new Contingency("load3_no_outerloopNames", new LoadContingency("load3"));
+        Contingency contingency1 = new Contingency("load3_outerLoopNames", new LoadContingency("load3"));
+        Contingency contingency2 = new Contingency("load3_no_outerLoopNames", new LoadContingency("load3"));
         List<Contingency> contingencies = List.of(contingency1, contingency2);
 
         // Default LF parameters
@@ -4252,20 +4252,20 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // Contingency parameters will always override initial parameters
 
-        // Base parameters with OuterLoopNames (aic) + contingency parameters with OuterloopNames (slack) -> slack distribution applied
-        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerloopNames");
+        // Base parameters with OuterLoopNames (aic) + contingency parameters with OuterLoopNames (slack) -> slack distribution applied
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerLoopNames");
         assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        // Base parameters with OuterLoopNames (aic) + contingency parameters without OuterloopNames (no active power distrib) -> no active power distrib
-        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result1, "load3_no_outerloopNames");
+        // Base parameters with OuterLoopNames (aic) + contingency parameters without OuterLoopNames (no active power distrib) -> no active power distrib
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result1, "load3_no_outerLoopNames");
         assertEquals(30, postContingencyResult2.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        // Base parameters without OuterLoopNames (aic) + contingency parameters with OuterloopNames (slack) -> slack distribution applied
-        PostContingencyResult postContingencyResult3 = getPostContingencyResult(result2, "load3_outerloopNames");
+        // Base parameters without OuterLoopNames (aic) + contingency parameters with OuterLoopNames (slack) -> slack distribution applied
+        PostContingencyResult postContingencyResult3 = getPostContingencyResult(result2, "load3_outerLoopNames");
         assertEquals(36.667, postContingencyResult3.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        // Base parameters without OuterLoopNames (aic) + contingency parameters without OuterloopNames (no active power distrib) -> no active power distrib
-        PostContingencyResult postContingencyResult4 = getPostContingencyResult(result2, "load3_no_outerloopNames");
+        // Base parameters without OuterLoopNames (aic) + contingency parameters without OuterLoopNames (no active power distrib) -> no active power distrib
+        PostContingencyResult postContingencyResult4 = getPostContingencyResult(result2, "load3_no_outerLoopNames");
         assertEquals(30, postContingencyResult4.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
 
     }
@@ -4275,7 +4275,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
 
         // Create 3 times the same contingency
-        Contingency contingency1 = new Contingency("load3_outerloopNames", new LoadContingency("load3"));
+        Contingency contingency1 = new Contingency("load3_outerLoopNames", new LoadContingency("load3"));
         List<Contingency> contingencies = List.of(contingency1);
 
         // Default LF parameters
@@ -4299,14 +4299,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         securityAnalysisParameters1.setLoadFlowParameters(parameters1);
         SecurityAnalysisResult result1 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters1);
 
-
+        // Pre contingency computation with aic
         PreContingencyResult preContingencyResult1 = result1.getPreContingencyResult();
         assertEquals(50, preContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        // Contingency parameters will always override initial parameters
-
-        // Base parameters with OuterLoopNames (aic) + contingency parameters with OuterloopNames (slack) -> slack distribution applied
-        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerloopNames");
-        assertEquals(50, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        // Base parameters with OuterLoopNames (aic) + contingency parameters with OuterLoopNames (slack) -> slack distribution applied
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerLoopNames");
+        assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }
