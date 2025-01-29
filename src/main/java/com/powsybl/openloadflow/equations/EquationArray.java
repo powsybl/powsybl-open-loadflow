@@ -265,7 +265,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     // get derivative local index
                     int derLocalIndex = equationDerivativeVector.derLocalIndexes.getQuick(i);
 
-                    // compute derivative glocal index
+                    // compute derivative global index
                     int termElementNum = termArray.getTermElementNum(termNum);
                     int derIndex = termElementNum * termArray.getDerivativeCount() + derLocalIndex;
 
