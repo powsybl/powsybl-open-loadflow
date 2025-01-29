@@ -97,7 +97,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
         if (vectorEngine != null) {
-            vectorEngine.beforeDer();
             vectorEngine.der(false, matrix);
         } else {
             for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
@@ -130,7 +129,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix.reset();
 
         if (vectorEngine != null) {
-            vectorEngine.beforeDer();
             vectorEngine.der(true, matrix);
         } else {
             for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {

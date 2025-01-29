@@ -13,13 +13,13 @@ import com.powsybl.math.matrix.Matrix;
 public interface VectorEngine<V extends Enum<V> & Quantity> {
 
     interface VecToVal {
-        double value(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2,
+        double value(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
+                     double sinTheta1, double cosTheta1,
                      double b1, double b2, double g1, double g2, double y,
                      double g12, double b12, double a1, double r1);
     }
 
-    void beforeDer();
-
     void der(boolean update, Matrix matrix);
 
+    void evalLhs(double[] array);
 }

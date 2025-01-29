@@ -49,21 +49,10 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         }
         if (v == ph2Var) {
             return ClosedBranchSide2ActiveFlowEquationTerm::vec2dp2dph2;
+        } else if (v == null) {
+            return ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;
         }
         return null;
-        // TODO return for eval
-        // acVectorEnginee.vecToP2[element.getNum()] = ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;}
-    }
-
-    @Override
-    public int getVectorIndex(Variable<AcVariableType> v) {
-        if (v == v1Var || v == ph1Var) {
-            return acVectorEnginee.bus2D1PerLoc[element.getNum()];
-        }
-        if (v == v2Var || v == ph2Var) {
-            return acVectorEnginee.bus2D2PerLoc[element.getNum()];
-        }
-        return -1;
     }
 
     public static double calculateSensi(double y, double ksi, double g2,
@@ -85,7 +74,8 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return calculateSensi(y(), ksi(), g2(), v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
-    public static double vec2p2(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2, double b1, double b2, double g1, double g2, double y,
+    public static double vec2p2(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
+                                double sinTheta1, double cosTheta1, double b1, double b2, double g1, double g2, double y,
                                 double g12, double b12, double a1, double r1) {
         return p2(y, sinKsi, g2, v1, r1, v2, sinTheta2);
     }
@@ -94,7 +84,8 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * sinTheta + y * R2 * v2 * sinKsi);
     }
 
-    public static double vec2dp2dv1(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2,
+    public static double vec2dp2dv1(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
+                                    double sinTheta1, double cosTheta1,
                                     double b1, double b2, double g1, double g2, double y,
                                     double g12, double b12, double a1, double r1) {
         return dp2dv1(y, r1, v2, sinTheta2);
@@ -104,7 +95,8 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return -y * r1 * R2 * v2 * sinTheta;
     }
 
-    public static double vec2dp2dv2(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2,
+    public static double vec2dp2dv2(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
+                                    double sinTheta1, double cosTheta1,
                                     double b1, double b2, double g1, double g2, double y,
                                     double g12, double b12, double a1, double r1) {
         return dp2dv2(y, sinKsi, g2, v1, r1, v2, sinTheta2);
@@ -114,8 +106,9 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return R2 * (2 * g2 * R2 * v2 - y * r1 * v1 * sinTheta + 2 * y * R2 * v2 * sinKsi);
     }
 
-    public static double vec2dp2dph1(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2, double b1, double b2, double g1, double g2, double y,
-                                    double g12, double b12, double a1, double r1) {
+    public static double vec2dp2dph1(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2, double sinTheta1, double cosTheta1,
+                                     double b1, double b2, double g1, double g2, double y,
+                                     double g12, double b12, double a1, double r1) {
         return dp2dph1(y, v1, r1, v2, cosTheta2);
     }
 
@@ -123,7 +116,8 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return -y * r1 * R2 * v1 * v2 * cosTheta;
     }
 
-    public static double vec2dp2dph2(double v1, double v2, double sinKsi, double sinTheta2, double cosTheta2, double b1, double b2, double g1, double g2, double y,
+    public static double vec2dp2dph2(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2, double sinTheta1, double cosTheta1,
+                                     double b1, double b2, double g1, double g2, double y,
                                      double g12, double b12, double a1, double r1) {
         return dp2dph2(y, v1, r1, v2, cosTheta2);
     }
