@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.lf.outerloop.config;
 
+import com.google.common.base.Suppliers;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -25,7 +27,13 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAcOuterLoopConfig.class);
 
+    private static final Supplier<Optional<AcOuterLoopConfig>> CONFIG_SUPPLIER = Suppliers.memoize(AcOuterLoopConfig::findOuterLoopConfig);
+
     protected AbstractAcOuterLoopConfig() {
+    }
+
+    public static Optional<AcOuterLoopConfig> getOuterLoopConfig() {
+        return CONFIG_SUPPLIER.get();
     }
 
     protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {

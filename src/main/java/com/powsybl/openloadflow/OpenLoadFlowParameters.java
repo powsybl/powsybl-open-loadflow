@@ -31,6 +31,8 @@ import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.outerloop.config.AbstractDcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
@@ -1844,14 +1846,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     static List<AcOuterLoop> createAcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
+        AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
                                                                            : new DefaultAcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
     }
 
     static List<DcOuterLoop> createDcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        DcOuterLoopConfig outerLoopConfig = DcOuterLoopConfig.findOuterLoopConfig()
+        DcOuterLoopConfig outerLoopConfig = AbstractDcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitDcOuterLoopConfig()
                                                                            : new DefaultDcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);

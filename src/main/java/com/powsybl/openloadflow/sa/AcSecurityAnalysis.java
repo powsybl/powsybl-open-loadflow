@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
@@ -127,7 +128,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
     @Override
     protected void applyContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
+        AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
                         : new DefaultAcOuterLoopConfig());
         parameters.setOuterLoops(outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters));

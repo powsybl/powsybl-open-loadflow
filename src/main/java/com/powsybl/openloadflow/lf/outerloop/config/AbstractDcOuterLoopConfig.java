@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.lf.outerloop.config;
 
+import com.google.common.base.Suppliers;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcAreaInterchangeControlOuterLoop;
@@ -16,13 +17,20 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-abstract class AbstractDcOuterLoopConfig implements DcOuterLoopConfig {
+public abstract class AbstractDcOuterLoopConfig implements DcOuterLoopConfig {
+
+    public static final Supplier<Optional<DcOuterLoopConfig>> CONFIG_SUPPLIER = Suppliers.memoize(DcOuterLoopConfig::findOuterLoopConfig);
 
     protected AbstractDcOuterLoopConfig() {
+    }
+
+    public static Optional<DcOuterLoopConfig> getOuterLoopConfig() {
+        return CONFIG_SUPPLIER.get();
     }
 
     protected static Optional<DcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {

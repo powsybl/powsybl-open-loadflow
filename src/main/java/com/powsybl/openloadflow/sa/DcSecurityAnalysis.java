@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.dc.*;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.outerloop.config.AbstractDcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DefaultDcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitDcOuterLoopConfig;
@@ -90,7 +91,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     @Override
     protected void applyContingencyParameters(DcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        DcOuterLoopConfig outerLoopConfig = DcOuterLoopConfig.findOuterLoopConfig()
+        DcOuterLoopConfig outerLoopConfig = AbstractDcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitDcOuterLoopConfig()
                         : new DefaultDcOuterLoopConfig());
         parameters.setOuterLoops(outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters));
