@@ -63,7 +63,7 @@ class EquationSystemTest {
             }
 
             @Override
-            public void onEquationTermArrayChange(EquationTermArray<AcVariableType, AcEquationType> equationTermArray, int equationElementNum, int equationTermElementNum, List<Variable<AcVariableType>> variables) {
+            public void onEquationTermArrayChange(EquationTermArray<AcVariableType, AcEquationType> equationTermArray, int equationElementNum, int equationTermElementNum, List<Derivative<AcVariableType>> derivatives) {
                 // nothing to do
             }
         });

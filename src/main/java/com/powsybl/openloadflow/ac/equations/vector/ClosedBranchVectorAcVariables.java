@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchAcVariables;
-import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.Derivative;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
 
@@ -22,8 +22,8 @@ public final class ClosedBranchVectorAcVariables {
     private ClosedBranchVectorAcVariables() {
     }
 
-    public static List<Variable<AcVariableType>> getVariables(AcBranchVector branchVector, int branchNum,
-                                                              VariableSet<AcVariableType> variableSet) {
+    public static List<Derivative<AcVariableType>> getDerivatives(AcBranchVector branchVector, int branchNum,
+                                                                  VariableSet<AcVariableType> variableSet) {
         return new ClosedBranchAcVariables(branchNum,
                                            branchVector.bus1Num[branchNum],
                                            branchVector.bus2Num[branchNum],
@@ -31,6 +31,6 @@ public final class ClosedBranchVectorAcVariables {
                                            branchVector.deriveA1[branchNum],
                                            branchVector.deriveR1[branchNum],
                                            Fortescue.SequenceType.POSITIVE)
-                .getVariables();
+                .getDerivatives();
     }
 }

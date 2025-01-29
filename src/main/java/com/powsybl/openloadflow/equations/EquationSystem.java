@@ -250,7 +250,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
     }
 
-    void notifyEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Variable<V>> variables) {
+    void notifyEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Derivative<V>> variables) {
         Objects.requireNonNull(equationTermArray);
         listeners.forEach(listener -> listener.onEquationTermArrayChange(equationTermArray, equationElementNum, equationTermElementNum, variables));
     }

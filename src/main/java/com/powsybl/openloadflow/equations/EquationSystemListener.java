@@ -18,5 +18,5 @@ public interface EquationSystemListener<V extends Enum<V> & Quantity, E extends 
 
     void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType);
 
-    void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Variable<V>> variables);
+    void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Derivative<V>> derivatives);
 }

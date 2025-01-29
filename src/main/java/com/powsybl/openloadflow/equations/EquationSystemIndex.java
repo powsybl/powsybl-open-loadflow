@@ -208,8 +208,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Variable<V>> variables) {
-        addVariables(variables);
+    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Derivative<V>> derivatives) {
+        addVariables(derivatives.stream().map(Derivative::getVariable).toList());
         // TODO notif
     }
 

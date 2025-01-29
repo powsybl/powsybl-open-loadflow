@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.Derivative;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
@@ -83,6 +84,21 @@ public class ClosedBranchAcVariables {
 
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
+    }
+
+    public List<Derivative<AcVariableType>> getDerivatives() {
+        List<Derivative<AcVariableType>> derivatives = new ArrayList<>(6);
+        derivatives.add(new Derivative<>(v1Var, 0));
+        derivatives.add(new Derivative<>(v2Var, 1));
+        derivatives.add(new Derivative<>(ph1Var, 2));
+        derivatives.add(new Derivative<>(ph2Var, 3));
+        if (a1Var != null) {
+            derivatives.add(new Derivative<>(a1Var, 4));
+        }
+        if (r1Var != null) {
+            derivatives.add(new Derivative<>(r1Var, 5));
+        }
+        return derivatives;
     }
 
     public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {

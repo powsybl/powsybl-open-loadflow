@@ -17,7 +17,6 @@ import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
-import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import org.junit.jupiter.api.Test;
 
@@ -68,13 +67,18 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public TDoubleArrayList evalDer(TIntArrayList branchNums) {
+                    public int getDerivativeCount() {
+                        return AcBranchDerivativeType.values().length;
+                    }
+
+                    @Override
+                    public double[] evalDer(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
 
                     @Override
-                    public List<Variable<AcVariableType>> getVariables(int branchNum) {
-                        return ClosedBranchVectorAcVariables.getVariables(branchVector, branchNum, variableSet);
+                    public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {
+                        return ClosedBranchVectorAcVariables.getDerivatives(branchVector, branchNum, variableSet);
                     }
                 });
         p.addTermArray(p1Array);
@@ -87,13 +91,18 @@ class EquationArrayTest {
                     }
 
                     @Override
-                    public TDoubleArrayList evalDer(TIntArrayList branchNums) {
+                    public int getDerivativeCount() {
+                        return AcBranchDerivativeType.values().length;
+                    }
+
+                    @Override
+                    public double[] evalDer(TIntArrayList branchNums) {
                         return ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums);
                     }
 
                     @Override
-                    public List<Variable<AcVariableType>> getVariables(int branchNum) {
-                        return ClosedBranchVectorAcVariables.getVariables(branchVector, branchNum, variableSet);
+                    public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {
+                        return ClosedBranchVectorAcVariables.getDerivatives(branchVector, branchNum, variableSet);
                     }
                 });
         p.addTermArray(p2Array);

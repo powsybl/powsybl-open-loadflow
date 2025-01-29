@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.commons.util.trove.TBooleanArrayList;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
-import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.ArrayList;
@@ -25,9 +24,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         double[] eval(TIntArrayList termElementNums);
 
-        TDoubleArrayList evalDer(TIntArrayList termElementNums);
+        int getDerivativeCount();
 
-        List<Variable<V>> getVariables(int termElementNum);
+        double[] evalDer(TIntArrayList termElementNums);
+
+        List<Derivative<V>> getDerivatives(int termElementNum);
     }
 
     private final ElementType elementType;
@@ -45,14 +46,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term number, activity status
     private final TBooleanArrayList termActive = new TBooleanArrayList(1);
 
-    // for each term number, list of dependent variables
-    private final List<List<Variable<V>>> termVariables = new ArrayList<>();
-
-    // for each term number, first variable index in {@link termsVariableNums}
-    private final TIntArrayList termFirstVariableIndex = new TIntArrayList();
-
-    // flatten list of terms variable numbers
-    private final TIntArrayList termsVariableNums = new TIntArrayList();
+    // for each term number, list of derivative variables
+    private final List<List<Derivative<V>>> termDerivatives = new ArrayList<>();
 
     public EquationTermArray(ElementType elementType, Evaluator<V> evaluator) {
         this.elementType = Objects.requireNonNull(elementType);
@@ -85,20 +80,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return termElementNums.get(termNum);
     }
 
-    public List<Variable<V>> getTermVariables(int termNum) {
-        return termVariables.get(termNum);
-    }
-
-    public int getTermDerIndex(int termNum, int variableNum) {
-        int firstVariableIndex = termFirstVariableIndex.getQuick(termNum);
-        int nextVariableIndex = termNum < termFirstVariableIndex.size() - 1
-                ? termFirstVariableIndex.getQuick(termNum + 1) : termsVariableNums.size();
-        for (int j = firstVariableIndex; j < nextVariableIndex; j++) {
-            if (variableNum == termsVariableNums.getQuick(j)) {
-                return j;
-            }
-        }
-        return -1;
+    public List<Derivative<V>> getTermDerivatives(int termNum) {
+        return termDerivatives.get(termNum);
     }
 
     public EquationTermArray<V, E> addTerm(LfElement equationElement, LfElement termElement) {
@@ -110,12 +93,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         getTermNums(equationElementNum).add(termNum);
         termElementNums.add(termElementNum);
         termActive.add(true);
-        List<Variable<V>> variables = evaluator.getVariables(termElementNum);
-        termVariables.add(variables);
-        termFirstVariableIndex.add(termsVariableNums.size());
-        variables.stream().mapToInt(Variable::getNum).forEach(termsVariableNums::add);
-        equationArray.invalidateTermsByVariableIndex();
-        equationArray.getEquationSystem().notifyEquationTermArrayChange(this, equationElementNum, termElementNum, variables);
+        List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);
+        termDerivatives.add(derivatives);
+        equationArray.invalidateEquationDerivativeVectors();
+        equationArray.getEquationSystem().notifyEquationTermArrayChange(this, equationElementNum, termElementNum, derivatives);
         return this;
     }
 
@@ -123,7 +104,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return evaluator.eval(termElementNums);
     }
 
-    public TDoubleArrayList evalDer() {
+    public int getDerivativeCount() {
+        return evaluator.getDerivativeCount();
+    }
+
+    public double[] evalDer() {
         return evaluator.evalDer(termElementNums);
     }
 }

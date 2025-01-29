@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquation
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
-import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.Objects;
@@ -44,19 +43,20 @@ public class ClosedBranchVectorSide1ActiveFlowEquationTerm extends AbstractClose
         return values;
     }
 
-    public static TDoubleArrayList der(AcBranchVector branchVector, TIntArrayList branchNums) {
-        TDoubleArrayList values = new TDoubleArrayList(branchNums.size() * 5); // in average
+    public static double[] der(AcBranchVector branchVector, TIntArrayList branchNums) {
+        int derivativeCount = AcBranchDerivativeType.values().length;
+        double[] values = new double[branchVector.getSize() * derivativeCount];
         for (int i = 0; i < branchNums.size(); i++) {
             int branchNum = branchNums.getQuick(i);
-            values.add(branchVector.dp1dv1[branchNum]);
-            values.add(branchVector.dp1dv2[branchNum]);
-            values.add(branchVector.dp1dph1[branchNum]);
-            values.add(branchVector.dp1dph2[branchNum]);
+            values[branchNum * derivativeCount] = branchVector.dp1dv1[branchNum];
+            values[branchNum * derivativeCount + 1] = branchVector.dp1dv2[branchNum];
+            values[branchNum * derivativeCount + 2] = branchVector.dp1dph1[branchNum];
+            values[branchNum * derivativeCount + 3] = branchVector.dp1dph2[branchNum];
             if (branchVector.deriveA1[branchNum]) {
-                values.add(branchVector.dp1da1[branchNum]);
+                values[branchNum * derivativeCount + 4] = branchVector.dp1da1[branchNum];
             }
             if (branchVector.deriveR1[branchNum]) {
-                values.add(branchVector.dp1dr1[branchNum]);
+                values[branchNum * derivativeCount + 5] = branchVector.dp1dr1[branchNum];
             }
         }
         return values;
