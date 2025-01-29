@@ -146,17 +146,17 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
     }
 
-    private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
+    private static boolean runLoadFlow(AcLoadFlowContext context, boolean isRunningBaseSituation) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
         if (result.isSuccess() || result.getSolverStatus() == AcSolverStatus.NO_CALCULATION) {
             return true;
         } else {
-            if (throwsExceptionIfNoConvergence) {
+            if (isRunningBaseSituation) {
                 if (result.getOuterLoopResult().status() != OuterLoopStatus.STABLE) {
-                    throw new PowsyblException("Load flow ended with outer loop status " + result.getOuterLoopResult().statusText());
+                    throw new PowsyblException("Initial load flow of base situation ended with outer loop status " + result.getOuterLoopResult().statusText());
                 } else {
-                    throw new PowsyblException("Load flow ended with solver status " + result.getSolverStatus());
+                    throw new PowsyblException("Initial load flow of base situation ended with solver status " + result.getSolverStatus());
                 }
             } else {
                 LOGGER.warn("Load flow failed with result={}", result);

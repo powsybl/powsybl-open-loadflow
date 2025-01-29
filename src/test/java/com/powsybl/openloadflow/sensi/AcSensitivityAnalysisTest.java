@@ -1534,12 +1534,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         OpenLoadFlowParameters olfParameters = sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class);
         olfParameters.setMaxNewtonRaphsonIterations(1);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
-        assertEquals("Load flow ended with solver status MAX_ITERATION_REACHED", e.getCause().getMessage());
+        assertEquals("Initial load flow of base situation ended with solver status MAX_ITERATION_REACHED", e.getCause().getMessage());
 
         olfParameters.setMaxNewtonRaphsonIterations(10)
                 .setSlackBusPMaxMismatch(0.00001)
                 .setMaxOuterLoopIterations(1);
         e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
-        assertEquals("Load flow ended with outer loop status UNSTABLE", e.getCause().getMessage());
+        assertEquals("Initial load flow of base situation ended with outer loop status UNSTABLE", e.getCause().getMessage());
     }
 }
