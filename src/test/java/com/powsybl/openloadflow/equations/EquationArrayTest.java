@@ -17,10 +17,7 @@ import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
-import gnu.trove.list.array.TIntArrayList;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,53 +55,11 @@ class EquationArrayTest {
         AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
         AcBranchVector branchVector = networkVector.getBranchVector();
         EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
-        EquationTermArray<AcVariableType, AcEquationType> p1Array = new EquationTermArray<>(
-                ElementType.BRANCH,
-                new EquationTermArray.Evaluator<AcVariableType>() {
-                    @Override
-                    public double[] eval(TIntArrayList branchNums) {
-                        return ClosedBranchVectorSide1ActiveFlowEquationTerm.eval(branchVector, branchNums);
-                    }
-
-                    @Override
-                    public int getDerivativeCount() {
-                        return AcBranchDerivativeType.values().length;
-                    }
-
-                    @Override
-                    public double[] evalDer(TIntArrayList branchNums) {
-                        return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
-                    }
-
-                    @Override
-                    public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {
-                        return ClosedBranchVectorAcVariables.getDerivatives(branchVector, branchNum, variableSet);
-                    }
-                });
+        EquationTermArray<AcVariableType, AcEquationType> p1Array = new EquationTermArray<>(ElementType.BRANCH,
+                                                                                            new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(branchVector, variableSet));
         p.addTermArray(p1Array);
-        EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(
-                ElementType.BRANCH,
-                new EquationTermArray.Evaluator<AcVariableType>() {
-                    @Override
-                    public double[] eval(TIntArrayList branchNums) {
-                        return ClosedBranchVectorSide2ActiveFlowEquationTerm.eval(branchVector, branchNums);
-                    }
-
-                    @Override
-                    public int getDerivativeCount() {
-                        return AcBranchDerivativeType.values().length;
-                    }
-
-                    @Override
-                    public double[] evalDer(TIntArrayList branchNums) {
-                        return ClosedBranchVectorSide2ActiveFlowEquationTerm.der(branchVector, branchNums);
-                    }
-
-                    @Override
-                    public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {
-                        return ClosedBranchVectorAcVariables.getDerivatives(branchVector, branchNum, variableSet);
-                    }
-                });
+        EquationTermArray<AcVariableType, AcEquationType> p2Array = new EquationTermArray<>(ElementType.BRANCH,
+                                                                                            new ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator(branchVector, variableSet));
         p.addTermArray(p2Array);
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
