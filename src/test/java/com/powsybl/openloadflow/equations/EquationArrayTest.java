@@ -118,5 +118,10 @@ class EquationArrayTest {
 //        System.out.println("------");
 //        derValues2.print(System.out);
         assertEquals(derValues, derValues2);
+
+        try (EquationVector<AcVariableType, AcEquationType> equationVector = new EquationVector<>(equationSystem);
+             EquationVector<AcVariableType, AcEquationType> equationVector2 = new EquationVector<>(equationSystem)) {
+            assertArrayEquals(equationVector.getArray(), equationVector2.getArray());
+        }
     }
 }

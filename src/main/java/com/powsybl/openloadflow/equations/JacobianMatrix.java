@@ -84,6 +84,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+            rowCount += equationArray.getLength();
+        }
         int columnCount = equationSystem.getIndex().getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
             throw new PowsyblException("Expected to have same number of equations (" + rowCount
