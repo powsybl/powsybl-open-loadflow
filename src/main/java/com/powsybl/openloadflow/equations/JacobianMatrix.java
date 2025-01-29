@@ -83,11 +83,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
-            rowCount += equationArray.getLength();
-        }
-        int columnCount = equationSystem.getIndex().getSortedVariablesToFind().size();
+        int rowCount = equationSystem.getIndex().getRowCount();
+        int columnCount = equationSystem.getIndex().getColumnCount();
         if (rowCount != columnCount) {
             throw new PowsyblException("Expected to have same number of equations (" + rowCount
                     + ") and variables (" + columnCount + ")");

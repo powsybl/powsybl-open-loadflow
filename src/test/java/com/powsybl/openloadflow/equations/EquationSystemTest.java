@@ -196,7 +196,17 @@ class EquationSystemTest {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
         AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, AcTargetVector::init);
+        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, new TargetVector.Initializer<AcVariableType, AcEquationType>() {
+            @Override
+            public void initialize(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
+                AcTargetVector.init(equation, network, targets);
+            }
+
+            @Override
+            public void initialize(EquationArray<AcVariableType, AcEquationType> equationArray, LfNetwork network, double[] targets) {
+                AcTargetVector.init(equationArray, network, targets);
+            }
+        });
         try (var equationVector = new EquationVector<>(equationSystem)) {
             Vectors.minus(equationVector.getArray(), targets);
             var largestMismatches = NewtonRaphson.findLargestMismatches(equationSystem, equationVector.getArray(), 3);

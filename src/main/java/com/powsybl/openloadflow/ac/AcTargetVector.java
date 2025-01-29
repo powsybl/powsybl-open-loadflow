@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationArray;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
@@ -136,7 +137,31 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         targets[equation.getColumn()] -= equation.rhs();
     }
 
+    public static void init(EquationArray<AcVariableType, AcEquationType> equationArray, LfNetwork network, double[] targets) {
+        switch (equationArray.getType()) {
+            case BUS_TARGET_P :
+                for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
+                    int column = equationArray.getElementNumToColumn(elementNum);
+                    targets[column] = network.getBus(elementNum).getTargetP();
+                }
+                break;
+
+            default:
+                throw new IllegalStateException("Unknown state variable type: " + equationArray.getType());
+        }
+    }
+
     public AcTargetVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        super(network, equationSystem, AcTargetVector::init);
+        super(network, equationSystem, new Initializer<>() {
+            @Override
+            public void initialize(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
+                AcTargetVector.init(equation, network, targets);
+            }
+
+            @Override
+            public void initialize(EquationArray<AcVariableType, AcEquationType> equationArray, LfNetwork network, double[] targets) {
+                AcTargetVector.init(equationArray, network, targets);
+            }
+        });
     }
 }

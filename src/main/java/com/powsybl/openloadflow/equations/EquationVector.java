@@ -36,11 +36,7 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     protected double[] createArray() {
-        int length = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
-            length += equationArray.getLength();
-        }
-        double[] array = new double[length];
+        double[] array = new double[equationSystem.getIndex().getColumnCount()];
         updateArray(array);
         return array;
     }
@@ -51,7 +47,7 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         var equations = equationSystem.getIndex().getSortedEquationsToSolve();
 
-        if (array.length != equations.size()) {
+        if (array.length != equationSystem.getIndex().getColumnCount()) {
             throw new IllegalArgumentException("Bad equation vector length: " + array.length);
         }
 

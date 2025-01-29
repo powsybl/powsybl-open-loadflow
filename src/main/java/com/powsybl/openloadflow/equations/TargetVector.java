@@ -17,10 +17,11 @@ import java.util.Objects;
  */
 public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> implements AutoCloseable {
 
-    @FunctionalInterface
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         void initialize(Equation<V, E> equation, LfNetwork network, double[] targets);
+
+        void initialize(EquationArray<V, E> equationArray, LfNetwork network, double[] targets);
     }
 
     private final LfNetwork network;
@@ -91,9 +92,12 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
         List<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
-        double[] array = new double[sortedEquationsToSolve.size()];
+        double[] array = new double[equationSystem.getIndex().getColumnCount()];
         for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
+        }
+        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+            initializer.initialize(equationArray, network, array);
         }
         return array;
     }

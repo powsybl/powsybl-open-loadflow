@@ -212,7 +212,17 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
-            double[] targets = TargetVector.createArray(network, equationSystem, VoltageMagnitudeInitializer::initTarget);
+            double[] targets = TargetVector.createArray(network, equationSystem, new TargetVector.Initializer<InitVmVariableType, InitVmEquationType>() {
+                @Override
+                public void initialize(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
+                    VoltageMagnitudeInitializer.initTarget(equation, network, targets);
+                }
+
+                @Override
+                public void initialize(EquationArray<InitVmVariableType, InitVmEquationType> equationArray, LfNetwork network, double[] targets) {
+                    throw new UnsupportedOperationException("TODO");
+                }
+            });
 
             j.solveTransposed(targets);
 
