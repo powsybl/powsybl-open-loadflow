@@ -86,6 +86,7 @@ the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) sp
 - `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
 - `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
 - `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
 
 To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
 
