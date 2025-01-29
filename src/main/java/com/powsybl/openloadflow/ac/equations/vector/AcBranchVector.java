@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.util.Evaluable;
 import net.jafama.FastMath;
 
 import java.util.List;
@@ -187,5 +188,29 @@ public class AcBranchVector {
 
     public int getSize() {
         return disabled.length;
+    }
+
+    public Evaluable getP1(int branchNum) {
+        return () -> p1[branchNum];
+    }
+
+    public Evaluable getP2(int branchNum) {
+        return () -> p2[branchNum];
+    }
+
+    public Evaluable getQ1(int branchNum) {
+        return () -> q1[branchNum];
+    }
+
+    public Evaluable getQ2(int branchNum) {
+        return () -> q2[branchNum];
+    }
+
+    public Evaluable getI1(int branchNum) {
+        return () -> i1[branchNum];
+    }
+
+    public Evaluable getI2(int branchNum) {
+        return () -> i2[branchNum];
     }
 }
