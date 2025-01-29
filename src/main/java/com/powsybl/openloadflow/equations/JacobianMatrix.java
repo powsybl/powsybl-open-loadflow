@@ -100,6 +100,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 return matrix.addAndGetIndex(row, column, value);
             });
         }
+        for (var eq : equationSystem.getEquationArrays()) {
+            eq.der((column, row, value, matrixElementIndex)
+                    -> matrix.addAndGetIndex(row, column, value));
+        }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
