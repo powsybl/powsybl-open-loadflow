@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -37,16 +36,13 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     protected double[] createArray() {
-        double[] array = new double[equationSystem.getIndex().getSortedEquationsToSolve().size()];
+        int length = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+            length += equationArray.getLength();
+        }
+        double[] array = new double[length];
         updateArray(array);
         return array;
-    }
-
-    private void evalLhs(double[] array, List<Equation<V, E>> equations) {
-        Arrays.fill(array, 0); // necessary?
-        for (Equation<V, E> equation : equations) {
-            array[equation.getColumn()] = equation.evalLhs();
-        }
     }
 
     @Override
@@ -59,7 +55,13 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             throw new IllegalArgumentException("Bad equation vector length: " + array.length);
         }
 
-        evalLhs(array, equations);
+        Arrays.fill(array, 0); // necessary?
+        for (Equation<V, E> equation : equations) {
+            array[equation.getColumn()] = equation.evalLhs();
+        }
+        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+            equationArray.eval(array);
+        }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Equation vector updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
