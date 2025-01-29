@@ -20,10 +20,7 @@ import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.function.DoubleSupplier;
 import java.util.stream.IntStream;
 
@@ -67,6 +64,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // indexes to compute derivatives
     private boolean equationDataValid;
+    private boolean equationOrderValid;
+    private int[] sortedEquationIndexArray;
     private int[] variableCountPerEquation;
     private int[] variablePerEquationIndex;
     private Variable<AcVariableType>[] variablesPerEquation;
@@ -179,6 +178,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                 if (equation.getVectorIndex() >= 0) {
                     equationColumn[equation.getVectorIndex()] = equation.getColumn();
                 }
+                equationOrderValid = false;
                 break;
         }
     }
@@ -231,6 +231,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         Collection<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations();
         int equationCount = equationList.size();
+        sortedEquationIndexArray = new int[equationCount];
         variableCountPerEquation = new int[equationCount];
         equationActiveStatus = new boolean[equationCount];
         equationColumn = new int[equationCount];
@@ -384,20 +385,33 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         equationDataValid = true;
     }
 
+    private void sortEquations() {
+        Iterator<Integer> it = IntStream.range(0, equationColumn.length).boxed()
+                .sorted((i1, i2) -> equationColumn[i1] - equationColumn[i2]).iterator();
+        int i = 0;
+        while (it.hasNext()) {
+            sortedEquationIndexArray[i] = it.next();
+            i += 1;
+        }
+        equationOrderValid = true;
+    }
+
     @Override
     public void der(boolean update, Matrix matrix) {
 
         if (!equationDataValid) {
             initEquationData();
+            equationOrderValid = false;
+        }
+
+        if (!equationOrderValid) {
+            sortEquations();
         }
 
         updateVariables(); // do not depend on listener call order
 
         derSortedTerms();
 
-        int[] sortedEquationIndexArray = IntStream.range(0, equationActiveStatus.length).boxed()
-                .sorted((i1, i2) -> equationColumn[i1] - equationColumn[i2])
-                .mapToInt(i -> i).toArray();
         for (int sortedEqIndex = 0; sortedEqIndex < equationActiveStatus.length; sortedEqIndex++) {
             int eqIndex = sortedEquationIndexArray[sortedEqIndex];
             if (equationActiveStatus[eqIndex]) {
