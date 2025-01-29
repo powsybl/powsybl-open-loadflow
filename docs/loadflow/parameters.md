@@ -212,8 +212,11 @@ The default value is `20` and it must be greater or equal to `1`.
 
 **newtonRaphsonStoppingCriteriaType**  
 Stopping criteria for Newton-Raphson algorithm.
-- `UNIFORM_CRITERIA`: stop when all equation mismatches are below `newtonRaphsonConvEpsPerEq` threshold.
-  `newtonRaphsonConvEpsPerEq` defines the threshold for all equation types, in per-unit with `100 MVA` base. The default value is $10^{-4} \text{p.u.}$ and it must be greater than 0.
+- `UNIFORM_CRITERIA`: stop when quadratic norm of all mismatches vector is below quadratic norm of mismatches of value `newtonRaphsonConvEpsPerEq`. This criteria is defined by the following formula (for $n$ equations):
+$$
+\sqrt {mismatch_1^2 + mismatch_2^2 + ... + mismatch_n^2} < \sqrt{n * newtonRaphsonConvEpsPerEq^2}
+$$
+  `newtonRaphsonConvEpsPerEq` defines the corresponding threshold for all equation types, in per-unit. The default value is $10^{-4} \text{p.u.}$ and must be greater than 0.
 - `PER_EQUATION_TYPE_CRITERIA`: stop when equation mismatches are below equation type specific thresholds:
     - `maxActivePowerMismatch`: Defines the threshold for active power equations, in MW. The default value is $10^{-2} \text{MW}$ and it must be greater than 0.
     - `maxReactivePowerMismatch`: Defines the threshold for reactive power equations, in MVAr. The default value is $10^{-2} \text{MVAr}$ and it must be greater than 0.
