@@ -245,7 +245,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         updateEquationDerivativeVectors();
 
         // compute all derivatives for each of the term array
-        List<double[]> termDerValuesByArrayIndex = new ArrayList<>(termArrays.size());
+        List<double[][]> termDerValuesByArrayIndex = new ArrayList<>(termArrays.size());
         for (EquationTermArray<V, E> termArray : termArrays) {
             termDerValuesByArrayIndex.add(termArray.evalDer());
         }
@@ -296,13 +296,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     // get derivative local index
                     int derLocalIndex = equationDerivativeVector.derLocalIndexes.getQuick(i);
 
-                    // compute derivative global index
-                    int termElementNum = termArray.getTermElementNum(termNum);
-                    int derIndex = termElementNum * termArray.getDerivativeCount() + derLocalIndex;
-
                     // add value (!!! we can have multiple terms contributing to same matrix element)
-                    double[] termDerValues = termDerValuesByArrayIndex.get(termArrayNum);
-                    value += termDerValues[derIndex];
+                    double[][] termDerValues = termDerValuesByArrayIndex.get(termArrayNum);
+                    int termElementNum = termArray.getTermElementNum(termNum);
+                    value += termDerValues[derLocalIndex][termElementNum];
                 }
             }
 

@@ -29,21 +29,14 @@ public class ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator extends Abstr
     }
 
     @Override
-    public double[] evalDer() {
-        int derivativeCount = AcBranchDerivativeType.values().length;
-        double[] values = new double[branchVector.getSize() * derivativeCount];
-        for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
-            values[branchNum * derivativeCount] = branchVector.dp1dv1[branchNum];
-            values[branchNum * derivativeCount + 1] = branchVector.dp1dv2[branchNum];
-            values[branchNum * derivativeCount + 2] = branchVector.dp1dph1[branchNum];
-            values[branchNum * derivativeCount + 3] = branchVector.dp1dph2[branchNum];
-            if (branchVector.deriveA1[branchNum]) {
-                values[branchNum * derivativeCount + 4] = branchVector.dp1da1[branchNum];
-            }
-            if (branchVector.deriveR1[branchNum]) {
-                values[branchNum * derivativeCount + 5] = branchVector.dp1dr1[branchNum];
-            }
-        }
-        return values;
+    public double[][] evalDer() {
+        return new double[][] {
+            branchVector.dp1dv1,
+            branchVector.dp1dv2,
+            branchVector.dp1dph1,
+            branchVector.dp1dph2,
+            branchVector.dp1da1,
+            branchVector.dp1dr1
+        };
     }
 }
