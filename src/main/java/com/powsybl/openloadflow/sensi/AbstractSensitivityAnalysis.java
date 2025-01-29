@@ -974,47 +974,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         int[] factorIndex = new int[1];
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
-                if (isActivePowerFunctionType(functionType)) {
-                    if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                        LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
-                        LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                        Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
-                        Set<String> originalVariableSetIds = originalVariableSetIdsByVariableId.get(variableId);
-                        if (injectionLfBuses == null && originalVariableSetIds == null) {
-                            injectionLfBuses = new LinkedHashMap<>();
-                            originalVariableSetIds = new HashSet<>();
-                            injectionBusesByVariableId.put(variableId, injectionLfBuses);
-                            originalVariableSetIdsByVariableId.put(variableId, originalVariableSetIds);
-                            SensitivityVariableSet set = variableSetsById.get(variableId);
-                            if (set == null) {
-                                throw new PowsyblException("Variable set '" + variableId + NOT_FOUND);
-                            }
-                            List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
-                            for (WeightedSensitivityVariable variable : set.getVariables()) {
-                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variable.getId(), breakers);
-                                LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
-                                if (injectionLfBus == null) {
-                                    skippedInjection.add(variable.getId());
-                                    continue;
-                                }
-                                injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
-                                originalVariableSetIds.add(variable.getId());
-                            }
-                            if (!skippedInjection.isEmpty() && LOGGER.isWarnEnabled()) {
-                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
-                            }
-                        }
-                        factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
-                                    functionId, functionElement, functionType,
-                                    injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
-                    } else {
-                        throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
-                    }
-                } else {
-                    throw createFunctionTypeNotSupportedException(functionType);
-                }
+                createVariableSetFactors(network, variableSetsById, lfNetwork, breakers, functionType, functionId, variableType, variableId, contingencyContext,
+                        injectionBusesByVariableId, originalVariableSetIdsByVariableId, injectionVariableIdToBusIdCache, factorHolder, factorIndex);
             } else {
-                if (isActivePowerFunctionType(functionType) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                if (isBranchActivePowerFunctionType(functionType) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
 
@@ -1049,7 +1012,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 } else {
                     LfElement functionElement;
                     LfElement variableElement;
-                    if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
+                    if (isBranchActivePowerFunctionType(functionType) || isBranchCurrentFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
@@ -1087,7 +1050,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             default:
                                 throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
-                    } else if (isReactivePowerFunctionType(functionType)) {
+                    } else if (isBranchReactivePowerFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
@@ -1115,6 +1078,55 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return factorHolder;
     }
 
+    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void createVariableSetFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById, LfNetwork lfNetwork, boolean breakers,
+                                                                                                              SensitivityFunctionType functionType, String functionId,
+                                                                                                              SensitivityVariableType variableType, String variableId,
+                                                                                                              ContingencyContext contingencyContext,
+                                                                                                              Map<String, Map<LfElement, Double>> injectionBusesByVariableId,
+                                                                                                              Map<String, Set<String>> originalVariableSetIdsByVariableId,
+                                                                                                              InjectionVariableIdToBusIdCache injectionVariableIdToBusIdCache,
+                                                                                                              SensitivityFactorHolder<V, E> factorHolder, int[] factorIndex) {
+        if (isBranchActivePowerFunctionType(functionType)) {
+            if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
+                Set<String> originalVariableSetIds = originalVariableSetIdsByVariableId.get(variableId);
+                if (injectionLfBuses == null && originalVariableSetIds == null) {
+                    injectionLfBuses = new LinkedHashMap<>();
+                    originalVariableSetIds = new HashSet<>();
+                    injectionBusesByVariableId.put(variableId, injectionLfBuses);
+                    originalVariableSetIdsByVariableId.put(variableId, originalVariableSetIds);
+                    SensitivityVariableSet set = variableSetsById.get(variableId);
+                    if (set == null) {
+                        throw new PowsyblException("Variable set '" + variableId + NOT_FOUND);
+                    }
+                    List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
+                    for (WeightedSensitivityVariable variable : set.getVariables()) {
+                        String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variable.getId(), breakers);
+                        LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                        if (injectionLfBus == null) {
+                            skippedInjection.add(variable.getId());
+                            continue;
+                        }
+                        injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                        originalVariableSetIds.add(variable.getId());
+                    }
+                    if (!skippedInjection.isEmpty() && LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                    }
+                }
+                factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
+                        functionId, functionElement, functionType,
+                            injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
+            } else {
+                throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+            }
+        } else {
+            throw createFunctionTypeNotSupportedException(functionType);
+        }
+    }
+
     protected static LfElement findBusTargetVoltageVariableElement(Network network, String variableId, boolean breakers,
                                                                    LfNetwork lfNetwork) {
         checkRegulatingTerminal(network, variableId);
@@ -1123,19 +1135,19 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
     }
 
-    private static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
+    private static boolean isBranchActivePowerFunctionType(SensitivityFunctionType functionType) {
         return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                 || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
     }
 
-    private static boolean isReactivePowerFunctionType(SensitivityFunctionType functionType) {
+    private static boolean isBranchReactivePowerFunctionType(SensitivityFunctionType functionType) {
         return functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_1
                 || functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_2
                 || functionType == SensitivityFunctionType.BRANCH_REACTIVE_POWER_3;
     }
 
-    private static boolean isCurrentFunctionType(SensitivityFunctionType functionType) {
+    private static boolean isBranchCurrentFunctionType(SensitivityFunctionType functionType) {
         return functionType == SensitivityFunctionType.BRANCH_CURRENT_1
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_3;
