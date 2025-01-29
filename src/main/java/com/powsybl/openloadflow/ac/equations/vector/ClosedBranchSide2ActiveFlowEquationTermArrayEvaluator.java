@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.VariableSet;
-import gnu.trove.list.array.TIntArrayList;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -20,21 +19,20 @@ public class ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator extends Abstr
     }
 
     @Override
-    public double[] eval(TIntArrayList branchNums) {
-        double[] values = new double[branchVector.getSize()];
-        for (int i = 0; i < branchNums.size(); i++) {
-            int branchNum = branchNums.getQuick(i);
-            values[branchNum] = branchVector.p2[branchNum];
-        }
-        return values;
+    public double[] eval() {
+        return branchVector.p2;
     }
 
     @Override
-    public double[] evalDer(TIntArrayList branchNums) {
+    public double eval(int branchNum) {
+        return branchVector.p2[branchNum];
+    }
+
+    @Override
+    public double[] evalDer() {
         int derivativeCount = AcBranchDerivativeType.values().length;
         double[] values = new double[branchVector.getSize() * derivativeCount];
-        for (int i = 0; i < branchNums.size(); i++) {
-            int branchNum = branchNums.getQuick(i);
+        for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
             values[branchNum * derivativeCount] = branchVector.dp2dv1[branchNum];
             values[branchNum * derivativeCount + 1] = branchVector.dp2dv2[branchNum];
             values[branchNum * derivativeCount + 2] = branchVector.dp2dph1[branchNum];

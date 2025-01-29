@@ -154,7 +154,21 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     public Evaluable getEvaluable(int elementNum) {
-        return null; // TODO
+        return () -> {
+            double value = 0;
+            for (EquationTermArray<V, E> termArray : termArrays) {
+                var termNums = termArray.getTermNums(elementNum);
+                for (int i = 0; i < termNums.size(); i++) {
+                    int termNum = termNums.get(i);
+                    // skip inactive terms
+                    if (termArray.isTermActive(termNum)) {
+                        int termElementNum = termArray.getTermElementNum(termNum);
+                        value += termArray.eval(termElementNum);
+                    }
+                }
+            }
+            return value;
+        };
     }
 
     public void eval(double[] values) {

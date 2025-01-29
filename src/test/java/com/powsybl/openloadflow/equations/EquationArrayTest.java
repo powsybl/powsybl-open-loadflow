@@ -123,5 +123,8 @@ class EquationArrayTest {
              EquationVector<AcVariableType, AcEquationType> equationVector2 = new EquationVector<>(equationSystem)) {
             assertArrayEquals(equationVector.getArray(), equationVector2.getArray());
         }
+
+        assertEquals(equationSystem.getEquation(1, AcEquationType.BUS_TARGET_P).orElseThrow().eval(),
+                     equationSystem2.getEquationArray(AcEquationType.BUS_TARGET_P).orElseThrow().getEvaluable(1).eval());
     }
 }
