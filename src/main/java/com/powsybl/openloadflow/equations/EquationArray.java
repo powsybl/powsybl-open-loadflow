@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.util.trove.TIntArrayListHack;
+import com.powsybl.openloadflow.util.Evaluable;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.*;
@@ -29,6 +30,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     private int[] elementNumToColumn;
 
     private int length;
+
+    private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
 
     private List<EquationDerivativeVector> equationDerivativeVectors;
 
@@ -143,13 +146,15 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
-
     public void addTermArray(EquationTermArray<V, E> termArray) {
         Objects.requireNonNull(termArray);
         termArray.setEquationArray(this);
         termArrays.add(termArray);
         invalidateEquationDerivativeVectors();
+    }
+
+    public Evaluable getEvaluable(int elementNum) {
+        return null; // TODO
     }
 
     public void eval(double[] values) {

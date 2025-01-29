@@ -20,14 +20,11 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
 
     private final V type;
 
-    private final int num;
-
     private int row = -1;
 
-    Variable(int elementNum, V type, int num) {
+    Variable(int elementNum, V type) {
         this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
-        this.num = num;
     }
 
     public int getElementNum() {
@@ -36,10 +33,6 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
 
     public V getType() {
         return type;
-    }
-
-    public int getNum() {
-        return num;
     }
 
     public int getRow() {

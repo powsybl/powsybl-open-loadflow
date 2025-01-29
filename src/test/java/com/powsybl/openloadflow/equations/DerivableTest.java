@@ -112,6 +112,6 @@ class DerivableTest {
         InjectionDerivable<AcVariableType> derivable = new InjectionDerivable<>(equation);
         // Check that only my term is called and that result is delegated to the active branch term
         assertEquals(-MyBranchEquationTerm.VALUE, derivable.eval());
-        assertEquals(-MyBranchEquationTerm.DER, derivable.der(new Variable<>(0, AcVariableType.BUS_V, 0)));
+        assertEquals(-MyBranchEquationTerm.DER, derivable.der(new Variable<>(0, AcVariableType.BUS_V)));
     }
 }

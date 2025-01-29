@@ -104,6 +104,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return evaluator.eval(termElementNums);
     }
 
+    public double[] eval(int equationElementNum) {
+        return evaluator.eval(getTermNums(equationElementNum));
+    }
+
     public int getDerivativeCount() {
         return evaluator.getDerivativeCount();
     }

@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Collection;
@@ -21,10 +20,8 @@ public class VariableSet<V extends Enum<V> & Quantity> {
 
     private final Map<Pair<Integer, V>, Variable<V>> variables = new HashMap<>();
 
-    private final MutableInt count = new MutableInt();
-
     public Variable<V> getVariable(int elementNum, V type) {
-        return variables.computeIfAbsent(Pair.of(elementNum, type), p -> new Variable<>(p.getLeft(), p.getRight(), count.getAndIncrement()));
+        return variables.computeIfAbsent(Pair.of(elementNum, type), p -> new Variable<>(p.getLeft(), p.getRight()));
     }
 
     public Collection<Variable<V>> getVariables() {
