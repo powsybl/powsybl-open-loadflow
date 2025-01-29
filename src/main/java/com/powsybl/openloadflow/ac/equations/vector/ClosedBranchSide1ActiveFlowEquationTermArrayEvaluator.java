@@ -21,7 +21,7 @@ public class ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator extends Abstr
 
     @Override
     public double[] eval(TIntArrayList branchNums) {
-        double[] values = new double[branchNums.size()];
+        double[] values = new double[branchVector.getSize()];
         for (int i = 0; i < branchNums.size(); i++) {
             int branchNum = branchNums.getQuick(i);
             values[branchNum] = branchVector.p1[branchNum];
