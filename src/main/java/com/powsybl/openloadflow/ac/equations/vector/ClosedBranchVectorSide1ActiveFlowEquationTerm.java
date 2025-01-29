@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquation
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
-import gnu.trove.list.array.TIntArrayList;
 
 import java.util.Objects;
 
@@ -32,34 +31,6 @@ public class ClosedBranchVectorSide1ActiveFlowEquationTerm extends AbstractClose
         double g1 = branchVector.g1[num];
         return ClosedBranchSide1ActiveFlowEquationTerm.calculateSensi(g1, y, ksi, v1(), ph1(), a1(), r1(), v2(), ph2(),
                 dph1, dph2, dv1, dv2, da1, dr1);
-    }
-
-    public static double[] eval(AcBranchVector branchVector, TIntArrayList branchNums) {
-        double[] values = new double[branchNums.size()];
-        for (int i = 0; i < branchNums.size(); i++) {
-            int branchNum = branchNums.getQuick(i);
-            values[branchNum] = branchVector.p1[branchNum];
-        }
-        return values;
-    }
-
-    public static double[] der(AcBranchVector branchVector, TIntArrayList branchNums) {
-        int derivativeCount = AcBranchDerivativeType.values().length;
-        double[] values = new double[branchVector.getSize() * derivativeCount];
-        for (int i = 0; i < branchNums.size(); i++) {
-            int branchNum = branchNums.getQuick(i);
-            values[branchNum * derivativeCount] = branchVector.dp1dv1[branchNum];
-            values[branchNum * derivativeCount + 1] = branchVector.dp1dv2[branchNum];
-            values[branchNum * derivativeCount + 2] = branchVector.dp1dph1[branchNum];
-            values[branchNum * derivativeCount + 3] = branchVector.dp1dph2[branchNum];
-            if (branchVector.deriveA1[branchNum]) {
-                values[branchNum * derivativeCount + 4] = branchVector.dp1da1[branchNum];
-            }
-            if (branchVector.deriveR1[branchNum]) {
-                values[branchNum * derivativeCount + 5] = branchVector.dp1dr1[branchNum];
-            }
-        }
-        return values;
     }
 
     @Override

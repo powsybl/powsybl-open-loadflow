@@ -21,11 +21,31 @@ public class ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator extends Abstr
 
     @Override
     public double[] eval(TIntArrayList branchNums) {
-        return ClosedBranchVectorSide1ActiveFlowEquationTerm.eval(branchVector, branchNums);
+        double[] values = new double[branchNums.size()];
+        for (int i = 0; i < branchNums.size(); i++) {
+            int branchNum = branchNums.getQuick(i);
+            values[branchNum] = branchVector.p1[branchNum];
+        }
+        return values;
     }
 
     @Override
     public double[] evalDer(TIntArrayList branchNums) {
-        return ClosedBranchVectorSide1ActiveFlowEquationTerm.der(branchVector, branchNums);
+        int derivativeCount = AcBranchDerivativeType.values().length;
+        double[] values = new double[branchVector.getSize() * derivativeCount];
+        for (int i = 0; i < branchNums.size(); i++) {
+            int branchNum = branchNums.getQuick(i);
+            values[branchNum * derivativeCount] = branchVector.dp1dv1[branchNum];
+            values[branchNum * derivativeCount + 1] = branchVector.dp1dv2[branchNum];
+            values[branchNum * derivativeCount + 2] = branchVector.dp1dph1[branchNum];
+            values[branchNum * derivativeCount + 3] = branchVector.dp1dph2[branchNum];
+            if (branchVector.deriveA1[branchNum]) {
+                values[branchNum * derivativeCount + 4] = branchVector.dp1da1[branchNum];
+            }
+            if (branchVector.deriveR1[branchNum]) {
+                values[branchNum * derivativeCount + 5] = branchVector.dp1dr1[branchNum];
+            }
+        }
+        return values;
     }
 }
