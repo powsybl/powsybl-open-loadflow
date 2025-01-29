@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.util.trove.TIntArrayListHack;
+import gnu.trove.list.array.TIntArrayList;
 
 import java.util.*;
 
@@ -30,6 +31,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     private int length;
 
     private List<EquationDerivativeVector> equationDerivativeVectors;
+
+    private TIntArrayList matrixElementIndexes;
 
     static class EquationDerivativeElement {
         int termArrayNum;
@@ -104,6 +107,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private void invalidateElementNumToColumn() {
         elementNumToColumn = null;
+        matrixElementIndexes = null;
     }
 
     public EquationSystem<V, E> getEquationSystem() {
@@ -213,6 +217,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     void invalidateEquationDerivativeVectors() {
         equationDerivativeVectors = null;
+        matrixElementIndexes = null;
     }
 
     public void der(DerHandler<V> handler) {
@@ -227,7 +232,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
 
         // calculate all derivative values
-        int matrixElementIndex = 0; // FIXME
+        TIntArrayList oldMatrixElementIndexes = null;
+        if (matrixElementIndexes == null) {
+            matrixElementIndexes = new TIntArrayList();
+        } else {
+            oldMatrixElementIndexes = matrixElementIndexes;
+        }
+        int valueIndex = 0;
 
         // process column by column so equation by equation of the array
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
@@ -249,12 +260,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 int termArrayNum = equationDerivativeVector.termArrayNums.getQuick(i);
                 EquationTermArray<V, E> termArray = termArrays.get(termArrayNum);
 
-                // the derivation variable row
+                // the derivative variable row
                 int row = equationDerivativeVector.derVariableRows.getQuick(i);
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (prevRow != -1 && row != prevRow && Math.abs(value) != 0) {
-                    handler.onDer(column, prevRow, value, matrixElementIndex++);
+                    onDer(handler, column, prevRow, value, oldMatrixElementIndexes, valueIndex);
+                    valueIndex++;
                     value = 0;
                 }
                 prevRow = row;
@@ -277,8 +289,17 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
             // remaining notif
             if (Math.abs(value) != 0) {
-                handler.onDer(column, prevRow, value, matrixElementIndex++);
+                onDer(handler, column, prevRow, value, oldMatrixElementIndexes, valueIndex);
+                valueIndex++;
             }
+        }
+    }
+
+    private void onDer(DerHandler<V> handler, int column, int row, double value, TIntArrayList oldMatrixElementIndexes, int valueIndex) {
+        int oldMatrixElementIndex = oldMatrixElementIndexes == null ? -1 : oldMatrixElementIndexes.getQuick(valueIndex);
+        int matrixElementIndex = handler.onDer(column, row, value, oldMatrixElementIndex);
+        if (oldMatrixElementIndexes == null) {
+            matrixElementIndexes.add(matrixElementIndex);
         }
     }
 }
