@@ -31,11 +31,6 @@ public abstract class AbstractBranchEquationTermArrayEvaluator implements Equati
     }
 
     @Override
-    public int getDerivativeCount() {
-        return AcBranchDerivativeType.values().length;
-    }
-
-    @Override
     public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {
         return new ClosedBranchAcVariables(branchNum,
                                            branchVector.bus1Num[branchNum],
