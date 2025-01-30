@@ -29,10 +29,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -143,7 +140,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
             Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN);
-            List<LoadFlowResult.SlackBusResult> slackBusResults = getSlackBusResults(context.getNetwork());
+            List<LoadFlowResult.SlackBusResult> slackBusResults = Collections.emptyList();
             return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), slackBusResults, distributedActivePower);
         }
 
@@ -205,6 +202,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
 
+        List<LoadFlowResult.SlackBusResult> slackBusResults = getSlackBusResults(context.getNetwork());
+
         // outer loops finalization (in reverse order to allow correct cleanup)
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
@@ -223,7 +222,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     ? new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.STABLE, runningContext.lastOuterLoopResult.statusText()) :
                     new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
         }
-        List<LoadFlowResult.SlackBusResult> slackBusResults = getSlackBusResults(context.getNetwork());
 
         return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, slackBusResults, distributedActivePower);
     }

@@ -215,6 +215,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;
+        List<LoadFlowResult.SlackBusResult> slackBusResults ;
         if (parameters.isDistributedSlack() || parameters.isAreaInterchangeControl()) {
             LoadFlowParameters.BalanceType balanceType = parameters.getBalanceType();
             boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
@@ -230,6 +231,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 behavior = parameters.getSlackDistributionFailureBehavior();
                 referenceGenerator = context.getNetwork().getReferenceGenerator();
             }
+
             ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
                     behavior,
                     referenceGenerator,
@@ -249,7 +251,11 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 runningContext.lastSolverSuccess = false;
                 runningContext.lastOuterLoopResult = new OuterLoopResult("DistributedSlack", OuterLoopStatus.FAILED, resultWbh.failedMessage());
                 Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
-                return buildDcLoadFlowResult(network, runningContext, distributedActivePower);
+                // If slack distribution failed, returning initialSlackBusActivePowerMismatch/nbSlackBuses as SlackBusResult
+                slackBusResults = network.getSlackBuses().stream().map(
+                        b -> (LoadFlowResult.SlackBusResult) new LoadFlowResultImpl.SlackBusResultImpl(b.getId(),
+                                PerUnit.SB * initialSlackBusActivePowerMismatch/network.getSlackBuses().size())).toList();
+                return buildDcLoadFlowResult(network, runningContext, slackBusResults, distributedActivePower);
             }
         }
 
@@ -306,19 +312,17 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
 
         Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
-
-        return buildDcLoadFlowResult(network, runningContext, distributedActivePower);
+        slackBusResults = getSlackBusResults(network);
+        return buildDcLoadFlowResult(network, runningContext, slackBusResults, distributedActivePower);
     }
 
-    DcLoadFlowResult buildDcLoadFlowResult(LfNetwork network, RunningContext runningContext, double finalDistributedActivePower) {
-        List<LoadFlowResult.SlackBusResult> slackBusResults;
+    DcLoadFlowResult buildDcLoadFlowResult(LfNetwork network, RunningContext runningContext, List<LoadFlowResult.SlackBusResult> slackBusResults, double finalDistributedActivePower) {
         double distributedActivePower;
         if (runningContext.lastSolverSuccess && runningContext.lastOuterLoopResult.status() == OuterLoopStatus.STABLE) {
             distributedActivePower = finalDistributedActivePower;
         } else {
             distributedActivePower = 0.0;
         }
-        slackBusResults = getSlackBusResults(network);
         DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusResults, distributedActivePower);
         LOGGER.info("DC loadflow complete on network {} (result={})", context.getNetwork(), result);
         return result;
