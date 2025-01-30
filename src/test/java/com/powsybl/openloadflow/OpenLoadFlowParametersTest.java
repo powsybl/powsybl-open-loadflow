@@ -40,7 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.powsybl.openloadflow.OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS;
+import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -283,6 +283,22 @@ class OpenLoadFlowParametersTest {
 
         loadFlowRunner.run(network, parameters);
         assertVoltageEquals(158, nload);
+    }
+
+    @Test
+    void testUpdateParametersFromPlatformConfig() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, olfParameters.getSlackBusSelectionMode());
+        assertEquals(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, olfParameters.getSlackDistributionFailureBehavior());
+
+        MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig(MODULE_SPECIFIC_PARAMETERS);
+        olfModuleConfig.setStringProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.FIRST.toString());
+        olfParameters.update(platformConfig);
+
+        assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
+        assertEquals(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, olfParameters.getSlackDistributionFailureBehavior());
     }
 
     @Test
