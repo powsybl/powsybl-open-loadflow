@@ -157,7 +157,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             // create networks including all necessary switches
             try (LfNetworkList lfNetworks = Networks.load(network, parameters.getNetworkParameters(), topoConfig, saReportNode)) {
                 finalResult = runSimulationsOnAllComponents(lfNetworks, propagatedContingencies, parameters,
-                        securityAnalysisParameters, operatorStrategies, actions, limitReductions, lfParameters, true);
+                        securityAnalysisParameters, operatorStrategies, actions, limitReductions, lfParameters);
             }
 
         } else {
@@ -223,7 +223,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         // run simulation on largest network
                         partitionResults.set(partitionNum, runSimulationsOnAllComponents(
                                 lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies,
-                                actions, limitReductions, lfParameters, false));
+                                actions, limitReductions, lfParameters));
 
                         return null;
                     }, executor));
@@ -267,7 +267,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     SecurityAnalysisResult runSimulationsOnAllComponents(LfNetworkList networks, List<PropagatedContingency> propagatedContingencies, P parameters,
                                                          SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                          List<Action> actions, List<LimitReduction> limitReductions,
-                                                         LoadFlowParameters lfParameters, boolean checkOperatorStrategies) {
+                                                         LoadFlowParameters lfParameters) {
 
         List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(networks, lfParameters.getConnectedComponentMode()));
 
@@ -278,7 +278,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // run simulation on first lfNetwork to initialize results structures
         LfNetwork firstNetwork = networkToSimulate.remove(0);
         SecurityAnalysisResult result = runSimulations(firstNetwork, propagatedContingencies, parameters, securityAnalysisParameters,
-                operatorStrategies, actions, limitReductions, checkOperatorStrategies);
+                operatorStrategies, actions, limitReductions);
 
         List<PostContingencyResult> postContingencyResults = result.getPostContingencyResults();
         List<OperatorStrategyResult> operatorStrategyResults = result.getOperatorStrategyResults();
@@ -295,7 +295,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         for (LfNetwork n : networkToSimulate) {
             SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters,
-                    operatorStrategies, actions, limitReductions, checkOperatorStrategies);
+                    operatorStrategies, actions, limitReductions);
 
             // Merge into first result
             // PreContingency results first
@@ -669,10 +669,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions, List<LimitReduction> limitReductions,
-                                                    boolean checkOperatorStrategies) {
+                                                    List<Action> actions, List<LimitReduction> limitReductions) {
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
+
+        // In MT the operator strategy check is performed before running the simulations
+        boolean checkOperatorStrategies = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).getThreadCount() == 1;
+
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
                 indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions,
                         checkOperatorStrategies);
