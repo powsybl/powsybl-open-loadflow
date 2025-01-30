@@ -229,7 +229,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             Arrays.stream(termsByVariableAndEquation).forEach(t -> t.setVectorIndex(-1));
         }
 
-        Collection<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations();
+        Collection<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations()
+                .stream().sorted(Comparator.comparingInt(Equation::getElementNum)).toList();
         int equationCount = equationList.size();
         sortedEquationIndexArray = new int[equationCount];
         variableCountPerEquation = new int[equationCount];
