@@ -169,8 +169,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             operatorStrategies.stream()
                     .filter(o -> !hasValidContingency(o, contingencyIds))
                     .findAny()
-                    .ifPresent(o -> throwOperatorStrategyWithoutAction(o));
-            // Check action ids to report exce ption to the main thread
+                    .ifPresent(o -> throwMissingOperatorStrategyContingency(o));
+            // Check action ids to report exception to the main thread
             final Set<String> actionIds = actions.stream().map(Action::getId).collect(Collectors.toSet());
             operatorStrategies.stream()
                     .forEach(o -> findMissingActionId(o, actionIds)
@@ -267,7 +267,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     SecurityAnalysisResult runSimulationsOnAllComponents(LfNetworkList networks, List<PropagatedContingency> propagatedContingencies, P parameters,
                                                          SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                          List<Action> actions, List<LimitReduction> limitReductions,
-                                                         LoadFlowParameters lfParameters, boolean throwIfInvalidOperatorStrategy) {
+                                                         LoadFlowParameters lfParameters, boolean checkOperatorStrategies) {
 
         List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(networks, lfParameters.getConnectedComponentMode()));
 
@@ -278,7 +278,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // run simulation on first lfNetwork to initialize results structures
         LfNetwork firstNetwork = networkToSimulate.remove(0);
         SecurityAnalysisResult result = runSimulations(firstNetwork, propagatedContingencies, parameters, securityAnalysisParameters,
-                operatorStrategies, actions, limitReductions, throwIfInvalidOperatorStrategy);
+                operatorStrategies, actions, limitReductions, checkOperatorStrategies);
 
         List<PostContingencyResult> postContingencyResults = result.getPostContingencyResults();
         List<OperatorStrategyResult> operatorStrategyResults = result.getOperatorStrategyResults();
@@ -295,7 +295,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         for (LfNetwork n : networkToSimulate) {
             SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters,
-                    operatorStrategies, actions, limitReductions, throwIfInvalidOperatorStrategy);
+                    operatorStrategies, actions, limitReductions, checkOperatorStrategies);
 
             // Merge into first result
             // PreContingency results first
@@ -508,7 +508,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return Optional.empty();
     }
 
-    private static void throwOperatorStrategyWithoutAction(OperatorStrategy operatorStrategy) {
+    private static void throwMissingOperatorStrategyContingency(OperatorStrategy operatorStrategy) {
         throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
                 + operatorStrategy.getContingencyContext().getContingencyId() + "' but this contingency is not present in the list");
 
@@ -523,14 +523,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                                                               List<OperatorStrategy> operatorStrategies,
                                                                                               Map<String, Action> actionsById,
                                                                                               Set<Action> neededActions,
-                                                                                              boolean throwIfInvalidOperatorStrategy) {
+                                                                                              boolean checkOperatorStrategies) {
         Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
         Set<String> actionIds = actionsById.keySet();
         for (OperatorStrategy operatorStrategy : operatorStrategies) {
             if (hasValidContingency(operatorStrategy, contingencyIds)) {
-                findMissingActionId(operatorStrategy, actionIds)
-                        .ifPresent(id -> throwMissingdOperatorStrategyAction(operatorStrategy, id));
+                if (checkOperatorStrategies) {
+                    findMissingActionId(operatorStrategy, actionIds)
+                            .ifPresent(id -> throwMissingdOperatorStrategyAction(operatorStrategy, id));
+                }
 
                 for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
                     for (String actionId : conditionalActions.getActionIds()) {
@@ -541,8 +543,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
                         .add(operatorStrategy);
             } else {
-                if (throwIfInvalidOperatorStrategy) {
-                    throwOperatorStrategyWithoutAction(operatorStrategy);
+                if (checkOperatorStrategies) {
+                    throwMissingOperatorStrategyContingency(operatorStrategy);
                 }
             }
         }
@@ -668,12 +670,12 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                     List<Action> actions, List<LimitReduction> limitReductions,
-                                                    boolean throwIfInvalidOperatorStrategy) {
+                                                    boolean checkOperatorStrategies) {
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
                 indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions,
-                        throwIfInvalidOperatorStrategy);
+                        checkOperatorStrategies);
         Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters()); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
