@@ -141,8 +141,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         switch (equationArray.getType()) {
             case BUS_TARGET_P :
                 for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
-                    int column = equationArray.getElementNumToColumn(elementNum);
-                    targets[column] = network.getBus(elementNum).getTargetP();
+                    if (equationArray.isElementActive(elementNum)) {
+                        int column = equationArray.getElementNumToColumn(elementNum);
+                        targets[column] = network.getBus(elementNum).getTargetP();
+                    }
                 }
                 break;
 
