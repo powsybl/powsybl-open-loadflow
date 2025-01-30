@@ -26,8 +26,6 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         double eval(int termElementNum);
 
-        int getDerivativeCount();
-
         double[][] evalDer();
 
         List<Derivative<V>> getDerivatives(int termElementNum);
@@ -108,10 +106,6 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public double eval(int termElementNum) {
         return evaluator.eval(termElementNum);
-    }
-
-    public int getDerivativeCount() {
-        return evaluator.getDerivativeCount();
     }
 
     public double[][] evalDer() {

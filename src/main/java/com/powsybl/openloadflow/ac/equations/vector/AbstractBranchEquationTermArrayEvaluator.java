@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.equations.EquationTermArray;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,19 +32,20 @@ public abstract class AbstractBranchEquationTermArrayEvaluator implements Equati
     }
 
     @Override
-    public int getDerivativeCount() {
-        return AcBranchDerivativeType.values().length;
-    }
-
-    @Override
     public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {
-        return new ClosedBranchAcVariables(branchNum,
-                                           branchVector.bus1Num[branchNum],
-                                           branchVector.bus2Num[branchNum],
-                                           variableSet,
-                                           branchVector.deriveA1[branchNum],
-                                           branchVector.deriveR1[branchNum],
-                                           Fortescue.SequenceType.POSITIVE)
-                .getDerivatives();
+        var variables = new ClosedBranchAcVariables(branchNum,
+                                                    branchVector.bus1Num[branchNum],
+                                                    branchVector.bus2Num[branchNum],
+                                                    variableSet,
+                                                    branchVector.deriveA1[branchNum],
+                                                    branchVector.deriveR1[branchNum],
+                                                    Fortescue.SequenceType.POSITIVE)
+                .getVariables();
+        List<Derivative<AcVariableType>> derivatives = new ArrayList<>(variables.size());
+        for (int localIndex = 0; localIndex < variables.size(); localIndex++) {
+            var variable = variables.get(localIndex);
+            derivatives.add(new Derivative<>(variable, localIndex));
+        }
+        return derivatives;
     }
 }
