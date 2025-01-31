@@ -39,12 +39,12 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     @Override
-    protected EquationTerm<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
         return new ShuntVectorCompensatorActiveFlowEquationTerm(getShuntVector(creationContext), shunt.getNum(), bus.getNum(), creationContext.getEquationSystem().getVariableSet());
     }
 
     @Override
-    protected EquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         return new ShuntVectorCompensatorReactiveFlowEquationTerm(getShuntVector(creationContext), shunt.getNum(), bus.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveB);
     }
 

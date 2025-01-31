@@ -29,6 +29,10 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
 
     private EquationTermArray<AcVariableType, AcEquationType> openQ2Array;
 
+    private EquationTermArray<AcVariableType, AcEquationType> shuntPArray;
+
+    private EquationTermArray<AcVariableType, AcEquationType> shuntQArray;
+
     public AcVectorizedWithArrayEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
     }
@@ -37,6 +41,7 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     protected void create(AcEquationSystemCreationContext creationContext) {
         pArray = creationContext.getEquationSystem().createEquationArray(AcEquationType.BUS_TARGET_P);
         qArray = creationContext.getEquationSystem().createEquationArray(AcEquationType.BUS_TARGET_Q);
+
         closedP1Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(closedP1Array);
         closedP2Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
@@ -45,6 +50,7 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
         qArray.addTermArray(closedQ1Array);
         closedQ2Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
         qArray.addTermArray(closedQ2Array);
+
         openP1Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(openP1Array);
         openP2Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
@@ -53,6 +59,12 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
         qArray.addTermArray(openQ1Array);
         openQ2Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide2ReactiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
         qArray.addTermArray(openQ2Array);
+
+        shuntPArray = new EquationTermArray<>(ElementType.SHUNT_COMPENSATOR, new ShuntCompensatorActiveFlowEquationTermArrayEvaluator(networkVector.getShuntVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(shuntPArray);
+        shuntQArray = new EquationTermArray<>(ElementType.SHUNT_COMPENSATOR, new ShuntCompensatorReactiveFlowEquationTermArrayEvaluator(networkVector.getShuntVector(), equationSystem.getVariableSet()));
+        qArray.addTermArray(shuntQArray);
+
         super.create(creationContext);
     }
 
@@ -94,6 +106,16 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     @Override
     protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return openQ2Array.getElement(branch.getNum());
+    }
+
+    @Override
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
+        return shuntPArray.getElement(shunt.getNum());
+    }
+
+    @Override
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
+        return shuntQArray.getElement(shunt.getNum());
     }
 
     @Override

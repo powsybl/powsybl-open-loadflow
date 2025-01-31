@@ -214,18 +214,20 @@ public class AcEquationSystemCreator {
     private void createShuntEquation(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         var equationSystem = creationContext.getEquationSystem();
         var q = createShuntCompensatorReactiveFlowEquationTerm(shunt, bus, deriveB, creationContext);
-        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
+        equationSystem.getEquationOrEquationArrayElement(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+                .addTerm(q);
         shunt.setQ(q);
         var p = createShuntCompensatorActiveFlowEquationTerm(shunt, bus, creationContext);
-        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+        equationSystem.getEquationOrEquationArrayElement(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
+                .addTerm(p);
         shunt.setP(p);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
         return new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         return new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, creationContext.getEquationSystem().getVariableSet(), deriveB);
     }
 
@@ -360,7 +362,8 @@ public class AcEquationSystemCreator {
                 T controllerElement = enabledControllerElements.get(i);
                 equationSystem.getEquation(controllerElement.getNum(), distrEqType)
                         .ifPresent(eq -> eq.setActive(active));
-                equationSystem.getEquationOrEquationArrayElement(controllerElement.getNum(), ctrlEqType).orElseThrow()
+                equationSystem.getEquationOrEquationArrayElement(controllerElement.getNum(), ctrlEqType)
+                        .orElseThrow()
                         .setActive(false);
             }
         }
@@ -421,11 +424,11 @@ public class AcEquationSystemCreator {
             }
         }
         controllerBus.getShunt().ifPresent(shunt -> {
-            var q = createShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, false, creationContext);
+            var q = (EquationTerm<AcVariableType, AcEquationType>) createShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, false, creationContext);
             terms.add(q);
         });
         controllerBus.getControllerShunt().ifPresent(shunt -> {
-            var q = createShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, false, creationContext);
+            var q = (EquationTerm<AcVariableType, AcEquationType>) createShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, false, creationContext);
             terms.add(q);
         });
         return terms;
