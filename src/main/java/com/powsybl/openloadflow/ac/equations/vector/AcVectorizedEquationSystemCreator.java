@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.ac.equations.vector;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.EquationTermArrayElement;
+import com.powsybl.openloadflow.equations.BaseEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -39,22 +39,22 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
         return new ShuntVectorCompensatorActiveFlowEquationTerm(getShuntVector(creationContext), shunt.getNum(), bus.getNum(), creationContext.getEquationSystem().getVariableSet());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         return new ShuntVectorCompensatorReactiveFlowEquationTerm(getShuntVector(creationContext), shunt.getNum(), bus.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveB);
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchVectorSide1ActiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchVectorSide1ReactiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
@@ -64,12 +64,12 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchVectorSide2ActiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchVectorSide2ReactiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
@@ -79,12 +79,12 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchVectorSide2ActiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), creationContext.getEquationSystem().getVariableSet());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchVectorSide2ReactiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), creationContext.getEquationSystem().getVariableSet());
     }
 
@@ -94,12 +94,12 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchVectorSide1ActiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchVectorSide1ReactiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet());
     }
 

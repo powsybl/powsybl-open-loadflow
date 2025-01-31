@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationArrayElement<V, E>, Comparable<Equation<V, E>> {
+public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements BaseEquation<V, E>, Comparable<Equation<V, E>> {
 
     private final int elementNum;
 
@@ -95,7 +95,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
-    public EquationArrayElement<V, E> addTerm(EquationTermArrayElement<V, E> term) {
+    public BaseEquation<V, E> addTerm(BaseEquationTerm<V, E> term) {
         Objects.requireNonNull(term);
         checkNotRemoved();
         EquationTerm<V, E> termImpl = (EquationTerm<V, E>) term;

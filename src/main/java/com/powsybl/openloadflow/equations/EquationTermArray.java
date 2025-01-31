@@ -138,7 +138,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
     }
 
-    public static class EquationTermArrayElementImpl<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTermArrayElement<V, E> {
+    public static class EquationTermArrayElementImpl<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements BaseEquationTerm<V, E> {
 
         final EquationTermArray<V, E> equationTermArray;
 
@@ -160,7 +160,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
     }
 
-    public EquationTermArrayElement<V, E> getElement(int termElementNum) {
+    public BaseEquationTerm<V, E> getElement(int termElementNum) {
         return new EquationTermArrayElementImpl<>(this, termElementNum);
     }
 

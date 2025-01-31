@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.lf;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.equations.EquationArrayElement;
+import com.powsybl.openloadflow.equations.BaseEquation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.network.*;
@@ -80,7 +80,7 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
     @Override
     public void onReferenceBusChange(LfBus bus, boolean reference) {
         if (reference) {
-            EquationArrayElement<V, E> phiEq = equationSystem.getEquation(bus.getNum(), getTypeBusTargetPhi()).orElse(null);
+            BaseEquation<V, E> phiEq = equationSystem.getEquation(bus.getNum(), getTypeBusTargetPhi()).orElse(null);
             if (phiEq == null) {
                 phiEq = equationSystem.createEquation(bus, getTypeBusTargetPhi())
                         .addTerm(equationSystem.getVariable(bus.getNum(), getTypeBusPhi())

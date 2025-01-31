@@ -154,15 +154,15 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         invalidateEquationDerivativeVectors();
     }
 
-    public EquationArrayElement<V, E> getElement(int elementNum) {
-        return new EquationArrayElement<>() {
+    public BaseEquation<V, E> getElement(int elementNum) {
+        return new BaseEquation<>() {
             @Override
             public void setActive(boolean active) {
                 setElementActive(elementNum, active);
             }
 
             @Override
-            public EquationArrayElement<V, E> addTerm(EquationTermArrayElement<V, E> term) {
+            public BaseEquation<V, E> addTerm(BaseEquationTerm<V, E> term) {
                 var termImpl = (EquationTermArray.EquationTermArrayElementImpl<V, E>) term;
                 termImpl.equationTermArray.addTerm(elementNum, termImpl.termElementNum);
                 return this;

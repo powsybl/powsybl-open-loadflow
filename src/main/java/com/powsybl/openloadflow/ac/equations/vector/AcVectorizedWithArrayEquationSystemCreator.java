@@ -69,57 +69,57 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return closedP1Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return closedQ1Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return closedP2Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return closedQ2Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return openP1Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return openQ1Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return openP2Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return openQ2Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
         return shuntPArray.getElement(shunt.getNum());
     }
 
     @Override
-    protected EquationTermArrayElement<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         return shuntQArray.getElement(shunt.getNum());
     }
 
     @Override
-    protected EquationArrayElement<AcVariableType, AcEquationType> createEquation(EquationSystem<AcVariableType, AcEquationType> equationSystem, LfElement element, AcEquationType equationType) {
+    protected BaseEquation<AcVariableType, AcEquationType> createEquation(EquationSystem<AcVariableType, AcEquationType> equationSystem, LfElement element, AcEquationType equationType) {
         if (equationType == AcEquationType.BUS_TARGET_P) {
             return pArray.getElement(element.getNum());
         } else if (equationType == AcEquationType.BUS_TARGET_Q) {

@@ -151,7 +151,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return Optional.ofNullable(equations.get(p));
     }
 
-    public Optional<EquationArrayElement<V, E>> getEquationOrEquationArrayElement(int num, E type) {
+    public Optional<BaseEquation<V, E>> getEquationOrEquationArrayElement(int num, E type) {
         Pair<Integer, E> p = Pair.of(num, type);
         var equation = equations.get(p);
         if (equation != null) {

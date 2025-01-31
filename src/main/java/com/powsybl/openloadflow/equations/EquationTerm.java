@@ -24,10 +24,10 @@ import java.util.function.DoubleSupplier;
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends EquationTermArrayElement<V, E>, Derivable<V> {
+public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends BaseEquationTerm<V, E>, Derivable<V> {
 
     static void setActive(Evaluable evaluable, boolean active) {
-        if (evaluable instanceof EquationTermArrayElement<?, ?> term) {
+        if (evaluable instanceof BaseEquationTerm<?, ?> term) {
             term.setActive(active);
         }
     }
