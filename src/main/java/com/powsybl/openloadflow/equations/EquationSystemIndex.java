@@ -129,7 +129,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void removeTerm(EquationTerm<V, E> term) {
         notifyEquationTermChange(term);
-        for (Variable<V> variable : term.getVariables()) {
+        removeVariables(term.getVariables());
+    }
+
+    private void removeVariables(List<Variable<V>> variables) {
+        for (Variable<V> variable : variables) {
             MutableInt variableRefCount = variablesToFindRefCount.get(variable);
             if (variableRefCount != null) {
                 variableRefCount.decrement();
@@ -208,9 +212,61 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int equationElementNum, int equationTermElementNum, List<Derivative<V>> derivatives) {
-        addVariables(derivatives.stream().map(Derivative::getVariable).toList());
-        // TODO notif
+    public void onEquationArrayChange(EquationArray<V, E> equationArray, int elementNum, EquationEventType eventType) {
+        switch (eventType) {
+            case EQUATION_DEACTIVATED:
+                for (var equationTermArray : equationArray.getTermArrays()) {
+                    for (int termNum : equationTermArray.getTermNumsForElementNum(elementNum).toArray()) {
+                        if (equationTermArray.isTermActive(termNum)) {
+                            var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            removeVariables(variables);
+                        }
+                    }
+                }
+                equationsIndexValid = false;
+                break;
+
+            case EQUATION_ACTIVATED:
+                for (var equationTermArray : equationArray.getTermArrays()) {
+                    for (int termNum : equationTermArray.getTermNumsForElementNum(elementNum).toArray()) {
+                        if (equationTermArray.isTermActive(termNum)) {
+                            var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            addVariables(variables);
+                        }
+                    }
+                }
+                equationsIndexValid = false;
+                break;
+
+            default:
+                throw new IllegalStateException("Event type not supported: " + eventType);
+        }
+    }
+
+    @Override
+    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, EquationTermEventType eventType) {
+        var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+        int termElementNum = equationTermArray.getTermElementNum(termNum);
+        if (equationTermArray.getEquationArray().isElementActive(termElementNum)) {
+            switch (eventType) {
+                case EQUATION_TERM_ADDED:
+                    if (equationTermArray.isTermActive(termNum)) {
+                        addVariables(variables);
+                    }
+                    break;
+
+                case EQUATION_TERM_ACTIVATED:
+                    addVariables(variables);
+                    break;
+
+                case EQUATION_TERM_DEACTIVATED:
+                    removeVariables(variables);
+                    break;
+
+                default:
+                    throw new IllegalStateException("Event type not supported: " + eventType);
+            }
+        }
     }
 
     public List<Equation<V, E>> getSortedEquationsToSolve() {

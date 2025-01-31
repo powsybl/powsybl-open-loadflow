@@ -50,7 +50,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term element number, term numbers
     private final List<TIntArrayList> termNumsByTermElementNum = new ArrayList<>();
 
-    // for each term number, corresponding element number
+    // for each term number, corresponding term element number
     private final TIntArrayList termElementNums = new TIntArrayList();
 
     // for each term number, activity status
@@ -66,6 +66,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public ElementType getElementType() {
         return elementType;
+    }
+
+    public EquationArray<V, E> getEquationArray() {
+        return equationArray;
     }
 
     void setEquationArray(EquationArray<V, E> equationArray) {
@@ -114,7 +118,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);
         termDerivatives.add(derivatives);
         equationArray.invalidateEquationDerivativeVectors();
-        equationArray.getEquationSystem().notifyEquationTermArrayChange(this, equationElementNum, termElementNum, derivatives);
+        equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
 
@@ -134,7 +138,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         TIntArrayList termNums = getTermNumsForTermElementNum(termElementNum);
         for (int i = 0; i < termNums.size(); i++) {
             int termNum = termNums.getQuick(i);
-            termActive.set(termNum, active);
+            boolean oldActive = termActive.get(termNum);
+            if (active != oldActive) {
+                termActive.set(termNum, active);
+                equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
+            }
         }
     }
 

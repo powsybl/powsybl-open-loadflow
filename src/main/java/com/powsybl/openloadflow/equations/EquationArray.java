@@ -143,7 +143,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 length--;
             }
             invalidateElementNumToColumn();
-            // TODO notify equation system listeners
+            equationSystem.notifyEquationArrayChange(this, elementNum,
+                    active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
     }
 
