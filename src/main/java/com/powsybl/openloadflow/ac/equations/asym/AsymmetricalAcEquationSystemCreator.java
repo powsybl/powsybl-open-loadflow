@@ -10,9 +10,7 @@ package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.*;
-import com.powsybl.openloadflow.equations.EquationArray;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.EquationTermArray;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -30,8 +28,8 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     }
 
     @Override
-    protected void createBusEquation(LfBus bus, EquationArray<AcVariableType, AcEquationType> pArray, AcEquationSystemCreationContext creationContext) {
-        super.createBusEquation(bus, pArray, creationContext);
+    protected void createBusEquation(LfBus bus, AcEquationSystemCreationContext creationContext) {
+        super.createBusEquation(bus, creationContext);
 
         var equationSystem = creationContext.getEquationSystem();
 
@@ -101,7 +99,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     }
 
     @Override
-    protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, AcEquationSystemCreationContext creationContext, EquationTermArray<AcVariableType, AcEquationType> p1Array, EquationTermArray<AcVariableType, AcEquationType> p2Array) {
+    protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         var equationSystem = creationContext.getEquationSystem();
 
         // positive sequence

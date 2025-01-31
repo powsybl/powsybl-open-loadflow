@@ -128,8 +128,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Pair<Integer, E> p = Pair.of(element.getNum(), type);
         Equation<V, E> equation = equations.get(p);
         if (equation == null) {
-            equation = addEquation(p)
-                    .setActive(!element.isDisabled());
+            equation = addEquation(p);
+            equation.setActive(!element.isDisabled());
         }
         return equation;
     }

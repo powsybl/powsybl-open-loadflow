@@ -19,8 +19,14 @@ import com.powsybl.openloadflow.network.LfShunt;
  */
 public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
+    protected final EquationSystem<AcVariableType, AcEquationType> equationSystem;
+
+    protected final AcNetworkVector networkVector;
+
     public AcVectorizedEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
+        equationSystem = new EquationSystem<>(AcEquationType.class, network);
+        networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
     }
 
     private AcShuntVector getShuntVector(AcEquationSystemCreationContext creationContext) {
@@ -103,8 +109,6 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     @Override
     public EquationSystem<AcVariableType, AcEquationType> create() {
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
-        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
         AcVectorizedEquationSystemCreationContext creationContext = new AcVectorizedEquationSystemCreationContext(equationSystem, networkVector);
         create(creationContext);
         networkVector.startListening();

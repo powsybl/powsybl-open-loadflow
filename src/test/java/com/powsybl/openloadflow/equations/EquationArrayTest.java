@@ -125,6 +125,6 @@ class EquationArrayTest {
         }
 
         assertEquals(equationSystem.getEquation(1, AcEquationType.BUS_TARGET_P).orElseThrow().eval(),
-                     equationSystem2.getEquationArray(AcEquationType.BUS_TARGET_P).orElseThrow().getEvaluable(1).eval());
+                     equationSystem2.getEquationArray(AcEquationType.BUS_TARGET_P).orElseThrow().getElement(1).eval());
     }
 }

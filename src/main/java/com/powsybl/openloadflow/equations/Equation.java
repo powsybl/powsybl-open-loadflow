@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Evaluable, Comparable<Equation<V, E>> {
+public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationArrayElement<V, E>, Comparable<Equation<V, E>> {
 
     private final int elementNum;
 
@@ -87,31 +86,32 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return active;
     }
 
-    public Equation<V, E> setActive(boolean active) {
+    @Override
+    public void setActive(boolean active) {
         checkNotRemoved();
         if (active != this.active) {
             this.active = active;
             equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
-        return this;
     }
 
-    public Equation<V, E> addTerm(EquationTerm<V, E> term) {
+    public EquationArrayElement<V, E> addTerm(EquationTermArrayElement<V, E> term) {
         Objects.requireNonNull(term);
         checkNotRemoved();
-        if (term.getEquation() != null) {
+        EquationTerm<V, E> termImpl = (EquationTerm<V, E>) term;
+        if (termImpl.getEquation() != null) {
             throw new PowsyblException("Equation term already added to another equation: "
-                    + term.getEquation());
+                    + termImpl.getEquation());
         }
-        terms.add(term);
-        for (Variable<V> v : term.getVariables()) {
+        terms.add(termImpl);
+        for (Variable<V> v : termImpl.getVariables()) {
             termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
-                    .add(term);
+                    .add(termImpl);
         }
         matrixElementIndexes = null;
-        term.setEquation(this);
-        equationSystem.addEquationTerm(term);
-        equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
+        termImpl.setEquation(this);
+        equationSystem.addEquationTerm(termImpl);
+        equationSystem.notifyEquationTermChange(termImpl, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
 

@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.util.trove.TIntArrayListHack;
-import com.powsybl.openloadflow.util.Evaluable;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.*;
@@ -153,21 +152,36 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         invalidateEquationDerivativeVectors();
     }
 
-    public Evaluable getEvaluable(int elementNum) {
-        return () -> {
-            double value = 0;
-            for (EquationTermArray<V, E> termArray : termArrays) {
-                var termNums = termArray.getTermNums(elementNum);
-                for (int i = 0; i < termNums.size(); i++) {
-                    int termNum = termNums.get(i);
-                    // skip inactive terms
-                    if (termArray.isTermActive(termNum)) {
-                        int termElementNum = termArray.getTermElementNum(termNum);
-                        value += termArray.eval(termElementNum);
+    public EquationArrayElement<V, E> getElement(int elementNum) {
+        return new EquationArrayElement<>() {
+            @Override
+            public void setActive(boolean active) {
+                setElementActive(elementNum, active);
+            }
+
+            @Override
+            public EquationArrayElement<V, E> addTerm(EquationTermArrayElement<V, E> term) {
+                var termImpl = (EquationTermArray.EquationTermArrayElementImpl<V, E>) term;
+                termImpl.equationTermArray.addTerm(elementNum, termImpl.termElementNum);
+                return this;
+            }
+
+            @Override
+            public double eval() {
+                double value = 0;
+                for (EquationTermArray<V, E> termArray : termArrays) {
+                    var termNums = termArray.getTermNums(elementNum);
+                    for (int i = 0; i < termNums.size(); i++) {
+                        int termNum = termNums.get(i);
+                        // skip inactive terms
+                        if (termArray.isTermActive(termNum)) {
+                            int termElementNum = termArray.getTermElementNum(termNum);
+                            value += termArray.eval(termElementNum);
+                        }
                     }
                 }
+                return value;
             }
-            return value;
         };
     }
 

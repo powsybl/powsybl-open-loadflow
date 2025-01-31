@@ -111,4 +111,25 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public double[][] evalDer() {
         return evaluator.evalDer();
     }
+
+    public static class EquationTermArrayElementImpl<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTermArrayElement<V, E> {
+
+        final EquationTermArray<V, E> equationTermArray;
+
+        final int termElementNum;
+
+        public EquationTermArrayElementImpl(EquationTermArray<V, E> equationTermArray, int termElementNum) {
+            this.equationTermArray = Objects.requireNonNull(equationTermArray);
+            this.termElementNum = termElementNum;
+        }
+
+        @Override
+        public double eval() {
+            return equationTermArray.eval(termElementNum);
+        }
+    }
+
+    public EquationTermArrayElement<V, E> getElement(int termElementNum) {
+        return new EquationTermArrayElementImpl<>(this, termElementNum);
+    }
 }
