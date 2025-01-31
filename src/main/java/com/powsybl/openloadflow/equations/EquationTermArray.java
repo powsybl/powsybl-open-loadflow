@@ -164,7 +164,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public boolean write(Writer writer, int elementNum) throws IOException {
         TIntArrayList termNums = getTermNumsForElementNum(elementNum);
         boolean written = false;
-        for (int termNum = 0; termNum < termNums.size(); termNum++) {
+        for (int i = 0; i < termNums.size(); i++) {
+            int termNum = termNums.get(i);
             if (termActive.get(termNum)) {
                 writer.append(evaluator.getName());
                 writer.write("(");
@@ -176,10 +177,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
                     }
                 }
                 writer.write(")");
-                if (termNum < termNums.size() - 1) {
+                written = true;
+                if (i < termNums.size() - 1) {
                     writer.append(" + ");
                 }
-                written = true;
             }
         }
         return written;
