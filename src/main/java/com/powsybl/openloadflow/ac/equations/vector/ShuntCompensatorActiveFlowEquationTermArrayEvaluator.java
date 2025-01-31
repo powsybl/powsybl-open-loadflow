@@ -19,6 +19,11 @@ public class ShuntCompensatorActiveFlowEquationTermArrayEvaluator extends Abstra
     }
 
     @Override
+    public String getName() {
+        return "ac_p_array_shunt";
+    }
+
+    @Override
     public double[] eval() {
         return shuntVector.p;
     }

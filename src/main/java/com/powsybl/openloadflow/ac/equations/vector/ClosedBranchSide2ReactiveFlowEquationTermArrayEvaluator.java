@@ -19,6 +19,11 @@ public class ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator extends Abs
     }
 
     @Override
+    public String getName() {
+        return "ac_q_array_closed_2";
+    }
+
+    @Override
     public double[] eval() {
         return branchVector.q2;
     }

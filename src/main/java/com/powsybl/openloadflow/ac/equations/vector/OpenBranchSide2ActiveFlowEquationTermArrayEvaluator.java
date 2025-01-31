@@ -19,6 +19,11 @@ public class OpenBranchSide2ActiveFlowEquationTermArrayEvaluator extends Abstrac
     }
 
     @Override
+    public String getName() {
+        return "ac_p_array_open_2";
+    }
+
+    @Override
     public double[] eval() {
         return branchVector.p1;
     }

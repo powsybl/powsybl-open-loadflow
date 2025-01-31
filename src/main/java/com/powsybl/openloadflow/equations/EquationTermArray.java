@@ -11,7 +11,10 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
 import gnu.trove.list.array.TIntArrayList;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,6 +24,8 @@ import java.util.Objects;
 public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     public interface Evaluator<V extends Enum<V> & Quantity> {
+
+        String getName();
 
         double[] eval();
 
@@ -153,5 +158,26 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public EquationTermArrayElement<V, E> getElement(int termElementNum) {
         return new EquationTermArrayElementImpl<>(this, termElementNum);
+    }
+
+    public void write(Writer writer, int elementNum) throws IOException {
+        TIntArrayList termNums = getTermNumsForElementNum(elementNum);
+        for (int termNum = 0; termNum < termNums.size(); termNum++) {
+            if (termActive.get(termNum)) {
+                writer.append(evaluator.getName());
+                writer.write("(");
+                for (Iterator<Derivative<V>> it = getTermDerivatives(termNum).iterator(); it.hasNext();) {
+                    Variable<V> variable = it.next().getVariable();
+                    variable.write(writer);
+                    if (it.hasNext()) {
+                        writer.write(", ");
+                    }
+                }
+                writer.write(")");
+                if (termNum < termNums.size() - 1) {
+                    writer.append(" + ");
+                }
+            }
+        }
     }
 }

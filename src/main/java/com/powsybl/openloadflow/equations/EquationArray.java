@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.commons.util.trove.TIntArrayListHack;
 import gnu.trove.list.array.TIntArrayList;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
 
 /**
@@ -330,6 +332,22 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         int matrixElementIndex = handler.onDer(column, row, value, oldMatrixElementIndex);
         if (oldMatrixElementIndexes == null) {
             matrixElementIndexes.add(matrixElementIndex);
+        }
+    }
+
+    public void write(Writer writer) throws IOException {
+        for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+            if (isElementActive(elementNum)) {
+                writer.append(type.getSymbol())
+                        .append("[")
+                        .append(String.valueOf(elementNum))
+                        .append("] = ");
+                for (EquationTermArray<V, E> termArray : termArrays) {
+                    termArray.write(writer, elementNum);
+                    writer.append(" ");
+                }
+                writer.append(System.lineSeparator());
+            }
         }
     }
 }

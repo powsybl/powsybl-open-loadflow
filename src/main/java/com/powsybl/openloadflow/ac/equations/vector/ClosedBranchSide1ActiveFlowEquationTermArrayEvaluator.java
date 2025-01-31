@@ -19,6 +19,11 @@ public class ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator extends Abstr
     }
 
     @Override
+    public String getName() {
+        return "ac_p_array_closed_1";
+    }
+
+    @Override
     public double[] eval() {
         return branchVector.p1;
     }

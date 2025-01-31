@@ -19,6 +19,11 @@ public class OpenBranchSide2ReactiveFlowEquationTermArrayEvaluator extends Abstr
     }
 
     @Override
+    public String getName() {
+        return "ac_q_array_open_2";
+    }
+
+    @Override
     public double[] eval() {
         return branchVector.q1;
     }

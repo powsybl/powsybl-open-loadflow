@@ -290,6 +290,9 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     writer.write(System.lineSeparator());
                 }
             }
+            for (EquationArray<V, E> equationArray : equationArrays.values()) {
+                equationArray.write(writer);
+            }
             writer.flush();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
