@@ -113,6 +113,9 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
+        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+            initializer.initialize(equationArray, network, array);
+        }
     }
 
     @Override
