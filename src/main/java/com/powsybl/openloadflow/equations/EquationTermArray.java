@@ -132,7 +132,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public void setActive(int termElementNum, boolean active) {
         TIntArrayList termNums = getTermNumsForTermElementNum(termElementNum);
-        for (int termNum = 0; termNum < termNums.size(); termNum++) {
+        for (int i = 0; i < termNums.size(); i++) {
+            int termNum = termNums.getQuick(i);
             termActive.set(termNum, active);
         }
     }
