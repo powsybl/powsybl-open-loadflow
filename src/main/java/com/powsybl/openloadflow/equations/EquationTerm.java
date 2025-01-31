@@ -27,7 +27,7 @@ import java.util.function.DoubleSupplier;
 public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends EquationTermArrayElement<V, E>, Derivable<V> {
 
     static void setActive(Evaluable evaluable, boolean active) {
-        if (evaluable instanceof EquationTerm<?, ?> term) {
+        if (evaluable instanceof EquationTermArrayElement<?, ?> term) {
             term.setActive(active);
         }
     }
@@ -150,8 +150,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     void setEquation(Equation<V, E> equation);
 
     boolean isActive();
-
-    void setActive(boolean active);
 
     void setSelf(EquationTerm<V, E> self);
 

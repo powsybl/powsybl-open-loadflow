@@ -40,6 +40,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each equation element number, term numbers
     private final List<TIntArrayList> termNumsByEquationElementNum = new ArrayList<>();
 
+    // for each term element number, term numbers
+    private final List<TIntArrayList> termNumsByTermElementNum = new ArrayList<>();
+
     // for each term number, corresponding element number
     private final TIntArrayList termElementNums = new TIntArrayList();
 
@@ -65,11 +68,18 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         this.equationArray = Objects.requireNonNull(equationArray);
     }
 
-    public TIntArrayList getTermNums(int equationElementNum) {
+    public TIntArrayList getTermNumsForElementNum(int equationElementNum) {
         while (termNumsByEquationElementNum.size() <= equationElementNum) {
             termNumsByEquationElementNum.add(new TIntArrayList());
         }
         return termNumsByEquationElementNum.get(equationElementNum);
+    }
+
+    public TIntArrayList getTermNumsForTermElementNum(int termElementNum) {
+        while (termNumsByTermElementNum.size() <= termElementNum) {
+            termNumsByTermElementNum.add(new TIntArrayList());
+        }
+        return termNumsByTermElementNum.get(termElementNum);
     }
 
     public boolean isTermActive(int termNum) {
@@ -90,7 +100,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
-        getTermNums(equationElementNum).add(termNum);
+        getTermNumsForElementNum(equationElementNum).add(termNum);
         termElementNums.add(termElementNum);
         termActive.add(true);
         List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);
@@ -112,6 +122,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return evaluator.evalDer();
     }
 
+    public void setActive(int termElementNum, boolean active) {
+        TIntArrayList termNums = getTermNumsForTermElementNum(termElementNum);
+        for (int termNum = 0; termNum < termNums.size(); termNum++) {
+            termActive.set(termNum, active);
+        }
+    }
+
     public static class EquationTermArrayElementImpl<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTermArrayElement<V, E> {
 
         final EquationTermArray<V, E> equationTermArray;
@@ -126,6 +143,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         @Override
         public double eval() {
             return equationTermArray.eval(termElementNum);
+        }
+
+        @Override
+        public void setActive(boolean active) {
+            equationTermArray.setActive(termElementNum, active);
         }
     }
 

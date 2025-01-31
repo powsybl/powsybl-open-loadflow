@@ -170,7 +170,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             public double eval() {
                 double value = 0;
                 for (EquationTermArray<V, E> termArray : termArrays) {
-                    var termNums = termArray.getTermNums(elementNum);
+                    var termNums = termArray.getTermNumsForElementNum(elementNum);
                     for (int i = 0; i < termNums.size(); i++) {
                         int termNum = termNums.get(i);
                         // skip inactive terms
@@ -194,7 +194,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 if (!elementActive[elementNum]) {
                     continue;
                 }
-                var termNums = termArray.getTermNums(elementNum);
+                var termNums = termArray.getTermNumsForElementNum(elementNum);
                 for (int i = 0; i < termNums.size(); i++) {
                     int termNum = termNums.get(i);
                     // skip inactive terms
@@ -228,7 +228,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 // vectorize terms to evaluate
                 for (int termArrayNum = 0; termArrayNum < termArrays.size(); termArrayNum++) {
                     EquationTermArray<V, E> termArray = termArrays.get(termArrayNum);
-                    var termNums = termArray.getTermNums(elementNum);
+                    var termNums = termArray.getTermNumsForElementNum(elementNum);
                     for (int i = 0; i < termNums.size(); i++) {
                         int termNum = termNums.get(i);
                         // for each term of each, add an entry for each derivative operation we need
