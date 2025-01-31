@@ -27,7 +27,6 @@ import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
@@ -182,7 +181,6 @@ class GeneratorRemoteControlPQSwitchTest {
         assertVoltageEquals(12.17, b1);
         assertReactivePowerEquals(2553.557, g1.getTerminal());
     }
-
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
