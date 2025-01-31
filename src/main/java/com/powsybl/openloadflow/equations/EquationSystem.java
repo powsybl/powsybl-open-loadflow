@@ -291,7 +291,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 }
             }
             for (EquationArray<V, E> equationArray : equationArrays.values()) {
-                equationArray.write(writer);
+                equationArray.write(writer, writeInactiveEquations);
             }
             writer.flush();
         } catch (IOException e) {

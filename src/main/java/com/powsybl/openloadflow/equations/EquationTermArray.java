@@ -161,36 +161,33 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return new EquationTermArrayElementImpl<>(this, termElementNum);
     }
 
-    private TIntArrayList filterActiveTermNums(TIntArrayList termNums) {
-        TIntArrayList activeTermNums = new TIntArrayList();
+    public boolean write(Writer writer, boolean writeInactiveTerms, int elementNum, boolean first) throws IOException {
+        TIntArrayList termNums = getTermNumsForElementNum(elementNum);
         for (int i = 0; i < termNums.size(); i++) {
             int termNum = termNums.get(i);
-            if (termActive.get(termNum)) {
-                activeTermNums.add(termNum);
-            }
-        }
-        return activeTermNums;
-    }
-
-    public boolean write(Writer writer, int elementNum, boolean first) throws IOException {
-        TIntArrayList termNums = filterActiveTermNums(getTermNumsForElementNum(elementNum));
-        for (int i = 0; i < termNums.size(); i++) {
-            int termNum = termNums.get(i);
-            if (!first) {
-                writer.append(" + ");
-            }
-            writer.append(evaluator.getName());
-            writer.write("(");
-            for (Iterator<Derivative<V>> it = getTermDerivatives(termNum).iterator(); it.hasNext();) {
-                Variable<V> variable = it.next().getVariable();
-                variable.write(writer);
-                if (it.hasNext()) {
-                    writer.write(", ");
+            if (writeInactiveTerms || termActive.get(termNum)) {
+                if (!first) {
+                    writer.append(" + ");
                 }
-            }
-            writer.write(")");
-            if (i < termNums.size() - 1) {
-                writer.append(" + ");
+                if (!termActive.get(termNum)) {
+                    writer.write("[ ");
+                }
+                writer.append(evaluator.getName());
+                writer.write("(");
+                for (Iterator<Derivative<V>> it = getTermDerivatives(termNum).iterator(); it.hasNext(); ) {
+                    Variable<V> variable = it.next().getVariable();
+                    variable.write(writer);
+                    if (it.hasNext()) {
+                        writer.write(", ");
+                    }
+                }
+                writer.write(")");
+                if (!termActive.get(termNum)) {
+                    writer.write(" ]");
+                }
+                if (i < termNums.size() - 1) {
+                    writer.append(" + ");
+                }
             }
         }
         return !termNums.isEmpty();

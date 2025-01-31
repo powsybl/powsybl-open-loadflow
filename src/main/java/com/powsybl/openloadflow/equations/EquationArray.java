@@ -345,20 +345,28 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         return activeElementNums;
     }
 
-    public void write(Writer writer) throws IOException {
-        for (int elementNum : getActiveElementNums().toArray()) {
-            writer.append(type.getSymbol())
-                    .append("[")
-                    .append(String.valueOf(elementNum))
-                    .append("] = ");
-            boolean first = true;
-            for (int i = 0; i < termArrays.size(); i++) {
-                EquationTermArray<V, E> termArray = termArrays.get(i);
-                if (termArray.write(writer, elementNum, first)) {
-                    first = false;
+    public void write(Writer writer, boolean writeInactiveEquations) throws IOException {
+        for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+            if (writeInactiveEquations || isElementActive(elementNum)) {
+                if (!isElementActive(elementNum)) {
+                    writer.write("[ ");
                 }
+                writer.append(type.getSymbol())
+                        .append("[")
+                        .append(String.valueOf(elementNum))
+                        .append("] = ");
+                boolean first = true;
+                for (int i = 0; i < termArrays.size(); i++) {
+                    EquationTermArray<V, E> termArray = termArrays.get(i);
+                    if (termArray.write(writer, writeInactiveEquations, elementNum, first)) {
+                        first = false;
+                    }
+                }
+                if (!isElementActive(elementNum)) {
+                    writer.write(" ]");
+                }
+                writer.append(System.lineSeparator());
             }
-            writer.append(System.lineSeparator());
         }
     }
 }
