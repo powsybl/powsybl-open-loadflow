@@ -346,8 +346,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         .append(String.valueOf(elementNum))
                         .append("] = ");
                 boolean first = true;
-                for (int i = 0; i < termArrays.size(); i++) {
-                    EquationTermArray<V, E> termArray = termArrays.get(i);
+                for (EquationTermArray<V, E> termArray : termArrays) {
                     if (termArray.write(writer, writeInactiveEquations, elementNum, first)) {
                         first = false;
                     }
