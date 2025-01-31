@@ -125,6 +125,9 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         if (element.getType() != type.getElementType()) {
             throw new PowsyblException("Incorrect equation type: " + type);
         }
+        if (equationArrays.containsKey(type)) {
+            throw new PowsyblException("An array equation for type " + type + " already exists");
+        }
         Pair<Integer, E> p = Pair.of(element.getNum(), type);
         Equation<V, E> equation = equations.get(p);
         if (equation == null) {
