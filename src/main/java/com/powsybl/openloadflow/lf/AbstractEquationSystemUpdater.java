@@ -72,7 +72,7 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     @Override
     public void onSlackBusChange(LfBus bus, boolean slack) {
-        equationSystem.getEquation(bus.getNum(), getTypeBusTargetP())
+        equationSystem.getEquationOrEquationArrayElement(bus.getNum(), getTypeBusTargetP())
                 .orElseThrow()
                 .setActive(!slack);
     }

@@ -449,7 +449,7 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
+    private void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                                 AcEquationSystemCreationContext creationContext,
                                                 boolean spanningTreeEdge) {
         var equationSystem = creationContext.getEquationSystem();
@@ -476,11 +476,11 @@ public class AcEquationSystemCreator {
                 // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
                 // to ensure we have the same number of equation and variables
                 var dummyQ = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q);
-                equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
+                equationSystem.getEquationOrEquationArrayElement(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
                         .addTerm(dummyQ.createTerm());
 
-                equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
+                equationSystem.getEquationOrEquationArrayElement(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
                         .addTerm(dummyQ.<AcEquationType>createTerm()
                                 .minus());
@@ -509,11 +509,11 @@ public class AcEquationSystemCreator {
                 // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
                 // to ensure we have the same number of equation and variables
                 var dummyP = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P);
-                equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
+                equationSystem.getEquationOrEquationArrayElement(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
                         .addTerm(dummyP.createTerm());
 
-                equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
+                equationSystem.getEquationOrEquationArrayElement(bus2.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
                         .addTerm(dummyP.<AcEquationType>createTerm()
                                 .minus());
