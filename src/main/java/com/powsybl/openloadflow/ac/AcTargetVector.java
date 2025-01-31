@@ -138,18 +138,22 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
     }
 
     public static void init(EquationArray<AcVariableType, AcEquationType> equationArray, LfNetwork network, double[] targets) {
-        switch (equationArray.getType()) {
-            case BUS_TARGET_P :
-                for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
-                    if (equationArray.isElementActive(elementNum)) {
-                        int column = equationArray.getElementNumToColumn(elementNum);
+        for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
+            if (equationArray.isElementActive(elementNum)) {
+                int column = equationArray.getElementNumToColumn(elementNum);
+                switch (equationArray.getType()) {
+                    case BUS_TARGET_P:
                         targets[column] = network.getBus(elementNum).getTargetP();
-                    }
-                }
-                break;
+                        break;
 
-            default:
-                throw new IllegalStateException("Unknown state variable type: " + equationArray.getType());
+                    case BUS_TARGET_Q:
+                        targets[column] = network.getBus(elementNum).getTargetQ();
+                        break;
+
+                    default:
+                        throw new IllegalStateException("Unknown state variable type: " + equationArray.getType());
+                }
+            }
         }
     }
 

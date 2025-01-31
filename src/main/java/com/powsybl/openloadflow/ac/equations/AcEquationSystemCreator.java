@@ -51,7 +51,7 @@ public class AcEquationSystemCreator {
         var equationSystem = creationContext.getEquationSystem();
         var p = createEquation(equationSystem, bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
-        var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
+        var q = createEquation(equationSystem, bus, AcEquationType.BUS_TARGET_Q);
         bus.setQ(q);
 
         if (bus.isReference()) {
@@ -148,8 +148,8 @@ public class AcEquationSystemCreator {
             var equationSystem = creationContext.getEquationSystem();
             branch.getGeneratorReactivePowerControl().ifPresent(rpc -> {
                 EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == TwoSides.ONE
-                        ? createClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext)
-                        : createClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext);
+                        ? (EquationTerm<AcVariableType, AcEquationType>) createClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext)
+                        : (EquationTerm<AcVariableType, AcEquationType>) createClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
                 createGeneratorReactivePowerDistributionEquations(rpc, creationContext, creationParameters);
@@ -360,8 +360,7 @@ public class AcEquationSystemCreator {
                 T controllerElement = enabledControllerElements.get(i);
                 equationSystem.getEquation(controllerElement.getNum(), distrEqType)
                         .ifPresent(eq -> eq.setActive(active));
-                equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                        .orElseThrow()
+                equationSystem.getEquationOrEquationArrayElement(controllerElement.getNum(), ctrlEqType).orElseThrow()
                         .setActive(false);
             }
         }
@@ -730,18 +729,18 @@ public class AcEquationSystemCreator {
 
         // closed equations, could be null because line already open on base case
         EquationTermArrayElement<AcVariableType, AcEquationType> closedP1 = null;
-        EquationTerm<AcVariableType, AcEquationType> closedQ1 = null;
+        EquationTermArrayElement<AcVariableType, AcEquationType> closedQ1 = null;
         EquationTerm<AcVariableType, AcEquationType> closedI1 = null;
         EquationTermArrayElement<AcVariableType, AcEquationType> closedP2 = null;
-        EquationTerm<AcVariableType, AcEquationType> closedQ2 = null;
+        EquationTermArrayElement<AcVariableType, AcEquationType> closedQ2 = null;
         EquationTerm<AcVariableType, AcEquationType> closedI2 = null;
 
         // open equations, could be null because only necessary if already open and never closed, or open during simulation
         EquationTermArrayElement<AcVariableType, AcEquationType> openP1 = null;
-        EquationTerm<AcVariableType, AcEquationType> openQ1 = null;
+        EquationTermArrayElement<AcVariableType, AcEquationType> openQ1 = null;
         EquationTerm<AcVariableType, AcEquationType> openI1 = null;
         EquationTermArrayElement<AcVariableType, AcEquationType> openP2 = null;
-        EquationTerm<AcVariableType, AcEquationType> openQ2 = null;
+        EquationTermArrayElement<AcVariableType, AcEquationType> openQ2 = null;
         EquationTerm<AcVariableType, AcEquationType> openI2 = null;
 
         boolean deriveA1 = isDeriveA1(branch, creationParameters);
@@ -812,7 +811,7 @@ public class AcEquationSystemCreator {
         return new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
@@ -824,7 +823,7 @@ public class AcEquationSystemCreator {
         return new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
@@ -836,7 +835,7 @@ public class AcEquationSystemCreator {
         return new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, creationContext.getEquationSystem().getVariableSet());
     }
 
@@ -848,7 +847,7 @@ public class AcEquationSystemCreator {
         return new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, creationContext.getEquationSystem().getVariableSet());
     }
 
@@ -856,26 +855,21 @@ public class AcEquationSystemCreator {
         return new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected EquationArrayElement<AcVariableType, AcEquationType> getEquation(EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                               int elementNum, AcEquationType equationType) {
-        return equationSystem.getEquation(elementNum, equationType).orElseThrow();
-    }
-
     protected void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, AcEquationSystemCreationContext creationContext,
                                                  Evaluable p1, Evaluable q1, Evaluable i1,
                                                  Evaluable p2, Evaluable q2, Evaluable i2,
-                                                 EquationTermArrayElement<AcVariableType, AcEquationType> closedP1, EquationTerm<AcVariableType, AcEquationType> closedQ1, EquationTerm<AcVariableType, AcEquationType> closedI1,
-                                                 EquationTermArrayElement<AcVariableType, AcEquationType> closedP2, EquationTerm<AcVariableType, AcEquationType> closedQ2, EquationTerm<AcVariableType, AcEquationType> closedI2,
-                                                 EquationTermArrayElement<AcVariableType, AcEquationType> openP1, EquationTerm<AcVariableType, AcEquationType> openQ1, EquationTerm<AcVariableType, AcEquationType> openI1,
-                                                 EquationTermArrayElement<AcVariableType, AcEquationType> openP2, EquationTerm<AcVariableType, AcEquationType> openQ2, EquationTerm<AcVariableType, AcEquationType> openI2) {
+                                                 EquationTermArrayElement<AcVariableType, AcEquationType> closedP1, EquationTermArrayElement<AcVariableType, AcEquationType> closedQ1, EquationTerm<AcVariableType, AcEquationType> closedI1,
+                                                 EquationTermArrayElement<AcVariableType, AcEquationType> closedP2, EquationTermArrayElement<AcVariableType, AcEquationType> closedQ2, EquationTerm<AcVariableType, AcEquationType> closedI2,
+                                                 EquationTermArrayElement<AcVariableType, AcEquationType> openP1, EquationTermArrayElement<AcVariableType, AcEquationType> openQ1, EquationTerm<AcVariableType, AcEquationType> openI1,
+                                                 EquationTermArrayElement<AcVariableType, AcEquationType> openP2, EquationTermArrayElement<AcVariableType, AcEquationType> openQ2, EquationTerm<AcVariableType, AcEquationType> openI2) {
         var equationSystem = creationContext.getEquationSystem();
         if (closedP1 != null) {
-            getEquation(equationSystem, bus1.getNum(), AcEquationType.BUS_TARGET_P)
+            equationSystem.getEquationOrEquationArrayElement(bus1.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                     .addTerm(closedP1);
             branch.setClosedP1(closedP1);
         }
         if (openP1 != null) {
-            getEquation(equationSystem, bus1.getNum(), AcEquationType.BUS_TARGET_P)
+            equationSystem.getEquationOrEquationArrayElement(bus1.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                     .addTerm(openP1);
             branch.setOpenP1(openP1);
         }
@@ -883,12 +877,12 @@ public class AcEquationSystemCreator {
             branch.setP1(p1);
         }
         if (closedQ1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+            equationSystem.getEquationOrEquationArrayElement(bus1.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
                     .addTerm(closedQ1);
             branch.setClosedQ1(closedQ1);
         }
         if (openQ1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+            equationSystem.getEquationOrEquationArrayElement(bus1.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
                     .addTerm(openQ1);
             branch.setOpenQ1(openQ1);
         }
@@ -896,12 +890,12 @@ public class AcEquationSystemCreator {
             branch.setQ1(q1);
         }
         if (closedP2 != null) {
-            getEquation(equationSystem, bus2.getNum(), AcEquationType.BUS_TARGET_P)
+            equationSystem.getEquationOrEquationArrayElement(bus2.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                     .addTerm(closedP2);
             branch.setClosedP2(closedP2);
         }
         if (openP2 != null) {
-            getEquation(equationSystem, bus2.getNum(), AcEquationType.BUS_TARGET_P)
+            equationSystem.getEquationOrEquationArrayElement(bus2.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                     .addTerm(openP2);
             branch.setOpenP2(openP2);
         }
@@ -909,12 +903,12 @@ public class AcEquationSystemCreator {
             branch.setP2(p2);
         }
         if (closedQ2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+            equationSystem.getEquationOrEquationArrayElement(bus2.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
                     .addTerm(closedQ2);
             branch.setClosedQ2(closedQ2);
         }
         if (openQ2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+            equationSystem.getEquationOrEquationArrayElement(bus2.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
                     .addTerm(openQ2);
             branch.setOpenQ2(openQ2);
         }
