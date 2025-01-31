@@ -106,6 +106,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
         getTermNumsForElementNum(equationElementNum).add(termNum);
+        getTermNumsForTermElementNum(termElementNum).add(termNum);
         termElementNums.add(termElementNum);
         termActive.add(true);
         List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);
