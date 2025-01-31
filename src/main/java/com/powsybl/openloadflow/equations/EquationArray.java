@@ -342,9 +342,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         .append("[")
                         .append(String.valueOf(elementNum))
                         .append("] = ");
-                for (EquationTermArray<V, E> termArray : termArrays) {
-                    termArray.write(writer, elementNum);
-                    writer.append(" ");
+                for (int i = 0; i < termArrays.size(); i++) {
+                    EquationTermArray<V, E> termArray = termArrays.get(i);
+                    boolean written = termArray.write(writer, elementNum);
+                    if (written && i < termArrays.size() - 1) {
+                        writer.append(" + ");
+                    }
                 }
                 writer.append(System.lineSeparator());
             }
