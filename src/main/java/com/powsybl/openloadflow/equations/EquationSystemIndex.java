@@ -216,7 +216,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         switch (eventType) {
             case EQUATION_DEACTIVATED:
                 for (var equationTermArray : equationArray.getTermArrays()) {
-                    for (int termNum : equationTermArray.getTermNumsForElementNum(elementNum).toArray()) {
+                    for (int termNum : equationTermArray.getTermNumsForEquationElementNum(elementNum).toArray()) {
                         if (equationTermArray.isTermActive(termNum)) {
                             var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
                             removeVariables(variables);
@@ -228,7 +228,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
             case EQUATION_ACTIVATED:
                 for (var equationTermArray : equationArray.getTermArrays()) {
-                    for (int termNum : equationTermArray.getTermNumsForElementNum(elementNum).toArray()) {
+                    for (int termNum : equationTermArray.getTermNumsForEquationElementNum(elementNum).toArray()) {
                         if (equationTermArray.isTermActive(termNum)) {
                             var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
                             addVariables(variables);

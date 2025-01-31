@@ -79,7 +79,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         this.equationArray = Objects.requireNonNull(equationArray);
     }
 
-    public TIntArrayList getTermNumsForElementNum(int equationElementNum) {
+    public TIntArrayList getTermNumsForEquationElementNum(int equationElementNum) {
         while (termNumsByEquationElementNum.size() <= equationElementNum) {
             termNumsByEquationElementNum.add(new TIntArrayList());
         }
@@ -111,7 +111,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
-        getTermNumsForElementNum(equationElementNum).add(termNum);
+        getTermNumsForEquationElementNum(equationElementNum).add(termNum);
         getTermNumsForTermElementNum(termElementNum).add(termNum);
         termElementNums.add(termElementNum);
         termActive.add(!evaluator.isDisabled(termElementNum));
@@ -173,7 +173,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     public boolean write(Writer writer, boolean writeInactiveTerms, int elementNum, boolean first) throws IOException {
-        TIntArrayList termNums = getTermNumsForElementNum(elementNum);
+        TIntArrayList termNums = getTermNumsForEquationElementNum(elementNum);
         for (int i = 0; i < termNums.size(); i++) {
             int termNum = termNums.get(i);
             if (writeInactiveTerms || termActive.get(termNum)) {
