@@ -335,23 +335,30 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public void write(Writer writer) throws IOException {
+    private TIntArrayList getActiveElementNums() {
+        TIntArrayList activeElementNums = new TIntArrayList();
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
             if (isElementActive(elementNum)) {
-                writer.append(type.getSymbol())
-                        .append("[")
-                        .append(String.valueOf(elementNum))
-                        .append("] = ");
-                boolean written = false;
-                for (int i = 0; i < termArrays.size(); i++) {
-                    EquationTermArray<V, E> termArray = termArrays.get(i);
-                    if (written) {
-                        writer.append(" + ");
-                    }
-                    written = termArray.write(writer, elementNum);
-                }
-                writer.append(System.lineSeparator());
+                activeElementNums.add(elementNum);
             }
+        }
+        return activeElementNums;
+    }
+
+    public void write(Writer writer) throws IOException {
+        for (int elementNum : getActiveElementNums().toArray()) {
+            writer.append(type.getSymbol())
+                    .append("[")
+                    .append(String.valueOf(elementNum))
+                    .append("] = ");
+            boolean first = true;
+            for (int i = 0; i < termArrays.size(); i++) {
+                EquationTermArray<V, E> termArray = termArrays.get(i);
+                if (termArray.write(writer, elementNum, first)) {
+                    first = false;
+                }
+            }
+            writer.append(System.lineSeparator());
         }
     }
 }
