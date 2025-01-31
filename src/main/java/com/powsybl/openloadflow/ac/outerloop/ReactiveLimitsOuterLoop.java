@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -50,12 +50,14 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     private final double maxReactivePowerMismatch;
     private final double minRealisticVoltage;
     private final double maxRealisticVoltage;
+    private final boolean robustMode;
 
-    public ReactiveLimitsOuterLoop(int maxPqPvSwitch, double maxReactivePowerMismatch, double minRealisticVoltage, double maxRealisticVoltage) {
+    public ReactiveLimitsOuterLoop(int maxPqPvSwitch, double maxReactivePowerMismatch, boolean robustMode, double minRealisticVoltage, double maxRealisticVoltage) {
         this.maxPqPvSwitch = maxPqPvSwitch;
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
         this.minRealisticVoltage = minRealisticVoltage;
         this.maxRealisticVoltage = maxRealisticVoltage;
+        this.robustMode = robustMode;
 
     }
 
@@ -214,7 +216,8 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
      * (1) A bus PV bus can be switched to PQ in 3 cases:
      *  - if Q equals to Qmax
      *  - if Q equals to Qmin
-     *  - if Q equals targetQ, in the case of remote voltage control and the bus exceeds realistic limits
+     *  - if Q equals targetQ, if the robust mode is activated, in the case of remote voltage control
+     *                         and the bus exceeds realistic limits
      *                         without exceeding reactive limits when in voltage control.
      *  (2) A remote reactive controller can reach its Q limits: the control is switch off.
      */
@@ -236,12 +239,12 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             remainsPV = false;
         }
 
-        if (generatorRemoteController && !remainsPV && (isUnrealisticLowVoltage(controllerBus) || isUnrealisticHighVoltage(controllerBus))) {
+        if (robustMode && generatorRemoteController && !remainsPV && (isUnrealisticLowVoltage(controllerBus) || isUnrealisticHighVoltage(controllerBus))) {
             controllerBus.setV(1);
         }
 
         // If Q not out of bounds, check V stator for remote voltage control, which is another criteria for blocking the group
-        if (remainsPV && generatorRemoteController) {
+        if (robustMode && remainsPV && generatorRemoteController) {
             // At this point Q bounds are not reached and is still larger than what causes unrealistic voltage.
             // Just deactivate remote tension control and set generation targetQ to initial value
             // Move V to a safe one for next computation

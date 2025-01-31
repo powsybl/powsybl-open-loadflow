@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2024, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2024-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -28,6 +28,8 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -168,75 +170,107 @@ class GeneratorRemoteControlPQSwitchTest {
         loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(null);
     }
 
-    @Test
-    void testLowVoltageLargeLimits() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testLowVoltageLargeLimits(boolean robustMode) {
         parametersExt.setMinRealisticVoltage(0.5);
         parametersExt.setMaxRealisticVoltage(2.0);
+        parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(12.17, b1);
         assertReactivePowerEquals(2553.557, g1.getTerminal());
-
     }
 
-    @Test
-    void testLowVoltageRealisticLimits() {
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testLowVoltageRealisticLimits(boolean robustMode) {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
+        parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
     }
 
-    @Test
-    void testLowVoltageQMin() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testLowVoltageQMin(boolean robustMode) {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
+        parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-800).setMaxQ(800).add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(800, g1.getTerminal());
+        if (robustMode) {
+            assertTrue(result.isFullyConverged());
+            assertReactivePowerEquals(800, g1.getTerminal());
+        } else {
+            assertFalse(result.isFullyConverged());
+            assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
+        }
     }
 
-    @Test
-    void testLowVoltageVMin() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testLowVoltageVMin(boolean robustMode) {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
+        parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
         g1.setTargetQ(10);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+        if (robustMode) {
+            assertTrue(result.isFullyConverged());
+            assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+        } else {
+            assertFalse(result.isFullyConverged());
+            assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
+        }
     }
 
-    @Test
-    void testHighVoltageVMax() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testHighVoltageVMax(boolean robustMode) {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
+        parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
         g1.setTargetV(403);
         g1.setTargetQ(10);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+        if (robustMode) {
+            assertTrue(result.isFullyConverged());
+            assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+        } else {
+            assertFalse(result.isFullyConverged());
+            assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
+        }
     }
 
-    @Test
-    void testHighVoltageQMax() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testHighVoltageQMax(boolean robustMode) {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
+        parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-800).setMaxQ(800).add();
         g1.setTargetV(403);
         g1.setTargetQ(10);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-800, g1.getTerminal());  // The group is set to initial targetQ
+        if (robustMode) {
+            assertTrue(result.isFullyConverged());
+            assertReactivePowerEquals(-800, g1.getTerminal());  // The group is set to initial targetQ
+        } else {
+            assertFalse(result.isFullyConverged());
+            assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
+        }
     }
 
 }

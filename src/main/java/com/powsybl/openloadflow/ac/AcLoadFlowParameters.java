@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -43,6 +43,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
     private boolean detailedReport = false;
+
+    private boolean remoteControlRobustMode = true;
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
@@ -112,6 +114,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isRemoteControlRobustMode() {
+        return remoteControlRobustMode;
+    }
+
+    public AcLoadFlowParameters setRemoteControlRobustMode(boolean remoteControlRobustMode) {
+        this.remoteControlRobustMode = remoteControlRobustMode;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -126,6 +137,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
                 ", solverFactory=" + solverFactory.getClass().getSimpleName() +
                 ", detailedReport=" + detailedReport +
+                ", remoteControlRobustMode=" + remoteControlRobustMode +
                 ')';
     }
 }
