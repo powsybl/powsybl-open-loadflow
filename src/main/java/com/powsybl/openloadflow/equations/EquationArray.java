@@ -147,6 +147,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
+    public List<EquationTermArray<V, E>> getTermArrays() {
+        return termArrays;
+    }
+
     public void addTermArray(EquationTermArray<V, E> termArray) {
         Objects.requireNonNull(termArray);
         termArray.setEquationArray(this);
