@@ -20,13 +20,13 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractBranchEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
+public abstract class AbstractClosedBranchEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
 
     protected final AcBranchVector branchVector;
 
     protected final VariableSet<AcVariableType> variableSet;
 
-    protected AbstractBranchEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
+    protected AbstractClosedBranchEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
         this.branchVector = Objects.requireNonNull(branchVector);
         this.variableSet = Objects.requireNonNull(variableSet);
     }

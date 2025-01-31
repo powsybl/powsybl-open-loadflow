@@ -12,7 +12,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator extends AbstractBranchEquationTermArrayEvaluator {
+public class ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator extends AbstractClosedBranchEquationTermArrayEvaluator {
 
     public ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
         super(branchVector, variableSet);

@@ -12,31 +12,26 @@ import com.powsybl.openloadflow.equations.VariableSet;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator extends AbstractClosedBranchEquationTermArrayEvaluator {
+public class OpenBranchSide2ActiveFlowEquationTermArrayEvaluator extends AbstractOpenSide2BranchEquationTermArrayEvaluator {
 
-    public ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
+    public OpenBranchSide2ActiveFlowEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
         super(branchVector, variableSet);
     }
 
     @Override
     public double[] eval() {
-        return branchVector.q1;
+        return branchVector.p1;
     }
 
     @Override
     public double eval(int branchNum) {
-        return branchVector.q1[branchNum];
+        return branchVector.p1[branchNum];
     }
 
     @Override
     public double[][] evalDer() {
         return new double[][] {
-            branchVector.dq1dv1,
-            branchVector.dq1dv2,
-            branchVector.dq1dph1,
-            branchVector.dq1dph2,
-            branchVector.dq1da1,
-            branchVector.dq1dr1
+            branchVector.dp1dv1,
         };
     }
 }

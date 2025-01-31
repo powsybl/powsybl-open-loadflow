@@ -11,9 +11,13 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
 
     private EquationArray<AcVariableType, AcEquationType> pArray;
 
-    private EquationTermArray<AcVariableType, AcEquationType> p1Array;
+    private EquationTermArray<AcVariableType, AcEquationType> closedP1Array;
 
-    private EquationTermArray<AcVariableType, AcEquationType> p2Array;
+    private EquationTermArray<AcVariableType, AcEquationType> closedP2Array;
+
+    private EquationTermArray<AcVariableType, AcEquationType> openP1Array;
+
+    private EquationTermArray<AcVariableType, AcEquationType> openP2Array;
 
     public AcVectorizedWithArrayEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
@@ -22,21 +26,35 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     @Override
     protected void create(AcEquationSystemCreationContext creationContext) {
         pArray = creationContext.getEquationSystem().createEquationArray(AcEquationType.BUS_TARGET_P);
-        p1Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
-        pArray.addTermArray(p1Array);
-        p2Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
-        pArray.addTermArray(p2Array);
+        closedP1Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(closedP1Array);
+        closedP2Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(closedP2Array);
+        openP1Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(openP1Array);
+        openP2Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(openP2Array);
         super.create(creationContext);
     }
 
     @Override
     protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
-        return p1Array.getElement(branch.getNum());
+        return closedP1Array.getElement(branch.getNum());
     }
 
     @Override
     protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
-        return p2Array.getElement(branch.getNum());
+        return closedP2Array.getElement(branch.getNum());
+    }
+
+    @Override
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+        return openP1Array.getElement(branch.getNum());
+    }
+
+    @Override
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createOpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+        return openP2Array.getElement(branch.getNum());
     }
 
     @Override
