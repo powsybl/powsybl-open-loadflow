@@ -857,7 +857,7 @@ public class AcEquationSystemCreator {
     }
 
     protected EquationArrayElement<AcVariableType, AcEquationType> getEquation(EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                            int elementNum, AcEquationType equationType) {
+                                                                               int elementNum, AcEquationType equationType) {
         return equationSystem.getEquation(elementNum, equationType).orElseThrow();
     }
 

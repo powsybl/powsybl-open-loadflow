@@ -4,13 +4,8 @@ import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationArray;
-import com.powsybl.openloadflow.equations.EquationArrayElement;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTermArray;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.*;
 
 public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEquationSystemCreator {
 
@@ -24,6 +19,7 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
         super(network, creationParameters);
     }
 
+    @Override
     protected void create(AcEquationSystemCreationContext creationContext) {
         pArray = creationContext.getEquationSystem().createEquationArray(AcEquationType.BUS_TARGET_P);
         p1Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
@@ -34,10 +30,29 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     }
 
     @Override
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+        return p1Array.getElement(branch.getNum());
+    }
+
+    @Override
+    protected EquationTermArrayElement<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+        return p2Array.getElement(branch.getNum());
+    }
+
+    @Override
     protected EquationArrayElement<AcVariableType, AcEquationType> createEquation(EquationSystem<AcVariableType, AcEquationType> equationSystem, LfElement element, AcEquationType equationType) {
         if (equationType == AcEquationType.BUS_TARGET_P) {
             return pArray.getElement(element.getNum());
         }
         return super.createEquation(equationSystem, element, equationType);
+    }
+
+    @Override
+    protected EquationArrayElement<AcVariableType, AcEquationType> getEquation(EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                               int elementNum, AcEquationType equationType) {
+        if (equationType == AcEquationType.BUS_TARGET_P) {
+            return pArray.getElement(elementNum);
+        }
+        return super.getEquation(equationSystem, elementNum, equationType);
     }
 }
