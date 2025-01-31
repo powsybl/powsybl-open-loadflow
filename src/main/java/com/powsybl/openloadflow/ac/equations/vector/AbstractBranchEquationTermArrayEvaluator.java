@@ -7,34 +7,27 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.Derivative;
 import com.powsybl.openloadflow.equations.EquationTermArray;
 import com.powsybl.openloadflow.equations.VariableSet;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractShuntCompensatorEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
+public abstract class AbstractBranchEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
 
-    protected final AcShuntVector shuntVector;
+    protected final AcBranchVector branchVector;
 
     protected final VariableSet<AcVariableType> variableSet;
 
-    protected AbstractShuntCompensatorEquationTermArrayEvaluator(AcShuntVector shuntVector, VariableSet<AcVariableType> variableSet) {
-        this.shuntVector = Objects.requireNonNull(shuntVector);
+    protected AbstractBranchEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
+        this.branchVector = Objects.requireNonNull(branchVector);
         this.variableSet = Objects.requireNonNull(variableSet);
     }
 
     @Override
-    public boolean isDisabled(int shuntNum) {
-        return shuntVector.disabled[shuntNum];
-    }
-
-    @Override
-    public List<Derivative<AcVariableType>> getDerivatives(int shuntNum) {
-        return List.of(new Derivative<>(variableSet.getVariable(shuntVector.busNum[shuntNum], AcVariableType.BUS_V), 0));
+    public boolean isDisabled(int branchNum) {
+        return branchVector.disabled[branchNum];
     }
 }

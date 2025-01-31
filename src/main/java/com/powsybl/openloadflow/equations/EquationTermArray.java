@@ -27,6 +27,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         String getName();
 
+        boolean isDisabled(int termElementNum);
+
         double[] eval();
 
         double eval(int termElementNum);
@@ -108,7 +110,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         getTermNumsForElementNum(equationElementNum).add(termNum);
         getTermNumsForTermElementNum(termElementNum).add(termNum);
         termElementNums.add(termElementNum);
-        termActive.add(true);
+        termActive.add(!evaluator.isDisabled(termElementNum));
         List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);
         termDerivatives.add(derivatives);
         equationArray.invalidateEquationDerivativeVectors();

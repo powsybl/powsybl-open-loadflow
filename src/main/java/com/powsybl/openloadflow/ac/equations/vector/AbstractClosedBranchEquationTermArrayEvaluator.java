@@ -9,26 +9,19 @@ package com.powsybl.openloadflow.ac.equations.vector;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchAcVariables;
 import com.powsybl.openloadflow.equations.Derivative;
-import com.powsybl.openloadflow.equations.EquationTermArray;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractClosedBranchEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
-
-    protected final AcBranchVector branchVector;
-
-    protected final VariableSet<AcVariableType> variableSet;
+public abstract class AbstractClosedBranchEquationTermArrayEvaluator extends AbstractBranchEquationTermArrayEvaluator {
 
     protected AbstractClosedBranchEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
-        this.branchVector = Objects.requireNonNull(branchVector);
-        this.variableSet = Objects.requireNonNull(variableSet);
+        super(branchVector, variableSet);
     }
 
     @Override
