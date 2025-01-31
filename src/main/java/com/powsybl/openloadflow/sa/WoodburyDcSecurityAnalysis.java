@@ -245,17 +245,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         AbstractNetworkResult.BranchResultCreator createBranchResultCreator() {
             return (branch, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension) -> {
-                // no result if the branch is disabled
-                if (disabled[branch.getNum()]) {
-                    return Collections.emptyList();
-                }
-
                 int num = branch.getNum();
                 double flowTransfer = Double.NaN;
                 if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
                     flowTransfer = (p1[num] * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
                 }
-                double currentScale1 = PerUnit.ib(branch.getBus1().getNominalV());
+                double currentScale1 = PerUnit.ib(branch.getBus1().getNominalV()); // FIXME : what happens if the branch is opened ?
                 double currentScale2 = PerUnit.ib(branch.getBus2().getNominalV());
                 var branchResult = new BranchResult(branch.getId(), p1[num] * PerUnit.SB, Double.NaN, currentScale1 * i1[num],
                         p2[num] * PerUnit.SB, Double.NaN, currentScale2 * i2[num], flowTransfer);
@@ -280,7 +275,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         // update post contingency network result
         var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension,
                 dcVecState.createBranchResultCreator(), preContingencyNetworkResult, contingency);
-        postContingencyNetworkResult.update();
+        postContingencyNetworkResult.update(lfBranch -> dcVecState.disabled[lfBranch.getNum()]);
 
         // detect violations
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
@@ -331,8 +326,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                                                                              double[] postContingencyAndOperatorStrategyStates, List<LimitReduction> limitReductions) {
         // update network state with post contingency and post operator strategy states
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
-        loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAndOperatorStrategyStates);
-        updateNetwork(lfNetwork, loadFlowContext.getEquationSystem(), postContingencyAndOperatorStrategyStates);
 
         // get the pst actions by branch id
         // TODO : change this temporary fix
@@ -344,7 +337,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         // update network result
         var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension,
                 dcVecState.createBranchResultCreator());
-        postActionsNetworkResult.update();
+        postActionsNetworkResult.update(lfBranch -> dcVecState.disabled[lfBranch.getNum()]);
 
         // detect violations
         var postActionsLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);

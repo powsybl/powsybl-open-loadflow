@@ -7,12 +7,14 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -36,16 +38,20 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         branchResults.clear();
     }
 
-    private void addResults(StateMonitor monitor) {
+    private void addResults(StateMonitor monitor, Predicate<LfBranch> isDisabled) {
         addResults(monitor, branch -> branchResultsCreator.create(branch, Double.NaN, Double.NaN, createResultExtension)
-                .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult)));
+                .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult)), isDisabled);
     }
 
     @Override
     public void update() {
+        update(LfBranch::isDisabled);
+    }
+
+    public void update(Predicate<LfBranch> isDisabled) {
         clear();
-        addResults(monitorIndex.getNoneStateMonitor());
-        addResults(monitorIndex.getAllStateMonitor());
+        addResults(monitorIndex.getNoneStateMonitor(), isDisabled);
+        addResults(monitorIndex.getAllStateMonitor(), isDisabled);
     }
 
     public BranchResult getBranchResult(String branchId) {

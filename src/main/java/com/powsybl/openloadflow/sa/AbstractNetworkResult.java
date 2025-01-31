@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -55,11 +56,11 @@ public abstract class AbstractNetworkResult {
         this.branchResultsCreator = Objects.requireNonNull(branchResultsCreator);
     }
 
-    protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer) {
+    protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer, Predicate<LfBranch> isDisabled) {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
-                    .filter(lfBranch -> !lfBranch.isDisabled())
+                    .filter(lfBranch -> !isDisabled.test(lfBranch))
                     .forEach(lfBranch -> {
                         for (String originalId : lfBranch.getOriginalIds()) {
                             if (monitor.getBranchIds().contains(originalId)) {
