@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -73,6 +73,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
+
+    public static final boolean VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE = true;
 
     public static final boolean GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE = false;
 
@@ -148,6 +150,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME = "slackDistributionFailureBehavior";
 
     public static final String VOLTAGE_REMOTE_CONTROL_PARAM_NAME = "voltageRemoteControl";
+
+    public static final String VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME = "voltageRemoteControlRobustMode";
 
     public static final String GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME = "generatorReactivePowerRemoteControl";
 
@@ -424,7 +428,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY)
+        new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+       new Parameter(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control robust mode", VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -462,6 +467,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private SlackDistributionFailureBehavior slackDistributionFailureBehavior = SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE;
 
     private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE;
+
+    private boolean voltageRemoteControlRobustMode = VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE;
 
     private LowImpedanceBranchMode lowImpedanceBranchMode = LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE;
 
@@ -665,6 +672,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setVoltageRemoteControl(boolean voltageRemoteControl) {
         this.voltageRemoteControl = voltageRemoteControl;
+        return this;
+    }
+
+    public boolean isVoltageRemoteControlRobustMode() {
+        return voltageRemoteControlRobustMode;
+    }
+
+    public OpenLoadFlowParameters setVoltageRemoteControlRobustMode(boolean voltageRemoteControlRobustMode) {
+        this.voltageRemoteControlRobustMode = voltageRemoteControlRobustMode;
         return this;
     }
 
@@ -1572,6 +1588,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(this::setAreaInterchangeControlAreaType);
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setAreaInterchangePMaxMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setVoltageRemoteControlRobustMode(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1648,6 +1666,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(AREA_INTERCHANGE_CONTROL_PARAM_NAME, areaInterchangeControl);
         map.put(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, areaInterchangeControlAreaType);
         map.put(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, areaInterchangePMaxMismatch);
+        map.put(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, voltageRemoteControlRobustMode);
         return map;
     }
 
@@ -2038,7 +2057,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getFictitiousGeneratorVoltageControlCheckMode() == extension2.getFictitiousGeneratorVoltageControlCheckMode() &&
                 extension1.isAreaInterchangeControl() == extension2.isAreaInterchangeControl() &&
                 Objects.equals(extension1.getAreaInterchangeControlAreaType(), extension2.getAreaInterchangeControlAreaType()) &&
-                extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch();
+                extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch() &&
+                extension1.isVoltageRemoteControlRobustMode() == extension2.isVoltageRemoteControlRobustMode();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2134,7 +2154,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setFictitiousGeneratorVoltageControlCheckMode(extension.getFictitiousGeneratorVoltageControlCheckMode())
                     .setAreaInterchangeControl(extension.isAreaInterchangeControl())
                     .setAreaInterchangeControlAreaType(extension.getAreaInterchangeControlAreaType())
-                    .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch());
+                    .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch())
+                    .setVoltageRemoteControlRobustMode(extension.isVoltageRemoteControlRobustMode());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
