@@ -335,16 +335,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    private TIntArrayList getActiveElementNums() {
-        TIntArrayList activeElementNums = new TIntArrayList();
-        for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-            if (isElementActive(elementNum)) {
-                activeElementNums.add(elementNum);
-            }
-        }
-        return activeElementNums;
-    }
-
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
             if (writeInactiveEquations || isElementActive(elementNum)) {
