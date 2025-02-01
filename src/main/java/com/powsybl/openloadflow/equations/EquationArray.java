@@ -124,6 +124,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public void setFirstColumn(int firstColumn) {
         this.firstColumn = firstColumn;
+        invalidateElementNumToColumn();
     }
 
     public int getLength() {
