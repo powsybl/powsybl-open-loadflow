@@ -174,6 +174,14 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             }
 
             @Override
+            public <T extends BaseEquationTerm<V, E>> BaseEquation<V, E> addTerms(List<T> terms) {
+                for (T term : terms) {
+                    addTerm(term);
+                }
+                return this;
+            }
+
+            @Override
             public double eval() {
                 double value = 0;
                 for (EquationTermArray<V, E> termArray : termArrays) {

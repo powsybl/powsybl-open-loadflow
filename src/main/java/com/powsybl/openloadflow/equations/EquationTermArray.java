@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.DoubleSupplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -173,6 +174,21 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         @Override
         public void setActive(boolean active) {
             equationTermArray.setActive(termElementNum, active);
+        }
+
+        @Override
+        public BaseEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public BaseEquationTerm<V, E> multiply(double scalar) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public BaseEquationTerm<V, E> minus() {
+            throw new UnsupportedOperationException();
         }
     }
 

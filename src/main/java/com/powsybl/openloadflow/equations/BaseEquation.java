@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -16,4 +18,6 @@ public interface BaseEquation<V extends Enum<V> & Quantity, E extends Enum<E> & 
     void setActive(boolean active);
 
     BaseEquation<V, E> addTerm(BaseEquationTerm<V, E> term);
+
+    <T extends BaseEquationTerm<V, E>> BaseEquation<V, E> addTerms(List<T> terms);
 }

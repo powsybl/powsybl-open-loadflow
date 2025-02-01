@@ -115,9 +115,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return this;
     }
 
-    public Equation<V, E> addTerms(List<EquationTerm<V, E>> terms) {
+    @Override
+    public <T extends BaseEquationTerm<V, E>> BaseEquation<V, E> addTerms(List<T> terms) {
         Objects.requireNonNull(terms);
-        for (EquationTerm<V, E> term : terms) {
+        for (T term : terms) {
             addTerm(term);
         }
         return this;
