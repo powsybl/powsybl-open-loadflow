@@ -295,6 +295,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             // process term by term
             double value = 0;
             int prevRow = -1;
+            boolean valueUpdated = false;
             for (int i = 0; i < equationDerivativeVector.termNums.size(); i++) {
                 // get term array to which this term belongs
                 int termArrayNum = equationDerivativeVector.termArrayNums.getQuick(i);
@@ -304,10 +305,11 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 int row = equationDerivativeVector.derVariableRows.getQuick(i);
 
                 // if an element at (row, column) is complete (we switch to another row), notify
-                if (prevRow != -1 && row != prevRow && Math.abs(value) != 0) {
+                if (valueUpdated && row != prevRow) {
                     onDer(handler, column, prevRow, value, oldMatrixElementIndexes, valueIndex);
                     valueIndex++;
                     value = 0;
+                    valueUpdated = false;
                 }
                 prevRow = row;
 
@@ -321,11 +323,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     double[][] termDerValues = termDerValuesByArrayIndex.get(termArrayNum);
                     int termElementNum = termArray.getTermElementNum(termNum);
                     value += termDerValues[derLocalIndex][termElementNum];
+                    valueUpdated = true;
                 }
             }
 
             // remaining notif
-            if (Math.abs(value) != 0) {
+            if (valueUpdated) {
                 onDer(handler, column, prevRow, value, oldMatrixElementIndexes, valueIndex);
                 valueIndex++;
             }
