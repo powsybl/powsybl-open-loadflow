@@ -183,17 +183,17 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         @Override
         public BaseEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Term multiply not supported for arrays");
         }
 
         @Override
         public BaseEquationTerm<V, E> multiply(double scalar) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Term multiply not supported for arrays");
         }
 
         @Override
         public BaseEquationTerm<V, E> minus() {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Term minus not supported for arrays");
         }
     }
 

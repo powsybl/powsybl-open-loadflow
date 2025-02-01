@@ -543,8 +543,8 @@ public class AcEquationSystemCreator {
                 }
 
                 BaseEquationTerm<AcVariableType, AcEquationType> p = phaseControl.getControlledSide() == TwoSides.ONE
-                        ? createClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext)
-                        : createClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext);
+                        ? createClosedBranchSide1ActiveFlowEquationTermForBranchTargetP(branch, bus1, bus2, deriveA1, deriveR1, creationContext)
+                        : createClosedBranchSide2ActiveFlowEquationTermForBranchTargetP(branch, bus1, bus2, deriveA1, deriveR1, creationContext);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_P)
                         .addTerm(p)
                         .setActive(false); // by default BRANCH_TARGET_ALPHA1 is active and BRANCH_TARGET_P inactive
@@ -809,6 +809,10 @@ public class AcEquationSystemCreator {
         return new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTermForBranchTargetP(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+        return new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
+    }
+
     protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
@@ -818,6 +822,10 @@ public class AcEquationSystemCreator {
     }
 
     protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+        return new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
+    }
+
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTermForBranchTargetP(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 

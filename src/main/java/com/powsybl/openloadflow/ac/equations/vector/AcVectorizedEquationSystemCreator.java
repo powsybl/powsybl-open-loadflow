@@ -54,6 +54,11 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTermForBranchTargetP(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+        return new ClosedBranchVectorSide1ActiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
+    }
+
+    @Override
     protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchVectorSide1ReactiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
@@ -65,6 +70,11 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     @Override
     protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+        return new ClosedBranchVectorSide2ActiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
+    }
+
+    @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTermForBranchTargetP(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchVectorSide2ActiveFlowEquationTerm(getBranchVector(creationContext), branch.getNum(), bus1.getNum(), bus2.getNum(), creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
