@@ -74,6 +74,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
+    @Override
     public int getColumn() {
         return column;
     }
@@ -82,6 +83,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         this.column = column;
     }
 
+    @Override
     public boolean isActive() {
         return active;
     }
@@ -124,6 +126,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return this;
     }
 
+    @Override
     public List<EquationTerm<V, E>> getTerms() {
         return terms;
     }

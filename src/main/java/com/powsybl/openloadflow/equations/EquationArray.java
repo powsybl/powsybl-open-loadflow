@@ -162,8 +162,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     public BaseEquation<V, E> getElement(int elementNum) {
         return new BaseEquation<>() {
             @Override
+            public boolean isActive() {
+                return isElementActive(elementNum);
+            }
+
+            @Override
             public void setActive(boolean active) {
                 setElementActive(elementNum, active);
+            }
+
+            @Override
+            public int getColumn() {
+                return getElementNumToColumn(elementNum);
             }
 
             @Override
@@ -179,6 +189,11 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     addTerm(term);
                 }
                 return this;
+            }
+
+            @Override
+            public <T extends BaseEquationTerm<V, E>> List<T> getTerms() {
+                throw new UnsupportedOperationException();
             }
 
             @Override

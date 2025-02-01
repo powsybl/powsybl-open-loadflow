@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -20,4 +21,10 @@ public interface BaseEquation<V extends Enum<V> & Quantity, E extends Enum<E> & 
     BaseEquation<V, E> addTerm(BaseEquationTerm<V, E> term);
 
     <T extends BaseEquationTerm<V, E>> BaseEquation<V, E> addTerms(List<T> terms);
+
+    boolean isActive();
+
+    int getColumn();
+
+    <T extends BaseEquationTerm<V, E>> List<T> getTerms();
 }

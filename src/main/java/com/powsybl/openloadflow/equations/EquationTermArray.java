@@ -177,6 +177,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
 
         @Override
+        public ElementType getElementType() {
+            return equationTermArray.getElementType();
+        }
+
+        @Override
         public BaseEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
             throw new UnsupportedOperationException();
         }

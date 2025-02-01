@@ -119,14 +119,14 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 .orElseThrow(() -> new PowsyblException("Equation term not found"));
     }
 
-    public Equation<V, E> createEquation(LfElement element, E type) {
+    public BaseEquation<V, E> createEquation(LfElement element, E type) {
         Objects.requireNonNull(element);
         Objects.requireNonNull(type);
         if (element.getType() != type.getElementType()) {
             throw new PowsyblException("Incorrect equation type: " + type);
         }
         if (equationArrays.containsKey(type)) {
-            throw new PowsyblException("An array equation for type " + type + " already exists");
+            return equationArrays.get(type).getElement(element.getNum());
         }
         Pair<Integer, E> p = Pair.of(element.getNum(), type);
         Equation<V, E> equation = equations.get(p);
@@ -137,21 +137,21 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equation;
     }
 
-    public Equation<V, E> createEquation(int num, E type) {
+    public BaseEquation<V, E> createEquation(int num, E type) {
         Pair<Integer, E> p = Pair.of(num, type);
-        Equation<V, E> equation = equations.get(p);
+        BaseEquation<V, E> equation = equations.get(p);
         if (equation == null) {
-            equation = addEquation(p);
+            var equationArray = equationArrays.get(type);
+            if (equationArray != null) {
+                equation = equationArray.getElement(num);
+            } else {
+                equation = addEquation(p);
+            }
         }
         return equation;
     }
 
-    public Optional<Equation<V, E>> getEquation(int num, E type) {
-        Pair<Integer, E> p = Pair.of(num, type);
-        return Optional.ofNullable(equations.get(p));
-    }
-
-    public Optional<BaseEquation<V, E>> getEquationOrEquationArrayElement(int num, E type) {
+    public Optional<BaseEquation<V, E>> getEquation(int num, E type) {
         Pair<Integer, E> p = Pair.of(num, type);
         var equation = equations.get(p);
         if (equation != null) {

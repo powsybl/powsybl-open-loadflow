@@ -117,14 +117,4 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         return shuntQArray.getElement(shunt.getNum());
     }
-
-    @Override
-    protected BaseEquation<AcVariableType, AcEquationType> createEquation(EquationSystem<AcVariableType, AcEquationType> equationSystem, LfElement element, AcEquationType equationType) {
-        if (equationType == AcEquationType.BUS_TARGET_P) {
-            return pArray.getElement(element.getNum());
-        } else if (equationType == AcEquationType.BUS_TARGET_Q) {
-            return qArray.getElement(element.getNum());
-        }
-        return super.createEquation(equationSystem, element, equationType);
-    }
 }

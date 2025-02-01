@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.function.DoubleSupplier;
@@ -22,4 +23,6 @@ public interface BaseEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E
     BaseEquationTerm<V, E> multiply(double scalar);
 
     BaseEquationTerm<V, E> minus();
+
+    ElementType getElementType();
 }
