@@ -31,4 +31,8 @@ public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E ext
      * Called when a term is added or removed from an equation.
      */
     void onEquationTermChange(EquationTerm<V, E> term);
+
+    void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType);
+
+    void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType);
 }

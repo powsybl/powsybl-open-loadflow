@@ -76,6 +76,16 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
+    public void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType) {
+        updateStatus(Status.STRUCTURE_INVALID);
+    }
+
+    @Override
+    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType) {
+        updateStatus(Status.VALUES_AND_ZEROS_INVALID);
+    }
+
+    @Override
     public void onStateUpdate() {
         updateStatus(Status.VALUES_INVALID);
     }

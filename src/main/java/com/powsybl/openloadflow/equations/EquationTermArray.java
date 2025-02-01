@@ -50,6 +50,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term element number, term numbers
     private final List<TIntArrayList> termNumsByTermElementNum = new ArrayList<>();
 
+    // for each term number, corresponding equation element number
+    private final TIntArrayList equationElementNums = new TIntArrayList();
+
     // for each term number, corresponding term element number
     private final TIntArrayList termElementNums = new TIntArrayList();
 
@@ -97,6 +100,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return termActive.get(termNum);
     }
 
+    public int getEquationElementNum(int termNum) {
+        return equationElementNums.get(termNum);
+    }
+
     public int getTermElementNum(int termNum) {
         return termElementNums.get(termNum);
     }
@@ -113,6 +120,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         int termNum = termElementNums.size();
         getTermNumsForEquationElementNum(equationElementNum).add(termNum);
         getTermNumsForTermElementNum(termElementNum).add(termNum);
+        equationElementNums.add(equationElementNum);
         termElementNums.add(termElementNum);
         termActive.add(!evaluator.isDisabled(termElementNum));
         List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);

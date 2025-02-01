@@ -95,6 +95,16 @@ class EquationSystemIndexTest {
             public void onEquationTermChange(EquationTerm<TestVariableType, TestEquationType> term) {
                 // nothing to do
             }
+
+            @Override
+            public void onEquationArrayChange(EquationArray<TestVariableType, TestEquationType> equationArray, ChangeType changeType) {
+                // nothing to do
+            }
+
+            @Override
+            public void onEquationTermArrayChange(EquationTermArray<TestVariableType, TestEquationType> equationTermArray, int termNum, ChangeType changeType) {
+                // nothing to do
+            }
         });
 
         // x = a + b

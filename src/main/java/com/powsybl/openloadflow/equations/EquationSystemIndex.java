@@ -68,6 +68,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onEquationTermChange(term));
     }
 
+    private void notifyEquationArrayChange(EquationArray<V, E> equationArray, EquationSystemIndexListener.ChangeType changeType) {
+        listeners.forEach(listener -> listener.onEquationArrayChange(equationArray, changeType));
+    }
+
+    private void notifyEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, EquationSystemIndexListener.ChangeType changeType) {
+        listeners.forEach(listener -> listener.onEquationTermArrayChange(equationTermArray, termNum, changeType));
+    }
+
     private void update() {
         if (!equationsIndexValid) {
             sortedEquationsToSolve = equationsToSolve.stream().sorted().collect(Collectors.toList());
@@ -224,6 +232,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     }
                 }
                 equationsIndexValid = false;
+                notifyEquationArrayChange(equationArray, EquationSystemIndexListener.ChangeType.REMOVED);
                 break;
 
             case EQUATION_ACTIVATED:
@@ -236,6 +245,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     }
                 }
                 equationsIndexValid = false;
+                notifyEquationArrayChange(equationArray, EquationSystemIndexListener.ChangeType.ADDED);
                 break;
 
             default:
@@ -246,21 +256,24 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     @Override
     public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, EquationTermEventType eventType) {
         var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
-        int termElementNum = equationTermArray.getTermElementNum(termNum);
-        if (equationTermArray.getEquationArray().isElementActive(termElementNum)) {
+        int equationElementNum = equationTermArray.getEquationElementNum(termNum);
+        if (equationTermArray.getEquationArray().isElementActive(equationElementNum)) {
             switch (eventType) {
                 case EQUATION_TERM_ADDED:
                     if (equationTermArray.isTermActive(termNum)) {
                         addVariables(variables);
                     }
+                    notifyEquationTermArrayChange(equationTermArray, termNum, EquationSystemIndexListener.ChangeType.ADDED);
                     break;
 
                 case EQUATION_TERM_ACTIVATED:
                     addVariables(variables);
+                    notifyEquationTermArrayChange(equationTermArray, termNum, EquationSystemIndexListener.ChangeType.ADDED);
                     break;
 
                 case EQUATION_TERM_DEACTIVATED:
                     removeVariables(variables);
+                    notifyEquationTermArrayChange(equationTermArray, termNum, EquationSystemIndexListener.ChangeType.REMOVED);
                     break;
 
                 default:

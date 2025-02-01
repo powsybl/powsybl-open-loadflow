@@ -42,6 +42,16 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         public void onEquationTermChange(EquationTerm<V, E> term) {
             // nothing to do
         }
+
+        @Override
+        public void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType) {
+            invalidateVector();
+        }
+
+        @Override
+        public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType) {
+            // nothing to do
+        }
     };
 
     protected AbstractVector(EquationSystem<V, E> equationSystem) {

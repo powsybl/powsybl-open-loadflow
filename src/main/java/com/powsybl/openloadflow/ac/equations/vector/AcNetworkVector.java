@@ -563,6 +563,16 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     }
 
     @Override
+    public void onEquationArrayChange(EquationArray<AcVariableType, AcEquationType> equationArray, ChangeType changeType) {
+        // nothing to do
+    }
+
+    @Override
+    public void onEquationTermArrayChange(EquationTermArray<AcVariableType, AcEquationType> equationTermArray, int termNum, ChangeType changeType) {
+        // nothing to do
+    }
+
+    @Override
     public void onStateUpdate() {
         updateVariables();
         updatePowerFlows();
