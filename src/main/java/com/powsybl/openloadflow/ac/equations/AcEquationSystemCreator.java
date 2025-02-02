@@ -143,8 +143,8 @@ public class AcEquationSystemCreator {
             var equationSystem = creationContext.getEquationSystem();
             branch.getGeneratorReactivePowerControl().ifPresent(rpc -> {
                 BaseEquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == TwoSides.ONE
-                        ? createClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext)
-                        : createClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, deriveA1, deriveR1, creationContext);
+                        ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
+                        : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
                 createGeneratorReactivePowerDistributionEquations(rpc, creationContext, creationParameters);
@@ -419,11 +419,11 @@ public class AcEquationSystemCreator {
             }
         }
         controllerBus.getShunt().ifPresent(shunt -> {
-            var q = createShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, false, creationContext);
+            var q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
             terms.add(q);
         });
         controllerBus.getControllerShunt().ifPresent(shunt -> {
-            var q = createShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, false, creationContext);
+            var q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
             terms.add(q);
         });
         return terms;
