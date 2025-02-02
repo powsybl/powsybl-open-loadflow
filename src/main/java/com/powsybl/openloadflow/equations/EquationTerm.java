@@ -204,8 +204,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      */
     double rhs();
 
-    double calculateSensi(DenseMatrix x, int column);
-
     void write(Writer writer) throws IOException;
 
     default EquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {

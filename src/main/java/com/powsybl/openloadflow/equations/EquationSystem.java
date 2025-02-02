@@ -239,12 +239,14 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public List<String> getRowNames() {
+        // TODO array
         return index.getSortedVariablesToFind().stream()
                 .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames() {
+        // TODO array
         return index.getSortedEquationsToSolve().stream()
                 .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());

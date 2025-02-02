@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.commons.util.trove.TBooleanArrayList;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
 import gnu.trove.list.array.TIntArrayList;
@@ -123,9 +123,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         getTermNumsForTermElementNum(termElementNum).add(termNum);
         equationElementNums.add(equationElementNum);
         termElementNums.add(termElementNum);
-        termActive.add(evaluator.isDisabled(termElementNum) ? 0: 1);
-        List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);
-        termDerivatives.add(derivatives);
+        termActive.add(evaluator.isDisabled(termElementNum) ? 0 : 1);
+        termDerivatives.add(evaluator.getDerivatives(termElementNum));
         equationArray.invalidateEquationDerivativeVectors();
         equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
@@ -179,6 +178,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         @Override
         public ElementType getElementType() {
             return equationTermArray.getElementType();
+        }
+
+        @Override
+        public double calculateSensi(DenseMatrix x, int column) {
+            throw new UnsupportedOperationException("Calculate sensi not supported for arrays");
         }
 
         @Override

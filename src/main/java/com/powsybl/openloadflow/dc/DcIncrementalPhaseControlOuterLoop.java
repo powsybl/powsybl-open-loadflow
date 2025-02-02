@@ -48,7 +48,7 @@ public class DcIncrementalPhaseControlOuterLoop
         public DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                       EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                       JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
-            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getColumnCount(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1)
                         .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], Math.toRadians(1d)));

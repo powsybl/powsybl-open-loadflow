@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -25,4 +26,6 @@ public interface BaseEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E
     BaseEquationTerm<V, E> minus();
 
     ElementType getElementType();
+
+    double calculateSensi(DenseMatrix x, int column);
 }

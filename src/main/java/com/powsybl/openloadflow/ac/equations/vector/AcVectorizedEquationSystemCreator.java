@@ -175,11 +175,11 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     @Override
     protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
-        return neg ? minusDummyPArray.getElement(branch.getNum()) : dummyPArray.getElement(branch.getNum()) ;
+        return neg ? minusDummyPArray.getElement(branch.getNum()) : dummyPArray.getElement(branch.getNum());
     }
 
     @Override
     protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
-        return neg ? minusDummyQArray.getElement(branch.getNum()) : dummyQArray.getElement(branch.getNum()) ;
+        return neg ? minusDummyQArray.getElement(branch.getNum()) : dummyQArray.getElement(branch.getNum());
     }
 }

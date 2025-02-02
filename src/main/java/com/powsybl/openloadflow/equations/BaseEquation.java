@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.Collection;
 import java.util.List;
 
 /**

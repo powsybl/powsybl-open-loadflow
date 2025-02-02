@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.BaseEquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -83,7 +83,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         private static DenseMatrix calculateSensitivityValues(List<LfBus> controlledBuses, Map<Integer, Integer> busNumToSensiColumn,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
-            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controlledBuses.size());
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getColumnCount(), controlledBuses.size());
             for (LfBus controlledBus : controlledBuses) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .ifPresent(equation -> rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d));
@@ -93,23 +93,23 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus pilotBus) {
-            return (EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
+        private static BaseEquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus pilotBus) {
+            return (BaseEquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcEquationType, AcEquationType> getQ1(LfBranch branch) {
-            return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
+        private static BaseEquationTerm<AcEquationType, AcEquationType> getQ1(LfBranch branch) {
+            return (BaseEquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcEquationType, AcEquationType> getQ2(LfBranch branch) {
-            return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
+        private static BaseEquationTerm<AcEquationType, AcEquationType> getQ2(LfBranch branch) {
+            return (BaseEquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcEquationType, AcEquationType> getQ(LfShunt shunt) {
-            return (EquationTerm<AcEquationType, AcEquationType>) shunt.getQ();
+        private static BaseEquationTerm<AcEquationType, AcEquationType> getQ(LfShunt shunt) {
+            return (BaseEquationTerm<AcEquationType, AcEquationType>) shunt.getQ();
         }
 
         double calculateSensiK(LfBus controllerBus, LfBus controlledBus) {

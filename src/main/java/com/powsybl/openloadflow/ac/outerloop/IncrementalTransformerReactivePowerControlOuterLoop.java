@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.BaseEquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -115,7 +115,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
-            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getColumnCount(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
                         .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], 1d));
@@ -125,9 +125,9 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedQ(LfBranch controlledBranch, TwoSides controlledSide) {
+        private static BaseEquationTerm<AcVariableType, AcEquationType> getCalculatedQ(LfBranch controlledBranch, TwoSides controlledSide) {
             var calculatedQ = controlledSide == TwoSides.ONE ? controlledBranch.getQ1() : controlledBranch.getQ2();
-            return (EquationTerm<AcVariableType, AcEquationType>) calculatedQ;
+            return (BaseEquationTerm<AcVariableType, AcEquationType>) calculatedQ;
         }
 
         double calculateSensitivityFromRToQ(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide) {

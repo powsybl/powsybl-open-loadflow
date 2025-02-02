@@ -9,13 +9,16 @@ package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.equations.BaseEquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.TransformerPhaseControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -91,15 +94,15 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                                                                EquationSystem<V, E> equationSystem,
                                                                JacobianMatrix<V, E> jacobianMatrix);
 
-        private EquationTerm<V, E> getP1(LfBranch controlledBranch) {
-            return (EquationTerm<V, E>) controlledBranch.getP1();
+        private BaseEquationTerm<V, E> getP1(LfBranch controlledBranch) {
+            return (BaseEquationTerm<V, E>) controlledBranch.getP1();
         }
 
-        private EquationTerm<V, E> getP2(LfBranch controlledBranch) {
-            return (EquationTerm<V, E>) controlledBranch.getP2();
+        private BaseEquationTerm<V, E> getP2(LfBranch controlledBranch) {
+            return (BaseEquationTerm<V, E>) controlledBranch.getP2();
         }
 
-        protected double calculateSensitivityFromA2S(LfBranch controllerBranch, EquationTerm<V, E> s) {
+        protected double calculateSensitivityFromA2S(LfBranch controllerBranch, BaseEquationTerm<V, E> s) {
             return s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
         }
 

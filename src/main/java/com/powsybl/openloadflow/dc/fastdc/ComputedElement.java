@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.BaseEquation;
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -112,7 +111,7 @@ public class ComputedElement {
 
     public static DenseMatrix initRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends ComputedElement> elements) {
         // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int equationCount = equationSystem.getIndex().getColumnCount();
         int maxElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
         if (elements.size() > maxElements) {
             throw new PowsyblException("Too many elements " + elements.size()

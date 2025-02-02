@@ -91,6 +91,7 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                 }
             }
         }
+        // TODO array
         return true;
     }
 

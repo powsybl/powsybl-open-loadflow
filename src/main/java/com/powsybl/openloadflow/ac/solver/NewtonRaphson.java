@@ -64,6 +64,7 @@ public class NewtonRaphson extends AbstractAcSolver {
     }
 
     public static Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
+        // TODO array
         return equationSystem.getIndex().getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
                 .collect(Collectors.toMap(e -> e.getKey().getType(), Function.identity(), BinaryOperator.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));

@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.equations.BaseEquation;
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.*;
