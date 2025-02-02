@@ -21,8 +21,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final E type;
 
-    private final ElementType elementType;
-
     private final int elementCount;
 
     private final EquationSystem<V, E> equationSystem;
@@ -78,9 +76,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public EquationArray(E type, ElementType elementType, int elementCount, EquationSystem<V, E> equationSystem) {
+    public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
         this.type = Objects.requireNonNull(type);
-        this.elementType = Objects.requireNonNull(elementType);
         this.elementCount = elementCount;
         this.equationSystem = Objects.requireNonNull(equationSystem);
         elementActive = new boolean[elementCount];
@@ -90,10 +87,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public E getType() {
         return type;
-    }
-
-    public ElementType getElementType() {
-        return elementType;
     }
 
     public int getElementCount() {

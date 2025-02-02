@@ -223,7 +223,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Objects.requireNonNull(type);
         EquationArray<V, E> equationArray = equationArrays.get(type);
         if (equationArray == null) {
-            equationArray = new EquationArray<>(type, type.getElementType(), network.getElementCount(type.getElementType()), this);
+            equationArray = new EquationArray<>(type, network.getElementCount(type.getElementType()), this);
             equationArrays.put(type, equationArray);
         }
         return equationArray;
@@ -239,17 +239,24 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public List<String> getRowNames() {
-        // TODO array
         return index.getSortedVariablesToFind().stream()
-                .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
+                .map(v -> network.getElement(v.getType().getElementType(), v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames() {
-        // TODO array
-        return index.getSortedEquationsToSolve().stream()
-                .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
-                .collect(Collectors.toList());
+        List<String> columnNames = new ArrayList<>();
+        columnNames.addAll(index.getSortedEquationsToSolve().stream()
+                .map(e -> network.getElement(e.getType().getElementType(), e.getElementNum()).getId() + "/" + e.getType())
+                .toList());
+        for (var equationArray : equationArrays.values()) {
+            for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
+                if (equationArray.isElementActive(elementNum)) {
+                    columnNames.add(network.getElement(equationArray.getType().getElementType(), elementNum).getId() + "/" + equationArray.getType());
+                }
+            }
+        }
+        return columnNames;
     }
 
     public void addListener(EquationSystemListener<V, E> listener) {
