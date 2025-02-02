@@ -269,7 +269,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     EquationTermArray<V, E> termArray = termArrays.get(termArrayNum);
                     var termNums = termArray.getTermNumsForEquationElementNum(elementNum);
                     for (int i = 0; i < termNums.size(); i++) {
-                        int termNum = termNums.get(i);
+                        int termNum = termNums.getQuick(i);
                         // for each term of each, add an entry for each derivative operation we need
                         var termDerivatives = termArray.getTermDerivatives(termNum);
                         for (Derivative<V> derivative : termDerivatives) {

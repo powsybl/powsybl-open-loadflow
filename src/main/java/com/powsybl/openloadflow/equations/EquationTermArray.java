@@ -58,7 +58,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final TIntArrayList termElementNums = new TIntArrayList();
 
     // for each term number, activity status
-    private final TBooleanArrayList termActive = new TBooleanArrayList(1);
+    private final TIntArrayList termActive = new TIntArrayList();
 
     // for each term number, list of derivative variables
     private final List<List<Derivative<V>>> termDerivatives = new ArrayList<>();
@@ -98,15 +98,15 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     public boolean isTermActive(int termNum) {
-        return termActive.get(termNum);
+        return termActive.getQuick(termNum) == 1;
     }
 
     public int getEquationElementNum(int termNum) {
-        return equationElementNums.get(termNum);
+        return equationElementNums.getQuick(termNum);
     }
 
     public int getTermElementNum(int termNum) {
-        return termElementNums.get(termNum);
+        return termElementNums.getQuick(termNum);
     }
 
     public List<Derivative<V>> getTermDerivatives(int termNum) {
@@ -123,7 +123,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         getTermNumsForTermElementNum(termElementNum).add(termNum);
         equationElementNums.add(equationElementNum);
         termElementNums.add(termElementNum);
-        termActive.add(!evaluator.isDisabled(termElementNum));
+        termActive.add(evaluator.isDisabled(termElementNum) ? 0: 1);
         List<Derivative<V>> derivatives = evaluator.getDerivatives(termElementNum);
         termDerivatives.add(derivatives);
         equationArray.invalidateEquationDerivativeVectors();
@@ -147,9 +147,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         TIntArrayList termNums = getTermNumsForTermElementNum(termElementNum);
         for (int i = 0; i < termNums.size(); i++) {
             int termNum = termNums.getQuick(i);
-            boolean oldActive = termActive.get(termNum);
+            boolean oldActive = termActive.getQuick(termNum) == 1;
             if (active != oldActive) {
-                termActive.set(termNum, active);
+                termActive.setQuick(termNum, active ? 1 : 0);
                 equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
             }
         }
@@ -205,11 +205,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         TIntArrayList termNums = getTermNumsForEquationElementNum(elementNum);
         for (int i = 0; i < termNums.size(); i++) {
             int termNum = termNums.get(i);
-            if (writeInactiveTerms || termActive.get(termNum)) {
+            if (writeInactiveTerms || termActive.getQuick(termNum) == 1) {
                 if (!first) {
                     writer.append(" + ");
                 }
-                if (!termActive.get(termNum)) {
+                if (termActive.getQuick(termNum) == 0) {
                     writer.write("[ ");
                 }
                 writer.append(evaluator.getName());
@@ -222,7 +222,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
                     }
                 }
                 writer.write(")");
-                if (!termActive.get(termNum)) {
+                if (termActive.getQuick(termNum) == 0) {
                     writer.write(" ]");
                 }
                 if (i < termNums.size() - 1) {
