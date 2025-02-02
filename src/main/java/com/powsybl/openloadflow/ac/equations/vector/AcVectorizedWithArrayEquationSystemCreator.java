@@ -33,6 +33,14 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
 
     private EquationTermArray<AcVariableType, AcEquationType> shuntQArray;
 
+    private EquationTermArray<AcVariableType, AcEquationType> dummyPArray;
+
+    private EquationTermArray<AcVariableType, AcEquationType> minusDummyPArray;
+
+    private EquationTermArray<AcVariableType, AcEquationType> dummyQArray;
+
+    private EquationTermArray<AcVariableType, AcEquationType> minusDummyQArray;
+
     public AcVectorizedWithArrayEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
     }
@@ -64,6 +72,18 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
         pArray.addTermArray(shuntPArray);
         shuntQArray = new EquationTermArray<>(ElementType.SHUNT_COMPENSATOR, new ShuntCompensatorReactiveFlowEquationTermArrayEvaluator(networkVector.getShuntVector(), equationSystem.getVariableSet()));
         qArray.addTermArray(shuntQArray);
+
+        dummyPArray = new EquationTermArray<>(ElementType.BRANCH, new BranchDummyActivePowerEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet(), false));
+        pArray.addTermArray(dummyPArray);
+
+        minusDummyPArray = new EquationTermArray<>(ElementType.BRANCH, new BranchDummyActivePowerEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet(), true));
+        pArray.addTermArray(minusDummyPArray);
+
+        dummyQArray = new EquationTermArray<>(ElementType.BRANCH, new BranchDummyReactivePowerEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet(), false));
+        qArray.addTermArray(dummyQArray);
+
+        minusDummyQArray = new EquationTermArray<>(ElementType.BRANCH, new BranchDummyReactivePowerEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet(), true));
+        qArray.addTermArray(minusDummyQArray);
 
         super.create(creationContext);
     }
@@ -116,5 +136,27 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     @Override
     protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         return shuntQArray.getElement(shunt.getNum());
+    }
+
+    @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        return neg ? minusDummyPArray.getElement(branch.getNum()) : dummyPArray.getElement(branch.getNum()) ;
+    }
+
+    @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTermForDummyTargetP(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        BaseEquationTerm<AcVariableType, AcEquationType> term = new DummyBranchActiveFlowEquationTerm(networkVector.getBranchVector(), branch.getNum(), equationSystem.getVariableSet());
+        return neg ? term.minus() : term;
+    }
+
+    @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        return neg ? minusDummyQArray.getElement(branch.getNum()) : dummyQArray.getElement(branch.getNum()) ;
+    }
+
+    @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTermForDummyTargetQ(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        BaseEquationTerm<AcVariableType, AcEquationType> term = new DummyBranchReactiveFlowEquationTerm(networkVector.getBranchVector(), branch.getNum(), equationSystem.getVariableSet());
+        return neg ? term.minus() : term;
     }
 }

@@ -444,7 +444,27 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        var equationSystem = creationContext.getEquationSystem();
+        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
+        return neg ? term.minus() : term;
+    }
+
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTermForDummyTargetP(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        return createDummyActivePowerEquationTerm(branch, creationContext, neg);
+    }
+
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        var equationSystem = creationContext.getEquationSystem();
+        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm();
+        return neg ? term.minus() : term;
+    }
+
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTermForDummyTargetQ(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+        return createDummyReactivePowerEquationTerm(branch, creationContext, neg);
+    }
+
+    private void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                                 AcEquationSystemCreationContext creationContext,
                                                 boolean spanningTreeEdge) {
         var equationSystem = creationContext.getEquationSystem();
@@ -470,20 +490,18 @@ public class AcEquationSystemCreator {
 
                 // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
                 // to ensure we have the same number of equation and variables
-                var dummyQ = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q);
                 equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .addTerm(dummyQ.createTerm());
+                        .addTerm(createDummyReactivePowerEquationTerm(branch, creationContext, false));
 
                 equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .addTerm(dummyQ.<AcEquationType>createTerm()
-                                .minus());
+                        .addTerm(createDummyReactivePowerEquationTerm(branch, creationContext, true));
 
                 // create an inactive dummy reactive power target equation set to zero that could be activated
                 // on case of switch opening
                 equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_Q)
-                        .addTerm(dummyQ.createTerm())
+                        .addTerm(createDummyReactivePowerEquationTermForDummyTargetQ(branch, creationContext, false))
                         .setActive(!enabled); // inverted logic
             } else {
                 // nothing to do in case of v1 and v2 are found, we just have to ensure
@@ -503,20 +521,18 @@ public class AcEquationSystemCreator {
 
                 // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
                 // to ensure we have the same number of equation and variables
-                var dummyP = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P);
                 equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
-                        .addTerm(dummyP.createTerm());
+                        .addTerm(createDummyActivePowerEquationTerm(branch, creationContext, false));
 
                 equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
-                        .addTerm(dummyP.<AcEquationType>createTerm()
-                                .minus());
+                        .addTerm(createDummyActivePowerEquationTerm(branch, creationContext, true));
 
                 // create an inactive dummy active power target equation set to zero that could be activated
                 // on case of switch opening
                 equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_P)
-                        .addTerm(dummyP.createTerm())
+                        .addTerm(createDummyActivePowerEquationTermForDummyTargetP(branch, creationContext, false))
                         .setActive(!enabled); // inverted logic
             } else {
                 throw new IllegalStateException("Cannot happen because only there is one slack bus per model");

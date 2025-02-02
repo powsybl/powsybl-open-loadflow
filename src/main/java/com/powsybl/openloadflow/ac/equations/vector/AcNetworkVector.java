@@ -88,6 +88,8 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         Arrays.fill(branchVector.ph1Row, -1);
         Arrays.fill(branchVector.v2Row, -1);
         Arrays.fill(branchVector.ph2Row, -1);
+        Arrays.fill(branchVector.dummyPRow, -1);
+        Arrays.fill(branchVector.dummyQRow, -1);
         Arrays.fill(shuntVector.bRow, -1);
 
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
@@ -112,6 +114,14 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
                 case SHUNT_B:
                     shuntVector.bRow[num] = shuntVector.deriveB[num] ? row : -1;
+                    break;
+
+                case DUMMY_P:
+                    branchVector.dummyPRow[num] = row;
+                    break;
+
+                case DUMMY_Q:
+                    branchVector.dummyQRow[num] = row;
                     break;
 
                 default:
@@ -158,6 +168,23 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         var w = new DoubleWrapper();
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
             if (!branchVector.disabled[branchNum]) {
+
+                // dummy P
+                if (branchVector.dummyPRow[branchNum] != -1) {
+                    branchVector.dummyP[branchNum] = state[branchVector.dummyPRow[branchNum]];
+                    branchVector.negDummyP[branchNum] = -branchVector.dummyP[branchNum];
+                    branchVector.derDummyP[branchNum] = 1;
+                    branchVector.derNegDummyP[branchNum] = -1;
+                }
+
+                // dummy Q
+                if (branchVector.dummyQRow[branchNum] != -1) {
+                    branchVector.dummyQ[branchNum] = state[branchVector.dummyQRow[branchNum]];
+                    branchVector.negDummyQ[branchNum] = -branchVector.dummyQ[branchNum];
+                    branchVector.derDummyQ[branchNum] = 1;
+                    branchVector.derNegDummyQ[branchNum] = -1;
+                }
+
                 if (isConnectedSide1(branchNum) && isConnectedSide2(branchNum)) {
                     double ph1 = state[branchVector.ph1Row[branchNum]];
                     double ph2 = state[branchVector.ph2Row[branchNum]];
