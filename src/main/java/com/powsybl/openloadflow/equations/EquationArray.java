@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.util.trove.TIntArrayListHack;
+import com.powsybl.openloadflow.network.ElementType;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.io.IOException;
@@ -19,6 +20,8 @@ import java.util.*;
 public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     private final E type;
+
+    private final ElementType elementType;
 
     private final int elementCount;
 
@@ -75,8 +78,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
+    public EquationArray(E type, ElementType elementType, int elementCount, EquationSystem<V, E> equationSystem) {
         this.type = Objects.requireNonNull(type);
+        this.elementType = Objects.requireNonNull(elementType);
         this.elementCount = elementCount;
         this.equationSystem = Objects.requireNonNull(equationSystem);
         elementActive = new boolean[elementCount];
@@ -86,6 +90,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public E getType() {
         return type;
+    }
+
+    public ElementType getElementType() {
+        return elementType;
     }
 
     public int getElementCount() {

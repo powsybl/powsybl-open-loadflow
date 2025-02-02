@@ -223,7 +223,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Objects.requireNonNull(type);
         EquationArray<V, E> equationArray = equationArrays.get(type);
         if (equationArray == null) {
-            equationArray = new EquationArray<>(type, network.getElementCount(type.getElementType()), this);
+            equationArray = new EquationArray<>(type, type.getElementType(), network.getElementCount(type.getElementType()), this);
             equationArrays.put(type, equationArray);
         }
         return equationArray;
