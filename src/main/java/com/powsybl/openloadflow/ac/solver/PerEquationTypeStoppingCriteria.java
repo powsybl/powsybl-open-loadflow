@@ -52,47 +52,60 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
     private boolean computeStop(double[] fx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (var eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             var type = eq.getType();
-            var idx = eq.getColumn();
-            switch (type) {
-                case BRANCH_TARGET_P, BUS_TARGET_P, DUMMY_TARGET_P, BUS_DISTR_SLACK_P -> {
-                    if (Math.abs(fx[idx]) * PerUnit.SB >= maxActivePowerMismatch) {
-                        return false;
-                    }
-                }
-                case BRANCH_TARGET_Q, BUS_TARGET_Q, DISTR_Q, DUMMY_TARGET_Q -> {
-                    if (Math.abs(fx[idx]) * PerUnit.SB >= maxReactivePowerMismatch) {
-                        return false;
-                    }
-                }
-                case BUS_TARGET_V, ZERO_V -> {
-                    if (Math.abs(fx[idx]) >= maxVoltageMismatch) {
-                        return false;
-                    }
-                }
-                case BRANCH_TARGET_RHO1, DISTR_RHO -> {
-                    if (Math.abs(fx[idx]) >= maxDefaultRatioMismatch) {
-                        return false;
-                    }
-                }
-                case DISTR_SHUNT_B, SHUNT_TARGET_B -> {
-                    if (Math.abs(fx[idx]) >= maxDefaultSusceptanceMismatch) {
-                        return false;
-                    }
-                }
-                case BUS_TARGET_PHI, ZERO_PHI, BRANCH_TARGET_ALPHA1 -> {
-                    if (Math.abs(fx[idx]) >= maxDefaultAngleMismatch) {
-                        return false;
-                    }
-                }
-                default -> {
-                    if (Math.abs(fx[idx]) >= convEpsPerEq) {
-                        return false;
-                    }
+            var column = eq.getColumn();
+            if (checkEquation(fx, type, column)) {
+                return false;
+            }
+        }
+        for (var equationArray : equationSystem.getEquationArrays()) {
+            for (int column = equationArray.getFirstColumn(); column < equationArray.getFirstColumn() + equationArray.getLength(); column++) {
+                if (checkEquation(fx, equationArray.getType(), column)) {
+                    return false;
                 }
             }
         }
-        // TODO array
         return true;
+    }
+
+    private boolean checkEquation(double[] fx, AcEquationType type, int column) {
+        switch (type) {
+            case BRANCH_TARGET_P, BUS_TARGET_P, DUMMY_TARGET_P, BUS_DISTR_SLACK_P -> {
+                if (Math.abs(fx[column]) * PerUnit.SB >= maxActivePowerMismatch) {
+                    return true;
+                }
+            }
+            case BRANCH_TARGET_Q, BUS_TARGET_Q, DISTR_Q, DUMMY_TARGET_Q -> {
+                if (Math.abs(fx[column]) * PerUnit.SB >= maxReactivePowerMismatch) {
+                    return true;
+                }
+            }
+            case BUS_TARGET_V, ZERO_V -> {
+                if (Math.abs(fx[column]) >= maxVoltageMismatch) {
+                    return true;
+                }
+            }
+            case BRANCH_TARGET_RHO1, DISTR_RHO -> {
+                if (Math.abs(fx[column]) >= maxDefaultRatioMismatch) {
+                    return true;
+                }
+            }
+            case DISTR_SHUNT_B, SHUNT_TARGET_B -> {
+                if (Math.abs(fx[column]) >= maxDefaultSusceptanceMismatch) {
+                    return true;
+                }
+            }
+            case BUS_TARGET_PHI, ZERO_PHI, BRANCH_TARGET_ALPHA1 -> {
+                if (Math.abs(fx[column]) >= maxDefaultAngleMismatch) {
+                    return true;
+                }
+            }
+            default -> {
+                if (Math.abs(fx[column]) >= convEpsPerEq) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
