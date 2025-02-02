@@ -27,7 +27,7 @@ public class BranchDummyActivePowerEquationTermArrayEvaluator extends AbstractBr
 
     @Override
     public String getName() {
-        return "ac_p_array_dummy";
+        return neg ? "ac_neg_p_array_dummy" : "ac_p_array_dummy";
     }
 
     @Override
