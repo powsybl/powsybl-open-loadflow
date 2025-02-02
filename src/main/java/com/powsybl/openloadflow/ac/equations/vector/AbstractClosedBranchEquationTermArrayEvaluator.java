@@ -7,10 +7,8 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchAcVariables;
 import com.powsybl.openloadflow.equations.Derivative;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,18 +24,20 @@ public abstract class AbstractClosedBranchEquationTermArrayEvaluator extends Abs
 
     @Override
     public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {
-        var variables = new ClosedBranchAcVariables(branchNum,
-                                                    branchVector.bus1Num[branchNum],
-                                                    branchVector.bus2Num[branchNum],
-                                                    variableSet,
-                                                    branchVector.deriveA1[branchNum],
-                                                    branchVector.deriveR1[branchNum],
-                                                    Fortescue.SequenceType.POSITIVE)
-                .getVariables();
-        List<Derivative<AcVariableType>> derivatives = new ArrayList<>(variables.size());
-        for (int localIndex = 0; localIndex < variables.size(); localIndex++) {
-            var variable = variables.get(localIndex);
-            derivatives.add(new Derivative<>(variable, localIndex));
+        int bus1Num = branchVector.bus1Num[branchNum];
+        int bus2Num = branchVector.bus2Num[branchNum];
+        boolean deriveA1 = branchVector.deriveA1[branchNum];
+        boolean deriveR1 = branchVector.deriveR1[branchNum];
+        List<Derivative<AcVariableType>> derivatives = new ArrayList<>(6);
+        derivatives.add(new Derivative<>(variableSet.getVariable(bus1Num, AcVariableType.BUS_V), 0));
+        derivatives.add(new Derivative<>(variableSet.getVariable(bus2Num, AcVariableType.BUS_V), 1));
+        derivatives.add(new Derivative<>(variableSet.getVariable(bus1Num, AcVariableType.BUS_PHI), 2));
+        derivatives.add(new Derivative<>(variableSet.getVariable(bus2Num, AcVariableType.BUS_PHI), 3));
+        if (deriveA1) {
+            derivatives.add(new Derivative<>(variableSet.getVariable(branchNum, AcVariableType.BRANCH_ALPHA1), 4));
+        }
+        if (deriveR1) {
+            derivatives.add(new Derivative<>(variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1), 5));
         }
         return derivatives;
     }
