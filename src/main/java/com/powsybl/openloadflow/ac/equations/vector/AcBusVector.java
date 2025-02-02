@@ -20,8 +20,14 @@ public class AcBusVector {
     public final int[] vRow;
     public final int[] phRow;
 
+    public final double[] v;
+    public final double[] ph;
+
     public AcBusVector(List<LfBus> buses) {
         vRow = new int[buses.size()];
         phRow = new int[buses.size()];
+
+        v = new double[buses.size()];
+        ph = new double[buses.size()];
     }
 }

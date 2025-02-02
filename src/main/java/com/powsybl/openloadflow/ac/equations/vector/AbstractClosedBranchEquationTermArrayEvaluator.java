@@ -6,21 +6,42 @@
  */
 package com.powsybl.openloadflow.ac.equations.vector;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Derivative;
 import com.powsybl.openloadflow.equations.VariableSet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public abstract class AbstractClosedBranchEquationTermArrayEvaluator extends AbstractBranchEquationTermArrayEvaluator {
 
-    protected AbstractClosedBranchEquationTermArrayEvaluator(AcBranchVector branchVector, VariableSet<AcVariableType> variableSet) {
+    protected final AcBusVector busVector;
+
+    protected AbstractClosedBranchEquationTermArrayEvaluator(AcBranchVector branchVector, AcBusVector busVector, VariableSet<AcVariableType> variableSet) {
         super(branchVector, variableSet);
+        this.busVector = Objects.requireNonNull(busVector);
     }
+
+    @Override
+    public double calculateSensi(int branchNum, DenseMatrix dx, int column) {
+        Objects.requireNonNull(dx);
+        double dph1 = dx.get(branchVector.ph1Row[branchNum], column);
+        double dph2 = dx.get(branchVector.ph2Row[branchNum], column);
+        double dv1 = dx.get(branchVector.v1Row[branchNum], column);
+        double dv2 = dx.get(branchVector.v2Row[branchNum], column);
+        int a1Row = branchVector.a1Row[branchNum];
+        double da1 = a1Row != -1 ? dx.get(a1Row, column) : 0;
+        int r1Row = branchVector.r1Row[branchNum];
+        double dr1 = r1Row != -1 ? dx.get(r1Row, column) : 0;
+        return calculateSensi(branchNum, dph1, dph2, dv1, dv2, da1, dr1);
+    }
+
+    protected abstract double calculateSensi(int branchNum, double dph1, double dph2, double dv1, double dv2, double da1, double dr1);
 
     @Override
     public List<Derivative<AcVariableType>> getDerivatives(int branchNum) {

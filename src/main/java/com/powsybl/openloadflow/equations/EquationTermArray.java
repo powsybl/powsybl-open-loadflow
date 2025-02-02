@@ -28,6 +28,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         String getName();
 
+        default double calculateSensi(int termElementNum, DenseMatrix dx, int column) {
+            throw new UnsupportedOperationException("calculateSensi not yet implemented");
+        }
+
         boolean isDisabled(int termElementNum);
 
         double[] eval();
@@ -171,6 +175,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
 
         @Override
+        public boolean isActive() {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        @Override
         public void setActive(boolean active) {
             equationTermArray.setActive(termElementNum, active);
         }
@@ -181,8 +190,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
 
         @Override
+        public double der(Variable<V> variable) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        @Override
         public double calculateSensi(DenseMatrix x, int column) {
-            throw new UnsupportedOperationException("Calculate sensi not supported for arrays");
+            return equationTermArray.evaluator.calculateSensi(termElementNum, x, column);
         }
 
         @Override
@@ -198,6 +212,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         @Override
         public BaseEquationTerm<V, E> minus() {
             throw new UnsupportedOperationException("Term minus not supported for arrays");
+        }
+
+        @Override
+        public BaseEquation<V, E> getEquation() {
+            throw new UnsupportedOperationException("TODO");
         }
     }
 

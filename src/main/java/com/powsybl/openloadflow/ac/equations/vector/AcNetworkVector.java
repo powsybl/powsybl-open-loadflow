@@ -166,6 +166,16 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
         double[] state = equationSystem.getStateVector().get();
         var w = new DoubleWrapper();
+
+        for (int busNum = 0; busNum < busVector.v.length; busNum++) {
+            if (busVector.vRow[busNum] != -1) {
+                busVector.v[busNum] = state[busVector.vRow[busNum]];
+            }
+            if (busVector.phRow[busNum] != -1) {
+                busVector.ph[busNum] = state[busVector.phRow[busNum]];
+            }
+        }
+
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
             if (!branchVector.disabled[branchNum]) {
 

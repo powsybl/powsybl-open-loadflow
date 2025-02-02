@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.function.DoubleSupplier;
@@ -15,7 +16,7 @@ import java.util.function.DoubleSupplier;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface BaseEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
+public interface BaseEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable, Derivable<V> {
 
     void setActive(boolean active);
 
@@ -28,4 +29,6 @@ public interface BaseEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E
     ElementType getElementType();
 
     double calculateSensi(DenseMatrix x, int column);
+
+    BaseEquation<V, E> getEquation();
 }

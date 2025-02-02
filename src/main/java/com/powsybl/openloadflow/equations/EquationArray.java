@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.util.trove.TIntArrayListHack;
-import com.powsybl.openloadflow.network.ElementType;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.io.IOException;
