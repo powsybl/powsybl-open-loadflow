@@ -144,19 +144,7 @@ public class AcVectorizedWithArrayEquationSystemCreator extends AcVectorizedEqua
     }
 
     @Override
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTermForDummyTargetP(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
-        BaseEquationTerm<AcVariableType, AcEquationType> term = new DummyBranchActiveFlowEquationTerm(networkVector.getBranchVector(), branch.getNum(), equationSystem.getVariableSet());
-        return neg ? term.minus() : term;
-    }
-
-    @Override
     protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
         return neg ? minusDummyQArray.getElement(branch.getNum()) : dummyQArray.getElement(branch.getNum()) ;
-    }
-
-    @Override
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTermForDummyTargetQ(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
-        BaseEquationTerm<AcVariableType, AcEquationType> term = new DummyBranchReactiveFlowEquationTerm(networkVector.getBranchVector(), branch.getNum(), equationSystem.getVariableSet());
-        return neg ? term.minus() : term;
     }
 }

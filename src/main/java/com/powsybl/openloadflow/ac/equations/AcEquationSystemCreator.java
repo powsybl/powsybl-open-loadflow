@@ -451,7 +451,9 @@ public class AcEquationSystemCreator {
     }
 
     protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTermForDummyTargetP(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
-        return createDummyActivePowerEquationTerm(branch, creationContext, neg);
+        var equationSystem = creationContext.getEquationSystem();
+        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
+        return neg ? term.minus() : term;
     }
 
     protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
@@ -461,7 +463,9 @@ public class AcEquationSystemCreator {
     }
 
     protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTermForDummyTargetQ(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
-        return createDummyReactivePowerEquationTerm(branch, creationContext, neg);
+        var equationSystem = creationContext.getEquationSystem();
+        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm();
+        return neg ? term.minus() : term;
     }
 
     private void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
