@@ -293,10 +293,14 @@ The default values are `0.8` and `1.2` and they must be greater or equal to `0`.
 
 **minRealisticVoltage** and **maxRealisticVoltage**  
 These parameters are used to identify if Newton-Raphson has converged to an unrealistic state.
-For any component where a bus voltage is, after the ReactiveLimits outerloop has run, solved outside these per-unit 
-thresholds, the component solution is deemed unrealistic and its solution status is flagged as failed.  
 
-If `voltageRemoteControlRobustMode` is set to true, the ReactiveLimits outerloop uses these values as a criteria to block P-only nodes to PQ.
+For any component where a bus voltage is solved outside these per-unit
+thresholds, the component solution is deemed unrealistic and its solution status is flagged as failed.
+
+If `voltageRemoteControlRobustMode` is set to true, the check of unrealistic voltage is done after the 
+ReactiveLimits outerloop has been used. In addition, the ReactiveLimits outerloop uses these values as a 
+criteria to block PQ remote controler buses that have an unrealistic voltage and a reactive injection within 
+their reactive diagram.
 
 The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
 
