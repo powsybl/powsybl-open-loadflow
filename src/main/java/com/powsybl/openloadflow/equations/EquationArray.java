@@ -36,7 +36,26 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private List<EquationDerivativeVector<V>> equationDerivativeVectors;
 
-    private TIntArrayList matrixElementIndexes;
+    static class MatrixElementIndexes {
+        private final TIntArrayList indexes = new TIntArrayList();
+
+        private int get(int i) {
+            if (i >= indexes.size()) {
+                indexes.add(-1);
+            }
+            return indexes.get(i);
+        }
+
+        private void set(int i, int index) {
+            indexes.set(i, index);
+        }
+
+        void reset() {
+            indexes.clear();
+        }
+    }
+
+    private final MatrixElementIndexes matrixElementIndexes = new MatrixElementIndexes();
 
     static class EquationDerivativeElement<V extends Enum<V> & Quantity> {
         int termArrayNum;
@@ -111,7 +130,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private void invalidateElementNumToColumn() {
         elementNumToColumn = null;
-        matrixElementIndexes = null;
+        matrixElementIndexes.reset();
     }
 
     public EquationSystem<V, E> getEquationSystem() {
@@ -281,7 +300,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     void invalidateEquationDerivativeVectors() {
         equationDerivativeVectors = null;
-        matrixElementIndexes = null;
+        matrixElementIndexes.reset();
     }
 
     public void der(DerHandler<V> handler) {
@@ -296,15 +315,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
 
         // calculate all derivative values
-        TIntArrayList oldMatrixElementIndexes = null;
-        if (matrixElementIndexes == null) {
-            matrixElementIndexes = new TIntArrayList();
-        } else {
-            oldMatrixElementIndexes = matrixElementIndexes;
-        }
-        int valueIndex = 0;
-
         // process column by column so equation by equation of the array
+        int valueIndex = 0;
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
             // skip inactive elements
             if (!elementActive[elementNum]) {
@@ -330,7 +342,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (valueUpdated && row != prevRow) {
-                    onDer(handler, column, prevRow, value, oldMatrixElementIndexes, valueIndex);
+                    onDer(handler, column, prevRow, value, valueIndex);
                     valueIndex++;
                     value = 0;
                     valueUpdated = false;
@@ -353,18 +365,15 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
             // remaining notif
             if (valueUpdated) {
-                onDer(handler, column, prevRow, value, oldMatrixElementIndexes, valueIndex);
+                onDer(handler, column, prevRow, value, valueIndex);
                 valueIndex++;
             }
         }
     }
 
-    private void onDer(DerHandler<V> handler, int column, int row, double value, TIntArrayList oldMatrixElementIndexes, int valueIndex) {
-        int oldMatrixElementIndex = oldMatrixElementIndexes == null ? -1 : oldMatrixElementIndexes.getQuick(valueIndex);
-        int matrixElementIndex = handler.onDer(column, row, value, oldMatrixElementIndex);
-        if (oldMatrixElementIndexes == null) {
-            matrixElementIndexes.add(matrixElementIndex);
-        }
+    private void onDer(DerHandler<V> handler, int column, int row, double value, int valueIndex) {
+        int matrixElementIndex = handler.onDer(column, row, value, matrixElementIndexes.get(valueIndex));
+        matrixElementIndexes.set(valueIndex, matrixElementIndex);
     }
 
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {
