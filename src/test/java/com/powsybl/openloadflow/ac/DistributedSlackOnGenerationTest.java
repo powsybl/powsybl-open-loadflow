@@ -141,6 +141,19 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void testProportionalToPMaxWithTargetLimit() {
+        g1.setMaxP(150);
+        g1.getExtension(ActivePowerControl.class).setMaxTargetP(110);
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-110, g1.getTerminal());
+        assertActivePowerEquals(-247.142, g2.getTerminal());
+        assertActivePowerEquals(-105.714, g3.getTerminal());
+        assertActivePowerEquals(-137.143, g4.getTerminal());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void testProportionalToParticipationFactor() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
