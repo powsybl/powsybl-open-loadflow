@@ -6,10 +6,14 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
+import gnu.trove.impl.Constants;
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.TIntIntMap;
+import gnu.trove.map.hash.TIntIntHashMap;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -52,8 +56,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each equation element number, term numbers
     private final List<TIntArrayList> termNumsByEquationElementNum = new ArrayList<>();
 
-    // for each term element number, term numbers
-    private final List<TIntArrayList> termNumsByTermElementNum = new ArrayList<>();
+    // for each term element number, corresponding term number
+    private final TIntIntMap termNumByTermElementNum = new TIntIntHashMap(3, Constants.DEFAULT_LOAD_FACTOR, -1, -1);
 
     // for each term number, corresponding equation element number
     private final TIntArrayList equationElementNums = new TIntArrayList();
@@ -94,13 +98,6 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return termNumsByEquationElementNum.get(equationElementNum);
     }
 
-    public TIntArrayList getTermNumsForTermElementNum(int termElementNum) {
-        while (termNumsByTermElementNum.size() <= termElementNum) {
-            termNumsByTermElementNum.add(new TIntArrayList());
-        }
-        return termNumsByTermElementNum.get(termElementNum);
-    }
-
     public boolean isTermActive(int termNum) {
         return termActive.getQuick(termNum) == 1;
     }
@@ -124,7 +121,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
         getTermNumsForEquationElementNum(equationElementNum).add(termNum);
-        getTermNumsForTermElementNum(termElementNum).add(termNum);
+        if (termNumByTermElementNum.put(termElementNum, termNum) != -1) {
+            throw new PowsyblException("A term element with same number already exists: " + termElementNum);
+        }
         equationElementNums.add(equationElementNum);
         termElementNums.add(termElementNum);
         termActive.add(evaluator.isDisabled(termElementNum) ? 0 : 1);
@@ -146,15 +145,27 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return evaluator.evalDer();
     }
 
-    public void setActive(int termElementNum, boolean active) {
-        TIntArrayList termNums = getTermNumsForTermElementNum(termElementNum);
-        for (int i = 0; i < termNums.size(); i++) {
-            int termNum = termNums.getQuick(i);
-            boolean oldActive = termActive.getQuick(termNum) == 1;
-            if (active != oldActive) {
-                termActive.setQuick(termNum, active ? 1 : 0);
-                equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
-            }
+    public boolean hasTermElement(int termElementNum) {
+        return termNumByTermElementNum.containsKey(termElementNum);
+    }
+
+    public boolean isTermElementActive(int termElementNum) {
+        int termNum = termNumByTermElementNum.get(termElementNum);
+        if (termNum == -1) {
+            throw new PowsyblException("Array term element num not found");
+        }
+        return termActive.getQuick(termNum) == 1;
+    }
+
+    public void setTermElementActive(int termElementNum, boolean active) {
+        int termNum = termNumByTermElementNum.get(termElementNum);
+        if (termNum == -1) {
+            throw new PowsyblException("Array term element num not found");
+        }
+        boolean oldActive = termActive.getQuick(termNum) == 1;
+        if (active != oldActive) {
+            termActive.setQuick(termNum, active ? 1 : 0);
+            equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
 
@@ -176,12 +187,12 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         @Override
         public boolean isActive() {
-            throw new UnsupportedOperationException("TODO");
+            return equationTermArray.isTermElementActive(termElementNum);
         }
 
         @Override
         public void setActive(boolean active) {
-            equationTermArray.setActive(termElementNum, active);
+            equationTermArray.setTermElementActive(termElementNum, active);
         }
 
         @Override

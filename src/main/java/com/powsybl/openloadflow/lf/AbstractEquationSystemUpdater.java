@@ -68,7 +68,9 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
                 }
                 for (var termArray : equationArray.getTermArrays()) {
                     if (termArray.getElementType() == element.getType()) {
-                        termArray.setActive(element.getNum(), enable);
+                        if (termArray.hasTermElement(element.getNum())) {
+                            termArray.setTermElementActive(element.getNum(), enable);
+                        }
                     }
                 }
             }
