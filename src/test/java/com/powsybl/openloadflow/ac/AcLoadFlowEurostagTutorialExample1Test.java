@@ -488,20 +488,22 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
         assertEquals("Reached outer loop max iterations limit. Last outer loop name: DistributedSlack", result.getComponentResults().get(0).getStatusText());
 
-        String expected = "+ test\n" +
-                "   + Load flow on network 'sim1'\n" +
-                "      + Network CC0 SC0\n" +
-                "         + Network info\n" +
-                "            Network has 4 buses and 4 branches\n" +
-                "            Network balance: active generation=1000.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar\n" +
-                "            Angle reference bus: VLGEN_0\n" +
-                "            Slack bus: VLGEN_0\n" +
-                "         + Outer loop DistributedSlack\n" +
-                "            + Outer loop iteration 1\n" +
-                "               Slack bus active power (-394.4445228221647 MW) distributed in 1 distribution iteration(s)\n" +
-                "            Outer loop unsuccessful with status: UNSTABLE\n" +
-                "         Maximum number of outerloop iterations reached: 1\n" +
-                "         AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=UNSTABLE)\n";
+        String expected = """
+                + test
+                   + Load flow on network 'sim1'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 4 branches
+                            Network balance: active generation=1000.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+                            Angle reference bus: VLGEN_0
+                            Slack bus: VLGEN_0
+                         + Outer loop DistributedSlack
+                            + Outer loop iteration 1
+                               Slack bus active power (-394.4445228221647 MW) distributed in 1 distribution iteration(s)
+                            Outer loop unsuccessful with status: UNSTABLE
+                         Maximum number of outerloop iterations reached: 1
+                         AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=UNSTABLE)
+                """;
 
         assertReportEquals(new ByteArrayInputStream(expected.getBytes()), report);
     }
