@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.equations.BaseEquationTerm;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
@@ -71,6 +72,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void updateNonImpedantBranchEquations(LfBranch branch, boolean enable) {
         // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
         // or equations that set dummy p and q variable to zero
@@ -87,6 +89,10 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         equationSystem.getEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_Q)
                 .orElseThrow()
                 .setActive(!enable);
+
+        for (var dummy : branch.getDummies()) {
+            ((BaseEquationTerm<AcVariableType, AcEquationType>) dummy).setActive(enable);
+        }
     }
 
     @Override

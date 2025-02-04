@@ -494,13 +494,17 @@ public class AcEquationSystemCreator {
 
                 // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
                 // to ensure we have the same number of equation and variables
+                var dummyQ = createDummyReactivePowerEquationTerm(branch, creationContext, false);
                 equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .addTerm(createDummyReactivePowerEquationTerm(branch, creationContext, false));
+                        .addTerm(dummyQ);
+                branch.addDummy(dummyQ);
 
+                var dummyNegQ = createDummyReactivePowerEquationTerm(branch, creationContext, true);
                 equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .addTerm(createDummyReactivePowerEquationTerm(branch, creationContext, true));
+                        .addTerm(dummyNegQ);
+                branch.addDummy(dummyNegQ);
 
                 // create an inactive dummy reactive power target equation set to zero that could be activated
                 // on case of switch opening
@@ -525,13 +529,17 @@ public class AcEquationSystemCreator {
 
                 // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
                 // to ensure we have the same number of equation and variables
+                var dummyP = createDummyActivePowerEquationTerm(branch, creationContext, false);
                 equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
-                        .addTerm(createDummyActivePowerEquationTerm(branch, creationContext, false));
+                        .addTerm(dummyP);
+                branch.addDummy(dummyP);
 
+                var dummyNegP = createDummyActivePowerEquationTerm(branch, creationContext, true);
                 equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
-                        .addTerm(createDummyActivePowerEquationTerm(branch, creationContext, true));
+                        .addTerm(dummyNegP);
+                branch.addDummy(dummyNegP);
 
                 // create an inactive dummy active power target equation set to zero that could be activated
                 // on case of switch opening
