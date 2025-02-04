@@ -199,7 +199,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
 
-
         // outer loops finalization (in reverse order to allow correct cleanup)
         for (var outerLoopAndContext : Lists.reverse(outerLoopsAndContexts)) {
             var outerLoop = outerLoopAndContext.getLeft();
