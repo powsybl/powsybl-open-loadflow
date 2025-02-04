@@ -9,7 +9,6 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.computation.ComputationManager;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.StringWriter;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -471,10 +469,10 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void maxOuterLoopIterationTest() throws  IOException{
+    void maxOuterLoopIterationTest() throws IOException {
         ReportNode report = ReportNode.newRootReportNode()
-                        .withMessageTemplate("test", "test")
-                                .build();
+                .withMessageTemplate("test", "test")
+                .build();
         gen.setTargetP(1000);
         parameters.setDistributedSlack(true);
         parametersExt.setMaxOuterLoopIterations(1);
@@ -502,7 +500,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 "            + Outer loop iteration 1\n" +
                 "               Slack bus active power (-394.4445228221647 MW) distributed in 1 distribution iteration(s)\n" +
                 "            Outer loop unsuccessful with status: UNSTABLE\n" +
-                "         Maximum number of outerloop iteration reached: 1\n" +
+                "         Maximum number of outerloop iterations reached: 1\n" +
                 "         AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=UNSTABLE)\n";
 
         assertReportEquals(new ByteArrayInputStream(expected.getBytes()), report);
