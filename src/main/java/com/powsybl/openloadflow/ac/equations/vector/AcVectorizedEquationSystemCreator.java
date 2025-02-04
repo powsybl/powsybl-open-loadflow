@@ -42,6 +42,10 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     private EquationTermArray<AcVariableType, AcEquationType> minusDummyQArray;
 
+    private EquationTermArray<AcVariableType, AcEquationType> hvdcP1Array;
+
+    private EquationTermArray<AcVariableType, AcEquationType> hvdcP2Array;
+
     public AcVectorizedEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
         equationSystem = new EquationSystem<>(AcEquationType.class, network);
@@ -95,6 +99,11 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
         minusDummyQArray = new EquationTermArray<>(ElementType.BRANCH, new BranchDummyReactivePowerEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet(), true));
         qArray.addTermArray(minusDummyQArray);
+
+        hvdcP1Array = new EquationTermArray<>(ElementType.HVDC, new HvdcAcEmulationSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getHvdcVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(hvdcP1Array);
+        hvdcP2Array = new EquationTermArray<>(ElementType.HVDC, new HvdcAcEmulationSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getHvdcVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(hvdcP2Array);
 
         super.create(creationContext);
     }
@@ -181,5 +190,15 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     @Override
     protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
         return neg ? minusDummyQArray.getElement(branch.getNum()) : dummyQArray.getElement(branch.getNum());
+    }
+
+    @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createHvdcP1(LfHvdc hvdc, VariableSet<AcVariableType> variableSet) {
+        return hvdcP1Array.getElement(hvdc.getNum());
+    }
+
+    @Override
+    protected BaseEquationTerm<AcVariableType, AcEquationType> createHvdcP2(LfHvdc hvdc, VariableSet<AcVariableType> variableSet) {
+        return hvdcP2Array.getElement(hvdc.getNum());
     }
 }
