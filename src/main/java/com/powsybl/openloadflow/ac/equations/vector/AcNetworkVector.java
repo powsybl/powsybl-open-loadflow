@@ -177,23 +177,19 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         }
 
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
+            // dummy P
+            branchVector.dummyP[branchNum] = branchVector.dummyPRow[branchNum] != -1 ? state[branchVector.dummyPRow[branchNum]] : 0;
+            branchVector.negDummyP[branchNum] = -branchVector.dummyP[branchNum];
+            branchVector.derDummyP[branchNum] = 1;
+            branchVector.derNegDummyP[branchNum] = -1;
+
+            // dummy Q
+            branchVector.dummyQ[branchNum] = branchVector.dummyQRow[branchNum] != -1 ? state[branchVector.dummyQRow[branchNum]] : 0;
+            branchVector.negDummyQ[branchNum] = -branchVector.dummyQ[branchNum];
+            branchVector.derDummyQ[branchNum] = 1;
+            branchVector.derNegDummyQ[branchNum] = -1;
+
             if (!branchVector.disabled[branchNum]) {
-
-                // dummy P
-                if (branchVector.dummyPRow[branchNum] != -1) {
-                    branchVector.dummyP[branchNum] = state[branchVector.dummyPRow[branchNum]];
-                    branchVector.negDummyP[branchNum] = -branchVector.dummyP[branchNum];
-                    branchVector.derDummyP[branchNum] = 1;
-                    branchVector.derNegDummyP[branchNum] = -1;
-                }
-
-                // dummy Q
-                if (branchVector.dummyQRow[branchNum] != -1) {
-                    branchVector.dummyQ[branchNum] = state[branchVector.dummyQRow[branchNum]];
-                    branchVector.negDummyQ[branchNum] = -branchVector.dummyQ[branchNum];
-                    branchVector.derDummyQ[branchNum] = 1;
-                    branchVector.derNegDummyQ[branchNum] = -1;
-                }
 
                 if (isConnectedSide1(branchNum) && isConnectedSide2(branchNum)) {
                     double ph1 = state[branchVector.ph1Row[branchNum]];

@@ -250,7 +250,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     // skip inactive terms
                     if (termArray.isTermActive(termNum)) {
                         int termElementNum = termArray.getTermElementNum(termNum);
-                        values[getElementNumToColumn(elementNum)] += termValues[termElementNum];
+                        int column = getElementNumToColumn(elementNum);
+                        values[column] += termValues[termElementNum];
                     }
                 }
             }
