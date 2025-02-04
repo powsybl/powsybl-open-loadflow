@@ -60,14 +60,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     static class EquationDerivativeElement<V extends Enum<V> & Quantity> {
         int termArrayNum;
         int termNum;
-        Variable<V> derVariable;
-        int derLocalIndex;
+        Derivative<V> derivative;
 
-        EquationDerivativeElement(int termArrayNum, int termNum, Variable<V> derVariable, int derLocalIndex) {
+        EquationDerivativeElement(int termArrayNum, int termNum, Derivative<V> derivative) {
             this.termArrayNum = termArrayNum;
             this.termNum = termNum;
-            this.derVariable = derVariable;
-            this.derLocalIndex = derLocalIndex;
+            this.derivative = Objects.requireNonNull(derivative);
         }
     }
 
@@ -76,20 +74,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
         private final TIntArrayListHack termArrayNums = new TIntArrayListHack();
         private final TIntArrayListHack termNums = new TIntArrayListHack();
-        private final List<Variable<V>> derVariables = new ArrayList<>();
-        private final TIntArrayListHack derLocalIndexes = new TIntArrayListHack();
+        private final List<Derivative<V>> derivatives = new ArrayList<>();
 
-        void addTerm(int termNum, int termArrayNum, Variable<V> derVariable, int derLocalIndex) {
-            elements.add(new EquationDerivativeElement<>(termArrayNum, termNum, derVariable, derLocalIndex));
+        void addTerm(int termNum, int termArrayNum, Derivative<V> derivative) {
+            elements.add(new EquationDerivativeElement<>(termArrayNum, termNum, derivative));
         }
 
         void sortByVariableRowAndVectorizedLocalNum() {
-            elements.sort(Comparator.comparingInt(o -> o.derVariable.getRow()));
+            elements.sort(Comparator.comparingInt(o -> o.derivative.getVariable().getRow()));
             for (EquationDerivativeElement<V> element : elements) {
                 termArrayNums.add(element.termArrayNum);
                 termNums.add(element.termNum);
-                derVariables.add(element.derVariable);
-                derLocalIndexes.add(element.derLocalIndex);
+                derivatives.add(element.derivative);
             }
         }
     }
@@ -285,9 +281,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         // for each term of each, add an entry for each derivative operation we need
                         var termDerivatives = termArray.getTermDerivatives(termNum);
                         for (Derivative<V> derivative : termDerivatives) {
-                            Variable<V> derVariable = derivative.getVariable();
-                            int derLocalIndex = derivative.getLocalIndex();
-                            equationDerivativeVector.addTerm(termNum, termArrayNum, derVariable, derLocalIndex);
+                            equationDerivativeVector.addTerm(termNum, termArrayNum, derivative);
                         }
                     }
                 }
@@ -339,7 +333,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 EquationTermArray<V, E> termArray = termArrays.get(termArrayNum);
 
                 // the derivative variable row
-                int row = equationDerivativeVector.derVariables.get(i).getRow();
+                Derivative<V> derivative = equationDerivativeVector.derivatives.get(i);
+                int row = derivative.getVariable().getRow();
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (valueUpdated && row != prevRow) {
@@ -353,13 +348,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 int termNum = equationDerivativeVector.termNums.getQuick(i);
                 // skip inactive terms and get term derivative value
                 if (termArray.isTermActive(termNum)) {
-                    // get derivative local index
-                    int derLocalIndex = equationDerivativeVector.derLocalIndexes.getQuick(i);
-
                     // add value (!!! we can have multiple terms contributing to same matrix element)
                     double[][] termDerValues = termDerValuesByArrayIndex.get(termArrayNum);
                     int termElementNum = termArray.getTermElementNum(termNum);
-                    value += termDerValues[derLocalIndex][termElementNum];
+                    value += termDerValues[derivative.getLocalIndex()][termElementNum];
                     valueUpdated = true;
                 }
             }
