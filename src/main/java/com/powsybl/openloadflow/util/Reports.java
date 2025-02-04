@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,8 @@ import java.util.Map;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class Reports {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Reports.class);
 
     private static final String NETWORK_NUM_CC = "networkNumCc";
     private static final String NETWORK_NUM_SC = "networkNumSc";
@@ -317,6 +321,17 @@ public final class Reports {
                 .withUntypedValue("outerLoopStatus", outerLoopStatus)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+    }
+
+    public static void reportMaxOuterLoopIterations(ReportNode reportNode, int iterationCount, boolean withLog) {
+        ReportNode added = reportNode.newReportNode()
+                .withMessageTemplate("maxOuterLoopIterations", "Maximum number of outerloop iterations reached: ${iterationCount}")
+                .withUntypedValue("iterationCount", iterationCount)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+        if (withLog) {
+            LOGGER.error(added.getMessage());
+        }
     }
 
     public static void reportDcLfSolverFailure(ReportNode reportNode, String errorMessage) {
