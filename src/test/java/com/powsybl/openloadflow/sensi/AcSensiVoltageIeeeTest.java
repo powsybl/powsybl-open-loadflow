@@ -70,7 +70,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
-        //  B1, B2, B3, B4, B5
+        //  B1   B2        B3   B4        B5
             1.0, 0.744498, 0.0, 0.606942, 0.692691, // B1-G
             0.0, 0.0,      0.0, 0.0,      0.0,      // B2-G => all zero because PV bus
             0.0, 0.295352, 1.0, 0.485870, 0.397779, // B3-G
@@ -86,10 +86,26 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
-        //  L1-2-1  L1-5-1 L2-3-1 L2-4-1 L2-5-1
+        //  L1-2-1    L1-5-1     L2-3-1     L2-4-1     L2-5-1
             0.344380, -0.039832, -0.114189, -0.056692, -0.024813, // B2-L
             0.0,      0.0,       0.0,       0.0,       0.0,       // B3-L => all zero because PV bus
             0.079204, 0.032299,  -0.177781, 0.019083,  -0.042493  // B4-L
+        }).transpose();
+        assertMatricesEquals(mRef, m, 1e-6);
+    }
+
+    @Test
+    void testVarBusQFunBusV() {
+        var sensiMatrix = new SensitivityMatrix(SensitivityFunctionType.BUS_VOLTAGE, network.getBusBreakerView().getBusStream().limit(5),
+                                                SensitivityVariableType.INJECTION_REACTIVE_POWER, network.getLoadStream().limit(3));
+        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        var m = sensiMatrix.toResultMatrix(result);
+        @SuppressWarnings("SingleSpaceSeparator")
+        var mRef = new DenseMatrix(5, 3, new double[] {
+        //  B1,  B2,       B3   B4        B5
+            0.0, 0.047924, 0.0, 0.026885, 0.027269, // B2-L
+            0.0, 0.0,      0.0, 0.0,      0.0,      // B3-L => all zero because PV bus
+            0.0, 0.026365, 0.0, 0.087999, 0.067282  // B4-L
         }).transpose();
         assertMatricesEquals(mRef, m, 1e-6);
     }
@@ -102,7 +118,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
-        //  B1, B2, B3, B4, B5
+        //  B1        B2    B3        B4    B5
             0.715067, -1.0, 0.307969, 0.0,  0.0, // B2-L
             0.0,      0.0,  0.0,      0.0,  0.0, // B3-L => all zero because PV bus
             0.568577, 0.0,  0.493863, -1.0, 0.0  // B4-L
