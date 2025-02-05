@@ -1824,7 +1824,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities())
                 .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode())
-                .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits());
     }
@@ -1931,7 +1930,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
-                .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()

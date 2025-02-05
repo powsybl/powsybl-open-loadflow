@@ -135,7 +135,6 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // The areas have no boundaries, so they are not created
         network = MultiAreaNetworkFactory.createWithAreaWithoutBoundariesOrTarget();
         LfNetworkParameters parameters = new LfNetworkParameters();
-        parameters.setAreaInterchangeControl(true);
 
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         assertEquals(1, lfNetworks.size());
@@ -151,7 +150,6 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     void networkWithInvalidAreasTest2() {
         network = MultiAreaNetworkFactory.createAreaTwoComponentsWithBoundaries();
         LfNetworkParameters parameters = new LfNetworkParameters();
-        parameters.setAreaInterchangeControl(true);
 
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         assertEquals(1, lfNetworks.size());
