@@ -250,13 +250,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 if (!elementActive[elementNum]) {
                     continue;
                 }
+                int column = getElementNumToColumn(elementNum);
                 var termNums = termArray.getTermNumsForEquationElementNum(elementNum);
                 for (int i = 0; i < termNums.size(); i++) {
-                    int termNum = termNums.get(i);
+                    int termNum = termNums.getQuick(i);
                     // skip inactive terms
                     if (termArray.isTermActive(termNum)) {
                         int termElementNum = termArray.getTermElementNum(termNum);
-                        int column = getElementNumToColumn(elementNum);
                         values[column] += termValues[termElementNum];
                     }
                 }

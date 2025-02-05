@@ -54,7 +54,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final Evaluator<V> evaluator;
 
     // for each equation element number, term numbers
-    private final List<TIntArrayList> termNumsByEquationElementNum = new ArrayList<>();
+    private TIntArrayList[] termNumsByEquationElementNum;
 
     // for each term element number, corresponding term number
     private final TIntIntMap termNumByTermElementNum = new TIntIntHashMap(3, Constants.DEFAULT_LOAD_FACTOR, -1, -1);
@@ -89,13 +89,14 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
             throw new IllegalArgumentException("Equation term array already added to an equation array");
         }
         this.equationArray = Objects.requireNonNull(equationArray);
+        termNumsByEquationElementNum = new TIntArrayList[equationArray.getElementCount()];
+        for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
+            termNumsByEquationElementNum[elementNum] = new TIntArrayList(10);
+        }
     }
 
     public TIntArrayList getTermNumsForEquationElementNum(int equationElementNum) {
-        while (termNumsByEquationElementNum.size() <= equationElementNum) {
-            termNumsByEquationElementNum.add(new TIntArrayList());
-        }
-        return termNumsByEquationElementNum.get(equationElementNum);
+        return termNumsByEquationElementNum[equationElementNum];
     }
 
     public boolean isTermActive(int termNum) {
@@ -120,7 +121,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
-        getTermNumsForEquationElementNum(equationElementNum).add(termNum);
+        termNumsByEquationElementNum[equationElementNum].add(termNum);
         if (termNumByTermElementNum.put(termElementNum, termNum) != -1) {
             throw new PowsyblException("A term element with same number already exists: " + termElementNum);
         }
