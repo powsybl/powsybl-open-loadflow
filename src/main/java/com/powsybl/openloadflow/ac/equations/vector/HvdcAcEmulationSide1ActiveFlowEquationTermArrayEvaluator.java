@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.equations.VariableSet;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-@SuppressWarnings("squid:S00107")
 public class HvdcAcEmulationSide1ActiveFlowEquationTermArrayEvaluator extends AbstractHvdcAcEmulationActiveFlowEquationTermArrayEvaluator {
 
     public HvdcAcEmulationSide1ActiveFlowEquationTermArrayEvaluator(AcHvdcVector hvdcVector, VariableSet<AcVariableType> variableSet) {
