@@ -12,6 +12,7 @@ import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -139,7 +140,7 @@ public final class Reports {
     public static void reportMismatchDistributionSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, int iterationCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionSuccess", "Slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} distribution iteration(s)")
-                .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withTypedValue("initialMismatch", String.format(Locale.US, "%.6g", slackBusActivePowerMismatch), OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withUntypedValue(ITERATION_COUNT, iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
