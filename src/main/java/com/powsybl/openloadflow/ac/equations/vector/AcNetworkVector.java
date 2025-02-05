@@ -192,14 +192,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         return ksi + a1 - A2 + ph1 - ph2;
     }
 
-    /**
-     * Update all power flows and their derivatives.
-     */
-    public void updatePowerFlows() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        double[] state = equationSystem.getStateVector().get();
-        var w = new DoubleWrapper();
+    public void updateBuses(double[] state) {
 
         for (int busNum = 0; busNum < busVector.v.length; busNum++) {
             if (busVector.vRow[busNum] != -1) {
@@ -209,6 +202,98 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                 busVector.ph[busNum] = state[busVector.phRow[busNum]];
             }
         }
+    }
+
+    public void updateShunts(double[] state) {
+        for (int shuntNum = 0; shuntNum < shuntVector.getSize(); shuntNum++) {
+            if (!shuntVector.disabled[shuntNum]) {
+                if (shuntVector.busNum[shuntNum] != -1) {
+                    double v = state[busVector.vRow[shuntVector.busNum[shuntNum]]];
+                    double b = shuntVector.bRow[shuntNum] != -1 ? state[shuntVector.bRow[shuntNum]] : shuntVector.b[shuntNum];
+                    shuntVector.p[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.p(v, shuntVector.g[shuntNum]);
+                    shuntVector.dpdv[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.dpdv(v, shuntVector.g[shuntNum]);
+                    shuntVector.q[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.q(v, b);
+                    shuntVector.dqdv[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdv(v, b);
+                    shuntVector.dqdb[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdb(v);
+                }
+            }
+        }
+    }
+
+    public void updateHvdcs(double[] state) {
+        for (int hvdcNum = 0; hvdcNum < hvdcVector.getSize(); hvdcNum++) {
+            if (!hvdcVector.disabled[hvdcNum]) {
+                if (isHvdcConnectedSide1(hvdcNum) && isHvdcConnectedSide2(hvdcNum)) {
+                    double ph1 = state[hvdcVector.ph1Row[hvdcNum]];
+                    double ph2 = state[hvdcVector.ph2Row[hvdcNum]];
+
+                    // p1
+                    hvdcVector.p1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.p1(hvdcVector.p0[hvdcNum],
+                            hvdcVector.k[hvdcNum],
+                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                            hvdcVector.lossFactor1[hvdcNum],
+                            hvdcVector.lossFactor2[hvdcNum],
+                            hvdcVector.r[hvdcNum],
+                            ph1,
+                            ph2);
+
+                    hvdcVector.dp1dph1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph1(hvdcVector.p0[hvdcNum],
+                            hvdcVector.k[hvdcNum],
+                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                            hvdcVector.lossFactor1[hvdcNum],
+                            hvdcVector.lossFactor2[hvdcNum],
+                            ph1,
+                            ph2);
+
+                    hvdcVector.dp1dph2[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph2(hvdcVector.p0[hvdcNum],
+                            hvdcVector.k[hvdcNum],
+                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                            hvdcVector.lossFactor1[hvdcNum],
+                            hvdcVector.lossFactor2[hvdcNum],
+                            ph1,
+                            ph2);
+
+                    // p2
+                    hvdcVector.p2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.p2(hvdcVector.p0[hvdcNum],
+                            hvdcVector.k[hvdcNum],
+                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                            hvdcVector.lossFactor1[hvdcNum],
+                            hvdcVector.lossFactor2[hvdcNum],
+                            hvdcVector.r[hvdcNum],
+                            ph1,
+                            ph2);
+
+                    hvdcVector.dp2dph1[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph1(hvdcVector.p0[hvdcNum],
+                            hvdcVector.k[hvdcNum],
+                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                            hvdcVector.lossFactor1[hvdcNum],
+                            hvdcVector.lossFactor2[hvdcNum],
+                            ph1,
+                            ph2);
+
+                    hvdcVector.dp2dph2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph2(hvdcVector.p0[hvdcNum],
+                            hvdcVector.k[hvdcNum],
+                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                            hvdcVector.lossFactor1[hvdcNum],
+                            hvdcVector.lossFactor2[hvdcNum],
+                            ph1,
+                            ph2);
+                }
+            }
+        }
+    }
+
+    /**
+     * Update all power flows and their derivatives.
+     */
+    public void updateBranches(double[] state) {
+        var w = new DoubleWrapper();
 
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
             // dummy P
@@ -565,87 +650,16 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                 }
             }
         }
+    }
 
-        for (int shuntNum = 0; shuntNum < shuntVector.getSize(); shuntNum++) {
-            if (!shuntVector.disabled[shuntNum]) {
-                if (shuntVector.busNum[shuntNum] != -1) {
-                    double v = state[busVector.vRow[shuntVector.busNum[shuntNum]]];
-                    double b = shuntVector.bRow[shuntNum] != -1 ? state[shuntVector.bRow[shuntNum]] : shuntVector.b[shuntNum];
-                    shuntVector.p[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.p(v, shuntVector.g[shuntNum]);
-                    shuntVector.dpdv[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.dpdv(v, shuntVector.g[shuntNum]);
-                    shuntVector.q[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.q(v, b);
-                    shuntVector.dqdv[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdv(v, b);
-                    shuntVector.dqdb[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdb(v);
-                }
-            }
-        }
+    public void updateNetworkState() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
-        for (int hvdcNum = 0; hvdcNum < hvdcVector.getSize(); hvdcNum++) {
-            if (!hvdcVector.disabled[hvdcNum]) {
-                if (isHvdcConnectedSide1(hvdcNum) && isHvdcConnectedSide2(hvdcNum)) {
-                    double ph1 = state[hvdcVector.ph1Row[hvdcNum]];
-                    double ph2 = state[hvdcVector.ph2Row[hvdcNum]];
-
-                    // p1
-                    hvdcVector.p1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.p1(hvdcVector.p0[hvdcNum],
-                                                                                           hvdcVector.k[hvdcNum],
-                                                                                           hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                           hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                           hvdcVector.lossFactor1[hvdcNum],
-                                                                                           hvdcVector.lossFactor2[hvdcNum],
-                                                                                           hvdcVector.r[hvdcNum],
-                                                                                           ph1,
-                                                                                           ph2);
-
-                    hvdcVector.dp1dph1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph1(hvdcVector.p0[hvdcNum],
-                                                                                                     hvdcVector.k[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor2[hvdcNum],
-                                                                                                     ph1,
-                                                                                                     ph2);
-
-                    hvdcVector.dp1dph2[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph2(hvdcVector.p0[hvdcNum],
-                                                                                                     hvdcVector.k[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor2[hvdcNum],
-                                                                                                     ph1,
-                                                                                                     ph2);
-
-                    // p2
-                    hvdcVector.p2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.p2(hvdcVector.p0[hvdcNum],
-                                                                                           hvdcVector.k[hvdcNum],
-                                                                                           hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                           hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                           hvdcVector.lossFactor1[hvdcNum],
-                                                                                           hvdcVector.lossFactor2[hvdcNum],
-                                                                                           hvdcVector.r[hvdcNum],
-                                                                                           ph1,
-                                                                                           ph2);
-
-                    hvdcVector.dp2dph1[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph1(hvdcVector.p0[hvdcNum],
-                                                                                                     hvdcVector.k[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor2[hvdcNum],
-                                                                                                     ph1,
-                                                                                                     ph2);
-
-                    hvdcVector.dp2dph2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph2(hvdcVector.p0[hvdcNum],
-                                                                                                     hvdcVector.k[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                                     hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor1[hvdcNum],
-                                                                                                     hvdcVector.lossFactor2[hvdcNum],
-                                                                                                     ph1,
-                                                                                                     ph2);
-                }
-            }
-        }
+        double[] state = equationSystem.getStateVector().get();
+        updateBuses(state);
+        updateBranches(state);
+        updateShunts(state);
+        updateHvdcs(state);
 
         stopwatch.stop();
         LOGGER.debug("AC network vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -711,6 +725,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     @Override
     public void onStateUpdate() {
         updateVariables();
-        updatePowerFlows();
+        updateNetworkState();
     }
 }
