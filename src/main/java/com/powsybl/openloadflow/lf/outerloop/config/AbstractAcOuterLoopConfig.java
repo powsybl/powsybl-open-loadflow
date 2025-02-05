@@ -11,6 +11,7 @@ import com.google.common.base.Suppliers;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
+import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -38,16 +39,16 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
         if (contingencyParameters.isDistributedSlack(parameters)) {
-            return Optional.of(DistributedSlackOuterLoop.create(contingencyParameters.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
-                    parametersExt.getSlackBusPMaxMismatch()));
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(contingencyParameters.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+            return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
         }
         return Optional.empty();
     }
 
     protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
         if (contingencyParameters.isAreaInterchangeControl(parametersExt)) {
-            return Optional.of(AcAreaInterchangeControlOuterLoop.create(contingencyParameters.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits(),
-                    parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(contingencyParameters.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+            return Optional.of(new AcAreaInterchangeControlOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
         }
         return Optional.empty();
     }
@@ -145,7 +146,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    public static List<AcOuterLoop> filterInconsistentOuterLoops(List<AcOuterLoop> outerLoops) {
+    static List<AcOuterLoop> filterInconsistentOuterLoops(List<AcOuterLoop> outerLoops) {
         if (outerLoops.stream().anyMatch(AcAreaInterchangeControlOuterLoop.class::isInstance)) {
             return outerLoops.stream().filter(o -> {
                 if (o instanceof DistributedSlackOuterLoop) {

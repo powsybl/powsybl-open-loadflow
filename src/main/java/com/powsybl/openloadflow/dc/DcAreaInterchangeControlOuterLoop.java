@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
@@ -30,12 +29,6 @@ public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
 
     public DcAreaInterchangeControlOuterLoop(ActivePowerDistribution activePowerDistribution, double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
         super(activePowerDistribution, new DcNoAreaOuterLoop(), slackBusPMaxMismatch, areaInterchangePMaxMismatch, LOGGER);
-    }
-
-    public static DcAreaInterchangeControlOuterLoop create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits,
-                                                           double slackBusPMaxMismatch, double areaInterchangePMaxMismatch) {
-        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, loadPowerFactorConstant, useActiveLimits);
-        return new DcAreaInterchangeControlOuterLoop(activePowerDistribution, slackBusPMaxMismatch, areaInterchangePMaxMismatch);
     }
 
     @Override
