@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.vector.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.network.*;
@@ -29,9 +27,6 @@ class EquationArrayTest {
 
     private EquationSystem<AcVariableType, AcEquationType> createEquationSystem(LfNetwork lfNetwork) {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, lfNetwork);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
-        AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
-        AcBranchVector branchVector = networkVector.getBranchVector();
         for (LfBus bus : lfNetwork.getBuses()) {
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         }
@@ -39,11 +34,10 @@ class EquationArrayTest {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
-                    .addTerm(new ClosedBranchVectorSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false));
+                    .addTerm(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false));
             equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
-                    .addTerm(new ClosedBranchVectorSide2ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false));
+                    .addTerm(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false));
         }
-        networkVector.startListening();
         AcSolverUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
         return equationSystem;
     }

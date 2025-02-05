@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import static com.powsybl.openloadflow.network.PiModel.A2;
+
 /**
  * Vectorized view of the network and variables of the equation system.
  *
@@ -182,6 +184,14 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         return hvdcVector.bus2Num[hvdcNum] != -1;
     }
 
+    public static double theta1(double ksi, double ph1, double a1, double ph2) {
+        return ksi - a1 + A2 - ph1 + ph2;
+    }
+
+    public static double theta2(double ksi, double ph1, double a1, double ph2) {
+        return ksi + a1 - A2 + ph1 - ph2;
+    }
+
     /**
      * Update all power flows and their derivatives.
      */
@@ -221,12 +231,12 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     double a1 = branchVector.a1Row[branchNum] != -1 ? state[branchVector.a1Row[branchNum]]
                                                                     : branchVector.a1[branchNum];
 
-                    double theta1 = AbstractClosedBranchVectorAcFlowEquationTerm.theta1(
+                    double theta1 = theta1(
                             branchVector.ksi[branchNum],
                             ph1,
                             a1,
                             ph2);
-                    double theta2 = AbstractClosedBranchVectorAcFlowEquationTerm.theta2(
+                    double theta2 = theta2(
                             branchVector.ksi[branchNum],
                             ph1,
                             a1,
