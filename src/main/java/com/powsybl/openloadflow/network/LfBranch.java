@@ -211,10 +211,6 @@ public interface LfBranch extends LfElement {
 
     List<Evaluable> getAdditionalClosedQ2();
 
-    void addDummyFlow(Evaluable dummyFlow);
-
-    List<Evaluable> getDummyFlows();
-
     List<LfLimit> getLimits1(LimitType type, LimitReductionManager limitReductionManager);
 
     default List<LfLimit> getLimits2(LimitType type, LimitReductionManager limitReductionManager) {
