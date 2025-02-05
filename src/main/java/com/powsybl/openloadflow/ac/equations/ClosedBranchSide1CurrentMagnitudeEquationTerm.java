@@ -141,17 +141,17 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        if (variable.equals(variables.getV1Var())) {
+        if (variable.equals(v1Var)) {
             return di1dv1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(variables.getV2Var())) {
+        } else if (variable.equals(v2Var)) {
             return di1dv2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(variables.getPh1Var())) {
+        } else if (variable.equals(ph1Var)) {
             return di1dph1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(variables.getPh2Var())) {
+        } else if (variable.equals(ph2Var)) {
             return di1dph2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(variables.getA1Var())) {
+        } else if (variable.equals(a1Var)) {
             return di1da1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(variables.getR1Var())) {
+        } else if (variable.equals(r1Var)) {
             throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
