@@ -1016,8 +1016,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
-                            case INJECTION_ACTIVE_POWER:
-                            case INJECTION_REACTIVE_POWER:
+                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
