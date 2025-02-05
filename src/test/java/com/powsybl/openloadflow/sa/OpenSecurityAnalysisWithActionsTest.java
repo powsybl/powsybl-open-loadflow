@@ -1736,8 +1736,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     }
 
-    @Test
-    void testContingencyParameters() {
     @ParameterizedTest(name = "DC = {0}")
     @ValueSource(booleans = {false, true})
     void testContingencyParameters(boolean isDc) {
