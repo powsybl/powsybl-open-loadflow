@@ -61,7 +61,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected LfAsymLine asymLine;
 
-    protected final List<Evaluable> dummies = new ArrayList<>();
+    protected final List<Evaluable> dummyFlows = new ArrayList<>();
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
@@ -401,12 +401,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public void addDummy(Evaluable dummy) {
-        dummies.add(dummy);
+    public void addDummyFlow(Evaluable dummyFlow) {
+        dummyFlows.add(dummyFlow);
     }
 
     @Override
-    public List<Evaluable> getDummies() {
-        return dummies;
+    public List<Evaluable> getDummyFlows() {
+        return dummyFlows;
     }
 }

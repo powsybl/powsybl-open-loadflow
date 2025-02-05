@@ -90,8 +90,8 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 .orElseThrow()
                 .setActive(!enable);
 
-        for (var dummy : branch.getDummies()) {
-            ((BaseEquationTerm<AcVariableType, AcEquationType>) dummy).setActive(enable);
+        for (var dummyFlow : branch.getDummyFlows()) {
+            ((BaseEquationTerm<AcVariableType, AcEquationType>) dummyFlow).setActive(enable);
         }
     }
 

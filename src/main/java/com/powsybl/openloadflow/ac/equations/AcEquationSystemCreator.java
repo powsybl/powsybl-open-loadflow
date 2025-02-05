@@ -498,13 +498,13 @@ public class AcEquationSystemCreator {
                 equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
                         .addTerm(dummyQ);
-                branch.addDummy(dummyQ);
+                branch.addDummyFlow(dummyQ);
 
                 var dummyNegQ = createDummyReactivePowerEquationTerm(branch, creationContext, true);
                 equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
                         .addTerm(dummyNegQ);
-                branch.addDummy(dummyNegQ);
+                branch.addDummyFlow(dummyNegQ);
 
                 // create an inactive dummy reactive power target equation set to zero that could be activated
                 // on case of switch opening
@@ -533,13 +533,13 @@ public class AcEquationSystemCreator {
                 equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
                         .addTerm(dummyP);
-                branch.addDummy(dummyP);
+                branch.addDummyFlow(dummyP);
 
                 var dummyNegP = createDummyActivePowerEquationTerm(branch, creationContext, true);
                 equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
                         .orElseThrow()
                         .addTerm(dummyNegP);
-                branch.addDummy(dummyNegP);
+                branch.addDummyFlow(dummyNegP);
 
                 // create an inactive dummy active power target equation set to zero that could be activated
                 // on case of switch opening
