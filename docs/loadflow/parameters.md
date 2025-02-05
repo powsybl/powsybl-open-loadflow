@@ -212,8 +212,11 @@ The default value is `20` and it must be greater or equal to `1`.
 
 **newtonRaphsonStoppingCriteriaType**  
 Stopping criteria for Newton-Raphson algorithm.
-- `UNIFORM_CRITERIA`: stop when all equation mismatches are below `newtonRaphsonConvEpsPerEq` threshold.
-  `newtonRaphsonConvEpsPerEq` defines the threshold for all equation types, in per-unit with `100 MVA` base. The default value is $10^{-4} \text{p.u.}$ and it must be greater than 0.
+- `UNIFORM_CRITERIA`: stop when quadratic norm of all mismatches vector is below quadratic norm of mismatches of value `newtonRaphsonConvEpsPerEq`. This criteria is defined by the following formula (for $n$ equations):
+
+$$\sqrt {mismatch_1^2 + mismatch_2^2 + ... + mismatch_n^2} < \sqrt{n * newtonRaphsonConvEpsPerEq^2}$$
+
+  `newtonRaphsonConvEpsPerEq` defines the corresponding threshold for all equation types, in per-unit. The default value is $10^{-4} \text{p.u.}$ and must be greater than 0.
 - `PER_EQUATION_TYPE_CRITERIA`: stop when equation mismatches are below equation type specific thresholds:
     - `maxActivePowerMismatch`: Defines the threshold for active power equations, in MW. The default value is $10^{-2} \text{MW}$ and it must be greater than 0.
     - `maxReactivePowerMismatch`: Defines the threshold for reactive power equations, in MVAr. The default value is $10^{-2} \text{MVAr}$ and it must be greater than 0.
@@ -375,10 +378,39 @@ The default value is `Q_EQUAL_PROPORTION`.
 This parameter allows to disable the voltage control of generators which `targetP` is lower than `minP` or greater than `maxP`. The default value is `false`.
 
 **outerLoopNames**  
+
+> **Note**: This is an advanced parameter.
+> Unless you have specific needs, use the default outer loop order built-in PowSyBl Open Load Flow.
+
 This parameter allows to configure both the list of outer loops that can be executed and their explicit execution order.
 Each outer loop name specified in the list must be unique and match the `NAME` attribute of the respective outer loop.
 
-By default, this parameter is set to `null`, and the activated outer loops are executed in a default order (defined in DefaultAcOuterLoopConfig).
+By default, this parameter is set to `null`, and the activated outer loops are executed in a default order
+(as defined in `DefaultAcOuterLoopConfig` for AC Load Flow and `DefaultDcOuterLoopConfig` for DC Load Flow).
+
+Here an example with slack distribution and reactive limits consideration, in AC Load Flow, when `outerLoopNames` is **not** used:
+- the creation of the `DistributedSlack` *outerloop* is driven by the parameter `distributedSlack` *parameter*.
+- the creation of the `ReactiveLimits` *outerloop* is driven by the parameter `useReactiveLimits` *parameter*.
+- PowSyBl Open Load Flow default order is to run the `DistributedSlack` outerloop first, and then the `ReactiveLimits` outerloop.
+
+Continuing this example, the outer loops creation and execution order can be modified by setting `outerLoopNames` to
+value `['ReactiveLimits', 'DistributedSlack']`, in this case PowSyBl Open Load Flow will the `ReactiveLimits` outerloop first,
+and then the `DistributedSlack` outerloop.
+
+For AC load flow the supported outer loop names, their default execution order, and their corresponding high-level parameter, are:
+1. `DistributedSlack` / `AreaInterchangeControl` (parameters: `distributedSlack` / `areaInterchangeControl`)
+2. `SecondaryVoltageControl` (parameter: `secondaryVoltageControl`)
+3. `VoltageMonitoring` (parameter: `svcVoltageMonitoring`)
+4. `ReactiveLimits` (parameter: `useReactiveLimits`)
+5. `PhaseControl` / `IncrementalPhaseControl` (parameters: `phaseShifterRegulationOn` and `phaseShifterControlMode`)
+6. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: `transformerVoltageControlOn` and `transformerVoltageControlMode`)
+7. `IncrementalTransformerReactivePowerControl` (parameter: `transformerReactivePowerControl`)
+8. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: `shuntVoltageControl` and `shuntVoltageControlMode`)
+9. `AutomationSystem` (parameter: `simulateAutomationSystems`)
+
+And for DC load flow:
+1. `IncrementalPhaseControl` (parameter: `phaseShifterRegulationOn`)
+2. `AreaInterchangeControl` (parameter: `areaInterchangeControl`)
 
 **linePerUnitMode**  
 This parameter defines how lines ending in different nominal voltages at both sides are perunit-ed.

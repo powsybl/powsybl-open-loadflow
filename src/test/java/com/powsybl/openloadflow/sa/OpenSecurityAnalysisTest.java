@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -3702,8 +3702,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.498, postContingencyResultslc12Bis.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void multiComponentSaTestContingencyBothComponentsAndOperatorStrategy() {
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void multiComponentSaTestContingencyBothComponentsAndOperatorStrategy(int threadCount) {
 
         Network network = FourBusNetworkFactory.createWithTwoScs();
         // Add a load on small component
@@ -3717,10 +3718,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .add();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()
+                .setThreadCount(threadCount);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
         securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
 
         // This contingency should impact both components
-        List<Contingency> contingencies = List.of(new Contingency("compositeContingency", List.of(new BranchContingency("l13"), new LoadContingency("dummyLoad"))));
+        List<Contingency> checkedContingencies = List.of(new Contingency("compositeContingency", List.of(new BranchContingency("l13"), new LoadContingency("dummyLoad"))));
+
+        // Add more contingencies to activate multi thread
+        List<Contingency> contingencies = new ArrayList<>(checkedContingencies);
+        for (int i = 0; i < 10; i++) {
+            contingencies.add(new Contingency("compositeContingency_" + i, List.of(new BranchContingency("l13"), new LoadContingency("dummyLoad"))));
+        }
 
         // Monitor branch in both components
         List<StateMonitor> monitors = List.of(
@@ -3729,9 +3739,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Action> actions = List.of(new TerminalsConnectionAction("open_l13", "l13", true),
                 new LoadActionBuilder().withId("dc2").withLoadId("dc2").withRelativeValue(false).withActivePowerValue(1).build());
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("compositeContingency"), new TrueCondition(), List.of("open_l13", "dc2")));
+        List<OperatorStrategy> operatorStrategies = contingencies.stream()
+                .map(c -> new OperatorStrategy("strategy_" + c.getId(), ContingencyContext.specificContingency(c.getId()), new TrueCondition(), List.of("open_l13", "dc2")))
+                .toList();
 
-        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("TEST", "Test Report Node")
+                .build();
+
+        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, reportNode);
         NetworkResult preContingencyResults = results.getPreContingencyResult().getNetworkResult();
 
         // Result for base case is available for all components
@@ -3741,7 +3757,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.493, preContingencyResults.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.493, preContingencyResults.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        NetworkResult postContingencyResults = results.getPostContingencyResults().get(0).getNetworkResult();
+        NetworkResult postContingencyResults = results.getPostContingencyResults().stream()
+                .filter(r -> r.getContingency().getId().equals("compositeContingency"))
+                .findAny()
+                .map(AbstractContingencyResult::getNetworkResult)
+                .orElseThrow();
 
         // Because contingency impact both networks, each simulation should output results for its components
         // Results should then be merged in a single post contingency result
@@ -3759,7 +3779,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1.311, operatorStrategyResult.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+
     }
+
 
     /**
      * FIXME Multiple initial components with an action reconnecting a line linking both components is not well supported
