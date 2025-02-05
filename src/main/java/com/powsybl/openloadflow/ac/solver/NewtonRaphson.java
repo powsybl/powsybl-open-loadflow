@@ -54,16 +54,16 @@ public class NewtonRaphson extends AbstractAcSolver {
         return "Newton Raphson";
     }
 
-    public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {
+    public static List<Pair<ScalarEquation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {
         return equationSystem.getIndex().getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
                 .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
-                .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
+                .sorted(Comparator.comparingDouble((Map.Entry<ScalarEquation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
                 .limit(count)
                 .toList();
     }
 
-    public static Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
+    public static Map<AcEquationType, Pair<ScalarEquation<AcVariableType, AcEquationType>, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
         // TODO array
         return equationSystem.getIndex().getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
@@ -71,13 +71,13 @@ public class NewtonRaphson extends AbstractAcSolver {
     }
 
     public void reportAndLogLargestMismatchByAcEquationType(ReportNode reportNode, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
-        Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
+        Map<AcEquationType, Pair<ScalarEquation<AcVariableType, AcEquationType>, Double>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
 
         // report largest mismatches in (P, Q, V) equations
         for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
             Optional.ofNullable(mismatchEquations.get(acEquationType))
                     .ifPresent(equationPair -> {
-                        Equation<AcVariableType, AcEquationType> equation = equationPair.getKey();
+                        ScalarEquation<AcVariableType, AcEquationType> equation = equationPair.getKey();
                         double equationMismatch = equationPair.getValue();
                         int elementNum = equation.getElementNum();
                         String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
@@ -143,7 +143,7 @@ public class NewtonRaphson extends AbstractAcSolver {
             if (LOGGER.isTraceEnabled()) {
                 findLargestMismatches(equationSystem, equationVector.getArray(), 5)
                         .forEach(e -> {
-                            Equation<AcVariableType, AcEquationType> equation = e.getKey();
+                            ScalarEquation<AcVariableType, AcEquationType> equation = e.getKey();
                             String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
                             LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
                         });

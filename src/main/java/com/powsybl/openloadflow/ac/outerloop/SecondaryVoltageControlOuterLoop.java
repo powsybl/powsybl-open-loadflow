@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.BaseEquationTerm;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -93,23 +93,23 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         }
 
         @SuppressWarnings("unchecked")
-        private static BaseEquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus pilotBus) {
-            return (BaseEquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
+        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus pilotBus) {
+            return (EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
         }
 
         @SuppressWarnings("unchecked")
-        private static BaseEquationTerm<AcEquationType, AcEquationType> getQ1(LfBranch branch) {
-            return (BaseEquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
+        private static EquationTerm<AcEquationType, AcEquationType> getQ1(LfBranch branch) {
+            return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
         }
 
         @SuppressWarnings("unchecked")
-        private static BaseEquationTerm<AcEquationType, AcEquationType> getQ2(LfBranch branch) {
-            return (BaseEquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
+        private static EquationTerm<AcEquationType, AcEquationType> getQ2(LfBranch branch) {
+            return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
         }
 
         @SuppressWarnings("unchecked")
-        private static BaseEquationTerm<AcEquationType, AcEquationType> getQ(LfShunt shunt) {
-            return (BaseEquationTerm<AcEquationType, AcEquationType>) shunt.getQ();
+        private static EquationTerm<AcEquationType, AcEquationType> getQ(LfShunt shunt) {
+            return (EquationTerm<AcEquationType, AcEquationType>) shunt.getQ();
         }
 
         double calculateSensiK(LfBus controllerBus, LfBus controlledBus) {

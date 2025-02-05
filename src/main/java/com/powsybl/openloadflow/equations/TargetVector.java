@@ -19,7 +19,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-        void initialize(Equation<V, E> equation, LfNetwork network, double[] targets);
+        void initialize(ScalarEquation<V, E> equation, LfNetwork network, double[] targets);
 
         void initialize(EquationArray<V, E> equationArray, LfNetwork network, double[] targets);
     }
@@ -91,9 +91,9 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(network);
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
-        List<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        List<ScalarEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         double[] array = new double[equationSystem.getIndex().getColumnCount()];
-        for (Equation<V, E> equation : sortedEquationsToSolve) {
+        for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
@@ -109,8 +109,8 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     @Override
     protected void updateArray(double[] array) {
-        List<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
-        for (Equation<V, E> equation : sortedEquationsToSolve) {
+        List<ScalarEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {

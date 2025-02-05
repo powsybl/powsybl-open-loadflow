@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
-import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.ScalarEquation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
 import com.powsybl.openloadflow.network.*;
@@ -1043,7 +1043,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = Mockito.mock(EquationSystem.class);
         EquationSystemIndex<DcVariableType, DcEquationType> equationSystemIndex = Mockito.mock(EquationSystemIndex.class);
         Mockito.when(equationSystem.getIndex()).thenReturn(equationSystemIndex);
-        List<Equation<DcVariableType, DcEquationType>> equations = Mockito.mock(List.class);
+        List<ScalarEquation<DcVariableType, DcEquationType>> equations = Mockito.mock(List.class);
         Mockito.when(equations.size()).thenReturn(100000);
         Mockito.when(equationSystemIndex.getSortedEquationsToSolve()).thenReturn(equations);
         AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorsGroups = Mockito.mock(AbstractSensitivityAnalysis.SensitivityFactorGroupList.class);

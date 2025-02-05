@@ -24,7 +24,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private final EquationSystem<V, E> equationSystem;
 
-    private final Set<Equation<V, E>> equationsToSolve = new HashSet<>();
+    private final Set<ScalarEquation<V, E>> equationsToSolve = new HashSet<>();
 
     private int columnCount = 0;
 
@@ -33,7 +33,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private int rowCount = 0;
 
-    private List<Equation<V, E>> sortedEquationsToSolve = Collections.emptyList();
+    private List<ScalarEquation<V, E>> sortedEquationsToSolve = Collections.emptyList();
 
     private List<Variable<V>> sortedVariablesToFind = Collections.emptyList();
 
@@ -56,7 +56,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.remove(Objects.requireNonNull(listener));
     }
 
-    private void notifyEquationChange(Equation<V, E> equation, EquationSystemIndexListener.ChangeType changeType) {
+    private void notifyEquationChange(ScalarEquation<V, E> equation, EquationSystemIndexListener.ChangeType changeType) {
         listeners.forEach(listener -> listener.onEquationChange(equation, changeType));
     }
 
@@ -64,7 +64,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onVariableChange(variable, changeType));
     }
 
-    private void notifyEquationTermChange(EquationTerm<V, E> term) {
+    private void notifyEquationTermChange(ScalarEquationTerm<V, E> term) {
         listeners.forEach(listener -> listener.onEquationTermChange(term));
     }
 
@@ -80,7 +80,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         if (!equationsIndexValid) {
             sortedEquationsToSolve = equationsToSolve.stream().sorted().collect(Collectors.toList());
             columnCount = 0;
-            for (Equation<V, E> equation : sortedEquationsToSolve) {
+            for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
                 equation.setColumn(columnCount++);
             }
             int columnCountFromArrayEquations = 0;
@@ -105,7 +105,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void addTerm(EquationTerm<V, E> term) {
+    private void addTerm(ScalarEquationTerm<V, E> term) {
         notifyEquationTermChange(term);
         addVariables(term.getVariables());
     }
@@ -124,10 +124,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void addEquation(Equation<V, E> equation) {
+    private void addEquation(ScalarEquation<V, E> equation) {
         equationsToSolve.add(equation);
         equationsIndexValid = false;
-        for (EquationTerm<V, E> term : equation.getTerms()) {
+        for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
                 addTerm(term);
             }
@@ -135,7 +135,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         notifyEquationChange(equation, EquationSystemIndexListener.ChangeType.ADDED);
     }
 
-    private void removeTerm(EquationTerm<V, E> term) {
+    private void removeTerm(ScalarEquationTerm<V, E> term) {
         notifyEquationTermChange(term);
         removeVariables(term.getVariables());
     }
@@ -155,11 +155,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void removeEquation(Equation<V, E> equation) {
+    private void removeEquation(ScalarEquation<V, E> equation) {
         equation.setColumn(-1);
         equationsToSolve.remove(equation);
         equationsIndexValid = false;
-        for (EquationTerm<V, E> term : equation.getTerms()) {
+        for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
                 removeTerm(term);
             }
@@ -168,7 +168,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
+    public void onEquationChange(ScalarEquation<V, E> equation, EquationEventType eventType) {
         switch (eventType) {
             case EQUATION_REMOVED:
                 if (equation.isActive()) {
@@ -196,7 +196,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
+    public void onEquationTermChange(ScalarEquationTerm<V, E> term, EquationTermEventType eventType) {
         if (term.getEquation().isActive()) {
             switch (eventType) {
                 case EQUATION_TERM_ADDED:
@@ -282,7 +282,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    public List<Equation<V, E>> getSortedEquationsToSolve() {
+    public List<ScalarEquation<V, E>> getSortedEquationsToSolve() {
         update();
         return sortedEquationsToSolve;
     }

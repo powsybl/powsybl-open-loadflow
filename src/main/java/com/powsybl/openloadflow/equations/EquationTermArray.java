@@ -169,7 +169,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
     }
 
-    public static class EquationTermArrayElementImpl<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements BaseEquationTerm<V, E> {
+    public static class EquationTermArrayElementImpl<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
         final EquationTermArray<V, E> equationTermArray;
 
@@ -211,27 +211,32 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
 
         @Override
-        public BaseEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
+        public EquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
             throw new UnsupportedOperationException("Term multiply not supported for arrays");
         }
 
         @Override
-        public BaseEquationTerm<V, E> multiply(double scalar) {
+        public EquationTerm<V, E> multiply(double scalar) {
             throw new UnsupportedOperationException("Term multiply not supported for arrays");
         }
 
         @Override
-        public BaseEquationTerm<V, E> minus() {
+        public EquationTerm<V, E> minus() {
             throw new UnsupportedOperationException("Term minus not supported for arrays");
         }
 
         @Override
-        public BaseEquation<V, E> getEquation() {
+        public Equation<V, E> getEquation() {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        @Override
+        public List<Variable<V>> getVariables() {
             throw new UnsupportedOperationException("TODO");
         }
     }
 
-    public BaseEquationTerm<V, E> getElement(int termElementNum) {
+    public EquationTerm<V, E> getElement(int termElementNum) {
         return new EquationTermArrayElementImpl<>(this, termElementNum);
     }
 

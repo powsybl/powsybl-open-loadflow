@@ -64,7 +64,7 @@ class EquationsTest {
     private static final double LOSS_FACTOR_2 = 0.02400453453002384;
     private static final double G_SHUNT = 0.0000372472384299244;
 
-    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] eval(EquationTerm<V, E> term, List<Variable<V>> variables, StateVector sv) {
+    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] eval(ScalarEquationTerm<V, E> term, List<Variable<V>> variables, StateVector sv) {
         term.setStateVector(sv);
         double[] values = new double[variables.size() + 2];
 

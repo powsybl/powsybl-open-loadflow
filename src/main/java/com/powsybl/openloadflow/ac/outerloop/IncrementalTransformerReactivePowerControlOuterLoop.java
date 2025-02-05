@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.BaseEquationTerm;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
@@ -125,9 +125,9 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         }
 
         @SuppressWarnings("unchecked")
-        private static BaseEquationTerm<AcVariableType, AcEquationType> getCalculatedQ(LfBranch controlledBranch, TwoSides controlledSide) {
+        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedQ(LfBranch controlledBranch, TwoSides controlledSide) {
             var calculatedQ = controlledSide == TwoSides.ONE ? controlledBranch.getQ1() : controlledBranch.getQ2();
-            return (BaseEquationTerm<AcVariableType, AcEquationType>) calculatedQ;
+            return (EquationTerm<AcVariableType, AcEquationType>) calculatedQ;
         }
 
         double calculateSensitivityFromRToQ(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide) {

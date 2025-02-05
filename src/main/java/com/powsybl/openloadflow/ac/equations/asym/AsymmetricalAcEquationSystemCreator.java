@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.*;
-import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.ScalarEquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -103,24 +103,24 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         var equationSystem = creationContext.getEquationSystem();
 
         // positive sequence
-        EquationTerm<AcVariableType, AcEquationType> p1 = null;
-        EquationTerm<AcVariableType, AcEquationType> q1 = null;
-        EquationTerm<AcVariableType, AcEquationType> p2 = null;
-        EquationTerm<AcVariableType, AcEquationType> q2 = null;
-        EquationTerm<AcVariableType, AcEquationType> i1 = null;
-        EquationTerm<AcVariableType, AcEquationType> i2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> p1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> q1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> p2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> q2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> i1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> i2 = null;
 
         // zero sequence
-        EquationTerm<AcVariableType, AcEquationType> ixz1 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyz1 = null;
-        EquationTerm<AcVariableType, AcEquationType> ixz2 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyz2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> ixz1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> iyz1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> ixz2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> iyz2 = null;
 
         // negative sequence
-        EquationTerm<AcVariableType, AcEquationType> ixn1 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyn1 = null;
-        EquationTerm<AcVariableType, AcEquationType> ixn2 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyn2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> ixn1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> iyn1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> ixn2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> iyn2 = null;
 
         boolean deriveA1 = isDeriveA1(branch, creationParameters);
         boolean deriveR1 = isDeriveR1(branch);

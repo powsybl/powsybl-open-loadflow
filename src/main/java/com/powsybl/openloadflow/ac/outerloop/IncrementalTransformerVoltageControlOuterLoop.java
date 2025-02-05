@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.BaseEquationTerm;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
@@ -115,8 +115,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
 
         @SuppressWarnings("unchecked")
-        private static BaseEquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus controlledBus) {
-            return (BaseEquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV();
+        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus controlledBus) {
+            return (EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV();
         }
 
         double calculateSensitivityFromRToV(LfBranch controllerBranch, LfBus controlledBus) {

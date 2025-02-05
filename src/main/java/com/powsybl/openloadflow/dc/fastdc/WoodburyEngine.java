@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationT
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.equations.BaseEquation;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.*;
@@ -97,7 +97,7 @@ public class WoodburyEngine {
             // set buses injections and transformers to 0
             disabledNetwork.getBuses().stream()
                     .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
-                    .map(BaseEquation::getColumn)
+                    .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
         }
 
@@ -105,7 +105,7 @@ public class WoodburyEngine {
             // set transformer phase shift to 0
             disabledNetwork.getBranches().stream()
                     .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
-                    .map(BaseEquation::getColumn)
+                    .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
         }
 

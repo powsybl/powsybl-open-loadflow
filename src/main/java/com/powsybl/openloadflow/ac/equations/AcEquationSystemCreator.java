@@ -142,7 +142,7 @@ public class AcEquationSystemCreator {
         if (bus1 != null && bus2 != null) {
             var equationSystem = creationContext.getEquationSystem();
             branch.getGeneratorReactivePowerControl().ifPresent(rpc -> {
-                BaseEquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == TwoSides.ONE
+                EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == TwoSides.ONE
                         ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
@@ -161,7 +161,7 @@ public class AcEquationSystemCreator {
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
-        BaseEquation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
+        Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow();
 
         if (controlledBranch.isDisabled()) {
@@ -218,11 +218,11 @@ public class AcEquationSystemCreator {
         shunt.setP(p);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, AcEquationSystemCreationContext creationContext) {
         return new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, boolean deriveB, AcEquationSystemCreationContext creationContext) {
         return new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, creationContext.getEquationSystem().getVariableSet(), deriveB);
     }
 
@@ -250,7 +250,7 @@ public class AcEquationSystemCreator {
             // 0 = qPercent_i * sum_j(q_j) - q_i
             // which can be rewritten in a more simple way
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
-            BaseEquation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, creationContext, creationParameters).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
@@ -308,10 +308,10 @@ public class AcEquationSystemCreator {
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
 
-        BaseEquation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        List<BaseEquation<AcVariableType, AcEquationType>> vEqMergedList = voltageControl.getMergedDependentVoltageControls().stream()
+        List<Equation<AcVariableType, AcEquationType>> vEqMergedList = voltageControl.getMergedDependentVoltageControls().stream()
                 .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
                 .toList();
 
@@ -364,11 +364,11 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private List<BaseEquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,
-                                                                                       AcEquationSystemCreationContext creationContext,
-                                                                                       AcEquationSystemCreationParameters creationParameters) {
+    private List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,
+                                                                                   AcEquationSystemCreationContext creationContext,
+                                                                                   AcEquationSystemCreationParameters creationParameters) {
         var variableSet = creationContext.getEquationSystem().getVariableSet();
-        List<BaseEquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
+        List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
             EquationTerm<AcVariableType, AcEquationType> openQ = null;
@@ -444,27 +444,27 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+    protected EquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
         var equationSystem = creationContext.getEquationSystem();
-        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
+        EquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
         return neg ? term.minus() : term;
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTermForDummyTargetP(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+    protected EquationTerm<AcVariableType, AcEquationType> createDummyActivePowerEquationTermForDummyTargetP(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
         var equationSystem = creationContext.getEquationSystem();
-        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
+        EquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
         return neg ? term.minus() : term;
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+    protected EquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTerm(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
         var equationSystem = creationContext.getEquationSystem();
-        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm();
+        EquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm();
         return neg ? term.minus() : term;
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTermForDummyTargetQ(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
+    protected EquationTerm<AcVariableType, AcEquationType> createDummyReactivePowerEquationTermForDummyTargetQ(LfBranch branch, AcEquationSystemCreationContext creationContext, boolean neg) {
         var equationSystem = creationContext.getEquationSystem();
-        BaseEquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm();
+        EquationTerm<AcVariableType, AcEquationType> term = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm();
         return neg ? term.minus() : term;
     }
 
@@ -473,8 +473,8 @@ public class AcEquationSystemCreator {
                                                 boolean spanningTreeEdge) {
         var equationSystem = creationContext.getEquationSystem();
         if (bus1 != null && bus2 != null) {
-            Optional<BaseEquation<AcVariableType, AcEquationType>> v1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_V);
-            Optional<BaseEquation<AcVariableType, AcEquationType>> v2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V);
+            Optional<Equation<AcVariableType, AcEquationType>> v1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_V);
+            Optional<Equation<AcVariableType, AcEquationType>> v2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V);
             boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
             boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
             boolean enabled = !branch.isDisabled() && spanningTreeEdge;
@@ -570,7 +570,7 @@ public class AcEquationSystemCreator {
                     throw new PowsyblException("Phase control in A is not yet supported");
                 }
 
-                BaseEquationTerm<AcVariableType, AcEquationType> p = phaseControl.getControlledSide() == TwoSides.ONE
+                EquationTerm<AcVariableType, AcEquationType> p = phaseControl.getControlledSide() == TwoSides.ONE
                         ? new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_P)
@@ -648,7 +648,7 @@ public class AcEquationSystemCreator {
             // 0 = (1 / controller_count - 1) * r1_i + sum_j(r1_j) / controller_count where j are all the controller branches except i
             EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1)
                     .createTerm();
-            BaseEquation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBranch, AcEquationType.DISTR_RHO)
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBranch, AcEquationType.DISTR_RHO)
                     .addTerm(r1.multiply(() -> 1d / controllerBranches.stream().filter(b -> !b.isDisabled()).count() - 1));
             for (LfBranch otherControllerBranch : controllerBranches) {
                 if (otherControllerBranch != controllerBranch) {
@@ -707,7 +707,7 @@ public class AcEquationSystemCreator {
             // 0 = (1 / controller_count - 1) * b_i + sum_j(b_j) / controller_count where j are all the controller buses except i
             EquationTerm<AcVariableType, AcEquationType> shuntB = equationSystem.getVariable(controllerShunt.getNum(), AcVariableType.SHUNT_B)
                     .createTerm();
-            BaseEquation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerShunt, AcEquationType.DISTR_SHUNT_B)
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerShunt, AcEquationType.DISTR_SHUNT_B)
                     .addTerm(shuntB.multiply(() -> 1d / controllerShunts.stream().filter(b -> !b.isDisabled()).count() - 1));
             for (LfShunt otherControllerShunt : controllerShunts) {
                 if (otherControllerShunt != controllerShunt) {
@@ -754,20 +754,20 @@ public class AcEquationSystemCreator {
         Evaluable i2 = null;
 
         // closed equations, could be null because line already open on base case
-        BaseEquationTerm<AcVariableType, AcEquationType> closedP1 = null;
-        BaseEquationTerm<AcVariableType, AcEquationType> closedQ1 = null;
-        EquationTerm<AcVariableType, AcEquationType> closedI1 = null;
-        BaseEquationTerm<AcVariableType, AcEquationType> closedP2 = null;
-        BaseEquationTerm<AcVariableType, AcEquationType> closedQ2 = null;
-        EquationTerm<AcVariableType, AcEquationType> closedI2 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedP1 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedQ1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> closedI1 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedP2 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedQ2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> closedI2 = null;
 
         // open equations, could be null because only necessary if already open and never closed, or open during simulation
-        BaseEquationTerm<AcVariableType, AcEquationType> openP1 = null;
-        BaseEquationTerm<AcVariableType, AcEquationType> openQ1 = null;
-        EquationTerm<AcVariableType, AcEquationType> openI1 = null;
-        BaseEquationTerm<AcVariableType, AcEquationType> openP2 = null;
-        BaseEquationTerm<AcVariableType, AcEquationType> openQ2 = null;
-        EquationTerm<AcVariableType, AcEquationType> openI2 = null;
+        EquationTerm<AcVariableType, AcEquationType> openP1 = null;
+        EquationTerm<AcVariableType, AcEquationType> openQ1 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> openI1 = null;
+        EquationTerm<AcVariableType, AcEquationType> openP2 = null;
+        EquationTerm<AcVariableType, AcEquationType> openQ2 = null;
+        ScalarEquationTerm<AcVariableType, AcEquationType> openI2 = null;
 
         boolean deriveA1 = isDeriveA1(branch, creationParameters);
         boolean deriveR1 = isDeriveR1(branch);
@@ -833,61 +833,61 @@ public class AcEquationSystemCreator {
         createTransformerReactivePowerControlEquations(branch, creationContext);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected ScalarEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected ScalarEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, creationContext.getEquationSystem().getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
+    protected ScalarEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, boolean deriveR1, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, creationContext.getEquationSystem().getVariableSet(), deriveR1);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, creationContext.getEquationSystem().getVariableSet());
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+    protected ScalarEquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, AcEquationSystemCreationContext creationContext) {
         return new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, creationContext.getEquationSystem().getVariableSet());
     }
 
     protected void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, AcEquationSystemCreationContext creationContext,
                                                  Evaluable p1, Evaluable q1, Evaluable i1,
                                                  Evaluable p2, Evaluable q2, Evaluable i2,
-                                                 BaseEquationTerm<AcVariableType, AcEquationType> closedP1, BaseEquationTerm<AcVariableType, AcEquationType> closedQ1, EquationTerm<AcVariableType, AcEquationType> closedI1,
-                                                 BaseEquationTerm<AcVariableType, AcEquationType> closedP2, BaseEquationTerm<AcVariableType, AcEquationType> closedQ2, EquationTerm<AcVariableType, AcEquationType> closedI2,
-                                                 BaseEquationTerm<AcVariableType, AcEquationType> openP1, BaseEquationTerm<AcVariableType, AcEquationType> openQ1, EquationTerm<AcVariableType, AcEquationType> openI1,
-                                                 BaseEquationTerm<AcVariableType, AcEquationType> openP2, BaseEquationTerm<AcVariableType, AcEquationType> openQ2, EquationTerm<AcVariableType, AcEquationType> openI2) {
+                                                 EquationTerm<AcVariableType, AcEquationType> closedP1, EquationTerm<AcVariableType, AcEquationType> closedQ1, ScalarEquationTerm<AcVariableType, AcEquationType> closedI1,
+                                                 EquationTerm<AcVariableType, AcEquationType> closedP2, EquationTerm<AcVariableType, AcEquationType> closedQ2, ScalarEquationTerm<AcVariableType, AcEquationType> closedI2,
+                                                 EquationTerm<AcVariableType, AcEquationType> openP1, EquationTerm<AcVariableType, AcEquationType> openQ1, ScalarEquationTerm<AcVariableType, AcEquationType> openI1,
+                                                 EquationTerm<AcVariableType, AcEquationType> openP2, EquationTerm<AcVariableType, AcEquationType> openQ2, ScalarEquationTerm<AcVariableType, AcEquationType> openI2) {
         var equationSystem = creationContext.getEquationSystem();
         if (closedP1 != null) {
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
@@ -1041,18 +1041,18 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createHvdcP1(LfHvdc hvdc, VariableSet<AcVariableType> variableSet) {
+    protected EquationTerm<AcVariableType, AcEquationType> createHvdcP1(LfHvdc hvdc, VariableSet<AcVariableType> variableSet) {
         return new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), variableSet);
     }
 
-    protected BaseEquationTerm<AcVariableType, AcEquationType> createHvdcP2(LfHvdc hvdc, VariableSet<AcVariableType> variableSet) {
+    protected EquationTerm<AcVariableType, AcEquationType> createHvdcP2(LfHvdc hvdc, VariableSet<AcVariableType> variableSet) {
         return new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), variableSet);
     }
 
     private void createHvdcAcEmulationEquations(LfHvdc hvdc, AcEquationSystemCreationContext creationContext) {
         var equationSystem = creationContext.getEquationSystem();
-        BaseEquationTerm<AcVariableType, AcEquationType> p1 = null;
-        BaseEquationTerm<AcVariableType, AcEquationType> p2 = null;
+        EquationTerm<AcVariableType, AcEquationType> p1 = null;
+        EquationTerm<AcVariableType, AcEquationType> p2 = null;
         if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulation()) {
             p1 = createHvdcP1(hvdc, equationSystem.getVariableSet());
             p2 = createHvdcP2(hvdc, equationSystem.getVariableSet());
@@ -1098,14 +1098,14 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private List<BaseEquationTerm<AcVariableType, AcEquationType>> createActiveInjectionTerms(LfBus bus,
-                                                                                              AcEquationSystemCreationContext creationContext) {
+    private List<EquationTerm<AcVariableType, AcEquationType>> createActiveInjectionTerms(LfBus bus,
+                                                                                          AcEquationSystemCreationContext creationContext) {
         var variableSet = creationContext.getEquationSystem().getVariableSet();
-        List<BaseEquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
+        List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : bus.getBranches()) {
             if (branch.isZeroImpedance(LoadFlowModel.AC)) {
                 if (branch.isSpanningTreeEdge(LoadFlowModel.AC)) {
-                    EquationTerm<AcVariableType, AcEquationType> p = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
+                    ScalarEquationTerm<AcVariableType, AcEquationType> p = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
                     if (branch.getBus2() == bus) {
                         p = p.minus();
                     }
@@ -1114,8 +1114,8 @@ public class AcEquationSystemCreator {
             } else {
                 boolean deriveA1 = isDeriveA1(branch, creationParameters);
                 boolean deriveR1 = isDeriveR1(branch);
-                BaseEquationTerm<AcVariableType, AcEquationType> p;
-                BaseEquationTerm<AcVariableType, AcEquationType> openP = null;
+                EquationTerm<AcVariableType, AcEquationType> p;
+                EquationTerm<AcVariableType, AcEquationType> openP = null;
                 if (branch.getBus1() == bus) {
                     LfBus otherSideBus = branch.getBus2();
                     if (otherSideBus != null) {
@@ -1164,7 +1164,7 @@ public class AcEquationSystemCreator {
                 // target_p3 - target_p1 = slack_p3 - slack_p1
                 equationSystem.createEquation(slackBus, AcEquationType.BUS_DISTR_SLACK_P)
                         .addTerms(createActiveInjectionTerms(firstSlackBus, creationContext).stream()
-                                .map(BaseEquationTerm::minus)
+                                .map(EquationTerm::minus)
                                 .toList())
                         .addTerms(createActiveInjectionTerms(slackBus, creationContext));
                 // to update open/close terms activation

@@ -302,14 +302,14 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             return variableElement;
         }
 
-        protected BaseEquation<V, E> getVariableEquation() {
+        protected Equation<V, E> getVariableEquation() {
             switch (variableType) {
                 case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     LfBranch lfBranch = (LfBranch) variableElement;
-                    return ((BaseEquationTerm<V, E>) lfBranch.getA1()).getEquation();
+                    return ((EquationTerm<V, E>) lfBranch.getA1()).getEquation();
                 case BUS_TARGET_VOLTAGE:
                     LfBus lfBus = (LfBus) variableElement;
-                    return ((BaseEquationTerm<V, E>) lfBus.getCalculatedV()).getEquation();
+                    return ((EquationTerm<V, E>) lfBus.getCalculatedV()).getEquation();
                 default:
                     return null;
             }
@@ -451,7 +451,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         protected void addBusInjection(Matrix rhs, LfBus lfBus, double injection) {
-            BaseEquation<V, E> p = (BaseEquation<V, E>) lfBus.getP();
+            Equation<V, E> p = (Equation<V, E>) lfBus.getP();
             if (lfBus.isSlack() || !p.isActive()) {
                 return;
             }
@@ -460,7 +460,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         protected void addBusReactiveInjection(Matrix rhs, LfBus lfBus, double injection) {
-            BaseEquation<V, E> q = (BaseEquation<V, E>) lfBus.getQ();
+            Equation<V, E> q = (Equation<V, E>) lfBus.getQ();
             if (!q.isActive()) {
                 return;
             }
@@ -477,9 +477,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         private final LfElement variableElement;
 
-        private final BaseEquation<V, E> variableEquation;
+        private final Equation<V, E> variableEquation;
 
-        protected SingleVariableFactorGroup(LfElement variableElement, BaseEquation<V, E> variableEquation, SensitivityVariableType variableType) {
+        protected SingleVariableFactorGroup(LfElement variableElement, Equation<V, E> variableEquation, SensitivityVariableType variableType) {
             super(variableType);
             this.variableElement = Objects.requireNonNull(variableElement);
             this.variableEquation = variableEquation;

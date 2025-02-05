@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.asym.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
-import com.powsybl.openloadflow.equations.BaseEquationTerm;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -84,8 +84,8 @@ public class AsymmetricalLoadFlowTest {
 
         LfBranch branch = mainNetwork.getBranchById("B1_B2");
         assertEquals(2, equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().size());
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm1 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().get(0);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm2 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm1 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm2 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().get(1);
         ClosedBranchI1xFlowEquationTerm ix1Branch;
         ShuntFortescueIxEquationTerm ix1Shunt;
         if (eqTerm1.getElementType() == ElementType.BUS) {
@@ -104,8 +104,8 @@ public class AsymmetricalLoadFlowTest {
         assertEquals(0, ix1Branch.calculateSensi(0, 0, 0, 0, 0, 0));
 
         assertEquals(2, equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().size());
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm3 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().get(0);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm4 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm3 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm4 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().get(1);
         ClosedBranchI1yFlowEquationTerm iy1Branch;
         ShuntFortescueIyEquationTerm iy1Shunt;
         if (eqTerm3.getElementType() == ElementType.BUS) {
@@ -125,8 +125,8 @@ public class AsymmetricalLoadFlowTest {
 
         LfBranch branch2 = mainNetwork.getBranchById("B3_B4");
         assertEquals(2, equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().size());
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm5 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(0);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm6 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm5 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm6 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(1);
         ClosedBranchI2xFlowEquationTerm ix2Branch;
         LoadFortescuePowerEquationTerm ix2Load;
         if (eqTerm5.getElementType() == ElementType.BUS) {
@@ -145,8 +145,8 @@ public class AsymmetricalLoadFlowTest {
         assertEquals(0, ix2Branch.calculateSensi(0, 0, 0, 0, 0, 0));
 
         assertEquals(2, equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().size());
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm7 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().get(0);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm8 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm7 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm8 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().get(1);
         ClosedBranchI2yFlowEquationTerm iy2Branch;
         LoadFortescuePowerEquationTerm iy2Load;
         if (eqTerm7.getElementType() == ElementType.BUS) {
@@ -165,12 +165,12 @@ public class AsymmetricalLoadFlowTest {
         assertEquals(0, iy2Branch.calculateSensi(0, 0, 0, 0, 0, 0));
 
         assertEquals(3, equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().size());
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm9 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(0);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm10 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(1);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm11 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(2);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm12 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(0);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm13 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(1);
-        BaseEquationTerm<AcVariableType, AcEquationType> eqTerm14 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(2);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm9 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm10 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm11 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(2);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm12 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm13 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm14 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(2);
         AsymmetricalClosedBranchCoupledCurrentEquationTerm coupledEquTerm;
         if (eqTerm11 instanceof AsymmetricalClosedBranchCoupledCurrentEquationTerm) {
             coupledEquTerm = (AsymmetricalClosedBranchCoupledCurrentEquationTerm) eqTerm11;

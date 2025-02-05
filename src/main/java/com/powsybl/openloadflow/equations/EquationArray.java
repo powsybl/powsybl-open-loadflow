@@ -175,8 +175,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         invalidateEquationDerivativeVectors();
     }
 
-    public BaseEquation<V, E> getElement(int elementNum) {
-        return new BaseEquation<>() {
+    public Equation<V, E> getElement(int elementNum) {
+        return new Equation<>() {
             @Override
             public boolean isActive() {
                 return isElementActive(elementNum);
@@ -193,14 +193,14 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             }
 
             @Override
-            public BaseEquation<V, E> addTerm(BaseEquationTerm<V, E> term) {
+            public Equation<V, E> addTerm(EquationTerm<V, E> term) {
                 var termImpl = (EquationTermArray.EquationTermArrayElementImpl<V, E>) term;
                 termImpl.equationTermArray.addTerm(elementNum, termImpl.termElementNum);
                 return this;
             }
 
             @Override
-            public <T extends BaseEquationTerm<V, E>> BaseEquation<V, E> addTerms(List<T> terms) {
+            public <T extends EquationTerm<V, E>> Equation<V, E> addTerms(List<T> terms) {
                 for (T term : terms) {
                     addTerm(term);
                 }
@@ -208,7 +208,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             }
 
             @Override
-            public <T extends BaseEquationTerm<V, E>> List<T> getTerms() {
+            public <T extends EquationTerm<V, E>> List<T> getTerms() {
                 throw new UnsupportedOperationException();
             }
 
