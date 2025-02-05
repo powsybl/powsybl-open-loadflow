@@ -50,10 +50,12 @@ public class ScalarEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         this.equationSystem = Objects.requireNonNull(equationSystem);
     }
 
+    @Override
     public int getElementNum() {
         return elementNum;
     }
 
+    @Override
     public E getType() {
         return type;
     }

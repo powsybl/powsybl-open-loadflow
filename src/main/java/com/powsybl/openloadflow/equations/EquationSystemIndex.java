@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -285,6 +286,21 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     public List<ScalarEquation<V, E>> getSortedEquationsToSolve() {
         update();
         return sortedEquationsToSolve;
+    }
+
+    public Equation<V, E> getEquationAtColumn(int column) {
+        update();
+        if (column >= 0 && column < sortedEquationsToSolve.size()) {
+            return sortedEquationsToSolve.get(column);
+        } else if (column < columnCount) {
+            for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+                if (column >= equationArray.getFirstColumn()
+                        && column < equationArray.getFirstColumn() + equationArray.getLength()) {
+                    return equationArray.getElement(column - equationArray.getFirstColumn());
+                }
+            }
+        }
+        throw new PowsyblException("Equation not found at column " + column);
     }
 
     public List<Variable<V>> getSortedVariablesToFind() {

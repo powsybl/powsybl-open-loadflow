@@ -178,6 +178,16 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     public Equation<V, E> getElement(int elementNum) {
         return new Equation<>() {
             @Override
+            public E getType() {
+                return EquationArray.this.getType();
+            }
+
+            @Override
+            public int getElementNum() {
+                return elementNum;
+            }
+
+            @Override
             public boolean isActive() {
                 return isElementActive(elementNum);
             }

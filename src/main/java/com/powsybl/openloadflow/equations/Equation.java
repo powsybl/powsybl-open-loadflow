@@ -15,6 +15,10 @@ import java.util.List;
  */
 public interface Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
 
+    E getType();
+
+    int getElementNum();
+
     void setActive(boolean active);
 
     Equation<V, E> addTerm(EquationTerm<V, E> term);
