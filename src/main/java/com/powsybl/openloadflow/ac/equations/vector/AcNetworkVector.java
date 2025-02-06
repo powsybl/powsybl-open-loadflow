@@ -193,13 +193,14 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     }
 
     public void updateBuses(double[] state) {
-
         for (int busNum = 0; busNum < busVector.v.length; busNum++) {
-            if (busVector.vRow[busNum] != -1) {
-                busVector.v[busNum] = state[busVector.vRow[busNum]];
-            }
-            if (busVector.phRow[busNum] != -1) {
-                busVector.ph[busNum] = state[busVector.phRow[busNum]];
+            if (!busVector.disabled[busNum]) {
+                if (busVector.vRow[busNum] != -1) {
+                    busVector.v[busNum] = state[busVector.vRow[busNum]];
+                }
+                if (busVector.phRow[busNum] != -1) {
+                    busVector.ph[busNum] = state[busVector.phRow[busNum]];
+                }
             }
         }
     }
@@ -667,6 +668,9 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
+        if (element.getType() == ElementType.BUS) {
+            busVector.disabled[element.getNum()] = disabled;
+        }
         if (element.getType() == ElementType.BRANCH) {
             branchVector.disabled[element.getNum()] = disabled;
         } else if (element.getType() == ElementType.SHUNT_COMPENSATOR) {

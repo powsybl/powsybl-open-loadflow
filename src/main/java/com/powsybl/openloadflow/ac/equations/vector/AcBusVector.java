@@ -20,14 +20,24 @@ public class AcBusVector {
     public final int[] vRow;
     public final int[] phRow;
 
+    public boolean[] disabled;
+
     public final double[] v;
     public final double[] ph;
+
+    public double[] pLoadModel;
+    public double[] dpdvLoadModel;
 
     public AcBusVector(List<LfBus> buses) {
         vRow = new int[buses.size()];
         phRow = new int[buses.size()];
 
+        disabled = new boolean[buses.size()];
+
         v = new double[buses.size()];
         ph = new double[buses.size()];
+
+        pLoadModel = new double[buses.size()];
+        dpdvLoadModel = new double[buses.size()];
     }
 }

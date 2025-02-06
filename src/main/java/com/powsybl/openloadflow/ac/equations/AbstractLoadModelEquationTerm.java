@@ -52,27 +52,33 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
 
     protected abstract double getTarget();
 
-    @Override
-    public double eval() {
+    public static double f(double v, double target, Collection<LfLoadModel.ExpTerm> expTerms) {
         double value = 0;
-        double v = v();
-        for (LfLoadModel.ExpTerm expTerm : getExpTerms()) {
+        for (LfLoadModel.ExpTerm expTerm : expTerms) {
             if (expTerm.n() != 0) {
                 value += expTerm.c() * Math.pow(v, expTerm.n());
             }
         }
-        return value * getTarget();
+        return value * target;
     }
 
-    @Override
-    public double der(Variable<AcVariableType> variable) {
+    public static double dfdv(double v, double target, Collection<LfLoadModel.ExpTerm> expTerms) {
         double value = 0;
-        double v = v();
-        for (LfLoadModel.ExpTerm expTerm : getExpTerms()) {
+        for (LfLoadModel.ExpTerm expTerm : expTerms) {
             if (expTerm.n() != 0) {
                 value += expTerm.c() * expTerm.n() * Math.pow(v, expTerm.n() - 1);
             }
         }
-        return value * getTarget();
+        return value * target;
+    }
+
+    @Override
+    public double eval() {
+        return f(v(), getTarget(), getExpTerms());
+    }
+
+    @Override
+    public double der(Variable<AcVariableType> variable) {
+        return dfdv(v(), getTarget(), getExpTerms());
     }
 }
