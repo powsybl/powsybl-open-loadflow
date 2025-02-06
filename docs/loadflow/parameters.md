@@ -146,6 +146,12 @@ voltage exceptions and cause a loadflow failure. The control of unrealistic volt
 In addition, groups with unrealistic voltage when entering the reactive limit outerloop, but that do not exceed their reactive diagram 
 are moved PQ and their reactive injection is set to targetQ. With this parameter set to `true` it is in general possible to set the 
 `minRealisticVoltage` and `maxRealisticVoltage`  values to 0.8pu and 1.2pu.  
+
+Note that when this option is set to true, instead of failing with an unrealistic voltage at a controller bus, the load flow 
+may produce a solution where a voltage controlled bus does not reach the target voltage, while voltage controllers still 
+have reactive power margin available.
+
+
 The default value is `true`.
 
 **voltagePerReactivePowerControl**  

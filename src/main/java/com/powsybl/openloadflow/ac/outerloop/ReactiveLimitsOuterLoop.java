@@ -156,11 +156,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                             LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
                                     pvToPqBus.qLimit * PerUnit.SB);
                             break;
-                        case MIN_V:
+                        case MIN_REALISTIC_V:
                             LOGGER.trace("Switch bus '{}' PV -> PQ, q set to {} = targetQ - v is below realistic voltage limit ({}pu) when remote voltage target is maintained",
                                     controllerBus.getId(), pvToPqBus.qLimit * PerUnit.SB, minRealisticVoltage);
                             break;
-                        case MAX_V:
+                        case MAX_REALISTIC_V:
                             LOGGER.trace("Switch bus '{}' PV -> PQ, q set to {} = targetQ - v is above realistic voltage limits ({}pu) when remote voltage target is maintained",
                                     controllerBus.getId(), pvToPqBus.qLimit * PerUnit.SB, maxRealisticVoltage);
                             break;
@@ -254,11 +254,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             // Move V to a safe one for next computation
             if (isUnrealisticLowVoltage(controllerBus)) {
                 controllerBus.setV(1);
-                buses.add(new ControllerBusToPqBus(controllerBus, q, getInitialGenerationTargetQ(controllerBus), LfBus.QLimitType.MIN_V));
+                buses.add(new ControllerBusToPqBus(controllerBus, q, getInitialGenerationTargetQ(controllerBus), LfBus.QLimitType.MIN_REALISTIC_V));
                 remainsPV = false;
             } else if (isUnrealisticHighVoltage(controllerBus)) {
                 controllerBus.setV(1);
-                buses.add(new ControllerBusToPqBus(controllerBus, q, getInitialGenerationTargetQ(controllerBus), LfBus.QLimitType.MAX_V));
+                buses.add(new ControllerBusToPqBus(controllerBus, q, getInitialGenerationTargetQ(controllerBus), LfBus.QLimitType.MAX_REALISTIC_V));
                 remainsPV = false;
             }
         }
@@ -338,7 +338,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                         LOGGER.trace("Remote reactive power controller bus '{}' -> PQ, q={} < minQ={}", controllerBus.getId(), bus.q * PerUnit.SB,
                                 bus.qLimit * PerUnit.SB);
                         break;
-                    case MIN_V, MAX_V:
+                    case MIN_REALISTIC_V, MAX_REALISTIC_V:
                         LOGGER.trace("Switch bus '{}' PV -> PQ, q set to {} = targetQ - v is outside realistic voltage limits [{}pu,{}pu] when remote voltage is maintained",
                                 controllerBus.getId(), bus.qLimit * PerUnit.SB, minRealisticVoltage, maxRealisticVoltage);
 
