@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
@@ -23,13 +21,10 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -47,8 +42,8 @@ class GeneratorRemoteControlPQSwitchTest {
     private OpenLoadFlowParameters parametersExt;
 
     /**
-     * (401kV)                            (402kv)
-     *  b2 ----------------l23-------------b3---l3 (100mW)
+     * (401kV)                            (402kV)
+     *  b2 ----------------l23-------------b3---l3 (200MW)
      *  |                                   |
      *  t12                                g3
      *  |                               (pMax = 10)
@@ -157,7 +152,7 @@ class GeneratorRemoteControlPQSwitchTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setVoltageRemoteControl(true)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
-        
+
     }
 
     @ParameterizedTest
@@ -215,7 +210,7 @@ class GeneratorRemoteControlPQSwitchTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         if (robustMode) {
             assertTrue(result.isFullyConverged());
-            assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+            assertReactivePowerEquals(-10, g1.getTerminal());  // The generator is set to initial targetQ
         } else {
             assertFalse(result.isFullyConverged());
             assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
@@ -235,7 +230,7 @@ class GeneratorRemoteControlPQSwitchTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         if (robustMode) {
             assertTrue(result.isFullyConverged());
-            assertReactivePowerEquals(-10, g1.getTerminal());  // The group is set to initial targetQ
+            assertReactivePowerEquals(-10, g1.getTerminal());  // The generator is set to initial targetQ
         } else {
             assertFalse(result.isFullyConverged());
             assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
@@ -255,7 +250,7 @@ class GeneratorRemoteControlPQSwitchTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         if (robustMode) {
             assertTrue(result.isFullyConverged());
-            assertReactivePowerEquals(-800, g1.getTerminal());  // The group is set to initial targetQ
+            assertReactivePowerEquals(-800, g1.getTerminal());  // The generator is set to initial targetQ
         } else {
             assertFalse(result.isFullyConverged());
             assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
