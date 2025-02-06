@@ -296,7 +296,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
             for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
                 if (column >= equationArray.getFirstColumn()
                         && column < equationArray.getFirstColumn() + equationArray.getLength()) {
-                    return equationArray.getElement(column - equationArray.getFirstColumn());
+                    int elementNum = equationArray.getColumnToElementNum(column);
+                    return equationArray.getElement(elementNum);
                 }
             }
         }

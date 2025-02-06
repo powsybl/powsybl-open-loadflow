@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.equations;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.TIntIntMap;
+import gnu.trove.map.hash.TIntIntHashMap;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -28,6 +30,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     private int firstColumn = -1;
 
     private int[] elementNumToColumn;
+
+    private TIntIntMap columnToElementNum;
 
     private int length;
 
@@ -140,6 +144,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
                 if (elementActive[elementNum]) {
                     elementNumToColumn[elementNum] = column++;
+                } else {
+                    elementNumToColumn[elementNum] = -1;
                 }
             }
         }
@@ -150,8 +156,22 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         return getElementNumToColumn()[elementNum];
     }
 
+    public int getColumnToElementNum(int column) {
+        if (columnToElementNum == null) {
+            columnToElementNum = new TIntIntHashMap(elementCount);
+            for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+                int c = getElementNumToColumn(elementNum);
+                if (c != -1) {
+                    columnToElementNum.put(c, elementNum);
+                }
+            }
+        }
+        return columnToElementNum.get(column);
+    }
+
     private void invalidateElementNumToColumn() {
         elementNumToColumn = null;
+        columnToElementNum = null;
         matrixElementIndexes.reset();
     }
 
