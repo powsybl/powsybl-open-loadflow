@@ -9,7 +9,7 @@
          + Pre-contingency simulation
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (-1.44040 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (-1.4404045651219555 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
@@ -19,7 +19,7 @@
          + Post-contingency simulation 'NHV1_NHV2_1'
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (5.80374 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (5.803741102800952 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
@@ -29,7 +29,7 @@
          + Post-contingency simulation 'NHV1_NHV2_2'
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (5.80374 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (5.803741102800952 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
@@ -42,7 +42,7 @@
          + Post-contingency simulation 'NHV2_NLOAD'
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (-5.49422 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (-5.4942194604343655 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
