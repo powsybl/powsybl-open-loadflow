@@ -185,6 +185,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertTrue(vl1ViolationLocation.isPresent());
         assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation.get().getType());
         assertEquals(List.of(0, 5), ((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes());
+
+        Optional<ViolationLocation> vl1ViolationLocation2 = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(1).getViolationLocation();
+        assertTrue(vl1ViolationLocation2.isPresent());
+        assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation2.get().getType());
+        assertEquals(List.of(1, 3, 4), ((NodeBreakerViolationLocation) vl1ViolationLocation2.get()).getNodes());
     }
 
     @Test
