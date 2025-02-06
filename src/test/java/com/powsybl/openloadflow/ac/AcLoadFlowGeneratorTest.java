@@ -8,6 +8,8 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -73,22 +75,22 @@ class AcLoadFlowGeneratorTest {
     void testGeneratorForceTargetQInDiagram() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
         Generator g1 = network.getGenerator("g1");
-        g1.newMinMaxReactiveLimits().setMinQ(-1).setMaxQ(-1).add();
-
-        // targetQ > diagram
-        g1.setTargetQ(0);
-        parametersExt.setForceTargetQInReactiveLimits(true);
-
         Bus b1 = network.getBusBreakerView().getBus("b1");
         Bus b4 = network.getBusBreakerView().getBus("b4");
+        g1.newMinMaxReactiveLimits().setMinQ(-1).setMaxQ(1).add();
 
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        // targetQ > diagram
+        g1.setTargetQ(2).setVoltageRegulatorOn(false);
+        parametersExt.setForceTargetQInReactiveLimits(true);
+
+        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result.isFullyConverged());
-        assertVoltageEquals(0.884231, b1);
+        assertVoltageEquals(1.028108, b1);
         assertAngleEquals(0, b1);
         assertVoltageEquals(1.0, b4);
-        assertAngleEquals(-1.089083, b4);
-        assertReactivePowerEquals(1, g1.getTerminal());
+        assertAngleEquals(-0.337487, b4);
+        assertReactivePowerEquals(-1, g1.getTerminal());
 
         // targetQ < diagram
         g1.setTargetQ(-2);
