@@ -157,16 +157,7 @@ class GeneratorRemoteControlPQSwitchTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setVoltageRemoteControl(true)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
-
-        // Activate trace logs
-        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(Level.TRACE);
-    }
-
-    @AfterEach
-    void restoreLogger() {
-        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(null);
+        
     }
 
     @ParameterizedTest
