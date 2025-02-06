@@ -60,6 +60,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
             0.0, 0.0,      0.0, 0.0,      0.0,      // B3-G
         }).transpose();
         assertMatricesEquals(mRef, m, 1e-6);
+        assertMatricesEquals(mRef, sensiMatrix.calculateSensiWithLoadFlow(network, loadFlowRunner), 1e-4);
     }
 
     @Test
@@ -76,6 +77,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
             0.0, 0.295352, 1.0, 0.485870, 0.397779, // B3-G
         }).transpose();
         assertMatricesEquals(mRef, m, 1e-6);
+        assertMatricesEquals(mRef, sensiMatrix.calculateSensiWithLoadFlow(network, loadFlowRunner), 1e-4);
     }
 
     @Test
@@ -91,6 +93,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
             0.0,      0.0,       0.0,       0.0,       0.0,       // B3-L => all zero because PV bus
             0.079204, 0.032299,  -0.177781, 0.019083,  -0.042493  // B4-L
         }).transpose();
+        assertMatricesEquals(mRef, sensiMatrix.calculateSensiWithLoadFlow(network, loadFlowRunner), 1e-4);
         assertMatricesEquals(mRef, m, 1e-6);
     }
 
@@ -108,6 +111,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
             0.0, 0.026365, 0.0, 0.087999, 0.067282  // B4-L
         }).transpose();
         assertMatricesEquals(mRef, m, 1e-6);
+        assertMatricesEquals(mRef, sensiMatrix.calculateSensiWithLoadFlow(network, loadFlowRunner), 1e-4);
     }
 
     @Test
@@ -124,5 +128,6 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
             0.568577, 0.0,  0.493863, -1.0, 0.0  // B4-L
         }).transpose();
         assertMatricesEquals(mRef, m, 1e-6);
+        assertMatricesEquals(mRef, sensiMatrix.calculateSensiWithLoadFlow(network, loadFlowRunner), 1e-4);
     }
 }

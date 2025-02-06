@@ -23,9 +23,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 
@@ -220,6 +218,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     public static class SensitivityMatrix {
+        private static final double STEP_SIZE = 0.01;
+        private static final String TMP_VARIANT_ID = "sensi";
+
         private final SensitivityFunctionType functionType;
         private final List<? extends Identifiable<?>> functions;
         private final SensitivityVariableType variableType;
@@ -254,6 +255,70 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                 }
             }
             return matrix;
+        }
+
+        DenseMatrix calculateSensiWithLoadFlow(Network network, LoadFlow.Runner loadFlowRunner) {
+            DenseMatrix matrix = new DenseMatrix(variables.size(), functions.size());
+            for (int i = 0; i < variables.size(); i++) {
+                var variable = variables.get(i);
+                network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, TMP_VARIANT_ID);
+
+                LoadFlowResult result = loadFlowRunner.run(network);
+                assertTrue(result.isFullyConverged());
+                calculateFunction(network, matrix, i, false);
+
+                switch (variableType) {
+                    case INJECTION_REACTIVE_POWER -> {
+                        var g = network.getGenerator(variable.getId());
+                        if (g != null) {
+                            g.setTargetQ(g.getTargetQ() + STEP_SIZE);
+                        } else {
+                            var l = network.getLoad(variable.getId());
+                            if (l != null) {
+                                l.setQ0(l.getQ0() - STEP_SIZE);
+                            }
+                        }
+                    }
+                    case BUS_TARGET_VOLTAGE -> {
+                        var g = network.getGenerator(variable.getId());
+                        g.setTargetV(g.getTargetV() + STEP_SIZE);
+                    }
+                    default -> throw new UnsupportedOperationException();
+                }
+                result = loadFlowRunner.run(network);
+                assertTrue(result.isFullyConverged());
+                calculateFunction(network, matrix, i, true);
+
+                network.getVariantManager().removeVariant(TMP_VARIANT_ID);
+            }
+            return matrix;
+        }
+
+        private void calculateFunction(Network network, DenseMatrix matrix, int i, boolean diff) {
+            for (int j = 0; j < functions.size(); j++) {
+                var function = functions.get(j);
+                double value = switch (functionType) {
+                    case BUS_VOLTAGE -> {
+                        Bus b = network.getBusBreakerView().getBus(function.getId());
+                        yield b.getV();
+                    }
+                    case BRANCH_CURRENT_1 -> {
+                        Line l = network.getLine(function.getId());
+                        yield l.getTerminal1().getI();
+                    }
+                    case BUS_REACTIVE_POWER -> {
+                        Bus b = network.getBusBreakerView().getBus(function.getId());
+                        yield b.getQ();
+                    }
+                    default -> throw new UnsupportedOperationException();
+                };
+                if (diff) {
+                    double oldValue = matrix.get(i, j);
+                    matrix.set(i, j, (value - oldValue) / STEP_SIZE);
+                } else {
+                    matrix.set(i, j, value);
+                }
+            }
         }
     }
 
