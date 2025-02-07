@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -102,9 +103,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !connectivityAnalysisResult.getElementsToReconnect().contains(element))
                 .map(contingencyElementByBranch::get)
-                .toList();
-        List<ComputedTapPositionChangeElement> actionElements = lfActions.stream()
-                .map(lfAction -> lfAction.getTapPositionChange().getBranch().getId())
+                .collect(Collectors.toList());
+        List<ComputedTapPositionChangeElement> actionElements = operatorStrategyLfActions.stream()
+                .filter(AbstractLfTapChangerAction.class::isInstance)
+                .map(lfAction -> ((AbstractLfTapChangerAction<?>) lfAction).getChange().getBranch().getId())
                 .map(tapPositionChangeElementByBranch::get)
                 .toList();
 
@@ -422,8 +424,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private static Map<String, ComputedTapPositionChangeElement> createTapPositionChangeElementsIndexByBranchId(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         Map<String, ComputedTapPositionChangeElement> computedTapPositionChangeElements = lfActionById.values().stream()
-                .filter(lfAction -> lfAction.getTapPositionChange() != null)
-                .map(lfAction -> new ComputedTapPositionChangeElement(lfAction.getTapPositionChange(), equationSystem))
+                .filter(AbstractLfTapChangerAction.class::isInstance)
+                .map(lfAction -> new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem))
                 .filter(computedTapPositionChangeElement -> computedTapPositionChangeElement.getLfBranchEquation() != null)
                 .collect(Collectors.toMap(
                         computedTapPositionChangeElement -> computedTapPositionChangeElement.getLfBranch().getId(),
