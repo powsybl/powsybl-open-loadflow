@@ -4063,7 +4063,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        securityAnalysisParameters.getLoadFlowParameters().setDc(true).setHvdcAcEmulation(true);
+        securityAnalysisParameters.getLoadFlowParameters().setDc(true);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
         openSecurityAnalysisParameters.setDcFastMode(dcFastMode);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
