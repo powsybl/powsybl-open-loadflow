@@ -283,6 +283,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME = "areaInterchangePMaxMismatch";
 
+    public static final String DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME = "disableInconsistentVoltageControls";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -424,7 +426,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY)
+        new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -607,6 +610,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private String areaInterchangeControlAreaType = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
     private double areaInterchangePMaxMismatch = AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE;
+
+    private boolean disableInconsistentVoltageControls = LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1333,6 +1338,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isDisableInconsistentVoltageControls() {
+        return disableInconsistentVoltageControls;
+    }
+
+    public OpenLoadFlowParameters setDisableInconsistentVoltageControls(boolean disableInconsistentVoltageControls) {
+        this.disableInconsistentVoltageControls = disableInconsistentVoltageControls;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1411,7 +1425,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setGeneratorVoltageControlMinNominalVoltage(config.getDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE))
                 .setAreaInterchangeControl(config.getBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME, AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE))
                 .setAreaInterchangeControlAreaType(config.getStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE))
-                .setAreaInterchangePMaxMismatch(config.getDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE)));
+                .setAreaInterchangePMaxMismatch(config.getDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE))
+                .setDisableInconsistentVoltageControls(config.getBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -1572,6 +1587,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(this::setAreaInterchangeControlAreaType);
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setAreaInterchangePMaxMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME))
+                .ifPresent(prop -> this.setDisableInconsistentVoltageControls(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1648,6 +1665,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(AREA_INTERCHANGE_CONTROL_PARAM_NAME, areaInterchangeControl);
         map.put(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, areaInterchangeControlAreaType);
         map.put(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, areaInterchangePMaxMismatch);
+        map.put(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, disableInconsistentVoltageControls);
         return map;
     }
 
@@ -1804,7 +1822,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltageTargetPriorities(parametersExt.getVoltageTargetPriorities())
                 .setFictitiousGeneratorVoltageControlCheckMode(parametersExt.getFictitiousGeneratorVoltageControlCheckMode())
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
-                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
+                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
+                .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1910,7 +1929,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLinePerUnitMode(parametersExt.getLinePerUnitMode())
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
-                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType());
+                .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
+                .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
@@ -2038,7 +2058,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getFictitiousGeneratorVoltageControlCheckMode() == extension2.getFictitiousGeneratorVoltageControlCheckMode() &&
                 extension1.isAreaInterchangeControl() == extension2.isAreaInterchangeControl() &&
                 Objects.equals(extension1.getAreaInterchangeControlAreaType(), extension2.getAreaInterchangeControlAreaType()) &&
-                extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch();
+                extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch() &&
+                extension1.isDisableInconsistentVoltageControls() == extension2.isDisableInconsistentVoltageControls();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2134,7 +2155,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setFictitiousGeneratorVoltageControlCheckMode(extension.getFictitiousGeneratorVoltageControlCheckMode())
                     .setAreaInterchangeControl(extension.isAreaInterchangeControl())
                     .setAreaInterchangeControlAreaType(extension.getAreaInterchangeControlAreaType())
-                    .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch());
+                    .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch())
+                    .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

@@ -60,9 +60,9 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueControlledBus(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
+    public static void reportNotUniqueControlledBusKeepingFirstControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueControlledBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
+                .withMessageTemplate("notUniqueControlledBusKeepingFirstControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
                 .withUntypedValue("generatorIds", generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
@@ -71,14 +71,32 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+    public static void reportNotUniqueControlledBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueTargetVControllerBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
+                .withMessageTemplate("notUniqueControlledBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: disabling voltage control")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBusKeepingFirstControl(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBusKeepingFirstControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
                 .withUntypedValue("generatorIds", generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue("keptTargetV", keptTargetV)
                 .withUntypedValue("rejectedTargetV", rejectedTargetV)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: disabling voltage control")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 

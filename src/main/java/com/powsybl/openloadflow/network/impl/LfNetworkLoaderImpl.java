@@ -116,28 +116,33 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
                 LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
-
-                voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
+                boolean inconsistentVoltageControl = false;
+                for (LfGenerator lfGenerator : voltageControlGenerators.stream().skip(1).toList()) {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus();
-
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
+                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus, parameters.isDisableInconsistentVoltageControls())) {
                         // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                        if (!checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus, parameters.isDisableInconsistentVoltageControls())) {
+                            inconsistentVoltageControl = true;
+                        };
+                    } else {
+                        inconsistentVoltageControl = true;
                     }
-                });
+                }
 
-                if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
-                    controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
-                        vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
-                        () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
-                } else {
-                    // if voltage remote control deactivated and remote control, set local control instead
-                    LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
-                            controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
-                    controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
-                        vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
-                        () -> createGeneratorVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, parameters));
+                if (!(parameters.isDisableInconsistentVoltageControls() && inconsistentVoltageControl)) {
+                    if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
+                        controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
+                                vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
+                                () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
+                    } else {
+                        // if voltage remote control deactivated and remote control, set local control instead
+                        LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
+                                controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                        controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
+                                vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
+                                () -> createGeneratorVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, parameters));
+                    }
                 }
             }
         }
@@ -199,27 +204,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static boolean checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
+    private static boolean checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller, boolean disableInconsistentControls) {
         Objects.requireNonNull(controlledBus);
         Objects.requireNonNull(controlledBusGen);
         if (controlledBus.getNum() != controlledBusGen.getNum()) {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-            LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
-                    generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
-            Reports.reportNotUniqueControlledBus(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+            if (disableInconsistentControls) {
+                LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: disabling voltage control",
+                        generatorIds, controller.getId());
+                Reports.reportNotUniqueControlledBusDisablingControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId());
+            } else {
+                LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
+                        generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+                Reports.reportNotUniqueControlledBusKeepingFirstControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+            }
             return false;
         }
         return true;
     }
 
-    private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
+    private static boolean checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus, boolean disableInconsistentControls) {
         double targetV = lfGenerator.getTargetV();
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-            LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
-                generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
-            Reports.reportNotUniqueTargetVControllerBus(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+            if (disableInconsistentControls) {
+                LOGGER.warn("Generators [{}] are connected to the same bus '{}' with different target voltages: disabling voltage control",
+                        generatorIds, controllerBus.getId());
+                Reports.reportNotUniqueTargetVControllerBusDisablingControl(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId());
+            } else {
+                LOGGER.warn("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
+                        generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+                Reports.reportNotUniqueTargetVControllerBusKeepingFirstControl(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+            }
+            return false;
         }
+        return true;
     }
 
     private static void createGeneratorReactivePowerControls(List<LfBus> lfBuses) {
