@@ -635,4 +635,11 @@ public final class Reports {
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
     }
+
+    public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {
+        reportNode.newReportNode()
+                .withMessageTemplate("acEmulationDisabledInWoodburyDcSecurityAnalysis", "AC emulation of HVDC lines is disabled as Woodbury DC Security Analysis does not support it yet")
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
 }

@@ -28,9 +28,6 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
-import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
-import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
@@ -68,11 +65,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     @Override
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
-        dcParameters.getNetworkParameters()
-                // connectivity break analysis does not handle zero impedance lines
-                .setMinImpedance(true)
-                // ac emulation is not yet supported
-                .setHvdcAcEmulation(false);
+        LfNetworkParameters lfNetworkParameters = dcParameters.getNetworkParameters();
+        if (lfNetworkParameters.isHvdcAcEmulation()) {
+            Reports.reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(reportNode);
+        }
+        lfNetworkParameters.setMinImpedance(true) // connectivity break analysis does not handle zero impedance lines
+                           .setHvdcAcEmulation(false); // ac emulation is not yet supported
         // needed an equation to force angle to zero when a PST is lost
         dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
         return dcParameters;
