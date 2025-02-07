@@ -52,13 +52,14 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     }
 
     @Override
-    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
+    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, lfParameters,
                 lfParametersExt, matrixFactory, connectivityFactory, false);
         dcParameters.getNetworkParameters()
                 .setBreakers(breakers)
                 .setCacheEnabled(false) // force not caching as not supported in secu analysis
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
+                .setAreaInterchangeControl(areas);
         return dcParameters;
     }
 

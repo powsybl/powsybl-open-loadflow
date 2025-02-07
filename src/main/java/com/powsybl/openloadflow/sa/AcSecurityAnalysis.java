@@ -61,7 +61,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
+    protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
         if (acParameters.getNetworkParameters().getMaxSlackBusCount() > 1) {
             LOGGER.warn("Multiple slack buses in a security analysis is not supported, force to 1");
@@ -69,7 +69,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         acParameters.getNetworkParameters()
                 .setCacheEnabled(false) // force not caching as not supported in secu analysis
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
-                .setMaxSlackBusCount(1);
+                .setMaxSlackBusCount(1)
+                .setAreaInterchangeControl(areas);
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
         return acParameters;
     }
