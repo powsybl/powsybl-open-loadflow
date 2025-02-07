@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.PowsyblException;
@@ -28,7 +27,9 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.*;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -104,7 +105,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .filter(element -> !connectivityAnalysisResult.getElementsToReconnect().contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
-        List<ComputedTapPositionChangeElement> actionElements = operatorStrategyLfActions.stream()
+        List<ComputedTapPositionChangeElement> actionElements = lfActions.stream()
                 .filter(AbstractLfTapChangerAction.class::isInstance)
                 .map(lfAction -> ((AbstractLfTapChangerAction<?>) lfAction).getChange().getBranch().getId())
                 .map(tapPositionChangeElementByBranch::get)
@@ -203,7 +204,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         }
 
         public NetworkDcVectorState(double[] postContingencyAndActionsStates, LfNetwork lfNetwork, LfContingency lfContingency,
-                                    Map<String, LfAction> pstActionsByBranch, DcEquationSystemCreationParameters parameters) {
+                                    Map<String, LfPhaseTapChangerAction> pstActionsByBranch, DcEquationSystemCreationParameters parameters) {
             Objects.requireNonNull(postContingencyAndActionsStates);
             Objects.requireNonNull(lfNetwork);
             Objects.requireNonNull(lfContingency);
@@ -221,7 +222,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             }
             double dcPowerFactor = parameters.getDcPowerFactor();
             for (LfBranch branch : lfNetwork.getBranches()) {
-                PiModel piModel = pstActionsByBranch.containsKey(branch.getId()) ? pstActionsByBranch.get(branch.getId()).getTapPositionChange().getNewPiModel()
+                PiModel piModel = pstActionsByBranch.containsKey(branch.getId()) ? pstActionsByBranch.get(branch.getId()).getChange().getNewPiModel()
                         : branch.getPiModel();
                 p1[branch.getNum()] = branch.getP1() instanceof ClosedBranchSide1DcFlowEquationTerm ? ((ClosedBranchSide1DcFlowEquationTerm) branch.getP1()).eval(sv, piModel) : Double.NaN;
                 i1[branch.getNum()] = Math.abs(p1[branch.getNum()]) / dcPowerFactor;
@@ -330,9 +331,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
 
         // get the pst actions by branch id
-        // TODO : change this temporary fix
-        Map<String, LfAction> pstActionsByBranchId = operatorStrategyLfActions.stream()
-                .collect(Collectors.toMap(lfAction -> lfAction.getTapPositionChange().getBranch().getId(), Function.identity()));
+        // TODO : clean
+        Map<String, LfPhaseTapChangerAction> pstActionsByBranchId = operatorStrategyLfActions.stream()
+                .map(lfAction -> (LfPhaseTapChangerAction) lfAction)
+                .collect(Collectors.toMap(lfPhaseTapChangerAction -> lfPhaseTapChangerAction.getChange().getBranch().getId(), Function.identity()));
         NetworkDcVectorState dcVecState = new NetworkDcVectorState(postContingencyAndOperatorStrategyStates, lfNetwork, lfContingency,
                 pstActionsByBranchId, loadFlowContext.getParameters().getEquationSystemCreationParameters());
 
@@ -367,15 +369,15 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .filter(Objects::nonNull)
                 .toList();
 
-        logActionStart(context.getNetwork(), operatorStrategy);
-        Stopwatch stopwatch = Stopwatch.createStarted();
+//        logActionStart(context.getNetwork(), operatorStrategy);
+//        Stopwatch stopwatch = Stopwatch.createStarted();
 
         double[] postContingencyAndOperatorStrategyStates = postContingencyAndOperatorStrategyStatesSupplier.apply(operatorStrategyLfActions);
         OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(context, contingency, operatorStrategy, operatorStrategyLfActions,
                 preContingencyLimitViolationManager, createResultExtension, violationsParameters, postContingencyAndOperatorStrategyStates, limitReductions);
 
-        stopwatch.stop();
-        logActionEnd(context.getNetwork(), operatorStrategy, stopwatch);
+//        stopwatch.stop();
+//        logActionEnd(context.getNetwork(), operatorStrategy, stopwatch);
         return operatorStrategyResult;
     }
 
