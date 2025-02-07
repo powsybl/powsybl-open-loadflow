@@ -112,7 +112,7 @@ class GeneratorTargetVoltageInconsistencyTest {
     }
 
     @Test
-    void localTestWithDisabling() throws IOException {
+    void localTestWithDisabling() {
         Network network = createLocalInconsistentTargetVoltageNetwork();
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
@@ -332,7 +332,7 @@ class GeneratorTargetVoltageInconsistencyTest {
     }
 
     @Test
-    void remoteAndLocalTestDisable() throws IOException {
+    void remoteAndLocalTestDisable() {
         Network network = createLocalInconsistentTargetVoltageNetwork();
         Generator g2 = network.getGenerator("g2");
         g2.setRegulatingTerminal(network.getLoad("ld2").getTerminal()).setTargetV(400.0);
