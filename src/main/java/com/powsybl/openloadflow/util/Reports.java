@@ -638,7 +638,7 @@ public final class Reports {
 
     public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {
         reportNode.newReportNode()
-                .withMessageTemplate("acEmulationDisabledInWoodburyDcSecurityAnalysis", "AC emulation of HVDC lines is disabled as Woodbury DC Security Analysis does not support it yet")
+                .withMessageTemplate("acEmulationDisabledInWoodburyDcSecurityAnalysis", "AC emulation of HVDC lines is disabled with Woodbury DC Security Analysis. HVDC active power setpoint will be used instead.")
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }

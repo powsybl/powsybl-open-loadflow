@@ -13,6 +13,7 @@ import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -26,7 +27,9 @@ import com.powsybl.openloadflow.dc.fastdc.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.*;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -67,7 +70,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
         LfNetworkParameters lfNetworkParameters = dcParameters.getNetworkParameters();
-        if (lfNetworkParameters.isHvdcAcEmulation()) {
+        if (lfNetworkParameters.isHvdcAcEmulation() &&
+                network.getHvdcLineStream().anyMatch(l -> l.getExtension(HvdcAngleDroopActivePowerControl.class) != null)) {
             Reports.reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(reportNode);
         }
         lfNetworkParameters.setMinImpedance(true) // connectivity break analysis does not handle zero impedance lines
