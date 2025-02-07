@@ -207,7 +207,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                     Map<String, LfPhaseTapChangerAction> pstActionsByBranch, DcEquationSystemCreationParameters parameters) {
             Objects.requireNonNull(postContingencyAndActionsStates);
             Objects.requireNonNull(lfNetwork);
-            Objects.requireNonNull(lfContingency);
             Objects.requireNonNull(pstActionsByBranch);
             Objects.requireNonNull(parameters);
             disabled = new boolean[lfNetwork.getBranches().size()];
@@ -217,8 +216,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             i2 = new double[lfNetwork.getBranches().size()];
             StateVector sv = new StateVector(postContingencyAndActionsStates);
             Arrays.fill(disabled, false);
-            for (LfBranch disabledBranch : lfContingency.getDisabledNetwork().getBranches()) {
-                disabled[disabledBranch.getNum()] = true;
+            if (lfContingency != null) {
+                for (LfBranch disabledBranch : lfContingency.getDisabledNetwork().getBranches()) {
+                    disabled[disabledBranch.getNum()] = true;
+                }
             }
             double dcPowerFactor = parameters.getDcPowerFactor();
             for (LfBranch branch : lfNetwork.getBranches()) {
@@ -481,13 +482,17 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 }
             }
 
+            NetworkDcVectorState dcVecState = new NetworkDcVectorState(preContingencyStates, lfNetwork, null,
+                    Collections.emptyMap(), context.getParameters().getEquationSystemCreationParameters());
+
             // update network result
-            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
+            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension,
+                    dcVecState.createBranchResultCreator());
             preContingencyNetworkResult.update();
 
             // detect violations
             var preContingencyLimitViolationManager = new LimitViolationManager(limitReductions);
-            preContingencyLimitViolationManager.detectViolations(lfNetwork);
+            dcVecState.detectBranchViolations(preContingencyLimitViolationManager, lfNetwork);
 
             // compute states with +1 -1 to model the contingencies and run connectivity analysis
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
