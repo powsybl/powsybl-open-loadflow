@@ -124,7 +124,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         // check that target voltage is the same for the generators of current controller bus which have voltage control on
                         if (!checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus, parameters.isDisableInconsistentVoltageControls())) {
                             inconsistentVoltageControl = true;
-                        };
+                        }
                     } else {
                         inconsistentVoltageControl = true;
                     }
