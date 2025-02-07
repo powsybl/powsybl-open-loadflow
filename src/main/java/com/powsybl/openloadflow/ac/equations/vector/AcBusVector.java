@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfLoadModel;
 
 import java.util.List;
 
@@ -24,6 +25,8 @@ public class AcBusVector {
 
     public final double[] v;
     public final double[] ph;
+    public final List<LfLoadModel.ExpTerm>[] expTerms;
+    public final double[] target;
 
     public double[] pLoadModel;
     public double[] dpdvLoadModel;
@@ -36,8 +39,14 @@ public class AcBusVector {
 
         v = new double[buses.size()];
         ph = new double[buses.size()];
+        expTerms = new List[buses.size()];
+        target = new double[buses.size()];
 
         pLoadModel = new double[buses.size()];
         dpdvLoadModel = new double[buses.size()];
+
+        for (int busNum = 0; busNum < buses.size(); busNum++) {
+            LfBus bus = buses.get(busNum);
+        }
     }
 }

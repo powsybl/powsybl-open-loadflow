@@ -202,6 +202,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     busVector.ph[busNum] = state[busVector.phRow[busNum]];
                 }
             }
+
+            busVector.pLoadModel[busNum] = LoadModelActiveFlowEquationTerm.f(busVector.v[busNum],
+                    busVector.target[busNum],
+                    busVector.expTerms[busNum]);
         }
     }
 
