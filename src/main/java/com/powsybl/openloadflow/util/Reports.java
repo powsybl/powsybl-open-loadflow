@@ -71,11 +71,13 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueControlledBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId) {
+    public static void reportNotUniqueControlledBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueControlledBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: disabling voltage control")
+                .withMessageTemplate("notUniqueControlledBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses (${controlledBusId} and ${controlledBusGenId}): disabling voltage control")
                 .withUntypedValue("generatorIds", generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("controlledBusGenId", controlledBusGenId)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
@@ -91,11 +93,13 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueTargetVControllerBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId) {
+    public static void reportNotUniqueTargetVControllerBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, Double targetV1, Double targetV2) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueTargetVControllerBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: disabling voltage control")
+                .withMessageTemplate("notUniqueTargetVControllerBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages (${targetV1} kV and ${targetV2} kV): disabling voltage control")
                 .withUntypedValue("generatorIds", generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue("targetV1", targetV1)
+                .withUntypedValue("targetV2", targetV2)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }

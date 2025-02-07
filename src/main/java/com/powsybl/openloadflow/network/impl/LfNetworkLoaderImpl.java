@@ -210,9 +210,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (controlledBus.getNum() != controlledBusGen.getNum()) {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             if (disableInconsistentControls) {
-                LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: disabling voltage control",
-                        generatorIds, controller.getId());
-                Reports.reportNotUniqueControlledBusDisablingControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId());
+                LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses ({} and {}): disabling voltage control",
+                        generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+                Reports.reportNotUniqueControlledBusDisablingControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
             } else {
                 LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
                         generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
@@ -228,9 +228,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             if (disableInconsistentControls) {
-                LOGGER.warn("Generators [{}] are connected to the same bus '{}' with different target voltages: disabling voltage control",
-                        generatorIds, controllerBus.getId());
-                Reports.reportNotUniqueTargetVControllerBusDisablingControl(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId());
+                LOGGER.warn("Generators [{}] are connected to the same bus '{}' with different target voltages ({} and {}): disabling voltage control",
+                        generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
+                Reports.reportNotUniqueTargetVControllerBusDisablingControl(controllerBus.getNetwork().getReportNode(), generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
             } else {
                 LOGGER.warn("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                         generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
