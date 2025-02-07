@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -239,7 +240,7 @@ public enum NetworkCache {
                 } else {
                     connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
                 }
-                LfAction.updateBusesAndBranchStatus(connectivity);
+                AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
             } finally {
                 connectivity.undoTemporaryChanges();
             }
