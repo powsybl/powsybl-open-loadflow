@@ -25,8 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class GeneratorTargetVoltageInconsistencyTest {
 
-    @Test
-    void localTest() throws IOException {
+    private Network createLocalInconsistentTargetVoltageNetwork() {
         Network network = Network.create("generatorLocalInconsistentTargetVoltage", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -87,6 +86,12 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setR(1)
                 .setX(1)
                 .add();
+        return network;
+    }
+
+    @Test
+    void localTest() throws IOException {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector());
@@ -104,6 +109,28 @@ class GeneratorTargetVoltageInconsistencyTest {
         assertTrue(vc.isPresent());
         assertEquals(23, vc.get().getTargetValue() * controlledBus.getNominalV());
         LoadFlowAssert.assertReportEquals("/notUniqueTargetVControllerBusReport.txt", reportNode);
+    }
+
+    @Test
+    void localTestWithDisabling() throws IOException {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
+
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setDisableInconsistentVoltageControls(true);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reportNode);
+
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfBus controlledBus = lfNetwork.getBusById("vl1_0");
+        assertNotNull(controlledBus);
+
+        Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
+        assertFalse(vc.isPresent());
+        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 with different target voltages \\(23\\.0 kV and 22\\.0 kV\\)\\: disabling voltage control.*$", reportNode);
     }
 
     @Test
@@ -302,5 +329,24 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         assertEquals(413 / g2.getTerminal().getVoltageLevel().getNominalV(), sharedVoltageControl.get().getTargetValue());
         LoadFlowAssert.assertReportEquals("/busAlreadyControlledWithDifferentTargetVReport.txt", reportNode);
+    }
+
+    @Test
+    void remoteAndLocalTestDisable() throws IOException {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
+        Generator g2 = network.getGenerator("g2");
+        g2.setRegulatingTerminal(network.getLoad("ld2").getTerminal()).setTargetV(400.0);
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true)
+                .setDisableInconsistentVoltageControls(true);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport", "Test Report")
+                .build();
+        List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
+        LfNetwork mainNetwork = networkList.get(0);
+        Optional<GeneratorVoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
+        assertFalse(sharedVoltageControl.isPresent());
+        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 but control the voltage of different buses \\(vl1\\_0 and vl2\\_0\\)\\: disabling voltage control", reportNode);
     }
 }
