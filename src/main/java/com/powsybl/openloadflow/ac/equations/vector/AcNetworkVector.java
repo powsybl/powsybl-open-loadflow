@@ -216,28 +216,31 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         for (int loadNum = 0; loadNum < loadVector.busNum.length; loadNum++) {
             int busNum = loadVector.busNum[loadNum];
             if (!busVector.disabled[busNum]) {
-                double v = state[busVector.vRow[busNum]];
+                int vRow = busVector.vRow[busNum];
+                if (vRow != -1) {
+                    double v = state[vRow];
 
-                // p
-                List<LfLoadModel.ExpTerm> expTermsP = loadVector.expTermsP[loadNum];
-                if (expTermsP != null) {
-                    loadVector.pLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
-                            loadVector.targetP[loadNum],
-                            expTermsP);
-                    loadVector.dpdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
-                            loadVector.targetP[loadNum],
-                            expTermsP);
-                }
+                    // p
+                    List<LfLoadModel.ExpTerm> expTermsP = loadVector.expTermsP[loadNum];
+                    if (expTermsP != null) {
+                        loadVector.pLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
+                                loadVector.targetP[loadNum],
+                                expTermsP);
+                        loadVector.dpdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
+                                loadVector.targetP[loadNum],
+                                expTermsP);
+                    }
 
-                // q
-                List<LfLoadModel.ExpTerm> expTermsQ = loadVector.expTermsQ[loadNum];
-                if (expTermsQ != null) {
-                    loadVector.qLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
-                            loadVector.targetQ[loadNum],
-                            expTermsQ);
-                    loadVector.dqdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
-                            loadVector.targetQ[loadNum],
-                            expTermsQ);
+                    // q
+                    List<LfLoadModel.ExpTerm> expTermsQ = loadVector.expTermsQ[loadNum];
+                    if (expTermsQ != null) {
+                        loadVector.qLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
+                                loadVector.targetQ[loadNum],
+                                expTermsQ);
+                        loadVector.dqdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
+                                loadVector.targetQ[loadNum],
+                                expTermsQ);
+                    }
                 }
             }
         }
