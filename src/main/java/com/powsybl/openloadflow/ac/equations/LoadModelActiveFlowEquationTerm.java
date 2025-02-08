@@ -19,8 +19,8 @@ import java.util.Collection;
  */
 public class LoadModelActiveFlowEquationTerm extends AbstractLoadModelEquationTerm {
 
-    public LoadModelActiveFlowEquationTerm(LfBus bus, LfLoadModel loadModel, LfLoad load, VariableSet<AcVariableType> variableSet) {
-        super(bus, loadModel, load, variableSet);
+    public LoadModelActiveFlowEquationTerm(LfBus bus, LfLoad load, LfLoadModel loadModel, VariableSet<AcVariableType> variableSet) {
+        super(bus, load, loadModel, variableSet);
     }
 
     @Override

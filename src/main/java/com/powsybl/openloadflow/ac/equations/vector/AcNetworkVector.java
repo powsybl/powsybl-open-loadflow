@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -38,6 +39,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     private final AcBranchVector branchVector;
     private final AcShuntVector shuntVector;
     private final AcHvdcVector hvdcVector;
+    private final AcLoadVector loadVector;
     private boolean variablesInvalid = true;
 
     public AcNetworkVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -48,6 +50,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         branchVector = new AcBranchVector(network.getBranches(), creationParameters);
         shuntVector = new AcShuntVector(network.getShunts());
         hvdcVector = new AcHvdcVector(network.getHvdcs());
+        loadVector = new AcLoadVector(network.getLoads());
     }
 
     public AcBusVector getBusVector() {
@@ -64,6 +67,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     public AcHvdcVector getHvdcVector() {
         return hvdcVector;
+    }
+
+    public AcLoadVector getLoadVector() {
+        return loadVector;
     }
 
     public void startListening() {
@@ -202,10 +209,37 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     busVector.ph[busNum] = state[busVector.phRow[busNum]];
                 }
             }
+        }
+    }
 
-            busVector.pLoadModel[busNum] = LoadModelActiveFlowEquationTerm.f(busVector.v[busNum],
-                    busVector.target[busNum],
-                    busVector.expTerms[busNum]);
+    public void updateLoads(double[] state) {
+        for (int loadNum = 0; loadNum < loadVector.busNum.length; loadNum++) {
+            int busNum = loadVector.busNum[loadNum];
+            if (!busVector.disabled[busNum]) {
+                double v = state[busVector.vRow[busNum]];
+
+                // p
+                List<LfLoadModel.ExpTerm> expTermsP = loadVector.expTermsP[loadNum];
+                if (expTermsP != null) {
+                    loadVector.pLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
+                            loadVector.targetP[loadNum],
+                            expTermsP);
+                    loadVector.dpdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
+                            loadVector.targetP[loadNum],
+                            expTermsP);
+                }
+
+                // q
+                List<LfLoadModel.ExpTerm> expTermsQ = loadVector.expTermsQ[loadNum];
+                if (expTermsQ != null) {
+                    loadVector.qLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
+                            loadVector.targetQ[loadNum],
+                            expTermsQ);
+                    loadVector.dqdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
+                            loadVector.targetQ[loadNum],
+                            expTermsQ);
+                }
+            }
         }
     }
 
@@ -665,6 +699,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         updateBranches(state);
         updateShunts(state);
         updateHvdcs(state);
+        updateLoads(state);
 
         stopwatch.stop();
         LOGGER.debug("AC network vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -674,8 +709,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     public void onDisableChange(LfElement element, boolean disabled) {
         if (element.getType() == ElementType.BUS) {
             busVector.disabled[element.getNum()] = disabled;
-        }
-        if (element.getType() == ElementType.BRANCH) {
+        } else if (element.getType() == ElementType.BRANCH) {
             branchVector.disabled[element.getNum()] = disabled;
         } else if (element.getType() == ElementType.SHUNT_COMPENSATOR) {
             shuntVector.disabled[element.getNum()] = disabled;
@@ -703,6 +737,16 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     @Override
     public void onShuntSusceptanceChange(LfShunt shunt, double b) {
         shuntVector.b[shunt.getNum()] = b;
+    }
+
+    @Override
+    public void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP) {
+        loadVector.targetP[load.getNum()] = newTargetP;
+    }
+
+    @Override
+    public void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ) {
+        loadVector.targetQ[load.getNum()] = newTargetQ;
     }
 
     @Override

@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LoadModelActiveFlowEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
+public class LoadModelReactiveFlowEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
 
     private final AcLoadVector loadVector;
 
@@ -25,7 +25,7 @@ public class LoadModelActiveFlowEquationTermArrayEvaluator implements EquationTe
 
     private final VariableSet<AcVariableType> variableSet;
 
-    public LoadModelActiveFlowEquationTermArrayEvaluator(AcLoadVector loadVector, AcBusVector busVector, VariableSet<AcVariableType> variableSet) {
+    public LoadModelReactiveFlowEquationTermArrayEvaluator(AcLoadVector loadVector, AcBusVector busVector, VariableSet<AcVariableType> variableSet) {
         this.loadVector = Objects.requireNonNull(loadVector);
         this.busVector = Objects.requireNonNull(busVector);
         this.variableSet = Objects.requireNonNull(variableSet);
@@ -33,7 +33,7 @@ public class LoadModelActiveFlowEquationTermArrayEvaluator implements EquationTe
 
     @Override
     public String getName() {
-        return "ac_load_p_array";
+        return "ac_load_q_array";
     }
 
     @Override
@@ -43,18 +43,18 @@ public class LoadModelActiveFlowEquationTermArrayEvaluator implements EquationTe
 
     @Override
     public double[] eval() {
-        return loadVector.pLoadModel;
+        return loadVector.qLoadModel;
     }
 
     @Override
     public double eval(int busNum) {
-        return loadVector.pLoadModel[busNum];
+        return loadVector.qLoadModel[busNum];
     }
 
     @Override
     public double[][] evalDer() {
         return new double[][] {
-            loadVector.dpdvLoadModel
+            loadVector.dqdvLoadModel
         };
     }
 

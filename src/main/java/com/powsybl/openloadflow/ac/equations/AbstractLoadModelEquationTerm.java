@@ -31,7 +31,7 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
 
     private final List<Variable<AcVariableType>> variables;
 
-    protected AbstractLoadModelEquationTerm(LfBus bus, LfLoadModel loadModel, LfLoad load, VariableSet<AcVariableType> variableSet) {
+    protected AbstractLoadModelEquationTerm(LfBus bus, LfLoad load, LfLoadModel loadModel, VariableSet<AcVariableType> variableSet) {
         super(bus);
         this.loadModel = Objects.requireNonNull(loadModel);
         this.load = Objects.requireNonNull(load);

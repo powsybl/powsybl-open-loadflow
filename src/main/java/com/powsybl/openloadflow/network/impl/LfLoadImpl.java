@@ -26,6 +26,8 @@ import java.util.stream.Stream;
  */
 public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
 
+    private int num = -1;
+
     private final LfBus bus;
 
     private final LfLoadModel loadModel;
@@ -63,10 +65,50 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
     }
 
     @Override
+    public int getNum() {
+        return num;
+    }
+
+    @Override
+    public void setNum(int num) {
+        this.num = num;
+    }
+
+    @Override
+    public boolean isDisabled() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public LfNetwork getNetwork() {
+        return bus.getNetwork();
+    }
+
+    @Override
+    public void removeEvaluable(Evaluable evaluable) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public List<String> getOriginalIds() {
         return Stream.concat(loadsRefs.values().stream().map(r -> r.get().getId()),
                              lccCsRefs.stream().map(r -> r.get().getId()))
                 .toList();
+    }
+
+    @Override
+    public String getMainOriginalId() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.LOAD;
     }
 
     @Override

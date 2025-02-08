@@ -76,6 +76,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
+    private final List<LfLoad> loadsByIndex = new ArrayList<>();
+
     private final Map<String, LfLoad> loadsById = new HashMap<>();
 
     private final Map<String, LfArea> areasById = new HashMap<>();
@@ -193,6 +195,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case BRANCH -> getBranch(num);
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
+            case LOAD -> getLoad(num);
         };
     }
 
@@ -300,7 +303,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         bus.getControllerShunt().ifPresent(this::addShunt);
         bus.getSvcShunt().ifPresent(this::addShunt);
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
-        bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> loadsById.put(id, load)));
+        bus.getLoads().forEach(load -> load.getOriginalIds().forEach(id -> {
+            load.setNum(loadsByIndex.size());
+            loadsByIndex.add(load);
+            loadsById.put(id, load);
+        }));
     }
 
     public void addArea(LfArea area) {
@@ -368,6 +375,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfGenerator getGeneratorById(String id) {
         Objects.requireNonNull(id);
         return generatorsById.get(id);
+    }
+
+    public List<LfLoad> getLoads() {
+        return loadsByIndex;
+    }
+
+    public LfLoad getLoad(int index) {
+        return loadsByIndex.get(index);
     }
 
     public LfLoad getLoadById(String id) {

@@ -70,14 +70,22 @@ public class AcEquationSystemCreator {
         createLoadEquations(bus, equationSystem);
     }
 
+    protected EquationTerm<AcVariableType, AcEquationType> createLoadModelP(LfLoad load, LfLoadModel loadModel, LfBus bus, VariableSet<AcVariableType> variableSet) {
+        return new LoadModelActiveFlowEquationTerm(bus, load, loadModel, variableSet);
+    }
+
+    protected EquationTerm<AcVariableType, AcEquationType> createLoadModelQ(LfLoad load, LfLoadModel loadModel, LfBus bus, VariableSet<AcVariableType> variableSet) {
+        return new LoadModelReactiveFlowEquationTerm(bus, load, loadModel, variableSet);
+    }
+
     private void createLoadEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfLoad load : bus.getLoads()) {
             load.getLoadModel().ifPresent(loadModel -> {
-                var p = new LoadModelActiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet());
+                var p = createLoadModelP(load, loadModel, bus, equationSystem.getVariableSet());
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P)
                         .addTerm(p);
                 load.setP(p);
-                var q = new LoadModelReactiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet());
+                var q = createLoadModelQ(load, loadModel, bus, equationSystem.getVariableSet());
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q)
                         .addTerm(q);
                 load.setQ(q);

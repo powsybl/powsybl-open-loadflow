@@ -53,6 +53,10 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     private EquationTermArray<AcVariableType, AcEquationType> hvdcP2Array;
 
+    private EquationTermArray<AcVariableType, AcEquationType> loadModelPArray;
+
+    private EquationTermArray<AcVariableType, AcEquationType> loadModelQArray;
+
     public AcVectorizedEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
     }
@@ -103,6 +107,11 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         pArray.addTermArray(hvdcP1Array);
         hvdcP2Array = new EquationTermArray<>(ElementType.HVDC, new HvdcAcEmulationSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getHvdcVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(hvdcP2Array);
+
+        loadModelPArray = new EquationTermArray<>(ElementType.LOAD, new LoadModelActiveFlowEquationTermArrayEvaluator(networkVector.getLoadVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
+        pArray.addTermArray(loadModelPArray);
+        loadModelQArray = new EquationTermArray<>(ElementType.LOAD, new LoadModelReactiveFlowEquationTermArrayEvaluator(networkVector.getLoadVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
+        qArray.addTermArray(loadModelQArray);
 
         networkVector.startListening();
 
@@ -177,5 +186,15 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     @Override
     protected EquationTerm<AcVariableType, AcEquationType> createHvdcP2(LfHvdc hvdc, VariableSet<AcVariableType> variableSet) {
         return hvdcP2Array.getElement(hvdc.getNum());
+    }
+
+    @Override
+    protected EquationTerm<AcVariableType, AcEquationType> createLoadModelP(LfLoad load, LfLoadModel loadModel, LfBus bus, VariableSet<AcVariableType> variableSet) {
+        return loadModelPArray.getElement(load.getNum());
+    }
+
+    @Override
+    protected EquationTerm<AcVariableType, AcEquationType> createLoadModelQ(LfLoad load, LfLoadModel loadModel, LfBus bus, VariableSet<AcVariableType> variableSet) {
+        return loadModelQArray.getElement(load.getNum());
     }
 }
