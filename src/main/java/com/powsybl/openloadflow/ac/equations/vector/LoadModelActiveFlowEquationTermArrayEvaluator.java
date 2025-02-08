@@ -7,38 +7,20 @@
 package com.powsybl.openloadflow.ac.equations.vector;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.Derivative;
-import com.powsybl.openloadflow.equations.EquationTermArray;
 import com.powsybl.openloadflow.equations.VariableSet;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LoadModelActiveFlowEquationTermArrayEvaluator implements EquationTermArray.Evaluator<AcVariableType> {
-
-    private final AcLoadVector loadVector;
-
-    private final AcBusVector busVector;
-
-    private final VariableSet<AcVariableType> variableSet;
+public class LoadModelActiveFlowEquationTermArrayEvaluator extends AbstractLoadModelEquationTermArrayEvaluator {
 
     public LoadModelActiveFlowEquationTermArrayEvaluator(AcLoadVector loadVector, AcBusVector busVector, VariableSet<AcVariableType> variableSet) {
-        this.loadVector = Objects.requireNonNull(loadVector);
-        this.busVector = Objects.requireNonNull(busVector);
-        this.variableSet = Objects.requireNonNull(variableSet);
+        super(loadVector, busVector, variableSet);
     }
 
     @Override
     public String getName() {
         return "ac_load_p_array";
-    }
-
-    @Override
-    public boolean isDisabled(int loadNum) {
-        return busVector.disabled[loadVector.busNum[loadNum]];
     }
 
     @Override
@@ -56,10 +38,5 @@ public class LoadModelActiveFlowEquationTermArrayEvaluator implements EquationTe
         return new double[][] {
             loadVector.dpdvLoadModel
         };
-    }
-
-    @Override
-    public List<Derivative<AcVariableType>> getDerivatives(int busNum) {
-        return List.of(new Derivative<>(variableSet.getVariable(busNum, AcVariableType.BUS_V), 0));
     }
 }

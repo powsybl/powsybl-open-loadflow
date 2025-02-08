@@ -32,8 +32,8 @@ public class ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator extends Abs
         double v2 = busVector.v[branchVector.bus2Num[branchNum]];
         double ph1 = busVector.ph[branchVector.bus1Num[branchNum]];
         double ph2 = busVector.ph[branchVector.bus2Num[branchNum]];
-        double a1 = branchVector.a1_state[branchNum];
-        double r1 = branchVector.r1_state[branchNum];
+        double a1 = branchVector.a1State[branchNum];
+        double r1 = branchVector.r1State[branchNum];
         return ClosedBranchSide1ReactiveFlowEquationTerm.calculateSensi(y, ksi, b1, v1, ph1, r1, a1, v2, ph2, dph1, dph2, dv1, dv2, da1, dr1);
     }
 
