@@ -18,8 +18,11 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
@@ -102,12 +105,34 @@ public final class LoadFlowAssert {
         assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reportNode);
     }
 
+    // kind of a hack to get a report text export using formatted doubles
+    // waiting for a solution from powsybl core
+    private static String toStringWithFormattedDoubles(ReportNode reportNode) throws IOException {
+        StringWriter text = new StringWriter();
+        reportNode.print(text);
+
+        String regex = "[-]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(text.toString());
+
+        DecimalFormat decimalFormat = new DecimalFormat("#.######");
+
+        StringBuilder textWithFormattedDoubles = new StringBuilder();
+        while (matcher.find()) {
+            double value = Double.parseDouble(matcher.group());
+            String formattedValue = decimalFormat.format(value);
+            matcher.appendReplacement(textWithFormattedDoubles, formattedValue);
+        }
+        matcher.appendTail(textWithFormattedDoubles);
+
+        return textWithFormattedDoubles.toString();
+    }
+
     public static void assertReportEquals(InputStream ref, ReportNode reportNode) throws IOException {
-        StringWriter sw = new StringWriter();
-        reportNode.print(sw);
+        String reportText = toStringWithFormattedDoubles(reportNode);
 
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(ref), StandardCharsets.UTF_8));
-        String logExport = normalizeLineSeparator(sw.toString());
+        String logExport = normalizeLineSeparator(reportText);
         assertEquals(refLogExport, logExport);
     }
 
