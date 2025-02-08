@@ -19,6 +19,7 @@ import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -121,7 +122,11 @@ public final class LoadFlowAssert {
         while (matcher.find()) {
             double value = Double.parseDouble(matcher.group());
             String formattedValue = decimalFormat.format(value);
-            matcher.appendReplacement(textWithFormattedDoubles, formattedValue);
+            if (formattedValue.endsWith("-0")) {
+                matcher.appendReplacement(textWithFormattedDoubles, "0");
+            } else {
+                matcher.appendReplacement(textWithFormattedDoubles, formattedValue);
+            }
         }
         matcher.appendTail(textWithFormattedDoubles);
 
