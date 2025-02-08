@@ -213,8 +213,6 @@ public class NewtonRaphson extends AbstractAcSolver {
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
-        System.out.println(equationSystem.writeToString());
-
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
