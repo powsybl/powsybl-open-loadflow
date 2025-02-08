@@ -1053,7 +1053,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
-                            case INJECTION_ACTIVE_POWER:
+                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
@@ -1096,13 +1096,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER) {
-                        String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
-                        functionElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
-                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                        } else {
-                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
-                        }
+                        String functionInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
+                        functionElement = functionInjectionBusId != null ? lfNetwork.getBusById(functionInjectionBusId) : null;
+                        variableElement = switch (variableType) {
+                            case BUS_TARGET_VOLTAGE -> findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                            case INJECTION_REACTIVE_POWER -> {
+                                String variableInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                                yield variableInjectionBusId != null ? lfNetwork.getBusById(variableInjectionBusId) : null;
+                            }
+                            default -> throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        };
                     } else {
                         throw createFunctionTypeNotSupportedException(functionType);
                     }

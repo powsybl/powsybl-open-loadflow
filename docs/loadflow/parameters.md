@@ -167,6 +167,11 @@ When `useReactiveLimits` is set to `true`, this parameter is used to limit the n
 is switching from PQ to PV type. After this number of PQ/PV type switch, the equipment will not change PV/PQ type anymore.  
 The default value is `3` and it must be greater or equal to `0`.
 
+**forceTargetQInReactiveLimits**  
+When `useReactiveLimits` is set to `true`, this parameter is used to prioritize the reactive power limits over the input target Q when target Q is
+outside these limits. If set to `true`, if any generator has a target Q which is outside its reactive power limits (for its given target P), then its target Q 
+is overriden by the value of the exceeded limit (minQ or maxQ). The default value is `false`.
+
 **phaseShifterControlMode**  
 - `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
