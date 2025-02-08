@@ -264,8 +264,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             }
 
             @Override
+            @SuppressWarnings("unchecked")
             public <T extends EquationTerm<V, E>> List<T> getTerms() {
-                throw new UnsupportedOperationException();
+                List<T> terms = new ArrayList<>();
+                for (EquationTermArray<V, E> termArray : termArrays) {
+                    TIntArrayList termNums = termArray.getTermNumsForEquationElementNum(elementNum);
+                    for (int i = 0; i < termNums.size(); i++) {
+                        int termNum = termNums.getQuick(i);
+                        int termElementNum = termArray.getTermElementNum(termNum);
+                        terms.add((T) new EquationTermArray.EquationTermArrayElementImpl<>(termArray, termElementNum));
+                    }
+                }
+                return terms;
             }
 
             @Override
