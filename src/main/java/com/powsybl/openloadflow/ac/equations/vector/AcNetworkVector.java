@@ -352,11 +352,15 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
             if (!branchVector.disabled[branchNum]) {
 
+                branchVector.r1_state[branchNum] = branchVector.r1Row[branchNum] != -1 ? state[branchVector.r1Row[branchNum]]
+                        : branchVector.r1[branchNum];
+                branchVector.a1_state[branchNum] = branchVector.a1Row[branchNum] != -1 ? state[branchVector.a1Row[branchNum]]
+                        : branchVector.a1[branchNum];
+
                 if (isBranchConnectedSide1(branchNum) && isBranchConnectedSide2(branchNum)) {
                     double ph1 = state[branchVector.ph1Row[branchNum]];
                     double ph2 = state[branchVector.ph2Row[branchNum]];
-                    double a1 = branchVector.a1Row[branchNum] != -1 ? state[branchVector.a1Row[branchNum]]
-                                                                    : branchVector.a1[branchNum];
+                    double a1 = branchVector.a1_state[branchNum];
 
                     double theta1 = theta1(
                             branchVector.ksi[branchNum],
@@ -375,8 +379,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
                     double v1 = state[branchVector.v1Row[branchNum]];
                     double v2 = state[branchVector.v2Row[branchNum]];
-                    double r1 = branchVector.r1Row[branchNum] != -1 ? state[branchVector.r1Row[branchNum]]
-                                                                    : branchVector.r1[branchNum];
+                    double r1 = branchVector.r1_state[branchNum];
 
                     // p1
 
@@ -605,8 +608,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / v2;
                 } else if (isBranchConnectedSide1(branchNum)) {
                     double v1 = state[branchVector.v1Row[branchNum]];
-                    double r1 = branchVector.r1Row[branchNum] != -1 ? state[branchVector.r1Row[branchNum]]
-                                                                    : branchVector.r1[branchNum];
+                    double r1 = branchVector.r1_state[branchNum];
 
                     branchVector.p1[branchNum] = OpenBranchSide2ActiveFlowEquationTerm.p1(
                             branchVector.y[branchNum],

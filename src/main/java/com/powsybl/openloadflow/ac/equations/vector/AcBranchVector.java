@@ -59,6 +59,9 @@ public class AcBranchVector {
     public final int[] dummyPRow;
     public final int[] dummyQRow;
 
+    final double[] r1_state;
+    final double[] a1_state;
+
     final double[] p1;
     final double[] p2;
     final double[] q1;
@@ -134,6 +137,9 @@ public class AcBranchVector {
         r1Row = new int[size];
         dummyPRow = new int[size];
         dummyQRow = new int[size];
+
+        r1_state = new double[size];
+        a1_state = new double[size];
 
         p1 = new double[size];
         p2 = new double[size];
