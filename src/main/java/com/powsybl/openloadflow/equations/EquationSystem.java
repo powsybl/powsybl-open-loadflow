@@ -224,6 +224,9 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         EquationArray<V, E> equationArray = equationArrays.get(type);
         if (equationArray == null) {
             equationArray = new EquationArray<>(type, network.getElementCount(type.getElementType()), this);
+            for (int elementNum = 0; elementNum < network.getElementCount(type.getElementType()); elementNum++) {
+                equationArray.setElementActive(elementNum, !network.getElement(type.getElementType(), elementNum).isDisabled());
+            }
             equationArrays.put(type, equationArray);
         }
         return equationArray;
