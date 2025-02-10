@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.SV;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -17,7 +18,7 @@ import java.util.*;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
+public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyBag {
 
     private final LfNetwork network;
     private final Ref<Area> areaRef;
@@ -52,6 +53,39 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     }
 
     @Override
+    public List<String> getOriginalIds() {
+        return List.of(this.getId());
+    }
+
+    @Override
+    public String getMainOriginalId() {
+        return this.getId();
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.AREA;
+    }
+
+    @Override
+    public int getNum() {
+        return 0;
+    }
+
+    @Override
+    public void setNum(int num) {
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return false;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+    }
+
+    @Override
     public double getInterchangeTarget() {
         return interchangeTarget;
     }
@@ -79,6 +113,11 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     @Override
     public LfNetwork getNetwork() {
         return network;
+    }
+
+    @Override
+    public void removeEvaluable(Evaluable evaluable) {
+
     }
 
     public static class BoundaryImpl implements Boundary {

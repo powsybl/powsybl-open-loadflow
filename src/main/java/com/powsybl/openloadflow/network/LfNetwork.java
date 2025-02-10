@@ -193,6 +193,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case BRANCH -> getBranch(num);
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
+            case AREA -> throw new PowsyblException("Cannot get area with a num");
         };
     }
 
