@@ -29,7 +29,9 @@ jobs:
       - name: Checkout core sources
         uses: actions/checkout@v4
         with:
-          ref: powsybl/powsybl-core
+          repository: powsybl/powsybl-core
+          ref: report_format_values
+          path: powsybl-core
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
