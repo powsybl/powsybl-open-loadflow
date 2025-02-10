@@ -49,6 +49,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final double minTargetP;
 
+    private final boolean forceTargetQInReactiveLimits;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
@@ -61,6 +63,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         droop = apcHelper.droop();
         minTargetP = apcHelper.minTargetP();
         maxTargetP = apcHelper.maxTargetP();
+
+        forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
 
         setReferencePriority(ReferencePriority.get(generator));
 
@@ -166,7 +170,17 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        double targetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        if (forceTargetQInReactiveLimits) {
+            double minQ = getMinQ();
+            double maxQ = getMaxQ();
+            if (targetQ < minQ) {
+                targetQ = minQ;
+            } else if (targetQ > maxQ) {
+                targetQ = maxQ;
+            }
+        }
+        return targetQ;
     }
 
     @Override
