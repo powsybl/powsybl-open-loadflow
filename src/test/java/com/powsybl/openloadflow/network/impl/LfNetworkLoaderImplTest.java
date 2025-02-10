@@ -138,7 +138,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
         // LfElement related
         assertEquals(List.of(lfArea.getId()), lfArea.getOriginalIds());
-        assertEquals( lfArea.getId(), lfArea.getMainOriginalId());
+        assertEquals(lfArea.getId(), lfArea.getMainOriginalId());
         assertEquals(ElementType.AREA, lfArea.getType());
         assertEquals(0, lfArea.getNum());
         assertFalse(lfArea.isDisabled());
