@@ -120,17 +120,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 for (LfGenerator lfGenerator : voltageControlGenerators.stream().skip(1).toList()) {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus();
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus, parameters.isDisableInconsistentVoltageControls())) {
-                        // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                        if (!checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus, parameters.isDisableInconsistentVoltageControls())) {
-                            inconsistentVoltageControl = true;
-                        }
-                    } else {
+                    if (!checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus, parameters.isDisableInconsistentVoltageControls())
+                        || !checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus, parameters.isDisableInconsistentVoltageControls())) {
                         inconsistentVoltageControl = true;
                     }
                 }
 
-                if (!(parameters.isDisableInconsistentVoltageControls() && inconsistentVoltageControl)) {
+                if (parameters.isDisableInconsistentVoltageControls() && inconsistentVoltageControl) {
+                    continue;
+                } else {
                     if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
                         controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                                 vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
