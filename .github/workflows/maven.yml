@@ -26,11 +26,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: [TO REMOVE] Checkout core sources
+      - name: Checkout core sources
         uses: actions/checkout@v4
         with:
-          repository: powsybl/powsybl-core
-          path: powsybl-core
+          ref: powsybl/powsybl-core
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
