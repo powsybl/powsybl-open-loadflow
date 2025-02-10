@@ -30,7 +30,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: powsybl/powsybl-core
-          ref: main
           path: powsybl-core
 
       - name: [TO REMOVE] Build and install core
