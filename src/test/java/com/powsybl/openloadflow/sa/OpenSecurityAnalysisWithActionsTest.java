@@ -1754,8 +1754,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // Strategy 2
         assertEquals(12.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
         assertEquals(-12.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
-
-
     }
 
     @ParameterizedTest(name = "DC = {0}")
