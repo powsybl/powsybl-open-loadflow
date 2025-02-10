@@ -184,7 +184,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Optional<ViolationLocation> vl1ViolationLocation = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0).getViolationLocation();
         assertTrue(vl1ViolationLocation.isPresent());
         assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation.get().getType());
-        assertEquals(List.of(0, 1, 3, 4, 5, 6), ((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes());
+        assertEquals(List.of(0, 5), ((NodeBreakerViolationLocation) vl1ViolationLocation.get()).getNodes());
+
+        Optional<ViolationLocation> vl1ViolationLocation2 = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(1).getViolationLocation();
+        assertTrue(vl1ViolationLocation2.isPresent());
+        assertEquals(ViolationLocation.Type.NODE_BREAKER, vl1ViolationLocation2.get().getType());
+        assertEquals(List.of(1, 3, 4), ((NodeBreakerViolationLocation) vl1ViolationLocation2.get()).getNodes());
     }
 
     @Test
@@ -4055,5 +4060,74 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         var saResultAll = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersAll);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultAll.getPreContingencyResult().getStatus());
         assertEquals(6, saResultAll.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 6 buses in total
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaHvdcLineContingency(boolean dcFastMode) {
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setDc(true);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(dcFastMode);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34+g1", List.of(new HvdcLineContingency("hvdc34"), new GeneratorContingency("g1"))));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // apply contingency by hand
+        network.getHvdcLine("hvdc34").remove();
+        network.getGenerator("g1").disconnect();
+        // run load flow to compare results
+        loadFlowRunner.run(network, securityAnalysisParameters.getLoadFlowParameters());
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "hvdc34+g1");
+        assertEquals(network.getLine("l12").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l13").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l25").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l45").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l45").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l46").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l46").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l56").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l56").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaHvdcLineInAcEmulationContingency(boolean dcFastMode) {
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork();
+        network.newLine()
+                .setId("l12_2")
+                .setBus1("b1")
+                .setConnectableBus1("b1")
+                .setBus2("b2")
+                .setConnectableBus2("b2")
+                .setR(0)
+                .setX(0.2f)
+                .add();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setDc(true).setHvdcAcEmulation(true);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(dcFastMode);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(Contingency.hvdcLine("hvdc12"));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // apply contingency by hand
+        network.getHvdcLine("hvdc12").remove();
+        // run load flow to compare results
+        loadFlowRunner.run(network, securityAnalysisParameters.getLoadFlowParameters());
+
+        // post-contingency tests
+        PostContingencyResult hvdcContingencyResult = getPostContingencyResult(result, "hvdc12");
+        assertEquals(network.getLine("l12").getTerminal1().getP(), hvdcContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12").getTerminal2().getP(), hvdcContingencyResult.getNetworkResult().getBranchResult("l12").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12_2").getTerminal1().getP(), hvdcContingencyResult.getNetworkResult().getBranchResult("l12_2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12_2").getTerminal2().getP(), hvdcContingencyResult.getNetworkResult().getBranchResult("l12_2").getP2(), LoadFlowAssert.DELTA_POWER);
     }
 }
