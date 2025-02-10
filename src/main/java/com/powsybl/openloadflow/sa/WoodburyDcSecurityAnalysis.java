@@ -70,8 +70,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
         DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
         LfNetworkParameters lfNetworkParameters = dcParameters.getNetworkParameters();
-        if (lfNetworkParameters.isHvdcAcEmulation() &&
-                network.getHvdcLineStream().anyMatch(l -> l.getExtension(HvdcAngleDroopActivePowerControl.class) != null)) {
+        boolean hasDroopControl = lfNetworkParameters.isHvdcAcEmulation() && network.getHvdcLineStream().anyMatch(l -> {
+            HvdcAngleDroopActivePowerControl droopControl = l.getExtension(HvdcAngleDroopActivePowerControl.class);
+            return droopControl != null && droopControl.isEnabled();
+        });
+        if (hasDroopControl) {
             Reports.reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(reportNode);
         }
         lfNetworkParameters.setMinImpedance(true) // connectivity break analysis does not handle zero impedance lines
