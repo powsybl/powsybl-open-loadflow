@@ -1691,6 +1691,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         Contingency lineContingency = new Contingency("l23_A1_1", new BranchContingency("l23_A1_1"));
         List<Contingency> contingencies = List.of(lineContingency);
+
+        // Strategy 1
         AreaInterchangeTargetAction actionArea1 = new AreaInterchangeTargetActionBuilder()
             .withId("ActionArea1")
             .withAreaId("a1")
@@ -1703,9 +1705,23 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             .withTarget(10.0)
             .build();
 
-        List<Action> actions = List.of(actionArea1, actionArea2);
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1",
-            ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea1.getId(), actionArea2.getId())));
+        // Strategy 2
+        AreaInterchangeTargetAction actionArea3 = new AreaInterchangeTargetActionBuilder()
+            .withId("ActionArea3")
+            .withAreaId("a1")
+            .withTarget(-12.0)
+            .build();
+
+        AreaInterchangeTargetAction actionArea4 = new AreaInterchangeTargetActionBuilder()
+            .withId("ActionArea4")
+            .withAreaId("a2")
+            .withTarget(12.0)
+            .build();
+
+        List<Action> actions = List.of(actionArea1, actionArea2, actionArea3, actionArea4);
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategy1", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea1.getId(), actionArea2.getId())),
+            new OperatorStrategy("strategy2", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea3.getId(), actionArea4.getId())));
         ReportNode reportNode = ReportNode.newRootReportNode()
             .withMessageTemplate("testSaReport", "Test report of security analysis")
             .build();
@@ -1731,8 +1747,14 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         // Respect of targets after remedial actions (now at 10.0)
         assertNotNull(result.getOperatorStrategyResults());
+        // Strategy 1
         assertEquals(10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
         assertEquals(-10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+
+        // Strategy 2
+        assertEquals(12.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
+        assertEquals(-12.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+
 
     }
 
