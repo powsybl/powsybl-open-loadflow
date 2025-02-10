@@ -292,7 +292,7 @@ The default values are `0.8` and `1.2` and they must be greater or equal to `0`.
 These parameters are used to identify if the AC Solver has converged to an unrealistic state.
 For any component where a bus voltage is solved outside these per-unit thresholds, the component solution is deemed unrealistic
 and its solution status is flagged as failed.  
-The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
+The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
 **reactiveRangeCheckMode**  
 Open Load Flow discards voltage control for generators with a too small reactive power range, because in practice a too
