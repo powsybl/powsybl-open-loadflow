@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -26,10 +28,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -95,7 +94,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 }
 
                 // if not yet stable, restart solver
-                runningContext.lastSolverResult = solver.run(new PreviousValueVoltageInitializer(), reportNode);
+                runningContext.lastSolverResult = runAcSolverAndCheckRealisticState(solver, new PreviousValueVoltageInitializer(), reportNode);
 
                 runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
                 runningContext.outerLoopTotalIterations++;
@@ -109,6 +108,43 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         if (outerLoopResult.status() != OuterLoopStatus.STABLE) {
             Reports.reportUnsuccessfulOuterLoop(olReportNode, outerLoopResult.status().name());
         }
+    }
+
+    private boolean isStateUnrealistic(ReportNode reportNode) {
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = context.getEquationSystem();
+        AcLoadFlowParameters parameters = context.getParameters();
+        LfNetwork network = context.getNetwork();
+        Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
+        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
+            if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
+                double value = equationSystem.getStateVector().get(v.getRow());
+                if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
+                    busesOutOfNormalVoltageRange.put(network.getBus(v.getElementNum()).getId(), value);
+                }
+            }
+        }
+        if (!busesOutOfNormalVoltageRange.isEmpty()) {
+            if (LOGGER.isTraceEnabled()) {
+                for (var e : busesOutOfNormalVoltageRange.entrySet()) {
+                    LOGGER.trace("Bus '{}' has an unrealistic voltage magnitude: {} pu", e.getKey(), e.getValue());
+                }
+            }
+            LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
+                    busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
+
+            Reports.reportNewtonRaphsonBusesOutOfRealisticVoltageRange(reportNode, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
+        }
+        return !busesOutOfNormalVoltageRange.isEmpty();
+    }
+
+    private AcSolverResult runAcSolverAndCheckRealisticState(AcSolver solver, VoltageInitializer voltageInitializer, ReportNode reportNode) {
+        AcSolverResult result = solver.run(voltageInitializer, reportNode);
+
+        if (result.getStatus() == AcSolverStatus.CONVERGED && isStateUnrealistic(reportNode)) {
+            result = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE, result.getIterations(), result.getSlackBusActivePowerMismatch());
+        }
+
+        return result;
     }
 
     @Override
@@ -167,7 +203,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     context.getNetwork().getNumSC());
         }
         // initial solver run
-        runningContext.lastSolverResult = solver.run(voltageInitializer, reportNode);
+        runningContext.lastSolverResult = runAcSolverAndCheckRealisticState(solver, voltageInitializer, reportNode);
 
         runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
 
