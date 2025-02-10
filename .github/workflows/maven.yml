@@ -26,17 +26,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Checkout core sources
-        uses: actions/checkout@v4
-        with:
-          repository: powsybl/powsybl-core
-          ref: report_format_values
-          path: powsybl-core
-
-      - name: Build core
-        shell: bash
-        run: mvn --batch-mode -DskipTests=true --file powsybl-core/pom.xml install
-
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
         run: ./mvnw --batch-mode -Pjacoco install
