@@ -120,7 +120,7 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyB
 
     @Override
     public void removeEvaluable(Evaluable evaluable) {
-
+        throw new PowsyblException("Unsupported operation on LfArea");
     }
 
     public static class BoundaryImpl implements Boundary {

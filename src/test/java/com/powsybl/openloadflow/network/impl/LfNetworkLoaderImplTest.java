@@ -144,6 +144,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertFalse(lfArea.isDisabled());
         assertThrows(PowsyblException.class, () -> lfArea.setDisabled(false));
         assertThrows(PowsyblException.class, () -> lfArea.setNum(0));
+        assertThrows(PowsyblException.class, () -> lfArea.removeEvaluable(null));
     }
 
     @Test
