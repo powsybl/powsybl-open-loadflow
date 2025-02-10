@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.SV;
 import com.powsybl.openloadflow.network.*;
@@ -74,6 +75,7 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyB
 
     @Override
     public void setNum(int num) {
+        throw new PowsyblException("Unsupported operation on LfArea");
     }
 
     @Override
@@ -83,6 +85,7 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyB
 
     @Override
     public void setDisabled(boolean disabled) {
+        throw new PowsyblException("Unsupported operation on LfArea");
     }
 
     @Override

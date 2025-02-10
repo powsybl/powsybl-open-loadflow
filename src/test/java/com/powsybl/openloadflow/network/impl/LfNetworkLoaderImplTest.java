@@ -135,6 +135,15 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // The area is not of 'ControlArea' type, so it is not created
         assertNull(mainNetwork.getAreaById("Region_AB"));
         assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());
+
+        // LfElement related
+        assertEquals(List.of(lfArea.getId()), lfArea.getOriginalIds());
+        assertEquals( lfArea.getId(), lfArea.getMainOriginalId());
+        assertEquals(ElementType.AREA, lfArea.getType());
+        assertEquals(0, lfArea.getNum());
+        assertFalse(lfArea.isDisabled());
+        assertThrows(PowsyblException.class, () -> lfArea.setDisabled(false));
+        assertThrows(PowsyblException.class, () -> lfArea.setNum(0));
     }
 
     @Test
