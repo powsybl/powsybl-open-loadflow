@@ -26,12 +26,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: [TO REMOVE] Checkout core sources
+      - name: Checkout core sources
         uses: actions/checkout@v4
         with:
           repository: powsybl/powsybl-core
           ref: report_format_values
-          path: powsybl-core
 
       - name: [TO REMOVE] Build and install core
         shell: bash
