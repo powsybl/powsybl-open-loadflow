@@ -9,8 +9,8 @@ package com.powsybl.openloadflow.lf.outerloop.config;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
-import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,16 +22,16 @@ public class DefaultDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
 
     @Override
     public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return configure(parameters, parametersExt, new ContingencyLoadFlowParameters());
+        return configure(parameters, parametersExt, LoadFlowParametersOverride.NO_OVERRIDE);
     }
 
     @Override
-    public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
+    public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         List<DcOuterLoop> outerLoops = new ArrayList<>(2);
         // incremental phase control
         createIncrementalPhaseControlOuterLoop(parameters).ifPresent(outerLoops::add);
         // area interchange control
-        createAreaInterchangeControlOuterLoop(parameters, parametersExt, contingencyParameters).ifPresent(outerLoops::add);
+        createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         return outerLoops;
     }
 }

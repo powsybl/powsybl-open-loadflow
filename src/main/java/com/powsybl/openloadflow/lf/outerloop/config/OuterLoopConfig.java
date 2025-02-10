@@ -11,8 +11,8 @@ package com.powsybl.openloadflow.lf.outerloop.config;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
-import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import org.apache.commons.compress.utils.Lists;
 
 import java.util.List;
@@ -26,7 +26,7 @@ import java.util.ServiceLoader;
 public interface OuterLoopConfig<O extends OuterLoop<?, ?, ?, ?, ?>> {
     List<O> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
 
-    List<O> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters);
+    List<O> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride);
 
     static <C extends OuterLoopConfig<?>> Optional<C> findOuterLoopConfig(Class<C> configClass) {
         List<C> outerLoopConfigs = Lists.newArrayList(ServiceLoader.load(configClass, configClass.getClassLoader()).iterator());

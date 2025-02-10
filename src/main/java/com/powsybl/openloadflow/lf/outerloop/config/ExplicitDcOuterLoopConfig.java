@@ -10,10 +10,10 @@ package com.powsybl.openloadflow.lf.outerloop.config;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
-import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,23 +27,23 @@ public class ExplicitDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
     public static final List<String> NAMES = List.of(AbstractIncrementalPhaseControlOuterLoop.NAME,
                                                         AbstractAreaInterchangeControlOuterLoop.NAME);
 
-    private static Optional<DcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
+    private static Optional<DcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
             case AbstractIncrementalPhaseControlOuterLoop.NAME -> createIncrementalPhaseControlOuterLoop(parameters);
-            case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, contingencyParameters);
+            case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for DC load flow");
         };
     }
 
     @Override
     public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return configure(parameters, parametersExt, new ContingencyLoadFlowParameters());
+        return configure(parameters, parametersExt, LoadFlowParametersOverride.NO_OVERRIDE);
     }
 
     @Override
-    public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ContingencyLoadFlowParameters contingencyParameters) {
-        return Objects.requireNonNull(contingencyParameters.getOuterLoopNames(parametersExt)).stream()
-                .flatMap(name -> createOuterLoop(name, parameters, parametersExt, contingencyParameters).stream())
+    public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
+        return Objects.requireNonNull(loadFlowParametersOverride.getOuterLoopNames(parametersExt)).stream()
+                .flatMap(name -> createOuterLoop(name, parameters, parametersExt, loadFlowParametersOverride).stream())
                 .toList();
     }
 }
