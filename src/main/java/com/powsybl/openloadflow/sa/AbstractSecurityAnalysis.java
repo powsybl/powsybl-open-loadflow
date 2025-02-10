@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -673,7 +674,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     protected static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, ContingencyLoadFlowParameters nullableContingencyLfParameters) {
-        ContingencyLoadFlowParameters contingencyLfParameters = Objects.requireNonNullElse(nullableContingencyLfParameters, new ContingencyLoadFlowParameters());
+        LoadFlowParametersOverride contingencyLfParameters = Objects.requireNonNullElse(nullableContingencyLfParameters, LoadFlowParametersOverride.NO_OVERRIDE);
         if ((contingencyLfParameters.isDistributedSlack(loadFlowParameters) || contingencyLfParameters.isAreaInterchangeControl(openLoadFlowParameters)) && Math.abs(mismatch) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(contingencyLfParameters.getBalanceType(loadFlowParameters), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
             activePowerDistribution.run(network, mismatch);
