@@ -15,7 +15,6 @@ public class AreaState extends ElementState<LfArea> {
 
     @Override
     public void restore() {
-        super.restore();
         element.setInterchangeTarget(interchangeTarget);
     }
 }
