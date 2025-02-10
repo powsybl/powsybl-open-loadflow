@@ -210,7 +210,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         if (runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
-            Reports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true);
+            Reports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true, LOGGER);
         }
 
         final OuterLoopResult outerLoopFinalResult;

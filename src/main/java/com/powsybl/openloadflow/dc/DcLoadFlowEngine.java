@@ -276,7 +276,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
 
         if (runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
-            Reports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true);
+            Reports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true, LOGGER);
         }
 
         // outer loops finalization (in reverse order to allow correct cleanup)

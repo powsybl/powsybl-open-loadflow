@@ -11,7 +11,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -20,8 +19,6 @@ import java.util.Map;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class Reports {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(Reports.class);
 
     private static final String NETWORK_NUM_CC = "networkNumCc";
     private static final String NETWORK_NUM_SC = "networkNumSc";
@@ -323,14 +320,14 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportMaxOuterLoopIterations(ReportNode reportNode, int iterationCount, boolean withLog) {
+    public static void reportMaxOuterLoopIterations(ReportNode reportNode, int iterationCount, boolean withLog, Logger logger) {
         ReportNode added = reportNode.newReportNode()
                 .withMessageTemplate("reportMaxOuterLoopIterations", "Maximum number of outerloop iterations reached: ${outerLoopIterationCount}")
                 .withUntypedValue("outerLoopIterationCount", iterationCount)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
         if (withLog) {
-            LOGGER.error(added.getMessage());
+            logger.error(added.getMessage());
         }
     }
 
