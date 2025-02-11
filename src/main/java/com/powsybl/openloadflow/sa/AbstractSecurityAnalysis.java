@@ -177,7 +177,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             final Set<String> actionIds = actions.stream().map(Action::getId).collect(Collectors.toSet());
             operatorStrategies.stream()
                     .forEach(o -> findMissingActionId(o, actionIds)
-                            .ifPresent(id -> throwMissingdOperatorStrategyAction(o, id)));
+                            .ifPresent(id -> throwMissingOperatorStrategyAction(o, id)));
 
             // we pre-allocate the results so that threads can set result in a stable order (using the partition number)
             // so that we always get results in the same order whatever threads completion order is.
@@ -524,7 +524,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     }
 
-    private static void throwMissingdOperatorStrategyAction(OperatorStrategy operatorStrategy, String actionId) {
+    private static void throwMissingOperatorStrategyAction(OperatorStrategy operatorStrategy, String actionId) {
         throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
                 + actionId + "' but this action is not present in the list");
     }
@@ -541,7 +541,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (hasValidContingency(operatorStrategy, contingencyIds)) {
                 if (checkOperatorStrategies) {
                     findMissingActionId(operatorStrategy, actionIds)
-                            .ifPresent(id -> throwMissingdOperatorStrategyAction(operatorStrategy, id));
+                            .ifPresent(id -> throwMissingOperatorStrategyAction(operatorStrategy, id));
                 }
 
                 for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
