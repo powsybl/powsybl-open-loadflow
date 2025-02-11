@@ -1706,22 +1706,17 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             .build();
 
         // Strategy 2
-        AreaInterchangeTargetAction actionArea3 = new AreaInterchangeTargetActionBuilder()
-            .withId("ActionArea3")
-            .withAreaId("a1")
-            .withTarget(-12.0)
+        GeneratorAction actionArea3 = new GeneratorActionBuilder()
+            .withId("Action3")
+            .withGeneratorId("g1")
+            .withActivePowerValue(99.0)
+            .withActivePowerRelativeValue(false)
             .build();
 
-        AreaInterchangeTargetAction actionArea4 = new AreaInterchangeTargetActionBuilder()
-            .withId("ActionArea4")
-            .withAreaId("a2")
-            .withTarget(12.0)
-            .build();
-
-        List<Action> actions = List.of(actionArea1, actionArea2, actionArea3, actionArea4);
+        List<Action> actions = List.of(actionArea1, actionArea2, actionArea3);
         List<OperatorStrategy> operatorStrategies = List.of(
             new OperatorStrategy("strategy1", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea1.getId(), actionArea2.getId())),
-            new OperatorStrategy("strategy2", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea3.getId(), actionArea4.getId())));
+            new OperatorStrategy("strategy2", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea3.getId())));
         ReportNode reportNode = ReportNode.newRootReportNode()
             .withMessageTemplate("testSaReport", "Test report of security analysis")
             .build();
@@ -1751,9 +1746,9 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
         assertEquals(-10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
 
-        // Strategy 2
-        assertEquals(12.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
-        assertEquals(-12.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+        // Strategy 2 (Retrieve post contingency targets)
+        assertEquals(15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
+        assertEquals(-15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
     }
 
     @ParameterizedTest(name = "DC = {0}")
