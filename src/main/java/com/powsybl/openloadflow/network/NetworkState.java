@@ -40,7 +40,7 @@ public class NetworkState {
         this.branchStates = Objects.requireNonNull(branchStates);
         this.hvdcStates = Objects.requireNonNull(hvdcStates);
         this.excludedSlackBuses = Objects.requireNonNull(excludedSlackBuses);
-        this.areaStates = areaStates;
+        this.areaStates = Objects.requireNonNull(areaStates);
     }
 
     public static NetworkState save(LfNetwork network) {
