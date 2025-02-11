@@ -82,7 +82,7 @@ an implementation of the `ContingencyActivePowerLossDistribution` interface and 
 Java ServiceLoader (e.g. using Google's AutoService):
 - the `getName()` method should provide the plugin name - which can then be used instead of `Default`.
 - The `run(...)` method will be called by the security analysis engine for each contingency and should provide the logic. 
-This method and has access to:
+This method has access to:
   - the network
   - the contingency, including among others information about disconnected network elements, and how much active power has been lost.
   - the security analysis parameters
