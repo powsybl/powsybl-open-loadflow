@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -47,6 +48,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
+                .setTargetQ(50)
                 .setTargetV(23)
                 .setVoltageRegulatorOn(true)
                 .add();
@@ -58,6 +60,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
+                .setTargetQ(100)
                 .setTargetV(22)
                 .setVoltageRegulatorOn(true)
                 .add();
@@ -131,6 +134,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
         assertFalse(vc.isPresent());
         LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 with different target voltages \\(23\\.0 kV and 22\\.0 kV\\)\\: disabling voltage control.*$", reportNode);
+        assertEquals(150.0, lfNetwork.getBusById("vl1_0").getGenerationTargetQ() * PerUnit.SB);
     }
 
     @Test
@@ -332,7 +336,7 @@ class GeneratorTargetVoltageInconsistencyTest {
     }
 
     @Test
-    void remoteAndLocalTestDisable() {
+    void remoteAndLocalTestWithDisabling() {
         Network network = createLocalInconsistentTargetVoltageNetwork();
         Generator g2 = network.getGenerator("g2");
         g2.setRegulatingTerminal(network.getLoad("ld2").getTerminal()).setTargetV(400.0);
@@ -344,9 +348,10 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .withMessageTemplate("testReport", "Test Report")
                 .build();
         List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
-        LfNetwork mainNetwork = networkList.get(0);
-        Optional<GeneratorVoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
+        LfNetwork lfNetwork = networkList.get(0);
+        Optional<GeneratorVoltageControl> sharedVoltageControl = lfNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
         assertFalse(sharedVoltageControl.isPresent());
         LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 but control the voltage of different buses \\(vl1\\_0 and vl2\\_0\\)\\: disabling voltage control", reportNode);
+        assertEquals(150.0, lfNetwork.getBusById("vl1_0").getGenerationTargetQ() * PerUnit.SB);
     }
 }
