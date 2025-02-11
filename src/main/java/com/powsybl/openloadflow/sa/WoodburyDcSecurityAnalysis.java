@@ -337,10 +337,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
 
         // get the pst actions by branch id
-        // TODO : clean
         Map<String, LfPhaseTapChangerAction> pstActionsByBranchId = operatorStrategyLfActions.stream()
-                .map(lfAction -> (LfPhaseTapChangerAction) lfAction)
-                .collect(Collectors.toMap(lfPhaseTapChangerAction -> lfPhaseTapChangerAction.getChange().getBranch().getId(), Function.identity()));
+                .collect(Collectors.toMap(
+                        action -> ((LfPhaseTapChangerAction) action).getChange().getBranch().getId(),
+                        action -> (LfPhaseTapChangerAction) action
+                ));
+
         NetworkDcVectorState dcVecState = new NetworkDcVectorState(postContingencyAndOperatorStrategyStates, lfNetwork, lfContingency,
                 pstActionsByBranchId, loadFlowContext.getParameters().getEquationSystemCreationParameters());
 
