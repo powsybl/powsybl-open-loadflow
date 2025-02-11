@@ -1026,10 +1026,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork, report.nonImpedantBranches);
         }
 
-        if (report.generatorsWithInconsistentTargetVoltage > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.generatorsWithInconsistentTargetVoltage);
-            LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been discarded from voltage control",
-                    lfNetwork, report.generatorsWithInconsistentTargetVoltage);
+        if (report.generatorsWithImplausibleTargetVoltage > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsImplausible(reportNode, report.generatorsWithImplausibleTargetVoltage);
+            LOGGER.warn("Network {}: {} generators have an implausible target voltage and have been discarded from voltage control",
+                    lfNetwork, report.generatorsWithImplausibleTargetVoltage);
         }
 
         if (report.generatorsWithZeroRemoteVoltageControlReactivePowerKey > 0) {

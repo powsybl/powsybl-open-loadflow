@@ -395,9 +395,9 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedGeneratorCount) {
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsImplausible(ReportNode reportNode, int impactedGeneratorCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is inconsistent")
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsImplausible", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is implausible")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();

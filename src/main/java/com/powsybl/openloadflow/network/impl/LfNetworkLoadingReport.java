@@ -36,7 +36,7 @@ public class LfNetworkLoadingReport {
 
     int nonImpedantBranches = 0;
 
-    int generatorsWithInconsistentTargetVoltage = 0;
+    int generatorsWithImplausibleTargetVoltage = 0;
 
     int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
 
