@@ -7,11 +7,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.SV;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -19,7 +17,7 @@ import java.util.*;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyBag {
+public class LfAreaImpl extends AbstractElement implements LfArea, PropertyBag {
 
     private final LfNetwork network;
     private final Ref<Area> areaRef;
@@ -31,6 +29,7 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyB
     private final Set<Boundary> boundaries;
 
     protected LfAreaImpl(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network, LfNetworkParameters parameters) {
+        super(network);
         this.network = network;
         this.areaRef = Ref.create(area, parameters.isCacheEnabled());
         this.interchangeTarget = area.getInterchangeTarget().orElse(0.0) / PerUnit.SB;
@@ -54,38 +53,8 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyB
     }
 
     @Override
-    public List<String> getOriginalIds() {
-        return List.of(this.getId());
-    }
-
-    @Override
-    public String getMainOriginalId() {
-        return this.getId();
-    }
-
-    @Override
     public ElementType getType() {
         return ElementType.AREA;
-    }
-
-    @Override
-    public int getNum() {
-        return 0;
-    }
-
-    @Override
-    public void setNum(int num) {
-        throw new PowsyblException("Unsupported operation on LfArea");
-    }
-
-    @Override
-    public boolean isDisabled() {
-        return false;
-    }
-
-    @Override
-    public void setDisabled(boolean disabled) {
-        throw new PowsyblException("Unsupported operation on LfArea");
     }
 
     @Override
@@ -116,11 +85,6 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea, PropertyB
     @Override
     public LfNetwork getNetwork() {
         return network;
-    }
-
-    @Override
-    public void removeEvaluable(Evaluable evaluable) {
-        throw new PowsyblException("Unsupported operation on LfArea");
     }
 
     public static class BoundaryImpl implements Boundary {

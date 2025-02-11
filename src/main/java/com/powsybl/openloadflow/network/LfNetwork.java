@@ -80,6 +80,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<String, LfArea> areasById = new HashMap<>();
 
+    private final List<LfArea> areas = new ArrayList<>();
+
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
@@ -193,7 +195,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case BRANCH -> getBranch(num);
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
-            case AREA -> throw new PowsyblException("Cannot get area with a num");
+            case AREA -> getArea(num);
         };
     }
 
@@ -307,6 +309,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void addArea(LfArea area) {
         Objects.requireNonNull(area);
         areasById.put(area.getId(), area);
+        area.setNum(areas.size());
+        areas.add(area);
     }
 
     public List<LfBus> getBuses() {
@@ -387,6 +391,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfArea getAreaById(String id) {
         Objects.requireNonNull(id);
         return areasById.get(id);
+    }
+
+    public LfArea getArea(int num) {
+        return areas.get(num);
     }
 
     public void addHvdc(LfHvdc hvdc) {
