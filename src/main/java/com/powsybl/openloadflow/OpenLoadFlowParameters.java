@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -31,6 +31,8 @@ import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.outerloop.config.AbstractDcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
@@ -379,8 +381,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class), ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Low impedance threshold in per unit", LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN, "Network cache enabled", LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
@@ -521,9 +523,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double minNominalVoltageTargetVoltageCheck = LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE;
 
-    private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
+    private double minRealisticVoltage = AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
-    private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+    private double maxRealisticVoltage = AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
@@ -1396,8 +1398,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
-                .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
-                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME, AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
+                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME, AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
                 .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
                 .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME, LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE))
@@ -1862,14 +1864,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     static List<AcOuterLoop> createAcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig()
+        AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
                                                                            : new DefaultAcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
     }
 
     static List<DcOuterLoop> createDcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        DcOuterLoopConfig outerLoopConfig = DcOuterLoopConfig.findOuterLoopConfig()
+        DcOuterLoopConfig outerLoopConfig = AbstractDcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitDcOuterLoopConfig()
                                                                            : new DefaultDcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
@@ -1900,7 +1902,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltageInitializer(voltageInitializer)
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
-                .setSolverFactory(solverFactory, parameters);
+                .setSolverFactory(solverFactory, parameters)
+                .setMinRealisticVoltage(parametersExt.minRealisticVoltage)
+                .setMaxRealisticVoltage(parametersExt.maxRealisticVoltage);
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
