@@ -322,7 +322,7 @@ public final class Reports {
 
     public static void reportMaxOuterLoopIterations(ReportNode reportNode, int iterationCount, boolean withLog, Logger logger) {
         ReportNode added = reportNode.newReportNode()
-                .withMessageTemplate("reportMaxOuterLoopIterations", "Maximum number of outerloop iterations reached: ${outerLoopIterationCount}")
+                .withMessageTemplate("maxOuterLoopIterations", "Maximum number of outerloop iterations reached: ${outerLoopIterationCount}")
                 .withUntypedValue("outerLoopIterationCount", iterationCount)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
