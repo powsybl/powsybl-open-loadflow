@@ -4183,17 +4183,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // Post-contingency results
         // Contingency 1: AIC, proportional to load
-        PostContingencyResult postContingencyResult1 = getPostContingencyResult(resultAc, "load3_aic_load");
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result, "load3_aic_load");
         assertEquals(50, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(75, postContingencyResult1.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // Contingency 2: no extension, distributed slack proportional to gen Pmax
-        PostContingencyResult postContingencyResult2 = getPostContingencyResult(resultAc, "load3_no_ext");
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "load3_no_ext");
         assertEquals(15, postContingencyResult2.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(30, postContingencyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // Contingency 3: distributed slack, proportional to gen P
-        PostContingencyResult postContingencyResult3 = getPostContingencyResult(resultAc, "load3_slack_gen_p");
+        PostContingencyResult postContingencyResult3 = getPostContingencyResult(result, "load3_slack_gen_p");
         assertEquals(9.545, postContingencyResult3.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(30, postContingencyResult3.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
