@@ -391,6 +391,22 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus", "${impactedGeneratorCount} generators have been discarded from voltage control because connected to the same bus but controlling the voltage of different buses")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages", "${impactedGeneratorCount} generators have been discarded from voltage control because connected to the same bus but having different target voltages")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static void reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedTransformerCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("transformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedTransformerCount} transformers have been discarded from voltage control because targetV is inconsistent")

@@ -83,7 +83,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createVoltageControls(List<LfBus> lfBuses, LfNetworkParameters parameters) {
+    private static void createVoltageControls(List<LfBus> lfBuses, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         List<GeneratorVoltageControl> voltageControls = new ArrayList<>();
 
         // set controller -> controlled link
@@ -116,21 +116,29 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
                 LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
-                boolean inconsistentVoltageControl = false;
-                for (LfGenerator lfGenerator : voltageControlGenerators.stream().skip(1).toList()) {
-                    LfBus generatorControlledBus = lfGenerator.getControlledBus();
-                    // check that remote control bus is the same for the generators of current controller bus which have voltage control on and that they all have the same targetV
-                    if (!checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus, parameters.isDisableInconsistentVoltageControls())
-                        || !checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus, parameters.isDisableInconsistentVoltageControls())) {
-                        inconsistentVoltageControl = true;
+
+                boolean inconsistentControlledBus = voltageControlGenerators.stream()
+                        .skip(1)
+                        .anyMatch(lfGenerator -> !checkUniqueControlledBus(controlledBus, lfGenerator.getControlledBus(), controllerBus, parameters.isDisableInconsistentVoltageControls()));
+
+                boolean inconsistentTargetV = false;
+                if (!inconsistentControlledBus) { // checking unique targetV only if voltage controlled bus is consistent (to avoid redundant warn message)
+                    inconsistentTargetV = voltageControlGenerators.stream()
+                            .skip(1)
+                            .anyMatch(lfGenerator -> !checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, lfGenerator.getControlledBus(), parameters.isDisableInconsistentVoltageControls()));
+                }
+
+                if (parameters.isDisableInconsistentVoltageControls() && (inconsistentControlledBus || inconsistentTargetV)) {
+                    // if inconsistent, discarding voltage control
+                    controllerBus.setGeneratorVoltageControlEnabled(false);
+                    controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream().mapToDouble(LfGenerator::getTargetQ).sum());
+                    if (inconsistentControlledBus) {
+                        report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus += voltageControlGenerators.size();
+                    } else if (inconsistentTargetV) {
+                        report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages += voltageControlGenerators.size();
                     }
-                }
-
-                if (parameters.isDisableInconsistentVoltageControls() && inconsistentVoltageControl) {
-                    continue;
-                }
-
-                if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
+                } else if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
+                    // if consistent, creating voltage control
                     controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                             vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
                             () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
@@ -934,7 +942,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createAreas(lfNetwork, loadingContext, postProcessors, parameters);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
-            createVoltageControls(lfBuses, parameters);
+            createVoltageControls(lfBuses, parameters, report);
             if (parameters.isGeneratorReactivePowerRemoteControl()) {
                 createGeneratorReactivePowerControls(lfBuses);
             }
@@ -980,6 +988,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because targetP is outside active power limits",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
+        }
+        if (report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(reportNode, report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because connected to the same bus but controlling the voltage of different buses",
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus);
+        }
+        if (report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(reportNode, report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because connected to the same bus but having different target voltages",
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",

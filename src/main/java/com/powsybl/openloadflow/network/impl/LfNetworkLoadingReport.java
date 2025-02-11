@@ -18,6 +18,10 @@ public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = 0;
 
+    int generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages = 0;
+
+    int generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus = 0;
+
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = 0;
