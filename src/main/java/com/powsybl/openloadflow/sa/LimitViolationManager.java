@@ -89,8 +89,21 @@ public class LimitViolationManager {
                                          ToDoubleFunction<LfBranch> i2Getter,
                                          ToDoubleFunction<LfBranch> p2Getter,
                                          ToDoubleFunction<LfBranch> s2Getter) {
+        detectBranchesViolations(network, isDisabled, branch -> true, i1Getter, p1Getter, s1Getter, i2Getter, p2Getter, s2Getter);
+    }
+
+    public void detectBranchesViolations(LfNetwork network,
+                                         Predicate<LfBranch> isDisabled,
+                                         Predicate<LfBranch> isRestrictiveLimitViolated,
+                                         ToDoubleFunction<LfBranch> i1Getter,
+                                         ToDoubleFunction<LfBranch> p1Getter,
+                                         ToDoubleFunction<LfBranch> s1Getter,
+                                         ToDoubleFunction<LfBranch> i2Getter,
+                                         ToDoubleFunction<LfBranch> p2Getter,
+                                         ToDoubleFunction<LfBranch> s2Getter) {
         network.getBranches().stream()
                 .filter(b -> !isDisabled.test(b))
+                .filter(isRestrictiveLimitViolated)
                 .forEach(branch -> detectBranchViolations(branch, i1Getter, p1Getter, s1Getter, i2Getter, p2Getter, s2Getter));
     }
 
