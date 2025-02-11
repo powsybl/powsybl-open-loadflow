@@ -136,6 +136,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertNull(mainNetwork.getAreaById("Region_AB"));
         assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());
         assertEquals(ElementType.AREA, lfArea.getType());
+        assertEquals(lfArea.getId(), mainNetwork.getArea(0).getId());
+        assertEquals(lfArea.getId(), mainNetwork.getElement(ElementType.AREA, 0).getId());
     }
 
     @Test
