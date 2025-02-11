@@ -12,7 +12,8 @@
       "contingency-load-flow-parameters" : {
         "distributedSlack" : false,
         "areaInterchangeControl" : true,
-        "balanceType" : "PROPORTIONAL_TO_LOAD"
+        "balanceType" : "PROPORTIONAL_TO_LOAD",
+        "outerLoopNames" : [ "DistributedSlack", "SecondaryVoltageControl", "ReactiveLimits" ]
       }
     }
   }, {
