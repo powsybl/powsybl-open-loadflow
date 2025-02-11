@@ -117,29 +117,25 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
 
-                // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                boolean inconsistentControlledBus = voltageControlGenerators.stream()
-                        .skip(1)
-                        .anyMatch(lfGenerator -> !checkUniqueControlledBus(controlledBus, lfGenerator.getControlledBus(), controllerBus, parameters.isDisableInconsistentVoltageControls()));
-
-                // if consistent controlled bus (to avoid redundant check), check that target voltage is the same for the generators of current controller bus which have voltage control on
-                boolean inconsistentTargetV = false;
-                if (!inconsistentControlledBus) {
-                    inconsistentTargetV = voltageControlGenerators.stream()
-                            .skip(1)
-                            .anyMatch(lfGenerator -> !checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, lfGenerator.getControlledBus(), parameters.isDisableInconsistentVoltageControls()));
+                if (voltageControlGenerators.stream().skip(1)
+                        .anyMatch(lfGenerator -> !checkUniqueControlledBus(controlledBus, lfGenerator.getControlledBus(), controllerBus, parameters.isDisableInconsistentVoltageControls()))) {
+                    // remote control bus is the same for the generators of current controller bus which have voltage control on
+                    if (parameters.isDisableInconsistentVoltageControls()) {
+                        report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus += voltageControlGenerators.size();
+                        discardGeneratorVoltageControl(controllerBus);
+                        continue;
+                    }
+                } else if (voltageControlGenerators.stream().skip(1)
+                        .anyMatch(lfGenerator -> !checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, lfGenerator.getControlledBus(), parameters.isDisableInconsistentVoltageControls()))) {
+                    // target voltage is the same for the generators of current controller bus which have voltage control on
+                    if (parameters.isDisableInconsistentVoltageControls()) {
+                        report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages += voltageControlGenerators.size();
+                        discardGeneratorVoltageControl(controllerBus);
+                        continue;
+                    }
                 }
 
-                if (parameters.isDisableInconsistentVoltageControls() && (inconsistentControlledBus || inconsistentTargetV)) {
-                    // if inconsistent, discarding voltage control
-                    controllerBus.setGeneratorVoltageControlEnabled(false);
-                    controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream().mapToDouble(LfGenerator::getTargetQ).sum());
-                    if (inconsistentControlledBus) {
-                        report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus += voltageControlGenerators.size();
-                    } else if (inconsistentTargetV) {
-                        report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages += voltageControlGenerators.size();
-                    }
-                } else if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
+                if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
                     // if consistent, creating voltage control
                     controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                             vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
@@ -176,6 +172,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, LfBus controllerBus, double controllerTargetV) {
         voltageControl.addControllerElement(controllerBus);
         checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl);
+    }
+
+    private static void discardGeneratorVoltageControl(LfBus controllerBus) {
+        controllerBus.setGeneratorVoltageControlEnabled(false);
+        controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream().mapToDouble(LfGenerator::getTargetQ).sum());
     }
 
     private static void checkGeneratorsWithSlope(GeneratorVoltageControl voltageControl) {
