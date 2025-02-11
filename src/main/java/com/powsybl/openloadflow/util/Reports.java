@@ -636,6 +636,13 @@ public final class Reports {
                 .add());
     }
 
+    public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {
+        reportNode.newReportNode()
+                .withMessageTemplate("acEmulationDisabledInWoodburyDcSecurityAnalysis", "AC emulation of HVDC lines is disabled with Woodbury DC Security Analysis. HVDC active power setpoint will be used instead.")
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static void reportContingencyActivePowerLossDistribution(ReportNode reportNode, double mismatch, double remaining) {
         reportNode.newReportNode()
                 .withMessageTemplate("contingencyActivePowerLossDistribution", "Contingency caused the loss of ${mismatch} MW injection: ${distributed} MW distributed, ${remaining} MW remaining.")

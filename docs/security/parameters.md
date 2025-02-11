@@ -56,7 +56,8 @@ when DC mode is activated.
 
 Please note that fast mode has a few limitations:
 - Contingencies applied on branches opened on one side are ignored.
-- Contingencies applied on HVDC lines in AC emulation mode are ignored.
+- AC emulation of HVDC lines is disabled, as it is not yet supported. 
+Instead, the [active power setpoint](../loadflow/loadflow.md#computing-hvdc-power-flow) mode is used to control the active power flow through these lines. 
 - Only PST remedial actions are supported for now.
 - Slack relocation following the application of a contingency is not supported. 
 As a result, security analysis is carried out only in slack component, and not necessarily in the largest one.
@@ -110,11 +111,11 @@ the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) sp
 - `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
 - `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
 - `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
 
 To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
 
-The behaviour is not implemented yet.
-It will be as follows:
+The behaviour is as follows:
 - When the extension is added: The specified parameters override the corresponding SA input parameters.
 - When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
 
