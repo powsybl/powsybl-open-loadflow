@@ -49,13 +49,15 @@ public final class ConnectivityBreakAnalysis {
 
         private final int createdSynchronousComponents;
 
+        private final Set<LfHvdc> hvdcsWithoutPower;
+
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network) {
-            this(propagatedContingency, network, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), 0);
+            this(propagatedContingency, network, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), 0, Collections.emptySet());
         }
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network, Set<String> elementsToReconnect,
-                                          Set<LfBus> disabledBuses, Set<LfBus> slackConnectedComponentBuses,
-                                          Set<LfBranch> partialDisabledBranches, int createdSynchronousComponents) {
+                                          Set<LfBus> disabledBuses, Set<LfBus> slackConnectedComponentBuses, Set<LfBranch> partialDisabledBranches,
+                                          int createdSynchronousComponents, Set<LfHvdc> hvdcsWithoutPower) {
             this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
             this.network = Objects.requireNonNull(network);
             this.elementsToReconnect = elementsToReconnect;
@@ -63,6 +65,7 @@ public final class ConnectivityBreakAnalysis {
             this.slackConnectedComponentBuses = slackConnectedComponentBuses;
             this.partialDisabledBranches = partialDisabledBranches;
             this.createdSynchronousComponents = createdSynchronousComponents;
+            this.hvdcsWithoutPower = hvdcsWithoutPower;
         }
 
         public PropagatedContingency getPropagatedContingency() {
@@ -85,10 +88,14 @@ public final class ConnectivityBreakAnalysis {
             return partialDisabledBranches;
         }
 
+        public Set<LfHvdc> getHvdcsWithoutPower() {
+            return hvdcsWithoutPower;
+        }
+
         public Optional<LfContingency> toLfContingency() {
-            return propagatedContingency.toLfContingency(network, false, (network, contingencyId, branchesToOpen, relocateSlackBus) -> {
-                return new PropagatedContingency.ContingencyConnectivityLossImpact(true, createdSynchronousComponents, disabledBuses, Collections.emptySet()); // FIXME
-            });
+            PropagatedContingency.ContingencyConnectivityLossImpactAnalyser analyser = (network, contingencyId, branchesToOpen, relocateSlackBus)
+                    -> new PropagatedContingency.ContingencyConnectivityLossImpact(true, createdSynchronousComponents, disabledBuses, hvdcsWithoutPower);
+            return propagatedContingency.toLfContingency(network, false, analyser);
         }
     }
 
@@ -171,8 +178,10 @@ public final class ConnectivityBreakAnalysis {
                     // only compute for factors that have to be computed for this contingency lost
                     Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
                     int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
-                    ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfNetwork, elementsToReconnect, connectivity.getVerticesRemovedFromMainComponent(),
-                            connectivity.getConnectedComponent(lfNetwork.getSlackBus()), connectivity.getEdgesRemovedFromMainComponent(), createdSynchronousComponents);
+                    Set<LfBus> disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
+                    Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.ContingencyConnectivityLossImpact.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
+                    ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfNetwork, elementsToReconnect, disabledBuses,
+                            connectivity.getConnectedComponent(lfNetwork.getSlackBus()), connectivity.getEdgesRemovedFromMainComponent(), createdSynchronousComponents, hvdcsWithoutPower);
                     connectivityAnalysisResults.add(connectivityAnalysisResult);
                 }
             } finally {

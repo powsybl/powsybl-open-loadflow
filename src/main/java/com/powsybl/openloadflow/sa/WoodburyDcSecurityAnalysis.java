@@ -32,7 +32,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
-import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -175,18 +174,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                                                                           Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
                                                                                                           List<LfAction> operatorStrategyLfActions, Map<String, ComputedTapPositionChangeElement> tapPositionChangeElementByBranch,
                                                                                                           DenseMatrix actionsStates, ReportNode reportNode) {
-
-        PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
-        Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
-
-        // as we are processing a contingency with connectivity break, we have to reset active power flow of a hvdc line
-        // if one bus of the line is lost.
-        for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
-            if (Networks.isIsolatedBusForHvdc(hvdc.getBus1(), disabledBuses) ^ Networks.isIsolatedBusForHvdc(hvdc.getBus2(), disabledBuses)) {
-                contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation1().getId());
-                contingency.getGeneratorIdsToLose().add(hvdc.getConverterStation2().getId());
-            }
-        }
+        // reset active flow of hvdc line without power
+        connectivityAnalysisResult.getHvdcsWithoutPower().forEach(hvdcWithoutPower -> {
+            PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
+            contingency.getGeneratorIdsToLose().add(hvdcWithoutPower.getConverterStation1().getId());
+            contingency.getGeneratorIdsToLose().add(hvdcWithoutPower.getConverterStation2().getId());
+        });
 
         return calculatePostContingencyAndOperatorStrategyStates(loadFlowContext, contingenciesStates, flowStates,
                 connectivityAnalysisResult, contingencyElementByBranch, operatorStrategyLfActions,
