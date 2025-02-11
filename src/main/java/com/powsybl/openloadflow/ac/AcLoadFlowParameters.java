@@ -28,6 +28,9 @@ import java.util.Objects;
  */
 public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowParameters> {
 
+    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
+    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 2;
+
     private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
     private AcSolverParameters acSolverParameters = new NewtonRaphsonParameters();
@@ -45,6 +48,10 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private boolean detailedReport = false;
 
     private boolean remoteControlRobustMode = true;
+
+    private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
+
+    private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
@@ -123,6 +130,24 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public double getMinRealisticVoltage() {
+        return minRealisticVoltage;
+    }
+
+    public AcLoadFlowParameters setMinRealisticVoltage(double minRealisticVoltage) {
+        this.minRealisticVoltage = minRealisticVoltage;
+        return this;
+    }
+
+    public double getMaxRealisticVoltage() {
+        return maxRealisticVoltage;
+    }
+
+    public AcLoadFlowParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
+        this.maxRealisticVoltage = maxRealisticVoltage;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -138,6 +163,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", solverFactory=" + solverFactory.getClass().getSimpleName() +
                 ", detailedReport=" + detailedReport +
                 ", remoteControlRobustMode=" + remoteControlRobustMode +
+                ", minRealisticVoltage=" + minRealisticVoltage +
+                ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ')';
     }
 }

@@ -181,6 +181,11 @@ When `useReactiveLimits` is set to `true`, this parameter is used to limit the n
 is switching from PQ to PV type. After this number of PQ/PV type switch, the equipment will not change PV/PQ type anymore.  
 The default value is `3` and it must be greater or equal to `0`.
 
+**forceTargetQInReactiveLimits**  
+When `useReactiveLimits` is set to `true`, this parameter is used to prioritize the reactive power limits over the input target Q when target Q is
+outside these limits. If set to `true`, if any generator has a target Q which is outside its reactive power limits (for its given target P), then its target Q 
+is overriden by the value of the exceeded limit (minQ or maxQ). The default value is `false`.
+
 **phaseShifterControlMode**  
 - `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
@@ -298,7 +303,8 @@ are considered suspect and are discarded from regulation prior to load flow reso
 The default values are `0.8` and `1.2` and they must be greater or equal to `0`.
 
 **minRealisticVoltage** and **maxRealisticVoltage**  
-These parameters are used to identify if Newton-Raphson has converged to an unrealistic state.
+<<<<<<< HEAD
+These parameters are used to identify if the AC Solver has converged to an unrealistic state.
 
 For any component where a bus voltage is solved outside these per-unit
 thresholds, the component solution is deemed unrealistic and its solution status is flagged as failed.
@@ -308,7 +314,7 @@ ReactiveLimits outerloop has been used. In addition, the ReactiveLimits outerloo
 criteria to block PQ remote controler buses that have an unrealistic voltage and a reactive injection within 
 their reactive diagram.
 
-The default values are `0.5` and `1.5` and they must be greater or equal to `0`.
+The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
 **reactiveRangeCheckMode**  
 Open Load Flow discards voltage control for generators with a too small reactive power range, because in practice a too

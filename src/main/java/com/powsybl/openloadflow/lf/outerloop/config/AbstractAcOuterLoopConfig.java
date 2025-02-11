@@ -7,8 +7,10 @@
  */
 package com.powsybl.openloadflow.lf.outerloop.config;
 
+import com.google.common.base.Suppliers;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -17,28 +19,35 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
+public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractAcOuterLoopConfig.class);
+
+    private static final Supplier<Optional<AcOuterLoopConfig>> CONFIG_SUPPLIER = Suppliers.memoize(AcOuterLoopConfig::findOuterLoopConfig);
 
     protected AbstractAcOuterLoopConfig() {
     }
 
-    protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        if (parameters.isDistributedSlack()) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+    public static Optional<AcOuterLoopConfig> getOuterLoopConfig() {
+        return CONFIG_SUPPLIER.get();
+    }
+
+    protected static Optional<AcOuterLoop> createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
+        if (loadFlowParametersOverride.isDistributedSlack(parameters)) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParametersOverride.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             return Optional.of(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch()));
         }
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        if (parametersExt.isAreaInterchangeControl()) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+    protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
+        if (loadFlowParametersOverride.isAreaInterchangeControl(parametersExt)) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParametersOverride.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             return Optional.of(new AcAreaInterchangeControlOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
         }
         return Optional.empty();

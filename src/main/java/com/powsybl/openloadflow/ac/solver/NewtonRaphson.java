@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -173,34 +173,7 @@ public class NewtonRaphson extends AbstractAcSolver {
     }
 
     @Override
-    public boolean isStateUnrealisticForSolver(ReportNode reportNode) {
-        Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
-
-        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
-            if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
-                double value = equationSystem.getStateVector().get(v.getRow());
-                if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
-                    busesOutOfNormalVoltageRange.put(network.getBus(v.getElementNum()).getId(), value);
-                }
-            }
-        }
-
-        if (!busesOutOfNormalVoltageRange.isEmpty()) {
-            if (LOGGER.isTraceEnabled()) {
-                for (var e : busesOutOfNormalVoltageRange.entrySet()) {
-                    LOGGER.trace("Bus '{}' has an unrealistic voltage magnitude: {} pu", e.getKey(), e.getValue());
-                }
-            }
-            LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
-                    busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
-
-            Reports.reportNewtonRaphsonBusesOutOfRealisticVoltageRange(reportNode, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
-        }
-        return !busesOutOfNormalVoltageRange.isEmpty();
-    }
-
-    @Override
-    public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode, boolean canCheckUnrealistic) {
+    public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
@@ -236,11 +209,6 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             AcSolverUtil.updateNetwork(network, equationSystem);
-        }
-
-        // update network state variable
-        if (status == AcSolverStatus.CONVERGED && canCheckUnrealistic && isStateUnrealisticForSolver(reportNode)) {
-            status = AcSolverStatus.UNREALISTIC_STATE;
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
