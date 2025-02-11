@@ -39,8 +39,10 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
     }
 
     private void addResults(StateMonitor monitor, Predicate<LfBranch> isDisabled) {
-        addResults(monitor, branch -> branchResultsCreator.create(branch, Double.NaN, Double.NaN, createResultExtension)
-                .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult)), isDisabled);
+        addResults(monitor, branch -> {
+            branchResultsCreator.create(branch, Double.NaN, Double.NaN, createResultExtension)
+                    .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
+        }, isDisabled);
     }
 
     @Override

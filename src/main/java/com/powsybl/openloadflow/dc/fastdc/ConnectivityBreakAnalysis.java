@@ -87,10 +87,7 @@ public final class ConnectivityBreakAnalysis {
 
         public Optional<LfContingency> toLfContingency() {
             return propagatedContingency.toLfContingency(network, false, (network, contingencyId, branchesToOpen, relocateSlackBus) -> {
-                return new PropagatedContingency.ContingencyConnectivityLossImpact(true,
-                        createdSynchronousComponents,
-                        disabledBuses,
-                        Collections.emptySet()); // FIXME
+                return new PropagatedContingency.ContingencyConnectivityLossImpact(true, createdSynchronousComponents, disabledBuses, Collections.emptySet()); // FIXME
             });
         }
     }

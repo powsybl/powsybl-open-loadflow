@@ -121,15 +121,15 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         return ph2(sv);
     }
 
+    public double eval(StateVector sv, PiModel piModel) {
+        return eval(ph1(sv), ph2(sv), a1(sv), piModel);
+    }
+
     protected double eval(double ph1, double ph2, double a1) {
         return eval(ph1, ph2, a1, element.getPiModel());
     }
 
     protected abstract double eval(double ph1, double ph2, double a1, PiModel piModel);
-
-    public double eval(StateVector sv, PiModel piModel) {
-        return eval(ph1(sv), ph2(sv), a1(sv), piModel);
-    }
 
     @Override
     public double eval() {
