@@ -11,13 +11,15 @@ import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency> {
+public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency> implements LoadFlowParametersOverride {
 
     private Boolean distributedSlack;
 
@@ -25,33 +27,47 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
 
     private LoadFlowParameters.BalanceType balanceType;
 
+    private List<String> outerLoopNames;
+
     @Override
     public String getName() {
         return "contingency-load-flow-parameters";
+    }
+
+    @Override
+    public boolean isDistributedSlack(LoadFlowParameters loadFlowParameters) {
+        return distributedSlack != null ? distributedSlack : loadFlowParameters.isDistributedSlack();
+    }
+
+    @Override
+    public boolean isAreaInterchangeControl(OpenLoadFlowParameters loadFlowParametersExt) {
+        return areaInterchangeControl != null ? areaInterchangeControl : loadFlowParametersExt.isAreaInterchangeControl();
+    }
+
+    @Override
+    public LoadFlowParameters.BalanceType getBalanceType(LoadFlowParameters loadFlowParameters) {
+        return balanceType != null ? balanceType : loadFlowParameters.getBalanceType();
+    }
+
+    @Override
+    public List<String> getOuterLoopNames(OpenLoadFlowParameters loadFlowParametersExt) {
+        return outerLoopNames != null ? outerLoopNames : loadFlowParametersExt.getOuterLoopNames();
     }
 
     public Optional<Boolean> isDistributedSlack() {
         return Optional.ofNullable(distributedSlack);
     }
 
-    public boolean isDistributedSlack(LoadFlowParameters loadFlowParameters) {
-        return distributedSlack != null ? distributedSlack : loadFlowParameters.isDistributedSlack();
-    }
-
     public Optional<Boolean> isAreaInterchangeControl() {
         return Optional.ofNullable(areaInterchangeControl);
-    }
-
-    public boolean isAreaInterchangeControl(OpenLoadFlowParameters loadFlowParametersExt) {
-        return areaInterchangeControl != null ? areaInterchangeControl : loadFlowParametersExt.isAreaInterchangeControl();
     }
 
     public Optional<LoadFlowParameters.BalanceType> getBalanceType() {
         return Optional.ofNullable(balanceType);
     }
 
-    public LoadFlowParameters.BalanceType getBalanceType(LoadFlowParameters loadFlowParameters) {
-        return balanceType != null ? balanceType : loadFlowParameters.getBalanceType();
+    public Optional<List<String>> getOuterLoopNames() {
+        return Optional.ofNullable(outerLoopNames);
     }
 
     public ContingencyLoadFlowParameters setDistributedSlack(Boolean distributedSlack) {
@@ -66,6 +82,11 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
 
     public ContingencyLoadFlowParameters setBalanceType(LoadFlowParameters.BalanceType balanceType) {
         this.balanceType = balanceType;
+        return this;
+    }
+
+    public ContingencyLoadFlowParameters setOuterLoopNames(List<String> outerLoopNames) {
+        this.outerLoopNames = outerLoopNames;
         return this;
     }
 }

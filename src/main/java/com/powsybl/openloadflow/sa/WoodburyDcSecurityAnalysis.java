@@ -67,8 +67,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     @Override
-    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
-        DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
+    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
+        DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers, areas);
         LfNetworkParameters lfNetworkParameters = dcParameters.getNetworkParameters();
         boolean hasDroopControl = lfNetworkParameters.isHvdcAcEmulation() && network.getHvdcLineStream().anyMatch(l -> {
             HvdcAngleDroopActivePowerControl droopControl = l.getExtension(HvdcAngleDroopActivePowerControl.class);

@@ -41,6 +41,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.TrueCondition;
@@ -4129,5 +4130,181 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l12").getTerminal2().getP(), hvdcContingencyResult.getNetworkResult().getBranchResult("l12").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l12_2").getTerminal1().getP(), hvdcContingencyResult.getNetworkResult().getBranchResult("l12_2").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l12_2").getTerminal2().getP(), hvdcContingencyResult.getNetworkResult().getBranchResult("l12_2").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @ParameterizedTest(name = "DC = {0}")
+    @ValueSource(booleans = {false, true})
+    void testContingencyParameters(boolean isDc) {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
+
+        // Create 3 times the same contingency
+        Contingency cont1 = new Contingency("load3_aic_load", new LoadContingency("load3"));
+        Contingency cont2 = new Contingency("load3_no_ext", new LoadContingency("load3"));
+        Contingency cont3 = new Contingency("load3_slack_gen_p", new LoadContingency("load3"));
+        Contingency cont4 = new Contingency("load3_no_slack_no_aic", new LoadContingency("load3"));
+        List<Contingency> contingencies = List.of(cont1, cont2, cont3, cont4);
+
+        // Default LF parameters
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setDc(isDc)
+                .setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        // Add contingency LF parameters to contingencies 1, 3 and 4
+        ContingencyLoadFlowParameters contLfParams1 = new ContingencyLoadFlowParameters()
+                .setDistributedSlack(true)
+                .setAreaInterchangeControl(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        cont1.addExtension(ContingencyLoadFlowParameters.class, contLfParams1);
+
+        ContingencyLoadFlowParameters contLfParams3 = new ContingencyLoadFlowParameters()
+                .setDistributedSlack(true)
+                .setAreaInterchangeControl(false)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        cont3.addExtension(ContingencyLoadFlowParameters.class, contLfParams3);
+
+        ContingencyLoadFlowParameters contLfParams4 = new ContingencyLoadFlowParameters()
+                .setDistributedSlack(false)
+                .setAreaInterchangeControl(false);
+        cont4.addExtension(ContingencyLoadFlowParameters.class, contLfParams4);
+
+        // Run security analysis
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        // Pre-contingency results -> distributed slack on gens, proportional to Pmax
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(25, preContingencyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, preContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-50, network.getArea("a1").getInterchangeTarget().getAsDouble());
+
+        // Post-contingency results
+        // Contingency 1: AIC, proportional to load
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result, "load3_aic_load");
+        assertEquals(50, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(75, postContingencyResult1.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Contingency 2: no extension, distributed slack proportional to gen Pmax
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "load3_no_ext");
+        assertEquals(15, postContingencyResult2.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, postContingencyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Contingency 3: distributed slack, proportional to gen P
+        PostContingencyResult postContingencyResult3 = getPostContingencyResult(result, "load3_slack_gen_p");
+        assertEquals(9.545, postContingencyResult3.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, postContingencyResult3.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+            // Contingency params 4: deactivate all active power distribution
+        PostContingencyResult postContingencyResult4 = getPostContingencyResult(result, "load3_no_slack_no_aic");
+        assertEquals(5, postContingencyResult4.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, postContingencyResult4.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+    }
+
+    @Test
+    void testContingencyParametersOuterLoopNamesAc() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
+
+        // Create 3 times the same contingency
+        Contingency contingency1 = new Contingency("load3_outerLoopNames", new LoadContingency("load3"));
+        Contingency contingency2 = new Contingency("load3_no_outerLoopNames", new LoadContingency("load3"));
+        List<Contingency> contingencies = List.of(contingency1, contingency2);
+
+        // Default LF parameters
+        LoadFlowParameters parameters1 = new LoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        OpenLoadFlowParameters.create(parameters1)
+                .setAreaInterchangeControl(true)
+                .setOuterLoopNames(List.of("AreaInterchangeControl", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits"));
+
+        LoadFlowParameters parameters2 = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters2)
+                .setAreaInterchangeControl(true);
+
+        // Add contingency LF parameters to contingencies
+        ContingencyLoadFlowParameters contLfParams1 = new ContingencyLoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                .setOuterLoopNames(List.of("DistributedSlack", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits"));
+        contingency1.addExtension(ContingencyLoadFlowParameters.class, contLfParams1);
+
+        ContingencyLoadFlowParameters contLfParams2 = new ContingencyLoadFlowParameters()
+                .setDistributedSlack(false)
+                .setAreaInterchangeControl(false);
+        contingency2.addExtension(ContingencyLoadFlowParameters.class, contLfParams2);
+
+        // Run security analysis
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters1 = new SecurityAnalysisParameters();
+        securityAnalysisParameters1.setLoadFlowParameters(parameters1);
+        SecurityAnalysisResult result1 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters1);
+
+        SecurityAnalysisParameters securityAnalysisParameters2 = new SecurityAnalysisParameters();
+        securityAnalysisParameters2.setLoadFlowParameters(parameters2);
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters2);
+
+        PreContingencyResult preContingencyResult1 = result1.getPreContingencyResult();
+        assertEquals(50, preContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        PreContingencyResult preContingencyResult2 = result2.getPreContingencyResult();
+        assertEquals(50, preContingencyResult2.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Contingency parameters will always override initial parameters
+
+        // Base parameters with OuterLoopNames (aic) + contingency parameters with OuterLoopNames (slack) -> slack distribution applied
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerLoopNames");
+        assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Base parameters with OuterLoopNames (aic) + contingency parameters without OuterLoopNames (no active power distrib) -> no active power distrib
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result1, "load3_no_outerLoopNames");
+        assertEquals(30, postContingencyResult2.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Base parameters without OuterLoopNames (aic) + contingency parameters with OuterLoopNames (slack) -> slack distribution applied
+        PostContingencyResult postContingencyResult3 = getPostContingencyResult(result2, "load3_outerLoopNames");
+        assertEquals(36.667, postContingencyResult3.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Base parameters without OuterLoopNames (aic) + contingency parameters without OuterLoopNames (no active power distrib) -> no active power distrib
+        PostContingencyResult postContingencyResult4 = getPostContingencyResult(result2, "load3_no_outerLoopNames");
+        assertEquals(30, postContingencyResult4.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+    }
+
+    @Test
+    void testContingencyParametersOuterLoopNamesDc() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
+
+        // Create 3 times the same contingency
+        Contingency contingency1 = new Contingency("load3_outerLoopNames", new LoadContingency("load3"));
+        List<Contingency> contingencies = List.of(contingency1);
+
+        // Default LF parameters
+        LoadFlowParameters parameters1 = new LoadFlowParameters()
+                .setDc(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        OpenLoadFlowParameters.create(parameters1)
+                .setAreaInterchangeControl(true)
+                .setOuterLoopNames(List.of("AreaInterchangeControl"));
+
+        // Add contingency LF parameters to contingencies
+        ContingencyLoadFlowParameters contLfParams1 = new ContingencyLoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                .setAreaInterchangeControl(true)
+                .setOuterLoopNames(List.of());
+        contingency1.addExtension(ContingencyLoadFlowParameters.class, contLfParams1);
+
+        // Run security analysis
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters1 = new SecurityAnalysisParameters();
+        securityAnalysisParameters1.setLoadFlowParameters(parameters1);
+        SecurityAnalysisResult result1 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters1);
+
+        // Pre contingency computation with aic
+        PreContingencyResult preContingencyResult1 = result1.getPreContingencyResult();
+        assertEquals(50, preContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Base parameters with OuterLoopNames (aic) + contingency parameters with OuterLoopNames (slack) -> slack distribution applied
+        PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerLoopNames");
+        assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }
