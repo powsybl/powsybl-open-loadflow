@@ -86,6 +86,7 @@ This method and has access to:
   - the network
   - the contingency, including among others information about disconnected network elements, and how much active power has been lost.
   - the security analysis parameters
+  - the contingency load flow parameters overrides if any (See below [Contingency Load Flow Parameters](#contingency-load-flow-parameters))
   - the contingency report node - so that the plugin may add any report message needed.
 
 ## Configuration file example
