@@ -11,6 +11,7 @@ package com.powsybl.openloadflow.sa;
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -34,16 +35,18 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
     }
 
     @Override
-    public void run(LfNetwork network, LfContingency lfContingency, SecurityAnalysisParameters securityAnalysisParameters, ReportNode reportNode) {
+    public void run(LfNetwork network, LfContingency lfContingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(lfContingency);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(reportNode);
+        LoadFlowParametersOverride paramsOverride = Objects.requireNonNullElse(loadFlowParametersOverride, LoadFlowParametersOverride.NO_OVERRIDE);
         double mismatch = lfContingency.getActivePowerLoss();
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
-        if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-            OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
+
+        if ((paramsOverride.isDistributedSlack(loadFlowParameters) || paramsOverride.isAreaInterchangeControl(openLoadFlowParameters)) && Math.abs(mismatch) > 0) {
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(paramsOverride.getBalanceType(loadFlowParameters), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
             var result = activePowerDistribution.run(network, mismatch);
             Reports.reportContingencyActivePowerLossDistribution(reportNode, mismatch * PerUnit.SB, result.remainingMismatch() * PerUnit.SB);
         }

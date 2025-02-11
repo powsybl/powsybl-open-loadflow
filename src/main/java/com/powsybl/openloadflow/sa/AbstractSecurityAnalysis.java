@@ -19,7 +19,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -30,6 +29,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.*;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -693,6 +693,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters()); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
         ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution = ContingencyActivePowerLossDistribution.find(openSecurityAnalysisParameters.getContingencyActivePowerLossDistribution());
@@ -744,7 +745,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
-                                contingencyActivePowerLossDistribution.run(lfNetwork, lfContingency, securityAnalysisParameters, postContSimReportNode);
+                                contingencyActivePowerLossDistribution.run(lfNetwork, lfContingency, securityAnalysisParameters, contingencyLoadFlowParameters, postContSimReportNode);
 
                                 var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
                                                                                          lfContingency, preContingencyLimitViolationManager,
