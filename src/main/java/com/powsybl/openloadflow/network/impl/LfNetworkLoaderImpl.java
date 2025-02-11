@@ -169,14 +169,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void discardGeneratorVoltageControl(LfBus controllerBus, boolean inconsistentControlledBus, boolean inconsistentTargetVoltages, int nbGenerators, LfNetworkLoadingReport report) {
         controllerBus.setGeneratorVoltageControlEnabled(false);
-        controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream().mapToDouble(LfGenerator::getTargetQ).sum());
+        controllerBus.getGenerators()
+                .stream()
+                .filter(lfGenerator -> lfGenerator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
+                .forEach(lfGenerator -> lfGenerator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
+        controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream()
+                .mapToDouble(LfGenerator::getTargetQ)
+                .filter(d -> !Double.isNaN(d))
+                .sum());
         if (inconsistentControlledBus) {
             report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus += nbGenerators;
         }
         if (inconsistentTargetVoltages) {
             report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages += nbGenerators;
         }
-
     }
 
     private static void checkGeneratorsWithSlope(GeneratorVoltageControl voltageControl) {
