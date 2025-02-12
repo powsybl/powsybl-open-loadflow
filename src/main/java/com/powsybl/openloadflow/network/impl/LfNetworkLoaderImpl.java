@@ -112,7 +112,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             voltageControlGenerators.addAll(voltageMonitoringGenerators);
 
             if (!voltageControlGenerators.isEmpty()) {
-                checkVoltageControl(controllerBus, voltageControls, voltageControlGenerators, parameters, report);
+                checkAndCreateVoltageControl(controllerBus, voltageControls, voltageControlGenerators, parameters, report);
             }
         }
 
@@ -121,7 +121,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void checkVoltageControl(LfBus controllerBus, List<GeneratorVoltageControl> voltageControls, List<LfGenerator> voltageControlGenerators, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    private static void checkAndCreateVoltageControl(LfBus controllerBus, List<GeneratorVoltageControl> voltageControls, List<LfGenerator> voltageControlGenerators, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
         LfBus controlledBus = lfGenerator0.getControlledBus();
         double controllerTargetV = lfGenerator0.getTargetV();
