@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class LfAreaImpl extends AbstractElement implements LfArea, PropertyBag {
+public class LfAreaImpl extends AbstractElement implements LfArea {
 
     private final Ref<Area> areaRef;
 

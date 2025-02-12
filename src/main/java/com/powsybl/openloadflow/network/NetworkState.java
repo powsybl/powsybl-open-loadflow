@@ -50,7 +50,7 @@ public class NetworkState {
         List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
         List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
         List<HvdcState> hvdcStates = ElementState.save(network.getHvdcs(), HvdcState::save);
-        List<AreaState> areaStates = ElementState.save(network.getAreaStream().toList(), AreaState::save);
+        List<AreaState> areaStates = ElementState.save(network.getAreas(), AreaState::save);
         return new NetworkState(network, busStates, branchStates, hvdcStates, network.getExcludedSlackBuses(), areaStates);
     }
 

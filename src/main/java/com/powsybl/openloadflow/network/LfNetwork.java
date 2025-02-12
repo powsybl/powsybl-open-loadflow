@@ -397,6 +397,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return areas.get(num);
     }
 
+    public List<LfArea> getAreas() {
+        return areas;
+    }
+
     public void addHvdc(LfHvdc hvdc) {
         Objects.requireNonNull(hvdc);
         hvdc.setNum(hvdcs.size());
