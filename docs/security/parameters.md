@@ -74,20 +74,11 @@ Specifies the name of the plugin to be used for compensating any active power in
 The default value is `Default`.
 
 The `Default` plugin, when slack distribution or area interchange control is enabled:
-- distributes the active power imbalance according the configured BalanceType
+- distributes the active power imbalance according to the configured BalanceType
 - reports how much active power has been disconnected by the contingency, and how much has been distributed
 
-PowSyBl Open LoadFlow does not provide today additional plugins. To add another plugin, you will need to code (in Java)
-an implementation of the `ContingencyActivePowerLossDistribution` interface and make this implementation available to the
-Java ServiceLoader (e.g. using Google's AutoService):
-- the `getName()` method should provide the plugin name - which can then be used instead of `Default`.
-- The `run(...)` method will be called by the security analysis engine for each contingency and should provide the logic. 
-This method has access to:
-  - the network
-  - the contingency, including among others information about disconnected network elements, and how much active power has been lost.
-  - the security analysis parameters
-  - the contingency load flow parameters overrides if any (See below [Contingency Load Flow Parameters](#contingency-load-flow-parameters))
-  - the contingency report node - so that the plugin may add any report message needed.
+PowSyBl Open LoadFlow does not provide today additional plugins. To create your own plugin,
+see the [programming guide](programming.md#contingencyactivepowerlossdistribution-plugins).
 
 ## Configuration file example
 See below an extract of a config file that could help:

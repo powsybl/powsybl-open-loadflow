@@ -8,4 +8,5 @@ hidden: true
 security.md
 parameters.md
 inputs.md
+programming.md
 ```
