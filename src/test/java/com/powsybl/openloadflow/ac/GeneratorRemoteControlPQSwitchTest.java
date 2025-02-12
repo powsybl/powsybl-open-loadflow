@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
@@ -21,10 +23,13 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -153,6 +158,15 @@ class GeneratorRemoteControlPQSwitchTest {
                 .setVoltageRemoteControl(true)
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
 
+        // Activate trace logs to ensure ReactiveLimitsLoop trace logs are run at least once per build
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(Level.TRACE);
+    }
+
+    @AfterEach
+    void restoreLogger() {
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(null);
     }
 
     @ParameterizedTest
