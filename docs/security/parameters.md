@@ -56,10 +56,11 @@ when DC mode is activated.
 
 Please note that fast mode has a few limitations:
 - Contingencies applied on branches opened on one side are ignored.
-- AC emulation of HVDC lines is disabled, as it is not yet supported. 
+- AC emulation of HVDC lines is disabled, as it is not yet supported.
 Instead, the [active power setpoint](../loadflow/loadflow.md#computing-hvdc-power-flow) mode is used to control the active power flow through these lines. 
 - Only PST remedial actions are supported for now.
-- Slack relocation following the application of a contingency is not supported. 
+- Slack relocation following the application of a contingency is not supported.
+- Customizing the way contingency imbalances are compensated via `contingencyActivePowerLossDistribution` parameter is not supported.
 As a result, security analysis is carried out only in slack component, and not necessarily in the largest one.
 
 The default value is `false`.

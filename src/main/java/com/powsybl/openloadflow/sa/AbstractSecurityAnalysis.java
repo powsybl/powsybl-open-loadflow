@@ -273,6 +273,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          LoadFlowParameters lfParameters) {
 
         List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(networks, lfParameters.getConnectedComponentMode()));
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+        ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution = ContingencyActivePowerLossDistribution.find(openSecurityAnalysisParameters.getContingencyActivePowerLossDistribution());
 
         if (networkToSimulate.isEmpty()) {
             return createNoResult();
@@ -281,7 +283,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // run simulation on first lfNetwork to initialize results structures
         LfNetwork firstNetwork = networkToSimulate.remove(0);
         SecurityAnalysisResult result = runSimulations(firstNetwork, propagatedContingencies, parameters, securityAnalysisParameters,
-                operatorStrategies, actions, limitReductions);
+                operatorStrategies, actions, limitReductions, contingencyActivePowerLossDistribution);
 
         List<PostContingencyResult> postContingencyResults = result.getPostContingencyResults();
         List<OperatorStrategyResult> operatorStrategyResults = result.getOperatorStrategyResults();
@@ -298,7 +300,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         for (LfNetwork n : networkToSimulate) {
             SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters,
-                    operatorStrategies, actions, limitReductions);
+                    operatorStrategies, actions, limitReductions, contingencyActivePowerLossDistribution);
 
             // Merge into first result
             // PreContingency results first
@@ -680,7 +682,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions, List<LimitReduction> limitReductions) {
+                                                    List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
 
@@ -696,7 +698,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
-        ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution = ContingencyActivePowerLossDistribution.find(openSecurityAnalysisParameters.getContingencyActivePowerLossDistribution());
 
         try (C context = createLoadFlowContext(lfNetwork, acParameters)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();
