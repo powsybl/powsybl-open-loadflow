@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -317,6 +318,17 @@ public final class Reports {
                 .withUntypedValue("outerLoopStatus", outerLoopStatus)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
+    }
+
+    public static void reportMaxOuterLoopIterations(ReportNode reportNode, int iterationCount, boolean withLog, Logger logger) {
+        ReportNode added = reportNode.newReportNode()
+                .withMessageTemplate("maxOuterLoopIterations", "Maximum number of outerloop iterations reached: ${outerLoopIterationCount}")
+                .withUntypedValue("outerLoopIterationCount", iterationCount)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+        if (withLog) {
+            logger.error(added.getMessage());
+        }
     }
 
     public static void reportDcLfSolverFailure(ReportNode reportNode, String errorMessage) {
