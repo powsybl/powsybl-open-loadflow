@@ -39,7 +39,7 @@ public final class ActivePowerDistribution {
 
         String getElementType();
 
-        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, Double activePowerMismatch);
+        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, double activePowerMismatch);
 
         double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
