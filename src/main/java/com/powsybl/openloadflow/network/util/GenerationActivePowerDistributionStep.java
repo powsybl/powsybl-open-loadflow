@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -50,12 +51,12 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, Double activePowerMismatch) {
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator) != 0)
-                .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
+                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator, activePowerMismatch) != 0)
+                .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator, activePowerMismatch)))
                 .collect(Collectors.toCollection(LinkedList::new));
     }
 
@@ -124,12 +125,15 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return done;
     }
 
-    private double getParticipationFactor(LfGenerator generator) {
+    private double getParticipationFactor(LfGenerator generator, Double activePowerMismatch) {
+        if (ParticipationType.REMAINING_MARGIN.equals(participationType) && activePowerMismatch == null) {
+            throw new PowsyblException("Active power mismatch needs to be specified to use REMAINING_MARGIN participation type");
+        }
         return switch (participationType) {
             case MAX -> generator.getMaxP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
-            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
+            case REMAINING_MARGIN -> activePowerMismatch > 0 ? Math.max(0.0, generator.getMaxP() - generator.getTargetP()) : Math.max(0.0, generator.getTargetP() - generator.getMinP());
         };
     }
 
