@@ -8,10 +8,10 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,8 +55,9 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator, activePowerMismatch) != 0)
-                .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator, activePowerMismatch)))
+                .map(generator -> Pair.of(generator, getParticipationFactor(generator, activePowerMismatch)))
+                .filter(pair -> isParticipating(pair.getKey()) && pair.getValue() != 0)
+                .map(pair -> new ParticipatingElement(pair.getKey(), pair.getValue()))
                 .collect(Collectors.toCollection(LinkedList::new));
     }
 
