@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
@@ -1086,7 +1087,12 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testThreeWindingsTransformerAsVariable() {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
-        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        sensiParameters.getLoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                .getExtension(OpenLoadFlowParameters.class)
+                    .setSlackBusPMaxMismatch(0.001)
+                    .setNewtonRaphsonConvEpsPerEq(0.0001);
         sensiParameters.setAngleFlowSensitivityValueThreshold(0.1);
         Network network = PhaseControlFactory.createNetworkWithT3wt();
 
@@ -1129,6 +1135,16 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(2, result.getValues().size());
+
+        // Numerically computing sensi of L1 active power flow with respect to PS1 transformer phase 1
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double p0 = network.getBranch("L1").getTerminal1().getP();
+        network.getThreeWindingsTransformer("PS1").getLeg1().getPhaseTapChanger().setTapPosition(2); // A phase shift of 5.0 is applied
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double p1 = network.getBranch("L1").getTerminal1().getP();
+        double sensiL1 = (p1 - p0) / 5.0;
+
+        assertEquals(-5.245, sensiL1, LoadFlowAssert.DELTA_POWER);
         assertEquals(-5.245, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(5.245, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_2), LoadFlowAssert.DELTA_POWER);
         //Sensitivity value at phase 3 is filtered because it is 0
