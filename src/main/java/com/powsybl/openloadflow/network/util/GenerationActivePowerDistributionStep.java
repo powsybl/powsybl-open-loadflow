@@ -125,10 +125,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return done;
     }
 
-    private double getParticipationFactor(LfGenerator generator, Double activePowerMismatch) {
-        if (ParticipationType.REMAINING_MARGIN.equals(participationType) && activePowerMismatch == null) {
-            throw new PowsyblException("Active power mismatch needs to be specified to use REMAINING_MARGIN participation type");
-        }
+    private double getParticipationFactor(LfGenerator generator, double activePowerMismatch) {
         return switch (participationType) {
             case MAX -> generator.getMaxP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
