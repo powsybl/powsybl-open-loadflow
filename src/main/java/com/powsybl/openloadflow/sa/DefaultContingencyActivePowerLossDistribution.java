@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -35,9 +36,10 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
     }
 
     @Override
-    public void run(LfNetwork network, LfContingency lfContingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode) {
+    public void run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(lfContingency);
+        Objects.requireNonNull(contingency);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(reportNode);
         LoadFlowParametersOverride paramsOverride = Objects.requireNonNullElse(loadFlowParametersOverride, LoadFlowParametersOverride.NO_OVERRIDE);
