@@ -11,13 +11,15 @@ import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 
 /**
  * @author Pierre Arvy {@literal <pierre.arvy@artelys.com>}
  */
-public final class ComputedSwitchBranchElement extends ComputedElement {
+public final class ComputedSwitchBranchElement extends AbstractComputedElement {
 
     private final boolean enabled;
 
@@ -28,5 +30,16 @@ public final class ComputedSwitchBranchElement extends ComputedElement {
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public void applyToConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
+        LfBranch lfBranch = getLfBranch();
+        if (lfBranch.getBus1() != null && lfBranch.getBus2() != null) {
+            if (isEnabled()) {
+                connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
+            } else {
+                connectivity.removeEdge(lfBranch);
+            }
+        }
     }
 }

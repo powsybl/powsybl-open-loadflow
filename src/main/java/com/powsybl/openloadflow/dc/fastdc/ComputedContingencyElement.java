@@ -18,13 +18,11 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
-import java.util.Collection;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
-public final class ComputedContingencyElement extends ComputedElement {
+public final class ComputedContingencyElement extends AbstractComputedElement {
 
     private final ContingencyElement element;
 
@@ -38,13 +36,11 @@ public final class ComputedContingencyElement extends ComputedElement {
         return element;
     }
 
-    public static void applyToConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<ComputedContingencyElement> breakingConnectivityElements) {
-        breakingConnectivityElements.stream()
-                .map(ComputedContingencyElement::getElement)
-                .map(ContingencyElement::getId)
-                .distinct()
-                .map(lfNetwork::getBranchById)
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(connectivity::removeEdge);
+    @Override
+    public void applyToConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
+        LfBranch lfBranch = getLfBranch();
+        if (lfBranch.getBus1() != null && lfBranch.getBus2() != null) {
+            connectivity.removeEdge(lfBranch);
+        }
     }
 }
