@@ -110,27 +110,15 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     private double[] calculatePostContingencyAndOperatorStrategyStates(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
                                                                        PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                        Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches,
-                                                                       List<LfAction> operatorStrategyLfActions, Map<String, AbstractComputedElement> actionElementByBranch,
+                                                                       List<LfAction> operatorStrategyLfActions, Map<LfAction, AbstractComputedElement> actionElementByLfAction,
                                                                        DenseMatrix actionsStates, ReportNode reportNode) {
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
         List<AbstractComputedElement> actionElements = operatorStrategyLfActions.stream()
-                .map(lfAction -> {
-                    if (lfAction instanceof AbstractLfTapChangerAction<?>) {
-                        return ((AbstractLfTapChangerAction<?>) lfAction).getChange().getBranch().getId();
-                    } else if (lfAction instanceof AbstractLfBranchAction<?>) {
-                        LfNetwork lfNetwork = loadFlowContext.getNetwork();
-                        LfBranch lfBranch = ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork) != null ? ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork)
-                                : ((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork);
-                        return lfBranch.getId();
-                    } else {
-                        throw new IllegalStateException();
-                    }
-                })
-                .filter(element -> !elementsToReconnect.contains(element))
-                .map(actionElementByBranch::get)
+                .map(actionElementByLfAction::get)
+                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
                 .collect(Collectors.toList());
 
         var lfNetwork = loadFlowContext.getNetwork();
@@ -185,7 +173,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      */
     private double[] calculatePostContingencyAndOperatorStrategyStatesForAContingencyBreakingConnectivity(PropagatedContingency contingency, Set<LfBus> disabledBuses, Set<String> elementsToReconnect, Set<LfBranch> partialDisabledBranches, DcLoadFlowContext loadFlowContext,
                                                                                                           Map<String, ComputedContingencyElement> contingencyElementByBranch, double[] flowStates, DenseMatrix contingenciesStates,
-                                                                                                          List<LfAction> operatorStrategyLfActions, Map<String, AbstractComputedElement> actionElementsByBranch, DenseMatrix actionsStates, ReportNode reportNode) {
+                                                                                                          List<LfAction> operatorStrategyLfActions, Map<LfAction, AbstractComputedElement> actionElementsByBranch, DenseMatrix actionsStates, ReportNode reportNode) {
 
         // as we are processing a contingency with connectivity break, we have to reset active power flow of a hvdc line
         // if one bus of the line is lost.
@@ -335,6 +323,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(lfActionById::get)
                 .filter(Objects::nonNull)
                 .toList();
+        // j'ai les lf actions, je veux les IDs
 
         logActionStart(context.getNetwork(), operatorStrategy);
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -389,23 +378,25 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         });
     }
 
-    private static Map<String, AbstractComputedElement> createActionElementsIndexByBranchId(LfNetwork lfNetwork, Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        Map<String, AbstractComputedElement> computedElements = lfActionById.values().stream()
+    private static Map<LfAction, AbstractComputedElement> createActionElementsIndexByLfAction(LfNetwork lfNetwork, Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<LfAction, AbstractComputedElement> computedElements = lfActionById.values().stream()
                 .map(lfAction -> {
+                    AbstractComputedElement element;
                     if (lfAction instanceof AbstractLfTapChangerAction) {
-                        return new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem);
+                        element =  new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem);
                     } else if (lfAction instanceof AbstractLfBranchAction && ((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork) != null) {
-                        return new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork), true, equationSystem);
+                        element =  new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork), true, equationSystem);
                     } else if (lfAction instanceof AbstractLfBranchAction && ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork) != null) {
-                        return new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork), false, equationSystem);
+                        element =  new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork), false, equationSystem);
                     } else {
                         throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
                     }
+                    return Map.entry(lfAction, element);
                 })
-                .filter(computedElement -> computedElement.getLfBranchEquation() != null)
+                .filter(e -> e.getValue().getLfBranchEquation() != null)
                 .collect(Collectors.toMap(
-                        computedElement -> computedElement.getLfBranch().getId(),
-                        computedElement -> computedElement,
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
                         (existing, replacement) -> existing,
                         LinkedHashMap::new
                 ));
@@ -467,7 +458,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // compute states with +1 -1 to model the actions in Woodbury engine
-            Map<String, AbstractComputedElement> actionElementsIndexByBranchId = createActionElementsIndexByBranchId(lfNetwork, lfActionById, context.getEquationSystem());
+            Map<LfAction, AbstractComputedElement> actionElementsIndexByBranchId = createActionElementsIndexByLfAction(lfNetwork, lfActionById, context.getEquationSystem());
             DenseMatrix actionsStates = AbstractComputedElement.calculateElementsStates(context, actionElementsIndexByBranchId.values());
 
             // save base state for later restoration after each contingency/action

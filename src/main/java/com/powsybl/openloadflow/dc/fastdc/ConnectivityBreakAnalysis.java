@@ -19,7 +19,6 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.slf4j.Logger;
@@ -176,18 +175,13 @@ public final class ConnectivityBreakAnalysis {
 
     private static Optional<ConnectivityAnalysisResult> computeConnectivityAnalysisResult(LfNetwork lfNetwork,
                                                                                           PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                                          // TODO : rename
-                                                                                          List<LfAction> lfActions, Map<String, AbstractComputedElement> actionElementByBranch) {
+                                                                                          List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementByBranch) {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
-        // TODO : remove the usage of lfActions...
         List<AbstractComputedElement> modifyingConnectivityCandidates = Stream.concat(
-                        contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get),
-                        lfActions.stream()
-                            .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork) != null ? ((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork).getId()
-                                    : ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork).getId())
-                            .map(actionElementByBranch::get)
-                ).toList();
+                contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get),
+                lfActions.stream().map(actionElementByBranch::get)
+        ).toList();
 
         // we confirm the breaking of connectivity by network connectivity
         ConnectivityAnalysisResult connectivityAnalysisResult = null;
@@ -303,13 +297,8 @@ public final class ConnectivityBreakAnalysis {
     // TODO : rename
     public static Optional<ConnectivityAnalysisResult> getConnectivityAnalysisResultForAnOperatorStrategy(DcLoadFlowContext loadFlowContext,
                                                                                                           PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
-                                                                                                          List<LfAction> lfActions, Map<String, AbstractComputedElement> actionElementsIndexByBranchId, DenseMatrix actionsStates) {
+                                                                                                          List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
-
-        // get actions that can impact connectivity
-        List<LfAction> actionChangingConnectivity = lfActions.stream()
-                .filter(lfAction -> lfAction instanceof AbstractLfBranchAction<?>)
-                .toList();
 
         // TODO : deal with connectivity potentially modified
 //        boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModified(lfNetwork, contingenciesStates, contingency, contingencyElementByBranch,
@@ -322,7 +311,7 @@ public final class ConnectivityBreakAnalysis {
 //        }
 
         Optional<ConnectivityAnalysisResult> connectivityAnalysisResult = computeConnectivityAnalysisResult(lfNetwork, contingency,
-                contingencyElementByBranch, actionChangingConnectivity, actionElementsIndexByBranchId);
+                contingencyElementByBranch, lfActions, actionElementsIndexByLfAction);
         // TODO : update
         LOGGER.info("The contingency and the operator strategy actions {} connectivity",
                 connectivityAnalysisResult.isPresent() ? "break" : "does not break");

@@ -189,7 +189,10 @@ public class WoodburyEngine {
                     } else {
                         oldPower = calculatePower(lfBranch);
                     }
+                } else {
+                    throw new IllegalStateException("Unexpected computed element type");
                 }
+                // FIXME : what if oldPower = newPower ?
                 deltaX = 1d / (oldPower - newPower);
             }
             return deltaX - (actionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
