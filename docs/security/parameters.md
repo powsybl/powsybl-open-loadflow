@@ -79,7 +79,7 @@ The `Default` plugin, when slack distribution or area interchange control is ena
 - reports how much active power has been disconnected by the contingency, and how much has been distributed
 
 PowSyBl Open LoadFlow does not provide today additional plugins. To create your own plugin,
-see the [programming guide](programming.md#contingencyactivepowerlossdistribution-plugins).
+see the [programming guide](../advanced_programming/contingency_active_power_loss.md).
 
 ## Configuration file example
 See below an extract of a config file that could help:
@@ -94,6 +94,8 @@ open-security-analysis-default-parameters:
 ```
 
 At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
+
+(contingency-load-flow-parameters)=
 
 ## Contingency Load Flow Parameters
 
