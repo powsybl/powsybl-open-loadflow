@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
@@ -775,7 +776,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Only variables of type TRANSFORMER_PHASE, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1 and BRANCH_ACTIVE_POWER_2 are yet supported in DC", e.getCause().getMessage());
+        assertEquals("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC", e.getCause().getMessage());
     }
 
     @Test
@@ -1058,5 +1059,94 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Mockito.when(contingencyElements.size()).thenReturn(999999);
         e = assertThrows(PowsyblException.class, () -> ComputedElement.initRhs(equationSystem, contingencyElements));
         assertEquals("Too many elements 999999, maximum is 2684 for a system with 100000 equations", e.getMessage());
+    }
+
+    @Test
+    void testThreeWindingsTransformerAsFunction() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        SensitivityFactor factorActivePower1Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.ONE);
+        SensitivityFactor factorActivePower2Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.TWO);
+        SensitivityFactor factorActivePower3Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.THREE);
+
+        List<SensitivityFactor> factors = List.of(factorActivePower1Twt, factorActivePower2Twt, factorActivePower3Twt);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(3, result.getValues().size());
+
+        assertEquals(10.0, result.getBranchFlow1FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5.0, result.getBranchFlow2FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5.0, result.getBranchFlow3FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-1.0, result.getBranchFlow1SensitivityValue("LOAD_3", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.0, result.getBranchFlow2SensitivityValue("LOAD_3", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow3SensitivityValue("LOAD_3", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testThreeWindingsTransformerAsVariable() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+
+        sensiParameters.getLoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                .getExtension(OpenLoadFlowParameters.class)
+                    .setSlackBusPMaxMismatch(0.001)
+                    .setNewtonRaphsonConvEpsPerEq(0.0001);
+        sensiParameters.setAngleFlowSensitivityValueThreshold(0.1);
+        Network network = PhaseControlFactory.createNetworkWithT3wt();
+
+        //Add phase tap changer to leg1 and leg3 of the twt for testing purpose
+        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer("PS1");
+        twt.getLeg1().newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(twt.getLeg1().getTerminal())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.FIXED_TAP)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(5)
+                .endStep()
+                .add();
+        twt.getLeg3().newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(twt.getLeg3().getTerminal())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.FIXED_TAP)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(5)
+                .endStep()
+                .add();
+
+        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.ONE);
+        SensitivityFactor factorPhase2 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.TWO);
+        SensitivityFactor factorPhase3 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.THREE);
+        List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(2, result.getValues().size());
+
+        // Numerically computing sensi of L1 active power flow with respect to PS1 transformer phase 1
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double p0 = network.getBranch("L1").getTerminal1().getP();
+        network.getThreeWindingsTransformer("PS1").getLeg1().getPhaseTapChanger().setTapPosition(2); // A phase shift of 5.0 is applied
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double p1 = network.getBranch("L1").getTerminal1().getP();
+        double sensiL1 = (p1 - p0) / 5.0;
+
+        assertEquals(-5.245, sensiL1, LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5.245, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(5.245, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_2), LoadFlowAssert.DELTA_POWER);
+        //Sensitivity value at phase 3 is filtered because it is 0
     }
 }
