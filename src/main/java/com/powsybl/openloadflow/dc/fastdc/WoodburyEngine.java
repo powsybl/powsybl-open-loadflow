@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfAction;
 
@@ -114,7 +115,8 @@ public class WoodburyEngine {
         if (!lfActions.isEmpty()) {
             // set transformer phase shift to 0 for disconnected phase tap changers
             lfActions.stream()
-                    .map(LfAction::getDisabledBranch)
+                    .filter(lfAction -> lfAction instanceof AbstractLfBranchAction<?>)
+                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(loadFlowContext.getNetwork()))
                     .filter(Objects::nonNull)
                     .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
                     .map(Equation::getColumn)

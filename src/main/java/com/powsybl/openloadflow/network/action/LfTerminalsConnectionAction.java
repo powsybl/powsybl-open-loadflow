@@ -31,6 +31,26 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
     }
 
     @Override
+    public LfBranch getDisabledBranch(LfNetwork lfNetwork) {
+        LfBranch lfBranch = lfNetwork.getBranchById(action.getElementId());
+        if (action.isOpen() && lfBranch != null && lfBranch.getBus1() != null && lfBranch.getBus2() != null) {
+            return lfBranch;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public LfBranch getEnabledBranch(LfNetwork lfNetwork) {
+        LfBranch lfBranch = lfNetwork.getBranchById(action.getElementId());
+        if (!action.isOpen() && lfBranch != null && lfBranch.getBus1() != null && lfBranch.getBus2() != null) {
+            return lfBranch;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     boolean findEnabledDisabledBranches(LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getElementId());
         if (branch != null && branch.getBus1() != null && branch.getBus2() != null) {

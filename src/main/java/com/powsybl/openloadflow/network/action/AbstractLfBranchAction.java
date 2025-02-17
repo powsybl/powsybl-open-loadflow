@@ -46,6 +46,10 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
         return this.enabledBranch;
     }
 
+    public abstract LfBranch getDisabledBranch(LfNetwork lfNetwork);
+
+    public abstract LfBranch getEnabledBranch(LfNetwork lfNetwork);
+
     abstract boolean findEnabledDisabledBranches(LfNetwork lfNetwork);
 
     /**

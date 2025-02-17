@@ -503,6 +503,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(100.0, getOperatorStrategyResult(result, "strategyOpenL23").getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
+    // TODO : add a TU to refuse these tests
     @Test
     void testFastSaDcTransformerConnectionAction() {
         // TODO : problem to update a value that is not present here... Big change expected

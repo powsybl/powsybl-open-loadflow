@@ -28,6 +28,26 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
     }
 
     @Override
+    public LfBranch getDisabledBranch(LfNetwork lfNetwork) {
+        LfBranch lfBranch = lfNetwork.getBranchById(action.getSwitchId());
+        if (action.isOpen() && lfBranch != null) {
+            return lfBranch;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public LfBranch getEnabledBranch(LfNetwork lfNetwork) {
+        LfBranch lfBranch = lfNetwork.getBranchById(action.getSwitchId());
+        if (!action.isOpen() && lfBranch != null) {
+            return lfBranch;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     boolean findEnabledDisabledBranches(LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getSwitchId());
         if (branch != null) {
