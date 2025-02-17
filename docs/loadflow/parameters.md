@@ -151,7 +151,7 @@ Whether simulation of generators reactive power remote control should be enabled
 The default value is `false`.
 
 **disableInconsistentVoltageControl**
-If multiple generators (or batteries, or VSC converters, or static variable compensators) are connected to the same bus but either control different buses,
+If multiple generators (or batteries, or VSC converters, or static VAR compensators) are connected to the same bus but either control different buses,
 either have different target voltages, then their voltage control is disabled if `disableInconsistentVoltageControl` is set to `true`. If the parameter is
 set to `false`, then only the control of the first generator is kept and applied to all the other generators.
 The default value is `false`.
