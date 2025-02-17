@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
 
 import java.util.*;
 
@@ -120,7 +122,8 @@ public class WoodburyEngine {
 
             // set transformer phase shift to new shifting value
             lfActions.stream()
-                    .map(LfAction::getTapPositionChange)
+                    .filter(AbstractLfTapChangerAction.class::isInstance)
+                    .map(action -> ((AbstractLfTapChangerAction<?>) action).getChange())
                     .filter(Objects::nonNull)
                     .forEach(tapPositionChange -> {
                         LfBranch lfBranch = tapPositionChange.getBranch();

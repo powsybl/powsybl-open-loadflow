@@ -56,7 +56,8 @@ when DC mode is activated.
 
 Please note that fast mode has a few limitations:
 - Contingencies applied on branches opened on one side are ignored.
-- Contingencies applied on HVDC lines in AC emulation mode are ignored.
+- AC emulation of HVDC lines is disabled, as it is not yet supported. 
+Instead, the [active power setpoint](../loadflow/loadflow.md#computing-hvdc-power-flow) mode is used to control the active power flow through these lines. 
 - Only PST remedial actions are supported for now.
 - Slack relocation following the application of a contingency is not supported. 
 As a result, security analysis is carried out only in slack component, and not necessarily in the largest one.
@@ -75,3 +76,25 @@ open-security-analysis-default-parameters:
 ```
 
 At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
+
+## Contingency Load Flow Parameters
+
+A specific set of load flow parameters can be configured for each contingency individually.
+
+These parameters correspond directly to the parameters in the [`LoadFlowParameters`](inv:powsyblcore:*:*#simulation/loadflow/configuration) from powsybl-core API and
+the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) specific parameters:
+- `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+- `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+
+To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
+
+The behaviour is as follows:
+- When the extension is added: The specified parameters override the corresponding SA input parameters.
+- When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
+
+Note that if the operator strategies are defined for the contingency, the overridden load flow parameters will apply to
+the operator strategies actions simulation too.
+
+This extension does not override any parameter in case of a sensitivity analysis.
