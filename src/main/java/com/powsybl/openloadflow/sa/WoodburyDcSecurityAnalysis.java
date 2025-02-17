@@ -383,11 +383,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(lfAction -> {
                     AbstractComputedElement element;
                     if (lfAction instanceof AbstractLfTapChangerAction) {
-                        element =  new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem);
+                        element = new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem);
                     } else if (lfAction instanceof AbstractLfBranchAction && ((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork) != null) {
-                        element =  new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork), true, equationSystem);
+                        element = new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork), true, equationSystem);
                     } else if (lfAction instanceof AbstractLfBranchAction && ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork) != null) {
-                        element =  new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork), false, equationSystem);
+                        element = new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork), false, equationSystem);
                     } else {
                         throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
                     }
