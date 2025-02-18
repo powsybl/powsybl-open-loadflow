@@ -133,7 +133,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         });
 
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
-                .filter(element -> !connectivityAnalysisResult.getElementsToReconnect().contains(element))
+                .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
         List<ComputedTapPositionChangeElement> actionElements = operatorStrategyLfActions.stream()
@@ -144,8 +144,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         var lfNetwork = loadFlowContext.getNetwork();
         Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
-        disabledBranches.addAll(connectivityAnalysisResult.getPartialDisabledBranches());
-        DisabledNetwork disabledNetwork = new DisabledNetwork(connectivityAnalysisResult.getDisabledBuses(), disabledBranches);
+        disabledBranches.addAll(partialDisabledBranches);
+        DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
 
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
         double[] newFlowStates = flowStates;
@@ -153,7 +153,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // get the lost phase tap changers for this contingency
             Set<LfBranch> lostPhaseControllers = contingency.getBranchIdsToOpen().keySet().stream()
-                    .filter(element -> !connectivityAnalysisResult.getElementsToReconnect().contains(element))
+                    .filter(element -> !elementsToReconnect.contains(element))
                     .map(contingencyElementByBranch::get)
                     .map(ComputedContingencyElement::getLfBranch)
                     .filter(LfBranch::hasPhaseControllerCapability)
@@ -161,7 +161,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             // same if there is an action, as they are only on pst for now
-            if (!connectivityAnalysisResult.getDisabledBuses().isEmpty() || !lostPhaseControllers.isEmpty() || !operatorStrategyLfActions.isEmpty()) {
+            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || !operatorStrategyLfActions.isEmpty()) {
                 newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, operatorStrategyLfActions);
             }
             engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
