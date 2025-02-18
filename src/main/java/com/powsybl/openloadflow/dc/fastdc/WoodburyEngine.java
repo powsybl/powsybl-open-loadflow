@@ -173,19 +173,21 @@ public class WoodburyEngine {
         } else {
             double deltaX = 0;
             if (onDiagonal) {
-                double oldPower;
-                double newPower;
+                double oldPower = 0;
+                double newPower = 0;
                 if (element instanceof ComputedTapPositionChangeElement tapChangeElement) {
                     TapPositionChange tapPositionChange = tapChangeElement.getTapPositionChange();
                     newPower = calculatePower(tapPositionChange.getNewPiModel());
                     oldPower = calculatePower(lfBranch);
                 } else if (element instanceof ComputedSwitchBranchElement switchElement) {
-                    newPower = switchElement.isEnabled() ? calculatePower(lfBranch) : 0;
-                    oldPower = switchElement.isEnabled() ? 0 : calculatePower(lfBranch);
+                    if (switchElement.isEnabled()) {
+                        newPower = calculatePower(lfBranch);
+                    } else {
+                        oldPower = calculatePower(lfBranch);
+                    }
                 } else {
                     throw new IllegalStateException("Unexpected computed element type");
                 }
-
                 deltaX = 1d / (oldPower - newPower);
             }
             return deltaX - (actionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
