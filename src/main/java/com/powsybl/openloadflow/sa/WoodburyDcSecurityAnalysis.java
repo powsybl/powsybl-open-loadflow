@@ -191,13 +191,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private void filterActions(List<Action> actions, LfNetwork lfNetwork) {
         actions.stream()
-                .filter(action -> action instanceof TerminalsConnectionAction)
-                .map(action -> (TerminalsConnectionAction) action)
-                .filter(action -> !action.isOpen())
-                .filter(action -> lfNetwork.getBranchById(action.getElementId()).getBranchType() == LfBranch.BranchType.TRANSFO_2
+                .filter(TerminalsConnectionAction.class::isInstance)
+                .map(TerminalsConnectionAction.class::cast)
+                .filter(action -> !action.isOpen() && (lfNetwork.getBranchById(action.getElementId()).getBranchType() == LfBranch.BranchType.TRANSFO_2
                         || lfNetwork.getBranchById(action.getElementId()).getBranchType() == LfBranch.BranchType.TRANSFO_3_LEG_1
                         || lfNetwork.getBranchById(action.getElementId()).getBranchType() == LfBranch.BranchType.TRANSFO_3_LEG_2
-                        || lfNetwork.getBranchById(action.getElementId()).getBranchType() == LfBranch.BranchType.TRANSFO_3_LEG_3)
+                        || lfNetwork.getBranchById(action.getElementId()).getBranchType() == LfBranch.BranchType.TRANSFO_3_LEG_3))
                 .findAny()
                 .ifPresent(e -> {
                     throw new IllegalStateException("For now, TerminalsConnectionAction enabling a transformer is not allowed in WoodburyDcSecurityAnalysis");

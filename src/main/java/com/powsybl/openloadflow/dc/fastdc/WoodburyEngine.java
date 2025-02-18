@@ -157,12 +157,12 @@ public class WoodburyEngine {
     // TODO : refactor
     double getRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, AbstractComputedElement computedElement) {
         double newAlpha = 0;
-        if (computedElement instanceof ComputedTapPositionChangeElement) {
-            TapPositionChange tapPositionChange = ((ComputedTapPositionChangeElement) computedElement).getTapPositionChange();
+        if (computedElement instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
+            TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
             PiModel newPiModel = tapPositionChange.getNewPiModel();
             newAlpha = newPiModel.getA1();
-        } else if (computedElement instanceof ComputedSwitchBranchElement && ((ComputedSwitchBranchElement) computedElement).isEnabled()) {
-            newAlpha = computedElement.getLfBranch().getPiModel().getA1();
+        } else if (computedElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && computedSwitchBranchElement.isEnabled()) {
+            newAlpha = computedSwitchBranchElement.getLfBranch().getPiModel().getA1();
         }
         return states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
     }
@@ -178,13 +178,13 @@ public class WoodburyEngine {
             if (onDiagonal) {
                 double oldPower = 0d;
                 double newPower = 0d;
-                if (element instanceof ComputedTapPositionChangeElement) {
-                    TapPositionChange tapPositionChange = ((ComputedTapPositionChangeElement) element).getTapPositionChange();
+                if (element instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
+                    TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
                     PiModel newPiModel = tapPositionChange.getNewPiModel();
                     oldPower = calculatePower(lfBranch);
                     newPower = calculatePower(newPiModel);
-                } else if (element instanceof ComputedSwitchBranchElement) {
-                    if (((ComputedSwitchBranchElement) element).isEnabled()) {
+                } else if (element instanceof ComputedSwitchBranchElement computedSwitchBranchElement) {
+                    if (computedSwitchBranchElement.isEnabled()) {
                         newPower = calculatePower(lfBranch);
                     } else {
                         oldPower = calculatePower(lfBranch);

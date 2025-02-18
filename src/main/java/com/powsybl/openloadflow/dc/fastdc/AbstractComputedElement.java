@@ -33,7 +33,7 @@ public abstract class AbstractComputedElement {
     private final LfBranch lfBranch;
     private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
 
-    public AbstractComputedElement(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm branchEquation) {
+    protected AbstractComputedElement(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm branchEquation) {
         this.lfBranch = lfBranch;
         this.branchEquation = branchEquation;
     }

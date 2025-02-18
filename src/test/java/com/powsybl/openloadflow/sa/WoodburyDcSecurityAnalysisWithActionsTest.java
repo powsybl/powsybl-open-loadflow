@@ -44,7 +44,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     private SecurityAnalysisParameters securityAnalysisParameters;
 
     @BeforeEach
-    public void setUpWoodburyDcSa() {
+    void setUpWoodburyDcSa() {
         securityAnalysisParameters = new SecurityAnalysisParameters();
         // configure sa to use Woodbury dc sa
         parameters = new LoadFlowParameters();
