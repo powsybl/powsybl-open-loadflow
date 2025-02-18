@@ -93,9 +93,9 @@ public final class ConnectivityBreakAnalysis {
         }
 
         public Optional<LfContingency> toLfContingency() {
-            PropagatedContingency.ContingencyConnectivityLossImpactAnalyser analyser = (network, contingencyId, branchesToOpen, relocateSlackBus)
+            PropagatedContingency.ContingencyConnectivityLossImpactAnalysis analysis = (network, contingencyId, branchesToOpen, relocateSlackBus)
                     -> new PropagatedContingency.ContingencyConnectivityLossImpact(true, createdSynchronousComponents, disabledBuses, hvdcsWithoutPower);
-            return propagatedContingency.toLfContingency(network, false, analyser);
+            return propagatedContingency.toLfContingency(network, false, analysis);
         }
     }
 

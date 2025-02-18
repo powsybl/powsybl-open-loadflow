@@ -395,8 +395,7 @@ public class PropagatedContingency {
 
     }
 
-    private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId,
-                                                                                                           Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus) {
+    private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus) {
         // update connectivity with triggered branches of this network
         // note that this will define the main component as the one containing the first slack bus
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -447,22 +446,22 @@ public class PropagatedContingency {
         return status == null || status == DisabledBranchStatus.SIDE_1;
     }
 
-    public interface ContingencyConnectivityLossImpactAnalyser {
+    public interface ContingencyConnectivityLossImpactAnalysis {
 
-        ContingencyConnectivityLossImpact analyse(LfNetwork network, String contingencyId, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus);
+        ContingencyConnectivityLossImpact run(LfNetwork network, String contingencyId, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus);
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
         return toLfContingency(network, true, PropagatedContingency::findBusesAndBranchesImpactedBecauseOfConnectivityLoss);
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean relocateSlackBus, ContingencyConnectivityLossImpactAnalyser analyser) {
+    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean relocateSlackBus, ContingencyConnectivityLossImpactAnalysis analysis) {
         // find branch to open because of direct impact of the contingency (including propagation is activated)
         Map<LfBranch, DisabledBranchStatus> branchesToOpen = findBranchToOpenDirectlyImpactedByContingency(network);
 
         // find branches to open and buses to lost not directly from the contingency impact but as a consequence of
         // loss of connectivity once contingency applied on the network
-        ContingencyConnectivityLossImpact connectivityLossImpact = analyser.analyse(network, contingency.getId(), branchesToOpen, relocateSlackBus);
+        ContingencyConnectivityLossImpact connectivityLossImpact = analysis.run(network, contingency.getId(), branchesToOpen, relocateSlackBus);
         if (!connectivityLossImpact.ok) {
             return Optional.empty();
         }
