@@ -27,7 +27,7 @@ If an alternative implementation of `AcOuterLoopConfig` / `DcOuterLoopConfig`is 
 it will be used as a replacement of the Open LoadFlow implementations above. The use cases typically are:
 - customizing the creation and/or ordering of the PowSyBl Open LoadFlow provided Outer-Loops
 - creating new Outer-Loop types/implementations in your own private code, by implementing new
-`AcOuterLoop` / `AcOuterLoop`, then instantiating these Outer-Loops in your custom Outer-Loops configuration.
+`AcOuterLoop` / `DcOuterLoop`, then instantiating these Outer-Loops in your custom Outer-Loops configuration.
 
 Some tips:
 - instead of re-creating your own Outer-Loop configuration implementation from scratch, you could instead benefit
