@@ -467,7 +467,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
 
             BiFunction<List<LfAction>, PropagatedContingency, double[]> toPostContingencyAndOperatorStrategyStates = (operatorStrategyLfActions, contingency) -> {
-                Optional<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> result = ConnectivityBreakAnalysis.getConnectivityAnalysisResultForAnOperatorStrategy(
+                Optional<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> result = ConnectivityBreakAnalysis.runForAnOperatorStrategy(
                         context, contingency, connectivityBreakAnalysisResults.contingencyElementByBranch(), connectivityBreakAnalysisResults.contingenciesStates(),
                         operatorStrategyLfActions, actionElementsIndexByBranchId, actionsStates);
 
