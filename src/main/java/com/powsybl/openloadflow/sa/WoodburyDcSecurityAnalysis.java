@@ -285,9 +285,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // apply modifications to compute results
         lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
-        Set<LfBranch> branchesToOpen = contingency.getBranchIdsToOpen()
-                .keySet()
-                .stream()
+        Set<LfBranch> branchesToOpen = contingency.getBranchIdsToOpen().keySet().stream()
                 .map(branchId -> loadFlowContext.getNetwork().getBranchById(branchId))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -322,7 +320,6 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(lfActionById::get)
                 .filter(Objects::nonNull)
                 .toList();
-        // j'ai les lf actions, je veux les IDs
 
         logActionStart(context.getNetwork(), operatorStrategy);
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -381,12 +378,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         Map<LfAction, AbstractComputedElement> computedElements = lfActionById.values().stream()
                 .map(lfAction -> {
                     AbstractComputedElement element;
-                    if (lfAction instanceof AbstractLfTapChangerAction) {
-                        element = new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem);
-                    } else if (lfAction instanceof AbstractLfBranchAction && ((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork) != null) {
-                        element = new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getEnabledBranch(lfNetwork), true, equationSystem);
-                    } else if (lfAction instanceof AbstractLfBranchAction && ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork) != null) {
-                        element = new ComputedSwitchBranchElement(((AbstractLfBranchAction<?>) lfAction).getDisabledBranch(lfNetwork), false, equationSystem);
+                    if (lfAction instanceof AbstractLfTapChangerAction<?> abstractLfTapChangerAction) {
+                        element = new ComputedTapPositionChangeElement(abstractLfTapChangerAction.getChange(), equationSystem);
+                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && abstractLfBranchAction.getEnabledBranch() != null) {
+                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getEnabledBranch(), true, equationSystem);
+                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && abstractLfBranchAction.getDisabledBranch() != null) {
+                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getDisabledBranch(), false, equationSystem);
                     } else {
                         throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
                     }

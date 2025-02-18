@@ -38,9 +38,9 @@ public final class LfActionUtils {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         return switch (action.getType()) {
-            case SwitchAction.NAME -> new LfSwitchAction(action.getId(), (SwitchAction) action);
+            case SwitchAction.NAME -> new LfSwitchAction(action.getId(), (SwitchAction) action, lfNetwork);
             case TerminalsConnectionAction.NAME ->
-                new LfTerminalsConnectionAction(action.getId(), (TerminalsConnectionAction) action);
+                new LfTerminalsConnectionAction(action.getId(), (TerminalsConnectionAction) action, lfNetwork);
             case PhaseTapChangerTapPositionAction.NAME ->
                 new LfPhaseTapChangerAction(action.getId(), (PhaseTapChangerTapPositionAction) action, lfNetwork);
             case RatioTapChangerTapPositionAction.NAME ->
@@ -67,8 +67,8 @@ public final class LfActionUtils {
 
         // first apply action modifying connectivity
         List<LfAction> branchActions = actions.stream()
-                .filter(action -> action instanceof AbstractLfBranchAction<?>)
-                .toList();
+            .filter(action -> action instanceof AbstractLfBranchAction<?>)
+            .toList();
         updateConnectivity(branchActions, network, branchesToOpen, contingency.getId(), node);
 
         // then process remaining changes of actions
@@ -92,7 +92,7 @@ public final class LfActionUtils {
         connectivity.startTemporaryChanges();
 
         branchActions.forEach(action -> {
-            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(network, connectivity)) {
+            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(connectivity)) {
                 reportActionApplicationFailure(action.getId(), contingencyId, node);
             }
         });

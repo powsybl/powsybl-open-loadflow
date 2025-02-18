@@ -42,8 +42,6 @@ public final class ConnectivityBreakAnalysis {
 
         private PropagatedContingency contingency;
 
-        private List<LfAction> lfActions;
-
         private final Set<String> elementsToReconnect;
 
         private final Set<LfBus> disabledBuses;
@@ -67,10 +65,6 @@ public final class ConnectivityBreakAnalysis {
 
         public void setPropagatedContingency(PropagatedContingency contingency) {
             this.contingency = contingency;
-        }
-
-        public void setLfActions(List<LfAction> lfActions) {
-            this.lfActions = lfActions;
         }
 
         public Set<String> getElementsToReconnect() {
@@ -167,12 +161,9 @@ public final class ConnectivityBreakAnalysis {
 
         List<ConnectivityAnalysisResult> connectivityAnalysisResults = new ArrayList<>();
         for (PropagatedContingency c : potentiallyBreakingConnectivityContingencies) {
-            Optional<ConnectivityAnalysisResult> result = computeConnectivityAnalysisResult(lfNetwork, c, contingencyElementByBranch, Collections.emptyList(), Collections.emptyMap());
-            if (result.isPresent()) {
-                connectivityAnalysisResults.add(result.get());
-            } else {
-                nonBreakingConnectivityContingencies.add(c);
-            }
+            Optional<ConnectivityAnalysisResult> connectivityAnalysisResult = computeConnectivityAnalysisResult(lfNetwork, c, contingencyElementByBranch, Collections.emptyList(), Collections.emptyMap());
+            connectivityAnalysisResult.ifPresentOrElse(connectivityAnalysisResults::add,
+                    () -> nonBreakingConnectivityContingencies.add(c));
         }
         return connectivityAnalysisResults;
     }
@@ -192,7 +183,6 @@ public final class ConnectivityBreakAnalysis {
         connectivity.startTemporaryChanges();
         try {
             modifyingConnectivityCandidates.forEach(computedElement -> computedElement.applyToConnectivity(connectivity));
-
             // filter the branches that really impacts connectivity
             Set<AbstractComputedElement> breakingConnectivityElements = modifyingConnectivityCandidates.stream()
                     .filter(element -> isBreakingConnectivity(connectivity, element))
@@ -203,7 +193,6 @@ public final class ConnectivityBreakAnalysis {
                 Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(elementsToReconnect, connectivity, lfNetwork);
                 connectivityAnalysisResult.setPropagatedContingency(contingency);
-                connectivityAnalysisResult.setLfActions(lfActions);
             }
         } finally {
             connectivity.undoTemporaryChanges();
@@ -299,6 +288,7 @@ public final class ConnectivityBreakAnalysis {
         return new ConnectivityBreakAnalysisResults(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
     }
 
+    // TODO : it might be better to run for all the couples, rather than by couple of contingency/operator strategy
     public static Optional<ConnectivityAnalysisResult> runForAnOperatorStrategy(DcLoadFlowContext loadFlowContext,
                                                                                 PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
                                                                                 List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
