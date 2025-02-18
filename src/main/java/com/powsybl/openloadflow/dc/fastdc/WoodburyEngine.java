@@ -154,21 +154,18 @@ public class WoodburyEngine {
         return AbstractClosedBranchDcFlowEquationTerm.computePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
-    // TODO : refactor
-    double getRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, AbstractComputedElement computedElement) {
+    double getAlphaRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, AbstractComputedElement computedElement) {
         double newAlpha = 0;
+        // enabling of transformers is not yet supported
         if (computedElement instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
             TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
             PiModel newPiModel = tapPositionChange.getNewPiModel();
             newAlpha = newPiModel.getA1();
-        } else if (computedElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && computedSwitchBranchElement.isEnabled()) {
-            newAlpha = computedSwitchBranchElement.getLfBranch().getPiModel().getA1();
         }
         return states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
     }
 
-    // TODO : refactor
-    double getMatrixValue(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm p1, AbstractComputedElement element, boolean onDiagonal) {
+    double getAlphaMatrixValue(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm p1, AbstractComputedElement element, boolean onDiagonal) {
         if (element instanceof ComputedContingencyElement) {
             double deltaX = onDiagonal ? 1d / calculatePower(lfBranch) : 0d;
             return deltaX - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
@@ -176,23 +173,19 @@ public class WoodburyEngine {
         } else {
             double deltaX = 0;
             if (onDiagonal) {
-                double oldPower = 0d;
-                double newPower = 0d;
-                if (element instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
-                    TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
-                    PiModel newPiModel = tapPositionChange.getNewPiModel();
+                double oldPower;
+                double newPower;
+                if (element instanceof ComputedTapPositionChangeElement tapChangeElement) {
+                    TapPositionChange tapPositionChange = tapChangeElement.getTapPositionChange();
+                    newPower = calculatePower(tapPositionChange.getNewPiModel());
                     oldPower = calculatePower(lfBranch);
-                    newPower = calculatePower(newPiModel);
-                } else if (element instanceof ComputedSwitchBranchElement computedSwitchBranchElement) {
-                    if (computedSwitchBranchElement.isEnabled()) {
-                        newPower = calculatePower(lfBranch);
-                    } else {
-                        oldPower = calculatePower(lfBranch);
-                    }
+                } else if (element instanceof ComputedSwitchBranchElement switchElement) {
+                    newPower = switchElement.isEnabled() ? calculatePower(lfBranch) : 0;
+                    oldPower = switchElement.isEnabled() ? 0 : calculatePower(lfBranch);
                 } else {
                     throw new IllegalStateException("Unexpected computed element type");
                 }
-                // FIXME : what if oldPower = newPower ?
+
                 deltaX = 1d / (oldPower - newPower);
             }
             return deltaX - (actionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
@@ -210,17 +203,16 @@ public class WoodburyEngine {
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
             // we solve a*alpha = b
-            double a = getMatrixValue(lfBranch, p1, element, true);
-            double b = getRhsValue(states, p1, columnState, element);
+            double a = getAlphaMatrixValue(lfBranch, p1, element, true);
+            double b = getAlphaRhsValue(states, p1, columnState, element);
             element.setAlphaForWoodburyComputation(b / a);
         } else if (contingencyElements.isEmpty() && actionElements.size() == 1) {
-            // TODO : case when there is only one switching action, for now, works only when there is only one action on pst
             AbstractComputedElement element = actionElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
-            double a = getMatrixValue(lfBranch, p1, element, true);
-            double b = getRhsValue(states, p1, columnState, element);
+            double a = getAlphaMatrixValue(lfBranch, p1, element, true);
+            double b = getAlphaRhsValue(states, p1, columnState, element);
             element.setAlphaForWoodburyComputation(b / a);
         } else {
             // set local indexes of computed elements to use them in small matrix computation
@@ -234,19 +226,19 @@ public class WoodburyEngine {
                 int i = contingencyElement.getLocalIndex();
                 LfBranch lfBranch = contingencyElement.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = contingencyElement.getLfBranchEquation();
-                rhs.set(i, 0, getRhsValue(states, p1, columnState, contingencyElement));
+                rhs.set(i, 0, getAlphaRhsValue(states, p1, columnState, contingencyElement));
 
                 // loop on contingencies to fill top-left quadrant of the matrix
                 for (ComputedContingencyElement contingencyElement2 : contingencyElements) {
                     int j = contingencyElement2.getLocalIndex();
-                    double value = getMatrixValue(lfBranch, p1, contingencyElement2, i == j);
+                    double value = getAlphaMatrixValue(lfBranch, p1, contingencyElement2, i == j);
                     matrix.set(i, j, value);
                 }
 
                 // loop on actions to fill top-right quadrant of the matrix
                 for (AbstractComputedElement actionElement : actionElements) {
                     int j = contingencyElements.size() + actionElement.getLocalIndex();
-                    double value = getMatrixValue(lfBranch, p1, actionElement, false);
+                    double value = getAlphaMatrixValue(lfBranch, p1, actionElement, false);
                     matrix.set(i, j, value);
                 }
             }
@@ -255,19 +247,19 @@ public class WoodburyEngine {
                 int i = contingencyElements.size() + actionElement.getLocalIndex();
                 LfBranch lfBranch = actionElement.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
-                rhs.set(i, 0, getRhsValue(states, p1, columnState, actionElement));
+                rhs.set(i, 0, getAlphaRhsValue(states, p1, columnState, actionElement));
 
                 // loop on contingencies to fill bottom-left quadrant of the matrix
                 for (ComputedContingencyElement contingencyElement : contingencyElements) {
                     int j = contingencyElement.getLocalIndex();
-                    double value = getMatrixValue(lfBranch, p1, contingencyElement, false);
+                    double value = getAlphaMatrixValue(lfBranch, p1, contingencyElement, false);
                     matrix.set(i, j, value);
                 }
 
                 // loop on actions to fill bottom-right quadrant of the matrix
                 for (AbstractComputedElement actionElement2 : actionElements) {
                     int j = contingencyElements.size() + actionElement2.getLocalIndex();
-                    double value = getMatrixValue(lfBranch, p1, actionElement2, i == j);
+                    double value = getAlphaMatrixValue(lfBranch, p1, actionElement2, i == j);
                     matrix.set(i, j, value);
                 }
             }
