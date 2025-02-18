@@ -405,12 +405,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             allLfFactors.stream()
                     .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                                 && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                                && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
                             || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
                                 && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_1
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_2
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_3
                                 && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
                     .findFirst()
                     .ifPresent(ignored -> {
-                        throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1 and BRANCH_ACTIVE_POWER_2 are yet supported in DC");
+                        throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
                     });
 
             LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());

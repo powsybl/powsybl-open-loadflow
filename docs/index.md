@@ -52,5 +52,5 @@ hidden: true
 loadflow/index.md
 security/index.md
 sensitivity/index.md
+advanced_programming/index.md
 ```
-
