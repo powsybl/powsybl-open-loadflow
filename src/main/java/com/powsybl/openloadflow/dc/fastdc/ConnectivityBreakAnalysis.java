@@ -48,23 +48,29 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBus> slackConnectedComponent; // buses of connected component where the slack is
 
-        private final int createdSynchronousComponents;
+        private final Set<LfBus> slackConnectedComponentBuses; // buses of connected component where the slack is
 
         private final DisabledElements disabledElements;
 
-        public ConnectivityAnalysisResult(PropagatedContingency nonBreakingConnectivityContingency, LfNetwork network) {
-            this(nonBreakingConnectivityContingency, network, Collections.emptySet(), DisabledElements.NO_DISABLED_ELEMENTS, Collections.emptySet(), 0);
+        private final int createdSynchronousComponents;
+
+        private final Set<LfHvdc> hvdcsWithoutPower;
+
+        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network) {
+            this(propagatedContingency, network, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), 0, Collections.emptySet());
         }
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network, Set<String> elementsToReconnect,
-                                          DisabledElements disabledElements, Set<LfBus> slackConnectedComponentBuses,
-                                          int createdSynchronousComponents) {
+                                          Set<LfBus> disabledBuses, Set<LfBus> slackConnectedComponentBuses, Set<LfBranch> partialDisabledBranches,
+                                          int createdSynchronousComponents, Set<LfHvdc> hvdcsWithoutPower) {
             this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
             this.network = Objects.requireNonNull(network);
             this.elementsToReconnect = elementsToReconnect;
-            this.disabledElements = disabledElements;
-            this.slackConnectedComponent = slackConnectedComponentBuses;
+            this.disabledBuses = disabledBuses;
+            this.slackConnectedComponentBuses = slackConnectedComponentBuses;
+            this.partialDisabledBranches = partialDisabledBranches;
             this.createdSynchronousComponents = createdSynchronousComponents;
+            this.hvdcsWithoutPower = hvdcsWithoutPower;
         }
 
         public PropagatedContingency getPropagatedContingency() {
@@ -79,8 +85,8 @@ public final class ConnectivityBreakAnalysis {
             return disabledElements.disabledBuses;
         }
 
-        public Set<LfBus> getSlackConnectedComponent() {
-            return slackConnectedComponent;
+        public Set<LfBus> getSlackConnectedComponentBuses() {
+            return slackConnectedComponentBuses;
         }
 
         public Set<LfBranch> getPartialDisabledBranches() {
