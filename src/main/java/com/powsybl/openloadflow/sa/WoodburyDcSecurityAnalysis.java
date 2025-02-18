@@ -374,7 +374,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         });
     }
 
-    private static Map<LfAction, AbstractComputedElement> createActionElementsIndexByLfAction(LfNetwork lfNetwork, Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+    private static Map<LfAction, AbstractComputedElement> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         Map<LfAction, AbstractComputedElement> computedElements = lfActionById.values().stream()
                 .map(lfAction -> {
                     AbstractComputedElement element;
@@ -454,7 +454,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // compute states with +1 -1 to model the actions in Woodbury engine
-            Map<LfAction, AbstractComputedElement> actionElementsIndexByBranchId = createActionElementsIndexByLfAction(lfNetwork, lfActionById, context.getEquationSystem());
+            Map<LfAction, AbstractComputedElement> actionElementsIndexByBranchId = createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem());
             DenseMatrix actionsStates = AbstractComputedElement.calculateElementsStates(context, actionElementsIndexByBranchId.values());
 
             // save base state for later restoration after each contingency/action
