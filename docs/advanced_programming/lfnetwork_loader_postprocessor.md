@@ -1,7 +1,7 @@
-# LfNetwork post-processors
+# LfNetwork Loader post-processors
 
 Any simulation performed by PowSyBl Open LoadFlow starts by loading the 
-[iIDM Grid Model](inv:powsyblcore:*:*:#grid_model) into PowSyBl Open LoadFlow representation: the `LfNetwork`
+iIDM Grid Model into PowSyBl Open LoadFlow representation: the `LfNetwork`
 [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-open-loadflow/latest/com/powsybl/openloadflow/network/LfNetwork.html).
 
 By providing an `LfNetworkLoaderPostProcessor` [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-open-loadflow/latest/com/powsybl/openloadflow/network/LfNetworkLoaderPostProcessor.html)

@@ -18,9 +18,8 @@ This section details PowSyBl Open LoadFlow plug-in capabilities and how to use t
 maxdepth: 2
 hidden: true
 ---
-lfnetwork_postprocessor.md
+lfnetwork_loader_postprocessor.md
 external_ac_solver.md
-equation_system_postprocessor.md
 outerloop_configuration.md
 contingency_active_power_loss.md
 ```
