@@ -24,6 +24,7 @@
         "slackBusesIds" : [ "b1_vl_0" ],
         "slackDistributionFailureBehavior" : "LEAVE_ON_SLACK_BUS",
         "voltageRemoteControl" : true,
+        "voltageRemoteControlRobustMode" : true,
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
         "plausibleActivePowerLimit" : 5000.0,

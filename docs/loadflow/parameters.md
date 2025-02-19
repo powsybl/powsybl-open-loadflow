@@ -140,6 +140,20 @@ If set to false, any existing voltage remote control is converted to a local con
 according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.  
 The default value is `true`.
 
+**voltageRemoteControlRobustMode**  
+When set to true, the algorithm for remote voltage control is more robust to inconsistent voltage targets that might otherwise cause unrealistic
+voltage exceptions and cause a loadflow failure. The control of unrealistic voltage is performed after the reactive limit outerloop. 
+In addition, groups with unrealistic voltage when entering the reactive limit outerloop, but that do not exceed their reactive diagram 
+are moved PQ and their reactive injection is set to targetQ. With this parameter set to `true` it is in general possible to set the 
+`minRealisticVoltage` and `maxRealisticVoltage`  values to 0.8pu and 1.2pu.  
+
+Note that when this option is set to true, instead of failing with an unrealistic voltage at a controller bus, the load flow 
+may produce a solution where a voltage controlled bus does not reach the target voltage, while voltage controllers still 
+have reactive power margin available.
+
+
+The default value is `true`.
+
 **voltagePerReactivePowerControl**  
 Whether simulation of static VAR compensators with voltage control enabled and a slope defined should be enabled
 (See [voltage per reactive power control extension](inv:powsyblcore:*:*:#voltage-per-reactive-power-control-extension)).  
@@ -296,8 +310,15 @@ The default values are `0.8` and `1.2` and they must be greater or equal to `0`.
 
 **minRealisticVoltage** and **maxRealisticVoltage**  
 These parameters are used to identify if the AC Solver has converged to an unrealistic state.
-For any component where a bus voltage is solved outside these per-unit thresholds, the component solution is deemed unrealistic
-and its solution status is flagged as failed.  
+
+For any component where a bus voltage is solved outside these per-unit
+thresholds, the component solution is deemed unrealistic and its solution status is flagged as failed.
+
+If `voltageRemoteControlRobustMode` is set to true, the check of unrealistic voltage is done after the 
+ReactiveLimits outerloop has been used. In addition, the ReactiveLimits outerloop uses these values as a 
+criteria to block PQ remote controler buses that have an unrealistic voltage and a reactive injection within 
+their reactive diagram.
+
 The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
 **reactiveRangeCheckMode**  

@@ -76,6 +76,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
+    public static final boolean VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE = true;
+
     public static final boolean GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE = false;
 
     public static final boolean TRANSFORMER_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE = false;
@@ -152,6 +154,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME = "slackDistributionFailureBehavior";
 
     public static final String VOLTAGE_REMOTE_CONTROL_PARAM_NAME = "voltageRemoteControl";
+
+    public static final String VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME = "voltageRemoteControlRobustMode";
 
     public static final String GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME = "generatorReactivePowerRemoteControl";
 
@@ -433,6 +437,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control robust mode", VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Force targetQ in the reactive limit diagram", FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REACTIVE_POWER_CONTROL_CATEGORY_KEY),
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY)
     );
@@ -472,6 +477,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private SlackDistributionFailureBehavior slackDistributionFailureBehavior = SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE;
 
     private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE;
+
+    private boolean voltageRemoteControlRobustMode = VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE;
 
     private LowImpedanceBranchMode lowImpedanceBranchMode = LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE;
 
@@ -679,6 +686,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setVoltageRemoteControl(boolean voltageRemoteControl) {
         this.voltageRemoteControl = voltageRemoteControl;
+        return this;
+    }
+
+    public boolean isVoltageRemoteControlRobustMode() {
+        return voltageRemoteControlRobustMode;
+    }
+
+    public OpenLoadFlowParameters setVoltageRemoteControlRobustMode(boolean voltageRemoteControlRobustMode) {
+        this.voltageRemoteControlRobustMode = voltageRemoteControlRobustMode;
         return this;
     }
 
@@ -1605,6 +1621,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(this::setAreaInterchangeControlAreaType);
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setAreaInterchangePMaxMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setVoltageRemoteControlRobustMode(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME))
                 .ifPresent(prop -> this.setForceTargetQInReactiveLimits(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME))
@@ -1685,6 +1703,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(AREA_INTERCHANGE_CONTROL_PARAM_NAME, areaInterchangeControl);
         map.put(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, areaInterchangeControlAreaType);
         map.put(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, areaInterchangePMaxMismatch);
+        map.put(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, voltageRemoteControlRobustMode);
         map.put(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, forceTargetQInReactiveLimits);
         map.put(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, disableInconsistentVoltageControls);
         return map;
@@ -1904,6 +1923,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
                 .setSolverFactory(solverFactory, parameters)
+                .setVoltageRemoteControlRobustMode(parametersExt.isVoltageRemoteControlRobustMode())
                 .setMinRealisticVoltage(parametersExt.minRealisticVoltage)
                 .setMaxRealisticVoltage(parametersExt.maxRealisticVoltage);
     }
@@ -2083,6 +2103,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isAreaInterchangeControl() == extension2.isAreaInterchangeControl() &&
                 Objects.equals(extension1.getAreaInterchangeControlAreaType(), extension2.getAreaInterchangeControlAreaType()) &&
                 extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch() &&
+                extension1.isVoltageRemoteControlRobustMode() == extension2.isVoltageRemoteControlRobustMode() &&
                 extension1.isForceTargetQInReactiveLimits() == extension2.isForceTargetQInReactiveLimits() &&
                 extension1.isDisableInconsistentVoltageControls() == extension2.isDisableInconsistentVoltageControls();
     }
@@ -2181,6 +2202,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setAreaInterchangeControl(extension.isAreaInterchangeControl())
                     .setAreaInterchangeControlAreaType(extension.getAreaInterchangeControlAreaType())
                     .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch())
+                    .setVoltageRemoteControlRobustMode(extension.isVoltageRemoteControlRobustMode())
                     .setForceTargetQInReactiveLimits(extension.isForceTargetQInReactiveLimits())
                     .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls());
 
