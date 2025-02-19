@@ -303,7 +303,6 @@ are considered suspect and are discarded from regulation prior to load flow reso
 The default values are `0.8` and `1.2` and they must be greater or equal to `0`.
 
 **minRealisticVoltage** and **maxRealisticVoltage**  
-<<<<<<< HEAD
 These parameters are used to identify if the AC Solver has converged to an unrealistic state.
 
 For any component where a bus voltage is solved outside these per-unit

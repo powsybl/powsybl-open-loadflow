@@ -218,7 +218,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         // If in remote voltage control robust mode, find the latest outerloop that can fix unrealistic state
         // to apply the check after that loop only
-        runningContext.lastUnrealisticStateFixingLoop = context.getParameters().isRemoteControlRobustMode() ?
+        runningContext.lastUnrealisticStateFixingLoop = context.getParameters().isVoltageRemoteControlRobustMode() ?
                 outerLoopsAndContexts.stream()
                 .map(Pair::getLeft)
                 .filter(AcOuterLoop::canFixUnrealisticState)
