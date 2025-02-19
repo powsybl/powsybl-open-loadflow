@@ -150,7 +150,7 @@ Whether simulation of generators reactive power remote control should be enabled
 (See [remote reactive power control](inv:powsyblcore:*:*:#remote-reactive-power-control-extension)).  
 The default value is `false`.
 
-**disableInconsistentVoltageControl**
+**disableInconsistentVoltageControl**  
 If multiple generators (or batteries, or VSC converters, or static VAR compensators) are connected to the same bus but either control different buses,
 either have different target voltages, then their voltage control is disabled if `disableInconsistentVoltageControl` is set to `true`. If the parameter is
 set to `false`, then only the control of the first generator is kept and applied to all the other generators.
