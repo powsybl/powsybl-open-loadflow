@@ -56,13 +56,30 @@ when DC mode is activated.
 
 Please note that fast mode has a few limitations:
 - Contingencies applied on branches opened on one side are ignored.
-- AC emulation of HVDC lines is disabled, as it is not yet supported. 
+- AC emulation of HVDC lines is disabled, as it is not yet supported.
 Instead, the [active power setpoint](../loadflow/loadflow.md#computing-hvdc-power-flow) mode is used to control the active power flow through these lines. 
 - Only PST remedial actions are supported for now.
-- Slack relocation following the application of a contingency is not supported. 
+- Slack relocation following the application of a contingency is not supported.
 As a result, security analysis is carried out only in slack component, and not necessarily in the largest one.
+- Customizing the way contingency imbalances are compensated via `contingencyActivePowerLossDistribution` parameter is not supported.
 
 The default value is `false`.
+
+**contingencyActivePowerLossDistribution**
+
+> **Note**: This is an advanced parameter.
+> Unless you have specific needs, do not modify this parameter.
+
+Specifies the name of the plugin to be used for compensating any active power injection that has been disconnected by a contingency.
+
+The default value is `Default`.
+
+The `Default` plugin, when slack distribution or area interchange control is enabled:
+- distributes the active power imbalance according to the configured BalanceType
+- reports how much active power has been disconnected by the contingency, and how much has been distributed
+
+PowSyBl Open LoadFlow does not provide today additional plugins. To create your own plugin,
+see the [programming guide](../advanced_programming/contingency_active_power_loss.md).
 
 ## Configuration file example
 See below an extract of a config file that could help:
@@ -73,9 +90,12 @@ open-security-analysis-default-parameters:
   createResultExtension: false
   threadCount: 1
   dcFastMode: false
+  contingencyActivePowerLossDistribution: Default
 ```
 
 At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
+
+(contingency-load-flow-parameters)=
 
 ## Contingency Load Flow Parameters
 
