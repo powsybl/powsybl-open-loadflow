@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2023-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -59,7 +59,11 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
                 case UNIFORM_CRITERIA -> parametersExt.getNewtonRaphsonConvEpsPerEq();
                 case PER_EQUATION_TYPE_CRITERIA -> parametersExt.getMaxReactivePowerMismatch() / PerUnit.SB;
             };
-            return Optional.of(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(), effectiveMaxReactivePowerMismatch));
+            return Optional.of(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch(),
+                                                           effectiveMaxReactivePowerMismatch,
+                                                           parametersExt.isVoltageRemoteControlRobustMode(),
+                                                           parametersExt.getMinRealisticVoltage(),
+                                                           parametersExt.getMaxRealisticVoltage()));
         }
         return Optional.empty();
     }

@@ -47,6 +47,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean detailedReport = false;
 
+    private boolean voltageRemoteControlRobustMode = true;
+
     private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
@@ -119,6 +121,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isVoltageRemoteControlRobustMode() {
+        return voltageRemoteControlRobustMode;
+    }
+
+    public AcLoadFlowParameters setVoltageRemoteControlRobustMode(boolean voltageRemoteControlRobustMode) {
+        this.voltageRemoteControlRobustMode = voltageRemoteControlRobustMode;
+        return this;
+    }
+
     public double getMinRealisticVoltage() {
         return minRealisticVoltage;
     }
@@ -151,6 +162,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
                 ", solverFactory=" + solverFactory.getClass().getSimpleName() +
                 ", detailedReport=" + detailedReport +
+                ", voltageRemoteControlRobustMode=" + voltageRemoteControlRobustMode +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ')';
