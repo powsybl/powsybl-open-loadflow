@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2023-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.AllViolationCondition;
@@ -584,11 +585,17 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(-2.990, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l45").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testCheckActions() {
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void testCheckActions(int threadCount) {
         Network network = MetrixTutorialSixBusesFactory.create();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()
+                .setThreadCount(threadCount);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
+
         List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
 
         List<Action> actions = List.of(new SwitchAction("openSwitch", "switch", true));
@@ -1670,5 +1677,124 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertSame(PostContingencyComputationStatus.SOLVER_FAILED, result.getOperatorStrategyResults().get(0).getStatus());
 
         assertReportEquals("/saReportOperatorStrategyNoVoltageControl.txt", reportNode);
+    }
+
+    @Test
+    void testAreaInterchangeTargetAction() {
+
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTwoXNodes();
+
+        Area area1 = network.getArea("a1");
+        Area area2 = network.getArea("a2");
+        area1.setInterchangeTarget(-15.0);
+        area2.setInterchangeTarget(15.0);
+
+        Contingency lineContingency = new Contingency("l23_A1_1", new BranchContingency("l23_A1_1"));
+        List<Contingency> contingencies = List.of(lineContingency);
+
+        // Strategy 1
+        AreaInterchangeTargetAction actionArea1 = new AreaInterchangeTargetActionBuilder()
+            .withId("ActionArea1")
+            .withAreaId("a1")
+            .withTarget(-10.0)
+            .build();
+
+        AreaInterchangeTargetAction actionArea2 = new AreaInterchangeTargetActionBuilder()
+            .withId("ActionArea2")
+            .withAreaId("a2")
+            .withTarget(10.0)
+            .build();
+
+        // Strategy 2
+        GeneratorAction actionArea3 = new GeneratorActionBuilder()
+            .withId("Action3")
+            .withGeneratorId("g1")
+            .withActivePowerValue(99.0)
+            .withActivePowerRelativeValue(false)
+            .build();
+
+        List<Action> actions = List.of(actionArea1, actionArea2, actionArea3);
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategy1", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea1.getId(), actionArea2.getId())),
+            new OperatorStrategy("strategy2", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea3.getId())));
+        ReportNode reportNode = ReportNode.newRootReportNode()
+            .withMessageTemplate("testSaReport", "Test report of security analysis")
+            .build();
+
+        double areaInterchangePMaxMismatch = 1e-3;
+
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        OpenLoadFlowParameters.create(parameters.getLoadFlowParameters())
+            .setAreaInterchangeControl(true)
+            .setSlackBusPMaxMismatch(1e-3)
+            .setAreaInterchangePMaxMismatch(areaInterchangePMaxMismatch);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, operatorStrategies, actions, reportNode);
+
+        // Respect of targets in the base case (at 15.0)
+        assertEquals(15.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
+        assertEquals(-15.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+
+        // Respect of targets in post contingency state (at 15.0)
+        assertEquals(15.0, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
+        assertEquals(-15.0, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+
+        // Respect of targets after remedial actions (now at 10.0)
+        assertNotNull(result.getOperatorStrategyResults());
+        // Strategy 1
+        assertEquals(10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
+        assertEquals(-10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+
+        // Strategy 2 (Retrieve post contingency targets)
+        assertEquals(15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
+        assertEquals(-15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+    }
+
+    @ParameterizedTest(name = "DC = {0}")
+    @ValueSource(booleans = {false, true})
+    void testContingencyParameters(boolean isDc) {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
+
+        // create a contingency with ContingencyLoadFlowParameters extension
+        Contingency contingency1 = new Contingency("load3", new LoadContingency("load3"));
+
+        ContingencyLoadFlowParameters contingencyParameters1 = new ContingencyLoadFlowParameters()
+                .setDistributedSlack(false)
+                .setAreaInterchangeControl(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        contingency1.addExtension(ContingencyLoadFlowParameters.class, contingencyParameters1);
+        Action action1 = new GeneratorActionBuilder().withId("action1").withGeneratorId("gen3").withActivePowerRelativeValue(false).withActivePowerValue(45).build();
+
+        OperatorStrategy operatorStrategy1 = new OperatorStrategy("strategy1", ContingencyContext.specificContingency("load3"), new TrueCondition(), List.of("action1"));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Contingency> contingencies = List.of(contingency1);
+        List<Action> actions = List.of(action1);
+        List<OperatorStrategy> operatorStrategies = List.of(operatorStrategy1);
+
+        // run the security analysis
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(isDc);
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult resultAc = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Pre-contingency results
+        PreContingencyResult preContingencyResult = resultAc.getPreContingencyResult();
+        assertEquals(25, preContingencyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, preContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Post-contingency results : AIC on loads
+        PostContingencyResult postContingencyResult = getPostContingencyResult(resultAc, "load3");
+        assertEquals(50, postContingencyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(75, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Operator strategy results : AIC on loads
+        OperatorStrategyResult acStrategyResult = getOperatorStrategyResult(resultAc, "strategy1");
+        assertEquals(50, acStrategyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(95, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }

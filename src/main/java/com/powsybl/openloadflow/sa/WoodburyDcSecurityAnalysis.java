@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2024, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
+/*
+ * Copyright (c) 2024-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,6 +13,7 @@ import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -26,11 +27,11 @@ import com.powsybl.openloadflow.dc.fastdc.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
-import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
-import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
@@ -66,10 +67,18 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     @Override
-    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
-        DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
-        // connectivity break analysis does not handle zero impedance lines
-        dcParameters.getNetworkParameters().setMinImpedance(true);
+    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
+        DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers, areas);
+        LfNetworkParameters lfNetworkParameters = dcParameters.getNetworkParameters();
+        boolean hasDroopControl = lfNetworkParameters.isHvdcAcEmulation() && network.getHvdcLineStream().anyMatch(l -> {
+            HvdcAngleDroopActivePowerControl droopControl = l.getExtension(HvdcAngleDroopActivePowerControl.class);
+            return droopControl != null && droopControl.isEnabled();
+        });
+        if (hasDroopControl) {
+            Reports.reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(reportNode);
+        }
+        lfNetworkParameters.setMinImpedance(true) // connectivity break analysis does not handle zero impedance lines
+                           .setHvdcAcEmulation(false); // ac emulation is not yet supported
         // needed an equation to force angle to zero when a PST is lost
         dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
         return dcParameters;
@@ -105,7 +114,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
         List<ComputedTapPositionChangeElement> actionElements = operatorStrategyLfActions.stream()
-                .map(lfAction -> lfAction.getTapPositionChange().getBranch().getId())
+                .filter(AbstractLfTapChangerAction.class::isInstance)
+                .map(lfAction -> ((AbstractLfTapChangerAction<?>) lfAction).getChange().getBranch().getId())
                 .map(tapPositionChangeElementByBranch::get)
                 .collect(Collectors.toList());
 
@@ -264,7 +274,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // apply modifications to compute results
         lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
-        LfAction.apply(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
+        LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters(), reportNode);
 
         // update network result
         var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
@@ -351,8 +361,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private static Map<String, ComputedTapPositionChangeElement> createTapPositionChangeElementsIndexByBranchId(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         Map<String, ComputedTapPositionChangeElement> computedTapPositionChangeElements = lfActionById.values().stream()
-                .filter(lfAction -> lfAction.getTapPositionChange() != null)
-                .map(lfAction -> new ComputedTapPositionChangeElement(lfAction.getTapPositionChange(), equationSystem))
+                .filter(AbstractLfTapChangerAction.class::isInstance)
+                .map(lfAction -> new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem))
                 .filter(computedTapPositionChangeElement -> computedTapPositionChangeElement.getLfBranchEquation() != null)
                 .collect(Collectors.toMap(
                         computedTapPositionChangeElement -> computedTapPositionChangeElement.getLfBranch().getId(),
@@ -367,12 +377,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     @Override
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions, List<LimitReduction> limitReductions) {
+                                                    List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
         // Verify only PST actions are given
         filterActions(actions);
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
+                indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions, true);
         Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);

@@ -153,4 +153,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                                 .forEach(b -> contextData.transformerRatioManager.updateContinuousRatio(b)));
         }
     }
+
+    @Override
+    public boolean canFixUnrealisticState() {
+        // Unrealistic voltage can happen before tap discretization
+        return true;
+    }
 }
