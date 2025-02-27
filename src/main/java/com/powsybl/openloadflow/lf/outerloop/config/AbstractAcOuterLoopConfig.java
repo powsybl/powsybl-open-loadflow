@@ -53,6 +53,15 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
+    protected static Optional<AcOuterLoop> createHvdcWarmStartOuterLoop(LoadFlowParameters parameters) {
+        if (parameters.isHvdcAcEmulation()) {
+            // For a loadflow run the outerloop is only needed if voltageInitMode is PreviousValues
+            // But it is needed in all cases for Security Analysis or Sensitivity Analysis
+            return Optional.of(new HvdcWarmStartOuterloop());
+        }
+        return Optional.empty();
+    }
+
     protected static Optional<AcOuterLoop> createReactiveLimitsOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (parameters.isUseReactiveLimits()) {
             double effectiveMaxReactivePowerMismatch = switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {

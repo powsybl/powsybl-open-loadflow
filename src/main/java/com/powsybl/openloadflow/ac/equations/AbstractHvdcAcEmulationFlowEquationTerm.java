@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -41,6 +41,10 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     protected final double pMaxFromCS1toCS2;
 
     protected final double pMaxFromCS2toCS1;
+
+    protected double frozenP = Double.NaN;
+
+    protected boolean frozen = false;
 
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
@@ -101,4 +105,47 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     public boolean hasRhs() {
         return false;
     }
+
+    public void freezeFromCurrentAngles() {
+        frozen = false; // Make sure P is computed according to angles
+        frozenP = isActive() ? eval() : Double.NaN;
+        frozen = true;
+    }
+
+    public void unFreeze() {
+        frozen = false;
+        frozenP = Double.NaN;
+    }
+
+    public boolean isFrozen() {
+        return frozen;
+    }
+
+    /**
+     * Return the mismatch in angle between a frozen HVDC link and the angle that would be
+     * required to get the frozen P
+     * @return
+     */
+    public double getAngleMismatch() {
+        if (!frozen || !isActive()) {
+            return 0;
+        }
+        // Temprary unfreeze to get the theorical values and compute the mismatch
+        frozen = false;
+        double unfrozenP = eval();
+        double dpdphi = der(ph1Var);
+        // Return to frozen state
+        frozen = true;
+        if (dpdphi == 0) {
+            // In this case the angle is out of operation range
+            // We return 0 if frozenP is at PMax (or more) and  otherwise an impossibly large angle
+            System.out.println("bounded : ph1 - ph2 = " + (ph1() - ph2()));
+            return Math.abs(frozenP) >= Math.abs(unfrozenP) ? 0 : Math.PI * Math.signum(ph1() - ph2());
+        } else {
+            // Otherwise return the calculated mismatch
+            return Math.abs((frozenP - unfrozenP) / dpdphi);
+        }
+    }
+
+    public abstract void updateFrozenValue(double deltaPhi1);
 }

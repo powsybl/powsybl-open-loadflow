@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
+import com.powsybl.openloadflow.ac.equations.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -192,5 +193,73 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public double getPMaxFromCS2toCS1() {
         return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS2toCS1 / PerUnit.SB;
+    }
+
+    @Override
+    public void freezeFromCurrentAngles() {
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            if (pAcEmu.isActive()) {
+                pAcEmu.freezeFromCurrentAngles();
+            }
+        }
+        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            if (pAcEmu.isActive()) {
+                pAcEmu.freezeFromCurrentAngles();
+            }
+        }
+    }
+
+    @Override
+    public void unFreeze() {
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            pAcEmu.unFreeze();
+        }
+        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            pAcEmu.unFreeze();
+        }
+    }
+
+    @Override
+    public boolean isFrozen() {
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            return pAcEmu.isActive() && pAcEmu.isFrozen();
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public double getAngleMismatch() {
+        AbstractHvdcAcEmulationFlowEquationTerm acControllerTerm = null;
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            if (pAcEmu.eval() > 0 && pAcEmu.isFrozen()) {
+                return pAcEmu.getAngleMismatch();
+            }
+        }
+        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            if (pAcEmu.eval() > 0 && pAcEmu.isFrozen()) {
+                return pAcEmu.getAngleMismatch();
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public double getOperatingAngle() {
+        // Number of radians between the power range (ignoring losses)
+        double k = getDroop() * 180 / Math.PI;
+        return (pMaxFromCS2toCS1 + pMaxFromCS2toCS1) / k / PerUnit.SB;
+    }
+
+    @Override
+    public void updateFrozenValue(double deltaPhi1) {
+        if (isFrozen()) {
+            if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+                pAcEmu.updateFrozenValue(deltaPhi1);
+            }
+            if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+                pAcEmu.updateFrozenValue(deltaPhi1);
+            }
+        }
     }
 }
