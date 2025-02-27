@@ -13,12 +13,17 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfHvdc;
+import com.powsybl.openloadflow.util.Reports;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class HvdcWarmStartOuterloop implements AcOuterLoop {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HvdcWarmStartOuterloop.class);
 
     private static final int MAX_STEPS = 10;
     public static final String NAME = "HvdcWarmStart";
@@ -32,7 +37,7 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     private static final class ContextData {
 
         private Step step = Step.CHECK;
-        private Map<String, Boolean> angleSign = new HashMap<>();
+        private final Map<String, Boolean> angleSign = new HashMap<>();
 
         boolean signChanged(String key, double delta) {
             boolean deltaPos = delta > 0;
@@ -57,14 +62,13 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         ContextData contextData = (ContextData) context.getData();
         return switch (contextData.step) {
-            case CHECK -> checkFrozenHvdcs(context);
+            case CHECK -> checkFrozenHvdcs(context, reportNode);
             case COMPENSATE -> requestCompensation(context);
             case COMPLETE -> new OuterLoopResult(this, OuterLoopStatus.STABLE);
         };
     }
 
-    private OuterLoopResult checkFrozenHvdcs(AcOuterLoopContext context) {
-        // TODO: Ajouter des reports
+    private OuterLoopResult checkFrozenHvdcs(AcOuterLoopContext context, ReportNode reportNode) {
 
         ContextData contextData = (ContextData) context.getData();
 
@@ -78,17 +82,16 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         } else {
             for (LfHvdc lfHvdc : frozenHvdc) {
-                // TODO:
-                // manage exceed pMax/Pmin
-                // manage sign change
                 double deltaStep = lfHvdc.getOperatingAngle() / MAX_STEPS;
                 double delta = lfHvdc.getAngleMismatch();
                 boolean signChanged = contextData.signChanged(lfHvdc.getId(), delta);
-                System.out.println("delta = " + delta);
-                if (signChanged || Math.abs(delta) < Math.PI) { // TODO: distinguish step and mismatch - or better change the criteria by HVDC in operting Angle
+                // Math.PI means that HVDC would be at PMax or PMin if in AC emulation
+                if (signChanged || Math.abs(delta) < Math.PI) {
+                    Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
                     lfHvdc.unFreeze();
                 } else {
-                    lfHvdc.updateFrozenValue(deltaStep * Math.signum(delta));
+                    double newValue = lfHvdc.updateFrozenValue(deltaStep * Math.signum(delta));
+                    Reports.reportUpdateFrozenHvdc(reportNode, lfHvdc.getId(), newValue, LOGGER);
                 }
             }
 

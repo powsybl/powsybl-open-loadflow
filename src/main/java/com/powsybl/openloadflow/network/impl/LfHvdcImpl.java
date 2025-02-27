@@ -196,17 +196,20 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public void freezeFromCurrentAngles() {
+    public double freezeFromCurrentAngles() {
+        double p1Val = Double.NaN;
+        double p2Val = Double.NaN;
         if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
             if (pAcEmu.isActive()) {
-                pAcEmu.freezeFromCurrentAngles();
+                p1Val = pAcEmu.freezeFromCurrentAngles();
             }
         }
         if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
             if (pAcEmu.isActive()) {
-                pAcEmu.freezeFromCurrentAngles();
+                p2Val = pAcEmu.freezeFromCurrentAngles();
             }
         }
+        return Math.max(p1Val, p2Val);
     }
 
     @Override
@@ -252,14 +255,17 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public void updateFrozenValue(double deltaPhi1) {
+    public double updateFrozenValue(double deltaPhi1) {
+        double p1Val = Double.NaN;
+        double p2Val = Double.NaN;
         if (isFrozen()) {
             if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-                pAcEmu.updateFrozenValue(deltaPhi1);
+                p1Val = pAcEmu.updateFrozenValue(deltaPhi1);
             }
             if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-                pAcEmu.updateFrozenValue(deltaPhi1);
+                p2Val = pAcEmu.updateFrozenValue(deltaPhi1);
             }
         }
+        return Math.max(p1Val, p2Val);
     }
 }

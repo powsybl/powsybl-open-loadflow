@@ -52,7 +52,7 @@ public interface LfHvdc extends LfElement {
 
     double getPMaxFromCS2toCS1();
 
-    void freezeFromCurrentAngles();
+    double freezeFromCurrentAngles();
 
     void unFreeze();
 
@@ -62,5 +62,5 @@ public interface LfHvdc extends LfElement {
 
     double getOperatingAngle();
 
-    void updateFrozenValue(double deltaPhi1);
+    double updateFrozenValue(double deltaPhi1);
 }

@@ -106,10 +106,11 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return false;
     }
 
-    public void freezeFromCurrentAngles() {
+    public double freezeFromCurrentAngles() {
         frozen = false; // Make sure P is computed according to angles
         frozenP = isActive() ? eval() : Double.NaN;
         frozen = true;
+        return frozenP;
     }
 
     public void unFreeze() {
@@ -139,7 +140,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         if (dpdphi == 0) {
             // In this case the angle is out of operation range
             // We return 0 if frozenP is at PMax (or more) and  otherwise an impossibly large angle
-            System.out.println("bounded : ph1 - ph2 = " + (ph1() - ph2()));
             return Math.abs(frozenP) >= Math.abs(unfrozenP) ? 0 : Math.PI * Math.signum(ph1() - ph2());
         } else {
             // Otherwise return the calculated mismatch
@@ -147,5 +147,5 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         }
     }
 
-    public abstract void updateFrozenValue(double deltaPhi1);
+    public abstract double updateFrozenValue(double deltaPhi1);
 }

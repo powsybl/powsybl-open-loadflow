@@ -8,8 +8,13 @@
 
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This voltage initializer initializes variables from previous values
@@ -21,15 +26,22 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class WarmStartVoltageInitializer extends PreviousValueVoltageInitializer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(WarmStartVoltageInitializer.class);
+
     public WarmStartVoltageInitializer(boolean defaultToUnformValues) {
         super(defaultToUnformValues);
     }
 
     @Override
-    public void afterInit(LfNetwork network) {
+    public void afterInit(LfNetwork network, ReportNode reportNode) {
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .forEach(LfHvdc::freezeFromCurrentAngles);
+                .forEach(lfHvdc -> {
+                    double setPoint = lfHvdc.freezeFromCurrentAngles();
+                    if (!Double.isNaN(setPoint)) {
+                        Reports.reportFreezeHvdc(reportNode, lfHvdc.getId(), setPoint * PerUnit.SB, LOGGER);
+                    }
+                });
     }
 
 }

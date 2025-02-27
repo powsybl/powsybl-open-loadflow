@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -24,6 +25,10 @@ public final class AcSolverUtil {
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
+        initStateVector(network, equationSystem, initializer, ReportNode.NO_OP);
+    }
+
+    public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer, ReportNode reportNode) {
         double[] x = new double[equationSystem.getIndex().getSortedVariablesToFind().size()];
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
@@ -70,7 +75,7 @@ public final class AcSolverUtil {
             }
         }
         equationSystem.getStateVector().set(x);
-        initializer.afterInit(network);
+        initializer.afterInit(network, reportNode);
     }
 
     public static void updateNetwork(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {

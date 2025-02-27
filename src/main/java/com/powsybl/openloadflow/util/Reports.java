@@ -703,4 +703,37 @@ public final class Reports {
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
+
+    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcID, double setPoint, Logger logger) {
+        // TODO: use format when available
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("freezeHvdc", "Freezing HVDC ${ID} at previous active setPoint ${setPoint} MW.")
+                .withUntypedValue("ID", hvdcID)
+                .withUntypedValue("setPoint", setPoint)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportUnfreezeHvdc(ReportNode reportNode, String hvdcID, Logger logger) {
+        // TODO: use format when available
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("unfreezeHvdc", "Setting again HVDC ${ID} in AC emulation mode.")
+                .withUntypedValue("ID", hvdcID)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportUpdateFrozenHvdc(ReportNode reportNode, String hvdcID, double setPoint, Logger logger) {
+        // TODO: use format when available
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("updateFrozenHvdc", "Setting HVDC ${ID} active setPoint to ${setPoint} MW.")
+                .withUntypedValue("ID", hvdcID)
+                .withUntypedValue("setPoint", setPoint)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
 }

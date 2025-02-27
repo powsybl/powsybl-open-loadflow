@@ -75,8 +75,9 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     @Override
-    public void updateFrozenValue(double deltaPhi1) {
+    public double updateFrozenValue(double deltaPhi1) {
         frozenP = boundedP(frozenP + deltaPhi1 * k);
+        return frozenP;
     }
 
     @Override
