@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.powsybl.loadflow.LoadFlowParameters.load;
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
@@ -320,6 +321,27 @@ class OpenLoadFlowParametersTest {
         assertFalse(parameters.isVoltageRemoteControl());
         assertEquals(10, parameters.getMaxNewtonRaphsonIterations());
         assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
+    }
+
+    @Test
+    void testParametersWithConfigAndLoader() {
+        OLFDefaultParametersLoaderMock loader = new OLFDefaultParametersLoaderMock("test");
+
+        FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix());
+        InMemoryPlatformConfig platformConfig = new InMemoryPlatformConfig(fileSystem);
+        MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
+        moduleConfig.setStringProperty("maxOuterLoopIterations", "50");
+
+        LoadFlowParameters parameters = new LoadFlowParameters(List.of(loader));
+        OpenLoadFlowParameters olfParameters = parameters.getExtensionByName("open-load-flow-parameters");
+        assertNotNull(olfParameters);
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(30, olfParameters.getMaxOuterLoopIterations());
+
+        olfParameters.update(platformConfig);
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(50, olfParameters.getMaxOuterLoopIterations());
+
     }
 
     @Test
