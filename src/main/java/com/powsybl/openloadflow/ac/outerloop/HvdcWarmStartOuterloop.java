@@ -47,6 +47,10 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
         }
     }
 
+    public HvdcWarmStartOuterloop() {
+
+    }
+
     @Override
     public String getName() {
         return NAME;
@@ -82,16 +86,12 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         } else {
             for (LfHvdc lfHvdc : frozenHvdc) {
-                double deltaStep = lfHvdc.getOperatingAngle() / MAX_STEPS;
-                double delta = lfHvdc.getAngleMismatch();
-                boolean signChanged = contextData.signChanged(lfHvdc.getId(), delta);
-                // Math.PI means that HVDC would be at PMax or PMin if in AC emulation
-                if (signChanged || Math.abs(delta) < Math.PI) {
-                    Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
-                    lfHvdc.unFreeze();
-                } else {
-                    double newValue = lfHvdc.updateFrozenValue(deltaStep * Math.signum(delta));
-                    Reports.reportUpdateFrozenHvdc(reportNode, lfHvdc.getId(), newValue, LOGGER);
+                Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
+                // HVDC is at PMin or PMax with current angles. Set angle difference to 0 to enable convergence
+                if (lfHvdc.unFreeze()) {
+                    double angle = (lfHvdc.getBus1().getAngle() + lfHvdc.getBus2().getAngle()) / 2;
+                    lfHvdc.getBus1().setAngle(angle);
+                    lfHvdc.getBus2().setAngle(angle);
                 }
             }
 

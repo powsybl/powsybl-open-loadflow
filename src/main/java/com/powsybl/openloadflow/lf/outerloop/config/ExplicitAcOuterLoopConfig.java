@@ -74,7 +74,6 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
             case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
             case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
-            case HvdcWarmStartOuterloop.NAME -> createHvdcWarmStartOuterLoop(parameters);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for AC load flow");
         };
     }

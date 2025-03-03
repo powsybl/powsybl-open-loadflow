@@ -8,8 +8,11 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -23,6 +26,10 @@ public interface VoltageInitializer {
     double getAngle(LfBus bus);
 
     default void afterInit(LfNetwork network, ReportNode reportNode) {
+    }
+
+    default List<AcOuterLoop> updateOuterLoopList(LfNetwork network, List<AcOuterLoop> outerLoopList) {
+        return outerLoopList;
     }
 
 }

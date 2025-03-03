@@ -54,7 +54,7 @@ public interface LfHvdc extends LfElement {
 
     double freezeFromCurrentAngles();
 
-    void unFreeze();
+    boolean unFreeze();
 
     boolean isFrozen();
 
@@ -62,5 +62,4 @@ public interface LfHvdc extends LfElement {
 
     double getOperatingAngle();
 
-    double updateFrozenValue(double deltaPhi1);
 }

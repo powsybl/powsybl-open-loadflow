@@ -113,9 +113,11 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return frozenP;
     }
 
-    public void unFreeze() {
+    public boolean unFreeze() {
         frozen = false;
         frozenP = Double.NaN;
+        // Returns true if angles should be reset
+        return isActive() ? (der(ph1Var) == 0) : false;
     }
 
     public boolean isFrozen() {
@@ -139,13 +141,15 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         frozen = true;
         if (dpdphi == 0) {
             // In this case the angle is out of operation range
-            // We return 0 if frozenP is at PMax (or more) and  otherwise an impossibly large angle
-            return Math.abs(frozenP) >= Math.abs(unfrozenP) ? 0 : Math.PI * Math.signum(ph1() - ph2());
+            // We return 0 if frozenP is at PMax (or more) and  otherwise an impossibly large angle, positive if at controller side and negative otherwise
+            return Math.abs(frozenP) >= Math.abs(unfrozenP) ? 0 : Math.PI * Math.signum(unfrozenP * (ph1() - ph2()));
         } else {
             // Otherwise return the calculated mismatch
             return Math.abs((frozenP - unfrozenP) / dpdphi);
         }
     }
+
+    protected abstract double sensiSign(double ph1, double ph2);
 
     public abstract double updateFrozenValue(double deltaPhi1);
 }

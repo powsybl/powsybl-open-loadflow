@@ -32,8 +32,6 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createDistributedSlackOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         // area interchange control
         createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
-        // add HVDC warm start outerloop
-        createHvdcWarmStartOuterLoop(parameters).ifPresent(outerLoops::add);
         // secondary voltage control
         createSecondaryVoltageControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // primary voltage control

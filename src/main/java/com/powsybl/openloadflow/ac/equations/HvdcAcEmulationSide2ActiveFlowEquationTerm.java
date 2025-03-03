@@ -50,6 +50,11 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
         }
     }
 
+    @Override
+    protected double sensiSign(double ph1, double ph2) {
+        return -Math.signum(ph1 - ph2);
+    }
+
     private double dp2dph2(double ph1, double ph2) {
         return -dp2dph1(ph1, ph2);
     }

@@ -198,6 +198,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                context.getEquationVector());
 
         List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
+        outerLoops = voltageInitializer.updateOuterLoopList(context.getNetwork(), outerLoops);
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
                 .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
                 .toList();

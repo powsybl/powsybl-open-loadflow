@@ -9,12 +9,19 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.openloadflow.ac.outerloop.AcActivePowerDistributionOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.HvdcWarmStartOuterloop;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * This voltage initializer initializes variables from previous values
@@ -37,11 +44,26 @@ public class WarmStartVoltageInitializer extends PreviousValueVoltageInitializer
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
                 .forEach(lfHvdc -> {
-                    double setPoint = lfHvdc.freezeFromCurrentAngles();
-                    if (!Double.isNaN(setPoint)) {
-                        Reports.reportFreezeHvdc(reportNode, lfHvdc.getId(), setPoint * PerUnit.SB, LOGGER);
+                    double setPointBus1 = lfHvdc.freezeFromCurrentAngles();
+                    if (!Double.isNaN(setPointBus1)) {
+                        Reports.reportFreezeHvdc(reportNode, lfHvdc.getId(), setPointBus1 * PerUnit.SB, LOGGER);
                     }
                 });
     }
 
+    @Override
+    public List<AcOuterLoop> updateOuterLoopList(LfNetwork network, List<AcOuterLoop> outerLoopList) {
+        if (network.getHvdcs().stream().anyMatch(LfHvdc::isAcEmulation)) {
+            List<AcOuterLoop> result = new ArrayList<>(outerLoopList);
+            // Place a WarmStartOuterLoop after the slackDistribution OuterLoop
+            int index = IntStream.range(0, outerLoopList.size())
+                    .filter(i -> outerLoopList.get(i) instanceof AcActivePowerDistributionOuterLoop)
+                    .findFirst()
+                    .orElse(0);
+            result.add(index + 1, new HvdcWarmStartOuterloop());
+            return result;
+        } else {
+            return outerLoopList;
+        }
+    }
 }
