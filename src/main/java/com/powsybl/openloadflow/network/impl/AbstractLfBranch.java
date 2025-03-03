@@ -31,11 +31,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected final LfBus bus2;
 
     private List<LfLimit> currentLimits1;
+
     private List<LfLimit> activePowerLimits1;
+
     private List<LfLimit> apparentPowerLimits1;
 
     private List<LfLimit> currentLimits2;
+
     private List<LfLimit> activePowerLimits2;
+
     private List<LfLimit> apparentPowerLimits2;
 
     protected final PiModel piModel;
@@ -161,6 +165,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    public <T extends LoadingLimits> List<LfLimit> getLimits1(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
+        var limits = getLimits1(type);
+        if (limits == null) {
+            // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
+            var loadingLimits = loadingLimitsSupplier.get().orElse(null);
+            limits = createSortedLimitsList(loadingLimits, bus1,
+                    getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits));
+            setLimits1(type, limits);
+        }
+        return limits;
+    }
+
     private List<LfLimit> getLimits2(LimitType type) {
         switch (type) {
             case ACTIVE_POWER -> {
@@ -183,18 +199,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case CURRENT -> currentLimits2 = limits;
             default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
         }
-    }
-
-    public <T extends LoadingLimits> List<LfLimit> getLimits1(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
-        var limits = getLimits1(type);
-        if (limits == null) {
-            // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-            var loadingLimits = loadingLimitsSupplier.get().orElse(null);
-            limits = createSortedLimitsList(loadingLimits, bus1,
-                    getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits));
-            setLimits1(type, limits);
-        }
-        return limits;
     }
 
     public <T extends LoadingLimits> List<LfLimit> getLimits2(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
