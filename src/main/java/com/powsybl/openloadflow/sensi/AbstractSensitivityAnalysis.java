@@ -626,7 +626,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses, null); // The sign of the mismatch cannot be known here. It is needed only for REMAINING_MARGIN participation type, but this one is not supported in sensi analysis and is checked in #checkLoadFlowParameters
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses, OptionalDouble.empty()); // The value of the mismatch cannot be known here. It is not needed for the distribution types supported in sensitivity analysis and checked in #checkLoadFlowParameters
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
         return participatingElements;
     }
