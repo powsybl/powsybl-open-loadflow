@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -213,7 +213,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public boolean unFreeze() {
+    public boolean unFreezeAndReportSaturationStatus() {
         boolean shouldResetAngle = false;
         if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
             shouldResetAngle |= pAcEmu.unFreeze();
@@ -231,29 +231,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public double getAngleMismatch() {
-        AbstractHvdcAcEmulationFlowEquationTerm acControllerTerm = null;
-        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            if (pAcEmu.eval() > 0 && pAcEmu.isFrozen()) {
-                return pAcEmu.getAngleMismatch();
-            }
-        }
-        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            if (pAcEmu.eval() > 0 && pAcEmu.isFrozen()) {
-                return pAcEmu.getAngleMismatch();
-            }
-        }
-        return 0;
-    }
-
-    @Override
-    public double getOperatingAngle() {
-        // Number of radians between the power range (ignoring losses)
-        double k = getDroop() * 180 / Math.PI;
-        return (pMaxFromCS2toCS1 + pMaxFromCS2toCS1) / k / PerUnit.SB;
     }
 
 }

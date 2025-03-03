@@ -29,14 +29,13 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     public static final String NAME = "HvdcWarmStart";
 
     private enum Step {
-        CHECK,
-        COMPENSATE,
+        UNFREEZE,
         COMPLETE
     }
 
     private static final class ContextData {
 
-        private Step step = Step.CHECK;
+        private Step step = Step.UNFREEZE;
         private final Map<String, Boolean> angleSign = new HashMap<>();
 
         boolean signChanged(String key, double delta) {
@@ -66,13 +65,12 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         ContextData contextData = (ContextData) context.getData();
         return switch (contextData.step) {
-            case CHECK -> checkFrozenHvdcs(context, reportNode);
-            case COMPENSATE -> requestCompensation(context);
+            case UNFREEZE -> unfreezeHvdcs(context, reportNode);
             case COMPLETE -> new OuterLoopResult(this, OuterLoopStatus.STABLE);
         };
     }
 
-    private OuterLoopResult checkFrozenHvdcs(AcOuterLoopContext context, ReportNode reportNode) {
+    private OuterLoopResult unfreezeHvdcs(AcOuterLoopContext context, ReportNode reportNode) {
 
         ContextData contextData = (ContextData) context.getData();
 
@@ -81,29 +79,17 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
                 .filter(LfHvdc::isFrozen)
                 .toList();
 
-        if (frozenHvdc.isEmpty()) {
-            contextData.step = Step.COMPLETE;
-            return new OuterLoopResult(this, OuterLoopStatus.STABLE);
-        } else {
-            for (LfHvdc lfHvdc : frozenHvdc) {
-                Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
-                // HVDC is at PMin or PMax with current angles. Set angle difference to 0 to enable convergence
-                if (lfHvdc.unFreeze()) {
-                    double angle = (lfHvdc.getBus1().getAngle() + lfHvdc.getBus2().getAngle()) / 2;
-                    lfHvdc.getBus1().setAngle(angle);
-                    lfHvdc.getBus2().setAngle(angle);
-                }
+        for (LfHvdc lfHvdc : frozenHvdc) {
+            Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
+            if (lfHvdc.unFreezeAndReportSaturationStatus()) {
+                double angle = (lfHvdc.getBus1().getAngle() + lfHvdc.getBus2().getAngle()) / 2;
+                lfHvdc.getBus1().setAngle(angle);
+                lfHvdc.getBus2().setAngle(angle);
             }
-
-            contextData.step = Step.COMPENSATE;
-            return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
         }
-    }
 
-    private OuterLoopResult requestCompensation(AcOuterLoopContext context) {
-        ContextData contextData = (ContextData) context.getData();
-        contextData.step = Step.CHECK;
-        return new OuterLoopResult(this, OuterLoopStatus.STABLE);
+        return new OuterLoopResult(this, frozenHvdc.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE);
+
     }
 
     @Override
@@ -112,6 +98,6 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
         // Can be needed in case of solve failure
         context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .forEach(LfHvdc::unFreeze);
+                .forEach(LfHvdc::unFreezeAndReportSaturationStatus);
     }
 }

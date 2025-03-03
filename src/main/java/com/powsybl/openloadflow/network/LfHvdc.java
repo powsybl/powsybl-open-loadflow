@@ -54,12 +54,8 @@ public interface LfHvdc extends LfElement {
 
     double freezeFromCurrentAngles();
 
-    boolean unFreeze();
+    boolean unFreezeAndReportSaturationStatus();
 
     boolean isFrozen();
-
-    double getAngleMismatch();
-
-    double getOperatingAngle();
 
 }

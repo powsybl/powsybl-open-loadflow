@@ -124,32 +124,4 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return frozen;
     }
 
-    /**
-     * Return the mismatch in angle between a frozen HVDC link and the angle that would be
-     * required to get the frozen P
-     * @return
-     */
-    public double getAngleMismatch() {
-        if (!frozen || !isActive()) {
-            return 0;
-        }
-        // Temprary unfreeze to get the theorical values and compute the mismatch
-        frozen = false;
-        double unfrozenP = eval();
-        double dpdphi = der(ph1Var);
-        // Return to frozen state
-        frozen = true;
-        if (dpdphi == 0) {
-            // In this case the angle is out of operation range
-            // We return 0 if frozenP is at PMax (or more) and  otherwise an impossibly large angle, positive if at controller side and negative otherwise
-            return Math.abs(frozenP) >= Math.abs(unfrozenP) ? 0 : Math.PI * Math.signum(unfrozenP * (ph1() - ph2()));
-        } else {
-            // Otherwise return the calculated mismatch
-            return Math.abs((frozenP - unfrozenP) / dpdphi);
-        }
-    }
-
-    protected abstract double sensiSign(double ph1, double ph2);
-
-    public abstract double updateFrozenValue(double deltaPhi1);
 }

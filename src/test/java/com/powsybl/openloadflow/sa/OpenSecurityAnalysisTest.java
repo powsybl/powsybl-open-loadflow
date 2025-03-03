@@ -34,7 +34,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
-import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
@@ -1374,64 +1373,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(20, result.getPostContingencyResults().size()); // assert there is no contingency simulation failure
-    }
-
-    @Test
-    void debugHvdcAcEmulation() {
-
-        // TODO: Remove this test
-        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
-                .withDroop(2)
-                .withP0(0.f)
-                .withEnabled(true)
-                .add();
-        network.getGeneratorStream().forEach(generator -> generator.setMaxP(10));
-
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
-                .setHvdcAcEmulation(true)
-                .setDistributedSlack(true);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
-                .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
-                .setMaxNewtonRaphsonIterations(100)
-                .setMaxOuterLoopIterations(100);
-
-        runLoadFlow(network, parameters);
-
-        System.out.println(network.getHvdcConverterStation("cs3").getTerminal().getP());
-        System.out.println(network.getHvdcConverterStation("cs4").getTerminal().getP());
-
-        System.out.println(network.getLine("l46").getTerminal1().getP());
-        System.out.println(network.getLine("l45").getTerminal1().getP());
-        System.out.println(network.getLine("l25").getTerminal1().getP());
-
-        boolean disconnected = network.getGenerator("g1").disconnect();
-        network.getGenerator("g5").setTargetP(-network.getGenerator("g5").getTerminal().getP() - network.getGenerator("g1").getTerminal().getP());
-        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        LoadFlowResult r = runLoadFlow(network, parameters);
-
-        if (!r.isFullyConverged()) {
-            System.out.println(r.getStatus());
-            return;
-        }
-        System.out.println(network.getLine("l25").getTerminal1().getP());
-
-        network.getLineStream().forEach(l -> {
-            System.out.println(l.getId() + " b1 = " + l.getTerminal1().getBusBreakerView().getBus().getId() + " b2 = " + l.getTerminal2().getBusBreakerView().getBus().getId());
-            System.out.println(l.getId() + " p1 = " + l.getTerminal1().getP() + " p2 = " + l.getTerminal2().getP());
-            System.out.println(l.getId() + " ph1 = " + l.getTerminal1().getBusView().getBus().getAngle() + " ph2 = " + l.getTerminal2().getBusView().getBus().getAngle());
-        });
-        network.getHvdcConverterStationStream().forEach(s -> {
-            System.out.println(s.getId() + " p = " + s.getTerminal().getP());
-        });
-        network.getGeneratorStream().forEach(g -> {
-            System.out.println(g.getId() + " p = " + g.getTerminal().getP());
-        });
-
-        network.getBusView().getBusStream().forEach(b ->
-                System.out.println(b.getId() + " p = " + b.getP() + " injP = " + b.getConnectedTerminalStream().mapToDouble(Terminal::getP).sum()));
     }
 
     @Test
