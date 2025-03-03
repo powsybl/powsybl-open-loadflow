@@ -43,7 +43,7 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBus> disabledBuses;
 
-        private final Set<LfBus> slackConnectedComponentBuses; // buses of connected component where the slack is
+        private final Set<LfBus> slackConnectedComponent; // buses of connected component where the slack is
 
         private final Set<LfBranch> partialDisabledBranches; // branches disabled because of connectivity loss.
 
@@ -62,7 +62,7 @@ public final class ConnectivityBreakAnalysis {
             this.network = Objects.requireNonNull(network);
             this.elementsToReconnect = elementsToReconnect;
             this.disabledBuses = disabledBuses;
-            this.slackConnectedComponentBuses = slackConnectedComponentBuses;
+            this.slackConnectedComponent = slackConnectedComponentBuses;
             this.partialDisabledBranches = partialDisabledBranches;
             this.createdSynchronousComponents = createdSynchronousComponents;
             this.hvdcsWithoutPower = hvdcsWithoutPower;
@@ -80,8 +80,8 @@ public final class ConnectivityBreakAnalysis {
             return disabledBuses;
         }
 
-        public Set<LfBus> getSlackConnectedComponentBuses() {
-            return slackConnectedComponentBuses;
+        public Set<LfBus> getSlackConnectedComponent() {
+            return slackConnectedComponent;
         }
 
         public Set<LfBranch> getPartialDisabledBranches() {
