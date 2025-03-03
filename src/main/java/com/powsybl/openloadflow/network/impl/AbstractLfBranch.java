@@ -152,7 +152,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case CURRENT -> {
                 return currentLimits1;
             }
-            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
     }
 
@@ -161,7 +161,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case ACTIVE_POWER -> activePowerLimits1 = limits;
             case APPARENT_POWER -> apparentPowerLimits1 = limits;
             case CURRENT -> currentLimits1 = limits;
-            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
     }
 
@@ -188,7 +188,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case CURRENT -> {
                 return currentLimits2;
             }
-            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
     }
 
@@ -197,7 +197,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case ACTIVE_POWER -> activePowerLimits2 = limits;
             case APPARENT_POWER -> apparentPowerLimits2 = limits;
             case CURRENT -> currentLimits2 = limits;
-            default -> throw new UnsupportedOperationException(String.format("Getting limits of type %s is not supported.", type));
+            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
     }
 
