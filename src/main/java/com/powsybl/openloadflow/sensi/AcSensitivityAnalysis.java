@@ -30,7 +30,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
-import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.WarmStartVoltageInitializer;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -302,7 +302,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 NetworkState networkState = NetworkState.save(lfNetwork);
 
                 // we always restart from base case voltages for contingency simulation
-                context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                context.getParameters().setVoltageInitializer(new WarmStartVoltageInitializer(false));
 
                 contingencies.forEach(contingency -> {
                     LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
@@ -352,7 +352,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             }, () -> {
                                     // it means that the contingency has no impact.
                                     // we need to force the state vector to be re-initialized from base case network state
-                                    AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
+                                    AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer(), reportNode);
 
                                     calculateSensitivityValues(validFactorHolder.getFactorsForContingency(contingency.getContingency().getId()), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
                                     // write contingency status
