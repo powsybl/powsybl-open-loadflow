@@ -101,6 +101,39 @@ public class LimitViolationManager {
         addLimitViolation(limitViolation, voltageAngleLimit.getId());
     }
 
+    private void detectBranchCurrentViolations(LfBranch branch, LfBus bus, Function<LfBranch, Evaluable> iGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+        double i = iGetter.apply(branch).eval();
+        for (LfBranch.LfLimit temporaryLimit : limits) {
+            if (i > temporaryLimit.getReducedValue()) {
+                addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
+                break;
+            }
+        }
+    }
+
+    private void detectBranchActivePowerViolations(LfBranch branch, Function<LfBranch, Evaluable> pGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+        double p = pGetter.apply(branch).eval();
+        for (LfBranch.LfLimit temporaryLimit : limits) {
+            if (Math.abs(p) > temporaryLimit.getReducedValue()) {
+                addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
+                break;
+            }
+        }
+    }
+
+    private void detectBranchApparentPowerViolations(LfBranch branch, ToDoubleFunction<LfBranch> sGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+        //Apparent power is not relevant for fictitious branches and may be NaN
+        double s = sGetter.applyAsDouble(branch);
+        if (!Double.isNaN(s)) {
+            for (LfBranch.LfLimit temporaryLimit : limits) {
+                if (s > temporaryLimit.getReducedValue()) {
+                    addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side));
+                    break;
+                }
+            }
+        }
+    }
+
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
                                             TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimit>> limitsGetter,
                                             Function<LfBranch, Evaluable> iGetter,
@@ -109,38 +142,17 @@ public class LimitViolationManager {
                                             TwoSides side) {
         List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
         if (!limits.isEmpty()) {
-            double i = iGetter.apply(branch).eval();
-            for (LfBranch.LfLimit temporaryLimit : limits) {
-                if (i > temporaryLimit.getReducedValue()) {
-                    addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
-                    break;
-                }
-            }
+            detectBranchCurrentViolations(branch, bus, iGetter, limits, side);
         }
 
         limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
-            double p = pGetter.apply(branch).eval();
-            for (LfBranch.LfLimit temporaryLimit : limits) {
-                if (Math.abs(p) > temporaryLimit.getReducedValue()) {
-                    addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
-                    break;
-                }
-            }
+            detectBranchActivePowerViolations(branch, pGetter, limits, side);
         }
 
         limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
-            //Apparent power is not relevant for fictitious branches and may be NaN
-            double s = sGetter.applyAsDouble(branch);
-            if (!Double.isNaN(s)) {
-                for (LfBranch.LfLimit temporaryLimit : limits) {
-                    if (s > temporaryLimit.getReducedValue()) {
-                        addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side));
-                        break;
-                    }
-                }
-            }
+            detectBranchApparentPowerViolations(branch, sGetter, limits, side);
         }
     }
 

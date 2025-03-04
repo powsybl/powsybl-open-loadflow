@@ -69,6 +69,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected LfAsymLine asymLine;
 
+    private static final String LIMIT_TYPE_UNSUPPORTED_TEMPLATE = "Getting %s limits is not supported.";
+
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
         this.bus1 = bus1;
@@ -152,7 +154,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case CURRENT -> {
                 return currentLimits1;
             }
-            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
         }
     }
 
@@ -161,7 +163,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case ACTIVE_POWER -> activePowerLimits1 = limits;
             case APPARENT_POWER -> apparentPowerLimits1 = limits;
             case CURRENT -> currentLimits1 = limits;
-            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
         }
     }
 
@@ -188,7 +190,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case CURRENT -> {
                 return currentLimits2;
             }
-            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
         }
     }
 
@@ -197,7 +199,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case ACTIVE_POWER -> activePowerLimits2 = limits;
             case APPARENT_POWER -> apparentPowerLimits2 = limits;
             case CURRENT -> currentLimits2 = limits;
-            default -> throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
         }
     }
 
