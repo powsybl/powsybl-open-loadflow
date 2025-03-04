@@ -41,12 +41,6 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
         private Step step = Step.UNFREEZE;
         private final Map<String, Boolean> angleSign = new HashMap<>();
 
-        boolean signChanged(String key, double delta) {
-            boolean deltaPos = delta > 0;
-            Boolean previous = angleSign.get(key);
-            angleSign.put(key, deltaPos);
-            return previous == null ? false : !previous.equals(deltaPos);
-        }
     }
 
     public HvdcWarmStartOuterloop() {
