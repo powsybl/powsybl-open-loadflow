@@ -25,11 +25,14 @@ import java.util.stream.IntStream;
 
 /**
  * This voltage initializer initializes variables from previous values
- * but in addition it initializes the AC emulation HVDC to previous inhections
+ * but in addition it sets the AC emulation HVDC active set point to previous inhections
  * and freezes the AC emulation.
  * This enables to simulate a slow motion of the HVDC emulation -- that may cause
  * convergence issue if the macimum transmissible Active power is reached on some lines
  * after a contingence.
+ * This Voltage Initializer also adds an outerloop that resets the frozen HVDC to AC emulation
+ * after a first successful resolution (and slack distribution if available)
+ * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
 public class WarmStartVoltageInitializer extends PreviousValueVoltageInitializer {
 
@@ -59,7 +62,7 @@ public class WarmStartVoltageInitializer extends PreviousValueVoltageInitializer
             int index = IntStream.range(0, outerLoopList.size())
                     .filter(i -> outerLoopList.get(i) instanceof AcActivePowerDistributionOuterLoop)
                     .findFirst()
-                    .orElse(0);
+                    .orElse(-1);
             result.add(index + 1, new HvdcWarmStartOuterloop());
             return result;
         } else {

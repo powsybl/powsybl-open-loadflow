@@ -21,6 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
+ */
 public class HvdcWarmStartOuterloop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HvdcWarmStartOuterloop.class);
