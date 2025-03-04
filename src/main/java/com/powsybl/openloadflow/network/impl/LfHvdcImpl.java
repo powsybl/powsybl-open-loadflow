@@ -198,16 +198,11 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public double freezeFromCurrentAngles() {
         double p1Val = Double.NaN;
-        double p2Val = Double.NaN;
-        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            if (pAcEmu.isActive()) {
-                p1Val = pAcEmu.freezeFromCurrentAngles();
-            }
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu && pAcEmu.isActive()) {
+            p1Val = pAcEmu.freezeFromCurrentAngles();
         }
-        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            if (pAcEmu.isActive()) {
-                p2Val = pAcEmu.freezeFromCurrentAngles();
-            }
+        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu && pAcEmu.isActive()) {
+            pAcEmu.freezeFromCurrentAngles();
         }
         return p1Val;
     }

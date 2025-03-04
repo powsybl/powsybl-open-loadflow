@@ -17,9 +17,7 @@ import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
@@ -28,7 +26,6 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HvdcWarmStartOuterloop.class);
 
-    private static final int MAX_STEPS = 10;
     public static final String NAME = "HvdcWarmStart";
 
     private enum Step {
@@ -39,11 +36,6 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     private static final class ContextData {
 
         private Step step = Step.UNFREEZE;
-        private final Map<String, Boolean> angleSign = new HashMap<>();
-
-    }
-
-    public HvdcWarmStartOuterloop() {
 
     }
 
@@ -68,8 +60,6 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     }
 
     private OuterLoopResult unfreezeHvdcs(AcOuterLoopContext context, ReportNode reportNode) {
-
-        ContextData contextData = (ContextData) context.getData();
 
         List<LfHvdc> frozenHvdc = context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
