@@ -305,7 +305,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             ReportNode toMergeNode = toMergeNodes.get(key);
             toMergeNode.getChildren().stream()
                     .filter(n -> n.getMessageKey().equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
-                    .forEach(n -> mainReportNode.copy(n));
+                    .forEach(n -> mainReportNode.addCopy(n));
         }
     }
 
