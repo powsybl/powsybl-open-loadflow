@@ -26,10 +26,12 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -45,7 +47,8 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
         contingency = new Contingency("L2", new BranchContingency("L2"));
         contingencyLoadFlowParameters = new ContingencyLoadFlowParameters()
                 .setAreaInterchangeControl(true)
-                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                .setOuterLoopNames(List.of("DistributedSlack", "SecondaryVoltageControl", "ReactiveLimits"));
         contingency.addExtension(ContingencyLoadFlowParameters.class, contingencyLoadFlowParameters);
     }
 
@@ -57,9 +60,11 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
         assertFalse(contingencyLoadFlowParameters.isDistributedSlack().isPresent());
         assertTrue(contingencyLoadFlowParameters.isAreaInterchangeControl().isPresent());
         assertTrue(contingencyLoadFlowParameters.getBalanceType().isPresent());
+        assertTrue(contingencyLoadFlowParameters.getOuterLoopNames().isPresent());
 
         assertTrue(contingencyLoadFlowParameters.isAreaInterchangeControl().get());
         assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, contingencyLoadFlowParameters.getBalanceType().get());
+        assertEquals(List.of("DistributedSlack", "SecondaryVoltageControl", "ReactiveLimits"), contingencyLoadFlowParameters.getOuterLoopNames().get());
     }
 
     @Test
@@ -74,15 +79,18 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
         assertTrue(contingencyLoadFlowParameters.isDistributedSlack(loadFlowParameters));
         assertTrue(contingencyLoadFlowParameters.isAreaInterchangeControl(openLoadFlowParameters));
         assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, contingencyLoadFlowParameters.getBalanceType(loadFlowParameters));
+        assertEquals(List.of("DistributedSlack", "SecondaryVoltageControl", "ReactiveLimits"), contingencyLoadFlowParameters.getOuterLoopNames(openLoadFlowParameters));
 
         //switch between overriden and default values
 
         contingencyLoadFlowParameters.setDistributedSlack(true);
         contingencyLoadFlowParameters.setAreaInterchangeControl(null);
         contingencyLoadFlowParameters.setBalanceType(null);
+        contingencyLoadFlowParameters.setOuterLoopNames(null);
 
         assertFalse(contingencyLoadFlowParameters.isAreaInterchangeControl(openLoadFlowParameters));
         assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN, contingencyLoadFlowParameters.getBalanceType(loadFlowParameters));
+        assertNull(contingencyLoadFlowParameters.getOuterLoopNames(openLoadFlowParameters));
     }
 
     @Test

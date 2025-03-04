@@ -15,10 +15,12 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
+import com.powsybl.commons.json.JsonUtil;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -47,6 +49,7 @@ public class ContingencyLoadFlowParametersJsonSerializer implements ExtensionJso
         Optional<Boolean> distributedSlack = extension.isDistributedSlack();
         Optional<Boolean> areaInterchangeControl = extension.isAreaInterchangeControl();
         Optional<LoadFlowParameters.BalanceType> balanceType = extension.getBalanceType();
+        Optional<List<String>> outerLoopNames = extension.getOuterLoopNames();
 
         jsonGenerator.writeStartObject();
         if (distributedSlack.isPresent()) {
@@ -57,6 +60,13 @@ public class ContingencyLoadFlowParametersJsonSerializer implements ExtensionJso
         }
         if (balanceType.isPresent()) {
             jsonGenerator.writeStringField("balanceType", balanceType.get().name());
+        }
+        if (outerLoopNames.isPresent()) {
+            jsonGenerator.writeArrayFieldStart("outerLoopNames");
+            for (String name : outerLoopNames.get()) {
+                jsonGenerator.writeString(name);
+            }
+            jsonGenerator.writeEndArray();
         }
         jsonGenerator.writeEndObject();
     }
@@ -77,6 +87,10 @@ public class ContingencyLoadFlowParametersJsonSerializer implements ExtensionJso
                 jsonParser.nextToken();
                 LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.BalanceType.valueOf(jsonParser.readValueAs(String.class));
                 contingencyLoadFlowParameters.setBalanceType(balanceType);
+            } else if (jsonParser.currentName().equals("outerLoopNames")) {
+                jsonParser.nextToken();
+                List<String> outerLoopNames = JsonUtil.readList(deserializationContext, jsonParser, String.class);
+                contingencyLoadFlowParameters.setOuterLoopNames(outerLoopNames);
             } else {
                 throw new PowsyblException("Unexpected field: " + jsonParser.currentName());
             }

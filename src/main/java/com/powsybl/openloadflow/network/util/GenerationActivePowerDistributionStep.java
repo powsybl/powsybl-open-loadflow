@@ -126,10 +126,10 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     private double getParticipationFactor(LfGenerator generator) {
         return switch (participationType) {
-            case MAX -> generator.getMaxTargetP() / generator.getDroop();
+            case MAX -> generator.getMaxP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
-            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxTargetP() - generator.getTargetP());
+            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxP() - generator.getTargetP());
         };
     }
 

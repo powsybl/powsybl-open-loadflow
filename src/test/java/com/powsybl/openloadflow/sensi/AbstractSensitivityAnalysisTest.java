@@ -19,20 +19,18 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -217,6 +215,121 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     protected static SensitivityFactor createHvdcInjection(String functionId, String variableId, TwoSides side) {
         SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, variableId, false, ContingencyContext.all());
+    }
+
+    public static class SensitivityMatrix {
+        private static final double STEP_SIZE = 0.01;
+        private static final String TMP_VARIANT_ID = "sensi";
+
+        private final SensitivityFunctionType functionType;
+        private final List<? extends Identifiable<?>> functions;
+        private final SensitivityVariableType variableType;
+        private final List<? extends Identifiable<?>> variables;
+
+        public SensitivityMatrix(SensitivityFunctionType functionType, Stream<? extends Identifiable<?>> functions,
+                                 SensitivityVariableType variableType, Stream<? extends Identifiable<?>> variables) {
+            this.functionType = Objects.requireNonNull(functionType);
+            this.functions = Objects.requireNonNull(functions).sorted(Comparator.comparing(Identifiable::getId)).toList();
+            this.variableType = Objects.requireNonNull(variableType);
+            this.variables = Objects.requireNonNull(variables).sorted(Comparator.comparing(Identifiable::getId)).toList();
+        }
+
+        public List<SensitivityFactor> toFactors() {
+            List<SensitivityFactor> factors = new ArrayList<>();
+            for (var variable : variables) {
+                for (var function : functions) {
+                    factors.add(new SensitivityFactor(functionType, function.getId(), variableType, variable.getId(),
+                            false, ContingencyContext.all()));
+                }
+            }
+            return factors;
+        }
+
+        public DenseMatrix toResultMatrix(SensitivityAnalysisResult result) {
+            DenseMatrix matrix = new DenseMatrix(variables.size(), functions.size());
+            for (int i = 0; i < variables.size(); i++) {
+                var variable = variables.get(i);
+                for (int j = 0; j < functions.size(); j++) {
+                    var function = functions.get(j);
+                    matrix.set(i, j, result.getSensitivityValue(variable.getId(), function.getId(), functionType, variableType));
+                }
+            }
+            return matrix;
+        }
+
+        DenseMatrix calculateSensiWithLoadFlow(Network network, LoadFlow.Runner loadFlowRunner) {
+            DenseMatrix matrix = new DenseMatrix(variables.size(), functions.size());
+            for (int i = 0; i < variables.size(); i++) {
+                var variable = variables.get(i);
+                network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, TMP_VARIANT_ID);
+
+                LoadFlowResult result = loadFlowRunner.run(network);
+                assertTrue(result.isFullyConverged());
+                calculateFunction(network, matrix, i, false);
+
+                switch (variableType) {
+                    case INJECTION_REACTIVE_POWER -> {
+                        var g = network.getGenerator(variable.getId());
+                        if (g != null) {
+                            g.setTargetQ(g.getTargetQ() + STEP_SIZE);
+                        } else {
+                            var l = network.getLoad(variable.getId());
+                            if (l != null) {
+                                l.setQ0(l.getQ0() - STEP_SIZE);
+                            }
+                        }
+                    }
+                    case BUS_TARGET_VOLTAGE -> {
+                        var g = network.getGenerator(variable.getId());
+                        g.setTargetV(g.getTargetV() + STEP_SIZE);
+                    }
+                    default -> throw new UnsupportedOperationException();
+                }
+                result = loadFlowRunner.run(network);
+                assertTrue(result.isFullyConverged());
+                calculateFunction(network, matrix, i, true);
+
+                network.getVariantManager().removeVariant(TMP_VARIANT_ID);
+            }
+            return matrix;
+        }
+
+        private void calculateFunction(Network network, DenseMatrix matrix, int i, boolean diff) {
+            for (int j = 0; j < functions.size(); j++) {
+                var function = functions.get(j);
+                double value = switch (functionType) {
+                    case BUS_VOLTAGE -> {
+                        Bus b = network.getBusBreakerView().getBus(function.getId());
+                        yield b.getV();
+                    }
+                    case BRANCH_CURRENT_1 -> {
+                        Line l = network.getLine(function.getId());
+                        yield l.getTerminal1().getI();
+                    }
+                    case BUS_REACTIVE_POWER -> {
+                        Bus b = network.getBusBreakerView().getBus(function.getId());
+                        yield b.getQ();
+                    }
+                    default -> throw new UnsupportedOperationException();
+                };
+                if (diff) {
+                    double oldValue = matrix.get(i, j);
+                    matrix.set(i, j, (value - oldValue) / STEP_SIZE);
+                } else {
+                    matrix.set(i, j, value);
+                }
+            }
+        }
+    }
+
+    protected static void assertMatricesEquals(DenseMatrix m1, DenseMatrix m2, double epsilon) {
+        assertEquals(m1.getRowCount(), m2.getRowCount());
+        assertEquals(m1.getColumnCount(), m2.getColumnCount());
+        for (int i = 0; i < m1.getRowCount(); i++) {
+            for (int j = 0; j < m1.getColumnCount(); j++) {
+                assertEquals(m1.get(i, j), m2.get(i, j), epsilon);
+            }
+        }
     }
 
     protected void runAcLf(Network network) {

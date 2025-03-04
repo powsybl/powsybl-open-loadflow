@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2023-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -38,8 +38,6 @@ public class NewtonRaphsonFactory implements AcSolverFactory {
         return new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
                 .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations())
-                .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
-                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
                 .setLineSearchStateVectorScalingMaxIteration(parametersExt.getLineSearchStateVectorScalingMaxIteration())
                 .setLineSearchStateVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())

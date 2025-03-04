@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.lf.outerloop.config;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.ac.outerloop.*;
 
 import java.util.ArrayList;
@@ -21,11 +22,16 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
     @Override
     public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        return configure(parameters, parametersExt, LoadFlowParametersOverride.NO_OVERRIDE);
+    }
+
+    @Override
+    public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         List<AcOuterLoop> outerLoops = new ArrayList<>(5);
         // primary frequency control
-        createDistributedSlackOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        createDistributedSlackOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         // area interchange control
-        createAreaInterchangeControlOuterLoop(parameters, parametersExt).ifPresent(outerLoops::add);
+        createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         // secondary voltage control
         createSecondaryVoltageControlOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // primary voltage control

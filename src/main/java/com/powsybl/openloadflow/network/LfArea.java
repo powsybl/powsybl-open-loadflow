@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public interface LfArea extends PropertyBag {
+public interface LfArea extends LfElement {
     String getId();
 
     double getInterchangeTarget();
