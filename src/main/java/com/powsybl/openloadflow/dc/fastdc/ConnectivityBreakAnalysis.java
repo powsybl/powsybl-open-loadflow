@@ -103,11 +103,9 @@ public final class ConnectivityBreakAnalysis {
                                                    List<ConnectivityAnalysisResult> connectivityAnalysisResults,
                                                    DenseMatrix contingenciesStates,
                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch) {
-
     }
 
     private ConnectivityBreakAnalysis() {
-
     }
 
     private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
@@ -179,7 +177,7 @@ public final class ConnectivityBreakAnalysis {
                     Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
                     int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
                     Set<LfBus> disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
-                    Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.ContingencyConnectivityLossImpact.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
+                    Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
                     ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfNetwork, elementsToReconnect, disabledBuses,
                             connectivity.getConnectedComponent(lfNetwork.getSlackBus()), connectivity.getEdgesRemovedFromMainComponent(), createdSynchronousComponents, hvdcsWithoutPower);
                     connectivityAnalysisResults.add(connectivityAnalysisResult);
