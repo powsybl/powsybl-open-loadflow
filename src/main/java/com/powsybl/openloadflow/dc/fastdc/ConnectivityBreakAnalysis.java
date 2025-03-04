@@ -108,11 +108,9 @@ public final class ConnectivityBreakAnalysis {
                                                    List<ConnectivityAnalysisResult> connectivityAnalysisResults,
                                                    DenseMatrix contingenciesStates,
                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch) {
-
     }
 
     private ConnectivityBreakAnalysis() {
-
     }
 
     private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
