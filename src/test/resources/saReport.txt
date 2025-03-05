@@ -3,13 +3,13 @@
       + Network CC0 SC0
          + Network info
             Network has 4 buses and 4 branches
-            Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+            Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
             Angle reference bus: VLHV1_0
             Slack bus: VLHV1_0
          + Pre-contingency simulation
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (-1.4404045651219555 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
@@ -19,7 +19,7 @@
          + Post-contingency simulation 'NHV1_NHV2_1'
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (5.803741102800952 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (5.803741 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
@@ -29,7 +29,7 @@
          + Post-contingency simulation 'NHV1_NHV2_2'
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (5.803741102800952 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (5.803741 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
@@ -37,14 +37,14 @@
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'NGEN_NHV1'
-            Contingency caused the loss of 605.559595434878 MW injection: 0.0 MW distributed, 605.559595434878 MW remaining.
+            Contingency caused the loss of 605.559595 MW injection: 0 MW distributed, 605.559595 MW remaining.
             Network must have at least one bus with generator voltage control enabled
             AC load flow completed with error (solverStatus=SOLVER_FAILED, outerloopStatus=STABLE)
          + Post-contingency simulation 'NHV2_NLOAD'
-            Contingency caused the loss of -600.0 MW injection: -600.0 MW distributed, 0.0 MW remaining.
+            Contingency caused the loss of -600 MW injection: -600 MW distributed, 0 MW remaining.
             + Outer loop DistributedSlack
                + Outer loop iteration 1
-                  Slack bus active power (-5.4942194604343655 MW) distributed in 1 distribution iteration(s)
+                  Slack bus active power (-5.494219 MW) distributed in 1 distribution iteration(s)
             Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack

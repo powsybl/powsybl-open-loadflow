@@ -494,12 +494,12 @@ class AcLoadFlowEurostagTutorialExample1Test {
                       + Network CC0 SC0
                          + Network info
                             Network has 4 buses and 4 branches
-                            Network balance: active generation=1000.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+                            Network balance: active generation=1000 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
                             Angle reference bus: VLGEN_0
                             Slack bus: VLGEN_0
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
-                               Slack bus active power (-394.4445228221647 MW) distributed in 1 distribution iteration(s)
+                               Slack bus active power (-394.444523 MW) distributed in 1 distribution iteration(s)
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1
                          AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=UNSTABLE)
