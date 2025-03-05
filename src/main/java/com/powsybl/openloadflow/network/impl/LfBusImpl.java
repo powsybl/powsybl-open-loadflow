@@ -17,7 +17,6 @@ import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.NodeBreakerViolationLocation;
 import com.powsybl.security.ViolationLocation;
 import com.powsybl.security.results.BusResult;
-import com.powsybl.iidm.network.util.Networks;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -201,11 +200,7 @@ public class LfBusImpl extends AbstractLfBus {
         if (violationLocation == null) {
             violationLocation = switch (topologyKind) {
                 case NODE_BREAKER -> {
-                    List<Integer> nodes = new ArrayList<>();
-                    Map<String, Set<Integer>> nodesByBus = Networks.getNodesByBus(getBus().getVoltageLevel());
-                    if (nodesByBus.containsKey(getBus().getId())) {
-                        nodes = nodesByBus.get(getBus().getId()).stream().toList();
-                    }
+                    List<Integer> nodes = getBus().getConnectedTerminalStream().map(t -> t.getNodeBreakerView().getNode()).toList();
                     yield nodes.isEmpty() ? null : new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
                 }
                 case BUS_BREAKER -> {

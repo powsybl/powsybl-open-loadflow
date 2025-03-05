@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ public final class Reports {
 
     private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
+    private static final String GENERATORS_ID = "generatorIds";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
     public static final String MISMATCH = "mismatch";
@@ -60,10 +62,10 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueControlledBus(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
+    public static void reportNotUniqueControlledBusKeepingFirstControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueControlledBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
-                .withUntypedValue("generatorIds", generatorIds)
+                .withMessageTemplate("notUniqueControlledBusKeepingFirstControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
                 .withUntypedValue("controlledBusGenId", controlledBusGenId)
@@ -71,14 +73,36 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+    public static void reportNotUniqueControlledBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueTargetVControllerBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
-                .withUntypedValue("generatorIds", generatorIds)
+                .withMessageTemplate("notUniqueControlledBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses (${controlledBusId} and ${controlledBusGenId}): disabling voltage control")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("controlledBusGenId", controlledBusGenId)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBusKeepingFirstControl(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBusKeepingFirstControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue("keptTargetV", keptTargetV)
                 .withUntypedValue("rejectedTargetV", rejectedTargetV)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, Double targetV1, Double targetV2) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages (${targetV1} kV and ${targetV2} kV): disabling voltage control")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue("targetV1", targetV1)
+                .withUntypedValue("targetV2", targetV2)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
@@ -319,6 +343,17 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportMaxOuterLoopIterations(ReportNode reportNode, int iterationCount, boolean withLog, Logger logger) {
+        ReportNode added = reportNode.newReportNode()
+                .withMessageTemplate("maxOuterLoopIterations", "Maximum number of outerloop iterations reached: ${outerLoopIterationCount}")
+                .withUntypedValue("outerLoopIterationCount", iterationCount)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .add();
+        if (withLog) {
+            logger.error(added.getMessage());
+        }
+    }
+
     public static void reportDcLfSolverFailure(ReportNode reportNode, String errorMessage) {
         reportNode.newReportNode()
                 .withMessageTemplate("dcLfFailure", "Failed to solve linear system for DC load flow: ${errorMessage}")
@@ -360,9 +395,25 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedGeneratorCount) {
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsImplausible(ReportNode reportNode, int impactedGeneratorCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is inconsistent")
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsImplausible", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is implausible")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus", "${impactedGeneratorCount} generators have been discarded from voltage control because connected to the same bus but controlling the voltage of different buses")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages", "${impactedGeneratorCount} generators have been discarded from voltage control because connected to the same bus but having different target voltages")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
@@ -634,5 +685,22 @@ public final class Reports {
                 .withUntypedValue("slackBus", slackBus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
+    }
+
+    public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {
+        reportNode.newReportNode()
+                .withMessageTemplate("acEmulationDisabledInWoodburyDcSecurityAnalysis", "AC emulation of HVDC lines is disabled with Woodbury DC Security Analysis. HVDC active power setpoint will be used instead.")
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportContingencyActivePowerLossDistribution(ReportNode reportNode, double mismatch, double remaining) {
+        reportNode.newReportNode()
+                .withMessageTemplate("contingencyActivePowerLossDistribution", "Contingency caused the loss of ${mismatch} MW injection: ${distributed} MW distributed, ${remaining} MW remaining.")
+                .withUntypedValue(MISMATCH, mismatch)
+                .withUntypedValue("distributed", mismatch - remaining)
+                .withUntypedValue("remaining", remaining)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
     }
 }

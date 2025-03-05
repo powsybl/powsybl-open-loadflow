@@ -13,6 +13,7 @@ import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -26,12 +27,11 @@ import com.powsybl.openloadflow.dc.fastdc.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.*;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
-import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
-import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
@@ -67,10 +67,18 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     @Override
-    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
-        DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers);
-        // connectivity break analysis does not handle zero impedance lines
-        dcParameters.getNetworkParameters().setMinImpedance(true);
+    protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
+        DcLoadFlowParameters dcParameters = super.createParameters(lfParameters, lfParametersExt, breakers, areas);
+        LfNetworkParameters lfNetworkParameters = dcParameters.getNetworkParameters();
+        boolean hasDroopControl = lfNetworkParameters.isHvdcAcEmulation() && network.getHvdcLineStream().anyMatch(l -> {
+            HvdcAngleDroopActivePowerControl droopControl = l.getExtension(HvdcAngleDroopActivePowerControl.class);
+            return droopControl != null && droopControl.isEnabled();
+        });
+        if (hasDroopControl) {
+            Reports.reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(reportNode);
+        }
+        lfNetworkParameters.setMinImpedance(true) // connectivity break analysis does not handle zero impedance lines
+                           .setHvdcAcEmulation(false); // ac emulation is not yet supported
         // needed an equation to force angle to zero when a PST is lost
         dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
         return dcParameters;
@@ -369,7 +377,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     @Override
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions, List<LimitReduction> limitReductions) {
+                                                    List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
         // Verify only PST actions are given
         filterActions(actions);
         Map<String, Action> actionsById = indexActionsById(actions);

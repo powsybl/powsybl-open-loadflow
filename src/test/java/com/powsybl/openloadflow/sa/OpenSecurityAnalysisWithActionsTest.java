@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.AllViolationCondition;
@@ -1690,6 +1691,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         Contingency lineContingency = new Contingency("l23_A1_1", new BranchContingency("l23_A1_1"));
         List<Contingency> contingencies = List.of(lineContingency);
+
+        // Strategy 1
         AreaInterchangeTargetAction actionArea1 = new AreaInterchangeTargetActionBuilder()
             .withId("ActionArea1")
             .withAreaId("a1")
@@ -1702,9 +1705,18 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             .withTarget(10.0)
             .build();
 
-        List<Action> actions = List.of(actionArea1, actionArea2);
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1",
-            ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea1.getId(), actionArea2.getId())));
+        // Strategy 2
+        GeneratorAction actionArea3 = new GeneratorActionBuilder()
+            .withId("Action3")
+            .withGeneratorId("g1")
+            .withActivePowerValue(99.0)
+            .withActivePowerRelativeValue(false)
+            .build();
+
+        List<Action> actions = List.of(actionArea1, actionArea2, actionArea3);
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategy1", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea1.getId(), actionArea2.getId())),
+            new OperatorStrategy("strategy2", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea3.getId())));
         ReportNode reportNode = ReportNode.newRootReportNode()
             .withMessageTemplate("testSaReport", "Test report of security analysis")
             .build();
@@ -1730,8 +1742,59 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         // Respect of targets after remedial actions (now at 10.0)
         assertNotNull(result.getOperatorStrategyResults());
+        // Strategy 1
         assertEquals(10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
         assertEquals(-10.0, result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
 
+        // Strategy 2 (Retrieve post contingency targets)
+        assertEquals(15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
+        assertEquals(-15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+    }
+
+    @ParameterizedTest(name = "DC = {0}")
+    @ValueSource(booleans = {false, true})
+    void testContingencyParameters(boolean isDc) {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
+
+        // create a contingency with ContingencyLoadFlowParameters extension
+        Contingency contingency1 = new Contingency("load3", new LoadContingency("load3"));
+
+        ContingencyLoadFlowParameters contingencyParameters1 = new ContingencyLoadFlowParameters()
+                .setDistributedSlack(false)
+                .setAreaInterchangeControl(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        contingency1.addExtension(ContingencyLoadFlowParameters.class, contingencyParameters1);
+        Action action1 = new GeneratorActionBuilder().withId("action1").withGeneratorId("gen3").withActivePowerRelativeValue(false).withActivePowerValue(45).build();
+
+        OperatorStrategy operatorStrategy1 = new OperatorStrategy("strategy1", ContingencyContext.specificContingency("load3"), new TrueCondition(), List.of("action1"));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Contingency> contingencies = List.of(contingency1);
+        List<Action> actions = List.of(action1);
+        List<OperatorStrategy> operatorStrategies = List.of(operatorStrategy1);
+
+        // run the security analysis
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(isDc);
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult resultAc = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Pre-contingency results
+        PreContingencyResult preContingencyResult = resultAc.getPreContingencyResult();
+        assertEquals(25, preContingencyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, preContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Post-contingency results : AIC on loads
+        PostContingencyResult postContingencyResult = getPostContingencyResult(resultAc, "load3");
+        assertEquals(50, postContingencyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(75, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // Operator strategy results : AIC on loads
+        OperatorStrategyResult acStrategyResult = getOperatorStrategyResult(resultAc, "strategy1");
+        assertEquals(50, acStrategyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(95, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }
