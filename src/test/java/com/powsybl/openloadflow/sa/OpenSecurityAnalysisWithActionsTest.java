@@ -13,6 +13,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -24,6 +25,7 @@ import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -1799,6 +1801,117 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // Strategy 2 (Retrieve post contingency targets)
         assertEquals(15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
         assertEquals(-15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+    }
+
+    @Test
+    void testDanglingLineAction() {
+        String danglingLineId = "DL";
+        double initialActivePowerValue = 200.0;
+        double initialReactivePowerValue = 0;
+        double finalActivePowerValue = 110;
+        double finalReactivePowerValue = 70;
+        double deltaActivePowerValue = 60.0;
+        double deltaReactivePowerValue = 40.0;
+
+        Network network = DanglingLineNetworkFactory.createWithGeneration();
+        network.getDanglingLine(danglingLineId).setP0(initialActivePowerValue);
+        network.getDanglingLine(danglingLineId).setQ0(initialReactivePowerValue);
+
+        // Create L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G_1 -- BUS -- DL
+        // add 2 generators, 1 load, 1 bus and 1 line on the network
+        ((BusAdder) network.getVoltageLevel("VL").getBusBreakerView().newBus().setId("BUS_2")).add();
+        network.getVoltageLevel("VL").newGenerator()
+                .setId("G_2")
+                .setBus("BUS_2")
+                .setConnectableBus("BUS_2")
+                .setTargetP(100)
+                .setTargetV(385)
+                .setTargetQ(100)
+                .setMaxP(200)
+                .setMinP(0)
+                .setVoltageRegulatorOn(false)
+                .add();
+        network.newLine()
+                .setId("LINE_12")
+                .setBus1("BUS_2")
+                .setBus2("BUS")
+                .setR(0.0)
+                .setX(100)
+                .add();
+//        network.getLine("LINE_12").newCurrentLimits1().setPermanentLimit(200.0).add();
+//        network.getLine("LINE_12").newCurrentLimits2().setPermanentLimit(200.0).add();
+        network.getVoltageLevel("VL").newGenerator()
+                .setId("G_1")
+                .setBus("BUS")
+                .setConnectableBus("BUS")
+                .setTargetP(100)
+                .setTargetV(385)
+                .setTargetQ(100)
+                .setMaxP(200)
+                .setMinP(0)
+                .setVoltageRegulatorOn(false)
+                .add();
+        network.getVoltageLevel("VL").newLoad()
+                .setId("L_2")
+                .setConnectableBus("BUS_2")
+                .setBus("BUS_2")
+                .setP0(200)
+                .setQ0(0)
+                .add();
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+
+        LoadFlowResult loadFlowResultBaseCase = loadFlowRunner.run(network, parameters);
+
+        // Apply the contingency: disconnect one generator
+        network.getGenerator("G_1").disconnect();
+        LoadFlowResult loadFlowResult = loadFlowRunner.run(network, parameters);
+        // Apply the modification
+        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
+        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
+        LoadFlowResult loadFlowResultPostModification = loadFlowRunner.run(network, parameters);
+
+
+        // todo later:
+
+        // Set contingency, action and operator strategy for the security analysis
+        Contingency danglingLineContingency = new Contingency(danglingLineId, new DanglingLineContingency(danglingLineId));
+        List<Contingency> contingencies = List.of(danglingLineContingency);
+        DanglingLineAction danglingLineAction = new DanglingLineActionBuilder()
+                .withId("dangling_line_action")
+                .withDanglingLineId(danglingLineId)
+                .withActivePowerValue(deltaActivePowerValue)
+                .withReactivePowerValue(deltaReactivePowerValue)
+                .withRelativeValue(true)
+                .build();
+        List<Action> actions = List.of(danglingLineAction);
+        List<OperatorStrategy> operatorStrategies = List.of(
+                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(danglingLineContingency.getId()), new TrueCondition(), List.of(danglingLineAction.getId())));
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testSaReport", "Test report of security analysis")
+                .build();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, reportNode);
+
+        assertEquals(initialActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+        assertEquals(initialReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+
+        // compare with a loadflow.
+        // Apply the contingency
+        network.getDanglingLine(danglingLineId).disconnect();
+        loadFlowRunner.run(network, parameters);
+        // Apply the modification
+        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
+        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
+        loadFlowRunner.run(network, parameters);
+
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(network.getDanglingLine(danglingLineId).getTerminal().getP(), operatorStrategyResult.getNetworkResult().getBranchResult(danglingLineId).getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getDanglingLine(danglingLineId).getTerminal().getQ(), operatorStrategyResult.getNetworkResult().getBranchResult(danglingLineId).getQ1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @ParameterizedTest(name = "DC = {0}")
