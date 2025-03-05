@@ -230,7 +230,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setSimulateAutomationSystems(false)
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
                 .setAreaInterchangeControlAreaType(lfParametersExt.getAreaInterchangeControlAreaType())
-                .setForceTargetQInReactiveLimits(lfParametersExt.isForceTargetQInReactiveLimits());
+                .setForceTargetQInReactiveLimits(lfParametersExt.isForceTargetQInReactiveLimits())
+                .setDisableInconsistentVoltageControls(lfParametersExt.isDisableInconsistentVoltageControls());
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {

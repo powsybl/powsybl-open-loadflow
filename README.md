@@ -1,6 +1,6 @@
 # PowSyBl Open Load Flow
 
-[![Actions Status](https://github.com/powsybl/powsybl-open-loadflow/workflows/CI/badge.svg)](https://github.com/powsybl/powsybl-open-loadflow/actions)
+[![Actions Status](https://github.com/powsybl/powsybl-open-loadflow/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/powsybl/powsybl-open-loadflow/actions)
 [![Coverage Status](https://sonarcloud.io/api/project_badges/measure?project=com.powsybl%3Apowsybl-open-loadflow&metric=coverage)](https://sonarcloud.io/component_measures?id=com.powsybl%3Apowsybl-open-loadflow&metric=coverage)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=com.powsybl%3Apowsybl-open-loadflow&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.powsybl%3Apowsybl-open-loadflow)
 [![MPL-2.0 License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
@@ -83,6 +83,13 @@ The following contingency types are supported:
 - Branch contingencies,
 - Load and generator contingencies,
 - HVDC line contingency.
+
+
+## Documentation
+
+Latest version of the documentation is available [here](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/stable/).
+
+To contribute to the documentation follow the instructions in the [documentation README](https://github.com/powsybl/powsybl-open-loadflow/blob/main/docs/README.md) page.
 
 ## Getting started
 
