@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
+import com.powsybl.openloadflow.network.action.LfDanglingLineAction;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Lists2;
@@ -478,6 +479,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     AreaInterchangeTargetAction areaInterchangeAction = (AreaInterchangeTargetAction) action;
                     if (network.getArea(areaInterchangeAction.getAreaId()) == null) {
                         throw new PowsyblException("Area '" + areaInterchangeAction.getAreaId() + "' not found");
+                    }
+                    break;
+                }
+
+                case DanglingLineAction.NAME: {
+                    DanglingLineAction danglingLineAction = (DanglingLineAction) action;
+                    if (network.getDanglingLine(danglingLineAction.getDanglingLineId()) == null) {
+                        throw new PowsyblException("Dangling line '" + danglingLineAction.getDanglingLineId() + "' not found");
                     }
                     break;
                 }

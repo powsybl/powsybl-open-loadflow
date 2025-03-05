@@ -31,15 +31,16 @@ public class LfDanglingLineAction extends AbstractLfAction<DanglingLineAction> {
             LfBranch lfBranch = lfNetwork.getBranchById(danglingLine.getId());
             if (lfBranch != null && lfBranch.getBranchType().equals(LfBranch.BranchType.DANGLING_LINE)) {
                 List<LfLoad> lfLoads = lfBranch.getBus2().getLoads();
-                if (lfLoads.size() == 1 && action.getActivePowerValue().isPresent() && action.getReactivePowerValue().isPresent()) {
+                if (lfLoads.size() == 1) {
                     LfLoad lfLoad = lfLoads.get(0);
-
-                    double activePowerValue = action.isRelativeValue() ? action.getActivePowerValue().getAsDouble() + lfLoad.getTargetP() : action.getActivePowerValue().getAsDouble();
-                    lfLoad.setTargetP(activePowerValue / PerUnit.SB);
-
-                    double reactivePowerValue = action.isRelativeValue() ? action.getReactivePowerValue().getAsDouble() + lfLoad.getTargetQ() : action.getReactivePowerValue().getAsDouble();
-                    lfLoad.setTargetQ(reactivePowerValue / PerUnit.SB);
-
+                    if (action.getActivePowerValue().isPresent()) {
+                        double activePowerValue = action.isRelativeValue() ? action.getActivePowerValue().getAsDouble() / PerUnit.SB + lfLoad.getTargetP() : action.getActivePowerValue().getAsDouble() / PerUnit.SB;
+                        lfLoad.setTargetP(activePowerValue);
+                    }
+                    if (action.getReactivePowerValue().isPresent()) {
+                        double reactivePowerValue = action.isRelativeValue() ? action.getReactivePowerValue().getAsDouble() / PerUnit.SB + lfLoad.getTargetQ() : action.getReactivePowerValue().getAsDouble() / PerUnit.SB;
+                        lfLoad.setTargetQ(reactivePowerValue);
+                    }
                     return true;
                 }
                 return false;
