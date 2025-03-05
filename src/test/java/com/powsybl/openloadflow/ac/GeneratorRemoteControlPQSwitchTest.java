@@ -225,20 +225,20 @@ class GeneratorRemoteControlPQSwitchTest {
                           + Network CC0 SC0
                              + Network info
                                 Network has 3 buses and 2 branches
-                                Network balance: active generation=200.0 MW, active load=200.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
-                                   Slack bus active power (22.14706135727451 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
-                                      Switch bus 'vl1_0' PV -> PQ, q=-2553.56 < minQ=-800.0
+                                      Switch bus 'vl1_0' PV -> PQ, q=-2553.557359 < minQ=-800
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
-                                   Slack bus active power (-21.141636119562037 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (-21.141636 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack
@@ -277,20 +277,20 @@ class GeneratorRemoteControlPQSwitchTest {
                           + Network CC0 SC0
                              + Network info
                                 Network has 3 buses and 2 branches
-                                Network balance: active generation=200.0 MW, active load=200.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
-                                   Slack bus active power (22.14706135727451 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
-                                      Switch bus 'vl1_0' PV -> PQ, q set to 10.0 = targetQ - because V < 16.0kV when remote voltage target is maintained
+                                      Switch bus 'vl1_0' PV -> PQ, q set to 10 = targetQ - because V < 16kV when remote voltage target is maintained
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
-                                   Slack bus active power (-22.091657952625134 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (-22.091658 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack
@@ -325,25 +325,26 @@ class GeneratorRemoteControlPQSwitchTest {
         // test the report
         if (robustMode) {
             String expectedReport = """
+                    \
                     + test
                        + Load flow on network 'test'
                           + Network CC0 SC0
                              + Network info
                                 Network has 3 buses and 2 branches
-                                Network balance: active generation=200.0 MW, active load=200.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
-                                   Slack bus active power (18.06637273810643 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
-                                      Switch bus 'vl1_0' PV -> PQ, q set to 10.0 = targetQ - because V > 24.0kV when remote voltage target is maintained
+                                      Switch bus 'vl1_0' PV -> PQ, q set to 10 = targetQ - because V > 24kV when remote voltage target is maintained
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
-                                   Slack bus active power (-18.012289682379112 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (-18.01229 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack
@@ -383,20 +384,20 @@ class GeneratorRemoteControlPQSwitchTest {
                           + Network CC0 SC0
                              + Network info
                                 Network has 3 buses and 2 branches
-                                Network balance: active generation=200.0 MW, active load=200.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
-                                   Slack bus active power (18.06637273810643 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
-                                      Switch bus 'vl1_0' PV -> PQ, q=5180.29 > maxQ=800.0
+                                      Switch bus 'vl1_0' PV -> PQ, q=5180.292508 > maxQ=800
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
-                                   Slack bus active power (-17.327551015353436 MW) distributed in 1 distribution iteration(s)
+                                   Slack bus active power (-17.327551 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack

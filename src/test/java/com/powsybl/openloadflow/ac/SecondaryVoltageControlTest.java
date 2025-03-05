@@ -211,7 +211,7 @@ class SecondaryVoltageControlTest {
                       + Network CC0 SC0
                          + Network info
                             Network has 14 buses and 20 branches
-                            Network balance: active generation=272.4 MW, active load=258.99999999999994 MW, reactive generation=0.0 MVar, reactive load=73.5 MVar
+                            Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
                          Outer loop DistributedSlack
@@ -220,28 +220,28 @@ class SecondaryVoltageControlTest {
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 3
                                + 3 buses switched PV -> PQ (2 buses remain PV)
-                                  Switch bus 'VL3_0' PV -> PQ, q=-18.05 < minQ=0.0
-                                  Switch bus 'VL6_0' PV -> PQ, q=25.33 > maxQ=24.0
-                                  Switch bus 'VL8_0' PV -> PQ, q=209.07 > maxQ=200.0
+                                  Switch bus 'VL3_0' PV -> PQ, q=-18.051176 < minQ=0
+                                  Switch bus 'VL6_0' PV -> PQ, q=25.327554 > maxQ=24
+                                  Switch bus 'VL8_0' PV -> PQ, q=209.071622 > maxQ=200
                             + Outer loop iteration 4
                                + 1 buses switched PV -> PQ (1 buses remain PV)
-                                  Switch bus 'VL2_0' PV -> PQ, q=-46.58 < minQ=-40.0
+                                  Switch bus 'VL2_0' PV -> PQ, q=-46.582673 < minQ=-40
                             + Outer loop iteration 5
                                + 1 buses switched PQ -> PV (0 buses blocked PQ due to the max number of switches)
-                                  Switch bus 'VL6_0' PQ -> PV, q=maxQ and v=14.6049kV > targetV=14.5963kV
+                                  Switch bus 'VL6_0' PQ -> PV, q=maxQ and v=14.604872kV > targetV=14.596348kV
                          + Outer loop DistributedSlack
                             + Outer loop iteration 6
-                               Failed to distribute slack bus active power mismatch, 3.0111635276433457 MW remains
+                               Failed to distribute slack bus active power mismatch, 3.011164 MW remains
                          Outer loop SecondaryVoltageControl
                          Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 8
                                + 2 buses switched PV -> PQ (1 buses remain PV)
-                                  Switch bus 'VL6_0' PV -> PQ, q=24.01 > maxQ=24.0
-                                  Switch bus 'VL8_0' PV -> PQ, q=200.11 > maxQ=200.0
+                                  Switch bus 'VL6_0' PV -> PQ, q=24.012062 > maxQ=24
+                                  Switch bus 'VL8_0' PV -> PQ, q=200.112821 > maxQ=200
                          + Outer loop DistributedSlack
                             + Outer loop iteration 9
-                               Failed to distribute slack bus active power mismatch, 3.0165190365907257 MW remains
+                               Failed to distribute slack bus active power mismatch, 3.016519 MW remains
                          Outer loop SecondaryVoltageControl
                          Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
@@ -289,7 +289,7 @@ class SecondaryVoltageControlTest {
                       + Network CC0 SC0
                          + Network info
                             Network has 14 buses and 20 branches
-                            Network balance: active generation=272.4 MW, active load=258.99999999999994 MW, reactive generation=0.0 MVar, reactive load=73.5 MVar
+                            Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
                          Outer loop DistributedSlack
@@ -298,18 +298,18 @@ class SecondaryVoltageControlTest {
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 3
                                + 3 buses switched PV -> PQ (2 buses remain PV)
-                                  Switch bus 'VL3_0' PV -> PQ, q=-18.05 < minQ=0.0
-                                  Switch bus 'VL6_0' PV -> PQ, q=25.33 > maxQ=24.0
-                                  Switch bus 'VL8_0' PV -> PQ, q=209.07 > maxQ=200.0
+                                  Switch bus 'VL3_0' PV -> PQ, q=-18.051176 < minQ=0
+                                  Switch bus 'VL6_0' PV -> PQ, q=25.327554 > maxQ=24
+                                  Switch bus 'VL8_0' PV -> PQ, q=209.071622 > maxQ=200
                             + Outer loop iteration 4
                                + 1 buses switched PV -> PQ (1 buses remain PV)
-                                  Switch bus 'VL2_0' PV -> PQ, q=-46.58 < minQ=-40.0
+                                  Switch bus 'VL2_0' PV -> PQ, q=-46.582673 < minQ=-40
                             + Outer loop iteration 5
                                + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)
                                   Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
                          + Outer loop DistributedSlack
                             + Outer loop iteration 5
-                               Failed to distribute slack bus active power mismatch, 3.013536027711483 MW remains
+                               Failed to distribute slack bus active power mismatch, 3.013536 MW remains
                          Outer loop SecondaryVoltageControl
                          Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits

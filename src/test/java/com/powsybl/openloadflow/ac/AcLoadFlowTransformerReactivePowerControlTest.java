@@ -145,14 +145,14 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                       + Network CC0 SC0
                          + Network info
                             Network has 4 buses and 5 branches
-                            Network balance: active generation=3.0 MW, active load=5.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                            Network balance: active generation=3 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
                             Angle reference bus: b1_vl_0
                             Slack bus: b1_vl_0
                          Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 1 bus(es) with remote reactive power controller switched PQ
-                                  Remote reactive power controller bus 'b4_vl_0' -> PQ, q=6.39 > maxQ=5.0
+                                  Remote reactive power controller bus 'b4_vl_0' -> PQ, q=6.390705 > maxQ=5
                          + Outer loop IncrementalTransformerReactivePowerControl
                             + Outer loop iteration 2
                                1 reactive power-controlled branches are outside of their target deadbands
@@ -219,14 +219,14 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                       + Network CC0 SC0
                          + Network info
                             Network has 4 buses and 5 branches
-                            Network balance: active generation=3.0 MW, active load=5.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                            Network balance: active generation=3 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
                             Angle reference bus: b1_vl_0
                             Slack bus: b1_vl_0
                          Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 1 bus(es) with remote reactive power controller switched PQ
-                                  Remote reactive power controller bus 'b4_vl_0' -> PQ, q=-3.49 < minQ=-3.0
+                                  Remote reactive power controller bus 'b4_vl_0' -> PQ, q=-3.49137 < minQ=-3
                          Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
