@@ -308,7 +308,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             ReportNode toMergeNode = toMergeNodes.get(key);
             toMergeNode.getChildren().stream()
                     .filter(n -> n.getMessageKey().equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
-                    .forEach(n -> mainReportNode.addCopy(n));
+                    .forEach(mainReportNode::addCopy);
         }
     }
 
@@ -952,7 +952,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .toList();
 
-        LfActionUtils.applyListOfActions(operatorStrategyLfActions, network, contingency, networkParameters, reportNode);
+        LfActionUtils.applyListOfActions(operatorStrategyLfActions, network, contingency, networkParameters);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 

@@ -34,6 +34,8 @@ public final class Reports {
     private static final String GENERATORS_ID = "generatorIds";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
+    private static final String ACTION_ID = "actionId";
+    private static final String CONTINGENCY_ID = "contingencyId";
     public static final String MISMATCH = "mismatch";
 
     public static final String LF_NETWORK_KEY = "lfNetwork";
@@ -704,6 +706,14 @@ public final class Reports {
                 .withUntypedValue("distributed", mismatch - remaining)
                 .withUntypedValue("remaining", remaining)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
+        node.newReportNode()
+                .withMessageTemplate("LfActionUtils", "Action '${actionId}': may not have been applied successfully on contingency '${contingencyId}'")
+                .withUntypedValue(ACTION_ID, actionId)
+                .withUntypedValue(CONTINGENCY_ID, contingencyId)
                 .add();
     }
 }
