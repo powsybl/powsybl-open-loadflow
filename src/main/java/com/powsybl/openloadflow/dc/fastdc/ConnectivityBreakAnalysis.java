@@ -48,29 +48,25 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBus> slackConnectedComponent; // buses of connected component where the slack is
 
-        private final Set<LfBus> slackConnectedComponent; // buses of connected component where the slack is
-
         private final DisabledElements disabledElements;
 
         private final int createdSynchronousComponents;
 
-        private final Set<LfHvdc> hvdcsWithoutPower;
+        private final DisabledElements disabledElements;
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network) {
-            this(propagatedContingency, network, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), 0, Collections.emptySet());
+            this(propagatedContingency, network, Collections.emptySet(), new DisabledElements(Collections.emptySet(), Collections.emptySet(), Collections.emptySet()), Collections.emptySet(), 0);
         }
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network, Set<String> elementsToReconnect,
-                                          Set<LfBus> disabledBuses, Set<LfBus> slackConnectedComponentBuses, Set<LfBranch> partialDisabledBranches,
-                                          int createdSynchronousComponents, Set<LfHvdc> hvdcsWithoutPower) {
+                                          DisabledElements disabledElements, Set<LfBus> slackConnectedComponentBuses,
+                                          int createdSynchronousComponents) {
             this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
             this.network = Objects.requireNonNull(network);
             this.elementsToReconnect = elementsToReconnect;
-            this.disabledBuses = disabledBuses;
+            this.disabledElements = disabledElements;
             this.slackConnectedComponent = slackConnectedComponentBuses;
-            this.partialDisabledBranches = partialDisabledBranches;
             this.createdSynchronousComponents = createdSynchronousComponents;
-            this.hvdcsWithoutPower = hvdcsWithoutPower;
         }
 
         public PropagatedContingency getPropagatedContingency() {
