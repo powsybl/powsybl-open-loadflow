@@ -381,7 +381,7 @@ public class PropagatedContingency {
     }
 
     public record ContingencyConnectivityLossImpact(boolean ok, int createdSynchronousComponents, Set<LfBus> busesToLost, Set<LfHvdc> hvdcsWithoutPower) {
-    };
+    }
 
     public static Set<LfHvdc> getHvdcsWithoutPower(LfNetwork network, Set<LfBus> busesToLost, GraphConnectivity<LfBus, LfBranch> connectivity) {
         Set<LfHvdc> hvdcsWithoutFlow = new HashSet<>();
