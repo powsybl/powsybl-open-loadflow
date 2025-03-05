@@ -224,8 +224,8 @@ public final class Reports {
                 .withMessageTemplate("PvToPqMaxQ",
                         "Switch bus '${busId}' PV -> PQ, q=${busQ} > maxQ=${maxQ}")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("busQ", round2(busQ * PerUnit.SB))
-                .withUntypedValue("maxQ", round2(maxQ * PerUnit.SB))
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("maxQ", maxQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
         if (log) {
@@ -243,8 +243,8 @@ public final class Reports {
                 .withMessageTemplate("PvToPqMinQ",
                         "Switch bus '${busId}' PV -> PQ, q=${busQ} < minQ=${minQ}")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("busQ", round2(busQ * PerUnit.SB))
-                .withUntypedValue("minQ", round2(minQ * PerUnit.SB))
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("minQ", minQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
         if (log) {
@@ -262,8 +262,8 @@ public final class Reports {
                 .withMessageTemplate("PvToPqMinRealisticV",
                         "Switch bus '${busId}' PV -> PQ, q set to ${targetQ} = targetQ - because V < ${minRealisticV}kV when remote voltage target is maintained")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("targetQ", round2(targetQ * PerUnit.SB))
-                .withUntypedValue("minRealisticV", round2(minRealisticV * controllerBus.getNominalV()))
+                .withTypedValue("targetQ", targetQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("minRealisticV", minRealisticV * controllerBus.getNominalV(), TypedValue.VOLTAGE)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
         if (log) {
@@ -281,8 +281,8 @@ public final class Reports {
                 .withMessageTemplate("PvToPqMaxRealisticV",
                         "Switch bus '${busId}' PV -> PQ, q set to ${targetQ} = targetQ - because V > ${maxRealisticV}kV when remote voltage target is maintained")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("targetQ", round2(targetQ * PerUnit.SB))
-                .withUntypedValue("maxRealisticV", round2(maxRealisticV * controllerBus.getNominalV()))
+                .withTypedValue("targetQ", targetQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("maxRealisticV", maxRealisticV * controllerBus.getNominalV(), TypedValue.VOLTAGE)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
         if (log) {
@@ -318,8 +318,10 @@ public final class Reports {
                 .withMessageTemplate("PqToPvBusMaxLimit",
                         "Switch bus '${busId}' PQ -> PV, q=maxQ and v=${busV}kV > targetV=${targetV}kV")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("busV", round4(controlledBus.getV() * controlledBus.getNominalV()))
-                .withUntypedValue("targetV", round4(targetV * controlledBus.getNominalV()))
+                // busV and targetV need a higher precision than usual Voltage rounding to understand
+                // the difference. Their unit is not given to avoid a too high formatting based on Unit
+                .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
+                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
@@ -333,8 +335,10 @@ public final class Reports {
                 .withMessageTemplate("PqToPvBusMinLimit",
                         "Switch bus '${busId}' PQ -> PV, q=minQ and v=${busV}kV < targetV=${targetV}kV")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("busV", round4(controlledBus.getV() * controlledBus.getNominalV()))
-                .withUntypedValue("targetV", round4(targetV * controlledBus.getNominalV()))
+                // busV and targetV need a higher precision than usual Voltage rounding to understand
+                // the difference. Their unit is not given to avoid a too high formatting based on Unit
+                .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
+                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
@@ -367,14 +371,6 @@ public final class Reports {
                 .add();
     }
 
-    private static double round2(double value) {
-        return Math.round(value * 100) / 100d;
-    }
-
-    private static double round4(double value) {
-        return Math.round(value * 10000) / 10000d;
-    }
-
     public static ReportNode reportReactiveControllerBusesToPqMaxQ(LfBus controllerBus,
                                                                    double busQ,
                                                                    double maxQ,
@@ -384,8 +380,8 @@ public final class Reports {
                 .withMessageTemplate("reactiveControllerBusesToPqMaxQ",
                         "Remote reactive power controller bus '${busId}' -> PQ, q=${busQ} > maxQ=${maxQ}")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("busQ", round2(busQ * PerUnit.SB))
-                .withUntypedValue("maxQ", round2(maxQ * PerUnit.SB))
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("maxQ", maxQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
@@ -403,8 +399,8 @@ public final class Reports {
                 .withMessageTemplate("reactiveControllerBusesToPqMinQ",
                         "Remote reactive power controller bus '${busId}' -> PQ, q=${busQ} < minQ=${minQ}")
                 .withUntypedValue("busId", controllerBus.getId())
-                .withUntypedValue("busQ", round2(busQ * PerUnit.SB))
-                .withUntypedValue("minQ", round2(minQ * PerUnit.SB))
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("minQ", minQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
