@@ -250,9 +250,9 @@ class DistributedSlackOnGenerationTest {
             switch (balanceType) {
                 case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P -> assertEquals(4, step.getParticipatingElements(buses, emptyMismatch).size());
                 case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(buses, emptyMismatch).size());
+                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(buses, emptyMismatch).size());
                 case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertThrows(PowsyblException.class, () -> step.getParticipatingElements(buses, emptyMismatch),
                         "The sign of the active power mismatch is unknown, it is mandatory for REMAINING_MARGIN participation type");
-                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(buses, emptyMismatch).size());
             }
         }
     }
