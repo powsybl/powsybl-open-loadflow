@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
+import com.powsybl.openloadflow.ac.equations.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -193,4 +194,38 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     public double getPMaxFromCS2toCS1() {
         return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS2toCS1 / PerUnit.SB;
     }
+
+    @Override
+    public double freezeFromCurrentAngles() {
+        double p1Val = Double.NaN;
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu && pAcEmu.isActive()) {
+            p1Val = pAcEmu.freezeFromCurrentAngles();
+        }
+        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu && pAcEmu.isActive()) {
+            pAcEmu.freezeFromCurrentAngles();
+        }
+        return p1Val;
+    }
+
+    @Override
+    public boolean unFreezeAndReportSaturationStatus() {
+        boolean shouldResetAngle = false;
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            shouldResetAngle |= pAcEmu.unFreeze();
+        }
+        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            shouldResetAngle |= pAcEmu.unFreeze();
+        }
+        return shouldResetAngle;
+    }
+
+    @Override
+    public boolean isFrozen() {
+        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
+            return pAcEmu.isActive() && pAcEmu.isFrozen();
+        } else {
+            return false;
+        }
+    }
+
 }

@@ -129,6 +129,12 @@ active power flow at each station is given by the formula below (HVDC line losse
   - $P_{controller} = P_0 + k~(\theta_1 - \theta_2)$
   - $P_{noncontroller} = (1 - LossFactor_{noncontroller}) * ((1 - LossFactor_{controller}) * (P_0 + k~(\theta_1 - \theta_2) - P_{LineLoss}))$
 
+For N-1 simulations (**VoltageInitMode** set to **PREVIOUS_VALUES**) or security analysis, to reflect the slow time contant of HVDC in AC emulation mode, and time needed to reach
+their equilibrium between angles and active set point, the simulator starts by freezing the AC emulation HVDC to their previuos active set point. This allows to detect situation 
+where it is impossible, with the current topology, to deliver or evacuate the HVDC active power of the previous set point. If this occurs the simulation fails with a 
+**MAX_ITERATION_REACHED** status. Once the first resolution (and optionally slack distribution) has succeeded, the AC HVDC lines are reset to their AC emulation mode following the 
+above equations.
+
 The HVDC line losses are described in a dedicated section further below.
 
 In both control modes (active power setpoint mode or in AC emulation mode), the target value $P$ is bounded by a maximum active power $P_{max}$ that can be either:
