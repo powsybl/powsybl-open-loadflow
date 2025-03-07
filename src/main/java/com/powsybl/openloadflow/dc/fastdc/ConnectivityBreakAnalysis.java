@@ -34,6 +34,9 @@ public final class ConnectivityBreakAnalysis {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectivityBreakAnalysis.class);
 
     public record DisabledElements(Set<LfBus> disabledBuses, Set<LfBranch> partialDisabledBranches, Set<LfHvdc> hvdcsWithoutPower) {
+
+        public static final DisabledElements NO_DISABLED_ELEMENTS = new DisabledElements(Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+
     }
 
     public static final class ConnectivityAnalysisResult {
@@ -49,8 +52,8 @@ public final class ConnectivityBreakAnalysis {
 
         private final DisabledElements disabledElements;
 
-        public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network) {
-            this(propagatedContingency, network, Collections.emptySet(), new DisabledElements(Collections.emptySet(), Collections.emptySet(), Collections.emptySet()), Collections.emptySet(), 0);
+        public ConnectivityAnalysisResult(PropagatedContingency nonBreakingConnectivityContingency, LfNetwork network) {
+            this(nonBreakingConnectivityContingency, network, Collections.emptySet(), DisabledElements.NO_DISABLED_ELEMENTS, Collections.emptySet(), 0);
         }
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network, Set<String> elementsToReconnect,
