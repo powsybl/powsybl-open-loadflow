@@ -356,6 +356,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
                 indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions, true);
         Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions
+        ActionsAndStrategiesById actionsAndStrategiesById = new ActionsAndStrategiesById(operatorStrategiesByContingencyId, lfActionById);
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
@@ -422,6 +423,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     (connectivityAnalysisResult, operatorStrategyLfActions) -> calculatePostContingencyAndOperatorStrategyStates(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
                     connectivityAnalysisResult, connectivityBreakAnalysisResults.contingencyElementByBranch(), operatorStrategyLfActions, tapPositionChangeElementsByBranchId, actionsStates, reportNode);
             ToStates toStates = new ToStates(toPostContingencyStates, toPostContingencyAndOperatorStrategyStates);
+
+            ToStates toStates = new ToStates(toPostContingencyStates, toPostContingencyAndOperatorStrategyStates);
+            LimitViolationManagerAndParameters limitViolationManagerAndParameters = new LimitViolationManagerAndParameters(preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions);
 
             LOGGER.info("Processing post contingency results for contingencies with no connectivity break");
             connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies().forEach(nonBreakingConnectivityContingency -> {
