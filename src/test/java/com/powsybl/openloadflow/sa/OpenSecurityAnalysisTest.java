@@ -4368,7 +4368,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    public void testHvdcRegularSeparation() {
+    void testHvdcRegularSeparation() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
 
         // Move power to the right side
