@@ -4428,7 +4428,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         r = runLoadFlow(network, p);
 
         assertTrue(r.isFullyConverged());
-        // Check the HVDC flow - returns to active set point (even if very remote from previous value)
+        // Check the HVDC flow - still on
         assertActivePowerEquals(200.000, cs2.getTerminal());
         assertActivePowerEquals(-195.600, cs3.getTerminal());
         assertActivePowerEquals(-104.400, g4.getTerminal());
