@@ -4366,4 +4366,71 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerLoopNames");
         assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    public void testHvdcRegularSeparation() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+
+        // Move power to the right side
+        network.getHvdcLine("hvdc23").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
+
+        // Make each side of the network viable
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        VscConverterStation cs2 = network.getVscConverterStation("cs2");
+        VscConverterStation cs3 = network.getVscConverterStation("cs3");
+        Generator g4 = b4.getVoltageLevel().newGenerator()
+                .setId("g4")
+                .setVoltageRegulatorOn(false)
+                .setTargetQ(0)
+                .setMaxP(400)
+                .setMinP(5)
+                .setTargetP(10)
+                .setBus("b4")
+                .setConnectableBus("b4")
+                .add();
+
+        LoadFlowParameters p = new LoadFlowParameters()
+                .setHvdcAcEmulation(false);
+
+        p.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL));
+
+        SecurityAnalysisParameters sp = new SecurityAnalysisParameters();
+        sp.setLoadFlowParameters(p);
+        StateMonitor m = new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Collections.emptySet(), Collections.emptySet());
+        SecurityAnalysisResult sr = runSecurityAnalysis(network, List.of(new Contingency("l14", new LineContingency("l14"))), List.of(m), sp);
+
+        // Check that the HVDC link still works
+        assertEquals(-200, sr.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("l12").getP2(), 1e-2);
+
+        // DC
+        p.setDc(true);
+        sr = runSecurityAnalysis(network, List.of(new Contingency("l14", new LineContingency("l14"))), List.of(m), sp);
+        assertEquals(-200, sr.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("l12").getP2(), 1e-2);
+
+        // DC fast mode
+        sp.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setDcFastMode(true));
+        sr = runSecurityAnalysis(network, List.of(new Contingency("l14", new LineContingency("l14"))), List.of(m), sp);
+        assertEquals(-200, sr.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("l12").getP2(), 1e-2);
+
+        LoadFlowResult r = runLoadFlow(network, p);
+
+        assertTrue(r.isFullyConverged());
+
+        // Check the HVDC flow
+        assertActivePowerEquals(200, cs2.getTerminal());
+        assertActivePowerEquals(-195.600, cs3.getTerminal());
+        assertActivePowerEquals(-5, g4.getTerminal());
+
+        // separate the network
+        network.getLine("l14").disconnect();
+        p.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        r = runLoadFlow(network, p);
+
+        assertTrue(r.isFullyConverged());
+        // Check the HVDC flow - returns to active set point (even if very remote from previous value)
+        assertActivePowerEquals(200.000, cs2.getTerminal());
+        assertActivePowerEquals(-195.600, cs3.getTerminal());
+        assertActivePowerEquals(-104.400, g4.getTerminal());
+    }
 }
