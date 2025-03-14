@@ -332,7 +332,7 @@ class OpenLoadFlowParametersTest {
         MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
         moduleConfig.setStringProperty("maxOuterLoopIterations", "50");
 
-        LoadFlowParameters parameters = new LoadFlowParameters(List.of(loader));
+        LoadFlowParameters parameters = new LoadFlowParameters(List.of(loader), platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtensionByName("open-load-flow-parameters");
         assertNotNull(olfParameters);
         assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());

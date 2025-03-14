@@ -321,8 +321,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         ((OpenLoadFlowParameters) extension).update(properties);
     }
 
-    // todo ADD OVERRIDe AGAIN (commented because OLF PR merged in integration before sister is merged in core)
-    // @Override
+    @Override
     public void updateSpecificParameters(Extension<LoadFlowParameters> extension, PlatformConfig config) {
         ((OpenLoadFlowParameters) extension).update(config);
     }
