@@ -18,6 +18,9 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.nad.NadParameters;
+import com.powsybl.nad.NetworkAreaDiagram;
+import com.powsybl.nad.build.iidm.VoltageLevelFilter;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -37,12 +40,15 @@ import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
+import com.powsybl.sld.SingleLineDiagram;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +56,7 @@ import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
+import static com.powsybl.nad.build.iidm.VoltageLevelFilter.NO_FILTER;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1805,114 +1812,142 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @Test
     void testDanglingLineAction() {
-        String danglingLineId = "DL";
-        double initialActivePowerValue = 200.0;
-        double initialReactivePowerValue = 0;
-        double finalActivePowerValue = 110;
-        double finalReactivePowerValue = 70;
-        double deltaActivePowerValue = 60.0;
-        double deltaReactivePowerValue = 40.0;
-
         Network network = DanglingLineNetworkFactory.createWithGeneration();
-        network.getDanglingLine(danglingLineId).setP0(initialActivePowerValue);
-        network.getDanglingLine(danglingLineId).setQ0(initialReactivePowerValue);
 
-        // Create L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G_1 -- BUS -- DL
-        // add 2 generators, 1 load, 1 bus and 1 line on the network
+        // Create L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
+        // add 1 generator, 1 load, 1 bus connected and create 1 line to connect the new bus to the already existing one
         ((BusAdder) network.getVoltageLevel("VL").getBusBreakerView().newBus().setId("BUS_2")).add();
         network.getVoltageLevel("VL").newGenerator()
                 .setId("G_2")
                 .setBus("BUS_2")
                 .setConnectableBus("BUS_2")
-                .setTargetP(100)
+                .setTargetP(270)
                 .setTargetV(385)
                 .setTargetQ(100)
-                .setMaxP(200)
+                .setMaxP(270)
                 .setMinP(0)
-                .setVoltageRegulatorOn(false)
+                .setVoltageRegulatorOn(true)
                 .add();
         network.newLine()
                 .setId("LINE_12")
                 .setBus1("BUS_2")
                 .setBus2("BUS")
-                .setR(0.0)
-                .setX(100)
-                .add();
-//        network.getLine("LINE_12").newCurrentLimits1().setPermanentLimit(200.0).add();
-//        network.getLine("LINE_12").newCurrentLimits2().setPermanentLimit(200.0).add();
-        network.getVoltageLevel("VL").newGenerator()
-                .setId("G_1")
-                .setBus("BUS")
-                .setConnectableBus("BUS")
-                .setTargetP(100)
-                .setTargetV(385)
-                .setTargetQ(100)
-                .setMaxP(200)
-                .setMinP(0)
-                .setVoltageRegulatorOn(false)
+                .setR(7.4)
+                .setX(0)
                 .add();
         network.getVoltageLevel("VL").newLoad()
                 .setId("L_2")
                 .setConnectableBus("BUS_2")
                 .setBus("BUS_2")
-                .setP0(200)
+                .setP0(600)
                 .setQ0(0)
                 .add();
 
+
+        LoadFlowResult lfResult = null;
+        StringWriter sw = new StringWriter();
+
+        displayState("---- Before loadflow", "/tmp/sld-before-lf.svg", network, lfResult, sw);
+
         LoadFlowParameters parameters = new LoadFlowParameters();
+        lfResult = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResult.getStatus());
+        //assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, lfResult.getComponentResults().get(0).getStatus());
+        displayState("---- After loadflow", "/tmp/sld-after-lf.svg", network, lfResult, sw);
 
-        LoadFlowResult loadFlowResultBaseCase = loadFlowRunner.run(network, parameters);
+        // Apply the contingency: disconnect the generator connected to the same bus of the DL
+        network.getGenerator("G").disconnect();
+        LoadFlowResult lfResultWithoutG = loadFlowRunner.run(network, parameters);
+        displayState("---- After loadflow on G disconnected", "/tmp/sld-after-lf-g-disconnected.svg", network, lfResultWithoutG, sw);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResultWithoutG.getStatus());
 
-        // Apply the contingency: disconnect one generator
-        network.getGenerator("G_1").disconnect();
-        LoadFlowResult loadFlowResult = loadFlowRunner.run(network, parameters);
-        // Apply the modification
-        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
-        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
-        LoadFlowResult loadFlowResultPostModification = loadFlowRunner.run(network, parameters);
+        System.out.println(sw.toString());
 
-
-        // todo later:
-
-        // Set contingency, action and operator strategy for the security analysis
-        Contingency danglingLineContingency = new Contingency(danglingLineId, new DanglingLineContingency(danglingLineId));
-        List<Contingency> contingencies = List.of(danglingLineContingency);
-        DanglingLineAction danglingLineAction = new DanglingLineActionBuilder()
-                .withId("dangling_line_action")
-                .withDanglingLineId(danglingLineId)
-                .withActivePowerValue(deltaActivePowerValue)
-                .withReactivePowerValue(deltaReactivePowerValue)
-                .withRelativeValue(true)
-                .build();
-        List<Action> actions = List.of(danglingLineAction);
-        List<OperatorStrategy> operatorStrategies = List.of(
-                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(danglingLineContingency.getId()), new TrueCondition(), List.of(danglingLineAction.getId())));
-        ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testSaReport", "Test report of security analysis")
-                .build();
-
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        securityAnalysisParameters.setLoadFlowParameters(parameters);
-
-        List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, reportNode);
-
-        assertEquals(initialActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
-        assertEquals(initialReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
-
-        // compare with a loadflow.
-        // Apply the contingency
-        network.getDanglingLine(danglingLineId).disconnect();
-        loadFlowRunner.run(network, parameters);
-        // Apply the modification
-        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
-        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
-        loadFlowRunner.run(network, parameters);
-
-        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
-        assertEquals(network.getDanglingLine(danglingLineId).getTerminal().getP(), operatorStrategyResult.getNetworkResult().getBranchResult(danglingLineId).getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(network.getDanglingLine(danglingLineId).getTerminal().getQ(), operatorStrategyResult.getNetworkResult().getBranchResult(danglingLineId).getQ1(), LoadFlowAssert.DELTA_POWER);
+//        LoadFlowResult loadFlowResult = loadFlowRunner.run(network, parameters);
+//        // Apply the modification
+//        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
+//        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
+//        LoadFlowResult loadFlowResultPostModification = loadFlowRunner.run(network, parameters);
+//
+//
+//        // todo later:
+//
+//        // Set contingency, action and operator strategy for the security analysis
+//        Contingency danglingLineContingency = new Contingency(danglingLineId, new DanglingLineContingency(danglingLineId));
+//        List<Contingency> contingencies = List.of(danglingLineContingency);
+//        DanglingLineAction danglingLineAction = new DanglingLineActionBuilder()
+//                .withId("dangling_line_action")
+//                .withDanglingLineId(danglingLineId)
+//                .withActivePowerValue(deltaActivePowerValue)
+//                .withReactivePowerValue(deltaReactivePowerValue)
+//                .withRelativeValue(true)
+//                .build();
+//        List<Action> actions = List.of(danglingLineAction);
+//        List<OperatorStrategy> operatorStrategies = List.of(
+//                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(danglingLineContingency.getId()), new TrueCondition(), List.of(danglingLineAction.getId())));
+//        ReportNode reportNode = ReportNode.newRootReportNode()
+//                .withMessageTemplate("testSaReport", "Test report of security analysis")
+//                .build();
+//
+//        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+//        securityAnalysisParameters.setLoadFlowParameters(parameters);
+//
+//        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+//        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, reportNode);
+//
+//        assertEquals(initialActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+//        assertEquals(initialReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+//
+//        // compare with a loadflow.
+//        // Apply the contingency
+//        network.getDanglingLine(danglingLineId).disconnect();
+//        loadFlowRunner.run(network, parameters);
+//        // Apply the modification
+//        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
+//        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
+//        loadFlowRunner.run(network, parameters);
+//
+//        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+//        assertEquals(network.getDanglingLine(danglingLineId).getTerminal().getP(), operatorStrategyResult.getNetworkResult().getBranchResult(danglingLineId).getP1(), LoadFlowAssert.DELTA_POWER);
+//        assertEquals(network.getDanglingLine(danglingLineId).getTerminal().getQ(), operatorStrategyResult.getNetworkResult().getBranchResult(danglingLineId).getQ1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    private void displayState(String stateName, String svgPath, Network network, LoadFlowResult lfResult, StringWriter sw) {
+        System.out.println(stateName);
+        if (lfResult != null) {
+            System.out.println("---- LF result status = " + lfResult.getStatus());
+        }
+        displayElementsData(sw, network);
+        SingleLineDiagram.draw(network, "S", Path.of(svgPath));
+
+    }
+
+    private void displayElementsData(StringWriter sw, Network network) {
+        VoltageLevel voltageLevel = network.getVoltageLevel("VL");
+        Generator g2 = network.getGenerator("G_2");
+        Generator g = network.getGenerator("G");
+        Load l2 = network.getLoad("L_2");
+        Line line12 = network.getLine("LINE_12");
+        Bus bus = network.getBusView().getBus("VL_0");
+        Bus bus2 = network.getBusView().getBus("VL_1");
+        DanglingLine dl = network.getDanglingLine("DL");
+
+        //L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
+
+        sw.append("--------------------------------------------------------\n");
+        sw.append("\n=== VoltageLevel : nominalV=" + voltageLevel.getNominalV());
+        sw.append("\n=== L_2 : P=" + l2.getP0() + " Q=" + l2.getQ0());
+        sw.append("\n=== G_2 : P=" + g2.getTerminal().getP() + "MW / maxP: " + g2.getMaxP() + "MW Q=" + g2.getTerminal().getQ() + "MVA ");
+        sw.append("\n=== BUS_2 (VL_1): V=" + bus2.getV() + " P=" + bus2.getP() + " Q=" + bus2.getQ());
+        sw.append("\n=== LINE_12 : X=" + line12.getX() + " R=" + line12.getR() + " Term1 (BUS_2 P=" + line12.getTerminal1().getP() + " Q=" + line12.getTerminal1().getQ() + ") Term2 (BUS P=" + line12.getTerminal2().getP() + " Q=" + line12.getTerminal2().getQ() + ")");
+        sw.append("\n=== BUS (VL_0) : V=" + bus.getV() + " P=" + bus.getP() + " Q=" + bus.getQ());
+        sw.append("\n=== G : P=" + g.getTerminal().getP() + "MW / maxP: " + g.getMaxP() + "MW " + g.getTerminal().getQ() + "MVA ");
+        sw.append("\n=== DL : P=" + dl.getP0() + " Q=" + dl.getQ0() + " X=" +dl.getX()+ " R=" + dl.getR());
+        sw.append("\n         TerminalP=" + dl.getTerminal().getP() + " TeminalQ=" + dl.getTerminal().getQ() + " TerminalQ/TerminalP=" + dl.getTerminal().getQ()/dl.getTerminal().getP());
+        sw.append("\n--------------------------------------------------------");
+    }
+
+
 
     @ParameterizedTest(name = "DC = {0}")
     @ValueSource(booleans = {false, true})

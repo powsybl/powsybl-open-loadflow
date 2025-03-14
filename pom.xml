@@ -149,6 +149,21 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-network-area-diagram</artifactId>
+            <version>4.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-single-line-diagram-core</artifactId>
+            <version>4.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-single-line-diagram</artifactId>
+            <version>4.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
             <artifactId>powsybl-loadflow-api</artifactId>
         </dependency>
         <dependency>
