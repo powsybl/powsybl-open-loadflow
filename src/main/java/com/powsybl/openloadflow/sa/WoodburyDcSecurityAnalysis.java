@@ -56,6 +56,23 @@ import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanC
  */
 public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
+    private record SecurityAnalysisSimulationResults(ConnectivityAnalysisResult connectivityAnalysisResult, PreContingencyNetworkResult preContingencyNetworkResult,
+                                                     List<PostContingencyResult> postContingencyResults, List<OperatorStrategyResult> operatorStrategyResults) {
+    }
+
+    private record ActionsAndStrategiesById(Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
+                                            Map<String, LfAction> lfActionById) {
+    }
+
+    private record ToStates(Function<ConnectivityAnalysisResult, double[]> toPostContingencyStates,
+                            BiFunction<ConnectivityAnalysisResult, List<LfAction>, double[]> toPostContingencyAndOperatorStrategyStates) {
+    }
+
+    private record LimitViolationManagerAndParameters(LimitViolationManager limitViolationManager,
+                                                      SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
+                                                      List<LimitReduction> limitReductions) {
+    }
+
     protected WoodburyDcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                          List<StateMonitor> stateMonitors, ReportNode reportNode) {
         super(network, matrixFactory, connectivityFactory, stateMonitors, reportNode);
@@ -179,9 +196,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * Returns the post contingency result associated to given contingency and post contingency states.
      */
     private PostContingencyResult computePostContingencyResultFromPostContingencyStates(DcLoadFlowContext loadFlowContext, Contingency contingency, LfContingency lfContingency,
-                                                                                        LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
-                                                                                        boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                                                        double[] postContingencyStates, List<LimitReduction> limitReductions) {
+                                                                                        LimitViolationManagerAndParameters limitViolationManagerAndParameters, PreContingencyNetworkResult preContingencyNetworkResult,
+                                                                                        boolean createResultExtension, double[] postContingencyStates) {
 
         // update network state with post contingency states
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
@@ -195,7 +211,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         postContingencyNetworkResult.update();
 
         // detect violations
-        var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
+        var postContingencyLimitViolationManager = new LimitViolationManager(limitViolationManagerAndParameters.limitViolationManager,
+                limitViolationManagerAndParameters.limitReductions, limitViolationManagerAndParameters.violationsParameters);
         postContingencyLimitViolationManager.detectViolations(lfNetwork);
 
         var connectivityResult = new ConnectivityResult(
@@ -217,9 +234,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * Returns the operator strategy result associated to the given post contingency and post operator strategy states.
      */
     private OperatorStrategyResult computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(DcLoadFlowContext loadFlowContext, LfContingency lfContingency, OperatorStrategy operatorStrategy,
-                                                                                                             List<LfAction> operatorStrategyLfActions, LimitViolationManager preContingencyLimitViolationManager,
-                                                                                                             boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                                                                             double[] postContingencyAndOperatorStrategyStates, List<LimitReduction> limitReductions) {
+                                                                                                             List<LfAction> operatorStrategyLfActions, LimitViolationManagerAndParameters limitViolationManagerAndParameters,
+                                                                                                             boolean createResultExtension, double[] postContingencyAndOperatorStrategyStates) {
         // update network state with post contingency and post operator strategy states
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
         loadFlowContext.getEquationSystem().getStateVector().set(postContingencyAndOperatorStrategyStates);
@@ -234,7 +250,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         postActionsNetworkResult.update();
 
         // detect violations
-        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
+        var postActionsViolationManager = new LimitViolationManager(limitViolationManagerAndParameters.limitViolationManager,
+                limitViolationManagerAndParameters.limitReductions, limitViolationManagerAndParameters.violationsParameters);
         postActionsViolationManager.detectViolations(lfNetwork);
 
         return new OperatorStrategyResult(operatorStrategy, PostContingencyComputationStatus.CONVERGED,
@@ -248,14 +265,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * Add the post contingency and operator strategy results, associated to given contingency, in the given list of results.
      * The post contingency and post operator strategy states are computed with given supplier and function.
      */
-    private void addPostContingencyAndOperatorStrategyResults(DcLoadFlowContext context, ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
-                                                              Map<String, LfAction> lfActionById, Function<ConnectivityAnalysisResult, double[]> toPostContingencyStates,
-                                                              BiFunction<ConnectivityAnalysisResult, List<LfAction>, double[]> toPostContingencyAndOperatorStrategyStates,
-                                                              Runnable restorePreContingencyStates, LimitViolationManager preContingencyLimitViolationManager, PreContingencyNetworkResult preContingencyNetworkResult,
-                                                              boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters, List<LimitReduction> limitReductions,
-                                                              List<PostContingencyResult> postContingencyResults, List<OperatorStrategyResult> operatorStrategyResults) {
+    private void addPostContingencyAndOperatorStrategyResults(DcLoadFlowContext context, SecurityAnalysisSimulationResults securityAnalysisSimulationResults,
+                                                              ActionsAndStrategiesById actionsAndStrategiesById, ToStates toStates,
+                                                              Runnable restorePreContingencyStates, LimitViolationManagerAndParameters limitViolationManagerAndParameters,
+                                                              boolean createResultExtension) {
         // process results only if contingency impacts the network
-        connectivityAnalysisResult.toLfContingency().ifPresent(lfContingency -> {
+        ConnectivityAnalysisResult connectivityAnalysisResult = securityAnalysisSimulationResults.connectivityAnalysisResult;
+        securityAnalysisSimulationResults.connectivityAnalysisResult.toLfContingency().ifPresent(lfContingency -> {
             LfNetwork lfNetwork = context.getNetwork();
 
             Contingency contingency = connectivityAnalysisResult.getPropagatedContingency().getContingency();
@@ -266,19 +282,19 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             logPostContingencyStart(context.getNetwork(), lfContingency);
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            double[] postContingencyStates = toPostContingencyStates.apply(connectivityAnalysisResult);
+            double[] postContingencyStates = toStates.toPostContingencyStates.apply(connectivityAnalysisResult);
             PostContingencyResult postContingencyResult = computePostContingencyResultFromPostContingencyStates(context, contingency,
-                    lfContingency, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
-                    violationsParameters, postContingencyStates, limitReductions);
+                    lfContingency, limitViolationManagerAndParameters, securityAnalysisSimulationResults.preContingencyNetworkResult, createResultExtension,
+                    postContingencyStates);
 
             stopwatch.stop();
             logPostContingencyEnd(context.getNetwork(), lfContingency, stopwatch);
-            postContingencyResults.add(postContingencyResult);
+            securityAnalysisSimulationResults.postContingencyResults.add(postContingencyResult);
 
             // restore pre contingency states for next calculation
             restorePreContingencyStates.run();
 
-            List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(contingency.getId());
+            List<OperatorStrategy> operatorStrategiesForThisContingency = actionsAndStrategiesById.operatorStrategiesByContingencyId.get(contingency.getId());
             if (operatorStrategiesForThisContingency != null) {
                 for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
                     ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
@@ -287,7 +303,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     // get the actions associated to the operator strategy
                     List<String> actionIds = checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult());
                     List<LfAction> operatorStrategyLfActions = actionIds.stream()
-                            .map(lfActionById::get)
+                            .map(actionsAndStrategiesById.lfActionById::get)
                             .filter(Objects::nonNull)
                             .toList();
 
@@ -295,13 +311,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     stopwatch = Stopwatch.createStarted();
 
                     // process operator strategy result with supplier giving post contingency and post operator strategy states
-                    double[] postContingencyAndOperatorStrategyStates = toPostContingencyAndOperatorStrategyStates.apply(connectivityAnalysisResult, operatorStrategyLfActions);
+                    double[] postContingencyAndOperatorStrategyStates = toStates.toPostContingencyAndOperatorStrategyStates.apply(connectivityAnalysisResult, operatorStrategyLfActions);
                     OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(context, lfContingency, operatorStrategy, operatorStrategyLfActions,
-                            preContingencyLimitViolationManager, createResultExtension, violationsParameters, postContingencyAndOperatorStrategyStates, limitReductions);
+                            limitViolationManagerAndParameters, createResultExtension, postContingencyAndOperatorStrategyStates);
 
                     stopwatch.stop();
                     logActionEnd(context.getNetwork(), operatorStrategy, stopwatch);
-                    operatorStrategyResults.add(operatorStrategyResult);
+                    securityAnalysisSimulationResults.operatorStrategyResults.add(operatorStrategyResult);
 
                     // restore pre contingency states for next calculation
                     restorePreContingencyStates.run();
@@ -336,6 +352,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
                 indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions, true);
         Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions
+        ActionsAndStrategiesById actionsAndStrategiesById = new ActionsAndStrategiesById(operatorStrategiesByContingencyId, lfActionById);
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
@@ -399,6 +416,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     (connectivityAnalysisResult, operatorStrategyLfActions) -> calculatePostContingencyAndOperatorStrategyStates(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
                     connectivityAnalysisResult, connectivityBreakAnalysisResults.contingencyElementByBranch(), operatorStrategyLfActions, tapPositionChangeElementsByBranchId, actionsStates, reportNode);
 
+            ToStates toStates = new ToStates(toPostContingencyStates, toPostContingencyAndOperatorStrategyStates);
+            LimitViolationManagerAndParameters limitViolationManagerAndParameters = new LimitViolationManagerAndParameters(preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions);
+
             LOGGER.info("Processing post contingency results for contingencies with no connectivity break");
             connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies().forEach(nonBreakingConnectivityContingency -> {
                 ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityBreakAnalysis.ConnectivityAnalysisResult(nonBreakingConnectivityContingency, lfNetwork);
@@ -409,9 +429,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     // restore pre contingency state
                     networkState.restore();
                 };
-                addPostContingencyAndOperatorStrategyResults(context, connectivityAnalysisResult, operatorStrategiesByContingencyId, lfActionById, toPostContingencyStates,
-                        toPostContingencyAndOperatorStrategyStates, restorePreContingencyStates, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
-                        securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions, postContingencyResults, operatorStrategyResults);
+                SecurityAnalysisSimulationResults securityAnalysisSimulationResults = new SecurityAnalysisSimulationResults(connectivityAnalysisResult, preContingencyNetworkResult, postContingencyResults, operatorStrategyResults);
+                addPostContingencyAndOperatorStrategyResults(context, securityAnalysisSimulationResults, actionsAndStrategiesById, toStates,
+                        restorePreContingencyStates, limitViolationManagerAndParameters, createResultExtension);
             });
 
             LOGGER.info("Processing post contingency results for contingencies breaking connectivity");
@@ -419,9 +439,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 // runnable to restore pre contingency states, after modifications applied to the lfNetwork
                 // no need to update workingContingencyStates as an override of flow states will be computed
                 Runnable restorePreContingencyStates = networkState::restore;
-                addPostContingencyAndOperatorStrategyResults(context, connectivityAnalysisResult, operatorStrategiesByContingencyId, lfActionById, toPostContingencyStates,
-                        toPostContingencyAndOperatorStrategyStates, restorePreContingencyStates, preContingencyLimitViolationManager, preContingencyNetworkResult, createResultExtension,
-                        securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions, postContingencyResults, operatorStrategyResults);
+                SecurityAnalysisSimulationResults securityAnalysisSimulationResults = new SecurityAnalysisSimulationResults(connectivityAnalysisResult, preContingencyNetworkResult, postContingencyResults, operatorStrategyResults);
+                addPostContingencyAndOperatorStrategyResults(context, securityAnalysisSimulationResults, actionsAndStrategiesById, toStates,
+                        restorePreContingencyStates, limitViolationManagerAndParameters, createResultExtension);
             });
 
             return new SecurityAnalysisResult(

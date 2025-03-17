@@ -93,7 +93,7 @@ public final class ConnectivityBreakAnalysis {
 
         public Optional<LfContingency> toLfContingency() {
             PropagatedContingency.ContingencyConnectivityLossImpactAnalysis analysis = (network, contingencyId, branchesToOpen, relocateSlackBus)
-                    -> new PropagatedContingency.ContingencyConnectivityLossImpact(true, createdSynchronousComponents, disabledElements.disabledBuses, disabledElements.hvdcsWithoutPower);
+                    -> new PropagatedContingency.ContingencyConnectivityLossImpact(createdSynchronousComponents, disabledElements.disabledBuses, disabledElements.hvdcsWithoutPower);
             return propagatedContingency.toLfContingency(network, false, analysis);
         }
     }
