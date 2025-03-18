@@ -83,6 +83,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
         contingencies.add(new Contingency("LD", new LoadContingency("LD")));
 
+        contingencies.add(new Contingency("BBS2", new BusbarSectionContingency("BBS2")));
+
         StateMonitor stateMonitor = new StateMonitor(ContingencyContext.all(), Collections.emptySet(),
                 network.getVoltageLevelStream().map(Identifiable::getId).collect(Collectors.toSet()), Collections.emptySet());
 
@@ -90,13 +92,18 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(3, result.getPostContingencyResults().size());
+        assertEquals(4, result.getPostContingencyResults().size());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(0, result.getPostContingencyResults().get(0).getConnectivityResult().getDisconnectedLoadActivePower());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(0, result.getPostContingencyResults().get(1).getConnectivityResult().getDisconnectedLoadActivePower());
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "LD");
+        assertEquals(600, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
         assertEquals(398.0, postContingencyResult.getNetworkResult().getBusResult("BBS2").getV(), LoadFlowAssert.DELTA_V);
+
+        assertEquals(603.77, getPostContingencyResult(result, "BBS2").getConnectivityResult().getDisconnectedGenerationActivePower());
     }
 
     @Test
