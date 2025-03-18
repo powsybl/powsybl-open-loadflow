@@ -46,7 +46,7 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<String> elementsToReconnect;
 
-        private final Set<LfBus> slackConnectedComponent; // buses of connected component where the slack is// branches disabled because of connectivity loss.
+        private final Set<LfBus> slackConnectedComponent; // buses of connected component where the slack is
 
         private final int createdSynchronousComponents;
 
@@ -102,9 +102,11 @@ public final class ConnectivityBreakAnalysis {
                                                    List<ConnectivityAnalysisResult> connectivityAnalysisResults,
                                                    DenseMatrix contingenciesStates,
                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+
     }
 
     private ConnectivityBreakAnalysis() {
+
     }
 
     private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
