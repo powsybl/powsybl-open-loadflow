@@ -327,8 +327,6 @@ class OpenLoadFlowParametersTest {
     void testParametersWithConfigAndLoader() {
         OLFDefaultParametersLoaderMock loader = new OLFDefaultParametersLoaderMock("test");
 
-        FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix());
-        InMemoryPlatformConfig platformConfig = new InMemoryPlatformConfig(fileSystem);
         MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
         moduleConfig.setStringProperty("maxOuterLoopIterations", "50");
 
