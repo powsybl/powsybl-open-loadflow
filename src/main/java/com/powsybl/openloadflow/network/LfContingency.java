@@ -147,15 +147,30 @@ public class LfContingency {
             shunt.setG(shunt.getG() - e.getValue().getG());
             shunt.setB(shunt.getB() - e.getValue().getB());
         }
+        processPowerShifts(balanceType, true);
+    }
+
+    public void processPowerShifts(LoadFlowParameters.BalanceType balanceType, boolean updateAc) {
+        processLostLoads(balanceType, updateAc);
+        processLostGenerators(updateAc);
+        processHvdcsWithoutPower();
+    }
+
+    private void processLostLoads(LoadFlowParameters.BalanceType balanceType, boolean updateAc) {
         for (var e : lostLoads.entrySet()) {
             LfLoad load = e.getKey();
             LfLostLoad lostLoad = e.getValue();
             PowerShift shift = lostLoad.getPowerShift();
             load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive(), lostLoad.getNotParticipatingLoadP0()));
-            load.setTargetQ(load.getTargetQ() - shift.getReactive());
+            if (updateAc) {
+                load.setTargetQ(load.getTargetQ() - shift.getReactive());
+            }
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
             lostLoad.getOriginalIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
         }
+    }
+
+    private void processLostGenerators(boolean updateAc) {
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
             generator.setTargetP(0);
@@ -164,29 +179,36 @@ public class LfContingency {
             generatorBuses.add(bus);
             generator.setParticipating(false);
             generator.setDisabled(true);
-            if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
-                generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-                bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
-                bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
-            } else {
-                bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
-            }
-            if (generator instanceof LfStaticVarCompensator svc) {
-                svc.getStandByAutomatonShunt().ifPresent(svcShunt -> {
-                    // it means that the generator in contingency is a static var compensator with an active stand by automaton shunt
-                    shuntsShift.put(svcShunt, new AdmittanceShift(0, svcShunt.getB()));
-                    svcShunt.setB(0);
-                });
-            }
-        }
-        for (LfBus bus : generatorBuses) {
-            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                bus.setGeneratorVoltageControlEnabled(false);
-            }
-            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
-                bus.setGeneratorReactivePowerControlEnabled(false);
+            if (updateAc) {
+                if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
+                    generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                    bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
+                    bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
+                } else {
+                    bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
+                }
+                if (generator instanceof LfStaticVarCompensator svc) {
+                    svc.getStandByAutomatonShunt().ifPresent(svcShunt -> {
+                        // it means that the generator in contingency is a static var compensator with an active stand by automaton shunt
+                        shuntsShift.put(svcShunt, new AdmittanceShift(0, svcShunt.getB()));
+                        svcShunt.setB(0);
+                    });
+                }
             }
         }
+        if (updateAc) {
+            for (LfBus bus : generatorBuses) {
+                if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                    bus.setGeneratorVoltageControlEnabled(false);
+                }
+                if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
+                    bus.setGeneratorReactivePowerControlEnabled(false);
+                }
+            }
+        }
+    }
+
+    private void processHvdcsWithoutPower() {
         for (LfHvdc hvdc : hvdcsWithoutPower) {
             hvdc.getConverterStation1().setTargetP(0.0);
             hvdc.getConverterStation2().setTargetP(0.0);
