@@ -13,6 +13,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.impl.NetworkImpl;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
@@ -49,10 +50,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
@@ -1812,62 +1810,90 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @Test
     void testDanglingLineAction() {
-        Network network = DanglingLineNetworkFactory.createWithGeneration();
-
-        // Create L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
+//        Network network = DanglingLineNetworkFactory.createWithGeneration();
+        // Create network with dangling Line and load L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
         // add 1 generator, 1 load, 1 bus connected and create 1 line to connect the new bus to the already existing one
+        String networkId = "dangling-line";
+        String sourceFormat = "test";
+        Network network = NetworkFactory.findDefault().createNetwork(networkId, sourceFormat);
+        Substation substation = ((SubstationAdder)network.newSubstation().setId("S")).setCountry(Country.FR).add();
+        VoltageLevel voltageLevel = ((VoltageLevelAdder)substation.newVoltageLevel().setId("VL"))
+                .setNominalV(100.0).setLowVoltageLimit(80.0).setHighVoltageLimit(120.0).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        ((BusAdder)voltageLevel.getBusBreakerView().newBus().setId("BUS")).add();
+        ((GeneratorAdder)((GeneratorAdder)voltageLevel.newGenerator().setId("G"))
+                .setMinP(0.0).setMaxP(400.0)
+                .setBus("BUS")
+                .setVoltageRegulatorOn(true)
+                .setTargetV(100.0)
+                .setTargetP(50.0)
+                .setTargetQ(0)).add();
+        DanglingLine danglingLine = ((DanglingLineAdder)((DanglingLineAdder)network.getVoltageLevel("VL").newDanglingLine().setId("DL")).setBus("BUS"))
+                .setR(0.0).setX(1.0).setB(1.0E-5).setG(1.0E-4)
+                .setP0(-20.0)
+                .setQ0(30.0)
+                .newGeneration()
+                .setTargetP(-20)
+                .setMaxP(100.0)
+                .setMinP(5.0)
+                .setTargetV(101.0).setVoltageRegulationOn(true).add().add();
+        danglingLine.getGeneration()
+                .newReactiveCapabilityCurve()
+                .beginPoint().setP(0.0).setMinQ(-59.3).setMaxQ(60.0).endPoint()
+                .beginPoint().setP(70.0).setMinQ(-54.55).setMaxQ(46.25).endPoint()
+                .add();
+
         ((BusAdder) network.getVoltageLevel("VL").getBusBreakerView().newBus().setId("BUS_2")).add();
         network.getVoltageLevel("VL").newGenerator()
-                .setId("G_2")
-                .setBus("BUS_2")
-                .setConnectableBus("BUS_2")
-                .setTargetP(270)
-                .setTargetV(385)
-                .setTargetQ(100)
-                .setMaxP(270)
+                .setId("G_2").setBus("BUS_2").setConnectableBus("BUS_2").setVoltageRegulatorOn(true)
+                .setTargetP(40)
+                .setTargetV(100)
+                .setTargetQ(30)
+                .setMaxP(100)
                 .setMinP(0)
-                .setVoltageRegulatorOn(true)
                 .add();
-        network.newLine()
-                .setId("LINE_12")
-                .setBus1("BUS_2")
-                .setBus2("BUS")
-                .setR(7.4)
+        network.newLine().setId("LINE_12").setBus1("BUS_2").setBus2("BUS")
+                .setR(0)
                 .setX(0)
                 .add();
-        network.getVoltageLevel("VL").newLoad()
-                .setId("L_2")
-                .setConnectableBus("BUS_2")
-                .setBus("BUS_2")
-                .setP0(600)
-                .setQ0(0)
+        network.getVoltageLevel("VL").newLoad().setId("L_2").setConnectableBus("BUS_2").setBus("BUS_2")
+                .setP0(100)
+                .setQ0(3)
                 .add();
-
 
         LoadFlowResult lfResult = null;
         StringWriter sw = new StringWriter();
 
         displayState("---- Before loadflow", "/tmp/sld-before-lf.svg", network, lfResult, sw);
 
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
         lfResult = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResult.getStatus());
+        System.out.println(sw.toString());
+
         //assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, lfResult.getComponentResults().get(0).getStatus());
         displayState("---- After loadflow", "/tmp/sld-after-lf.svg", network, lfResult, sw);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResult.getStatus());
 
         // Apply the contingency: disconnect the generator connected to the same bus of the DL
         network.getGenerator("G").disconnect();
         LoadFlowResult lfResultWithoutG = loadFlowRunner.run(network, parameters);
         displayState("---- After loadflow on G disconnected", "/tmp/sld-after-lf-g-disconnected.svg", network, lfResultWithoutG, sw);
-        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResultWithoutG.getStatus());
+        assertEquals(LoadFlowResult.Status.FAILED, lfResultWithoutG.getStatus());
 
         System.out.println(sw.toString());
 
-//        LoadFlowResult loadFlowResult = loadFlowRunner.run(network, parameters);
-//        // Apply the modification
-//        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
-//        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
-//        LoadFlowResult loadFlowResultPostModification = loadFlowRunner.run(network, parameters);
+        // Modify DanglingLine to make the LF converges
+
+        // Apply the modification
+        network.getDanglingLine("DL").setP0(-100);
+        network.getDanglingLine("DL").setQ0(0);
+        LoadFlowResult loadFlowResultWithModification = loadFlowRunner.run(network, parameters);
+        displayState("---- After loadflow on G disconnected but with DL modification", "/tmp/sld-after-lf-g-disconnected-with-dl-modification.svg", network, loadFlowResultWithModification, sw);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, loadFlowResultWithModification.getStatus());
+
 //
 //
 //        // todo later:
