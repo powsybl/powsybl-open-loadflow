@@ -1771,10 +1771,10 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 .setId("G_2")
                 .setBus("BUS_2")
                 .setConnectableBus("BUS_2")
-                .setTargetP(270)
-                .setTargetV(385)
-                .setTargetQ(100)
-                .setMaxP(270)
+                .setTargetP(50)
+                .setTargetV(100)
+                .setTargetQ(30)
+                .setMaxP(100)
                 .setMinP(0)
                 .setVoltageRegulatorOn(true)
                 .add();
@@ -1782,25 +1782,30 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 .setId("LINE_12")
                 .setBus1("BUS_2")
                 .setBus2("BUS")
-                .setR(7.4)
-                .setX(0)
+                .setR(10)
+                .setX(1.0)
                 .add();
         network.getVoltageLevel("VL").newLoad()
                 .setId("L_2")
                 .setConnectableBus("BUS_2")
                 .setBus("BUS_2")
-                .setP0(600)
-                .setQ0(0)
+                .setP0(300)
+                .setQ0(3)
                 .add();
-
 
         LoadFlowResult lfResult = null;
         StringWriter sw = new StringWriter();
 
         displayState("---- Before loadflow", "/tmp/sld-before-lf.svg", network, lfResult, sw);
 
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
         lfResult = loadFlowRunner.run(network, parameters);
+        System.out.println(sw.toString());
+
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResult.getStatus());
         //assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, lfResult.getComponentResults().get(0).getStatus());
         displayState("---- After loadflow", "/tmp/sld-after-lf.svg", network, lfResult, sw);
@@ -1809,15 +1814,19 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         network.getGenerator("G").disconnect();
         LoadFlowResult lfResultWithoutG = loadFlowRunner.run(network, parameters);
         displayState("---- After loadflow on G disconnected", "/tmp/sld-after-lf-g-disconnected.svg", network, lfResultWithoutG, sw);
-        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResultWithoutG.getStatus());
+        assertEquals(LoadFlowResult.Status.FAILED, lfResultWithoutG.getStatus());
 
         System.out.println(sw.toString());
 
-//        LoadFlowResult loadFlowResult = loadFlowRunner.run(network, parameters);
-//        // Apply the modification
-//        network.getDanglingLine(danglingLineId).setP0(finalActivePowerValue);
-//        network.getDanglingLine(danglingLineId).setQ0(finalReactivePowerValue);
-//        LoadFlowResult loadFlowResultPostModification = loadFlowRunner.run(network, parameters);
+        // Modify DanglingLine to make the LF converges
+
+        // Apply the modification
+        network.getDanglingLine("DL").setP0(100);
+        network.getDanglingLine("DL").setQ0(0);
+        LoadFlowResult loadFlowResultWithModification = loadFlowRunner.run(network, parameters);
+        displayState("---- After loadflow on G disconnected but with DL modification", "/tmp/sld-after-lf-g-disconnected-with-dl-modification.svg", network, loadFlowResultWithModification, sw);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, loadFlowResultWithModification.getStatus());
+
 //
 //
 //        // todo later:
