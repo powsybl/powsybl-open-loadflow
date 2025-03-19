@@ -3760,17 +3760,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(8389, reportString.length());
         // Check also that the preCont report is before the postContResults in the second CC
         String expected =
-                  "      + Network CC1 SC1\n" +
-                        "         + Network info\n" +
-                        "            Network has 2 buses and 2 branches\n" +
-                        "            Network balance: active generation=2.0 MW, active load=2.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar\n" +
-                        "            Angle reference bus: c1_vl_0\n" +
-                        "            Slack bus: c1_vl_0\n" +
-                        "         + Pre-contingency simulation\n" +
-                        "            Outer loop DistributedSlack\n" +
-                        "            Outer loop VoltageMonitoring\n" +
-                        "            Outer loop ReactiveLimits\n" +
-                        "            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)";
+                """
+                              + Network CC1 SC1
+                                 + Network info
+                                    Network has 2 buses and 2 branches
+                                    Network balance: active generation=2.0 MW, active load=2.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                                    Angle reference bus: c1_vl_0
+                                    Slack bus: c1_vl_0
+                                 + Pre-contingency simulation
+                                    Outer loop DistributedSlack
+                                    Outer loop VoltageMonitoring
+                                    Outer loop ReactiveLimits
+                                    AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)\
+                        """;
 
         assertTrue(reportString.contains(expected));
     }
@@ -3853,11 +3855,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        StringWriter sw = new StringWriter();
-        reportNode.print(sw);
-        // Remove Windows EOL
-        String reportString = TestUtil.normalizeLineSeparator(sw.toString());
-        // The purpose of this test is to check that the report is the same with one or two threads
         assertReportEquals("/saMtReport.txt", reportNode);
     }
 

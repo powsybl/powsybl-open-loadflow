@@ -302,10 +302,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // So the merge is just about appending relevant data to lfNetwork nodes of the
         // main thread
 
-        for (LfNetworkId key : mainNodes.keySet()) {
+        for (Map.Entry<LfNetworkId, ReportNode> entry : mainNodes.entrySet()) {
             // Both should exist
-            ReportNode mainReportNode = mainNodes.get(key);
-            ReportNode toMergeNode = toMergeNodes.get(key);
+            ReportNode mainReportNode = entry.getValue();
+            ReportNode toMergeNode = toMergeNodes.get(entry.getKey());
             toMergeNode.getChildren().stream()
                     .filter(n -> n.getMessageKey().equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
                     .forEach(mainReportNode::addCopy);
