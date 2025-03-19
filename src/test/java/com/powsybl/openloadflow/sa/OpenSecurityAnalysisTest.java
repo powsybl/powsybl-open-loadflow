@@ -3556,6 +3556,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // The two report nodes should be equals
         assertEquals(swOneThread.toString(), swTwoThreads.toString());
+
+        // test with mt and no report
+        securityAnalysisParametersExt.setThreadCount(2);
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, ReportNode.NO_OP);
     }
 
     @Test
