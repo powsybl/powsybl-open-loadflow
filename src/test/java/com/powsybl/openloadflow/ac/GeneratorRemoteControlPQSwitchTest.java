@@ -27,13 +27,13 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -406,17 +406,11 @@ class GeneratorRemoteControlPQSwitchTest {
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;
 
-            assertReportEqualsString(expectedReport, reportNode);
+            LoadFlowAssert.assertReportEqualsString(expectedReport, reportNode);
         }
     }
 
-    private void assertReportEqualsString(String expected, ReportNode reportNode) throws IOException {
-        assertReportEquals(new ByteArrayInputStream(expected.getBytes()), reportNode);
-    }
-
     private LoadFlowResult runWithReport() {
-        // runner> You want a report ? Pff... Really ? OK... but then you need to pass me my favorite arguments almost nobody cares about
-        // runner> and you may also have IO EXceptions when looking at the result. I've warned you.
         return loadFlowRunner.run(network,
                 network.getVariantManager().getWorkingVariantId(),
                 LocalComputationManager.getDefault(),
