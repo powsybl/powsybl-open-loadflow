@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.sa;
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.report.PowsyblCoreReportResourceBundle;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
@@ -220,7 +219,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                             ReportNode threadRootNode = partitionNum == 0 ? saReportNode :
                                     ReportNode.newRootReportNode()
-                                            .withResourceBundles(PowsyblCoreReportResourceBundle.BASE_NAME)
                                             .withMessageTemplate("threadRoot", "threadRoot")
                                             .build();
                             reportNodes.set(partitionNum, threadRootNode);

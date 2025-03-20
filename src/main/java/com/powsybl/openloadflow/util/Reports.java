@@ -307,7 +307,6 @@ public final class Reports {
 
     public static ReportNode reportPvPqSwitchLimit(LfBus controllerBus, int limit, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblCoreReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("pvPqSwitchLimit",
                         "Bus '${busId}' blocked PQ as it has reached its max number of PQ -> PV switch (${limit})")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -322,7 +321,6 @@ public final class Reports {
 
     public static ReportNode reportPqToPvBusMaxLimit(LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblCoreReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("pqToPvBusMaxLimit",
                         "Switch bus '${busId}' PQ -> PV, q=maxQ and v=${busV}kV > targetV=${targetV}kV")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -340,7 +338,6 @@ public final class Reports {
 
     public static ReportNode reportPqToPvBusMinLimit(LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblCoreReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("pqToPvBusMinLimit",
                         "Switch bus '${busId}' PQ -> PV, q=minQ and v=${busV}kV < targetV=${targetV}kV")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -386,7 +383,6 @@ public final class Reports {
                                                                    boolean log,
                                                                    Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblCoreReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("reactiveControllerBusesToPqMaxQ",
                         "Remote reactive power controller bus '${busId}' -> PQ, q=${busQ} > maxQ=${maxQ}")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -406,7 +402,6 @@ public final class Reports {
                                                              boolean log,
                                                              Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblCoreReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("reactiveControllerBusesToPqMinQ",
                         "Remote reactive power controller bus '${busId}' -> PQ, q=${busQ} < minQ=${minQ}")
                 .withUntypedValue("busId", controllerBus.getId())
