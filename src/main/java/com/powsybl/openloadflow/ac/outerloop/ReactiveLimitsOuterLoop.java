@@ -211,8 +211,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         }
 
-        ReportNode summary = Reports.reportPqToPvBuses(reportNode, pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
-        pqPvNodes.forEach(summary::include);
+        if (!pqPvNodes.isEmpty()) {
+            ReportNode summary = Reports.reportPqToPvBuses(reportNode, pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
+            pqPvNodes.forEach(summary::include);
+        }
 
         LOGGER.info("{} buses switched PQ -> PV ({} buses blocked PQ because have reach max number of switch)",
                 pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
@@ -354,8 +356,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         }
 
-        ReportNode node = Reports.reportReactiveControllerBusesToPqBuses(reportNode, switchCount);
-        switchedNodes.forEach(node::include);
+        if (!switchedNodes.isEmpty()) {
+            ReportNode node = Reports.reportReactiveControllerBusesToPqBuses(reportNode, switchCount);
+            switchedNodes.forEach(node::include);
+        }
 
         LOGGER.info("{} remote reactive power controller buses switched PQ", switchCount);
 
