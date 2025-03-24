@@ -257,7 +257,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         // Apply remedial action
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
 
-        LoadFlowResult lfResult = loadFlowRunner.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
 
         // Compare results on the line L12
         assertEquals(network.getLine("L12").getTerminal1().getP(), brAbsL12.getP1(), LoadFlowAssert.DELTA_POWER);
