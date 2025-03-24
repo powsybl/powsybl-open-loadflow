@@ -17,7 +17,6 @@ import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
