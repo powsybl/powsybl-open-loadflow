@@ -13,6 +13,7 @@ import com.powsybl.action.LoadActionBuilder;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.TestUtil;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
@@ -55,6 +56,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
@@ -3521,7 +3523,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testMultiThreads() {
+    void testMultiThreads() throws IOException {
         Network network = createNodeBreakerNetwork();
         assertFalse(network.getVariantManager().isVariantMultiThreadAccessAllowed());
 
@@ -3536,12 +3538,35 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .toList();
 
-        SecurityAnalysisResult resultOneThread = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        ReportNode reportNodeOneThread = ReportNode.newRootReportNode()
+                .withMessageTemplate("MT_SA_TEST", "MT SA Report Node")
+                .build();
+        SecurityAnalysisResult resultOneThread =
+                runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNodeOneThread);
+
         securityAnalysisParametersExt.setThreadCount(2);
-        SecurityAnalysisResult resultTwoThreads = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        ReportNode reportNodeTwoThreads = ReportNode.newRootReportNode()
+                .withMessageTemplate("MT_SA_TEST", "MT SA Report Node")
+                .build();
+        SecurityAnalysisResult resultTwoThreads =
+                runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNodeOneThread);
+
         assertFalse(network.getVariantManager().isVariantMultiThreadAccessAllowed());
         assertEquals(resultOneThread.getPostContingencyResults().size(), resultTwoThreads.getPostContingencyResults().size());
         assertEquals(resultOneThread.getOperatorStrategyResults().size(), resultTwoThreads.getOperatorStrategyResults().size());
+
+        StringWriter swOneThread = new StringWriter();
+        reportNodeTwoThreads.print(swOneThread);
+
+        StringWriter swTwoThreads = new StringWriter();
+        reportNodeTwoThreads.print(swTwoThreads);
+
+        // The two report nodes should be equals
+        assertEquals(swOneThread.toString(), swTwoThreads.toString());
+
+        // test with mt and no report
+        securityAnalysisParametersExt.setThreadCount(2);
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, ReportNode.NO_OP);
     }
 
     @Test
@@ -3665,8 +3690,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l34").getTerminal1().getP(), networkResultContingency0.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void multiComponentSaTest() {
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void multiComponentSaTest(int threadCount) throws IOException {
         Network network = FourBusNetworkFactory.createWithTwoScs();
         // Add a load on small component
         network.getBusBreakerView().getBus("c1")
@@ -3679,20 +3705,41 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .add();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()
+                .setThreadCount(threadCount);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
         securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
 
-        List<Contingency> contingencies = List.of(new Contingency("l13", new BranchContingency("l13")),
+        List<Contingency> checkedContingencies = List.of(new Contingency("l13", new BranchContingency("l13")),
                 new Contingency("dummyLoad", new LoadContingency("dummyLoad")));
+
+        // Add more contingencies to activate multi thread
+        List<Contingency> contingencies = new ArrayList<>(checkedContingencies);
+        for (int i = 0; i < 10; i++) {
+            contingencies.add(new Contingency("l13_" + i, new BranchContingency("l13")));
+            contingencies.add(new Contingency("dummyLoad_" + i, new LoadContingency("dummyLoad")));
+        }
 
         // Monitor branch in both components
         List<StateMonitor> monitors = List.of(
                 new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "lc12", "lc12Bis"), emptySet(), emptySet())
         );
 
-        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        ReportNode testReport = ReportNode.newRootReportNode()
+                .withMessageTemplate("TEST", "TEST Report Node")
+                .build();
+
+        SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, testReport);
         NetworkResult preContingencyResults = results.getPreContingencyResult().getNetworkResult();
-        NetworkResult postContingencyResultsl13 = results.getPostContingencyResults().get(0).getNetworkResult();
-        NetworkResult postContingencyResultslc12Bis = results.getPostContingencyResults().get(1).getNetworkResult();
+        NetworkResult postContingencyResultsl13 = results.getPostContingencyResults().stream()
+                .filter(r -> r.getContingency().getId().equals("l13"))
+                .findAny()
+                .map(AbstractContingencyResult::getNetworkResult).orElseThrow();
+
+        NetworkResult postContingencyResultsDummyLoad = results.getPostContingencyResults().stream()
+                .filter(r -> r.getContingency().getId().equals("dummyLoad"))
+                .findAny()
+                .map(AbstractContingencyResult::getNetworkResult).orElseThrow();
 
         // Result for base case is available for all components
         assertEquals(0.084, preContingencyResults.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -3711,13 +3758,39 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertNull(postContingencyResultsl13.getBranchResult("lc12Bis"));
 
         // Result for post contingency on dummyLoad is available for part of the network on which the contingency has an impact
-        assertEquals(0.498, postContingencyResultslc12Bis.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.498, postContingencyResultslc12Bis.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498, postContingencyResultsDummyLoad.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498, postContingencyResultsDummyLoad.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        StringWriter sw = new StringWriter();
+        testReport.print(sw);
+        // Remove Windows EOL
+        String reportString = TestUtil.normalizeLineSeparator(sw.toString());
+
+        // The report should be the same with one or two threads
+        // Let's just check the size here
+        assertEquals(8389, reportString.length());
+        // Check also that the preCont report is before the postContResults in the second CC
+        String expected =
+                """
+                              + Network CC1 SC1
+                                 + Network info
+                                    Network has 2 buses and 2 branches
+                                    Network balance: active generation=2.0 MW, active load=2.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                                    Angle reference bus: c1_vl_0
+                                    Slack bus: c1_vl_0
+                                 + Pre-contingency simulation
+                                    Outer loop DistributedSlack
+                                    Outer loop VoltageMonitoring
+                                    Outer loop ReactiveLimits
+                                    AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)\
+                        """;
+
+        assertTrue(reportString.contains(expected));
     }
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
-    void multiComponentSaTestContingencyBothComponentsAndOperatorStrategy(int threadCount) {
+    void multiComponentSaTestContingencyBothComponentsAndOperatorStrategy(int threadCount) throws IOException {
 
         Network network = FourBusNetworkFactory.createWithTwoScs();
         // Add a load on small component
@@ -3793,6 +3866,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.499, operatorStrategyResult.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
 
+        assertReportEquals("/saMtReport.txt", reportNode);
     }
 
 

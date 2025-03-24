@@ -274,7 +274,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // apply modifications to compute results
         lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
-        LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters(), reportNode);
+        LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
 
         // update network result
         var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
