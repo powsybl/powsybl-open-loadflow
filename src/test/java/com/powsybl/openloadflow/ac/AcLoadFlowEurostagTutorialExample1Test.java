@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -468,14 +469,43 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void maxOuterLoopIterationTest() {
+    void maxOuterLoopIterationTest() throws IOException {
+        ReportNode report = ReportNode.newRootReportNode()
+                .withMessageTemplate("test", "test")
+                .build();
         gen.setTargetP(1000);
         parameters.setDistributedSlack(true);
         parametersExt.setMaxOuterLoopIterations(1);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        LoadFlowResult result = loadFlowRunner.run(network,
+                network.getVariantManager().getWorkingVariantId(),
+                LocalComputationManager.getDefault(),
+                parameters,
+                report
+                );
+
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
         assertEquals("Reached outer loop max iterations limit. Last outer loop name: DistributedSlack", result.getComponentResults().get(0).getStatusText());
+
+        String expected = """
+                + test
+                   + Load flow on network 'sim1'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 4 branches
+                            Network balance: active generation=1000 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
+                            Angle reference bus: VLGEN_0
+                            Slack bus: VLGEN_0
+                         + Outer loop DistributedSlack
+                            + Outer loop iteration 1
+                               Slack bus active power (-394.444523 MW) distributed in 1 distribution iteration(s)
+                            Outer loop unsuccessful with status: UNSTABLE
+                         Maximum number of outerloop iterations reached: 1
+                         AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=UNSTABLE)
+                """;
+
+        assertReportEquals(new ByteArrayInputStream(expected.getBytes()), report);
     }
 
     @Test

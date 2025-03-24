@@ -13,7 +13,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
@@ -405,12 +404,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             allLfFactors.stream()
                     .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                                 && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                                && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
                             || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
                                 && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_1
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_2
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_3
                                 && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
                     .findFirst()
                     .ifPresent(ignored -> {
-                        throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1 and BRANCH_ACTIVE_POWER_2 are yet supported in DC");
+                        throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
                     });
 
             LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());
@@ -471,8 +474,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with no connectivity break
                 for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
-                    matrixCopyValues(baseFlowStates, workingFlowStates);
-                    matrixCopyValues(baseFactorStates, workingFactorStates);
+                    workingFlowStates.copyValuesFrom(baseFlowStates);
+                    workingFactorStates.copyValuesFrom(baseFactorStates);
 
                     calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
                             workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, contingency,
@@ -483,8 +486,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with connectivity break
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
-                    matrixCopyValues(baseFlowStates, workingFlowStates);
-                    matrixCopyValues(baseFactorStates, workingFactorStates);
+                    workingFlowStates.copyValuesFrom(baseFlowStates);
+                    workingFactorStates.copyValuesFrom(baseFactorStates);
 
                     processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
                             validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
@@ -494,23 +497,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             stopwatch.stop();
             LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        }
-    }
-
-    /**
-     * Copy all the values that are in an originalMatrix and paste it in the copyMatrix (without allocating new memory spaces)
-     * The dimensions of both matrices must be the same
-     */
-    // TODO : implement this method for DenseMatrix in powsybl-core ?
-    private static void matrixCopyValues(DenseMatrix originalMatrix, DenseMatrix copyMatrix) {
-        if (originalMatrix.getRowCount() == copyMatrix.getRowCount() && originalMatrix.getColumnCount() == copyMatrix.getColumnCount()) {
-            for (int columnIndex = 0; columnIndex < originalMatrix.getColumnCount(); columnIndex++) {
-                for (int rowIndex = 0; rowIndex < originalMatrix.getRowCount(); rowIndex++) {
-                    copyMatrix.set(rowIndex, columnIndex, originalMatrix.get(rowIndex, columnIndex));
-                }
-            }
-        } else {
-            throw new MatrixException("Incompatible matrices dimensions when copying values. Received (" + originalMatrix.getRowCount() + ", " + originalMatrix.getColumnCount() + ") and (" + copyMatrix.getRowCount() + ", " + copyMatrix.getColumnCount() + ")");
         }
     }
 

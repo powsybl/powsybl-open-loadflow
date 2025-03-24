@@ -1,10 +1,10 @@
 + Test Report
    + Load flow on network 'test'
       + Network CC0 SC0
-         1 generators have been discarded from voltage control because targetV is inconsistent
+         1 generators have been discarded from voltage control because targetV is implausible
          + Network info
             Network has 4 buses and 5 branches
-            Network balance: active generation=5.0 MW, active load=5.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+            Network balance: active generation=5 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
             Angle reference bus: b1_vl_0
             Slack bus: b1_vl_0
          Outer loop DistributedSlack

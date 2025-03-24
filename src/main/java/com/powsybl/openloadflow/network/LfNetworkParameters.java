@@ -68,6 +68,8 @@ public class LfNetworkParameters {
 
     public static final boolean TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE = false;
 
+    public static final boolean DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE = false;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -148,6 +150,10 @@ public class LfNetworkParameters {
 
     private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
+    private boolean forceTargetQInReactiveLimits = OpenLoadFlowParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean disableInconsistentVoltageControls = DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -194,6 +200,7 @@ public class LfNetworkParameters {
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -597,6 +604,24 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isForceTargetQInReactiveLimits() {
+        return forceTargetQInReactiveLimits;
+    }
+
+    public LfNetworkParameters setForceTargetQInReactiveLimits(boolean forceTargetQInReactiveLimits) {
+        this.forceTargetQInReactiveLimits = forceTargetQInReactiveLimits;
+        return this;
+    }
+
+    public boolean isDisableInconsistentVoltageControls() {
+        return disableInconsistentVoltageControls;
+    }
+
+    public LfNetworkParameters setDisableInconsistentVoltageControls(boolean disableInconsistentVoltageControls) {
+        this.disableInconsistentVoltageControls = disableInconsistentVoltageControls;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -638,6 +663,8 @@ public class LfNetworkParameters {
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ", areaInterchangeControl=" + areaInterchangeControl +
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
+                ", forceTargetQInReactiveLimits=" + forceTargetQInReactiveLimits +
+                ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ')';
     }
 }
