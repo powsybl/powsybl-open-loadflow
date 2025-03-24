@@ -50,7 +50,6 @@ import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -1314,8 +1313,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0, compare);
     }
 
-    // TODO: Reactivate
-    @Disabled("Understand why it fails with the Vector Engine and reactivate")
     @Test
     void testPhaseShifterNecessaryForConnectivity() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
@@ -1330,6 +1327,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setPhaseShifterRegulationOn(true);
+        // Set slack mismatch equal to comparison epsilon
+        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters().setSlackBusPMaxMismatch(0.001));
 
         List<Contingency> contingencies = List.of(Contingency.line("L2"), Contingency.twoWindingsTransformer("PS1"), Contingency.line("L1")); // I added L2 and PS1 before to assert there is no impact on L1 contingency
 
