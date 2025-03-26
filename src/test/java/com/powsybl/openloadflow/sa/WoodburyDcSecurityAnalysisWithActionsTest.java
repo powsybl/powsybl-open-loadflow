@@ -219,9 +219,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brRelPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    // TODO Does not work in DC mode - to fix in a separate PR
-    @Test
-    void testSaDcPhaseTapChangerTapPositionChangeWithConnectivityBreak() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testSaDcPhaseTapChangerTapPositionChangeWithConnectivityBreak(boolean fastDcMode) {
         Network network = PhaseControlFactory.createNetworkWith3Buses();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -235,6 +235,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusId("VL2_0")
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(fastDcMode);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 
