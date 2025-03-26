@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -498,16 +498,18 @@ class AcLoadFlowPhaseShifterTest {
 
         parameters.setPhaseShifterRegulationOn(true);
         parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+        parametersExt.setSlackBusPMaxMismatch(0.001);
+        parametersExt.setNewtonRaphsonConvEpsPerEq(1e-6);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(50.088, t2wt.getTerminal1());
+        assertActivePowerEquals(50.084, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulating(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
-        assertActivePowerEquals(83.686, t2wt.getTerminal1());
+        assertActivePowerEquals(83.687, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         t2wt.getPhaseTapChanger().setRegulationValue(10);
