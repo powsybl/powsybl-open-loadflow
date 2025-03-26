@@ -498,16 +498,18 @@ class AcLoadFlowPhaseShifterTest {
 
         parameters.setPhaseShifterRegulationOn(true);
         parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+        parametersExt.setSlackBusPMaxMismatch(0.001);
+        parametersExt.setNewtonRaphsonConvEpsPerEq(1e-6);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(50.088, t2wt.getTerminal1());
+        assertActivePowerEquals(50.084, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulating(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
-        assertActivePowerEquals(83.686, t2wt.getTerminal1());
+        assertActivePowerEquals(83.687, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         t2wt.getPhaseTapChanger().setRegulationValue(10);
