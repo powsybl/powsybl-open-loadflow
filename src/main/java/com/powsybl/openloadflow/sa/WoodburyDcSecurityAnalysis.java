@@ -222,7 +222,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // detect violations
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
-        Predicate<LfBranch> isBranchDisabled = (branch) -> lfContingency.getDisabledNetwork().getBranchesStatus().containsKey(branch);
+        Predicate<LfBranch> isBranchDisabled = branch -> lfContingency.getDisabledNetwork().getBranchesStatus().containsKey(branch);
         postContingencyLimitViolationManager.detectViolations(lfNetwork, isBranchDisabled);
 
         // connectivity result due to the application of the lf contingency
