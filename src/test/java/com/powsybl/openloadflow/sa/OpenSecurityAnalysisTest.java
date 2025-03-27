@@ -4381,4 +4381,44 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerLoopNames");
         assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true})
+    void testNoViolationDetectedOnRemovedBranchOnOneSideDcSa(boolean dcFastMode) {
+        Network network = createNodeBreakerNetwork2();
+
+        // add limits on disabled lines to verify if violations are detected on them
+        network.getLine("L4").newCurrentLimits1().setPermanentLimit(1).add();
+        network.getLine("L4").newCurrentLimits2().setPermanentLimit(1).add();
+        network.getLine("L4").newActivePowerLimits1()
+                .setPermanentLimit(1.0)
+                .beginTemporaryLimit()
+                .setName("60")
+                .setAcceptableDuration(60)
+                .setValue(1.2)
+                .endTemporaryLimit()
+                .add();
+//        network.getLine("L5").newCurrentLimits1().setPermanentLimit(1).add();
+//        network.getLine("L5").newCurrentLimits2().setPermanentLimit(1).add();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setDc(true);
+        setSlackBusId(lfParameters, "VL1_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        // set dc sa mode
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(dcFastMode);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        // this contingency will disable L4 on side 1 and L5 on side 2
+        List<Contingency> contingencies = Stream.of("BBS3")
+                .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
+                .collect(Collectors.toList());
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+    }
 }

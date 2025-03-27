@@ -16,6 +16,8 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TopologyKind;
+import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -29,11 +31,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.security.LimitViolationFilter;
-import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.SecurityAnalysisReport;
-import com.powsybl.security.SecurityAnalysisResult;
-import com.powsybl.security.SecurityAnalysisRunParameters;
+import com.powsybl.security.*;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
@@ -74,6 +72,95 @@ public abstract class AbstractOpenSecurityAnalysisTest {
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
         loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
+    }
+
+    protected static Network createNodeBreakerNetwork2() {
+        Network network = NodeBreakerNetworkFactory.create();
+
+        network.getVoltageLevel("VL1").getNodeBreakerView().newBreaker()
+                .setId("BR1")
+                .setNode1(0)
+                .setNode2(7)
+                .add();
+        network.getVoltageLevel("VL2").getNodeBreakerView().newBreaker()
+                .setId("BR2")
+                .setNode1(0)
+                .setNode2(4)
+                .add();
+        network.getVoltageLevel("VL2").getNodeBreakerView().newBreaker()
+                .setId("BR3")
+                .setNode1(0)
+                .setNode2(5)
+                .add();
+
+        // add another voltage level to induce flow
+        VoltageLevel vl3 = network.getSubstation("S").newVoltageLevel()
+                .setId("VL3")
+                .setNominalV(400)
+                .setLowVoltageLimit(370.)
+                .setHighVoltageLimit(420.)
+                .setTopologyKind(TopologyKind.NODE_BREAKER)
+                .add();
+        vl3.getNodeBreakerView().newBreaker()
+                .setId("B5")
+                .setNode1(0)
+                .setNode2(1)
+                .add();
+        vl3.getNodeBreakerView().newBreaker()
+                .setId("B6")
+                .setNode1(0)
+                .setNode2(2)
+                .add();
+        vl3.getNodeBreakerView().newInternalConnection()
+                .setNode1(0)
+                .setNode2(3)
+                .add();
+        vl3.newLoad()
+                .setId("LD2")
+                .setNode(3)
+                .setP0(200.0)
+                .setQ0(50.0)
+                .add();
+        vl3.getNodeBreakerView().newBreaker()
+                .setId("B7")
+                .setNode1(0)
+                .setNode2(4)
+                .add();
+        network.newLine()
+                .setId("L3")
+                .setVoltageLevel1("VL1")
+                .setNode1(7)
+                .setVoltageLevel2("VL3")
+                .setNode2(1)
+                .setR(3.0)
+                .setX(33.0)
+                .setB1(386E-6 / 2)
+                .setB2(386E-6 / 2)
+                .add();
+        network.newLine()
+                .setId("L4")
+                .setVoltageLevel1("VL2")
+                .setNode1(4)
+                .setVoltageLevel2("VL3")
+                .setNode2(2)
+                .setR(3.0)
+                .setX(33.0)
+                .setB1(386E-6 / 2)
+                .setB2(386E-6 / 2)
+                .add();
+        network.newLine()
+                .setId("L5")
+                .setVoltageLevel1("VL3")
+                .setNode1(4)
+                .setVoltageLevel2("VL2")
+                .setNode2(5)
+                .setR(3.0)
+                .setX(33.0)
+                .setB1(386E-6 / 2)
+                .setB2(386E-6 / 2)
+                .add();
+
+        return network;
     }
 
     protected static Network createNodeBreakerNetwork() {
