@@ -45,6 +45,7 @@ import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -221,7 +222,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // detect violations
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, violationsParameters);
-        postContingencyLimitViolationManager.detectViolations(lfNetwork);
+        Predicate<LfBranch> isBranchDisabled = (branch) -> lfContingency.getDisabledNetwork().getBranchesStatus().containsKey(branch);
+        postContingencyLimitViolationManager.detectViolations(lfNetwork, isBranchDisabled);
 
         // connectivity result due to the application of the lf contingency
         var connectivityResult = new ConnectivityResult(

@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -20,6 +21,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 
 /**
@@ -60,10 +62,18 @@ public class LimitViolationManager {
      * @param network network on which the violation limits are checked
      */
     public void detectViolations(LfNetwork network) {
+        detectViolations(network, LfElement::isDisabled);
+    }
+
+    /**
+     * Detect violations on branches and on buses
+     * @param network network on which the violation limits are checked
+     */
+    public void detectViolations(LfNetwork network, Predicate<LfBranch> isBranchDisabled) {
         Objects.requireNonNull(network);
 
         // Detect violation limits on branches
-        network.getBranches().stream().filter(b -> !b.isDisabled()).forEach(this::detectBranchViolations);
+        network.getBranches().stream().filter(b -> !isBranchDisabled.test(b)).forEach(this::detectBranchViolations);
 
         // Detect violation limits on buses
         network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);

@@ -4390,16 +4390,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // add limits on disabled lines to verify if violations are detected on them
         network.getLine("L4").newCurrentLimits1().setPermanentLimit(1).add();
         network.getLine("L4").newCurrentLimits2().setPermanentLimit(1).add();
-        network.getLine("L4").newActivePowerLimits1()
-                .setPermanentLimit(1.0)
-                .beginTemporaryLimit()
-                .setName("60")
-                .setAcceptableDuration(60)
-                .setValue(1.2)
-                .endTemporaryLimit()
-                .add();
-//        network.getLine("L5").newCurrentLimits1().setPermanentLimit(1).add();
-//        network.getLine("L5").newCurrentLimits2().setPermanentLimit(1).add();
+        network.getLine("L5").newCurrentLimits1().setPermanentLimit(1).add();
+        network.getLine("L5").newCurrentLimits2().setPermanentLimit(1).add();
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setDc(true);
@@ -4419,6 +4411,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
-        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(0, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
     }
+
+    // TODO : add the same test to verify if post operator strategy states integrate these violation limits or not
 }
