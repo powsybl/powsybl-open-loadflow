@@ -4383,15 +4383,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true})
-    void testNoViolationDetectedOnRemovedBranchOnOneSideDcSa(boolean dcFastMode) {
+    @ValueSource(booleans = {false, true})
+    void testDcSaNoViolationDetectedOnRemovedBranchOnOneSide(boolean dcFastMode) {
         Network network = createNodeBreakerNetwork2();
 
-        // add limits on disabled lines to verify if violations are detected on them
-        network.getLine("L4").newCurrentLimits1().setPermanentLimit(1).add();
-        network.getLine("L4").newCurrentLimits2().setPermanentLimit(1).add();
-        network.getLine("L5").newCurrentLimits1().setPermanentLimit(1).add();
-        network.getLine("L5").newCurrentLimits2().setPermanentLimit(1).add();
+        // add small limits on disabled lines to verify there is no violation detected on them
+        network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
+        network.getLine("L5").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L5").newCurrentLimits2().setPermanentLimit(0.1).add();
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setDc(true);
@@ -4411,8 +4411,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "BBS3");
+        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L4").getP1());
+        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L4").getP2());
+        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L1").getP1());
+        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L1").getP2());
+        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L5").getP1());
+        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L5").getP1());
         assertEquals(0, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
     }
-
-    // TODO : add the same test to verify if post operator strategy states integrate these violation limits or not
 }
