@@ -464,8 +464,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
 
         setSlackBusId(parameters, "VL1_0");
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisParameters securityParameters = new SecurityAnalysisParameters();
+        securityParameters.setLoadFlowParameters(parameters);
 
         // this contingency will disable L4 on side 1 and L5 on side 2
         List<Contingency> contingencies = Stream.of("BBS3")
@@ -476,7 +476,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "PS1", false, 0));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyPstChange", ContingencyContext.specificContingency("BBS3"), new TrueCondition(), List.of("pstChange")));
 
-        SecurityAnalysisResult resultSlowDcSa = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+        SecurityAnalysisResult resultSlowDcSa = runSecurityAnalysis(network, contingencies, monitors, securityParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(resultSlowDcSa, "strategyPstChange");
         assertEquals(200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
@@ -488,9 +488,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         // set dc sa mode
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
         openSecurityAnalysisParameters.setDcFastMode(true);
-        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+        securityParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
 
-        SecurityAnalysisResult resultFastDcSa = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+        SecurityAnalysisResult resultFastDcSa = runSecurityAnalysis(network, contingencies, monitors, securityParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
         operatorStrategyResult = getOperatorStrategyResult(resultFastDcSa, "strategyPstChange");
         assertEquals(200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
