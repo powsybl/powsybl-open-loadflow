@@ -14,10 +14,7 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.iidm.network.Identifiable;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -126,16 +123,40 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 .setNode1(0)
                 .setNode2(4)
                 .add();
-        network.newLine()
-                .setId("L3")
+        TwoWindingsTransformer ps1 = network.getSubstation("S").newTwoWindingsTransformer()
+                .setId("PS1")
                 .setVoltageLevel1("VL1")
                 .setNode1(7)
                 .setVoltageLevel2("VL3")
                 .setNode2(1)
-                .setR(3.0)
-                .setX(33.0)
-                .setB1(386E-6 / 2)
-                .setB2(386E-6 / 2)
+                .setRatedU1(400)
+                .setRatedU2(400)
+                .setR(0)
+                .setX(100.0)
+                .setG(0.0)
+                .setB(0.0)
+                .add();
+        ps1.newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal2())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.FIXED_TAP)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(50)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(-5)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(100)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
                 .add();
         network.newLine()
                 .setId("L4")

@@ -68,6 +68,7 @@ public class LimitViolationManager {
     /**
      * Detect violations on branches and on buses
      * @param network network on which the violation limits are checked
+     * @param isBranchDisabled predicate to evaluate if a branch of the network is disabled or not
      */
     public void detectViolations(LfNetwork network, Predicate<LfBranch> isBranchDisabled) {
         Objects.requireNonNull(network);

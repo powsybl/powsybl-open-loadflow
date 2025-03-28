@@ -4382,12 +4382,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void testDcSaNoViolationDetectedOnRemovedBranchOnOneSide(boolean dcFastMode) {
+    @Test
+    void testDcSaNoViolationDetectedOnRemovedBranchOnOneSide() {
         Network network = createNodeBreakerNetwork2();
 
-        // add small limits on disabled lines to verify there is no violation detected on them
+        // add small limits on disabled lines to verify there is no violation detected
         network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
         network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
         network.getLine("L5").newCurrentLimits1().setPermanentLimit(0.1).add();
@@ -4399,25 +4398,31 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
-        // set dc sa mode
-        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
-        openSecurityAnalysisParameters.setDcFastMode(dcFastMode);
-        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
-
         // this contingency will disable L4 on side 1 and L5 on side 2
         List<Contingency> contingencies = Stream.of("BBS3")
                 .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
                 .collect(Collectors.toList());
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
-        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "BBS3");
-        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L4").getP1());
-        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L4").getP2());
-        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L1").getP1());
-        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L1").getP2());
-        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L5").getP1());
-        assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("L5").getP1());
-        assertEquals(0, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        SecurityAnalysisResult resultSlowDcSa = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(resultSlowDcSa, "BBS3");
+        assertEquals(200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
+        assertEquals(-200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
+        assertEquals(0, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
+        // in slow dc mode, branch results with 0 flow are created for disabled branches on one side
+        assertEquals(5, postContingencyResult.getNetworkResult().getBranchResults().size());
+
+        // set dc sa mode
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        SecurityAnalysisResult resultFastDcSa = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        postContingencyResult = getPostContingencyResult(resultFastDcSa, "BBS3");
+        assertEquals(200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
+        assertEquals(-200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
+        assertEquals(0, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
+        // in fast dc mode, no branch result is created for disabled branches on one side
+        assertEquals(1, postContingencyResult.getNetworkResult().getBranchResults().size());
     }
 }
