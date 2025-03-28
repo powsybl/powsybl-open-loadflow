@@ -142,10 +142,10 @@ public final class ConnectivityBreakAnalysis {
 
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
         for (PropagatedContingency contingency : potentiallyBreakingConnectivityContingencies) {
-            List<ComputedContingencyElement> breakingConnectivityCandidates = contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
+            List<ComputedContingencyElement> breakingConnectivityCandidates = contingency.getBranchIdsToOpen().keySet().stream().sorted().map(contingencyElementByBranch::get).collect(Collectors.toList());
 
             // we confirm the breaking of connectivity by network connectivity
-            Set<ComputedContingencyElement> breakingConnectivityElements;
+            LinkedHashSet<ComputedContingencyElement> breakingConnectivityElements;
             connectivity.startTemporaryChanges();
             try {
                 ComputedContingencyElement.applyToConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates);
