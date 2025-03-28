@@ -4169,14 +4169,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l56").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l56").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastDcSaHvdcLineWithPowerAfterContingency() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testFastDcSaHvdcLineWithPowerAfterContingency(boolean dcFastMode) {
         Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.getLoadFlowParameters().setDc(true);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
-        openSecurityAnalysisParameters.setDcFastMode(true);
+        openSecurityAnalysisParameters.setDcFastMode(dcFastMode);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -4197,14 +4198,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastDcSaHvdcLineWithoutPowerAfterContingency() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testFastDcSaHvdcLineWithoutPowerAfterContingency(boolean dcFastMode) {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.getLoadFlowParameters().setDc(true);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
-        openSecurityAnalysisParameters.setDcFastMode(true);
+        openSecurityAnalysisParameters.setDcFastMode(dcFastMode);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
