@@ -423,14 +423,10 @@ class OpenLoadFlowParametersTest {
             MapModuleConfig lfModuleConfig2 = config2.createModuleConfig("open-loadflow-default-parameters");
             lfModuleConfig1.setStringProperty(sp.getName(), newVal1);
             lfModuleConfig2.setStringProperty(sp.getName(), newVal2);
-            OpenLoadFlowParameters p1u = new OpenLoadFlowParameters().update(config1);
-            OpenLoadFlowParameters p2u = new OpenLoadFlowParameters().update(config2);
-
             LoadFlowParameters lfu1 = new LoadFlowParameters();
-            lfu1.addExtension(OpenLoadFlowParameters.class, p1u);
-
             LoadFlowParameters lfu2 = new LoadFlowParameters();
-            lfu2.addExtension(OpenLoadFlowParameters.class, p2u);
+            OpenLoadFlowParameters.create(lfu1).update(config1);
+            OpenLoadFlowParameters.create(lfu2).update(config2);
 
             // should not equal
             assertFalse(OpenLoadFlowParameters.equals(lfu1, lfu2), "Parameter is not handled in update(platformConfig): " + sp.getName());
