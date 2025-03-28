@@ -416,7 +416,7 @@ class OpenLoadFlowParametersTest {
             var p2c = OpenLoadFlowParameters.clone(p2);
             assertTrue(OpenLoadFlowParameters.equals(p2, p2c), "Parameter is not handled in clone: " + sp.getName());
 
-            // Thes update from PlaftomConfig
+            // Test update from PlatformConfig
             InMemoryPlatformConfig config1 = new InMemoryPlatformConfig(fileSystem);
             MapModuleConfig lfModuleConfig1 = config1.createModuleConfig("open-loadflow-default-parameters");
             InMemoryPlatformConfig config2 = new InMemoryPlatformConfig(fileSystem);
