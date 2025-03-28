@@ -1500,6 +1500,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME).ifPresent(this::setAreaInterchangeControlAreaType);
                     config.getOptionalDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setAreaInterchangePMaxMismatch);
                     config.getOptionalBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME).ifPresent(this::setDisableInconsistentVoltageControls);
+                    config.getOptionalBooleanProperty(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setForceTargetQInReactiveLimits);
                 });
         return this;
     }
