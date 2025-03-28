@@ -15,6 +15,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -454,13 +455,13 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     @Test
     void testDcSaPhaseTapChangerTapPositionChangeNoViolationDetectedOnRemovedBranchOnOneSide() {
-        Network network = createNodeBreakerNetwork2();
+        Network network = NodeBreakerNetworkFactory.createWith4Bars();
 
         // add small limits on disabled lines to verify there is no violation detected
+        network.getLine("L3").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L3").newCurrentLimits2().setPermanentLimit(0.1).add();
         network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
         network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
-        network.getLine("L5").newCurrentLimits1().setPermanentLimit(0.1).add();
-        network.getLine("L5").newCurrentLimits2().setPermanentLimit(0.1).add();
 
         setSlackBusId(parameters, "VL1_0");
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();

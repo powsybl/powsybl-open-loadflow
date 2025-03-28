@@ -4384,13 +4384,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testDcSaNoViolationDetectedOnRemovedBranchOnOneSide() {
-        Network network = createNodeBreakerNetwork2();
+        Network network = NodeBreakerNetworkFactory.createWith4Bars();
 
         // add small limits on disabled lines to verify there is no violation detected
+        network.getLine("L3").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L3").newCurrentLimits2().setPermanentLimit(0.1).add();
         network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
         network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
-        network.getLine("L5").newCurrentLimits1().setPermanentLimit(0.1).add();
-        network.getLine("L5").newCurrentLimits2().setPermanentLimit(0.1).add();
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setDc(true);
