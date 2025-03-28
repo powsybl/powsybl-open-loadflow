@@ -368,7 +368,7 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
-    void testEqualsAndClone() {
+    void testEqualsCloneAndUpdate() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         provider.getSpecificParameters().forEach(sp -> {
             var p1 = new LoadFlowParameters();
@@ -415,6 +415,22 @@ class OpenLoadFlowParametersTest {
             assertTrue(OpenLoadFlowParameters.equals(p1, p1c), "Parameter is not handled in clone: " + sp.getName());
             var p2c = OpenLoadFlowParameters.clone(p2);
             assertTrue(OpenLoadFlowParameters.equals(p2, p2c), "Parameter is not handled in clone: " + sp.getName());
+
+            // Test update from PlatformConfig
+            InMemoryPlatformConfig config1 = new InMemoryPlatformConfig(fileSystem);
+            MapModuleConfig lfModuleConfig1 = config1.createModuleConfig("open-loadflow-default-parameters");
+            InMemoryPlatformConfig config2 = new InMemoryPlatformConfig(fileSystem);
+            MapModuleConfig lfModuleConfig2 = config2.createModuleConfig("open-loadflow-default-parameters");
+            lfModuleConfig1.setStringProperty(sp.getName(), newVal1);
+            lfModuleConfig2.setStringProperty(sp.getName(), newVal2);
+            LoadFlowParameters lfu1 = new LoadFlowParameters();
+            LoadFlowParameters lfu2 = new LoadFlowParameters();
+            OpenLoadFlowParameters.create(lfu1).update(config1);
+            OpenLoadFlowParameters.create(lfu2).update(config2);
+
+            // should not equal
+            assertFalse(OpenLoadFlowParameters.equals(lfu1, lfu2), "Parameter is not handled in update(platformConfig): " + sp.getName());
+
         });
     }
 
