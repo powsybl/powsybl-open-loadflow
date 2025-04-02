@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.network.LfBus;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -20,8 +21,8 @@ import java.util.Map;
  */
 public final class Reports {
 
-    private static final String NETWORK_NUM_CC = "networkNumCc";
-    private static final String NETWORK_NUM_SC = "networkNumSc";
+    public static final String NETWORK_NUM_CC = "networkNumCc";
+    public static final String NETWORK_NUM_SC = "networkNumSc";
     private static final String ITERATION = "iteration";
     private static final String ITERATION_COUNT = "iterationCount";
     private static final String NETWORK_ID = "networkId";
@@ -31,9 +32,15 @@ public final class Reports {
 
     private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
+    private static final String GENERATORS_ID = "generatorIds";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
+    private static final String ACTION_ID = "actionId";
+    private static final String CONTINGENCY_ID = "contingencyId";
     public static final String MISMATCH = "mismatch";
+
+    public static final String LF_NETWORK_KEY = "lfNetwork";
+    public static final String POST_CONTINGENCY_SIMULATION_KEY = "postContingencySimulation";
 
     public record BusReport(String busId, double mismatch, double nominalV, double v, double phi, double p, double q) {
     }
@@ -61,10 +68,10 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueControlledBus(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
+    public static void reportNotUniqueControlledBusKeepingFirstControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueControlledBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
-                .withUntypedValue("generatorIds", generatorIds)
+                .withMessageTemplate("notUniqueControlledBusKeepingFirstControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses: ${controlledBusId} (kept) and ${controlledBusGenId} (rejected)")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
                 .withUntypedValue("controlledBusGenId", controlledBusGenId)
@@ -72,14 +79,36 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNotUniqueTargetVControllerBus(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+    public static void reportNotUniqueControlledBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, String controlledBusId, String controlledBusGenId) {
         reportNode.newReportNode()
-                .withMessageTemplate("notUniqueTargetVControllerBus", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
-                .withUntypedValue("generatorIds", generatorIds)
+                .withMessageTemplate("notUniqueControlledBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} but control the voltage of different buses (${controlledBusId} and ${controlledBusGenId}): disabling voltage control")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
+                .withUntypedValue("controlledBusGenId", controlledBusGenId)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBusKeepingFirstControl(ReportNode reportNode, String generatorIds, String controllerBusId, Double keptTargetV, Double rejectedTargetV) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBusKeepingFirstControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages: ${keptTargetV} kV (kept) and ${rejectedTargetV} kV (rejected)")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
                 .withUntypedValue("keptTargetV", keptTargetV)
                 .withUntypedValue("rejectedTargetV", rejectedTargetV)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportNotUniqueTargetVControllerBusDisablingControl(ReportNode reportNode, String generatorIds, String controllerBusId, Double targetV1, Double targetV2) {
+        reportNode.newReportNode()
+                .withMessageTemplate("notUniqueTargetVControllerBusDisablingControl", "Generators [${generatorIds}] are connected to the same bus ${controllerBusId} with different target voltages (${targetV1} kV and ${targetV2} kV): disabling voltage control")
+                .withUntypedValue(GENERATORS_ID, generatorIds)
+                .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
+                .withUntypedValue("targetV1", targetV1)
+                .withUntypedValue("targetV2", targetV2)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
@@ -181,22 +210,146 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportPvToPqBuses(ReportNode reportNode, int pvToPqBusCount, int remainingPvBusCount) {
-        reportNode.newReportNode()
-                .withMessageTemplate("switchPvPq", "${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} buses remain PV)")
+    public static ReportNode reportPvToPqBuses(ReportNode reportNode, int pvToPqBusCount, int remainingPvBusCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("pvToPqBuses", "${pvToPqBusCount} buses switched PV -> PQ (${remainingPvBusCount} buses remain PV)")
                 .withUntypedValue("pvToPqBusCount", pvToPqBusCount)
                 .withUntypedValue("remainingPvBusCount", remainingPvBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportPqToPvBuses(ReportNode reportNode, int pqToPvBusCount, int blockedPqBusCount) {
-        reportNode.newReportNode()
-                .withMessageTemplate("switchPqPv", "${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ due to the max number of switches)")
+    public static void reportPvToPqMaxQ(ReportNode reportNode,
+                                        LfBus controllerBus,
+                                        double busQ,
+                                        double maxQ,
+                                        boolean log,
+                                        Logger logger) {
+        ReportNode newNode = reportNode.newReportNode()
+                .withMessageTemplate("pvToPqMaxQ",
+                        "Switch bus '${busId}' PV -> PQ, q=${busQ} > maxQ=${maxQ}")
+                .withUntypedValue("busId", controllerBus.getId())
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("maxQ", maxQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
+        if (log) {
+            logger.trace(newNode.getMessage());
+        }
+    }
+
+    public static void reportPvToPqMinQ(ReportNode reportNode,
+                                        LfBus controllerBus,
+                                        double busQ,
+                                        double minQ,
+                                        boolean log,
+                                        Logger logger) {
+        ReportNode newNode = reportNode.newReportNode()
+                .withMessageTemplate("PvToPqMinQ",
+                        "Switch bus '${busId}' PV -> PQ, q=${busQ} < minQ=${minQ}")
+                .withUntypedValue("busId", controllerBus.getId())
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("minQ", minQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
+        if (log) {
+            logger.trace(newNode.getMessage());
+        }
+    }
+
+    public static void reportPvToPqMinRealisticV(ReportNode reportNode,
+                                                 LfBus controllerBus,
+                                                 double targetQ,
+                                                 double minRealisticV,
+                                                 boolean log,
+                                                 Logger logger) {
+        ReportNode newNode = reportNode.newReportNode()
+                .withMessageTemplate("PvToPqMinRealisticV",
+                        "Switch bus '${busId}' PV -> PQ, q set to ${targetQ} = targetQ - because V < ${minRealisticV}kV when remote voltage target is maintained")
+                .withUntypedValue("busId", controllerBus.getId())
+                .withTypedValue("targetQ", targetQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("minRealisticV", minRealisticV * controllerBus.getNominalV(), TypedValue.VOLTAGE)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
+        if (log) {
+            logger.trace(newNode.getMessage());
+        }
+    }
+
+    public static void reportPvToPqMaxRealisticV(ReportNode reportNode,
+                                                 LfBus controllerBus,
+                                                 double targetQ,
+                                                 double maxRealisticV,
+                                                 boolean log,
+                                                 Logger logger) {
+        ReportNode newNode = reportNode.newReportNode()
+                .withMessageTemplate("PvToPqMaxRealisticV",
+                        "Switch bus '${busId}' PV -> PQ, q set to ${targetQ} = targetQ - because V > ${maxRealisticV}kV when remote voltage target is maintained")
+                .withUntypedValue("busId", controllerBus.getId())
+                .withTypedValue("targetQ", targetQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("maxRealisticV", maxRealisticV * controllerBus.getNominalV(), TypedValue.VOLTAGE)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
+        if (log) {
+            logger.trace(newNode.getMessage());
+        }
+    }
+
+    public static ReportNode reportPqToPvBuses(ReportNode reportNode, int pqToPvBusCount, int blockedPqBusCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("PqToPvBuses", "${pqToPvBusCount} buses switched PQ -> PV (${blockedPqBusCount} buses blocked PQ due to the max number of switches)")
                 .withUntypedValue("pqToPvBusCount", pqToPvBusCount)
                 .withUntypedValue("blockedPqBusCount", blockedPqBusCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
+    }
+
+    public static ReportNode reportPvPqSwitchLimit(LfBus controllerBus, int limit, boolean log, Logger logger) {
+        ReportNode result = ReportNode.newRootReportNode()
+                .withMessageTemplate("pvPqSwitchLimit",
+                        "Bus '${busId}' blocked PQ as it has reached its max number of PQ -> PV switch (${limit})")
+                .withUntypedValue("busId", controllerBus.getId())
+                .withUntypedValue("limit", limit)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+        if (log) {
+            logger.trace(result.getMessage());
+        }
+        return result;
+    }
+
+    public static ReportNode reportPqToPvBusMaxLimit(LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
+        ReportNode result = ReportNode.newRootReportNode()
+                .withMessageTemplate("pqToPvBusMaxLimit",
+                        "Switch bus '${busId}' PQ -> PV, q=maxQ and v=${busV}kV > targetV=${targetV}kV")
+                .withUntypedValue("busId", controllerBus.getId())
+                // busV and targetV need a higher precision than usual Voltage rounding to understand
+                // the difference. Their unit is not given to avoid a too high formatting based on Unit
+                .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
+                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+        if (log) {
+            logger.trace(result.getMessage());
+        }
+        return result;
+    }
+
+    public static ReportNode reportPqToPvBusMinLimit(LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
+        ReportNode result = ReportNode.newRootReportNode()
+                .withMessageTemplate("pqToPvBusMinLimit",
+                        "Switch bus '${busId}' PQ -> PV, q=minQ and v=${busV}kV < targetV=${targetV}kV")
+                .withUntypedValue("busId", controllerBus.getId())
+                // busV and targetV need a higher precision than usual Voltage rounding to understand
+                // the difference. Their unit is not given to avoid a too high formatting based on Unit
+                .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
+                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+        if (log) {
+            logger.trace(result.getMessage());
+        }
+        return result;
     }
 
     public static void reportBusForcedToBePv(ReportNode reportNode, String busId) {
@@ -215,12 +368,50 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportReactiveControllerBusesToPqBuses(ReportNode reportNode, int remoteReactivePowerControllerBusToPqCount) {
-        reportNode.newReportNode()
-                .withMessageTemplate("remoteReactiveControllerBusToPq", "${remoteReactivePowerControllerBusToPqCount} bus(es) with remote reactive power controller switched PQ")
+    public static ReportNode reportReactiveControllerBusesToPqBuses(ReportNode reportNode, int remoteReactivePowerControllerBusToPqCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("reactiveControllerBusesToPqBuses", "${remoteReactivePowerControllerBusToPqCount} bus(es) with remote reactive power controller switched PQ")
                 .withUntypedValue("remoteReactivePowerControllerBusToPqCount", remoteReactivePowerControllerBusToPqCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
+    }
+
+    public static ReportNode reportReactiveControllerBusesToPqMaxQ(LfBus controllerBus,
+                                                                   double busQ,
+                                                                   double maxQ,
+                                                                   boolean log,
+                                                                   Logger logger) {
+        ReportNode result = ReportNode.newRootReportNode()
+                .withMessageTemplate("reactiveControllerBusesToPqMaxQ",
+                        "Remote reactive power controller bus '${busId}' -> PQ, q=${busQ} > maxQ=${maxQ}")
+                .withUntypedValue("busId", controllerBus.getId())
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("maxQ", maxQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+        if (log) {
+            logger.trace(result.getMessage());
+        }
+        return result;
+    }
+
+    public static ReportNode reportReactiveControllerBusesToPqMinQ(LfBus controllerBus,
+                                                             double busQ,
+                                                             double minQ,
+                                                             boolean log,
+                                                             Logger logger) {
+        ReportNode result = ReportNode.newRootReportNode()
+                .withMessageTemplate("reactiveControllerBusesToPqMinQ",
+                        "Remote reactive power controller bus '${busId}' -> PQ, q=${busQ} < minQ=${minQ}")
+                .withUntypedValue("busId", controllerBus.getId())
+                .withTypedValue("busQ", busQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withTypedValue("minQ", minQ * PerUnit.SB, TypedValue.REACTIVE_POWER)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+        if (log) {
+            logger.trace(result.getMessage());
+        }
+        return result;
     }
 
     public static void reportStandByAutomatonActivation(ReportNode reportNode, String busId, double newTargetV) {
@@ -372,9 +563,25 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(ReportNode reportNode, int impactedGeneratorCount) {
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsImplausible(ReportNode reportNode, int impactedGeneratorCount) {
         reportNode.newReportNode()
-                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsInconsistent", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is inconsistent")
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseTargetVIsImplausible", "${impactedGeneratorCount} generators have been discarded from voltage control because targetV is implausible")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus", "${impactedGeneratorCount} generators have been discarded from voltage control because connected to the same bus but controlling the voltage of different buses")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages", "${impactedGeneratorCount} generators have been discarded from voltage control because connected to the same bus but having different target voltages")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
@@ -416,7 +623,7 @@ public final class Reports {
 
     public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
         return ReportNode.newRootReportNode()
-                .withMessageTemplate("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}")
+                .withMessageTemplate(LF_NETWORK_KEY, "Network CC${networkNumCc} SC${networkNumSc}")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
                 .build();
@@ -483,7 +690,7 @@ public final class Reports {
 
     public static ReportNode createPostContingencySimulation(ReportNode reportNode, String contingencyId) {
         return reportNode.newReportNode()
-                .withMessageTemplate("postContingencySimulation", "Post-contingency simulation '${contingencyId}'")
+                .withMessageTemplate(POST_CONTINGENCY_SIMULATION_KEY, "Post-contingency simulation '${contingencyId}'")
                 .withUntypedValue("contingencyId", contingencyId)
                 .add();
     }
@@ -662,6 +869,14 @@ public final class Reports {
                 .withUntypedValue("distributed", mismatch - remaining)
                 .withUntypedValue("remaining", remaining)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
+        node.newReportNode()
+                .withMessageTemplate("LfActionUtils", "Action '${actionId}': may not have been applied successfully on contingency '${contingencyId}'")
+                .withUntypedValue(ACTION_ID, actionId)
+                .withUntypedValue(CONTINGENCY_ID, contingencyId)
                 .add();
     }
 }

@@ -289,7 +289,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(branchId -> loadFlowContext.getNetwork().getBranchById(branchId))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, branchesToOpen, loadFlowContext.getParameters().getNetworkParameters(), reportNode);
+        LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, branchesToOpen, loadFlowContext.getParameters().getNetworkParameters());
 
         // update network result
         var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);

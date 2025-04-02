@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
@@ -17,8 +19,11 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -191,6 +196,42 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(17.032769, b1); // PQ => v != 17
         assertVoltageEquals(21, b2); // PV
         assertVoltageEquals(20, b3); // PV
+    }
+
+    @Test
+    void testMultipleSwitch() throws IOException {
+        g2.newMinMaxReactiveLimits()
+                .setMinQ(-179)
+                .setMaxQ(700)
+                .add();
+        g2.setTargetV(22);
+        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        assertTrue(result.isFullyConverged());
+        // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 go back PV
+        assertVoltageEquals(17.441, b1); // PQ => v != 17
+        assertVoltageEquals(21.99, b2); // PQ => v != 22
+        assertVoltageEquals(20, b3); // PV
+        String expected = """
+                + test
+                   + Load flow on network 'switch-pq-pv-test'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 3 branches
+                            Network balance: active generation=300 MW, active load=300 MW, reactive generation=0 MVar, reactive load=200 MVar
+                            Angle reference bus: vl4_0
+                            Slack bus: vl4_0
+                         Outer loop VoltageMonitoring
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 2 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl1_0' PV -> PQ, q=-200.872086 < minQ=-179
+                                  Switch bus 'vl2_0' PV -> PQ, q=712.632433 > maxQ=700
+                         Outer loop VoltageMonitoring
+                         Outer loop ReactiveLimits
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """;
+        LoadFlowAssert.assertReportEqualsString(expected, reportNode);
     }
 
     @Test

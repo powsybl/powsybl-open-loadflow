@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2025, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,10 +9,10 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.*;
-import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Reports;
 
 import java.util.List;
 import java.util.Objects;
@@ -26,10 +26,6 @@ import static com.powsybl.openloadflow.network.action.AbstractLfBranchAction.upd
  * @author Jean-Luc Bouchot {@literal <jlbouchot at gmail.com>}
  */
 public final class LfActionUtils {
-
-    private static final String ACTION_ID = "actionId";
-
-    private static final String CONTINGENCY_ID = "contingencyId";
 
     private LfActionUtils() {
     }
@@ -57,11 +53,11 @@ public final class LfActionUtils {
         };
     }
 
-    public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters, ReportNode node) {
-        applyListOfActions(actions, network, contingency, contingency.getDisabledNetwork().getBranches(), networkParameters, node);
+    public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
+        applyListOfActions(actions, network, contingency, contingency.getDisabledNetwork().getBranches(), networkParameters);
     }
 
-    public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, Set<LfBranch> branchesToOpen, LfNetworkParameters networkParameters, ReportNode node) {
+    public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, Set<LfBranch> branchesToOpen, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -69,19 +65,19 @@ public final class LfActionUtils {
         List<LfAction> branchActions = actions.stream()
             .filter(action -> action instanceof AbstractLfBranchAction<?>)
             .toList();
-        updateConnectivity(branchActions, network, branchesToOpen, contingency.getId(), node);
+        updateConnectivity(branchActions, network, branchesToOpen, contingency);
 
         // then process remaining changes of actions
         actions.stream()
-                .filter(action -> !(action instanceof AbstractLfBranchAction<?>))
-                .forEach(action -> {
-                    if (!action.apply(network, contingency, networkParameters)) {
-                        reportActionApplicationFailure(action.getId(), contingency.getId(), node);
-                    }
-                });
+            .filter(action -> !(action instanceof AbstractLfBranchAction<?>))
+            .forEach(action -> {
+                if (!action.apply(network, contingency, networkParameters)) {
+                    Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
+                }
+            });
     }
 
-    private static void updateConnectivity(List<LfAction> branchActions, LfNetwork network, Set<LfBranch> branchesToRemove, String contingencyId, ReportNode node) {
+    private static void updateConnectivity(List<LfAction> branchActions, LfNetwork network, Set<LfBranch> branchesToRemove, LfContingency contingency) {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
@@ -93,7 +89,7 @@ public final class LfActionUtils {
 
         branchActions.forEach(action -> {
             if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(connectivity)) {
-                reportActionApplicationFailure(action.getId(), contingencyId, node);
+                Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
             }
         });
 
@@ -102,14 +98,6 @@ public final class LfActionUtils {
         // reset connectivity to discard post contingency connectivity and post action connectivity
         connectivity.undoTemporaryChanges();
         connectivity.undoTemporaryChanges();
-    }
-
-    private static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
-        node.newReportNode()
-            .withMessageTemplate("LfActionUtils", "Action '${actionId}': may not have been applied successfully on contingency '${contingencyId}'")
-            .withUntypedValue(ACTION_ID, actionId)
-            .withUntypedValue(CONTINGENCY_ID, contingencyId)
-            .add();
     }
 
 }
