@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -183,6 +184,80 @@ class LfActionTest extends AbstractSerDeTest {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfActionUtils.createLfAction(hvdcAction2, network, acParameters.getNetworkParameters().isBreakers(), lfNetwork);
             assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+        }
+    }
+
+    @Test
+    void testDanglingLineAction() {
+        Network network = DanglingLineNetworkFactory.createWithGeneration();
+
+        String danglingLineId = "DL";
+        double initialActivePowerValue = 50;
+        double initialReactivePowerValue = 30;
+        double finalActivePowerValue = 110;
+        double finalReactivePowerValue = 70;
+        double deltaActivePowerValue = 60.0;
+        double deltaReactivePowerValue = 40.0;
+
+        DanglingLineAction danglingLineAction = new DanglingLineActionBuilder()
+                .withId("action")
+                .withDanglingLineId(danglingLineId)
+                .withActivePowerValue(deltaActivePowerValue)
+                .withReactivePowerValue(deltaReactivePowerValue)
+                .withRelativeValue(true)
+                .build();
+
+        var matrixFactory = new DenseMatrixFactory();
+
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+
+        // Check on network and resulting lf network values
+        assertEquals(initialActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+        assertEquals(initialReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfBranch lfBranch = lfNetwork.getBranchById("DL");
+            assertNotNull(lfBranch);
+            assertEquals(LfBranch.BranchType.DANGLING_LINE, lfBranch.getBranchType());
+            assertEquals(initialActivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetP());
+            assertEquals(initialReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetQ());
+            assertEquals(-initialReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getTargetQ());
+        }
+
+        // Apply core DanglingLineAction on network and check on nework and resulting lf network values
+        danglingLineAction.toModification().apply(network);
+
+        assertEquals(finalActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+        assertEquals(finalReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfBranch lfBranch = lfNetwork.getBranchById("DL");
+            assertNotNull(lfBranch);
+            assertEquals(LfBranch.BranchType.DANGLING_LINE, lfBranch.getBranchType());
+            assertEquals(finalActivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetP());
+            assertEquals(finalReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetQ());
+            assertEquals(-finalReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getTargetQ());
+        }
+
+        // Now use the DanglingLineAction directly to modify the LfNetwork values directly
+        Network otherNetwork = DanglingLineNetworkFactory.createWithGeneration();
+        try (LfNetworkList lfNetworks = Networks.load(otherNetwork, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+
+            LfBranch lfBranch = lfNetwork.getBranchById("DL");
+            assertNotNull(lfBranch);
+            assertEquals(LfBranch.BranchType.DANGLING_LINE, lfBranch.getBranchType());
+            assertEquals(initialActivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetP());
+            assertEquals(initialReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetQ());
+            assertEquals(-initialReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getTargetQ());
+
+            LfAction lfAction = LfActionUtils.createLfAction(danglingLineAction, otherNetwork, true, lfNetwork);
+            assertTrue(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+
+            assertEquals(finalActivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetP());
+            assertEquals(finalReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getLoadTargetQ());
+            assertEquals(-finalReactivePowerValue / PerUnit.SB, lfBranch.getBus2().getTargetQ());
         }
     }
 

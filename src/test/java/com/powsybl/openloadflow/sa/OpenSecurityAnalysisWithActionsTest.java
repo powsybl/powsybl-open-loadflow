@@ -41,10 +41,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
@@ -1799,6 +1796,339 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // Strategy 2 (Retrieve post contingency targets)
         assertEquals(15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A1").getP1(), areaInterchangePMaxMismatch);
         assertEquals(-15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
+    }
+
+    private void createNetworkDanglingLine(Network network, boolean withGeneration) {
+        String danglingLineId = "DL";
+
+        // DanglingLine power values for the tests
+        double initialDLLoadActivePowerValue = 50.0;
+        double initialDLLoadReactivePowerValue = 10.0;
+
+        if (withGeneration) {
+            DanglingLine danglingLine = ((DanglingLineAdder) ((DanglingLineAdder) network.getVoltageLevel("VL").newDanglingLine().setId(danglingLineId)).setBus("BUS"))
+                    .setR(0.00001)
+                    .setX(3)
+                    .setP0(initialDLLoadActivePowerValue)
+                    .setQ0(initialDLLoadReactivePowerValue)
+                    .newGeneration()
+                    .setTargetP(20)
+                    .setMaxP(40)
+                    .setMinP(0.0)
+                    .setTargetV(101.0)
+                    .setVoltageRegulationOn(true)
+                    .add()
+                    .add();
+            danglingLine.getGeneration().newReactiveCapabilityCurve()
+                    .beginPoint().setP(0.0).setMinQ(-59.3).setMaxQ(60.0).endPoint()
+                    .beginPoint().setP(70.0).setMinQ(-54.55).setMaxQ(46.25).endPoint()
+                    .add();
+        } else {
+            ((DanglingLineAdder) ((DanglingLineAdder) network.getVoltageLevel("VL").newDanglingLine().setId(danglingLineId)).setBus("BUS"))
+                    .setR(0.00001)
+                    .setX(3)
+                    .setP0(initialDLLoadActivePowerValue)
+                    .setQ0(initialDLLoadReactivePowerValue)
+                    .add();
+        }
+    }
+
+    private Network createDanglingLineNetwork(boolean withGeneration, double afterGDisconnectionCurrent) {
+        // Create network with dangling Line and load L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
+        // add 1 generator, 1 load, 1 bus connected and create 1 line to connect the new bus to the already existing one
+
+        // Current limit on LINE_12 (on both sides) that will provoke limit violations when generator G is disconnected
+        double currentLimit = afterGDisconnectionCurrent - 2.0;
+
+        Network network = NetworkFactory.findDefault().createNetwork("dangling-line", "test");
+        Substation substation = ((SubstationAdder) network.newSubstation().setId("S")).setCountry(Country.FR).add();
+        VoltageLevel voltageLevel = ((VoltageLevelAdder) substation.newVoltageLevel().setId("VL"))
+                .setNominalV(100.0).setLowVoltageLimit(80.0).setHighVoltageLimit(120.0).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        ((BusAdder) voltageLevel.getBusBreakerView().newBus().setId("BUS")).add();
+        ((GeneratorAdder) ((GeneratorAdder) voltageLevel.newGenerator().setId("G"))
+                .setMinP(0.0)
+                .setMaxP(100.0)
+                .setBus("BUS")
+                .setVoltageRegulatorOn(true)
+                .setTargetV(100.0)
+                .setTargetP(50.0)
+                .setTargetQ(0)).add();
+        ((BusAdder) network.getVoltageLevel("VL").getBusBreakerView().newBus().setId("BUS_2")).add();
+        network.getVoltageLevel("VL").newGenerator()
+                .setId("G_2").setBus("BUS_2").setConnectableBus("BUS_2").setVoltageRegulatorOn(true)
+                .setTargetP(50)
+                .setTargetV(100)
+                .setTargetQ(25)
+                .setMaxP(100)
+                .setMinP(0)
+                .add();
+        network.newLine().setId("LINE_12").setBus1("BUS_2").setBus2("BUS")
+                .setR(0.00001)
+                .setX(8)
+                .add();
+        network.getLine("LINE_12")
+                .newCurrentLimits1()
+                .setPermanentLimit(currentLimit)
+                .add();
+        network.getLine("LINE_12").newCurrentLimits2().setPermanentLimit(currentLimit).add();
+        network.getVoltageLevel("VL").newLoad().setId("L_2").setConnectableBus("BUS_2").setBus("BUS_2")
+                .setP0(50)
+                .setQ0(30)
+                .add();
+        createNetworkDanglingLine(network, withGeneration);
+        return network;
+    }
+
+    @Test
+    void testDanglingLineWithGenerationAction() {
+        String danglingLineId = "DL";
+
+        // DanglingLine power values for the tests
+        double initialDLLoadActivePowerValue = 50.0;
+        double initialDLLoadReactivePowerValue = 10.0;
+        // DanglingLine power values targeted by the DanglingLineAction
+        double actionDLLoadActivePowerValue = 25.0;
+        double actionDLLoadReactivePowerValue = 10.0;
+        // current values expected on LINE_12 (on both sides) after disconnection of generator G and a LF
+        double afterGDisconnectionCurrent = 180.182;
+        // Current limit on LINE_12 (on both sides) that will provoke limit violations when generator G is disconnected
+        double afterDLModificationCurrent = 59.832;
+        // Current limit on LINE_12 (on both sides) that will provoke limit violations when generator G is disconnected
+        double currentLimit = afterGDisconnectionCurrent - 2.0;
+
+        Network network = createDanglingLineNetwork(true, afterGDisconnectionCurrent);
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                .setDistributedSlack(true);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(parameters)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("VL_1");
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        // initialize with a loadflow and assert there is no limit violation
+        LoadFlowResult lfResult = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResult.getStatus());
+        assertEquals(0, Security.checkLimits(network).size());
+
+        // Create 2 network variants
+        String olfActionVariant = "lf-dangling-line-action";
+        String networkModificationVariant = "network-modification";
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, networkModificationVariant);
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, olfActionVariant);
+
+        //////// Work on network modification variant to run a loadflow and a manual modification on the Generator + modification of the Dangling line to make it converge with no violation
+        network.getVariantManager().setWorkingVariant(networkModificationVariant);
+        // Apply the "manual" contingency: disconnect the generator connected to the same bus of the DL
+        // Assert the loadflow converges but with 2 limit violations this time because generator G is disconnected so G_2 compensates to power DL which induces a LINE_12 overload
+        network.getGenerator("G").disconnect();
+        LoadFlowResult lfResultWithoutG = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResultWithoutG.getStatus());
+        assertEquals(20, network.getDanglingLine(danglingLineId).getGeneration().getTargetP());
+        assertEquals(afterGDisconnectionCurrent, network.getLine("LINE_12").getTerminal1().getI(), DELTA_I);
+        assertEquals(afterGDisconnectionCurrent, network.getLine("LINE_12").getTerminal2().getI(), DELTA_I);
+        List<LimitViolation> afterGDisconnectionViolations = Security.checkLimits(network);
+        assertEquals(2, afterGDisconnectionViolations.size());
+
+        // Modify DanglingLine to make the LF converge wit no violation
+        // because the modifications on the dangling line makes G_2 compensate less to power DL and does no longer induce a LINE_12 overload
+        network.getVariantManager().setWorkingVariant(networkModificationVariant);
+        network.getDanglingLine(danglingLineId).setP0(actionDLLoadActivePowerValue);
+        network.getDanglingLine(danglingLineId).setQ0(actionDLLoadReactivePowerValue);
+        LoadFlowResult loadFlowResultWithModification = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, loadFlowResultWithModification.getStatus());
+        assertEquals(actionDLLoadActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+        assertEquals(actionDLLoadReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+        assertEquals(20, network.getDanglingLine(danglingLineId).getGeneration().getTargetP());
+        assertEquals(101, network.getDanglingLine(danglingLineId).getGeneration().getTargetV());
+        assertEquals(afterDLModificationCurrent, network.getLine("LINE_12").getTerminal1().getI(), DELTA_I);
+        assertEquals(afterDLModificationCurrent, network.getLine("LINE_12").getTerminal2().getI(), DELTA_I);
+        List<LimitViolation> afterDLModificationViolations = Security.checkLimits(network);
+        assertEquals(0, afterDLModificationViolations.size());
+
+        //////// Work on dangling line action variant to run an AS with contingency on generator G + a strategy with action on the Dangling line to make it converge with no violation
+        network.getVariantManager().setWorkingVariant(olfActionVariant);
+        assertEquals(initialDLLoadActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+        assertEquals(initialDLLoadReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+
+        // Set contingency, action and operator strategy and parameters for the security analysis
+        DanglingLineAction danglingLineAction = new DanglingLineActionBuilder()
+                .withId("dangling_line_action")
+                .withDanglingLineId(danglingLineId)
+                .withActivePowerValue(actionDLLoadActivePowerValue)
+                .withReactivePowerValue(actionDLLoadReactivePowerValue)
+                .withRelativeValue(false)
+                .build();
+        List<Action> actions = List.of(danglingLineAction);
+        Contingency generatorContingency = new Contingency("G", new GeneratorContingency("G"));
+        List<Contingency> contingencies = List.of(generatorContingency);
+        List<OperatorStrategy> operatorStrategies = List.of(
+                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(generatorContingency.getId()), new TrueCondition(), List.of(danglingLineAction.getId())));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(parameters);
+        List<StateMonitor> monitors = new ArrayList<>();
+
+        SecurityAnalysisResult saResults = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Check on SA results and values
+        // asserts on operator strategy results: after remedial action on DanglingLine
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(saResults, "strategy1");
+
+        // asserts on post contingency results, before remedial actions)
+        assertEquals(0, saResults.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResults.getPreContingencyResult().getStatus());
+        assertEquals(1, saResults.getPostContingencyResults().size());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, saResults.getPostContingencyResults().get(0).getStatus());
+        assertEquals(2, saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
+        // compare LF current limits violations and SA limits violations before remedial actions
+        assertEquals(
+                saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().stream().filter(l -> l.getSide().equals(ThreeSides.ONE)).findFirst().get().getValue(),
+                afterGDisconnectionViolations.stream().filter(l -> l.getSide().equals(ThreeSides.ONE)).findFirst().get().getValue(),
+                DELTA_I
+        );
+        assertEquals(
+                saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().stream().filter(l -> l.getSide().equals(ThreeSides.TWO)).findFirst().get().getValue(),
+                afterGDisconnectionViolations.stream().filter(l -> l.getSide().equals(ThreeSides.TWO)).findFirst().get().getValue(),
+                DELTA_I
+        );
+
+        List<LimitViolation> postContingencyLimitViolations = saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolations.get(0).getLimitType());
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolations.get(1).getLimitType());
+        assertTrue(postContingencyLimitViolations.get(0).getValue() > currentLimit);
+        assertTrue(postContingencyLimitViolations.get(1).getValue() > currentLimit);
+        assertTrue(postContingencyLimitViolations.get(0).getValue() > afterDLModificationCurrent);
+        assertTrue(postContingencyLimitViolations.get(1).getValue() > afterDLModificationCurrent);
+        assertEquals(afterGDisconnectionCurrent, postContingencyLimitViolations.get(0).getValue(), DELTA_I);
+        assertEquals(afterGDisconnectionCurrent, postContingencyLimitViolations.get(1).getValue(), DELTA_I);
+
+        assertEquals(20, network.getDanglingLine(danglingLineId).getGeneration().getTargetP());
+        assertEquals(101, network.getDanglingLine(danglingLineId).getGeneration().getTargetV());
+    }
+
+    @Test
+    void testDanglingLineWithoutGenerationAction() {
+        String danglingLineId = "DL";
+
+        // DanglingLine power values for the tests
+        double initialDLLoadActivePowerValue = 50.0;
+        double initialDLLoadReactivePowerValue = 10.0;
+        // DanglingLine power values targeted by the DanglingLineAction
+        double actionDLLoadActivePowerValue = 25.0;
+        double actionDLLoadReactivePowerValue = 10.0;
+        // current values expected on LINE_12 (on both sides) after disconnection of generator G and a LF
+        double afterGDisconnectionCurrent = 298.177;
+        // Current limit on LINE_12 (on both sides) that will provoke limit violations when generator G is disconnected
+        double currentLimit = afterGDisconnectionCurrent - 2.0;
+        // Current limit on LINE_12 (on both sides) that will provoke limit violations when generator G is disconnected
+        double afterDLModificationCurrent = 157.267;
+
+        Network network = createDanglingLineNetwork(false, afterGDisconnectionCurrent);
+
+        assertNull(network.getDanglingLine(danglingLineId).getGeneration());
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                .setDistributedSlack(true);
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(parameters)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("VL_1");
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        // initialize with a loadflow and assert there is no limit violation
+        LoadFlowResult lfResult = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResult.getStatus());
+        assertEquals(0, Security.checkLimits(network).size());
+
+        // Create 2 network variants
+        String olfActionVariant = "lf-dangling-line-action";
+        String networkModificationVariant = "network-modification";
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, networkModificationVariant);
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, olfActionVariant);
+
+        //////// Work on network modification variant to run a loadflow and a manual modification on the Generator + modification of the Dangling line to make it converge with no violation
+        network.getVariantManager().setWorkingVariant(networkModificationVariant);
+        // Apply the "manual" contingency: disconnect the generator connected to the same bus of the DL
+        // Assert the loadflow converges but with 2 limit violations this time because generator G is disconnected so G_2 compensates to power DL which induces a LINE_12 overload
+        network.getGenerator("G").disconnect();
+        LoadFlowResult lfResultWithoutG = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, lfResultWithoutG.getStatus());
+        assertEquals(afterGDisconnectionCurrent, network.getLine("LINE_12").getTerminal1().getI(), DELTA_I);
+        assertEquals(afterGDisconnectionCurrent, network.getLine("LINE_12").getTerminal2().getI(), DELTA_I);
+        List<LimitViolation> afterGDisconnectionViolations = Security.checkLimits(network);
+        assertEquals(2, afterGDisconnectionViolations.size());
+
+        // Modify DanglingLine to make the LF converge with no violation
+        // because the modifications on the dangling line makes G_2 compensate less to power DL and does no longer induce a LINE_12 overload
+        network.getVariantManager().setWorkingVariant(networkModificationVariant);
+        network.getDanglingLine(danglingLineId).setP0(actionDLLoadActivePowerValue);
+        network.getDanglingLine(danglingLineId).setQ0(actionDLLoadReactivePowerValue);
+        LoadFlowResult loadFlowResultWithModification = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, loadFlowResultWithModification.getStatus());
+        assertEquals(actionDLLoadActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+        assertEquals(actionDLLoadReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+        assertEquals(afterDLModificationCurrent, network.getLine("LINE_12").getTerminal1().getI(), DELTA_I);
+        assertEquals(afterDLModificationCurrent, network.getLine("LINE_12").getTerminal2().getI(), DELTA_I);
+        List<LimitViolation> afterDLModificationViolations = Security.checkLimits(network);
+        assertEquals(0, afterDLModificationViolations.size());
+
+        //////// Work on dangling line action variant to run an AS with contingency on generator G + a strategy with action on the Dangling line to make it converge with no violation
+        network.getVariantManager().setWorkingVariant(olfActionVariant);
+        assertEquals(initialDLLoadActivePowerValue, network.getDanglingLine(danglingLineId).getP0());
+        assertEquals(initialDLLoadReactivePowerValue, network.getDanglingLine(danglingLineId).getQ0());
+
+        // Set contingency, action and operator strategy and parameters for the security analysis
+        DanglingLineAction danglingLineAction = new DanglingLineActionBuilder()
+                .withId("dangling_line_action")
+                .withDanglingLineId(danglingLineId)
+                .withActivePowerValue(actionDLLoadActivePowerValue)
+                .withReactivePowerValue(actionDLLoadReactivePowerValue)
+                .withRelativeValue(false)
+                .build();
+        List<Action> actions = List.of(danglingLineAction);
+        Contingency generatorContingency = new Contingency("G", new GeneratorContingency("G"));
+        List<Contingency> contingencies = List.of(generatorContingency);
+        List<OperatorStrategy> operatorStrategies = List.of(
+                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(generatorContingency.getId()), new TrueCondition(), List.of(danglingLineAction.getId())));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(parameters);
+        List<StateMonitor> monitors = new ArrayList<>();
+
+        SecurityAnalysisResult saResults = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Check on SA results and values
+        // asserts on operator strategy results: after remedial action on DanglingLine
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(saResults, "strategy1");
+
+        // asserts on post contingency results, before remedial actions)
+        assertEquals(0, saResults.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResults.getPreContingencyResult().getStatus());
+        assertEquals(1, saResults.getPostContingencyResults().size());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, saResults.getPostContingencyResults().get(0).getStatus());
+        assertEquals(2, saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
+        // compare LF current limits violations and SA limits violations before remedial actions
+        assertEquals(
+                saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().stream().filter(l -> l.getSide().equals(ThreeSides.ONE)).findFirst().get().getValue(),
+                afterGDisconnectionViolations.stream().filter(l -> l.getSide().equals(ThreeSides.ONE)).findFirst().get().getValue(),
+                DELTA_I
+        );
+        assertEquals(
+                saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().stream().filter(l -> l.getSide().equals(ThreeSides.TWO)).findFirst().get().getValue(),
+                afterGDisconnectionViolations.stream().filter(l -> l.getSide().equals(ThreeSides.TWO)).findFirst().get().getValue(),
+                DELTA_I
+        );
+
+        List<LimitViolation> postContingencyLimitViolations = saResults.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolations.get(0).getLimitType());
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolations.get(1).getLimitType());
+        assertTrue(postContingencyLimitViolations.get(0).getValue() > currentLimit);
+        assertTrue(postContingencyLimitViolations.get(1).getValue() > currentLimit);
+        assertTrue(postContingencyLimitViolations.get(0).getValue() > afterDLModificationCurrent);
+        assertTrue(postContingencyLimitViolations.get(1).getValue() > afterDLModificationCurrent);
+        assertEquals(afterGDisconnectionCurrent, postContingencyLimitViolations.get(0).getValue(), DELTA_I);
+        assertEquals(afterGDisconnectionCurrent, postContingencyLimitViolations.get(1).getValue(), DELTA_I);
     }
 
     @ParameterizedTest(name = "DC = {0}")
