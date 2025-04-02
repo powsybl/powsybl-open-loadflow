@@ -476,13 +476,13 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "PS1", false, 0));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyPstChange", ContingencyContext.specificContingency("BBS3"), new TrueCondition(), List.of("pstChange")));
 
-        SecurityAnalysisResult resultSlowDcSa = runSecurityAnalysis(network, contingencies, monitors, securityParameters,
+        SecurityAnalysisResult resultDefaultDcSa = runSecurityAnalysis(network, contingencies, monitors, securityParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
-        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(resultSlowDcSa, "strategyPstChange");
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(resultDefaultDcSa, "strategyPstChange");
         assertEquals(200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
         assertEquals(-200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
         assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
-        // in slow dc mode, branch results with 0 flow are created for disabled branches on one side
+        // in default dc mode, branch results with 0 flow are created for disabled branches on one side
         assertEquals(5, operatorStrategyResult.getNetworkResult().getBranchResults().size());
 
         // set dc sa mode
