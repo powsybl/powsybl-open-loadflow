@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ public final class ConnectivityBreakAnalysis {
 
     }
 
-    public static final class ConnectivityAnalysisResult {
+    public static class ConnectivityAnalysisResult {
         private final PropagatedContingency propagatedContingency;
 
         private final LfNetwork network;
@@ -54,19 +55,26 @@ public final class ConnectivityBreakAnalysis {
 
         private final DisabledElements disabledElements;
 
+        private final List<LfAction> lfActions;
+
         public ConnectivityAnalysisResult(PropagatedContingency nonBreakingConnectivityContingency, LfNetwork network) {
-            this(nonBreakingConnectivityContingency, network, Collections.emptySet(), DisabledElements.NO_DISABLED_ELEMENTS, Collections.emptySet(), 0);
+            this(nonBreakingConnectivityContingency, Collections.emptyList(), network);
+        }
+
+        public ConnectivityAnalysisResult(PropagatedContingency nonBreakingConnectivityContingency, List<LfAction> lfActions, LfNetwork network) {
+            this(nonBreakingConnectivityContingency, network, Collections.emptySet(), DisabledElements.NO_DISABLED_ELEMENTS, Collections.emptySet(), 0, lfActions);
         }
 
         public ConnectivityAnalysisResult(PropagatedContingency propagatedContingency, LfNetwork network, Set<String> elementsToReconnect,
                                           DisabledElements disabledElements, Set<LfBus> slackConnectedComponentBuses,
-                                          int createdSynchronousComponents) {
+                                          int createdSynchronousComponents, List<LfAction> lfActions) {
             this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
             this.network = Objects.requireNonNull(network);
             this.elementsToReconnect = elementsToReconnect;
             this.disabledElements = disabledElements;
             this.slackConnectedComponent = slackConnectedComponentBuses;
             this.createdSynchronousComponents = createdSynchronousComponents;
+            this.lfActions = lfActions;
         }
 
         public PropagatedContingency getPropagatedContingency() {
@@ -93,10 +101,20 @@ public final class ConnectivityBreakAnalysis {
             return disabledElements.hvdcsWithoutPower;
         }
 
+        public List<LfAction> getLfActions() {
+            return lfActions;
+        }
+
         public Optional<LfContingency> toLfContingency() {
             PropagatedContingency.ContingencyConnectivityLossImpactAnalysis analysis = (network, contingencyId, branchesToOpen, relocateSlackBus)
                     -> new PropagatedContingency.ContingencyConnectivityLossImpact(createdSynchronousComponents, disabledElements.disabledBuses, disabledElements.hvdcsWithoutPower);
             return propagatedContingency.toLfContingency(network, false, analysis);
+        }
+
+        public ConnectivityAnalysisResult withLfActions(List<LfAction> lfActions) {
+            return new ConnectivityAnalysisResult(this.propagatedContingency, this.network, this.elementsToReconnect, this.disabledElements,
+                    this.slackConnectedComponent, this.createdSynchronousComponents, lfActions
+            );
         }
     }
 
@@ -215,9 +233,9 @@ public final class ConnectivityBreakAnalysis {
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfNetwork, elementsToReconnect,
                         new DisabledElements(disabledBuses, connectivity.getEdgesRemovedFromMainComponent(), hvdcsWithoutPower),
-                        connectivity.getConnectedComponent(lfNetwork.getSlackBus()), createdSynchronousComponents);
+                        connectivity.getConnectedComponent(lfNetwork.getSlackBus()), createdSynchronousComponents, lfActions);
             } else {
-                connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfNetwork);
+                connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, lfActions, lfNetwork);
             }
         } finally {
             connectivity.undoTemporaryChanges();
@@ -314,20 +332,29 @@ public final class ConnectivityBreakAnalysis {
     }
 
     // TODO : it might be better to run for all the couples, rather than by couple of contingency/operator strategy
-    public static ConnectivityAnalysisResult runForAnOperatorStrategy(DcLoadFlowContext loadFlowContext,
-                                                                                PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
-                                                                                List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
-//        ConnectivityAnalysisResult connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, loadFlowContext.getNetwork());
-//        boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModified(loadFlowContext.getNetwork(), contingenciesStates, contingency, contingencyElementByBranch,
-//                actionsStates, lfActions, actionElementsIndexByLfAction, loadFlowContext.getEquationSystem());
-//        LOGGER.info("After sensitivity based connectivity analysis, the contingency and action {} break connectivity",
-//                isConnectivityPotentiallyModified ? "potentially" : "do not");
-//        if (isConnectivityPotentiallyModified) {
-//            connectivityAnalysisResult = computeConnectivityAnalysisResult(loadFlowContext.getNetwork(), contingency,
-//                    contingencyElementByBranch, lfActions, actionElementsIndexByLfAction);
-//            LOGGER.info("After graph based connectivity analysis, the contingency and actions {} break connectivity",
-//                    connectivityAnalysisResult.isPresent() ? "" : "do not");
-//        }
-        return computeConnectivityAnalysisResult(loadFlowContext.getNetwork(), contingency, contingencyElementByBranch, lfActions, actionElementsIndexByLfAction);
+    public static ConnectivityAnalysisResult processPostOperatorStrategyConnectivityAnalysisResult(DcLoadFlowContext loadFlowContext, ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
+                                                                                                   Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
+                                                                                                   List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
+        // if there is no topological action, no need to process anything as the connectivity has not changed from post contingency result
+        boolean hasAnyTopologicalAction = lfActions.stream().anyMatch(lfAction -> lfAction instanceof AbstractLfBranchAction<?>);
+        if (!hasAnyTopologicalAction) {
+            return postContingencyConnectivityAnalysisResult.withLfActions(lfActions);
+        }
+
+        LfNetwork lfNetwork = loadFlowContext.getNetwork();
+        PropagatedContingency contingency = postContingencyConnectivityAnalysisResult.getPropagatedContingency();
+
+        // verify if the connectivity is potentially modified, and returns post contingency connectivity result if this is not the case
+        boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModified(lfNetwork, contingenciesStates, contingency, contingencyElementByBranch,
+                actionsStates, lfActions, actionElementsIndexByLfAction, loadFlowContext.getEquationSystem());
+        if (!isConnectivityPotentiallyModified) {
+            return postContingencyConnectivityAnalysisResult.withLfActions(lfActions);
+        }
+
+        ConnectivityAnalysisResult postOperatorStrategyConnectivityAnalysisResult = computeConnectivityAnalysisResult(lfNetwork, contingency,
+                    contingencyElementByBranch, lfActions, actionElementsIndexByLfAction);
+        LOGGER.info("After graph based connectivity analysis, the contingency and associated actions {} break connectivity",
+                postOperatorStrategyConnectivityAnalysisResult.disabledElements == DisabledElements.NO_DISABLED_ELEMENTS ? "do not" : "");
+        return postOperatorStrategyConnectivityAnalysisResult;
     }
 }
