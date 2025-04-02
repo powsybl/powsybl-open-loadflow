@@ -113,15 +113,6 @@ public class WoodburyEngine {
         }
 
         if (!lfActions.isEmpty()) {
-            // set transformer phase shift to 0 for disconnected phase tap changers
-            lfActions.stream()
-                    .filter(AbstractLfBranchAction.class::isInstance)
-                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch())
-                    .filter(Objects::nonNull)
-                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
-                    .map(Equation::getColumn)
-                    .forEach(column -> targetVectorArray[column] = 0);
-
             // set transformer phase shift to new shifting value
             lfActions.stream()
                     .filter(AbstractLfTapChangerAction.class::isInstance)
@@ -136,6 +127,15 @@ public class WoodburyEngine {
                                 }
                         );
                     });
+
+            // set transformer phase shift to 0 for disconnected phase tap changers
+            lfActions.stream()
+                    .filter(AbstractLfBranchAction.class::isInstance)
+                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch())
+                    .filter(Objects::nonNull)
+                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .map(Equation::getColumn)
+                    .forEach(column -> targetVectorArray[column] = 0);
         }
 
         boolean succeeded = solve(targetVectorArray, loadFlowContext.getJacobianMatrix(), reportNode);

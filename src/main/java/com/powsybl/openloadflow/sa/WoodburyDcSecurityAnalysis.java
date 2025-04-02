@@ -440,9 +440,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // no need to distribute active mismatch due to connectivity modifications
             // this is handled when the slack is distributed in pre contingency states override
             Function<ConnectivityAnalysisResult, double[]> toPostContingencyStates =
-                    connectivityAnalysisResult -> calculatePostContingencyStates(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
-                    connectivityAnalysisResult, connectivityBreakAnalysisResults.contingencyElementByBranch(), reportNode);
-
+                    postContingencyConnectivityAnalysisResult -> calculatePostContingencyStates(context, connectivityBreakAnalysisResults.contingenciesStates(), workingContingencyStates,
+                            postContingencyConnectivityAnalysisResult, connectivityBreakAnalysisResults.contingencyElementByBranch(), reportNode);
             // function to compute post contingency and post operator strategy states
             BiFunction<ConnectivityAnalysisResult, List<LfAction>, double[]> toPostContingencyAndOperatorStrategyStates = (postContingencyConnectivityAnalysisResult, operatorStrategyLfActions) -> {
                 ConnectivityAnalysisResult postContingencyAndOperatorStrategyConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostOperatorStrategyConnectivityAnalysisResult(

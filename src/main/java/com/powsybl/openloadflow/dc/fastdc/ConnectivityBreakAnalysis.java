@@ -165,6 +165,7 @@ public final class ConnectivityBreakAnalysis {
         // we consider a +1 -1 on a line, and we observe the sensitivity of these injections on the other contingency elements
         // if the sum of the sensitivities (in absolute value) is 1, it means that all the flow is going through the lines with a non-zero sensitivity
         // thus, losing these lines will lose the connectivity
+        // TODO : clean
         List<AbstractComputedElement> computedElements = new ArrayList<>(contingencyElements.size() + actionElements.size());
         computedElements.addAll(contingencyElements);
         computedElements.addAll(actionElements);
@@ -351,6 +352,7 @@ public final class ConnectivityBreakAnalysis {
             return postContingencyConnectivityAnalysisResult.withLfActions(lfActions);
         }
 
+        // compute the connectivity result for the contingency and the associated actions
         ConnectivityAnalysisResult postOperatorStrategyConnectivityAnalysisResult = computeConnectivityAnalysisResult(lfNetwork, contingency,
                     contingencyElementByBranch, lfActions, actionElementsIndexByLfAction);
         LOGGER.info("After graph based connectivity analysis, the contingency and associated actions {} break connectivity",
