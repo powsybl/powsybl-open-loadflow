@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -191,7 +192,10 @@ class SecondaryVoltageControlTest {
 
         parametersExt.setSecondaryVoltageControl(true);
 
-        ReportNode node = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("test", "test")
+                .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
         var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
@@ -269,7 +273,10 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
         parametersExt.setReactiveLimitsMaxPqPvSwitch(0); // Will block PQ->PV move
 
-        ReportNode node = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("test", "test")
+                .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
         var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
