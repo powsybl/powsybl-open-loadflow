@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -67,11 +67,15 @@ public class LfContingency {
         }
         for (Map.Entry<LfLoad, LfLostLoad> e : lostLoads.entrySet()) {
             LfLostLoad lostLoad = e.getValue();
-            disconnectedLoadActivePower += lostLoad.getPowerShift().getActive();
+            if (!disabledNetwork.getBuses().contains(e.getKey().getBus())) {
+                disconnectedLoadActivePower += lostLoad.getPowerShift().getActive();
+            }
             disconnectedElementIds.addAll(lostLoad.getOriginalIds());
         }
         for (LfGenerator generator : lostGenerators) {
-            disconnectedGenerationActivePower += generator.getTargetP();
+            if (!disabledNetwork.getBuses().contains(generator.getBus())) {
+                disconnectedGenerationActivePower += generator.getTargetP();
+            }
             disconnectedElementIds.add(generator.getOriginalId());
         }
         disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
