@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -166,7 +167,9 @@ class GeneratorRemoteControlPQSwitchTest {
         // Activate trace logs to ensure ReactiveLimitsLoop trace logs are run at least once per build
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(Level.TRACE);
-        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("test", "test").build();
     }
 
     @AfterEach

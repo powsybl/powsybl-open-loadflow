@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -495,7 +496,10 @@ class DcLoadFlowTest {
         parametersExt.setAreaInterchangePMaxMismatch(1)
                 .setMaxOuterLoopIterations(1);
 
-        ReportNode reportNodeWithLimit1 = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        ReportNode reportNodeWithLimit1 = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("test", "test")
+                .build();
 
         var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNodeWithLimit1);
         assertFalse(result.isFullyConverged());
