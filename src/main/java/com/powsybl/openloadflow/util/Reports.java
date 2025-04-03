@@ -703,11 +703,7 @@ public final class Reports {
     }
 
     public static ReportNode createDetailedSolverReporter(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc) {
-        ReportNode subReportNode = reportNode.newReportNode()
-                .withMessageTemplate("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}")
-                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
-                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-                .add();
+        ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
         subReportNode.newReportNode()
                 .withMessageTemplate("solverNoOuterLoops", "No outer loops have been launched")
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -717,11 +713,7 @@ public final class Reports {
 
     public static ReportNode createDetailedSolverReporterOuterLoop(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc,
                                                                    int outerLoopIteration, String outerLoopType) {
-        ReportNode subReportNode = reportNode.newReportNode()
-                .withMessageTemplate("solver", solverName + " on Network CC${networkNumCc} SC${networkNumSc}")
-                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
-                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-                .add();
+        ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
         subReportNode.newReportNode()
                 .withMessageTemplate("solverOuterLoopCurrentType", "Newton-Raphson of outer loop iteration ${outerLoopIteration} of type ${outerLoopType}")
                 .withUntypedValue("outerLoopIteration", outerLoopIteration)
@@ -729,6 +721,15 @@ public final class Reports {
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
         return subReportNode;
+    }
+
+    public static ReportNode createSolverReport(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("solver", "${solverName} on Network CC${networkNumCc} SC${networkNumSc}")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+                .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .withUntypedValue("solverName", solverName)
+                .add();
     }
 
     public static ReportNode createNewtonRaphsonMismatchReporter(ReportNode reportNode, int iteration) {
