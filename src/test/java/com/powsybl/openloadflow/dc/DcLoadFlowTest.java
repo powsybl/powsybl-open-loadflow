@@ -554,6 +554,17 @@ class DcLoadFlowTest {
     }
 
     @Test
+    void testDcResidualMismatchRemaining() {
+        Network network = IeeeCdfNetworkFactory.create9();
+        network.getGenerator("B1-G").setTargetP(67.01); // Setting target P to have an initially almost balanced network
+        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        System.out.println(network.getGenerator("B1-G").getId() + " has P = " + network.getGenerator("B1-G").getTargetP());
+        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        // DC loadflow succeeds but the initial residual mismatch still remains
+        assertReportContains("Remaining residual slack bus active power mismatch after active power distribution, [-+]?0\\.\\d* MW remains", reportNode);
+    }
+
+    @Test
     void testDcSlackDistributionFailureBehavior() {
         Network network = IeeeCdfNetworkFactory.create57();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
