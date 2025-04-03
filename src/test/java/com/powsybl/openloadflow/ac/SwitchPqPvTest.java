@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
@@ -207,8 +208,8 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         g2.setTargetV(22);
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
-                .withMessageTemplate("test", "test")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
                 .build();
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result.isFullyConverged());

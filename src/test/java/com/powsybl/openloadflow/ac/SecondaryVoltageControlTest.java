@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -193,8 +194,8 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
 
         ReportNode node = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
-                .withMessageTemplate("test", "test")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
                 .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
@@ -274,8 +275,8 @@ class SecondaryVoltageControlTest {
         parametersExt.setReactiveLimitsMaxPqPvSwitch(0); // Will block PQ->PV move
 
         ReportNode node = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
-                .withMessageTemplate("test", "test")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
                 .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin

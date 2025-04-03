@@ -9,6 +9,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -282,7 +283,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
-                .withMessageTemplate("unitTest", "")
+                .withMessageTemplate("unitTest")
                 .build();
         LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertFalse(result.isFullyConverged());
@@ -462,8 +463,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
                 .add();
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
@@ -474,8 +475,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void maxOuterLoopIterationTest() throws IOException {
         ReportNode report = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
-                .withMessageTemplate("test", "test")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
                 .build();
         gen.setTargetP(1000);
         parameters.setDistributedSlack(true);
