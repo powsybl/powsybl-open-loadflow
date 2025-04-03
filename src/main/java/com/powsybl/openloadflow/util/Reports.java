@@ -162,7 +162,15 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("mismatchDistributionFailure", "Failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
                 .withTypedValue(MISMATCH, remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportResidualDistributionMismatch(ReportNode reportNode, double remainingMismatch) {
+        reportNode.newReportNode()
+                .withMessageTemplate("residualDistributionMismatch", "Remaining residual slack bus active power mismatch after active power distribution, ${mismatch} MW remains")
+                .withTypedValue(MISMATCH, remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withSeverity(TypedValue.DEBUG_SEVERITY)
                 .add();
     }
 
