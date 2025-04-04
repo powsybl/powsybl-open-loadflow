@@ -42,7 +42,7 @@ public final class ConnectivityBreakAnalysis {
 
     }
 
-    public static class ConnectivityAnalysisResult {
+    public static final class ConnectivityAnalysisResult {
         private final PropagatedContingency propagatedContingency;
 
         private final LfNetwork network;
@@ -212,9 +212,9 @@ public final class ConnectivityBreakAnalysis {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
         List<AbstractComputedElement> modifyingConnectivityCandidates = Stream.concat(
-                contingency.getBranchIdsToOpen().keySet().stream().sorted().map(contingencyElementByBranch::get),
-                lfActions.stream().map(actionElementByBranch::get) // TODO : sort the stream to avoid multiple possibilities when multiple elements restore connectivity
-        ).toList();
+                contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get),
+                lfActions.stream().map(actionElementByBranch::get)
+        ).sorted().toList();
 
         // we confirm the breaking of connectivity by network connectivity
         ConnectivityAnalysisResult connectivityAnalysisResult;
@@ -334,7 +334,6 @@ public final class ConnectivityBreakAnalysis {
         return new ConnectivityBreakAnalysisResults(nonBreakingConnectivityContingencies, connectivityAnalysisResults, contingenciesStates, contingencyElementByBranch);
     }
 
-    // TODO : it might be better to run for all the couples, rather than by couple of contingency/operator strategy
     public static ConnectivityAnalysisResult processPostOperatorStrategyConnectivityAnalysisResult(DcLoadFlowContext loadFlowContext, ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
                                                                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
                                                                                                    List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {

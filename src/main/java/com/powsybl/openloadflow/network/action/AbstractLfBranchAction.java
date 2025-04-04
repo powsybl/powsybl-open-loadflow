@@ -81,7 +81,7 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
     /**
      * Optimized apply on an existing connectivity (to apply several branch actions at the same time)
      */
-    public boolean applyOnConnectivity(LfNetwork network, GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public boolean applyOnConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         boolean found = disabledBranch != null || enabledBranch != null;
         updateConnectivity(connectivity);
         return found;

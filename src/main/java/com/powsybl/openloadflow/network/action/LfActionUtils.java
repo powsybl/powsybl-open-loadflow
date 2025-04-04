@@ -83,7 +83,7 @@ public final class LfActionUtils {
         connectivity.startTemporaryChanges();
 
         branchActions.forEach(action -> {
-            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(network, connectivity)) {
+            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(connectivity)) {
                 Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
             }
         });
