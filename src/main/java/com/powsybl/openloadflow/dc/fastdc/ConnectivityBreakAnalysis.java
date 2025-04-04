@@ -212,8 +212,8 @@ public final class ConnectivityBreakAnalysis {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
         List<AbstractComputedElement> modifyingConnectivityCandidates = Stream.concat(
-                contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get),
-                lfActions.stream().map(actionElementByBranch::get)
+                contingency.getBranchIdsToOpen().keySet().stream().sorted().map(contingencyElementByBranch::get),
+                lfActions.stream().sorted().map(actionElementByBranch::get)
         ).toList();
 
         // we confirm the breaking of connectivity by network connectivity
@@ -222,7 +222,9 @@ public final class ConnectivityBreakAnalysis {
         try {
             modifyingConnectivityCandidates.forEach(computedElement -> computedElement.applyToConnectivity(connectivity));
             // filter the branches that really impacts connectivity
-            Set<AbstractComputedElement> breakingConnectivityElements = modifyingConnectivityCandidates.stream()
+            // the traversal order of the set must be deterministic to ensure consistent element selection when multiple elements can restore connectivity
+            // without this, fast DC post contingency states may vary for buses disconnected from main connected component, depending on which elements were selected
+            LinkedHashSet<AbstractComputedElement> breakingConnectivityElements = modifyingConnectivityCandidates.stream()
                     .filter(element -> isBreakingConnectivity(connectivity, element))
                     .collect(Collectors.toCollection(LinkedHashSet::new));
 
