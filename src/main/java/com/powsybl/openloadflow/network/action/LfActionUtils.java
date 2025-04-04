@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.util.Reports;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import static com.powsybl.openloadflow.network.action.AbstractLfBranchAction.updateBusesAndBranchStatus;
 
@@ -54,10 +53,6 @@ public final class LfActionUtils {
     }
 
     public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        applyListOfActions(actions, network, contingency, contingency.getDisabledNetwork().getBranches(), networkParameters);
-    }
-
-    public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, Set<LfBranch> branchesToOpen, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -65,7 +60,7 @@ public final class LfActionUtils {
         List<LfAction> branchActions = actions.stream()
             .filter(action -> action instanceof AbstractLfBranchAction<?>)
             .toList();
-        updateConnectivity(branchActions, network, branchesToOpen, contingency);
+        updateConnectivity(branchActions, network, contingency);
 
         // then process remaining changes of actions
         actions.stream()
@@ -77,18 +72,18 @@ public final class LfActionUtils {
             });
     }
 
-    private static void updateConnectivity(List<LfAction> branchActions, LfNetwork network, Set<LfBranch> branchesToRemove, LfContingency contingency) {
+    private static void updateConnectivity(List<LfAction> branchActions, LfNetwork network, LfContingency contingency) {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
         connectivity.startTemporaryChanges();
-        branchesToRemove.forEach(connectivity::removeEdge);
+        contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
 
         // update connectivity according to post action state
         connectivity.startTemporaryChanges();
 
         branchActions.forEach(action -> {
-            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(connectivity)) {
+            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(network, connectivity)) {
                 Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
             }
         });
