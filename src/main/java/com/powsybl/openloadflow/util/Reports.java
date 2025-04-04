@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.util;
 
+import com.powsybl.commons.report.PowsyblCoreReportResourceBundle;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
@@ -623,6 +624,7 @@ public final class Reports {
 
     public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
         return ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblCoreReportResourceBundle.BASE_NAME)
                 .withMessageTemplate(LF_NETWORK_KEY, "Network CC${networkNumCc} SC${networkNumSc}")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
