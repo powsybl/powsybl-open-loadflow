@@ -212,6 +212,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, woodburyContext.limitReductions, woodburyContext.violationsParameters);
         postContingencyLimitViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency);
 
+        // connectivity result due to the contingency
         var connectivityResult = new ConnectivityResult(
                 lfContingency.getCreatedSynchronousComponentsCount(), 0,
                 lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
