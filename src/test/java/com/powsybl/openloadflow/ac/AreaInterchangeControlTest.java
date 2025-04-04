@@ -57,6 +57,16 @@ class AreaInterchangeControlTest {
     }
 
     @Test
+    void twoAreasWithNonImpedantBoundary() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
+        network.getLine("l23_A1").setX(0);
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        runLfTwoAreas(network, -40, 40, -30, 2);
+        parameters.setDc(true);
+        runLfTwoAreas(network, -40, 40, -30, 0);
+    }
+
+    @Test
     void twoAreasWithUnpairedDanglingLine() {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
