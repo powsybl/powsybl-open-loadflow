@@ -67,6 +67,19 @@ class AreaInterchangeControlTest {
     }
 
     @Test
+    void twoAreasWithZeroImpedanceBoundaryBranches() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        double interchangeTarget1 = -40;
+        double interchangeTarget2 = 20;
+        network.getLine("l23_A1").setX(0);
+        network.getDanglingLine("dl1").setX(0);
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 2);
+        parameters.setDc(true);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
+    }
+
+    @Test
     void twoAreasWithTieLineTest() {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
         runLfTwoAreas(network, -40, 40, -30, 2);
