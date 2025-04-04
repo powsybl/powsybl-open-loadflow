@@ -55,7 +55,8 @@ The `dcFastMode` property allows to use fast DC security analysis, based on Wood
 when DC mode is activated.
 
 Please note that fast mode has a few limitations:
-- Contingencies applied on branches opened on one side are ignored.
+- Contingencies applied on branches opened on one side are ignored. Also, if a contingency causes the loss of one side of a branch, 
+it is considered completely disabled, and no results are reported for this branch.
 - AC emulation of HVDC lines is disabled, as it is not yet supported.
 Instead, the [active power setpoint](../loadflow/loadflow.md#computing-hvdc-power-flow) mode is used to control the active power flow through these lines. 
 - Only PST remedial actions are supported for now.

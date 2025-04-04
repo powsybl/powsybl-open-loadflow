@@ -4388,4 +4388,48 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult postContingencyResult1 = getPostContingencyResult(result1, "load3_outerLoopNames");
         assertEquals(36.667, postContingencyResult1.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testDcSaNoViolationDetectedOnRemovedBranchOnOneSide() {
+        Network network = NodeBreakerNetworkFactory.createWith4Bars();
+
+        // add small limits on disabled lines to verify there is no violation detected
+        network.getLine("L3").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L3").newCurrentLimits2().setPermanentLimit(0.1).add();
+        network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setDc(true);
+        setSlackBusId(lfParameters, "VL1_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        // this contingency will disable L4 on side 1 and L5 on side 2
+        List<Contingency> contingencies = Stream.of("BBS3")
+                .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
+                .collect(Collectors.toList());
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult resultDefaultDcSa = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(resultDefaultDcSa, "BBS3");
+        assertEquals(200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
+        assertEquals(-200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
+        assertEquals(0, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
+        // in default dc mode, branch results with 0 flow are created for disabled branches on one side
+        assertEquals(5, postContingencyResult.getNetworkResult().getBranchResults().size());
+
+        // set dc sa mode
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        SecurityAnalysisResult resultFastDcSa = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        postContingencyResult = getPostContingencyResult(resultFastDcSa, "BBS3");
+        assertEquals(200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
+        assertEquals(-200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
+        assertEquals(0, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
+        // in fast dc mode, no branch result is created for disabled branches on one side
+        assertEquals(1, postContingencyResult.getNetworkResult().getBranchResults().size());
+    }
 }
