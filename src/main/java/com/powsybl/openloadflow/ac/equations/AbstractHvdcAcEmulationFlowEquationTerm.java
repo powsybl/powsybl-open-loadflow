@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -41,6 +41,10 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     protected final double pMaxFromCS1toCS2;
 
     protected final double pMaxFromCS2toCS1;
+
+    protected double frozenP = Double.NaN;
+
+    protected boolean frozen = false;
 
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
@@ -101,4 +105,23 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     public boolean hasRhs() {
         return false;
     }
+
+    public double freezeFromCurrentAngles() {
+        frozen = false; // Make sure P is computed according to angles
+        frozenP = isActive() ? eval() : Double.NaN;
+        frozen = true;
+        return frozenP;
+    }
+
+    public boolean unFreeze() {
+        frozen = false;
+        frozenP = Double.NaN;
+        // Returns true if angles should be reset
+        return isActive() ? (der(ph1Var) == 0) : false;
+    }
+
+    public boolean isFrozen() {
+        return frozen;
+    }
+
 }
