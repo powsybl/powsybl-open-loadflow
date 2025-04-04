@@ -195,7 +195,7 @@ public final class Reports {
     public static ReportNode reportAreaInterchangeControlDistributionFailure(ReportNode reportNode) {
         return reportNode.newReportNode()
                 .withMessageTemplate("areaInterchangeControlDistributionFailure", "Failed to distribute interchange active power mismatch")
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
@@ -204,7 +204,7 @@ public final class Reports {
                 .withMessageTemplate("areaInterchangeControlAreaMismatch", "Remaining mismatch for Area ${area}: ${mismatch} MW")
                 .withUntypedValue("area", area)
                 .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
