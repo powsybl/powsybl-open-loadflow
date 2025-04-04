@@ -11,6 +11,7 @@ package com.powsybl.openloadflow.ac;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
@@ -22,6 +23,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -130,7 +132,10 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         parametersExt.setGeneratorReactivePowerRemoteControl(true)
                 .setTransformerReactivePowerControl(true);
 
-        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        ReportNode report = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
 
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, report);
         assertTrue(result.isFullyConverged());
@@ -203,7 +208,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         parametersExt.setGeneratorReactivePowerRemoteControl(true);
 
         ReportNode report = ReportNode.newRootReportNode()
-                .withMessageTemplate("test", "test")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
                 .build();
 
         LoadFlowResult result = loadFlowRunner.run(myNetwork, myNetwork.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),
