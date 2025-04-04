@@ -41,7 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.powsybl.openloadflow.OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS;
+import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -287,6 +287,22 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void testUpdateParametersFromPlatformConfig() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, olfParameters.getSlackBusSelectionMode());
+        assertEquals(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, olfParameters.getSlackDistributionFailureBehavior());
+
+        MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig(MODULE_SPECIFIC_PARAMETERS);
+        olfModuleConfig.setStringProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.FIRST.toString());
+        olfParameters.update(platformConfig);
+
+        assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
+        assertEquals(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, olfParameters.getSlackDistributionFailureBehavior());
+    }
+
+    @Test
     void testUpdateParameters() {
         Map<String, String> parametersMap = new HashMap<>();
         parametersMap.put("slackBusSelectionMode", "FIRST");
@@ -305,6 +321,25 @@ class OpenLoadFlowParametersTest {
         assertFalse(parameters.isVoltageRemoteControl());
         assertEquals(10, parameters.getMaxNewtonRaphsonIterations());
         assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
+    }
+
+    @Test
+    void testParametersWithConfigAndLoader() {
+        OLFDefaultParametersLoaderMock loader = new OLFDefaultParametersLoaderMock("test");
+
+        MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
+        moduleConfig.setStringProperty("maxOuterLoopIterations", "50");
+
+        LoadFlowParameters parameters = new LoadFlowParameters(List.of(loader), platformConfig);
+        OpenLoadFlowParameters olfParameters = parameters.getExtensionByName("open-load-flow-parameters");
+        assertNotNull(olfParameters);
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(30, olfParameters.getMaxOuterLoopIterations());
+
+        olfParameters.update(platformConfig);
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(50, olfParameters.getMaxOuterLoopIterations());
+
     }
 
     @Test
@@ -333,7 +368,7 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
-    void testEqualsAndClone() {
+    void testEqualsCloneAndUpdate() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         provider.getSpecificParameters().forEach(sp -> {
             var p1 = new LoadFlowParameters();
@@ -380,6 +415,22 @@ class OpenLoadFlowParametersTest {
             assertTrue(OpenLoadFlowParameters.equals(p1, p1c), "Parameter is not handled in clone: " + sp.getName());
             var p2c = OpenLoadFlowParameters.clone(p2);
             assertTrue(OpenLoadFlowParameters.equals(p2, p2c), "Parameter is not handled in clone: " + sp.getName());
+
+            // Test update from PlatformConfig
+            InMemoryPlatformConfig config1 = new InMemoryPlatformConfig(fileSystem);
+            MapModuleConfig lfModuleConfig1 = config1.createModuleConfig("open-loadflow-default-parameters");
+            InMemoryPlatformConfig config2 = new InMemoryPlatformConfig(fileSystem);
+            MapModuleConfig lfModuleConfig2 = config2.createModuleConfig("open-loadflow-default-parameters");
+            lfModuleConfig1.setStringProperty(sp.getName(), newVal1);
+            lfModuleConfig2.setStringProperty(sp.getName(), newVal2);
+            LoadFlowParameters lfu1 = new LoadFlowParameters();
+            LoadFlowParameters lfu2 = new LoadFlowParameters();
+            OpenLoadFlowParameters.create(lfu1).update(config1);
+            OpenLoadFlowParameters.create(lfu2).update(config2);
+
+            // should not equal
+            assertFalse(OpenLoadFlowParameters.equals(lfu1, lfu2), "Parameter is not handled in update(platformConfig): " + sp.getName());
+
         });
     }
 

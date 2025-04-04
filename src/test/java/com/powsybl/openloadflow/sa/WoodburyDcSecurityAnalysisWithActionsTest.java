@@ -11,13 +11,11 @@ import com.powsybl.action.Action;
 import com.powsybl.action.GeneratorActionBuilder;
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.LoadContingency;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -35,7 +33,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -219,9 +220,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brRelPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    // TODO Does not work in DC mode - to fix in a separate PR
-    @Test
-    void testSaDcPhaseTapChangerTapPositionChangeWithConnectivityBreak() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testSaDcPhaseTapChangerTapPositionChangeWithConnectivityBreak(boolean fastDcMode) {
         Network network = PhaseControlFactory.createNetworkWith3Buses();
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -235,6 +236,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusId("VL2_0")
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME);
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(fastDcMode);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
 
@@ -448,5 +451,52 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         CompletionException thrown = assertThrows(CompletionException.class,
                 () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
         assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction is allowed in WoodburyDcSecurityAnalysis"));
+    }
+
+    @Test
+    void testDcSaPhaseTapChangerTapPositionChangeNoViolationDetectedOnRemovedBranchOnOneSide() {
+        Network network = NodeBreakerNetworkFactory.createWith4Bars();
+
+        // add small limits on disabled lines to verify there is no violation detected
+        network.getLine("L3").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L3").newCurrentLimits2().setPermanentLimit(0.1).add();
+        network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
+        network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
+
+        setSlackBusId(parameters, "VL1_0");
+        SecurityAnalysisParameters securityParameters = new SecurityAnalysisParameters();
+        securityParameters.setLoadFlowParameters(parameters);
+
+        // this contingency will disable L4 on side 1 and L5 on side 2
+        List<Contingency> contingencies = Stream.of("BBS3")
+                .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
+                .collect(Collectors.toList());
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        // the action has no real effect on the flow, we add it to verify operator strategy result
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "PS1", false, 0));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyPstChange", ContingencyContext.specificContingency("BBS3"), new TrueCondition(), List.of("pstChange")));
+
+        SecurityAnalysisResult resultDefaultDcSa = runSecurityAnalysis(network, contingencies, monitors, securityParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(resultDefaultDcSa, "strategyPstChange");
+        assertEquals(200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
+        assertEquals(-200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
+        assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
+        // in default dc mode, branch results with 0 flow are created for disabled branches on one side
+        assertEquals(5, operatorStrategyResult.getNetworkResult().getBranchResults().size());
+
+        // set dc sa mode
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setDcFastMode(true);
+        securityParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        SecurityAnalysisResult resultFastDcSa = runSecurityAnalysis(network, contingencies, monitors, securityParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+        operatorStrategyResult = getOperatorStrategyResult(resultFastDcSa, "strategyPstChange");
+        assertEquals(200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
+        assertEquals(-200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
+        assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
+        // in fast dc mode, no branch result is created for disabled branches on one side
+        assertEquals(1, operatorStrategyResult.getNetworkResult().getBranchResults().size());
     }
 }

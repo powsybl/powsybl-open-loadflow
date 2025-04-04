@@ -515,10 +515,10 @@ class DcLoadFlowTest {
                       + Network CC0 SC0
                          + Network info
                             Network has 3 buses and 3 branches
-                            Network balance: active generation=140.0 MW, active load=140.0 MW, reactive generation=0.0 MVar, reactive load=55.0 MVar
+                            Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
-                         Slack bus active power (-0.0 MW) distributed in 0 distribution iteration(s)
+                         Slack bus active power (-0 MW) distributed in 0 distribution iteration(s)
                          + Outer loop IncrementalPhaseControl
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1

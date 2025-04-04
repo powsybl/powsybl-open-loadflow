@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.ac;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
@@ -25,11 +27,14 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -40,6 +45,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 class GeneratorRemoteControlPQSwitchTest {
 
     private Network network;
+    private ReportNode reportNode;
     private Bus b1;
     private Generator g1;
     private LoadFlow.Runner loadFlowRunner;
@@ -56,7 +62,6 @@ class GeneratorRemoteControlPQSwitchTest {
      *  |
      *  g1
      *
-     * @return
      */
     @BeforeEach
     void setUp() {
@@ -161,6 +166,7 @@ class GeneratorRemoteControlPQSwitchTest {
         // Activate trace logs to ensure ReactiveLimitsLoop trace logs are run at least once per build
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(Level.TRACE);
+        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
     }
 
     @AfterEach
@@ -196,13 +202,13 @@ class GeneratorRemoteControlPQSwitchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testLowVoltageQMin(boolean robustMode) {
+    void testLowVoltageQMin(boolean robustMode) throws IOException {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
         parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-800).setMaxQ(800).add();
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = runWithReport();
         if (robustMode) {
             assertTrue(result.isFullyConverged());
             assertReactivePowerEquals(800, g1.getTerminal());
@@ -210,18 +216,51 @@ class GeneratorRemoteControlPQSwitchTest {
             assertFalse(result.isFullyConverged());
             assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
         }
+
+        // test the report
+        if (robustMode) {
+            String expectedReport = """
+                    + test
+                       + Load flow on network 'test'
+                          + Network CC0 SC0
+                             + Network info
+                                Network has 3 buses and 2 branches
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
+                                Angle reference bus: vl2_0
+                                Slack bus: vl2_0
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 1
+                                   Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             + Outer loop ReactiveLimits
+                                + Outer loop iteration 2
+                                   + 1 buses switched PV -> PQ (1 buses remain PV)
+                                      Switch bus 'vl1_0' PV -> PQ, q=-2553.557359 < minQ=-800
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 3
+                                   Slack bus active power (-21.141636 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             Outer loop DistributedSlack
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                    """;
+
+            assertReportEqualsString(expectedReport, reportNode);
+        }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testLowVoltageVMin(boolean robustMode) {
+    void testLowVoltageVMin(boolean robustMode) throws IOException {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
         parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
         g1.setTargetQ(10);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = runWithReport();
         if (robustMode) {
             assertTrue(result.isFullyConverged());
             assertReactivePowerEquals(-10, g1.getTerminal());  // The generator is set to initial targetQ
@@ -229,11 +268,44 @@ class GeneratorRemoteControlPQSwitchTest {
             assertFalse(result.isFullyConverged());
             assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
         }
+
+        // test the report
+        if (robustMode) {
+            String expectedReport = """
+                    + test
+                       + Load flow on network 'test'
+                          + Network CC0 SC0
+                             + Network info
+                                Network has 3 buses and 2 branches
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
+                                Angle reference bus: vl2_0
+                                Slack bus: vl2_0
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 1
+                                   Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             + Outer loop ReactiveLimits
+                                + Outer loop iteration 2
+                                   + 1 buses switched PV -> PQ (1 buses remain PV)
+                                      Switch bus 'vl1_0' PV -> PQ, q set to 10 = targetQ - because V < 16kV when remote voltage target is maintained
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 3
+                                   Slack bus active power (-22.091658 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             Outer loop DistributedSlack
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                    """;
+
+            assertReportEqualsString(expectedReport, reportNode);
+        }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testHighVoltageVMax(boolean robustMode) {
+    void testHighVoltageVMax(boolean robustMode) throws IOException {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
         parametersExt.setVoltageRemoteControlRobustMode(robustMode);
@@ -241,7 +313,7 @@ class GeneratorRemoteControlPQSwitchTest {
         g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
         g1.setTargetV(403);
         g1.setTargetQ(10);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = runWithReport();
         if (robustMode) {
             assertTrue(result.isFullyConverged());
             assertReactivePowerEquals(-10, g1.getTerminal());  // The generator is set to initial targetQ
@@ -249,11 +321,45 @@ class GeneratorRemoteControlPQSwitchTest {
             assertFalse(result.isFullyConverged());
             assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
         }
+
+        // test the report
+        if (robustMode) {
+            String expectedReport = """
+                    \
+                    + test
+                       + Load flow on network 'test'
+                          + Network CC0 SC0
+                             + Network info
+                                Network has 3 buses and 2 branches
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
+                                Angle reference bus: vl2_0
+                                Slack bus: vl2_0
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 1
+                                   Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             + Outer loop ReactiveLimits
+                                + Outer loop iteration 2
+                                   + 1 buses switched PV -> PQ (1 buses remain PV)
+                                      Switch bus 'vl1_0' PV -> PQ, q set to 10 = targetQ - because V > 24kV when remote voltage target is maintained
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 3
+                                   Slack bus active power (-18.01229 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             Outer loop DistributedSlack
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                    """;
+
+            assertReportEqualsString(expectedReport, reportNode);
+        }
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testHighVoltageQMax(boolean robustMode) {
+    void testHighVoltageQMax(boolean robustMode) throws IOException {
         parametersExt.setMinRealisticVoltage(0.8);
         parametersExt.setMaxRealisticVoltage(1.2);
         parametersExt.setVoltageRemoteControlRobustMode(robustMode);
@@ -261,7 +367,7 @@ class GeneratorRemoteControlPQSwitchTest {
         g1.newMinMaxReactiveLimits().setMinQ(-800).setMaxQ(800).add();
         g1.setTargetV(403);
         g1.setTargetQ(10);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = runWithReport();
         if (robustMode) {
             assertTrue(result.isFullyConverged());
             assertReactivePowerEquals(-800, g1.getTerminal());  // The generator is set to initial targetQ
@@ -269,6 +375,47 @@ class GeneratorRemoteControlPQSwitchTest {
             assertFalse(result.isFullyConverged());
             assertEquals("Unrealistic state", result.getComponentResults().get(0).getStatusText());
         }
+
+        // test the report
+        if (robustMode) {
+            String expectedReport = """
+                    + test
+                       + Load flow on network 'test'
+                          + Network CC0 SC0
+                             + Network info
+                                Network has 3 buses and 2 branches
+                                Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
+                                Angle reference bus: vl2_0
+                                Slack bus: vl2_0
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 1
+                                   Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             + Outer loop ReactiveLimits
+                                + Outer loop iteration 2
+                                   + 1 buses switched PV -> PQ (1 buses remain PV)
+                                      Switch bus 'vl1_0' PV -> PQ, q=5180.292508 > maxQ=800
+                             + Outer loop DistributedSlack
+                                + Outer loop iteration 3
+                                   Slack bus active power (-17.327551 MW) distributed in 1 distribution iteration(s)
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             Outer loop DistributedSlack
+                             Outer loop VoltageMonitoring
+                             Outer loop ReactiveLimits
+                             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                    """;
+
+            LoadFlowAssert.assertReportEqualsString(expectedReport, reportNode);
+        }
+    }
+
+    private LoadFlowResult runWithReport() {
+        return loadFlowRunner.run(network,
+                network.getVariantManager().getWorkingVariantId(),
+                LocalComputationManager.getDefault(),
+                parameters,
+                reportNode);
     }
 
 }

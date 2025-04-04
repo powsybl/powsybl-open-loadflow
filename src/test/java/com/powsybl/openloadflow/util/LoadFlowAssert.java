@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,11 +13,10 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -102,22 +101,34 @@ public final class LoadFlowAssert {
         assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reportNode);
     }
 
-    public static void assertReportEquals(InputStream ref, ReportNode reportNode) throws IOException {
+    private static String reportToString(ReportNode reportNode) throws IOException {
         StringWriter sw = new StringWriter();
-        reportNode.print(sw);
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+        symbols.setDecimalSeparator('.');
+        DecimalFormat decimalFormat = new DecimalFormat("#.######", symbols);
+        reportNode.print(sw, typedValue -> {
+            if (typedValue.getValue() instanceof Double) {
+                return decimalFormat.format(typedValue.getValue());
+            }
+            return typedValue.toString();
+        });
+        return sw.toString();
+    }
 
+    public static void assertReportEquals(InputStream ref, ReportNode reportNode) throws IOException {
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(ref), StandardCharsets.UTF_8));
-        String logExport = normalizeLineSeparator(sw.toString());
+        String logExport = normalizeLineSeparator(reportToString(reportNode));
         assertEquals(refLogExport, logExport);
     }
 
     public static void assertTxtReportEquals(String reportTxt, ReportNode reportNode) throws IOException {
-        StringWriter sw = new StringWriter();
-        reportNode.print(sw);
-
         String refLogExport = normalizeLineSeparator(reportTxt);
-        String logExport = normalizeLineSeparator(sw.toString());
+        String logExport = normalizeLineSeparator(reportToString(reportNode));
         assertEquals(refLogExport, logExport);
+    }
+
+    public static void assertReportEqualsString(String expected, ReportNode reportNode) throws IOException {
+        assertReportEquals(new ByteArrayInputStream(expected.getBytes()), reportNode);
     }
 
     public static Stream<ReportNode> streamReportNodes(final ReportNode node) {
