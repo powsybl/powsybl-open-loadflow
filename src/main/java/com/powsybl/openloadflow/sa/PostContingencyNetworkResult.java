@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
@@ -18,6 +19,7 @@ import com.powsybl.security.results.BranchResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -43,7 +45,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         branchResults.clear();
     }
 
-    public void addResults(StateMonitor monitor) {
+    public void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled) {
         addResults(monitor, branch -> {
             var preContingencyBranchResult = preContingencyMonitorInfos.getBranchResult(branch.getId());
             double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
@@ -61,17 +63,21 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                 }
             }
             branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension));
-        });
+        }, isBranchDisabled);
     }
 
     @Override
     public void update() {
+        update(LfBranch::isDisabled);
+    }
+
+    public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
         if (stateMonitor != null) {
-            addResults(stateMonitor);
+            addResults(stateMonitor, isBranchDisabled);
         } else {
-            addResults(monitorIndex.getAllStateMonitor());
+            addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled);
         }
     }
 
