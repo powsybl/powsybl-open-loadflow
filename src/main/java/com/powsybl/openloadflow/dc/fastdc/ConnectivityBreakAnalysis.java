@@ -225,7 +225,7 @@ public final class ConnectivityBreakAnalysis {
         List<AbstractComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get),
                 lfActions.stream().map(actionElementByBranch::get)
-        ).sorted().toList();
+        ).sorted(Comparator.comparing(element -> element.getLfBranch().getId())).toList();
 
         // we confirm the breaking of connectivity by network connectivity
         ConnectivityAnalysisResult connectivityAnalysisResult = null;
@@ -372,7 +372,7 @@ public final class ConnectivityBreakAnalysis {
         ConnectivityAnalysisResult postOperatorStrategyConnectivityAnalysisResult = computeConnectivityAnalysisResult(lfNetwork, contingency,
                     contingencyElementByBranch, lfActions, actionElementsIndexByLfAction);
         LOGGER.info("After graph based connectivity analysis, the contingency and associated actions {} break connectivity",
-                postOperatorStrategyConnectivityAnalysisResult.disabledElements == DisabledElements.NO_DISABLED_ELEMENTS ? "do not" : "");
+                postOperatorStrategyConnectivityAnalysisResult != null ? "" : "do not");
         return postOperatorStrategyConnectivityAnalysisResult;
     }
 }
