@@ -213,7 +213,7 @@ public final class ConnectivityBreakAnalysis {
 
         List<AbstractComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency.getBranchIdsToOpen().keySet().stream().sorted().map(contingencyElementByBranch::get),
-                lfActions.stream().sorted().map(actionElementByBranch::get)
+                lfActions.stream().map(actionElementByBranch::get) // TODO : sort the stream to avoid multiple possibilities when multiple elements restore connectivity
         ).toList();
 
         // we confirm the breaking of connectivity by network connectivity
