@@ -4178,7 +4178,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testFastDcSaHvdcLineWithPowerAfterContingency(boolean dcFastMode) {
+    void testDcSaHvdcLineWithPowerAfterContingency(boolean dcFastMode) {
         Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -4207,7 +4207,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testFastDcSaHvdcLineWithoutPowerAfterContingency(boolean dcFastMode) {
+    void testDcSaHvdcLineWithoutPowerAfterContingency(boolean dcFastMode) {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
