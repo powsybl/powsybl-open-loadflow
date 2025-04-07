@@ -48,8 +48,6 @@ public final class ConnectivityBreakAnalysis {
 
         private final Set<LfBus> slackConnectedComponent; // buses of connected component where the slack is
 
-        private final DisabledElements disabledElements;
-
         private final int createdSynchronousComponents;
 
         private final DisabledElements disabledElements;
@@ -104,9 +102,11 @@ public final class ConnectivityBreakAnalysis {
                                                    List<ConnectivityAnalysisResult> connectivityAnalysisResults,
                                                    DenseMatrix contingenciesStates,
                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+
     }
 
     private ConnectivityBreakAnalysis() {
+
     }
 
     private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
