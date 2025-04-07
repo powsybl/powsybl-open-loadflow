@@ -465,13 +465,17 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertTrue(thrown.getCause().getMessage().contains("For now, TerminalsConnectionAction enabling a transformer is not allowed in WoodburyDcSecurityAnalysis"));
     }
 
-    @Test
-    void testFastSaDcTransformerDisconnectionAction() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaTransformerDisconnectionAction(boolean dcFastMode) {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
         List<Action> actions = List.of(new TerminalsConnectionAction("openPS1", "PS1", true));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyOpenPS1", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("openPS1")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
 
         // Verify pst disconnection is well handled in Woodbury computation, when alpha of opened pst is null
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
@@ -484,8 +488,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(100.0, getOperatorStrategyResult(result, "strategyOpenPS1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcActionBreakingConnectivityByOpeningLine() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaActionBreakingConnectivityByOpeningLine(boolean dcFastMode) {
         Network network = PhaseControlFactory.createNetworkWith3Buses();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         // contingency does not break connectivity
@@ -495,13 +500,17 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<OperatorStrategy> operatorStrategies = List.of(
                 new OperatorStrategy("strategyOpenL23", ContingencyContext.specificContingency("PS1"), new TrueCondition(), List.of("openL23")));
 
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
+
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
         assertEquals(100.0, getOperatorStrategyResult(result, "strategyOpenL23").getNetworkResult().getBranchResult("L12").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcActionBreakingConnectivityByOpeningSwitchAndTransformer() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaActionBreakingConnectivityByOpeningSwitchAndTransformer(boolean dcFastMode) {
         Network network = VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         // contingency does not break connectivity
@@ -510,6 +519,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<Action> actions = List.of(new TerminalsConnectionAction("openT2wT", "T2wT", true), new SwitchAction("openSWITCH", "SWITCH", true));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyOpen", ContingencyContext.specificContingency("LOAD_3"),
                 new TrueCondition(), List.of("openT2wT", "openSWITCH")));
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
@@ -533,8 +545,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getLine("LINE_15").getTerminal2().getP(), brL15.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcActionBreakingConnectivityWithContingencyOnly() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaActionAndContingencyBreakingConnectivityTogether(boolean dcFastMode) {
         Network network = VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("T2wT2+GEN_5", new BranchContingency("T2wT2"), new GeneratorContingency("GEN_5")));
@@ -543,13 +556,17 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<OperatorStrategy> operatorStrategies = List.of(
                 new OperatorStrategy("strategyOpenLINE_12", ContingencyContext.specificContingency("T2wT2+GEN_5"), new TrueCondition(), List.of("openLINE_12")));
 
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
+
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
         assertEquals(2, getOperatorStrategyResult(result, "strategyOpenLINE_12").getNetworkResult().getBranchResult("LINE_15").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcActionsBreakingConnectivityAndChangingTapPosition() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaActionsBreakingConnectivityAndChangingTapPosition(boolean dcFastMode) {
         Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
         // add pst on tr2 to modify its tap
         network.getTwoWindingsTransformer("tr2").newPhaseTapChanger()
@@ -592,6 +609,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy2Actions", ContingencyContext.specificContingency("tr3"),
                 new TrueCondition(), List.of("openTr1", "changeTr2")));
 
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
+
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
         OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy2Actions");
@@ -611,8 +631,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getLine("l42").getTerminal2().getP(), brL42.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testFastSaDcActionRestoringConnectivityByClosingLine() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaActionRestoringConnectivityByClosingLine(boolean dcFastMode) {
         Network network = PhaseControlFactory.createNetworkWith3Buses();
         // open L12 to restore connectivity by closing it
         network.getLine("L12").disconnect();
@@ -621,6 +642,9 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<Contingency> contingencies = List.of(new Contingency("PS1", new BranchContingency("PS1")));
         List<Action> actions = List.of(new TerminalsConnectionAction("closeL12", "L12", false));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyCloseL12", ContingencyContext.specificContingency("PS1"), new TrueCondition(), List.of("closeL12")));
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
+                .setDcFastMode(dcFastMode);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);
@@ -642,7 +666,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     }
 
     @Test
-    void testFastSaActionRestoringConnectivityByClosingSwitch() {
+    void testFastDcSaActionRestoringConnectivityByClosingSwitch() {
         Network network = VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch();
         // open switch to restore connectivity by closing it
         network.getSwitch("SWITCH").setOpen(true);
