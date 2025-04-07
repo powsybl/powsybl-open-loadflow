@@ -21,7 +21,7 @@ import com.powsybl.openloadflow.network.LfBus;
  */
 public final class ComputedSwitchBranchElement extends AbstractComputedElement {
 
-    private final boolean enabled;
+    private final boolean enabled; // indicates whether the action opens or closes the branch
 
     public ComputedSwitchBranchElement(LfBranch lfBranch, boolean enabled, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         super(lfBranch, equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class));

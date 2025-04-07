@@ -439,6 +439,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal2().getP(), brAbsPS1.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
+    // Test on fast DC only. The limitation is specific to fast dc
     @Test
     void testFastDcSaWithUnsupportedAction() {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
@@ -452,6 +453,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction and SwitchAction are allowed in WoodburyDcSecurityAnalysis"));
     }
 
+    // Test on fast DC only. The limitation is specific to fast dc
     @Test
     void testFastDcSaWithTransformerEnabled() {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();

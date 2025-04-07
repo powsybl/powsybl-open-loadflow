@@ -128,7 +128,7 @@ public class WoodburyEngine {
                         );
                     });
 
-            // set transformer phase shift to 0 for disconnected phase tap changers
+            // set transformer phase shift to 0 for disabled phase tap changers by actions
             lfActions.stream()
                     .filter(AbstractLfBranchAction.class::isInstance)
                     .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch())
