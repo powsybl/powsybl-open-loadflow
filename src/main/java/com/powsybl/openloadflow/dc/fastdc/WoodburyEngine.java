@@ -154,7 +154,11 @@ public class WoodburyEngine {
         return AbstractClosedBranchDcFlowEquationTerm.computePower(creationParameters.isUseTransformerRatio(), creationParameters.getDcApproximationType(), piModel);
     }
 
-    double getAlphaRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, AbstractComputedElement computedElement) {
+    /**
+     * Returns the value of the right-hand side member, associated with the linear system to be solved in order to compute
+     * the flow transfer factors.
+     */
+    private double getAlphaRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, AbstractComputedElement computedElement) {
         double newAlpha = 0;
         // enabling of transformers is not yet supported
         if (computedElement instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
@@ -165,7 +169,10 @@ public class WoodburyEngine {
         return states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
     }
 
-    double getAlphaMatrixValue(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm p1, AbstractComputedElement element, boolean onDiagonal) {
+    /**
+     * Returns the value of the matrix associated with the linear system to be solved in order to compute the flow transfer factors.
+     */
+    private double getAlphaMatrixValue(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm p1, AbstractComputedElement element, boolean onDiagonal) {
         if (element instanceof ComputedContingencyElement) {
             double deltaX = onDiagonal ? 1d / calculatePower(lfBranch) : 0d;
             return deltaX - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
@@ -175,13 +182,16 @@ public class WoodburyEngine {
             if (onDiagonal) {
                 double oldPower = 0;
                 double newPower = 0;
+                // if tap position change, the power transiting on the branch might have changed
                 if (element instanceof ComputedTapPositionChangeElement tapChangeElement) {
                     TapPositionChange tapPositionChange = tapChangeElement.getTapPositionChange();
                     newPower = calculatePower(tapPositionChange.getNewPiModel());
                     oldPower = calculatePower(lfBranch);
                 } else if (element instanceof ComputedSwitchBranchElement switchElement) {
+                    // if enabled, power is now transiting on the branch
                     if (switchElement.isEnabled()) {
                         newPower = calculatePower(lfBranch);
+                    // if disabled, no power is transiting on the branch anymore
                     } else {
                         oldPower = calculatePower(lfBranch);
                     }
@@ -199,20 +209,13 @@ public class WoodburyEngine {
      * Compute the flow transfer factors needed to calculate the post-contingency state values.
      */
     private void setAlphas(DenseMatrix states, int columnState) {
-        if (contingencyElements.size() == 1 && actionElements.isEmpty()) {
-            ComputedContingencyElement element = contingencyElements.iterator().next();
+        if (contingencyElements.size() + actionElements.size() == 1) {
+            AbstractComputedElement element = actionElements.isEmpty() ? contingencyElements.iterator().next()
+                    : actionElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
             // we solve a*alpha = b
-            double a = getAlphaMatrixValue(lfBranch, p1, element, true);
-            double b = getAlphaRhsValue(states, p1, columnState, element);
-            element.setAlphaForWoodburyComputation(b / a);
-        } else if (contingencyElements.isEmpty() && actionElements.size() == 1) {
-            AbstractComputedElement element = actionElements.iterator().next();
-            LfBranch lfBranch = element.getLfBranch();
-            ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
-
             double a = getAlphaMatrixValue(lfBranch, p1, element, true);
             double b = getAlphaRhsValue(states, p1, columnState, element);
             element.setAlphaForWoodburyComputation(b / a);
