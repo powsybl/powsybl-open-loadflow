@@ -146,7 +146,7 @@ public final class ConnectivityBreakAnalysis {
 
     /**
      * Returns true if the given contingency and operator strategy actions breaks potentially connectivity.
-     * This is determined by "worst case" sensitivity-criterion. If the criterion is not verified, there is no connectivity break.
+     * This is determined with a "worst case" sensitivity-criterion. If the criterion is not verified, there is no connectivity break.
      */
     private static boolean isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(LfNetwork lfNetwork, DenseMatrix contingencyStates, PropagatedContingency contingency,
                                                                                              Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix actionStates, List<LfAction> operatorStrategyLfActions,
