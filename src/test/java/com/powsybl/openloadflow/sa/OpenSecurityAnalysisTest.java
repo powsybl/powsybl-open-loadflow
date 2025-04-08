@@ -4560,4 +4560,38 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertActivePowerEquals(-195.600, cs3.getTerminal());
         assertActivePowerEquals(-104.400, g4.getTerminal());
     }
+
+    @Test
+    void testTwoGeneratorsAtSameBus() {
+        Network network = FourBusNetworkFactory.createWithTwoGeneratorsAtBus2();
+        network.getBusBreakerView().getBus("b2")
+                .getGeneratorStream()
+                .forEach(g -> {
+                    g.setTargetV(1.5);
+                    g.newMinMaxReactiveLimits()
+                            .setMinQ(-6.5)
+                            .setMaxQ(6.5)
+                            .add();
+                    g.setTargetQ(1);
+
+                });
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12", "l23"), Set.of("b2_vl"), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(new Contingency("g5", new GeneratorContingency("g5")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+        NetworkResult networkResult = result.getPostContingencyResults().get(0).getNetworkResult();
+        double v = networkResult.getBusResult("b2").getV();
+        double q = -networkResult.getBranchResult("l12").getQ2() - networkResult.getBranchResult("l23").getQ1();
+
+        // test that G2 has reached its reactive limits
+        assertEquals(1.294, v, DELTA_V);
+        assertEquals(-6.5, q, 1e-2); // use precision in sync with default OpenLoadFlroParameters
+
+        // The N case is the same
+        network.getGenerator("g5").disconnect();
+        runLoadFlow(network, new LoadFlowParameters());
+        assertVoltageEquals(1.294, network.getBusBreakerView().getBus("b2"));
+        assertReactivePowerEquals(-6.5, network.getGenerator("g2").getTerminal());
+
+    }
 }
