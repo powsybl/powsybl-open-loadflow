@@ -153,21 +153,21 @@ public class LfContingency {
     /**
      * Process the power shifts due to the loss of loads, generators, and HVDCs.
      * @param balanceType the property defining how to manage active distribution.
-     * @param updateAcParameters a boolean to indicate if voltage/reactive dependent parameters should be updated or not.
+     * @param updateAcQuantities a boolean to indicate if voltage/reactive dependent quantities should be updated or not.
      */
-    public void processLostPowerChanges(LoadFlowParameters.BalanceType balanceType, boolean updateAcParameters) {
-        processLostLoads(balanceType, updateAcParameters);
-        processLostGenerators(updateAcParameters);
+    public void processLostPowerChanges(LoadFlowParameters.BalanceType balanceType, boolean updateAcQuantities) {
+        processLostLoads(balanceType, updateAcQuantities);
+        processLostGenerators(updateAcQuantities);
         processHvdcsWithoutPower();
     }
 
-    private void processLostLoads(LoadFlowParameters.BalanceType balanceType, boolean updateAcParameters) {
+    private void processLostLoads(LoadFlowParameters.BalanceType balanceType, boolean updateAcQuantities) {
         for (var e : lostLoads.entrySet()) {
             LfLoad load = e.getKey();
             LfLostLoad lostLoad = e.getValue();
             PowerShift shift = lostLoad.getPowerShift();
             load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive(), lostLoad.getNotParticipatingLoadP0()));
-            if (updateAcParameters) {
+            if (updateAcQuantities) {
                 load.setTargetQ(load.getTargetQ() - shift.getReactive());
             }
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
@@ -175,7 +175,7 @@ public class LfContingency {
         }
     }
 
-    private void processLostGenerators(boolean updateAcParameters) {
+    private void processLostGenerators(boolean updateAcQuantities) {
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
             // DC and AC parameters
@@ -186,7 +186,7 @@ public class LfContingency {
             generator.setParticipating(false);
             generator.setDisabled(true);
 
-            if (!updateAcParameters) {
+            if (!updateAcQuantities) {
                 continue;
             }
 
@@ -207,7 +207,7 @@ public class LfContingency {
             }
         }
 
-        if (!updateAcParameters) {
+        if (!updateAcQuantities) {
             return;
         }
 
