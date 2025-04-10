@@ -178,7 +178,7 @@ public class LfContingency {
     private void processLostGenerators(boolean updateAcQuantities) {
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
-            // DC and AC parameters
+            // DC and AC quantities
             generator.setTargetP(0);
             generator.setInitialTargetP(0);
             LfBus bus = generator.getBus();
@@ -190,7 +190,7 @@ public class LfContingency {
                 continue;
             }
 
-            // Only AC parameters
+            // Only AC quantities
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                 bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
@@ -211,7 +211,7 @@ public class LfContingency {
             return;
         }
 
-        // Only AC parameters
+        // Only AC quantities
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                 bus.setGeneratorVoltageControlEnabled(false);
