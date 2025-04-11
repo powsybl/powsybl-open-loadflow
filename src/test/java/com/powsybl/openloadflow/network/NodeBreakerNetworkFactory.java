@@ -7,10 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.*;
 
 public final class NodeBreakerNetworkFactory {
 
@@ -171,6 +168,142 @@ public final class NodeBreakerNetworkFactory {
         network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).add();
         network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).add();
 
+        return network;
+    }
+
+    /**
+     * <pre>
+     *           G
+     *           |     C
+     * BBS1 ----------[+]------------------ BBS2     VL1
+     *         |          [+] B1    B5 [+]
+     *         |           |            |
+     *         |           |        PS1 |
+     *         |           |            |      LD2
+     *         |           |        B8 [+]      |
+     *      L1 |           | L2        ------------ BBS4     VL3
+     *         |           |         B9 [+]  [+] B10
+     *         |           |             |    |
+     *         |           |          L3 |    | L4
+     *         |           |             |    |
+     *     B3 [+]         [+] B4     B6 [+]  [+] B7
+     * BBS3 -------------------------------------     VL2
+     *                        |
+     *                        LD
+     * </pre>
+     *
+     * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
+     */
+    public static Network createWith4Bars() {
+        Network network = create();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newBreaker()
+                .setId("B5")
+                .setNode1(1)
+                .setNode2(7)
+                .add();
+        network.getVoltageLevel("VL2").getNodeBreakerView().newBreaker()
+                .setId("B6")
+                .setNode1(0)
+                .setNode2(4)
+                .add();
+        network.getVoltageLevel("VL2").getNodeBreakerView().newBreaker()
+                .setId("B7")
+                .setNode1(0)
+                .setNode2(5)
+                .add();
+        VoltageLevel vl3 = network.getSubstation("S").newVoltageLevel()
+                .setId("VL3")
+                .setNominalV(400)
+                .setLowVoltageLimit(370.)
+                .setHighVoltageLimit(420.)
+                .setTopologyKind(TopologyKind.NODE_BREAKER)
+                .add();
+        vl3.getNodeBreakerView().newBusbarSection()
+                .setId("BBS4")
+                .setNode(0)
+                .add();
+        vl3.getNodeBreakerView().newBreaker()
+                .setId("B8")
+                .setNode1(0)
+                .setNode2(1)
+                .add();
+        vl3.getNodeBreakerView().newBreaker()
+                .setId("B9")
+                .setNode1(0)
+                .setNode2(2)
+                .add();
+        vl3.getNodeBreakerView().newBreaker()
+                .setId("B10")
+                .setNode1(0)
+                .setNode2(3)
+                .add();
+        vl3.getNodeBreakerView().newInternalConnection()
+                .setNode1(0)
+                .setNode2(4)
+                .add();
+        vl3.newLoad()
+                .setId("LD2")
+                .setNode(4)
+                .setP0(200.0)
+                .setQ0(50.0)
+                .add();
+        TwoWindingsTransformer ps1 = network.getSubstation("S").newTwoWindingsTransformer()
+                .setId("PS1")
+                .setVoltageLevel1("VL1")
+                .setNode1(7)
+                .setVoltageLevel2("VL3")
+                .setNode2(1)
+                .setRatedU1(400)
+                .setRatedU2(400)
+                .setR(0)
+                .setX(100.0)
+                .setG(0.0)
+                .setB(0.0)
+                .add();
+        ps1.newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal2())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.FIXED_TAP)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(50)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(-5)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(100)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .add();
+        network.newLine()
+                .setId("L3")
+                .setVoltageLevel1("VL2")
+                .setNode1(4)
+                .setVoltageLevel2("VL3")
+                .setNode2(2)
+                .setR(3.0)
+                .setX(33.0)
+                .setB1(386E-6 / 2)
+                .setB2(386E-6 / 2)
+                .add();
+        network.newLine()
+                .setId("L4")
+                .setVoltageLevel1("VL3")
+                .setNode1(3)
+                .setVoltageLevel2("VL2")
+                .setNode2(5)
+                .setR(3.0)
+                .setX(33.0)
+                .setB1(386E-6 / 2)
+                .setB2(386E-6 / 2)
+                .add();
         return network;
     }
 
