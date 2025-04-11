@@ -301,8 +301,9 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode reportPvPqSwitchLimit(LfBus controllerBus, int limit, boolean log, Logger logger) {
+    public static ReportNode reportPvPqSwitchLimit(ReportNode firstRootReportNode, LfBus controllerBus, int limit, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.pvPqSwitchLimit")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -315,8 +316,9 @@ public final class Reports {
         return result;
     }
 
-    public static ReportNode reportPqToPvBusMaxLimit(LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
+    public static ReportNode reportPqToPvBusMaxLimit(ReportNode firstRootReportNode, LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.pqToPvBusMaxLimit")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -332,8 +334,9 @@ public final class Reports {
         return result;
     }
 
-    public static ReportNode reportPqToPvBusMinLimit(LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
+    public static ReportNode reportPqToPvBusMinLimit(ReportNode firstRootReportNode, LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.pqToPvBusMinLimit")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -373,12 +376,14 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode reportReactiveControllerBusesToPqMaxQ(LfBus controllerBus,
+    public static ReportNode reportReactiveControllerBusesToPqMaxQ(ReportNode firstRootReportNode,
+                                                                   LfBus controllerBus,
                                                                    double busQ,
                                                                    double maxQ,
                                                                    boolean log,
                                                                    Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.reactiveControllerBusesToPqMaxQ")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -392,12 +397,14 @@ public final class Reports {
         return result;
     }
 
-    public static ReportNode reportReactiveControllerBusesToPqMinQ(LfBus controllerBus,
-                                                             double busQ,
-                                                             double minQ,
-                                                             boolean log,
-                                                             Logger logger) {
+    public static ReportNode reportReactiveControllerBusesToPqMinQ(ReportNode firstRootReportNode,
+                                                                   LfBus controllerBus,
+                                                                   double busQ,
+                                                                   double minQ,
+                                                                   boolean log,
+                                                                   Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.reactiveControllerBusesToPqMinQ")
                 .withUntypedValue("busId", controllerBus.getId())
@@ -618,8 +625,9 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createRootLfNetworkReportNode(int networkNumCc, int networkNumSc) {
+    public static ReportNode createRootLfNetworkReportNode(ReportNode firstRootReportNode, int networkNumCc, int networkNumSc) {
         return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate(LF_NETWORK_KEY)
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
@@ -879,8 +887,9 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createThreadRootReport() {
+    public static ReportNode createThreadRootReport(ReportNode firstRootReport) {
         return ReportNode.newRootReportNode()
+                .withLocale(firstRootReport.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.threadRoot")
                 .build();

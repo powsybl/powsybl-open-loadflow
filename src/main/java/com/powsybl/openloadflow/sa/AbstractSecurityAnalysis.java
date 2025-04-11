@@ -217,7 +217,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                             parameters = createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
 
-                            ReportNode threadRootNode = partitionNum == 0 ? saReportNode : Reports.createThreadRootReport();
+                            ReportNode threadRootNode = partitionNum == 0 ? saReportNode : Reports.createThreadRootReport(saReportNode);
                             reportNodes.set(partitionNum, threadRootNode);
 
                             // create networks including all necessary switches
