@@ -323,7 +323,7 @@ their reactive diagram.
 The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
 **minNominalVoltageUnrealisticStateCheck**
-This parameter defines the minimal nominal voltage for which a bus oustide of **minRealisticVoltage**
+This parameter defines the minimal nominal voltage, in kV, for which a bus oustide of **minRealisticVoltage**
 and **maxRealisticVoltage** will stop the simulation.
 
 Unrealistic voltage, especially in high voltage substations, may trigger automates or other dangerous phenomenons,
@@ -401,9 +401,11 @@ Allows to ignore active power limits during calculations. Active power limits ar
 Disables voltage control for generators with `targetP` outside the interval [`minP`, `maxP`]. The default value is `false`.
 
 **minNominalVoltageTargetVoltageCheck**  
-This parameter defines the minimal nominal voltage to check the target of voltage control in per-unit.
-The default value is `20 kV`, meaning that under the controlled buses of voltage levels under this value are ignored from the check.
-It must be greater or equal to `0 kV`.
+This parameter defines the minimal nominal voltage, in kV, for which the plausible voltage target checks are applied.
+ 
+Above this voltage level, voltage targets that are, in pu, outside 'minPlausibleTargetVoltage' - 'maxPlausibleTargetVoltage' are ignored.
+
+The default value is `20 kV`. It must be greater or equal to `0 kV`.
 
 **reactivePowerDispatchMode**  
 This parameter defines how reactive power is split among generators with controls (voltage or reactive power).
