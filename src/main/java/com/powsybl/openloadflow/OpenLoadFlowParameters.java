@@ -206,7 +206,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_REALISTIC_VOLTAGE_PARAM_NAME = "maxRealisticVoltage";
 
-    public static final String MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_NAME = "minNominalVoltageUnrealisticStateCheck";
+    public static final String MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_PARAM_NAME = "minNominalVoltageUnrealisticStateCheck";
 
     public static final String MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME = "minNominalVoltageTargetVoltageCheck";
 
@@ -390,7 +390,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_NAME, ParameterType.DOUBLE, "Min nominal voltage unrealistic state check", AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage unrealistic state check", AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Low impedance threshold in per unit", LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN, "Network cache enabled", LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
@@ -1455,7 +1455,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxPlausibleTargetVoltage);
                     config.getOptionalDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMinRealisticVoltage);
                     config.getOptionalDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxRealisticVoltage);
-                    config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_NAME).ifPresent(this::setMinNominalVoltageUnrealisticStateCheck);
+                    config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageUnrealisticStateCheck);
                     config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class)
                             .ifPresent(this::setReactiveRangeCheckMode);
                     config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
@@ -1580,7 +1580,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_NAME))
+        Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_PARAM_NAME))
                 .ifPresent(prop -> this.setMinNominalVoltageUnrealisticStateCheck(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
@@ -1710,7 +1710,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, maxPlausibleTargetVoltage);
         map.put(MIN_REALISTIC_VOLTAGE_PARAM_NAME, minRealisticVoltage);
         map.put(MAX_REALISTIC_VOLTAGE_PARAM_NAME, maxRealisticVoltage);
-        map.put(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_NAME, minNominalVoltageUnrealisticStateCheck);
+        map.put(MIN_NOMINAL_VOLTAGE_UNREALISTIC_STATE_CHECK_PARAM_NAME, minNominalVoltageUnrealisticStateCheck);
         map.put(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, reactiveRangeCheckMode);
         map.put(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, lowImpedanceThreshold);
         map.put(NETWORK_CACHE_ENABLED_PARAM_NAME, networkCacheEnabled);
