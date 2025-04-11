@@ -58,8 +58,6 @@ import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanC
  */
 public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
-    private static final Level LOG_LEVEL = Level.DEBUG;
-
     private record WoodburyContext(DcLoadFlowContext dcLoadFlowContext, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId, Map<String, LfAction> lfActionById,
                                    boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                    List<LimitReduction> limitReductions) {
@@ -76,6 +74,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected WoodburyDcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                          List<StateMonitor> stateMonitors, ReportNode reportNode) {
         super(network, matrixFactory, connectivityFactory, stateMonitors, reportNode);
+        this.logLevel = Level.DEBUG;
     }
 
     @Override
@@ -287,7 +286,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             Predicate<LfBranch> isBranchDisabled = branch -> lfContingency.getDisabledNetwork().getBranchesStatus().containsKey(branch);
 
             // process post contingency result with supplier giving post contingency states
-            logPostContingencyStart(lfNetwork, lfContingency, LOG_LEVEL);
+            logPostContingencyStart(lfNetwork, lfContingency);
             Stopwatch stopwatch = Stopwatch.createStarted();
 
             double[] postContingencyStates = toStates.toPostContingencyStates.apply(connectivityAnalysisResult);
@@ -295,7 +294,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     securityAnalysisSimulationResults.preContingencyLimitViolationManager, securityAnalysisSimulationResults.preContingencyNetworkResult, postContingencyStates, isBranchDisabled);
 
             stopwatch.stop();
-            logPostContingencyEnd(lfNetwork, lfContingency, stopwatch, LOG_LEVEL);
+            logPostContingencyEnd(lfNetwork, lfContingency, stopwatch);
             securityAnalysisSimulationResults.postContingencyResults.add(postContingencyResult);
 
             // restore pre contingency states for next calculation
@@ -314,7 +313,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             .filter(Objects::nonNull)
                             .toList();
 
-                    logActionStart(lfNetwork, operatorStrategy, LOG_LEVEL);
+                    logActionStart(lfNetwork, operatorStrategy);
                     stopwatch = Stopwatch.createStarted();
 
                     // process operator strategy result with supplier giving post contingency and post operator strategy states
@@ -323,7 +322,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             operatorStrategyLfActions, securityAnalysisSimulationResults.preContingencyLimitViolationManager, postContingencyAndOperatorStrategyStates, isBranchDisabled);
 
                     stopwatch.stop();
-                    logActionEnd(lfNetwork, operatorStrategy, stopwatch, LOG_LEVEL);
+                    logActionEnd(lfNetwork, operatorStrategy, stopwatch);
                     securityAnalysisSimulationResults.operatorStrategyResults.add(operatorStrategyResult);
 
                     // restore pre contingency states for next calculation
