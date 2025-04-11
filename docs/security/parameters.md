@@ -52,8 +52,11 @@ The default value is 1.
 
 **dcFastMode**  
 The `dcFastMode` property allows to use fast DC security analysis, based on Woodbury's formula for calculating post-contingency states, 
-when DC mode is activated. Setting the log level of the `com.powsybl.openloadflow` logger to DEBUG displays the details of post-contingency 
-and post-operator strategy simulations. It is recommended to avoid enabling these logs for better performance.
+when DC mode is activated. 
+
+Setting the `com.powsybl.openloadflow` logger to DEBUG in your logging configuration file enables the display of detailed logs 
+for post-contingency and post-operator strategy simulations. It is recommended to avoid enabling these logs for better performance.
+It should be used only when needed for debugging or detailed analysis.
 
 Please note that fast mode has a few limitations:
 - Contingencies applied on branches opened on one side are ignored. Also, if a contingency causes the loss of one side of a branch, 
