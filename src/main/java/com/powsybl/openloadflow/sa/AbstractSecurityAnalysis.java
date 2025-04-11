@@ -78,7 +78,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     private static final String NOT_FOUND = "' not found in the network";
 
-    protected Level logLevel = Level.INFO;
+    protected Level logLevel = Level.INFO; // level of the post contingency and action logs
 
     protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                        List<StateMonitor> stateMonitors, ReportNode reportNode) {
