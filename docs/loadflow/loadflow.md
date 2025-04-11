@@ -278,5 +278,8 @@ Indeed, in this case the slack injection can be seen as an interchange to 'the v
         - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
 
 ### Zero impedance boundary branches
-Computations with zero impedance branches as boundary branches is not supported.  
-If a terminal of a zero-impedance branch is used as a boundary, the impedance of the branch will be set to [parameter `lowImpedanceThreshold`](parameters.md).
+The following applies when the [`lowImpedanceBranchMode`](parameters.md) is set to `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
+Currently, computations involving zero-impedance branches used as boundary branches are not supported.
+However, it is still possible to submit network models that include zero-impedance boundary branches.  
+If a terminal of a zero-impedance branch is designated as a boundary, Open LoadFlow will internally assign the branch
+an impedance value equal to the [`lowImpedanceThreshold`](parameters.md) parameter.
