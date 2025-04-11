@@ -461,7 +461,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // function to compute post contingency and post operator strategy connectivity result, with post contingency connectivity result and operator strategy actions
             // due to branch enabling/disabling actions, connectivity results may have changed
             BiFunction<ConnectivityAnalysisResult, List<LfAction>, ConnectivityAnalysisResult> toPostContingencyAndOperatorStrategyConnectivityAnalysisResult = (postContingencyConnectivityAnalysisResult, operatorStrategyLfActions) -> {
-                ConnectivityAnalysisResult postOperatorStrategyConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostOperatorStrategyConnectivityAnalysisResult(
+                ConnectivityAnalysisResult postOperatorStrategyConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(
                                 context, postContingencyConnectivityAnalysisResult, connectivityBreakAnalysisResults.contingencyElementByBranch(), connectivityBreakAnalysisResults.contingenciesStates(),
                                 operatorStrategyLfActions, actionElementsIndexByBranchId, actionsStates);
                 if (postOperatorStrategyConnectivityAnalysisResult == null) {

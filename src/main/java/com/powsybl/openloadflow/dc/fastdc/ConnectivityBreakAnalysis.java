@@ -154,8 +154,10 @@ public final class ConnectivityBreakAnalysis {
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
-        // only consider actions disabling branches to compute "worst case" sensitivity-criterion
-        // if the criterion is not verified, we are sure there is no connectivity break
+        // The sensitivity criterion only considers actions that disable branches in order to compute a "worst-case" scenario,
+        // i.e. that if the criterion is not met, there is no connectivity break.
+        // As the actions removed either have no impact or can only close branches (and therefore affect the criterion negatively),
+        // it is not necessary to consider them to ensure that there is no loss of connectivity.
         List<AbstractComputedElement> actionElements = operatorStrategyLfActions.stream()
                 .map(actionElementByBranch::get)
                 .filter(actionElement -> actionElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && !computedSwitchBranchElement.isEnabled())
@@ -349,9 +351,9 @@ public final class ConnectivityBreakAnalysis {
      * Processes post contingency and operator strategy connectivity analysis result, from post contingency connectivity result.
      * If there is no switching action or if the connectivity is not modified, the post contingency result is returned, as connectivity has not changed.
      */
-    public static ConnectivityAnalysisResult processPostOperatorStrategyConnectivityAnalysisResult(DcLoadFlowContext loadFlowContext, ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
-                                                                                                   Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
-                                                                                                   List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
+    public static ConnectivityAnalysisResult processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(DcLoadFlowContext loadFlowContext, ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
+                                                                                                                     Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
+                                                                                                                     List<LfAction> lfActions, Map<LfAction, AbstractComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
         // if there is no topological action, no need to process anything as the connectivity has not changed from post contingency result
         boolean hasAnyTopologicalAction = lfActions.stream().anyMatch(lfAction -> lfAction instanceof AbstractLfBranchAction<?>);
         if (!hasAnyTopologicalAction) {
@@ -369,10 +371,10 @@ public final class ConnectivityBreakAnalysis {
         }
 
         // compute the connectivity result for the contingency and the associated actions
-        ConnectivityAnalysisResult postOperatorStrategyConnectivityAnalysisResult = computeConnectivityAnalysisResult(lfNetwork, contingency,
+        ConnectivityAnalysisResult postContingencyAndOperatorStrategyConnectivityAnalysisResult = computeConnectivityAnalysisResult(lfNetwork, contingency,
                     contingencyElementByBranch, lfActions, actionElementsIndexByLfAction);
         LOGGER.info("After graph based connectivity analysis, the contingency and associated actions {} break connectivity",
-                postOperatorStrategyConnectivityAnalysisResult != null ? "" : "do not");
-        return postOperatorStrategyConnectivityAnalysisResult;
+                postContingencyAndOperatorStrategyConnectivityAnalysisResult != null ? "" : "do not");
+        return postContingencyAndOperatorStrategyConnectivityAnalysisResult;
     }
 }
