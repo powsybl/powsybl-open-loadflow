@@ -42,6 +42,7 @@ import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
+import org.slf4j.event.Level;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -73,6 +74,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected WoodburyDcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                          List<StateMonitor> stateMonitors, ReportNode reportNode) {
         super(network, matrixFactory, connectivityFactory, stateMonitors, reportNode);
+        this.logLevel = Level.DEBUG;
     }
 
     @Override
