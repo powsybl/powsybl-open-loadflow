@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.ToDoubleBiFunction;
 import java.util.function.ToDoubleFunction;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -449,22 +450,32 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generators.stream().mapToDouble(LfGenerator::getMaxTargetP).sum();
     }
 
-    private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
+    private double getLimitQ(ToDoubleBiFunction<LfGenerator,Boolean> limitQ, boolean extrapolateReactiveLimits) {
         return generators.stream()
                 .filter(g -> !g.isDisabled())
                 .mapToDouble(generator -> (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
                         generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) ?
-                        limitQ.applyAsDouble(generator) : generator.getTargetQ()).sum();
+                        limitQ.applyAsDouble(generator, extrapolateReactiveLimits) : generator.getTargetQ()).sum();
     }
 
     @Override
     public double getMinQ() {
-        return getLimitQ(LfGenerator::getMinQ);
+        return getMinQ(false);
     }
 
     @Override
     public double getMaxQ() {
-        return getLimitQ(LfGenerator::getMaxQ);
+        return getMaxQ(false);
+    }
+
+    @Override
+    public double getMinQ(boolean extrapolateReactiveLimits) {
+        return getLimitQ(LfGenerator::getMinQ, extrapolateReactiveLimits);
+    }
+
+    @Override
+    public double getMaxQ(boolean extrapolateReactiveLimits) {
+        return getLimitQ(LfGenerator::getMaxQ, extrapolateReactiveLimits);
     }
 
     @Override

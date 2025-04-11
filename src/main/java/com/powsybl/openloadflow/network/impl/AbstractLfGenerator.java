@@ -151,17 +151,41 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     protected abstract Optional<ReactiveLimits> getReactiveLimits();
 
     @Override
+    public double getMinQ(boolean extrapolateReactiveLimits) {
+        if (getReactiveLimits().isEmpty()) {
+            return -Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow() ;
+        if (extrapolateReactiveLimits) {
+            if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+                return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(targetP * PerUnit.SB, true) / PerUnit.SB;
+            };
+        }
+        return reactiveLimits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB;
+    }
+
+    @Override
+    public double getMaxQ(boolean extrapolateReactiveLimits) {
+        if (getReactiveLimits().isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow() ;
+        if (extrapolateReactiveLimits) {
+            if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+                return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, true) / PerUnit.SB;
+            };
+        }
+        return reactiveLimits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB;
+    }
+
+    @Override
     public double getMinQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(-Double.MAX_VALUE);
+        return getMinQ(false);
     }
 
     @Override
     public double getMaxQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(Double.MAX_VALUE);
+        return getMaxQ(false);
     }
 
     @Override

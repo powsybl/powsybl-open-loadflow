@@ -97,6 +97,10 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     double getMaxQ();
 
+    double getMinQ(boolean extrapolateReactiveLimits);
+
+    double getMaxQ(boolean extrapolateReactiveLimits);
+
     double getRangeQ(ReactiveRangeMode reactiveRangeMode);
 
     default boolean isParticipating() {
