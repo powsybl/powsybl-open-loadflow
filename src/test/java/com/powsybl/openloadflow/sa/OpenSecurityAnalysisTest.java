@@ -13,6 +13,7 @@ import com.powsybl.action.LoadActionBuilder;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.commons.test.TestUtil;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -44,6 +45,7 @@ import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.limitreduction.LimitReduction;
@@ -1779,7 +1781,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("TestSecurityAnalysis", "Test security analysis report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("TestSecurityAnalysis")
                 .build();
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
@@ -3539,14 +3542,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .toList();
 
         ReportNode reportNodeOneThread = ReportNode.newRootReportNode()
-                .withMessageTemplate("MT_SA_TEST", "MT SA Report Node")
+                .withMessageTemplate("MT_SA_TEST")
                 .build();
         SecurityAnalysisResult resultOneThread =
                 runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNodeOneThread);
 
         securityAnalysisParametersExt.setThreadCount(2);
         ReportNode reportNodeTwoThreads = ReportNode.newRootReportNode()
-                .withMessageTemplate("MT_SA_TEST", "MT SA Report Node")
+                .withMessageTemplate("MT_SA_TEST")
                 .build();
         SecurityAnalysisResult resultTwoThreads =
                 runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNodeOneThread);
@@ -3726,7 +3729,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         );
 
         ReportNode testReport = ReportNode.newRootReportNode()
-                .withMessageTemplate("TEST", "TEST Report Node")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("TEST")
                 .build();
 
         SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, testReport);
@@ -3830,7 +3834,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .toList();
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("TEST", "Test Report Node")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("TEST")
                 .build();
 
         SecurityAnalysisResult results = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, reportNode);
