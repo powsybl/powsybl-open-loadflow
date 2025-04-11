@@ -46,6 +46,7 @@ import com.powsybl.security.strategy.ConditionalActions;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -925,14 +926,22 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     protected static void logPostContingencyStart(LfNetwork network, LfContingency lfContingency) {
-        LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
+        logPostContingencyStart(network, lfContingency, Level.INFO);
+    }
+
+    protected static void logPostContingencyStart(LfNetwork network, LfContingency lfContingency, Level level) {
+        LOGGER.atLevel(level).log("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
         LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift {} loads",
                 lfContingency.getId(), network, lfContingency.getDisabledNetwork().getBuses(), lfContingency.getDisabledNetwork().getBranchesStatus(),
                 lfContingency.getLostGenerators(), lfContingency.getShuntsShift(), lfContingency.getLostLoads());
     }
 
     protected static void logPostContingencyEnd(LfNetwork network, LfContingency lfContingency, Stopwatch stopwatch) {
-        LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
+        logPostContingencyEnd(network, lfContingency, stopwatch, Level.INFO);
+    }
+
+    protected static void logPostContingencyEnd(LfNetwork network, LfContingency lfContingency, Stopwatch stopwatch, Level level) {
+        LOGGER.atLevel(level).log("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
@@ -981,12 +990,20 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     protected static void logActionStart(LfNetwork network, OperatorStrategy operatorStrategy) {
-        LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
+        logActionStart(network, operatorStrategy, Level.INFO);
+    }
+
+    protected static void logActionStart(LfNetwork network, OperatorStrategy operatorStrategy, Level level) {
+        LOGGER.atLevel(level).log("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network);
     }
 
     protected static void logActionEnd(LfNetwork network, OperatorStrategy operatorStrategy, Stopwatch stopwatch) {
-        LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
+        logActionEnd(network, operatorStrategy, stopwatch, Level.INFO);
+    }
+
+    protected static void logActionEnd(LfNetwork network, OperatorStrategy operatorStrategy, Stopwatch stopwatch, Level level) {
+        LOGGER.atLevel(level).log("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
