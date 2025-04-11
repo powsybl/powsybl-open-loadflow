@@ -4585,7 +4585,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // test that G2 has reached its reactive limits
         assertEquals(1.294, v, DELTA_V);
-        assertEquals(-6.5, q, 1e-2); // use precision in sync with default OpenLoadFlroParameters
+        assertEquals(-6.5, q, 1e-2); // use precision in sync with default OpenLoadFlowParameters
 
         // The N case is the same
         network.getGenerator("g5").disconnect();
