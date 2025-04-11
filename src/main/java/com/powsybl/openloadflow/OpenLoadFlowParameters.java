@@ -1392,7 +1392,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setExtrapolateReactiveLimits(boolean extrapolateReactiveLimits) {
-        this.extrapolateReactiveLimits = extrapolateReactiveLimits ;
+        this.extrapolateReactiveLimits = extrapolateReactiveLimits;
         return this;
     }
 

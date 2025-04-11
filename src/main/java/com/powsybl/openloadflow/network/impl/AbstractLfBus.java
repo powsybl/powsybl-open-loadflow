@@ -450,7 +450,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generators.stream().mapToDouble(LfGenerator::getMaxTargetP).sum();
     }
 
-    private double getLimitQ(ToDoubleBiFunction<LfGenerator,Boolean> limitQ, boolean extrapolateReactiveLimits) {
+    private double getLimitQ(ToDoubleBiFunction<LfGenerator, Boolean> limitQ, boolean extrapolateReactiveLimits) {
         return generators.stream()
                 .filter(g -> !g.isDisabled())
                 .mapToDouble(generator -> (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||

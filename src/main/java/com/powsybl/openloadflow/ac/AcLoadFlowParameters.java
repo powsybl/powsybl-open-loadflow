@@ -151,7 +151,9 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
-    public boolean isExtrapolateReactiveLimits() { return extrapolateReactiveLimits; }
+    public boolean isExtrapolateReactiveLimits() {
+        return extrapolateReactiveLimits;
+    }
 
     public AcLoadFlowParameters setExtrapolateReactiveLimits(boolean extrapolateReactiveLimits) {
         this.extrapolateReactiveLimits = extrapolateReactiveLimits;
