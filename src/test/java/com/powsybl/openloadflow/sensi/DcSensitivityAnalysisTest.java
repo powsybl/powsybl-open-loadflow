@@ -32,10 +32,7 @@ import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -1055,10 +1052,15 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         PowsyblException e = assertThrows(PowsyblException.class, () -> AbstractSensitivityAnalysis.initFactorsRhs(equationSystem, factorsGroups, participationByBus));
         assertEquals("Too many factors groups 3333333, maximum is 2684 for a system with 100000 equations", e.getMessage());
 
-        List<ComputedContingencyElement> contingencyElements = Mockito.mock(List.class);
-        Mockito.when(contingencyElements.size()).thenReturn(999999);
+        List<ComputedContingencyElement> contingencyElements = new ArrayList<>(3000);
+        for (int i = 0; i < 3000; i++) {
+            LfBranch branch = Mockito.mock(LfBranch.class);
+            ComputedContingencyElement contingencyElement = Mockito.mock(ComputedContingencyElement.class);
+            Mockito.when(contingencyElement.getLfBranch()).thenReturn(branch);
+            contingencyElements.add(contingencyElement);
+        }
         e = assertThrows(PowsyblException.class, () -> AbstractComputedElement.initRhs(equationSystem, contingencyElements));
-        assertEquals("Too many elements 999999, maximum is 2684 for a system with 100000 equations", e.getMessage());
+        assertEquals("Too many elements 3000, maximum is 2684 for a system with 100000 equations", e.getMessage());
     }
 
     @Test

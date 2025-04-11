@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
-import java.util.Collection;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -70,10 +70,24 @@ public abstract class AbstractComputedElement {
         return branchEquation;
     }
 
+    /**
+     * Set the indexes of the computed elements in the +1-1 rhs, used in Woodbury calculations.
+     * The indexes depend on the number of distinct branches affected by the elements.
+     * Those affecting the same branch share the same +1-1 rhs column.
+     */
     public static void setComputedElementIndexes(Collection<? extends AbstractComputedElement> elements) {
         int index = 0;
+        Map<LfBranch, Integer> branchesToRhsIndex = new HashMap<>();
         for (AbstractComputedElement element : elements) {
-            element.setComputedElementIndex(index++);
+            LfBranch elementLfBranch = element.getLfBranch();
+            Integer elementIndex = branchesToRhsIndex.get(elementLfBranch);
+
+            if (elementIndex == null) {
+                branchesToRhsIndex.put(elementLfBranch, index);
+                element.setComputedElementIndex(index++);
+            } else {
+                element.setComputedElementIndex(elementIndex);
+            }
         }
     }
 
@@ -111,15 +125,17 @@ public abstract class AbstractComputedElement {
     }
 
     public static DenseMatrix initRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends AbstractComputedElement> elements) {
+        // the number of columns of the rhs equals the number of distinct branches affected by the computed elements
+        // those affecting the same branch share the same column
+        int columnCount = (int) elements.stream().map(AbstractComputedElement::getLfBranch).filter(Objects::nonNull).distinct().count();
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int maxElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
-        if (elements.size() > maxElements) {
-            throw new PowsyblException("Too many elements " + elements.size()
+        if (columnCount > maxElements) {
+            throw new PowsyblException("Too many elements " + columnCount
                     + ", maximum is " + maxElements + " for a system with " + equationCount + " equations");
         }
-
-        DenseMatrix rhs = new DenseMatrix(equationCount, elements.size());
+        DenseMatrix rhs = new DenseMatrix(equationCount, columnCount);
         fillRhs(equationSystem, elements, rhs);
         return rhs;
     }
