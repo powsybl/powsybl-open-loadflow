@@ -628,7 +628,7 @@ public final class Reports {
     public static ReportNode createRootLfNetworkReportNode(ReportNode firstRootReportNode, int networkNumCc, int networkNumSc) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withAllResourceBundlesFromClasspath()
                 .withMessageTemplate(LF_NETWORK_KEY)
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
@@ -890,7 +890,7 @@ public final class Reports {
     public static ReportNode createThreadRootReport(ReportNode firstRootReport) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReport.getTreeContext().getLocale())
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withAllResourceBundlesFromClasspath()
                 .withMessageTemplate("olf.threadRoot")
                 .build();
     }
