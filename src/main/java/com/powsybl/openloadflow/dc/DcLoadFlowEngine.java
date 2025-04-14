@@ -228,9 +228,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             );
             double remainingMismatch = resultWbh.remainingMismatch();
             distributedActivePower = initialSlackBusActivePowerMismatch - remainingMismatch;
-            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+            if (Math.abs(remainingMismatch) > context.getParameters().getSlackBusPMaxMismatch() / PerUnit.SB) {
                 Reports.reportMismatchDistributionFailure(reportNode, remainingMismatch * PerUnit.SB);
             } else {
+                if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+                    Reports.reportResidualDistributionMismatch(reportNode, remainingMismatch * PerUnit.SB);
+                }
                 ActivePowerDistribution.reportAndLogSuccess(reportNode, initialSlackBusActivePowerMismatch, resultWbh);
             }
             if (resultWbh.failed()) {
