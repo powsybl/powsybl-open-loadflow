@@ -1199,10 +1199,14 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
+                .setSlackBusPMaxMismatch(0.01));
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP);
+
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
 
         // compare with a loadflow.
         network.getGenerator("g5").getTerminal().disconnect();
@@ -1213,6 +1217,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         loadFlowRunner.run(network, parameters);
 
         OperatorStrategyResult operatorStrategyResult1 = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult1.getStatus());
         assertEquals(network.getLine("l13").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l12").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l23").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -1222,6 +1227,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         loadFlowRunner.run(network, parameters);
 
         OperatorStrategyResult operatorStrategyResult2 = getOperatorStrategyResult(result, "strategy2");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult2.getStatus());
         assertEquals(network.getLine("l13").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l12").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l23").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
