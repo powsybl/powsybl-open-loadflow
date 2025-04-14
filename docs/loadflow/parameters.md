@@ -192,7 +192,6 @@ When `useReactiveLimits` is set to `true`, this parameter is used to prioritize 
 outside these limits. If set to `true`, if any generator has a target Q which is outside its reactive power limits (for its given target P), then its target Q 
 is overriden by the value of the exceeded limit (minQ or maxQ). The default value is `false`.
 
-
 **extrapolateReactiveLimits**  
 When `useReactiveLimits` is set to `true`, this parameter is used for equipments that have reactive limits defined by reactive capability curves. If the target P value is outside the reactive
 capability curve limits (if it is below lowest P value or above highest P value), the behavior depends on the parameter `extrapolateReactiveLimit` :
@@ -201,7 +200,6 @@ capability curve limits (if it is below lowest P value or above highest P value)
 (e.g. if the reactive limits decrease when active power decreases, the reactive limits will continue decreasing at the same rate below the minimal active power of the reactive capability curve)
 
 The default value is `false`.
-
 
 **phaseShifterControlMode**  
 - `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
