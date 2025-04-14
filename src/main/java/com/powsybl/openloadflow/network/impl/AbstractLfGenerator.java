@@ -156,10 +156,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             return -Double.MAX_VALUE;
         }
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
-        if (extrapolateReactiveLimits) {
-            if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
-                return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(targetP * PerUnit.SB, true) / PerUnit.SB;
-            }
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
         }
         return reactiveLimits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB;
     }
@@ -170,10 +168,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             return Double.MAX_VALUE;
         }
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
-        if (extrapolateReactiveLimits) {
-            if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
-                return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, true) / PerUnit.SB;
-            }
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
         }
         return reactiveLimits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB;
     }
