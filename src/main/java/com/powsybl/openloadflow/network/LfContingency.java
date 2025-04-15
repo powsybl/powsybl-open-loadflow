@@ -147,23 +147,50 @@ public class LfContingency {
             shunt.setG(shunt.getG() - e.getValue().getG());
             shunt.setB(shunt.getB() - e.getValue().getB());
         }
+        processLostPowerChanges(balanceType, true);
+    }
+
+    /**
+     * Process the power shifts due to the loss of loads, generators, and HVDCs.
+     * @param balanceType the property defining how to manage active distribution.
+     * @param updateAcQuantities a boolean to indicate if voltage/reactive dependent quantities should be updated or not.
+     */
+    public void processLostPowerChanges(LoadFlowParameters.BalanceType balanceType, boolean updateAcQuantities) {
+        processLostLoads(balanceType, updateAcQuantities);
+        processLostGenerators(updateAcQuantities);
+        processHvdcsWithoutPower();
+    }
+
+    private void processLostLoads(LoadFlowParameters.BalanceType balanceType, boolean updateAcQuantities) {
         for (var e : lostLoads.entrySet()) {
             LfLoad load = e.getKey();
             LfLostLoad lostLoad = e.getValue();
             PowerShift shift = lostLoad.getPowerShift();
             load.setTargetP(load.getTargetP() - getUpdatedLoadP0(load, balanceType, shift.getActive(), shift.getVariableActive(), lostLoad.getNotParticipatingLoadP0()));
-            load.setTargetQ(load.getTargetQ() - shift.getReactive());
+            if (updateAcQuantities) {
+                load.setTargetQ(load.getTargetQ() - shift.getReactive());
+            }
             load.setAbsVariableTargetP(load.getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
             lostLoad.getOriginalIds().forEach(loadId -> load.setOriginalLoadDisabled(loadId, true));
         }
+    }
+
+    private void processLostGenerators(boolean updateAcQuantities) {
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
+            // DC and AC quantities
             generator.setTargetP(0);
             generator.setInitialTargetP(0);
             LfBus bus = generator.getBus();
             generatorBuses.add(bus);
             generator.setParticipating(false);
             generator.setDisabled(true);
+
+            if (!updateAcQuantities) {
+                continue;
+            }
+
+            // Only AC quantities
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                 bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
@@ -179,6 +206,12 @@ public class LfContingency {
                 });
             }
         }
+
+        if (!updateAcQuantities) {
+            return;
+        }
+
+        // Only AC quantities
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                 bus.setGeneratorVoltageControlEnabled(false);
@@ -187,6 +220,9 @@ public class LfContingency {
                 bus.setGeneratorReactivePowerControlEnabled(false);
             }
         }
+    }
+
+    private void processHvdcsWithoutPower() {
         for (LfHvdc hvdc : hvdcsWithoutPower) {
             hvdc.getConverterStation1().setTargetP(0.0);
             hvdc.getConverterStation2().setTargetP(0.0);
