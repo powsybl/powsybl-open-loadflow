@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,6 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Alice Caron {@literal <alice.caron at rte-france.com>}
  */
 class ReportsTest {
+
+    @BeforeEach
+    void setup() {
+        Locale.setDefault(Locale.US);
+    }
 
     @Test
     void useReportWithFranceLocaleTest() {

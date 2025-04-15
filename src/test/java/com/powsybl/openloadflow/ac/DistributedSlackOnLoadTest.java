@@ -31,6 +31,7 @@ import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Locale;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -56,6 +57,7 @@ class DistributedSlackOnLoadTest {
 
     @BeforeEach
     void setUp() {
+        Locale.setDefault(Locale.US);
         network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         l1 = network.getLoad("l1");
         l2 = network.getLoad("l2");

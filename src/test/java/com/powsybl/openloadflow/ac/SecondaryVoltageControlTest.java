@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -60,6 +61,7 @@ class SecondaryVoltageControlTest {
 
     @BeforeEach
     void setUp() {
+        Locale.setDefault(Locale.US);
         network = IeeeCdfNetworkFactory.create14();
         b4 = network.getBusBreakerView().getBus("B4");
         b6 = network.getBusBreakerView().getBus("B6");

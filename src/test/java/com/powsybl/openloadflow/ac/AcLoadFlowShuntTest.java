@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,6 +56,7 @@ class AcLoadFlowShuntTest {
 
     @BeforeEach
     void setUp() {
+        Locale.setDefault(Locale.US);
         network = ShuntNetworkFactory.create();
         bus1 = network.getBusBreakerView().getBus("b1");
         bus2 = network.getBusBreakerView().getBus("b2");

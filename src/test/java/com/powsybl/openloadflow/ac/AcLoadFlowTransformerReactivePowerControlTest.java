@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Locale;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,6 +52,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
     @BeforeEach
     void setUp() {
+        Locale.setDefault(Locale.US);
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parameters.setTransformerVoltageControlOn(false);
