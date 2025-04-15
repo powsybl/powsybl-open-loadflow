@@ -118,15 +118,13 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
                 Map<String, ActivePowerDistribution.Result> resultNoArea = distributeActivePower(mismatchToDistributeOnBusesWithoutArea);
 
                 // If some mismatch remains (when there is no buses without area that participate for example), we distribute equally among the areas.
-                double mismatchToSplitAmongAreas = resultNoArea.get(DEFAULT_NO_AREA_NAME).remainingMismatch();
-                if (lessThanSlackBusMaxMismatch(mismatchToSplitAmongAreas)) {
-
+                double mismatchToDistributeOnAllBuses = resultNoArea.get(DEFAULT_NO_AREA_NAME).remainingMismatch();
+                if (lessThanSlackBusMaxMismatch(mismatchToDistributeOnAllBuses)) {
                     return buildOuterLoopResult(mismatchToDistributeOnBusesWithoutArea, resultNoArea, reportNode, context);
                 } else {
-                    int areasCount = (int) network.getAreaStream().count();
-                    Map<String, Pair<Set<LfBus>, Double>> mismatchSplitAmongAreas = network.getAreaStream().collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), mismatchToSplitAmongAreas / areasCount)));
-                    Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(mismatchSplitAmongAreas);
-                    return buildOuterLoopResult(mismatchSplitAmongAreas, resultByArea, reportNode, context);
+                    Map<String, Pair<Set<LfBus>, Double>> mismatchAllBuses = Map.of("ALL", Pair.of(new HashSet<>(network.getBuses()), mismatchToDistributeOnAllBuses));
+                    Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(mismatchAllBuses);
+                    return buildOuterLoopResult(mismatchAllBuses, resultByArea, reportNode, context);
                 }
             }
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
