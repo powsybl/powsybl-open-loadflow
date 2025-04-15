@@ -19,11 +19,13 @@ import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,6 +35,11 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
+
+    @BeforeEach
+    void setup() {
+        Locale.setDefault(Locale.US);
+    }
 
     @Test
     void testEsgTuto() throws IOException {
