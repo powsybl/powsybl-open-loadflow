@@ -299,7 +299,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             lfNetwork.setReportNode(postContSimReportNode);
 
             // predicate to determine if a branch is disabled or not due to the contingency
-            // note that branches with one side opened due to the contingency are considered are disabled
+            // note that branches with one side opened due to the contingency are considered as disabled
             Predicate<LfBranch> isBranchDisabled = branch -> lfContingency.getDisabledNetwork().getBranchesStatus().containsKey(branch);
 
             // process post contingency result with supplier giving post contingency states
@@ -339,7 +339,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
                     // predicate to determine if a branch is disabled or not due to the contingency and operator strategy actions
                     // the connectivity results are used to determine which branches have been disabled, due to the contingency or connectivity loss
-                    // note that branches with one side opened due to the modifications are considered are disabled
+                    // note that branches with one side opened due to the modifications are considered as disabled
                     Predicate<LfBranch> isBranchDisabledDueToContingencyAndOperatorStrategy = branch -> {
                         Set<LfBranch> disabledBranches = postContingencyAndOperatorStrategyConnectivityAnalysisResult.getPropagatedContingency().getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
                         disabledBranches.addAll(postContingencyAndOperatorStrategyConnectivityAnalysisResult.getPartialDisabledBranches());

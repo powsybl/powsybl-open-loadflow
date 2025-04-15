@@ -667,6 +667,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(network.getLine("L23").getTerminal2().getP(), brL23.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
+    // Test on fast DC only: default DC provides different results than those obtained with LF
     @Test
     void testFastDcSaActionRestoringConnectivityByClosingSwitch() {
         Network network = VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch();
