@@ -61,7 +61,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
         double interchangeTarget2 = 40;
-        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 4);
         parameters.setDc(true);
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
     }
@@ -227,6 +227,15 @@ class AreaInterchangeControlTest {
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
+    @Test
+    void tenAreasSlackDistribution() {
+        Network network = MultiAreaNetworkFactory.createTenAreas();
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+    }
+
     private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {
         Area area1 = network.getArea("a1");
         Area area2 = network.getArea("a2");
@@ -239,9 +248,9 @@ class AreaInterchangeControlTest {
         var componentResult = result.getComponentResults().get(0);
         assertEquals(interchangeTarget1, area1.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
         assertEquals(interchangeTarget2, area2.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
-        assertEquals(expectedDistributedP, componentResult.getDistributedActivePower(), 1e-3);
-        assertEquals(expectedIterationCount, componentResult.getIterationCount());
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+        assertEquals(expectedDistributedP, componentResult.getDistributedActivePower(), parametersExt.getSlackBusPMaxMismatch());
+        assertEquals(expectedIterationCount, componentResult.getIterationCount());
         return result;
     }
 

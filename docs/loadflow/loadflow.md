@@ -249,7 +249,7 @@ If this mismatch for all areas and the slack injection of the buses without area
 
 If not, the remaining slack bus mismatch is first distributed over the buses that have no area.
 
-If some slack bus mismatch still remains, it is distributed equally over all the areas.
+If some slack bus mismatch still remains, it is distributed over all buses of the network.
 
 ### Areas validation
 There are some cases where areas are considered invalid and will not be considered for the area interchange control:
