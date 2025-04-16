@@ -527,6 +527,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case DanglingLineAction.NAME: {
+                    DanglingLineAction danglingLineAction = (DanglingLineAction) action;
+                    if (network.getDanglingLine(danglingLineAction.getDanglingLineId()) == null) {
+                        throw new PowsyblException("Dangling line '" + danglingLineAction.getDanglingLineId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }

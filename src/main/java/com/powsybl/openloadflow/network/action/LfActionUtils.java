@@ -47,6 +47,8 @@ public final class LfActionUtils {
                 new LfShuntCompensatorPositionAction(action.getId(), (ShuntCompensatorPositionAction) action);
             case AreaInterchangeTargetAction.NAME ->
                 new LfAreaInterchangeTargetAction(action.getId(), (AreaInterchangeTargetAction) action);
+            case DanglingLineAction.NAME ->
+                    new LfDanglingLineAction(action.getId(), (DanglingLineAction) action);
             default -> throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         };
     }
