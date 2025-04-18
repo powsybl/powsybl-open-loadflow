@@ -666,6 +666,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                             || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
                             || b.getGeneratorReactivePowerControl().isPresent())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
+            // zero impedance boundary branch is not supported
+            areas.stream()
+                    .flatMap(a -> a.getBoundaries().stream())
+                    .map(LfArea.Boundary::getBranch)
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
