@@ -699,7 +699,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 }
             }
             if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
-                LOGGER.error("Network {} must have at least one bus with generator voltage control enabled", this);
+                LOGGER.warn("Network {} must have at least one bus with generator voltage control enabled", this);
                 if (reportNode != null) {
                     Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
                 }

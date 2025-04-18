@@ -147,7 +147,7 @@ public final class Reports {
     public static void reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(ReportNode reportNode) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.networkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled")
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
