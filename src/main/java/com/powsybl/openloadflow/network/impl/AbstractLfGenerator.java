@@ -381,15 +381,17 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     public static boolean checkActivePowerControl(String generatorId, double targetP, double maxP,
                                                   double minTargetP, double maxTargetP, double plausibleActivePowerLimit,
                                                   boolean useActiveLimits, LfNetworkLoadingReport report) {
-        boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {
+            // if generator is not started, it is not participating, and we can skip the rest of the checks
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) equals 0",
                     generatorId, targetP);
             if (report != null) {
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
             }
-            participating = false;
+            return false;
         }
+
+        boolean participating = true;
         if (maxP > plausibleActivePowerLimit) {
             // note that we still want this check applied even if active power limits are not to be enforced,
             // e.g. in case of distribution modes proportional to maxP or remaining margin, we don't want to introduce crazy high participation
