@@ -51,8 +51,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final boolean forceTargetQInReactiveLimits;
 
+    private final boolean extrapolateReactiveLimits;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, generator.getTargetP() / PerUnit.SB);
+        super(network, generator.getTargetP() / PerUnit.SB, parameters);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
         forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
@@ -65,6 +67,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         maxTargetP = apcHelper.maxTargetP();
 
         forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
+        extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
 
         setReferencePriority(ReferencePriority.get(generator));
 

@@ -238,9 +238,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
      */
     private void checkControllerBus(LfBus controllerBus,
                                            List<ControllerBusToPqBus> buses,
-                                           MutableInt remainingUnchangedBusCount, boolean extrapolateReactiveLimits) {
-        double minQ = controllerBus.getMinQ(extrapolateReactiveLimits);
-        double maxQ = controllerBus.getMaxQ(extrapolateReactiveLimits);
+                                           MutableInt remainingUnchangedBusCount) {
+        double minQ = controllerBus.getMinQ();
+        double maxQ = controllerBus.getMaxQ();
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
 
         boolean remainsPV = true;
@@ -302,9 +302,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
      * A PQ bus can have its Qmin or Qmax limit updated after a change in targetP of the generator or a change of the voltage magnitude of the bus.
      */
     private void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,
-                                   double maxReactivePowerMismatch, boolean canSwitchPqToPv, boolean extrapolateReactiveLimits) {
-        double minQ = controllerCapableBus.getMinQ(extrapolateReactiveLimits); // the actual minQ.
-        double maxQ = controllerCapableBus.getMaxQ(extrapolateReactiveLimits); // the actual maxQ.
+                                   double maxReactivePowerMismatch, boolean canSwitchPqToPv) {
+        double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
+        double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
         double q = controllerCapableBus.getGenerationTargetQ();
         controllerCapableBus.getQLimitType().ifPresent(qLimitType -> {
             if (qLimitType.isMinLimit()) {
@@ -397,13 +397,12 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses = new ArrayList<>();
         MutableInt remainingBusWithReactivePowerControlCount = new MutableInt();
 
-        boolean extrapolateReactiveLimits = context.getLoadFlowContext().getParameters().isExtrapolateReactiveLimits();
         context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).forEach(bus -> {
             if (bus.isGeneratorVoltageControlEnabled()) {
-                checkControllerBus(bus, pvToPqBuses, remainingPvBusCount, extrapolateReactiveLimits);
+                checkControllerBus(bus, pvToPqBuses, remainingPvBusCount);
             } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
-                checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope(), extrapolateReactiveLimits);
+                checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
             }
         });
 
@@ -411,7 +410,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             if (bus.isGeneratorReactivePowerControlEnabled()) {
                 // a bus that has a remote reactive generator power control, if its reactive limits are not respected,
                 // will become a classical PQ bus at reactive limits.
-                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount, extrapolateReactiveLimits);
+                checkControllerBus(bus, reactiveControllerBusesToPqBuses, remainingBusWithReactivePowerControlCount);
             }
         });
 

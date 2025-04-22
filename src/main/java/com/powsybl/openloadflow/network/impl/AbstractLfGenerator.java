@@ -57,9 +57,12 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected boolean reference;
 
-    protected AbstractLfGenerator(LfNetwork network, double targetP) {
+    protected final boolean extrapolateReactiveLimits;
+
+    protected AbstractLfGenerator(LfNetwork network, double targetP, LfNetworkParameters parameters) {
         super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
+        this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
     }
 
     protected record ActivePowerControlHelper(boolean participating, double participationFactor, double droop, double minTargetP, double maxTargetP) {
@@ -151,7 +154,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     protected abstract Optional<ReactiveLimits> getReactiveLimits();
 
     @Override
-    public double getMinQ(boolean extrapolateReactiveLimits) {
+    public double getMinQ() {
         if (getReactiveLimits().isEmpty()) {
             return -Double.MAX_VALUE;
         }
@@ -163,7 +166,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
-    public double getMaxQ(boolean extrapolateReactiveLimits) {
+    public double getMaxQ() {
         if (getReactiveLimits().isEmpty()) {
             return Double.MAX_VALUE;
         }
@@ -172,16 +175,6 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
         }
         return reactiveLimits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB;
-    }
-
-    @Override
-    public double getMinQ() {
-        return getMinQ(false);
-    }
-
-    @Override
-    public double getMaxQ() {
-        return getMaxQ(false);
     }
 
     @Override

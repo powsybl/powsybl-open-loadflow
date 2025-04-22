@@ -124,10 +124,6 @@ public interface LfBus extends LfElement {
 
     double getMaxQ();
 
-    double getMinQ(boolean extrapolateReactiveLimits);
-
-    double getMaxQ(boolean extrapolateReactiveLimits);
-
     Optional<QLimitType> getQLimitType();
 
     void setQLimitType(QLimitType qLimitType);
