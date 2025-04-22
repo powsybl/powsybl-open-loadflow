@@ -57,7 +57,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected boolean reference;
 
-    protected final boolean extrapolateReactiveLimits;
+    private final boolean extrapolateReactiveLimits;
 
     protected AbstractLfGenerator(LfNetwork network, double targetP, LfNetworkParameters parameters) {
         super(targetP, targetP);
