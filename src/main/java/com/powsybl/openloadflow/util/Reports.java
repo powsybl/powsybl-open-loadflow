@@ -163,7 +163,15 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.mismatchDistributionFailure")
                 .withTypedValue(MISMATCH, remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportResidualDistributionMismatch(ReportNode reportNode, double remainingMismatch) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.residualDistributionMismatch")
+                .withTypedValue(MISMATCH, remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withSeverity(TypedValue.DEBUG_SEVERITY)
                 .add();
     }
 
@@ -188,7 +196,7 @@ public final class Reports {
     public static ReportNode reportAreaInterchangeControlDistributionFailure(ReportNode reportNode) {
         return reportNode.newReportNode()
                 .withMessageTemplate("olf.areaInterchangeControlDistributionFailure")
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
@@ -197,7 +205,7 @@ public final class Reports {
                 .withMessageTemplate("olf.areaInterchangeControlAreaMismatch")
                 .withUntypedValue("area", area)
                 .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withSeverity(TypedValue.ERROR_SEVERITY)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
