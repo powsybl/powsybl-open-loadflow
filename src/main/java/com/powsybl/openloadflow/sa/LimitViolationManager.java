@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -20,6 +21,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 
 /**
@@ -60,10 +62,19 @@ public class LimitViolationManager {
      * @param network network on which the violation limits are checked
      */
     public void detectViolations(LfNetwork network) {
+        detectViolations(network, LfElement::isDisabled);
+    }
+
+    /**
+     * Detect violations on branches and on buses
+     * @param network network on which the violation limits are checked
+     * @param isBranchDisabled predicate to evaluate if a branch of the network is disabled or not
+     */
+    public void detectViolations(LfNetwork network, Predicate<LfBranch> isBranchDisabled) {
         Objects.requireNonNull(network);
 
         // Detect violation limits on branches
-        network.getBranches().stream().filter(b -> !b.isDisabled()).forEach(this::detectBranchViolations);
+        network.getBranches().stream().filter(b -> !isBranchDisabled.test(b)).forEach(this::detectBranchViolations);
 
         // Detect violation limits on buses
         network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);
@@ -101,6 +112,39 @@ public class LimitViolationManager {
         addLimitViolation(limitViolation, voltageAngleLimit.getId());
     }
 
+    private void detectBranchCurrentViolations(LfBranch branch, LfBus bus, Function<LfBranch, Evaluable> iGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+        double i = iGetter.apply(branch).eval();
+        for (LfBranch.LfLimit temporaryLimit : limits) {
+            if (i > temporaryLimit.getReducedValue()) {
+                addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
+                break;
+            }
+        }
+    }
+
+    private void detectBranchActivePowerViolations(LfBranch branch, Function<LfBranch, Evaluable> pGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+        double p = pGetter.apply(branch).eval();
+        for (LfBranch.LfLimit temporaryLimit : limits) {
+            if (Math.abs(p) > temporaryLimit.getReducedValue()) {
+                addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
+                break;
+            }
+        }
+    }
+
+    private void detectBranchApparentPowerViolations(LfBranch branch, ToDoubleFunction<LfBranch> sGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+        //Apparent power is not relevant for fictitious branches and may be NaN
+        double s = sGetter.applyAsDouble(branch);
+        if (!Double.isNaN(s)) {
+            for (LfBranch.LfLimit temporaryLimit : limits) {
+                if (s > temporaryLimit.getReducedValue()) {
+                    addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side));
+                    break;
+                }
+            }
+        }
+    }
+
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
                                             TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimit>> limitsGetter,
                                             Function<LfBranch, Evaluable> iGetter,
@@ -109,35 +153,17 @@ public class LimitViolationManager {
                                             TwoSides side) {
         List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
         if (!limits.isEmpty()) {
-            double i = iGetter.apply(branch).eval();
-            limits.stream()
-                    .filter(temporaryLimit -> i > temporaryLimit.getReducedValue())
-                    .findFirst()
-                    .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side))
-                    .ifPresent(this::addBranchLimitViolation);
+            detectBranchCurrentViolations(branch, bus, iGetter, limits, side);
         }
 
         limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
-            double p = pGetter.apply(branch).eval();
-            limits.stream()
-                    .filter(temporaryLimit -> Math.abs(p) > temporaryLimit.getReducedValue())
-                    .findFirst()
-                    .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side))
-                    .ifPresent(this::addBranchLimitViolation);
+            detectBranchActivePowerViolations(branch, pGetter, limits, side);
         }
 
         limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
         if (!limits.isEmpty()) {
-            //Apparent power is not relevant for fictitious branches and may be NaN
-            double s = sGetter.applyAsDouble(branch);
-            if (!Double.isNaN(s)) {
-                limits.stream()
-                        .filter(temporaryLimit -> s > temporaryLimit.getReducedValue())
-                        .findFirst()
-                        .map(temporaryLimit -> createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side))
-                        .ifPresent(this::addBranchLimitViolation);
-            }
+            detectBranchApparentPowerViolations(branch, sGetter, limits, side);
         }
     }
 
