@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -99,7 +100,8 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reportNode);
         assertEquals(1, lfNetworks.size());
@@ -123,7 +125,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setDisableInconsistentVoltageControls(true);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withMessageTemplate("testReport")
                 .build();
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reportNode);
 
@@ -324,7 +326,8 @@ class GeneratorTargetVoltageInconsistencyTest {
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
         LfNetwork mainNetwork = networkList.get(0);
@@ -345,7 +348,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setDisableInconsistentVoltageControls(true);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withMessageTemplate("testReport")
                 .build();
         List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
         LfNetwork lfNetwork = networkList.get(0);

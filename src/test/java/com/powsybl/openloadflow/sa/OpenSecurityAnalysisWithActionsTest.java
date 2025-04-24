@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.*;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
@@ -24,6 +25,7 @@ import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -93,7 +95,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         saParameters.setLoadFlowParameters(lfParameters);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testSaReport", "Test report of security analysis")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testSaReport")
                 .build();
         runSecurityAnalysis(network, contingencies, Collections.emptyList(),
                 saParameters, Collections.emptyList(), Collections.emptyList(), reportNode);
@@ -138,7 +141,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisParameters.setLoadFlowParameters(parameters);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testSaReport", "Test report of security analysis with operator strategies")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testSaReportWithOperatorStrategies")
                 .build();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, reportNode);
@@ -371,7 +375,10 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(639.268, getOperatorStrategyResult(result, "strategy3").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(639.268, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
 
-        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
         loadFlowRunner.run(network, parameters);
         assertEquals(346.296, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
@@ -1756,7 +1763,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 ContingencyContext.specificContingency("NHV1_NHV2_2"), new TrueCondition(), List.of("open NGEN_NHV1")));
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testSaReport", "Test report of security analysis")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testSaReport")
                 .build();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), operatorStrategies, actions, reportNode);
 
@@ -1806,7 +1814,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             new OperatorStrategy("strategy1", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea1.getId(), actionArea2.getId())),
             new OperatorStrategy("strategy2", ContingencyContext.specificContingency(lineContingency.getId()), new TrueCondition(), List.of(actionArea3.getId())));
         ReportNode reportNode = ReportNode.newRootReportNode()
-            .withMessageTemplate("testSaReport", "Test report of security analysis")
+            .withMessageTemplate("testSaReport")
             .build();
 
         double areaInterchangePMaxMismatch = 1e-3;

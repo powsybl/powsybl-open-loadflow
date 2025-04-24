@@ -1018,6 +1018,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
         }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP > 0) {
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP < minP",
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP);
+        }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
@@ -1306,7 +1310,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
                     return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                            parameters, Reports.createRootLfNetworkReportNode(numCc, numSc));
+                            parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
                 })
                 .collect(Collectors.toList());
 
