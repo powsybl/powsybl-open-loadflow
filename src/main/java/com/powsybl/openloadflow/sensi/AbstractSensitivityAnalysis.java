@@ -781,8 +781,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             return lfNetwork.getBranchById(branchId);
         }
         DanglingLine danglingLine = network.getDanglingLine(branchId);
-        if (danglingLine != null && !danglingLine.isPaired()) {
-            return lfNetwork.getBranchById(branchId);
+        if (danglingLine != null) {
+            if (!danglingLine.isPaired()) {
+                return lfNetwork.getBranchById(branchId);
+            } else {
+                return lfNetwork.getBranchById(danglingLine.getTieLine().orElseThrow().getId());
+            }
         }
         ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
         if (twt != null) {
