@@ -394,6 +394,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             for (LfGenerator generator : generators) {
                 generationTargetP += generator.getTargetP();
             }
+            if (!isGeneratorVoltageControlled()) {
+                setGenerationTargetQ(getGenerators().stream()
+                        .mapToDouble(LfGenerator::getTargetQ)
+                        .filter(d -> !Double.isNaN(d))
+                        .sum());
+            }
         }
         return generationTargetP;
     }

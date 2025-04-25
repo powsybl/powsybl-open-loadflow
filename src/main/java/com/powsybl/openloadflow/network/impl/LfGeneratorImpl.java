@@ -175,9 +175,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             double minQ = getMinQ();
             double maxQ = getMaxQ();
             if (targetQ < minQ) {
+                LOGGER.trace("Generator '{}' had targetQ = {} and calculatedQ = {} and LfTargetP = {} and targetP = {}", this.getId(), targetQ * PerUnit.SB, calculatedQ * PerUnit.SB, targetP * PerUnit.SB, getGenerator().getTargetP());
                 targetQ = minQ;
+                LOGGER.trace("Generator '{}' has targetQ forced to {}", this.getId(), targetQ * PerUnit.SB);
             } else if (targetQ > maxQ) {
+                LOGGER.trace("Generator '{}' had targetQ = {} and calculatedQ = {} and LfTargetP = {} and targetP = {}", this.getId(), targetQ * PerUnit.SB, calculatedQ * PerUnit.SB, targetP * PerUnit.SB, getGenerator().getTargetP());
                 targetQ = maxQ;
+                LOGGER.trace("Generator '{}' has targetQ forced to {}", this.getId(), targetQ * PerUnit.SB);
             }
         }
         return targetQ;
