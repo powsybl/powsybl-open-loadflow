@@ -9,215 +9,215 @@
          + Newton Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
-               Newton-Raphson norm |f(x)|=11,37683
-               + Largest P mismatch: 599,913551 MW
+               Newton-Raphson norm |f(x)|=11.37683
+               + Largest P mismatch: 599.913551 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
                   Bus V: 1 pu, 0 rad
-                  Bus injection: -0,086449 MW, -7,409372 MVar
-               + Largest Q mismatch: -739,751845 MVar
+                  Bus injection: -0.086449 MW, -7.409372 MVar
+               + Largest Q mismatch: -739.751845 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
                   Bus V: 1 pu, 0 rad
-                  Bus injection: -16,421053 MW, -739,751845 MVar
-               + Largest V mismatch: -0,020833 p.u.
+                  Bus injection: -16.421053 MW, -739.751845 MVar
+               + Largest V mismatch: -0.020833 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
                   Bus V: 1 pu, 0 rad
-                  Bus injection: 17,285319 MW, 720,014153 MVar
+                  Bus injection: 17.285319 MW, 720.014153 MVar
             + Iteration 1 mismatch
-               Step size: 0,099995 (max voltage change: 4 Vmagnitude and 3 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=10,228933
-               + Largest P mismatch: 539,555535 MW
+               Step size: 0.099995 (max voltage change: 4 Vmagnitude and 3 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=10.228933
+               + Largest P mismatch: 539.555535 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 1,001339 pu, -0,017453 rad
-                  Bus injection: -60,444465 MW, -26,366765 MVar
-               + Largest Q mismatch: -664,905113 MVar
+                  Bus V: 1.001339 pu, -0.017453 rad
+                  Bus injection: -60.444465 MW, -26.366765 MVar
+               + Largest Q mismatch: -664.905113 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,007138 pu, 0 rad
-                  Bus injection: -15,364597 MW, -664,905113 MVar
-               + Largest V mismatch: -0,01875 p.u.
+                  Bus V: 1.007138 pu, -0 rad
+                  Bus injection: -15.364597 MW, -664.905113 MVar
+               + Largest V mismatch: -0.01875 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,002083 pu, 0,004427 rad
-                  Bus injection: 76,812516 MW, 652,394352 MVar
+                  Bus V: 1.002083 pu, 0.004427 rad
+                  Bus injection: 76.812516 MW, 652.394352 MVar
             + Iteration 2 mismatch
-               Step size: 0,113092 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=9,062328
-               + Largest P mismatch: 478,229275 MW
+               Step size: 0.113092 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=9.062328
+               + Largest P mismatch: 478.229275 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 1,002071 pu, -0,034907 rad
-                  Bus injection: -121,770725 MW, -45,683299 MVar
-               + Largest Q mismatch: -588,844641 MVar
+                  Bus V: 1.002071 pu, -0.034907 rad
+                  Bus injection: -121.770725 MW, -45.683299 MVar
+               + Largest Q mismatch: -588.844641 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,014097 pu, 0 rad
-                  Bus injection: -14,200435 MW, -588,844641 MVar
-               + Largest V mismatch: -0,01663 p.u.
+                  Bus V: 1.014097 pu, -0 rad
+                  Bus injection: -14.200435 MW, -588.844641 MVar
+               + Largest V mismatch: -0.01663 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,004204 pu, 0,008839 rad
-                  Bus injection: 137,323346 MW, 587,760787 MVar
+                  Bus V: 1.004204 pu, 0.008839 rad
+                  Bus injection: 137.323346 MW, 587.760787 MVar
             + Iteration 3 mismatch
-               Step size: 0,129413 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=7,880304
-               + Largest P mismatch: 416,101222 MW
+               Step size: 0.129413 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=7.880304
+               + Largest P mismatch: 416.101222 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 1,00217 pu, -0,05236 rad
-                  Bus injection: -183,898778 MW, -65,314124 MVar
-               + Largest Q mismatch: -511,790312 MVar
+                  Bus V: 1.00217 pu, -0.05236 rad
+                  Bus injection: -183.898778 MW, -65.314124 MVar
+               + Largest Q mismatch: -511.790312 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,020854 pu, 0 rad
-                  Bus injection: -12,928555 MW, -511,790312 MVar
-               + Largest V mismatch: -0,014478 p.u.
+                  Bus V: 1.020854 pu, -0 rad
+                  Bus injection: -12.928555 MW, -511.790312 MVar
+               + Largest V mismatch: -0.014478 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,006356 pu, 0,013228 rad
-                  Bus injection: 198,645512 MW, 526,35618 MVar
+                  Bus V: 1.006356 pu, 0.013228 rad
+                  Bus injection: 198.645512 MW, 526.35618 MVar
             + Iteration 4 mismatch
-               Step size: 0,1504 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=6,686496
-               + Largest P mismatch: 353,353534 MW
+               Step size: 0.1504 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=6.686496
+               + Largest P mismatch: 353.353534 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 1,001606 pu, -0,069813 rad
-                  Bus injection: -246,646466 MW, -85,210968 MVar
-               + Largest Q mismatch: -433,98631 MVar
+                  Bus V: 1.001606 pu, -0.069813 rad
+                  Bus injection: -246.646466 MW, -85.210968 MVar
+               + Largest Q mismatch: -433.98631 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,027387 pu, 0 rad
-                  Bus injection: -11,548774 MW, -433,98631 MVar
-               + Largest V mismatch: -0,0123 p.u.
+                  Bus V: 1.027387 pu, -0 rad
+                  Bus injection: -11.548774 MW, -433.98631 MVar
+               + Largest V mismatch: -0.0123 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,008533 pu, 0,017581 rad
-                  Bus injection: 260,587847 MW, 468,431427 MVar
+                  Bus V: 1.008533 pu, 0.017581 rad
+                  Bus injection: 260.587847 MW, 468.431427 MVar
             + Iteration 5 mismatch
-               Step size: 0,178522 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=5,484913
-               + Largest P mismatch: 290,184367 MW
+               Step size: 0.178522 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=5.484913
+               + Largest P mismatch: 290.184367 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 1,000349 pu, -0,087266 rad
-                  Bus injection: -309,815633 MW, -105,322861 MVar
-               + Largest Q mismatch: -355,703875 MVar
+                  Bus V: 1.000349 pu, -0.087266 rad
+                  Bus injection: -309.815633 MW, -105.322861 MVar
+               + Largest Q mismatch: -355.703875 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,03367 pu, 0 rad
-                  Bus injection: -10,060438 MW, -355,703875 MVar
-               + Largest V mismatch: -0,010104 p.u.
+                  Bus V: 1.03367 pu, -0 rad
+                  Bus injection: -10.060438 MW, -355.703875 MVar
+               + Largest V mismatch: -0.010104 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,010729 pu, 0,021888 rad
-                  Bus injection: 322,938379 MW, 414,249604 MVar
+                  Bus V: 1.010729 pu, 0.021888 rad
+                  Bus injection: 322.938379 MW, 414.249604 MVar
             + Iteration 6 mismatch
-               Step size: 0,218385 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=4,279995
-               + Largest P mismatch: 226,808426 MW
+               Step size: 0.218385 (max voltage change: 3 Vmagnitude and 3 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=4.279995
+               + Largest P mismatch: 226.808426 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 0,998365 pu, -0,10472 rad
-                  Bus injection: -373,191574 MW, -125,597535 MVar
-               + Largest Q mismatch: -277,246497 MVar
+                  Bus V: 0.998365 pu, -0.10472 rad
+                  Bus injection: -373.191574 MW, -125.597535 MVar
+               + Largest Q mismatch: -277.246497 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,039676 pu, 0 rad
-                  Bus injection: -8,461851 MW, -277,246497 MVar
-               + Largest V mismatch: -0,007898 p.u.
+                  Bus V: 1.039676 pu, -0 rad
+                  Bus injection: -8.461851 MW, -277.246497 MVar
+               + Largest V mismatch: -0.007898 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,012936 pu, 0,026136 rad
-                  Bus injection: 385,460702 MW, 364,094489 MVar
+                  Bus V: 1.012936 pu, 0.026136 rad
+                  Bus injection: 385.460702 MW, 364.094489 MVar
             + Iteration 7 mismatch
-               Step size: 0,279689 (max voltage change: 1 Vmagnitude and 2 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=3,076728
-               + Largest P mismatch: 163,458317 MW
+               Step size: 0.279689 (max voltage change: 1 Vmagnitude and 2 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=3.076728
+               + Largest P mismatch: 163.458317 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 0,995614 pu, -0,122173 rad
-                  Bus injection: -436,541683 MW, -145,984369 MVar
-               + Largest Q mismatch: -198,961147 MVar
+                  Bus V: 0.995614 pu, -0.122173 rad
+                  Bus injection: -436.541683 MW, -145.984369 MVar
+               + Largest Q mismatch: -198.961147 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,045374 pu, 0 rad
-                  Bus injection: -6,749042 MW, -198,961147 MVar
-               + Largest V mismatch: -0,005689 p.u.
+                  Bus V: 1.045374 pu, -0 rad
+                  Bus injection: -6.749042 MW, -198.961147 MVar
+               + Largest V mismatch: -0.005689 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,015145 pu, 0,030312 rad
-                  Bus injection: 447,886112 MW, 318,290009 MVar
+                  Bus V: 1.015145 pu, 0.030312 rad
+                  Bus injection: 447.886112 MW, 318.290009 MVar
             + Iteration 8 mismatch
-               Step size: 0,386969 (max voltage change: 1 Vmagnitude and 1 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=1,880953
-               + Largest P mismatch: 100,388308 MW
+               Step size: 0.386969 (max voltage change: 1 Vmagnitude and 1 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=1.880953
+               + Largest P mismatch: 100.388308 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 0,992041 pu, -0,139626 rad
-                  Bus injection: -499,611692 MW, -166,44186 MVar
-               + Largest Q mismatch: -121,267416 MVar
+                  Bus V: 0.992041 pu, -0.139626 rad
+                  Bus injection: -499.611692 MW, -166.44186 MVar
+               + Largest Q mismatch: -121.267416 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,050724 pu, 0 rad
-                  Bus injection: -4,912581 MW, -121,267416 MVar
-               + Largest V mismatch: -0,003487 p.u.
+                  Bus V: 1.050724 pu, -0 rad
+                  Bus injection: -4.912581 MW, -121.267416 MVar
+               + Largest V mismatch: -0.003487 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,017346 pu, 0,0344 rad
-                  Bus injection: 509,893187 MW, 277,251675 MVar
+                  Bus V: 1.017346 pu, 0.0344 rad
+                  Bus injection: 509.893187 MW, 277.251675 MVar
             + Iteration 9 mismatch
-               Step size: 0,625519 (max voltage change: 0 Vmagnitude and 1 Vangle changes outside configured thresholds)
-               Newton-Raphson norm |f(x)|=0,700472
-               + Largest P mismatch: 37,887528 MW
+               Step size: 0.625519 (max voltage change: 0 Vmagnitude and 1 Vangle changes outside configured thresholds)
+               Newton-Raphson norm |f(x)|=0.700472
+               + Largest P mismatch: 37.887528 MW
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 0,987546 pu, -0,15708 rad
-                  Bus injection: -562,112472 MW, -186,963861 MVar
-               + Largest Q mismatch: -44,759942 MVar
+                  Bus V: 0.987546 pu, -0.15708 rad
+                  Bus injection: -562.112472 MW, -186.963861 MVar
+               + Largest Q mismatch: -44.759942 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,055664 pu, 0 rad
-                  Bus injection: -2,92628 MW, -44,759942 MVar
-               + Largest V mismatch: -0,001306 p.u.
+                  Bus V: 1.055664 pu, 0 rad
+                  Bus injection: -2.92628 MW, -44.759942 MVar
+               + Largest V mismatch: -0.001306 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,019527 pu, 0,038377 rad
-                  Bus injection: 571,035955 MW, 241,669349 MVar
+                  Bus V: 1.019527 pu, 0.038377 rad
+                  Bus injection: 571.035955 MW, 241.669349 MVar
             + Iteration 10 mismatch
-               Newton-Raphson norm |f(x)|=0,004701
-               + Largest P mismatch: -0,230829 MW
+               Newton-Raphson norm |f(x)|=0.004701
+               + Largest P mismatch: -0.230829 MW
                   Bus Id: VLHV2_0 (nominalVoltage=380kV)
-                  Bus V: 1,026292 pu, -0,0612 rad
-                  Bus injection: -0,230829 MW, 0,200243 MVar
-               + Largest Q mismatch: 0,215758 MVar
+                  Bus V: 1.026292 pu, -0.0612 rad
+                  Bus injection: -0.230829 MW, 0.200243 MVar
+               + Largest Q mismatch: 0.215758 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,058316 pu, 0 rad
-                  Bus injection: -1,512839 MW, 0,215758 MVar
+                  Bus V: 1.058316 pu, -0 rad
+                  Bus injection: -1.512839 MW, 0.215758 MVar
                + Largest V mismatch: 0 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,020833 pu, 0,040702 rad
-                  Bus injection: 607,130643 MW, 224,672891 MVar
+                  Bus V: 1.020833 pu, 0.040702 rad
+                  Bus injection: 607.130643 MW, 224.672891 MVar
             + Iteration 11 mismatch
-               Newton-Raphson norm |f(x)|=0,000001
-               + Largest P mismatch: -0,000077 MW
+               Newton-Raphson norm |f(x)|=0.000001
+               + Largest P mismatch: -0.000077 MW
                   Bus Id: VLHV2_0 (nominalVoltage=380kV)
-                  Bus V: 1,026184 pu, -0,061198 rad
-                  Bus injection: -0,000077 MW, 0,000026 MVar
-               + Largest Q mismatch: 0,00004 MVar
+                  Bus V: 1.026184 pu, -0.061198 rad
+                  Bus injection: -0.000077 MW, 0.000026 MVar
+               + Largest Q mismatch: 0.00004 MVar
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 0,983849 pu, -0,167807 rad
-                  Bus injection: -599,999924 MW, -199,99996 MVar
+                  Bus V: 0.983849 pu, -0.167807 rad
+                  Bus injection: -599.999924 MW, -199.99996 MVar
                + Largest V mismatch: 0 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,020833 pu, 0,040694 rad
-                  Bus injection: 607,000006 MW, 225,406326 MVar
+                  Bus V: 1.020833 pu, 0.040694 rad
+                  Bus injection: 607.000006 MW, 225.406326 MVar
          + Outer loop DistributedSlack
             + Outer loop iteration 1
-               Slack bus active power (-1,441499 MW) distributed in 1 distribution iteration(s)
+               Slack bus active power (-1.441499 MW) distributed in 1 distribution iteration(s)
          + Newton Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 1 of type DistributedSlack
             + Initial mismatch
-               Newton-Raphson norm |f(x)|=0,014415
-               + Largest P mismatch: 1,441505 MW
+               Newton-Raphson norm |f(x)|=0.014415
+               + Largest P mismatch: 1.441505 MW
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,020833 pu, 0,040694 rad
-                  Bus injection: 607,000006 MW, 225,406326 MVar
-               + Largest Q mismatch: 0,00004 MVar
+                  Bus V: 1.020833 pu, 0.040694 rad
+                  Bus injection: 607.000006 MW, 225.406326 MVar
+               + Largest Q mismatch: 0.00004 MVar
                   Bus Id: VLLOAD_0 (nominalVoltage=150kV)
-                  Bus V: 0,983849 pu, -0,167807 rad
-                  Bus injection: -599,999924 MW, -199,99996 MVar
+                  Bus V: 0.983849 pu, -0.167807 rad
+                  Bus injection: -599.999924 MW, -199.99996 MVar
                + Largest V mismatch: 0 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,020833 pu, 0,040694 rad
-                  Bus injection: 607,000006 MW, 225,406326 MVar
+                  Bus V: 1.020833 pu, 0.040694 rad
+                  Bus injection: 607.000006 MW, 225.406326 MVar
             + Iteration 1 mismatch
-               Newton-Raphson norm |f(x)|=0,000001
-               + Largest P mismatch: -0,000011 MW
+               Newton-Raphson norm |f(x)|=0.000001
+               + Largest P mismatch: -0.000011 MW
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,020833 pu, 0,040596 rad
-                  Bus injection: 605,55849 MW, 225,282535 MVar
-               + Largest Q mismatch: 0,00007 MVar
+                  Bus V: 1.020833 pu, 0.040596 rad
+                  Bus injection: 605.55849 MW, 225.282535 MVar
+               + Largest Q mismatch: 0.00007 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1,058271 pu, 0 rad
-                  Bus injection: -0,00295 MW, 0,00007 MVar
+                  Bus V: 1.058271 pu, 0 rad
+                  Bus injection: -0.00295 MW, 0.00007 MVar
                + Largest V mismatch: 0 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
-                  Bus V: 1,020833 pu, 0,040596 rad
-                  Bus injection: 605,55849 MW, 225,282535 MVar
+                  Bus V: 1.020833 pu, 0.040596 rad
+                  Bus injection: 605.55849 MW, 225.282535 MVar
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerVoltageControl

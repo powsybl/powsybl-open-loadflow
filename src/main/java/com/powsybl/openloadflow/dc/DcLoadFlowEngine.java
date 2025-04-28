@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -74,7 +74,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     public static double getActivePowerMismatch(Collection<LfBus> buses) {
         double mismatch = 0;
         for (LfBus b : buses) {
-            mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+            if (!b.isDisabled()) {
+                mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+            }
         }
         return -mismatch;
     }
@@ -226,9 +228,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             );
             double remainingMismatch = resultWbh.remainingMismatch();
             distributedActivePower = initialSlackBusActivePowerMismatch - remainingMismatch;
-            if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+            if (Math.abs(remainingMismatch) > context.getParameters().getSlackBusPMaxMismatch() / PerUnit.SB) {
                 Reports.reportMismatchDistributionFailure(reportNode, remainingMismatch * PerUnit.SB);
             } else {
+                if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
+                    Reports.reportResidualDistributionMismatch(reportNode, remainingMismatch * PerUnit.SB);
+                }
                 ActivePowerDistribution.reportAndLogSuccess(reportNode, initialSlackBusActivePowerMismatch, resultWbh);
             }
             if (resultWbh.failed()) {
@@ -273,6 +278,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                     && runningContext.lastSolverSuccess
                     && runningContext.lastOuterLoopResult.status() != OuterLoopStatus.FAILED
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
+        }
+
+        if (runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
+            Reports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true, LOGGER);
         }
 
         // outer loops finalization (in reverse order to allow correct cleanup)

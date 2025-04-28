@@ -419,7 +419,7 @@ class AcLoadFlowWithCachingTest {
         var gen = network.getGenerator("GEN");
         gen.setTargetV(1000);
         result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(0).getStatus());
     }
 
     @Test

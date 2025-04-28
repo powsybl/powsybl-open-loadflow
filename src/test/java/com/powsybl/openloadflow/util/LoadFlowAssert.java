@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,10 +13,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -106,48 +103,34 @@ public final class LoadFlowAssert {
         assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reportNode);
     }
 
-    // kind of a hack to get a report text export using formatted doubles
-    // waiting for a solution from powsybl core
-    private static String toStringWithFormattedDoubles(ReportNode reportNode) throws IOException {
-        StringWriter text = new StringWriter();
-        reportNode.print(text);
-
-        String regex = "[-]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(text.toString());
-
-        DecimalFormat decimalFormat = new DecimalFormat("#.######");
-
-        StringBuilder textWithFormattedDoubles = new StringBuilder();
-        while (matcher.find()) {
-            double value = Double.parseDouble(matcher.group());
-            String formattedValue = decimalFormat.format(value);
-            if (formattedValue.endsWith("-0")) {
-                matcher.appendReplacement(textWithFormattedDoubles, "0");
-            } else {
-                matcher.appendReplacement(textWithFormattedDoubles, formattedValue);
+    private static String reportToString(ReportNode reportNode) throws IOException {
+        StringWriter sw = new StringWriter();
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+        symbols.setDecimalSeparator('.');
+        DecimalFormat decimalFormat = new DecimalFormat("#.######", symbols);
+        reportNode.print(sw, typedValue -> {
+            if (typedValue.getValue() instanceof Double) {
+                return decimalFormat.format(typedValue.getValue());
             }
-        }
-        matcher.appendTail(textWithFormattedDoubles);
-
-        return textWithFormattedDoubles.toString();
+            return typedValue.toString();
+        });
+        return sw.toString();
     }
 
     public static void assertReportEquals(InputStream ref, ReportNode reportNode) throws IOException {
-        String reportText = toStringWithFormattedDoubles(reportNode);
-
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(ref), StandardCharsets.UTF_8));
-        String logExport = normalizeLineSeparator(reportText);
+        String logExport = normalizeLineSeparator(reportToString(reportNode));
         assertEquals(refLogExport, logExport);
     }
 
     public static void assertTxtReportEquals(String reportTxt, ReportNode reportNode) throws IOException {
-        StringWriter sw = new StringWriter();
-        reportNode.print(sw);
-
         String refLogExport = normalizeLineSeparator(reportTxt);
-        String logExport = normalizeLineSeparator(sw.toString());
+        String logExport = normalizeLineSeparator(reportToString(reportNode));
         assertEquals(refLogExport, logExport);
+    }
+
+    public static void assertReportEqualsString(String expected, ReportNode reportNode) throws IOException {
+        assertReportEquals(new ByteArrayInputStream(expected.getBytes()), reportNode);
     }
 
     public static Stream<ReportNode> streamReportNodes(final ReportNode node) {

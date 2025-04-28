@@ -82,6 +82,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<String, LfArea> areasById = new HashMap<>();
 
+    private final List<LfArea> areas = new ArrayList<>();
+
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
@@ -195,6 +197,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case BRANCH -> getBranch(num);
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
+            case AREA -> getArea(num);
             case LOAD -> getLoad(num);
         };
     }
@@ -313,6 +316,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void addArea(LfArea area) {
         Objects.requireNonNull(area);
         areasById.put(area.getId(), area);
+        area.setNum(areas.size());
+        areas.add(area);
     }
 
     public List<LfBus> getBuses() {
@@ -401,6 +406,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfArea getAreaById(String id) {
         Objects.requireNonNull(id);
         return areasById.get(id);
+    }
+
+    public LfArea getArea(int num) {
+        return areas.get(num);
+    }
+
+    public List<LfArea> getAreas() {
+        return areas;
     }
 
     public void addHvdc(LfHvdc hvdc) {
@@ -668,6 +681,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                             || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
                             || b.getGeneratorReactivePowerControl().isPresent())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
+            // zero impedance boundary branch is not supported
+            areas.stream()
+                    .flatMap(a -> a.getBoundaries().stream())
+                    .map(LfArea.Boundary::getBranch)
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
@@ -696,7 +714,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 }
             }
             if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
-                LOGGER.error("Network {} must have at least one bus with generator voltage control enabled", this);
+                LOGGER.warn("Network {} must have at least one bus with generator voltage control enabled", this);
                 if (reportNode != null) {
                     Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
                 }
