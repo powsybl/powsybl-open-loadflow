@@ -31,7 +31,7 @@
                   Bus injection: -60.444465 MW, -26.366765 MVar
                + Largest Q mismatch: -664.905113 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.007138 pu, -0 rad
+                  Bus V: 1.007138 pu, 0 rad
                   Bus injection: -15.364597 MW, -664.905113 MVar
                + Largest V mismatch: -0.01875 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -46,7 +46,7 @@
                   Bus injection: -121.770725 MW, -45.683299 MVar
                + Largest Q mismatch: -588.844641 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.014097 pu, -0 rad
+                  Bus V: 1.014097 pu, 0 rad
                   Bus injection: -14.200435 MW, -588.844641 MVar
                + Largest V mismatch: -0.01663 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -61,7 +61,7 @@
                   Bus injection: -183.898778 MW, -65.314124 MVar
                + Largest Q mismatch: -511.790312 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.020854 pu, -0 rad
+                  Bus V: 1.020854 pu, 0 rad
                   Bus injection: -12.928555 MW, -511.790312 MVar
                + Largest V mismatch: -0.014478 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -76,7 +76,7 @@
                   Bus injection: -246.646466 MW, -85.210968 MVar
                + Largest Q mismatch: -433.98631 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.027387 pu, -0 rad
+                  Bus V: 1.027387 pu, 0 rad
                   Bus injection: -11.548774 MW, -433.98631 MVar
                + Largest V mismatch: -0.0123 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -91,7 +91,7 @@
                   Bus injection: -309.815633 MW, -105.322861 MVar
                + Largest Q mismatch: -355.703875 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.03367 pu, -0 rad
+                  Bus V: 1.03367 pu, 0 rad
                   Bus injection: -10.060438 MW, -355.703875 MVar
                + Largest V mismatch: -0.010104 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -106,7 +106,7 @@
                   Bus injection: -373.191574 MW, -125.597535 MVar
                + Largest Q mismatch: -277.246497 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.039676 pu, -0 rad
+                  Bus V: 1.039676 pu, 0 rad
                   Bus injection: -8.461851 MW, -277.246497 MVar
                + Largest V mismatch: -0.007898 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -121,7 +121,7 @@
                   Bus injection: -436.541683 MW, -145.984369 MVar
                + Largest Q mismatch: -198.961147 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.045374 pu, -0 rad
+                  Bus V: 1.045374 pu, 0 rad
                   Bus injection: -6.749042 MW, -198.961147 MVar
                + Largest V mismatch: -0.005689 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -136,7 +136,7 @@
                   Bus injection: -499.611692 MW, -166.44186 MVar
                + Largest Q mismatch: -121.267416 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.050724 pu, -0 rad
+                  Bus V: 1.050724 pu, 0 rad
                   Bus injection: -4.912581 MW, -121.267416 MVar
                + Largest V mismatch: -0.003487 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
@@ -165,7 +165,7 @@
                   Bus injection: -0.230829 MW, 0.200243 MVar
                + Largest Q mismatch: 0.215758 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.058316 pu, -0 rad
+                  Bus V: 1.058316 pu, 0 rad
                   Bus injection: -1.512839 MW, 0.215758 MVar
                + Largest V mismatch: 0 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
