@@ -385,6 +385,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
+        if (!isGeneratorVoltageControlled()) {
+            setGenerationTargetQ(getGenerators().stream()
+                    .mapToDouble(LfGenerator::getTargetQ)
+                    .filter(d -> !Double.isNaN(d))
+                    .sum());
+        }
     }
 
     @Override
@@ -393,12 +399,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             generationTargetP = 0.0;
             for (LfGenerator generator : generators) {
                 generationTargetP += generator.getTargetP();
-            }
-            if (!isGeneratorVoltageControlled()) {
-                setGenerationTargetQ(getGenerators().stream()
-                        .mapToDouble(LfGenerator::getTargetQ)
-                        .filter(d -> !Double.isNaN(d))
-                        .sum());
             }
         }
         return generationTargetP;
