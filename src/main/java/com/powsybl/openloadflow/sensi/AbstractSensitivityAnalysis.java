@@ -779,15 +779,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         if (isFlowFunction(functionType) || isReactivePowerFunctionType(functionType)) {
             DanglingLine danglingLine = network.getDanglingLine(functionId);
             if (danglingLine != null && danglingLine.isPaired()) {
-                if (functionType.getSide().orElseThrow() == 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
-                    TieLine tieLine = danglingLine.getTieLine().orElseThrow();
-                    TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
-                    if (LOGGER.isInfoEnabled()) {
-                        LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
-                    }
-                    return Pair.of(switchFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
+                if (functionType.getSide().orElseThrow() != 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
+                    throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
                 }
-                throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
+                TieLine tieLine = danglingLine.getTieLine().orElseThrow();
+                TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
+                }
+                return Pair.of(switchFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
             }
         }
         return Pair.of(functionType, functionId); // Returning input as it is
