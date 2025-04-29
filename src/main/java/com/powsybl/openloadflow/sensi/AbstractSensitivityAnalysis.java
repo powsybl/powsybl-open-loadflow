@@ -776,7 +776,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeDanglingLine(Network network, SensitivityFunctionType functionType, String functionId) {
-        if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType) || isReactivePowerFunctionType(functionType)) {
+        if (isFlowFunction(functionType) || isReactivePowerFunctionType(functionType)) {
             DanglingLine danglingLine = network.getDanglingLine(functionId);
             if (danglingLine != null && danglingLine.isPaired()) {
                 if (functionType.getSide().orElseThrow() == 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
@@ -790,7 +790,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
             }
         }
-        return Pair.of(functionType, functionId); //Returning input as it is
+        return Pair.of(functionType, functionId); // Returning input as it is
     }
 
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
