@@ -1529,11 +1529,15 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         factors.addAll(network.getDanglingLineStream().map(line -> createBranchIntensityPerInjectionIncrease(line.getId(), "g1")).toList());
         factors.add(createBranchIntensityPerInjectionIncrease("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_CURRENT_1
         factors.add(createBranchIntensityPerInjectionIncrease("t12", "g1", TwoSides.TWO)); // Adding tie line BRANCH_CURRENT_2
+        //BRANCH_REACTIVE_POWER
+        factors.addAll(network.getDanglingLineStream().map(line -> createBranchReactivePowerPerTargetV(line.getId(), "g1")).toList());
+        factors.add(createBranchReactivePowerPerTargetV("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_CURRENT_1
+        factors.add(createBranchReactivePowerPerTargetV("t12", "g1", TwoSides.TWO)); // Adding tie line BRANCH_CURRENT_2
 
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
-        assertEquals(8, result.getValues().size());
+        assertEquals(12, result.getValues().size());
 
         // Dangling line h1 side 1 and Tie line t12 side 1 should represent the same sensitivity values
         assertEquals(35.0, result.getBranchFlow1FunctionReferenceValue("h1"), LoadFlowAssert.DELTA_POWER);
@@ -1544,6 +1548,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(50.518, result.getBranchCurrent1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_I);
         assertEquals(0.5, result.getBranchCurrent1SensitivityValue("g1", "h1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
         assertEquals(0.5, result.getBranchCurrent1SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0038, result.getFunctionReferenceValue("h1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0038, result.getFunctionReferenceValue("t12", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(338.983, result.getSensitivityValue("g1", "h1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(338.983, result.getSensitivityValue("g1", "t12", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
 
         // Dangling line h2 side 1 and Tie line t12 side 2 should represent the same sensitivity values
         assertEquals(-35.0, result.getBranchFlow1FunctionReferenceValue("h2"), LoadFlowAssert.DELTA_POWER);
@@ -1554,6 +1562,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(50.518, result.getBranchCurrent2FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_I);
         assertEquals(0.5, result.getBranchCurrent1SensitivityValue("g1", "h2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
         assertEquals(0.5, result.getBranchCurrent2SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(-0.0024, result.getFunctionReferenceValue("h2", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.0024, result.getFunctionReferenceValue("t12", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-338.983, result.getSensitivityValue("g1", "h2", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-338.983, result.getSensitivityValue("g1", "t12", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

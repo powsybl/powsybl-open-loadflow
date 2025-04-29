@@ -776,26 +776,21 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeDanglingLine(Network network, SensitivityFunctionType functionType, String functionId) {
-        if (isFlowFunction(functionType)) {
+        if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType) || isReactivePowerFunctionType(functionType)) {
             DanglingLine danglingLine = network.getDanglingLine(functionId);
-            if (danglingLine != null) {
-                if (danglingLine.isPaired()) {
-                    if (functionType.getSide().orElseThrow() == 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
-                        TieLine tieLine = danglingLine.getTieLine().orElseThrow();
-                        TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
-                        if (LOGGER.isInfoEnabled()) {
-                            LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
-                        }
-                        return Pair.of(switchFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
-                    } else {
-                        throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
+            if (danglingLine != null && danglingLine.isPaired()) {
+                if (functionType.getSide().orElseThrow() == 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
+                    TieLine tieLine = danglingLine.getTieLine().orElseThrow();
+                    TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
                     }
-                } else {
-                    return Pair.of(functionType, functionId); // Dangling line is not paired, returning its sensitivity function as it is
+                    return Pair.of(switchFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
                 }
+                throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
             }
         }
-        return Pair.of(functionType, functionId); // Not a dangling line or other function types, no modification
+        return Pair.of(functionType, functionId); //Returning input as it is
     }
 
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
