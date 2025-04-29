@@ -1171,15 +1171,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     private static SensitivityFunctionType switchFunctionTypeSide(SensitivityFunctionType functionType, TwoSides side) {
-        if (isActivePowerFunctionType(functionType)) {
-            return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
-        } else if (isReactivePowerFunctionType(functionType)) {
-            return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_REACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_REACTIVE_POWER_2;
-        } else if (isCurrentFunctionType(functionType)) {
-            return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
-        } else {
-            throw new IllegalArgumentException("Illegal function type to switch side");
+        if (side != null) {
+            if (isActivePowerFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+            } else if (isReactivePowerFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_REACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_REACTIVE_POWER_2;
+            } else if (isCurrentFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+            }
         }
+        throw new IllegalArgumentException("Illegal function type side switching");
     }
 
     protected Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
