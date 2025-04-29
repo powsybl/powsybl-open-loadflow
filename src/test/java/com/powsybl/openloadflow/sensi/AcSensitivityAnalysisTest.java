@@ -1517,6 +1517,46 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testWithTieLinesSpecifiedByDanglingLines() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = BoundaryFactory.createWithTieLine();
+        //BRANCH_ACTIVE_POWER
+        List<SensitivityFactor> factors = network.getDanglingLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).collect(Collectors.toList());
+        factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_ACTIVE_POWER_1
+        factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", null, TwoSides.TWO)); // Adding tie line BRANCH_ACTIVE_POWER_2
+        //BRANCH_CURRENT
+        factors.addAll(network.getDanglingLineStream().map(line -> createBranchIntensityPerInjectionIncrease(line.getId(), "g1")).toList());
+        factors.add(createBranchIntensityPerInjectionIncrease("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_CURRENT_1
+        factors.add(createBranchIntensityPerInjectionIncrease("t12", "g1", TwoSides.TWO)); // Adding tie line BRANCH_CURRENT_2
+
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
+        assertEquals(8, result.getValues().size());
+
+        // Dangling line h1 side 1 and Tie line t12 side 1 should represent the same sensitivity values
+        assertEquals(35.0, result.getBranchFlow1FunctionReferenceValue("h1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(35.0, result.getBranchFlow1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5, result.getBranchFlow1SensitivityValue("g1", "h1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5, result.getBranchFlow1SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(50.518, result.getBranchCurrent1FunctionReferenceValue("h1"), LoadFlowAssert.DELTA_I);
+        assertEquals(50.518, result.getBranchCurrent1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_I);
+        assertEquals(0.5, result.getBranchCurrent1SensitivityValue("g1", "h1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(0.5, result.getBranchCurrent1SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+
+        // Dangling line h2 side 1 and Tie line t12 side 2 should represent the same sensitivity values
+        assertEquals(-35.0, result.getBranchFlow1FunctionReferenceValue("h2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-35.0, result.getBranchFlow2FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5, result.getBranchFlow1SensitivityValue("g1", "h2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5, result.getBranchFlow2SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(50.518, result.getBranchCurrent1FunctionReferenceValue("h2"), LoadFlowAssert.DELTA_I);
+        assertEquals(50.518, result.getBranchCurrent2FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_I);
+        assertEquals(0.5, result.getBranchCurrent1SensitivityValue("g1", "h2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(0.5, result.getBranchCurrent2SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+    }
+
+    @Test
     void testFailingLf() {
         Network network = TwoBusNetworkFactory.create();
         network.getLoad("l1").setP0(3.0);

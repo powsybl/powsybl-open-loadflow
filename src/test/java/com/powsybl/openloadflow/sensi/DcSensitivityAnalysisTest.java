@@ -1027,16 +1027,43 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testWithTieLines2() {
+    void testWithTieLinesWrongDanglingLine() {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = BoundaryFactory.createWithTieLine();
-        List<SensitivityFactor> factors = network.getDanglingLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).collect(Collectors.toList());
+        // Specifying side 2 of dangling line as sensitivity function, which is not possible because the dangling line is paired (boundary side is not accessible)
+        List<SensitivityFactor> factors = network.getDanglingLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1", null, TwoSides.TWO)).collect(Collectors.toList());
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Branch, tie line, dangling line or leg of 'h1' not found", e.getCause().getMessage());
+        assertEquals("Dangling line h1 is paired. Sensitivity function can only be computed on its side 1 (given type BRANCH_ACTIVE_POWER_2)", e.getCause().getMessage());
+    }
+
+    @Test
+    void testWithTieLinesSpecifiedByDanglingLines() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = BoundaryFactory.createWithTieLine();
+        List<SensitivityFactor> factors = network.getDanglingLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).collect(Collectors.toList());
+        factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_ACTIVE_POWER_1
+        factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", TwoSides.TWO)); // Adding tie line BRANCH_ACTIVE_POWER_2
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
+        assertEquals(4, result.getValues().size());
+
+        // Dangling line h1 side 1 and Tie line t12 side 1 should represent the same sensitivity values
+        assertEquals(35.0, result.getBranchFlow1FunctionReferenceValue("h1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(35.0, result.getBranchFlow1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5, result.getBranchFlow1SensitivityValue("g1", "h1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5, result.getBranchFlow1SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // Dangling line h2 side 1 and Tie line t12 side 2 should represent the same sensitivity values
+        assertEquals(-35.0, result.getBranchFlow1FunctionReferenceValue("h2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-35.0, result.getBranchFlow2FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5, result.getBranchFlow1SensitivityValue("g1", "h2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5, result.getBranchFlow2SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
