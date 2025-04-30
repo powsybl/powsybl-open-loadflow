@@ -991,9 +991,14 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         InjectionVariableIdToBusIdCache injectionVariableIdToBusIdCache = new InjectionVariableIdToBusIdCache();
         int[] factorIndex = new int[1];
         factorReader.read((functionTypeToCheck, functionIdToCheck, variableType, variableId, variableSet, contingencyContext) -> {
-            Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeDanglingLine(network, functionTypeToCheck, functionIdToCheck); //In case of dangling line associated to a tie line, we have to update the sensitivity function
-            SensitivityFunctionType functionType = updatedFunction.getLeft();
-            String functionId = updatedFunction.getRight();
+            SensitivityFunctionType functionType = functionTypeToCheck;
+            String functionId = functionIdToCheck;
+            if (network.getDanglingLine(functionIdToCheck) != null && network.getDanglingLine(functionIdToCheck).isPaired()) {
+                //In case of dangling line associated to a tie line, we have to update the sensitivity function
+                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeDanglingLine(network, functionTypeToCheck, functionIdToCheck);
+                functionType = updatedFunction.getLeft();
+                functionId = updatedFunction.getRight();
+            }
             if (variableSet) {
                 if (isActivePowerFunctionType(functionType)) {
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
