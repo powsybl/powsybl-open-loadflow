@@ -22,9 +22,19 @@ import java.util.Optional;
 public interface AcOuterLoop extends OuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext> {
 
     /**
+<<<<<<< HEAD
      * Returns data needed to initialize the outerloop for a rerun from previous values.
      */
     default Optional<Object> getInitData(AcOuterLoopContext context) {
         return Optional.empty();
     }
+
+    /**
+     * Returns true if the outerloop can fix unrealistic states. For an outerloop returning True, unrealistic states should not interrupt
+     * the solving process before this outerloop is stabilized.
+     */
+    default boolean canFixUnrealisticState() {
+        return false;
+    }
+
 }

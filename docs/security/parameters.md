@@ -55,13 +55,32 @@ The `dcFastMode` property allows to use fast DC security analysis, based on Wood
 when DC mode is activated.
 
 Please note that fast mode has a few limitations:
-- Contingencies applied on branches opened on one side are ignored.
-- Contingencies applied on HVDC lines in AC emulation mode are ignored.
+- Contingencies applied on branches opened on one side are ignored. Also, if a contingency causes the loss of one side of a branch, 
+it is considered completely disabled, and no results are reported for this branch.
+- AC emulation of HVDC lines is disabled, as it is not yet supported.
+Instead, the [active power setpoint](../loadflow/loadflow.md#computing-hvdc-power-flow) mode is used to control the active power flow through these lines. 
 - Only PST remedial actions are supported for now.
-- Slack relocation following the application of a contingency is not supported. 
+- Slack relocation following the application of a contingency is not supported.
 As a result, security analysis is carried out only in slack component, and not necessarily in the largest one.
+- Customizing the way contingency imbalances are compensated via `contingencyActivePowerLossDistribution` parameter is not supported.
 
 The default value is `false`.
+
+**contingencyActivePowerLossDistribution**
+
+> **Note**: This is an advanced parameter.
+> Unless you have specific needs, do not modify this parameter.
+
+Specifies the name of the plugin to be used for compensating any active power injection that has been disconnected by a contingency.
+
+The default value is `Default`.
+
+The `Default` plugin, when slack distribution or area interchange control is enabled:
+- distributes the active power imbalance according to the configured BalanceType
+- reports how much active power has been disconnected by the contingency, and how much has been distributed
+
+PowSyBl Open LoadFlow does not provide today additional plugins. To create your own plugin,
+see the [programming guide](../advanced_programming/contingency_active_power_loss.md).
 
 ## Configuration file example
 See below an extract of a config file that could help:
@@ -72,6 +91,31 @@ open-security-analysis-default-parameters:
   createResultExtension: false
   threadCount: 1
   dcFastMode: false
+  contingencyActivePowerLossDistribution: Default
 ```
 
 At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
+
+(contingency-load-flow-parameters)=
+
+## Contingency Load Flow Parameters
+
+A specific set of load flow parameters can be configured for each contingency individually.
+
+These parameters correspond directly to the parameters in the [`LoadFlowParameters`](inv:powsyblcore:*:*#simulation/loadflow/configuration) from powsybl-core API and
+the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) specific parameters:
+- `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+- `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+
+To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
+
+The behaviour is as follows:
+- When the extension is added: The specified parameters override the corresponding SA input parameters.
+- When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
+
+Note that if the operator strategies are defined for the contingency, the overridden load flow parameters will apply to
+the operator strategies actions simulation too.
+
+This extension does not override any parameter in case of a sensitivity analysis.

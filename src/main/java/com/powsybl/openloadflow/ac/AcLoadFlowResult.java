@@ -67,10 +67,8 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public Status toComponentResultStatus() {
-        if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR) {
+        if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR || network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL) {
             return new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, network.getValidity().toString());
-        } else if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL) {
-            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, network.getValidity().toString());
         }
         if (getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
             return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit. Last outer loop name: " + getOuterLoopResult().outerLoopName());

@@ -5,11 +5,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow;
+package com.powsybl.openloadflow.lf.outerloop.config;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.ac.outerloop.*;
+import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 
 import java.util.List;
@@ -23,7 +27,7 @@ import java.util.stream.Collectors;
  */
 public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
-    public static final List<String> NAMES = List.of(AcIncrementalPhaseControlOuterLoop.NAME,
+    public static final List<String> NAMES = List.of(AbstractIncrementalPhaseControlOuterLoop.NAME,
                                                      DistributedSlackOuterLoop.NAME,
                                                      IncrementalShuntVoltageControlOuterLoop.NAME,
                                                      IncrementalTransformerVoltageControlOuterLoop.NAME,
@@ -36,13 +40,13 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      TransformerVoltageControlOuterLoop.NAME,
                                                      AutomationSystemOuterLoop.NAME,
                                                      IncrementalTransformerReactivePowerControlOuterLoop.NAME,
-                                                     AcAreaInterchangeControlOuterLoop.NAME);
+                                                     AbstractAreaInterchangeControlOuterLoop.NAME);
 
-    private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
-            case AcIncrementalPhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
+            case AbstractIncrementalPhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
                                                                                                OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
-            case DistributedSlackOuterLoop.NAME -> createDistributedSlackOuterLoop(parameters, parametersExt);
+            case DistributedSlackOuterLoop.NAME -> createDistributedSlackOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
             case IncrementalShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
                                                                                                     OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
             case IncrementalTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
@@ -69,8 +73,8 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                                                                      parametersExt.getGeneratorVoltageControlMinNominalVoltage());
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
             case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
-            case AcAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt);
-            default -> throw new PowsyblException("Unknown outer loop '" + name + "'");
+            case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
+            default -> throw new PowsyblException("Unknown outer loop '" + name + "' for AC load flow");
         };
     }
 
@@ -87,8 +91,13 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
 
     @Override
     public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        List<AcOuterLoop> outerLoops = Objects.requireNonNull(parametersExt.getOuterLoopNames()).stream()
-                .flatMap(name -> createOuterLoop(name, parameters, parametersExt).stream())
+        return configure(parameters, parametersExt, LoadFlowParametersOverride.NO_OVERRIDE);
+    }
+
+    @Override
+    public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
+        List<AcOuterLoop> outerLoops = Objects.requireNonNull(loadFlowParametersOverride.getOuterLoopNames(parametersExt)).stream()
+                .flatMap(name -> createOuterLoop(name, parameters, parametersExt, loadFlowParametersOverride).stream())
                 .toList();
         checkTypeUnicity(outerLoops);
         return filterInconsistentOuterLoops(outerLoops);

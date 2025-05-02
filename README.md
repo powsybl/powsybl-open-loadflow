@@ -1,6 +1,6 @@
 # PowSyBl Open Load Flow
 
-[![Actions Status](https://github.com/powsybl/powsybl-open-loadflow/workflows/CI/badge.svg)](https://github.com/powsybl/powsybl-open-loadflow/actions)
+[![Actions Status](https://github.com/powsybl/powsybl-open-loadflow/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/powsybl/powsybl-open-loadflow/actions)
 [![Coverage Status](https://sonarcloud.io/api/project_badges/measure?project=com.powsybl%3Apowsybl-open-loadflow&metric=coverage)](https://sonarcloud.io/component_measures?id=com.powsybl%3Apowsybl-open-loadflow&metric=coverage)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=com.powsybl%3Apowsybl-open-loadflow&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.powsybl%3Apowsybl-open-loadflow)
 [![MPL-2.0 License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
@@ -69,7 +69,7 @@ Heterogeneous voltage controls management has become a key feature. All well-mod
  - Complex cases where the contingency leads to another synchronous component where a new resolution has to be performed are not supported at that stage. The loss of slack bus during a contingency is not supported yet, but the work is in progress.
  - The active and reactive power flows on branches, as well as angle and voltage at buses, can be monitored and collected for later analysis after the base case and after each contingency.
  - Remedial actions such as: switch action, terminal(s) connection action, re-dispatching action
- - Fast DC mode available, based on Woodbury's formula for calculating post-contingency states. Note that this mode has limitations for the moment. Only PST remedial actions are taken into account now. Contingencies on HVDC lines are not yet taken into account in AC emulation mode.
+ - Fast DC mode available, based on Woodbury's formula for calculating post-contingency states. Note that this mode has limitations for the moment. Refer to the documentation [here](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/latest/security/parameters.html) for more information.
 
 ### Sensitivity analysis implementation 
 
@@ -84,6 +84,13 @@ The following contingency types are supported:
 - Load and generator contingencies,
 - HVDC line contingency.
 
+
+## Documentation
+
+Latest version of the documentation is available [here](https://powsybl.readthedocs.io/projects/powsybl-open-loadflow/en/stable/).
+
+To contribute to the documentation follow the instructions in the [documentation README](https://github.com/powsybl/powsybl-open-loadflow/blob/main/docs/README.md) page.
+
 ## Getting started
 
 Running a load flow with PowSyBl Open Load Flow is easy. First let's start loading a IEEE 14 bus network. We first add a few Maven 
@@ -93,12 +100,12 @@ dependencies to respectively have access to network model, IEEE test networks an
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>6.6.0</version>
+    <version>6.7.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>6.6.0</version>
+    <version>6.7.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -117,7 +124,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.14.0</version>
+    <version>1.15.0</version>
 </dependency>
 ```
 

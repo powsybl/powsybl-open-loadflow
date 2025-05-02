@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,6 +25,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
@@ -40,7 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.powsybl.openloadflow.OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS;
+import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -286,6 +287,22 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void testUpdateParametersFromPlatformConfig() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, olfParameters.getSlackBusSelectionMode());
+        assertEquals(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, olfParameters.getSlackDistributionFailureBehavior());
+
+        MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig(MODULE_SPECIFIC_PARAMETERS);
+        olfModuleConfig.setStringProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.FIRST.toString());
+        olfParameters.update(platformConfig);
+
+        assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
+        assertEquals(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, olfParameters.getSlackDistributionFailureBehavior());
+    }
+
+    @Test
     void testUpdateParameters() {
         Map<String, String> parametersMap = new HashMap<>();
         parametersMap.put("slackBusSelectionMode", "FIRST");
@@ -304,6 +321,25 @@ class OpenLoadFlowParametersTest {
         assertFalse(parameters.isVoltageRemoteControl());
         assertEquals(10, parameters.getMaxNewtonRaphsonIterations());
         assertFalse(parameters.isGeneratorReactivePowerRemoteControl());
+    }
+
+    @Test
+    void testParametersWithConfigAndLoader() {
+        OLFDefaultParametersLoaderMock loader = new OLFDefaultParametersLoaderMock("test");
+
+        MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
+        moduleConfig.setStringProperty("maxOuterLoopIterations", "50");
+
+        LoadFlowParameters parameters = new LoadFlowParameters(List.of(loader), platformConfig);
+        OpenLoadFlowParameters olfParameters = parameters.getExtensionByName("open-load-flow-parameters");
+        assertNotNull(olfParameters);
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(30, olfParameters.getMaxOuterLoopIterations());
+
+        olfParameters.update(platformConfig);
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(50, olfParameters.getMaxOuterLoopIterations());
+
     }
 
     @Test
@@ -332,7 +368,7 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
-    void testEqualsAndClone() {
+    void testEqualsCloneAndUpdate() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         provider.getSpecificParameters().forEach(sp -> {
             var p1 = new LoadFlowParameters();
@@ -379,6 +415,22 @@ class OpenLoadFlowParametersTest {
             assertTrue(OpenLoadFlowParameters.equals(p1, p1c), "Parameter is not handled in clone: " + sp.getName());
             var p2c = OpenLoadFlowParameters.clone(p2);
             assertTrue(OpenLoadFlowParameters.equals(p2, p2c), "Parameter is not handled in clone: " + sp.getName());
+
+            // Test update from PlatformConfig
+            InMemoryPlatformConfig config1 = new InMemoryPlatformConfig(fileSystem);
+            MapModuleConfig lfModuleConfig1 = config1.createModuleConfig("open-loadflow-default-parameters");
+            InMemoryPlatformConfig config2 = new InMemoryPlatformConfig(fileSystem);
+            MapModuleConfig lfModuleConfig2 = config2.createModuleConfig("open-loadflow-default-parameters");
+            lfModuleConfig1.setStringProperty(sp.getName(), newVal1);
+            lfModuleConfig2.setStringProperty(sp.getName(), newVal2);
+            LoadFlowParameters lfu1 = new LoadFlowParameters();
+            LoadFlowParameters lfu2 = new LoadFlowParameters();
+            OpenLoadFlowParameters.create(lfu1).update(config1);
+            OpenLoadFlowParameters.create(lfu2).update(config2);
+
+            // should not equal
+            assertFalse(OpenLoadFlowParameters.equals(lfu1, lfu2), "Parameter is not handled in update(platformConfig): " + sp.getName());
+
         });
     }
 
@@ -396,32 +448,49 @@ class OpenLoadFlowParametersTest {
     @Test
     void testToString() {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
-        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], slackDistributionFailureBehavior=LEAVE_ON_SLACK_BUS, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=5000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerRatioTapControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], actionableTransformersIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, outerLoopNames=null, useActiveLimits=true, disableVoltageControlOfGeneratorsOutsideActivePowerLimits=false, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295, linePerUnitMode=IMPEDANCE, useLoadModel=false, dcApproximationType=IGNORE_R, simulateAutomationSystems=false, acSolverType=NEWTON_RAPHSON, maxNewtonKrylovIterations=100, newtonKrylovLineSearch=false, referenceBusSelectionMode=FIRST_SLACK, writeReferenceTerminals=true, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT], transformerVoltageControlUseInitialTapPosition=false, generatorVoltageControlMinNominalVoltage=-1.0, fictitiousGeneratorVoltageControlCheckMode=FORCED, areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0)",
+        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], slackDistributionFailureBehavior=LEAVE_ON_SLACK_BUS, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=5000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerRatioTapControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], actionableTransformersIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, outerLoopNames=null, useActiveLimits=true, disableVoltageControlOfGeneratorsOutsideActivePowerLimits=false, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295, linePerUnitMode=IMPEDANCE, useLoadModel=false, dcApproximationType=IGNORE_R, simulateAutomationSystems=false, acSolverType=NEWTON_RAPHSON, maxNewtonKrylovIterations=100, newtonKrylovLineSearch=false, referenceBusSelectionMode=FIRST_SLACK, writeReferenceTerminals=true, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT], transformerVoltageControlUseInitialTapPosition=false, generatorVoltageControlMinNominalVoltage=-1.0, fictitiousGeneratorVoltageControlCheckMode=FORCED, areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0, voltageRemoteControlRobustMode=true, forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false)",
                 parameters.toString());
     }
 
     @Test
-    void testExplicitOuterLoopsParameter() {
+    void testExplicitOuterLoopsParameterAc() {
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSecondaryVoltageControl(true);
 
-        assertEquals(List.of("DistributedSlack", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("DistributedSlack", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("ReactiveLimits", "SecondaryVoltageControl"));
-        assertEquals(List.of("ReactiveLimits", "SecondaryVoltageControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("ReactiveLimits", "SecondaryVoltageControl"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(ExplicitAcOuterLoopConfig.NAMES);
-        PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt));
         assertEquals("Multiple (2) outer loops with same type: ShuntVoltageControl", e.getMessage());
 
         parametersExt.setOuterLoopNames(List.of("ReactiveLimits", "Foo"));
-        e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt));
-        assertEquals("Unknown outer loop 'Foo'", e.getMessage());
+        e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt));
+        assertEquals("Unknown outer loop 'Foo' for AC load flow", e.getMessage());
 
-        assertEquals("Ordered explicit list of outer loop names, supported outer loops are IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl",
+        assertEquals("Ordered explicit list of outer loop names, supported outer loops are for AC : [IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl], and for DC : [IncrementalPhaseControl, AreaInterchangeControl]",
                      OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
+    }
+
+    @Test
+    void testExplicitOuterLoopsParameterDc() {
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setPhaseShifterRegulationOn(true);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setAreaInterchangeControl(true);
+
+        assertEquals(List.of("IncrementalPhaseControl", "AreaInterchangeControl"), OpenLoadFlowParameters.createDcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getName).toList());
+
+        parametersExt.setOuterLoopNames(List.of("IncrementalPhaseControl"));
+        assertEquals(List.of("IncrementalPhaseControl"), OpenLoadFlowParameters.createDcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getName).toList());
+
+        parametersExt.setOuterLoopNames(List.of("IncrementalPhaseControl", "DistributedSlack"));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createDcOuterLoops(parameters, parametersExt));
+        assertEquals("Unknown outer loop 'DistributedSlack' for DC load flow", e.getMessage());
     }
 
     @Test
@@ -430,17 +499,16 @@ class OpenLoadFlowParametersTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
 
-        assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("DistributedSlack", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setAreaInterchangeControl(true);
-        assertEquals(List.of("AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("DistributedSlack", "AreaInterchangeControl"));
-        assertEquals(List.of("AreaInterchangeControl"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
+        assertEquals(List.of("AreaInterchangeControl"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("DistributedSlack"));
-        assertEquals(List.of("DistributedSlack"), OpenLoadFlowParameters.createOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
-
+        assertEquals(List.of("DistributedSlack"), OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
     }
 
     @Test

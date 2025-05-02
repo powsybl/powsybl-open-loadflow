@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2018, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2018-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -25,16 +26,18 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportContains;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -485,7 +488,7 @@ class DcLoadFlowTest {
     }
 
     @Test
-    void outerLoopMaxTotalIterationTest() {
+    void outerLoopMaxTotalIterationTest() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
         parameters.setPhaseShifterRegulationOn(true);
         parametersExt.setAreaInterchangeControl(true);
@@ -493,16 +496,41 @@ class DcLoadFlowTest {
         // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.
         parametersExt.setAreaInterchangePMaxMismatch(1)
                 .setMaxOuterLoopIterations(1);
-        var result = loadFlowRunner.run(network, parameters);
+
+        ReportNode reportNodeWithLimit1 = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNodeWithLimit1);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Reached outer loop max iterations limit. Last outer loop name: DC Incremental phase control", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Reached outer loop max iterations limit. Last outer loop name: IncrementalPhaseControl", result.getComponentResults().get(0).getStatusText());
 
         parametersExt.setMaxOuterLoopIterations(3);
         result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
         assertEquals("Reached outer loop max iterations limit. Last outer loop name: AreaInterchangeControl", result.getComponentResults().get(0).getStatusText());
+
+        // Test the report
+        String expected = """
+                + test
+                   + Load flow on network 'phaseShifterTestCase'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 3 branches
+                            Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Slack bus active power (-0 MW) distributed in 0 distribution iteration(s)
+                         + Outer loop IncrementalPhaseControl
+                            Outer loop unsuccessful with status: UNSTABLE
+                         Maximum number of outerloop iterations reached: 1
+                         DC load flow completed (solverSuccess=true, outerloopStatus=UNSTABLE)
+                """;
+
+        assertReportEquals(new ByteArrayInputStream(expected.getBytes()), reportNodeWithLimit1);
     }
 
     @Test
@@ -531,13 +559,24 @@ class DcLoadFlowTest {
     }
 
     @Test
+    void testDcResidualMismatchRemaining() {
+        Network network = IeeeCdfNetworkFactory.create9();
+        network.getGenerator("B1-G").setTargetP(67.99); // Setting target P to have an initially almost balanced network
+        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
+        System.out.println(network.getGenerator("B1-G").getId() + " has P = " + network.getGenerator("B1-G").getTargetP());
+        loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        // DC loadflow succeeds but the initial residual mismatch still remains
+        assertReportContains("Remaining residual slack bus active power mismatch after active power distribution, [-+]?0\\.\\d* MW remains", reportNode);
+    }
+
+    @Test
     void testDcSlackDistributionFailureBehavior() {
         Network network = IeeeCdfNetworkFactory.create57();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         Generator referenceGenerator = network.getGenerator("B1-G");
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
-        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         assertTrue(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
@@ -547,7 +586,7 @@ class DcLoadFlowTest {
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
-        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
@@ -563,7 +602,7 @@ class DcLoadFlowTest {
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
-        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
         assertEquals(321.9, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
