@@ -178,7 +178,6 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -219,7 +218,6 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-impl</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>

@@ -1956,6 +1956,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
                 .setSolverFactory(solverFactory, parameters)
+                .setVectorized(true)
                 .setVoltageRemoteControlRobustMode(parametersExt.isVoltageRemoteControlRobustMode())
                 .setMinRealisticVoltage(parametersExt.minRealisticVoltage)
                 .setMaxRealisticVoltage(parametersExt.maxRealisticVoltage);
