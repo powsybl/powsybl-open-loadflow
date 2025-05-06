@@ -26,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Locale;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,7 +58,6 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
 
     @BeforeEach
     void setUp() {
-        Locale.setDefault(Locale.US);
         network = Network.create("switch-pq-pv-test", "code");
         Substation s = network.newSubstation()
                 .setId("s")

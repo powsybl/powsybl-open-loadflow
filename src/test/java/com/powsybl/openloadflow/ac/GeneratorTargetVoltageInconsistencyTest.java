@@ -14,12 +14,10 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,11 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class GeneratorTargetVoltageInconsistencyTest {
-
-    @BeforeEach
-    void setup() {
-        Locale.setDefault(Locale.US);
-    }
 
     private Network createLocalInconsistentTargetVoltageNetwork() {
         Network network = Network.create("generatorLocalInconsistentTargetVoltage", "code");

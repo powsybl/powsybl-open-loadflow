@@ -59,7 +59,6 @@ class DistributedSlackOnGenerationTest {
 
     @BeforeEach
     void setUp() {
-        Locale.setDefault(Locale.US);
         network = DistributedSlackNetworkFactory.create();
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");

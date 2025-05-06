@@ -37,7 +37,6 @@ import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -56,11 +55,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTest {
-
-    @BeforeEach
-    void setup() {
-        Locale.setDefault(Locale.US);
-    }
 
     @Test
     void testDcEquationSystemUpdater() {

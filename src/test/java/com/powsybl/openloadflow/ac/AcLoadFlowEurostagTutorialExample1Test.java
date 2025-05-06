@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Locale;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -59,7 +58,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @BeforeEach
     void setUp() {
-        Locale.setDefault(Locale.US);
         network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         genBus = network.getBusBreakerView().getBus("NGEN");
         bus1 = network.getBusBreakerView().getBus("NHV1");

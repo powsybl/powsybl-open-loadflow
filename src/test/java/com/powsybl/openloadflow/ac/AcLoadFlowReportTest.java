@@ -27,11 +27,9 @@ import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Locale;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,11 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
 class AcLoadFlowReportTest {
-
-    @BeforeEach
-    void setup() {
-        Locale.setDefault(Locale.US);
-    }
 
     @Test
     void testEsgTutoDetailedNrLogsLf() throws IOException {

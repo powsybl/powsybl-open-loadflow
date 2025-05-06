@@ -35,7 +35,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -57,7 +56,6 @@ class DcLoadFlowTest {
 
     @BeforeEach
     void setUp() {
-        Locale.setDefault(Locale.US);
         parameters = new LoadFlowParameters()
                 .setDc(true);
         parametersExt = OpenLoadFlowParameters.create(parameters)

@@ -37,7 +37,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -68,7 +67,6 @@ class GeneratorRemoteControlPQSwitchTest {
      */
     @BeforeEach
     void setUp() {
-        Locale.setDefault(Locale.US);
         network = NetworkFactory.findDefault().createNetwork("test", "java");
 
         Substation s12 = network.newSubstation()

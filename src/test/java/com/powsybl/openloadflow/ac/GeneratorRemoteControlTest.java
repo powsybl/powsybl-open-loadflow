@@ -30,7 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Locale;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,7 +57,6 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @BeforeEach
     void setUp() {
-        Locale.setDefault(Locale.US);
         network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
         s = network.getSubstation("s");
         b1 = network.getBusBreakerView().getBus("b1");
