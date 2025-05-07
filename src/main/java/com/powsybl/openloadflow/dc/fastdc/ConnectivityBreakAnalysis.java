@@ -233,7 +233,7 @@ public final class ConnectivityBreakAnalysis {
         ConnectivityAnalysisResult connectivityAnalysisResult = null;
         connectivity.startTemporaryChanges();
         try {
-            // apply all modifications of connectivity, due to the lost or enabled/disabled branches
+            // apply all modifications of connectivity, due to the lost/enabled/disabled branches
             modifyingConnectivityCandidates.forEach(computedElement -> computedElement.applyToConnectivity(connectivity));
 
             // filter the branches that really impacts connectivity
