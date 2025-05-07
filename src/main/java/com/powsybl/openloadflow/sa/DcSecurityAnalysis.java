@@ -79,6 +79,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     }
 
     @Override
+    protected void updateContext(DcLoadFlowResult result, DcLoadFlowContext context) {
+        // Nothing to do
+    }
+
     protected Consumer<DcLoadFlowParameters> createParametersResetter(DcLoadFlowParameters parameters) {
         boolean oldDistributedSlack = parameters.isDistributedSlack();
         LoadFlowParameters.BalanceType oldBalanceType = parameters.getBalanceType();

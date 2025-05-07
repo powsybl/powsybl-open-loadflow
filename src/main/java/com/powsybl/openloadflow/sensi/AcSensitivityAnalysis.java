@@ -111,7 +111,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
         }
 
-        if (!runLoadFlow(context, false)) {
+        if (!runLoadFlow(context, false, false)) {
             // write contingency status
             resultWriter.writeContingencyStatus(contingencyIndex, SensitivityAnalysisResult.Status.FAILURE);
             return;
@@ -146,10 +146,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
     }
 
-    private static boolean runLoadFlow(AcLoadFlowContext context, boolean isRunningBaseSituation) {
+    private static boolean runLoadFlow(AcLoadFlowContext context, boolean isRunningBaseSituation, boolean updateContext) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
         if (result.isSuccess() || result.getSolverStatus() == AcSolverStatus.NO_CALCULATION) {
+            if (updateContext) {
+                context.setOuterLoopInitData(result.getOuterLoopInitData());
+            }
             return true;
         } else {
             if (isRunningBaseSituation) {
@@ -255,7 +258,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
-                runLoadFlow(context, true);
+                runLoadFlow(context, true, true);
 
                 // index factors by variable group to compute a minimal number of states
                 SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
