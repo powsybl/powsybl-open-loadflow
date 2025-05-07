@@ -119,6 +119,19 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         return createBranchFlowPerLinearGlsk(functionId, variableId, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId), side);
     }
 
+    protected static SensitivityFactor createBranchReactivePowerPerTargetV(String functionId, String variableId, String contingencyId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_REACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_REACTIVE_POWER_2;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.BUS_TARGET_VOLTAGE, variableId, false, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
+    }
+
+    protected static SensitivityFactor createBranchReactivePowerPerTargetV(String functionId, String variableId, TwoSides side) {
+        return createBranchReactivePowerPerTargetV(functionId, variableId, null, side);
+    }
+
+    protected static SensitivityFactor createBranchReactivePowerPerTargetV(String functionId, String variableId) {
+        return createBranchReactivePowerPerTargetV(functionId, variableId, TwoSides.ONE);
+    }
+
     protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, ContingencyContext contingencyContext) {
         return createBranchFlowPerLinearGlsk(functionId, variableId, contingencyContext, TwoSides.ONE);
     }
