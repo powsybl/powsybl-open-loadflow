@@ -309,7 +309,7 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode reportPvPqSwitchLimit(ReportNode firstRootReportNode, LfBus controllerBus, int limit, boolean log, Logger logger) {
+    public static ReportNode createRootReportPvPqSwitchLimit(ReportNode firstRootReportNode, LfBus controllerBus, int limit, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -324,7 +324,7 @@ public final class Reports {
         return result;
     }
 
-    public static ReportNode reportPqToPvBusMaxLimit(ReportNode firstRootReportNode, LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
+    public static ReportNode createRootReportPqToPvBusMaxLimit(ReportNode firstRootReportNode, LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -342,7 +342,7 @@ public final class Reports {
         return result;
     }
 
-    public static ReportNode reportPqToPvBusMinLimit(ReportNode firstRootReportNode, LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
+    public static ReportNode createRootReportPqToPvBusMinLimit(ReportNode firstRootReportNode, LfBus controllerBus, LfBus controlledBus, double targetV, boolean log, Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -384,12 +384,12 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode reportReactiveControllerBusesToPqMaxQ(ReportNode firstRootReportNode,
-                                                                   LfBus controllerBus,
-                                                                   double busQ,
-                                                                   double maxQ,
-                                                                   boolean log,
-                                                                   Logger logger) {
+    public static ReportNode createRootReportReactiveControllerBusesToPqMaxQ(ReportNode firstRootReportNode,
+                                                                             LfBus controllerBus,
+                                                                             double busQ,
+                                                                             double maxQ,
+                                                                             boolean log,
+                                                                             Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -405,12 +405,12 @@ public final class Reports {
         return result;
     }
 
-    public static ReportNode reportReactiveControllerBusesToPqMinQ(ReportNode firstRootReportNode,
-                                                                   LfBus controllerBus,
-                                                                   double busQ,
-                                                                   double minQ,
-                                                                   boolean log,
-                                                                   Logger logger) {
+    public static ReportNode createRootReportReactiveControllerBusesToPqMinQ(ReportNode firstRootReportNode,
+                                                                             LfBus controllerBus,
+                                                                             double busQ,
+                                                                             double minQ,
+                                                                             boolean log,
+                                                                             Logger logger) {
         ReportNode result = ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -895,7 +895,7 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createThreadRootReport(ReportNode firstRootReport) {
+    public static ReportNode createRootThreadReport(ReportNode firstRootReport) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReport.getTreeContext().getLocale())
                 .withAllResourceBundlesFromClasspath()
