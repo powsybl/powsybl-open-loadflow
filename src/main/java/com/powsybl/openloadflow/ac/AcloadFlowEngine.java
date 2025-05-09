@@ -112,7 +112,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
             // This is time to check the unrealistic state and create a report if needed
             boolean isStateUnrealistic = isStateUnrealistic(context.getNetwork().getReportNode(),
-                    outerLoopContext.getLoadFlowContext().getParameters().getMinNominalVoltageUnrealisticStateCheck());
+                    outerLoopContext.getLoadFlowContext().getParameters().getMinNominalVoltageRealisticVoltageCheck());
 
             if (isStateUnrealistic) {
                 runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE,
@@ -126,7 +126,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
     }
 
-    private boolean isStateUnrealistic(ReportNode reportNode, double minNominalVoltageUnrealisticStateCheck) {
+    private boolean isStateUnrealistic(ReportNode reportNode, double minNominalVoltageRealisticVoltageCheck) {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = context.getEquationSystem();
         AcLoadFlowParameters parameters = context.getParameters();
@@ -137,7 +137,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 double value = equationSystem.getStateVector().get(v.getRow());
                 if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
                     // only consider unrealistic if nominal voltage high enough
-                    if (network.getBus(v.getElementNum()).getNominalV() >= minNominalVoltageUnrealisticStateCheck) {
+                    if (network.getBus(v.getElementNum()).getNominalV() >= minNominalVoltageRealisticVoltageCheck) {
                         busesOutOfNormalVoltageRange.put(network.getBus(v.getElementNum()).getId(), value);
                     }
                 }
@@ -161,7 +161,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                              ReportNode reportNode, boolean checkUnrealistic, AcLoadFlowParameters parameters) {
         AcSolverResult result = solver.run(voltageInitializer, reportNode);
 
-        if (checkUnrealistic && result.getStatus() == AcSolverStatus.CONVERGED && isStateUnrealistic(reportNode, parameters.getMinNominalVoltageUnrealisticStateCheck())) {
+        if (checkUnrealistic && result.getStatus() == AcSolverStatus.CONVERGED && isStateUnrealistic(reportNode, parameters.getMinNominalVoltageRealisticVoltageCheck())) {
             result = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE, result.getIterations(), result.getSlackBusActivePowerMismatch());
         }
 
