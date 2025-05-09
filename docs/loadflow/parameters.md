@@ -326,14 +326,16 @@ The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 This parameter defines the minimal nominal voltage, in kV, for which a bus oustide of **minRealisticVoltage**
 and **maxRealisticVoltage** will stop the simulation.
 
-Unrealistic voltage, especially in high voltage substations, may trigger automates or other dangerous phenomenons,
-with a potentially large impact to the system, that a static simulator may not take correctly into account. In this case, 
-the result of the simulation should not be used without special caution.
+Unrealistic voltages -particularly in high-voltage substations- can trigger automated protections or other 
+hazardous phenomena, potentially causing significant impacts to the system. Steady-state simulation may not 
+accurately account for these effects. Therefore, results obtained under such conditions should be interpreted 
+with caution.
 
-The default value is '0' for compatibility reasons.
+A configuration that offers both reliable simulation results and resilience to local observability issues could, 
+for example, use 0.8 and 1.2 p.u. for **minRealisticVoltage** and **maxRealisticVoltage**, respectively, 
+and 100 kV for **minNominalVoltageRealisticVoltageCheck**.
 
-An example of configuration that provides good level of simulation trust as well as resilience to local observability issues 
-would be 0.8 and 1.2 for **minRealisticVoltage** and **maxRealisticVoltage** and 100 for **minNominalVoltageRealisticVoltageCheck**
+The default value is 0 kV.
 
 **reactiveRangeCheckMode**  
 Open Load Flow discards voltage control for generators with a too small reactive power range, because in practice a too
