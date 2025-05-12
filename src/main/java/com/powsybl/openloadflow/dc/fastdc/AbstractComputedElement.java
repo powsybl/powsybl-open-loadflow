@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -76,18 +77,12 @@ public abstract class AbstractComputedElement {
      * Those affecting the same branch share the same +1-1 rhs column.
      */
     public static void setComputedElementIndexes(Collection<? extends AbstractComputedElement> elements) {
-        int index = 0;
+        AtomicInteger index = new AtomicInteger(0);
         Map<LfBranch, Integer> branchesToRhsIndex = new HashMap<>();
         for (AbstractComputedElement element : elements) {
             LfBranch elementLfBranch = element.getLfBranch();
-            Integer elementIndex = branchesToRhsIndex.get(elementLfBranch);
-
-            if (elementIndex == null) {
-                branchesToRhsIndex.put(elementLfBranch, index);
-                element.setComputedElementIndex(index++);
-            } else {
-                element.setComputedElementIndex(elementIndex);
-            }
+            Integer elementIndex = branchesToRhsIndex.computeIfAbsent(elementLfBranch, lfBranch -> index.getAndIncrement());
+            element.setComputedElementIndex(elementIndex);
         }
     }
 
