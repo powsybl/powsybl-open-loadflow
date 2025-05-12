@@ -787,7 +787,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
                 }
-                return Pair.of(switchFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
+                return Pair.of(updateFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
             }
         }
         return Pair.of(functionType, functionId); // Returning input as it is
@@ -1170,7 +1170,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_3;
     }
 
-    private static SensitivityFunctionType switchFunctionTypeSide(SensitivityFunctionType functionType, TwoSides side) {
+    private static SensitivityFunctionType updateFunctionTypeSide(SensitivityFunctionType functionType, TwoSides side) {
         if (side != null) {
             if (isActivePowerFunctionType(functionType)) {
                 return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
