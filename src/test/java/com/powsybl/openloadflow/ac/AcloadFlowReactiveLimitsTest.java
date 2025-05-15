@@ -13,14 +13,18 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +45,7 @@ class AcloadFlowReactiveLimitsTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     private void createNetwork() {
         network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
@@ -104,6 +109,7 @@ class AcloadFlowReactiveLimitsTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false);
+        parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
     @Test
@@ -172,5 +178,29 @@ class AcloadFlowReactiveLimitsTest {
         assertReactivePowerEquals(-109.228, gen.getTerminal());
         assertReactivePowerEquals(-152.265, gen2.getTerminal());
         assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testReactiveLimitsExtrapolation(boolean extrapolate) {
+        parametersExt.setExtrapolateReactiveLimits(extrapolate);
+
+        gen2.newReactiveCapabilityCurve() // gen2.targetP = 100 => when extrapolated, minQ = -200 and maxQ = 100
+                .beginPoint().setP(200).setMinQ(-300).setMaxQ(150).endPoint()
+                .beginPoint().setP(300).setMinQ(-400).setMaxQ(200).endPoint()
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-100.0, gen2.getTerminal());
+        assertReactivePowerEquals(extrapolate ? -100.0 : -150, gen2.getTerminal()); // reaching gen2 maxQ
+
+        gen2.newReactiveCapabilityCurve() // gen2.targetP = 100 => when extrapolated, minQ = 200 and maxQ = 600
+                .beginPoint().setP(200).setMinQ(300).setMaxQ(700).endPoint()
+                .beginPoint().setP(300).setMinQ(400).setMaxQ(800).endPoint()
+                .add();
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-100.0, gen2.getTerminal());
+        assertReactivePowerEquals(extrapolate ? -200.0 : -300, gen2.getTerminal()); // reaching gen2 minQ
     }
 }

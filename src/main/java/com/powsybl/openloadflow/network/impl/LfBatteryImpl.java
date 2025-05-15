@@ -38,7 +38,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     private final double minTargetP;
 
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, battery.getTargetP() / PerUnit.SB);
+        super(network, battery.getTargetP() / PerUnit.SB, parameters);
         this.batteryRef = Ref.create(battery, parameters.isCacheEnabled());
         var apcHelper = ActivePowerControlHelper.create(battery, battery.getMinP(), battery.getMaxP());
         initialParticipating = apcHelper.participating();
