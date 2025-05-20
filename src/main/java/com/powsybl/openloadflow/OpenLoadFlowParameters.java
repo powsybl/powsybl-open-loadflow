@@ -206,6 +206,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_REALISTIC_VOLTAGE_PARAM_NAME = "maxRealisticVoltage";
 
+    public static final String MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME = "minNominalVoltageRealisticVoltageCheck";
+
     public static final String MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME = "minNominalVoltageTargetVoltageCheck";
 
     public static final String REACTIVE_RANGE_CHECK_MODE_PARAM_NAME = "reactiveRangeCheckMode";
@@ -390,6 +392,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage realistic voltage check", AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Low impedance threshold in per unit", LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN, "Network cache enabled", LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
@@ -538,6 +541,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double minRealisticVoltage = AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    private double minNominalVoltageRealisticVoltageCheck = AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK;
 
     private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
@@ -959,6 +964,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         this.maxRealisticVoltage = checkParameterValue(maxRealisticVoltage,
                 maxRealisticVoltage >= 0,
                 MAX_REALISTIC_VOLTAGE_PARAM_NAME);
+        return this;
+    }
+
+    public double getMinNominalVoltageRealisticVoltageCheck() {
+        return minNominalVoltageRealisticVoltageCheck;
+    }
+
+    public OpenLoadFlowParameters setMinNominalVoltageRealisticVoltageCheck(double minNominalVoltageRealisticVoltageCheck) {
+        this.minNominalVoltageRealisticVoltageCheck = minNominalVoltageRealisticVoltageCheck;
         return this;
     }
 
@@ -1455,6 +1469,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxPlausibleTargetVoltage);
                     config.getOptionalDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMinRealisticVoltage);
                     config.getOptionalDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxRealisticVoltage);
+                    config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageRealisticVoltageCheck);
                     config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class)
                             .ifPresent(this::setReactiveRangeCheckMode);
                     config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
@@ -1580,6 +1595,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME))
+                .ifPresent(prop -> this.setMinNominalVoltageRealisticVoltageCheck(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
         Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME))
@@ -1710,6 +1727,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, maxPlausibleTargetVoltage);
         map.put(MIN_REALISTIC_VOLTAGE_PARAM_NAME, minRealisticVoltage);
         map.put(MAX_REALISTIC_VOLTAGE_PARAM_NAME, maxRealisticVoltage);
+        map.put(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME, minNominalVoltageRealisticVoltageCheck);
         map.put(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, reactiveRangeCheckMode);
         map.put(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, lowImpedanceThreshold);
         map.put(NETWORK_CACHE_ENABLED_PARAM_NAME, networkCacheEnabled);
@@ -1977,7 +1995,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSolverFactory(solverFactory, parameters)
                 .setVoltageRemoteControlRobustMode(parametersExt.isVoltageRemoteControlRobustMode())
                 .setMinRealisticVoltage(parametersExt.minRealisticVoltage)
-                .setMaxRealisticVoltage(parametersExt.maxRealisticVoltage);
+                .setMaxRealisticVoltage(parametersExt.maxRealisticVoltage)
+                .setMinNominalVoltageRealisticVoltageCheck(parametersExt.getMinNominalVoltageRealisticVoltageCheck());
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2158,6 +2177,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isVoltageRemoteControlRobustMode() == extension2.isVoltageRemoteControlRobustMode() &&
                 extension1.isForceTargetQInReactiveLimits() == extension2.isForceTargetQInReactiveLimits() &&
                 extension1.isDisableInconsistentVoltageControls() == extension2.isDisableInconsistentVoltageControls() &&
+                extension1.getMinNominalVoltageRealisticVoltageCheck() == extension2.getMinNominalVoltageRealisticVoltageCheck() &&
                 extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits();
     }
 
@@ -2205,6 +2225,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxPlausibleTargetVoltage(extension.getMaxPlausibleTargetVoltage())
                     .setMinRealisticVoltage(extension.getMinRealisticVoltage())
                     .setMaxRealisticVoltage(extension.getMaxRealisticVoltage())
+                    .setMinNominalVoltageRealisticVoltageCheck(extension.getMinNominalVoltageRealisticVoltageCheck())
                     .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
                     .setLowImpedanceThreshold(extension.getLowImpedanceThreshold())
                     .setNetworkCacheEnabled(extension.isNetworkCacheEnabled())
