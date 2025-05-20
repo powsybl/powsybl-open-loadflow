@@ -170,6 +170,31 @@ public class WoodburyEngine {
     }
 
     /**
+     * Returns a value on the diagonal of the alpha matrix linked to the switch in impedance caused by an action
+     */
+    private double computeDeltaXForDiagonalValues(LfBranch lfBranch, AbstractComputedElement element) {
+        double oldPower = 0;
+        double newPower = 0;
+        // if tap position change, the power transiting on the branch might have changed
+        if (element instanceof ComputedTapPositionChangeElement tapChangeElement) {
+            TapPositionChange tapPositionChange = tapChangeElement.getTapPositionChange();
+            newPower = calculatePower(tapPositionChange.getNewPiModel());
+            oldPower = calculatePower(lfBranch);
+        } else if (element instanceof ComputedSwitchBranchElement switchElement) {
+            // if enabled, power is now transiting on the branch
+            if (switchElement.isEnabled()) {
+                newPower = calculatePower(lfBranch);
+                // if disabled, no power is transiting on the branch anymore
+            } else {
+                oldPower = calculatePower(lfBranch);
+            }
+        } else {
+            throw new IllegalStateException("Unexpected computed element type");
+        }
+        return 1d / (oldPower - newPower);
+    }
+
+    /**
      * Returns the value of the matrix associated with the linear system to be solved in order to compute the flow transfer factors.
      */
     private double getAlphaMatrixValue(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm p1, AbstractComputedElement element, boolean onDiagonal) {
@@ -178,28 +203,7 @@ public class WoodburyEngine {
             return deltaX - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - contingenciesStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
         } else {
-            double deltaX = 0;
-            if (onDiagonal) {
-                double oldPower = 0;
-                double newPower = 0;
-                // if tap position change, the power transiting on the branch might have changed
-                if (element instanceof ComputedTapPositionChangeElement tapChangeElement) {
-                    TapPositionChange tapPositionChange = tapChangeElement.getTapPositionChange();
-                    newPower = calculatePower(tapPositionChange.getNewPiModel());
-                    oldPower = calculatePower(lfBranch);
-                } else if (element instanceof ComputedSwitchBranchElement switchElement) {
-                    // if enabled, power is now transiting on the branch
-                    if (switchElement.isEnabled()) {
-                        newPower = calculatePower(lfBranch);
-                    // if disabled, no power is transiting on the branch anymore
-                    } else {
-                        oldPower = calculatePower(lfBranch);
-                    }
-                } else {
-                    throw new IllegalStateException("Unexpected computed element type");
-                }
-                deltaX = 1d / (oldPower - newPower);
-            }
+            double deltaX = onDiagonal ? computeDeltaXForDiagonalValues(lfBranch, element) : 0;
             return deltaX - (actionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
                     - actionsStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
         }

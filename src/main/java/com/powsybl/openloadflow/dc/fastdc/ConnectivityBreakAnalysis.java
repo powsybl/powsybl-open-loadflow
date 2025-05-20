@@ -122,20 +122,21 @@ public final class ConnectivityBreakAnalysis {
                                                    List<ConnectivityAnalysisResult> connectivityAnalysisResults,
                                                    DenseMatrix contingenciesStates,
                                                    Map<String, ComputedContingencyElement> contingencyElementByBranch) {
-
     }
 
     private ConnectivityBreakAnalysis() {
-
     }
 
-    private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
+    private record States(DenseMatrix contingencyStates, DenseMatrix actionStates) {
+    }
+
+    private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix contingencyStates, List<PropagatedContingency> contingencies,
                                                          Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                          EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                          List<PropagatedContingency> nonBreakingConnectivityContingencies,
                                                          List<PropagatedContingency> potentiallyBreakingConnectivityContingencies) {
         for (PropagatedContingency contingency : contingencies) {
-            if (isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, states, contingency, contingencyElementByBranch, DenseMatrix.EMPTY,
+            if (isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, new States(contingencyStates, DenseMatrix.EMPTY), contingency, contingencyElementByBranch,
                     Collections.emptyList(), Collections.emptyMap(), equationSystem)) { // connectivity broken
                 potentiallyBreakingConnectivityContingencies.add(contingency);
             } else {
@@ -148,8 +149,8 @@ public final class ConnectivityBreakAnalysis {
      * Returns true if the given contingency and operator strategy actions potentially break connectivity.
      * This is determined with a "worst case" sensitivity-criterion. If the criterion is not verified, there is no connectivity break.
      */
-    private static boolean isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(LfNetwork lfNetwork, DenseMatrix contingencyStates, PropagatedContingency contingency,
-                                                                                             Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix actionStates, List<LfAction> operatorStrategyLfActions,
+    private static boolean isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(LfNetwork lfNetwork, States states, PropagatedContingency contingency,
+                                                                                             Map<String, ComputedContingencyElement> contingencyElementByBranch, List<LfAction> operatorStrategyLfActions,
                                                                                              Map<LfAction, AbstractComputedElement> actionElementByBranch, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .map(contingencyElementByBranch::get)
@@ -162,7 +163,7 @@ public final class ConnectivityBreakAnalysis {
                 .map(actionElementByBranch::get)
                 .filter(actionElement -> actionElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && !computedSwitchBranchElement.isEnabled())
                 .collect(Collectors.toList());
-        return isGroupOfElementsBreakingConnectivity(lfNetwork, contingencyStates, contingencyElements, actionStates, actionElements, equationSystem);
+        return isGroupOfElementsBreakingConnectivity(lfNetwork, states.contingencyStates(), contingencyElements, states.actionStates(), actionElements, equationSystem);
     }
 
     private static boolean isGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
@@ -364,8 +365,8 @@ public final class ConnectivityBreakAnalysis {
         PropagatedContingency contingency = postContingencyConnectivityAnalysisResult.getPropagatedContingency();
 
         // verify if the connectivity is potentially modified, and returns post contingency connectivity result if this is not the case
-        boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, contingenciesStates, contingency, contingencyElementByBranch,
-                actionsStates, lfActions, actionElementsIndexByLfAction, loadFlowContext.getEquationSystem());
+        boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, new States(contingenciesStates, actionsStates), contingency,
+                contingencyElementByBranch, lfActions, actionElementsIndexByLfAction, loadFlowContext.getEquationSystem());
         if (!isConnectivityPotentiallyModified) {
             return postContingencyConnectivityAnalysisResult.withLfActions(lfActions);
         }
