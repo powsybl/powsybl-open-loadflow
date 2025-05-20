@@ -246,6 +246,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         Arrays.fill(values, firstColumn, firstColumn + length, 0);
         for (EquationTermArray<V, E> termArray : termArrays) {
             double[] termValues = termArray.eval();
+
+            var termNums = termArray.getTermNumsConcatenated();
+            double[] values0 = new double[termNums.size()];
+            for (int i = 0; i < termNums.size(); i++) {
+                int termNum = termNums.getQuick(i);
+                // skip inactive terms
+                if (termArray.isTermActive(termNum)) {
+                    int termElementNum = termArray.getTermElementNum(termNum);
+                    values0[i] = termValues[termElementNum];
+                }
+            }
+
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
                 // skip inactive equations
                 if (!elementActive[elementNum]) {
@@ -253,14 +265,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
                 int column = getElementNumToColumn(elementNum);
                 var indices = termArray.getTermNumsConcatenatedIndices(elementNum);
-                var termNums = termArray.getTermNumsConcatenated();
                 for (int i = indices.iStart(); i < indices.iEnd(); i++) {
-                    int termNum = termNums.getQuick(i);
-                    // skip inactive terms
-                    if (termArray.isTermActive(termNum)) {
-                        int termElementNum = termArray.getTermElementNum(termNum);
-                        values[column] += termValues[termElementNum];
-                    }
+                    values[column] += values0[i];
                 }
             }
         }
