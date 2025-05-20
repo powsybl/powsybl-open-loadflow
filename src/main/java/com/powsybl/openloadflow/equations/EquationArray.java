@@ -211,8 +211,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             public <T extends EquationTerm<V, E>> List<T> getTerms() {
                 List<T> terms = new ArrayList<>();
                 for (EquationTermArray<V, E> termArray : termArrays) {
-                    TIntArrayList termNums = termArray.getTermNumsForEquationElementNum(elementNum);
-                    for (int i = 0; i < termNums.size(); i++) {
+                    var indices = termArray.getTermNumsConcatenatedIndices(elementNum);
+                    var termNums = termArray.getTermNumsConcatenated();
+                    for (int i = indices.iStart(); i < indices.iEnd(); i++) {
                         int termNum = termNums.getQuick(i);
                         int termElementNum = termArray.getTermElementNum(termNum);
                         terms.add((T) new EquationTermArray.EquationTermArrayElementImpl<>(termArray, termElementNum));
@@ -225,9 +226,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             public double eval() {
                 double value = 0;
                 for (EquationTermArray<V, E> termArray : termArrays) {
-                    var termNums = termArray.getTermNumsForEquationElementNum(elementNum);
-                    for (int i = 0; i < termNums.size(); i++) {
-                        int termNum = termNums.get(i);
+                    var indices = termArray.getTermNumsConcatenatedIndices(elementNum);
+                    var termNums = termArray.getTermNumsConcatenated();
+                    for (int i = indices.iStart(); i < indices.iEnd(); i++) {
+                        int termNum = termNums.getQuick(i);
                         // skip inactive terms
                         if (termArray.isTermActive(termNum)) {
                             int termElementNum = termArray.getTermElementNum(termNum);
@@ -250,8 +252,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     continue;
                 }
                 int column = getElementNumToColumn(elementNum);
-                var termNums = termArray.getTermNumsForEquationElementNum(elementNum);
-                for (int i = 0; i < termNums.size(); i++) {
+                var indices = termArray.getTermNumsConcatenatedIndices(elementNum);
+                var termNums = termArray.getTermNumsConcatenated();
+                for (int i = indices.iStart(); i < indices.iEnd(); i++) {
                     int termNum = termNums.getQuick(i);
                     // skip inactive terms
                     if (termArray.isTermActive(termNum)) {
@@ -285,8 +288,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         List<EquationDerivativeElement<?>> terms = new ArrayList<>();
         for (int termArrayNum = 0; termArrayNum < termArrays.size(); termArrayNum++) {
             EquationTermArray<V, E> termArray = termArrays.get(termArrayNum);
-            var termNums = termArray.getTermNumsForEquationElementNum(elementNum);
-            for (int i = 0; i < termNums.size(); i++) {
+            var indices = termArray.getTermNumsConcatenatedIndices(elementNum);
+            var termNums = termArray.getTermNumsConcatenated();
+            for (int i = indices.iStart(); i < indices.iEnd(); i++) {
                 int termNum = termNums.getQuick(i);
                 // for each term of each, add an entry for each derivative operation we need
                 var termDerivatives = termArray.getTermDerivatives(termNum);
