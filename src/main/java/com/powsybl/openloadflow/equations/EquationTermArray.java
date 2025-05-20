@@ -11,6 +11,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
 import gnu.trove.impl.Constants;
+import gnu.trove.list.array.TByteArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
@@ -74,7 +75,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final TIntArrayList termElementNums = new TIntArrayList();
 
     // for each term number, activity status
-    private final TIntArrayList termActive = new TIntArrayList();
+    private final TByteArrayList termActive = new TByteArrayList();
 
     // for each term number, list of derivative variables
     private final List<List<Derivative<V>>> termDerivatives = new ArrayList<>();
@@ -135,7 +136,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
         equationElementNums.add(equationElementNum);
         termElementNums.add(termElementNum);
-        termActive.add(evaluator.isDisabled(termElementNum) ? 0 : 1);
+        termActive.add((byte) (evaluator.isDisabled(termElementNum) ? 0 : 1));
         termDerivatives.add(evaluator.getDerivatives(termElementNum));
         equationArray.invalidateEquationDerivativeVectors();
         equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, EquationTermEventType.EQUATION_TERM_ADDED);
@@ -173,7 +174,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
         boolean oldActive = termActive.getQuick(termNum) == 1;
         if (active != oldActive) {
-            termActive.setQuick(termNum, active ? 1 : 0);
+            termActive.setQuick(termNum, (byte) (active ? 1 : 0));
             equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
