@@ -57,9 +57,12 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected boolean reference;
 
-    protected AbstractLfGenerator(LfNetwork network, double targetP) {
+    private final boolean extrapolateReactiveLimits;
+
+    protected AbstractLfGenerator(LfNetwork network, double targetP, LfNetworkParameters parameters) {
         super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
+        this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
     }
 
     protected record ActivePowerControlHelper(boolean participating, double participationFactor, double droop, double minTargetP, double maxTargetP) {
@@ -152,16 +155,28 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     @Override
     public double getMinQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(-Double.MAX_VALUE);
+        if (getReactiveLimits().isEmpty()) {
+            return -Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else {
+            return reactiveLimits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB;
+        }
     }
 
     @Override
     public double getMaxQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(Double.MAX_VALUE);
+        if (getReactiveLimits().isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else {
+            return reactiveLimits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB;
+        }
     }
 
     @Override
