@@ -70,6 +70,8 @@ public class LfNetworkParameters {
 
     public static final boolean DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE = false;
 
+    public static final boolean EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -153,6 +155,8 @@ public class LfNetworkParameters {
     private boolean forceTargetQInReactiveLimits = OpenLoadFlowParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     private boolean disableInconsistentVoltageControls = DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
+
+    private boolean extrapolateReactiveLimits = EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -622,6 +626,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isExtrapolateReactiveLimits() {
+        return extrapolateReactiveLimits;
+    }
+
+    public LfNetworkParameters setExtrapolateReactiveLimits(boolean extrapolateReactiveLimits) {
+        this.extrapolateReactiveLimits = extrapolateReactiveLimits;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -665,6 +678,7 @@ public class LfNetworkParameters {
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
                 ", forceTargetQInReactiveLimits=" + forceTargetQInReactiveLimits +
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
+                ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ')';
     }
 }

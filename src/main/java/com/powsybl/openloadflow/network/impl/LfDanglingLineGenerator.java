@@ -27,7 +27,7 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
                                     LfNetworkLoadingReport report) {
-        super(network, danglingLine.getGeneration().getTargetP() / PerUnit.SB);
+        super(network, danglingLine.getGeneration().getTargetP() / PerUnit.SB, parameters);
         this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
 
         // local control only

@@ -192,6 +192,15 @@ When `useReactiveLimits` is set to `true`, this parameter is used to prioritize 
 outside these limits. If set to `true`, if any generator has a target Q which is outside its reactive power limits (for its given target P), then its target Q 
 is overriden by the value of the exceeded limit (minQ or maxQ). The default value is `false`.
 
+**extrapolateReactiveLimits**  
+When `useReactiveLimits` is set to `true`, this parameter is used for equipment with reactive limits defined by reactive capability curves. If the target P value is outside the reactive
+capability curve limits (if it is below lowest P value or above highest P value), the behavior depends on the parameter `extrapolateReactiveLimit` :
+- If set to `false`: reactive limits at the given target P are defined by the min Q and max Q at the limit of active power of the capability curve.
+- If set to `true`: reactive limits at the given target P are defined by the extrapolation of the reactive limits slope of the reactive capability curve 
+(e.g. if the reactive limits decrease when active power decreases, the reactive limits will continue decreasing at the same rate below the minimal active power of the reactive capability curve)
+
+The default value is `false`.
+
 **phaseShifterControlMode**  
 - `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
@@ -311,8 +320,9 @@ The default values are `0.8` and `1.2` and they must be greater or equal to `0`.
 **minRealisticVoltage** and **maxRealisticVoltage**  
 These parameters are used to identify if the AC Solver has converged to an unrealistic state.
 
-For any component where a bus voltage is solved outside these per-unit
-thresholds, the component solution is deemed unrealistic and its solution status is flagged as failed.
+If there is any bus in a voltage level, in pu, higher than 'minNominalVoltageRealisticVoltageCheck', with 
+a computed voltage outside these per-unit thresholds, the component solution is deemed unrealistic and 
+its solution status is flagged as failed.
 
 If `voltageRemoteControlRobustMode` is set to true, the check of unrealistic voltage is done after the 
 ReactiveLimits outerloop has been used. In addition, the ReactiveLimits outerloop uses these values as a 
@@ -320,6 +330,21 @@ criteria to block PQ remote controler buses that have an unrealistic voltage and
 their reactive diagram.
 
 The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
+
+**minNominalVoltageRealisticVoltageCheck**
+This parameter defines the minimal nominal voltage, in kV, for which a bus oustide of **minRealisticVoltage**
+and **maxRealisticVoltage** will stop the simulation.
+
+Unrealistic voltages -particularly in high-voltage substations- can trigger automated protections or other 
+hazardous phenomena, potentially causing significant impacts to the system. Steady-state simulation may not 
+accurately account for these effects. Therefore, results obtained under such conditions should be interpreted 
+with caution.
+
+A configuration that offers both reliable simulation results and resilience to local observability issues could, 
+for example, use 0.8 and 1.2 p.u. for **minRealisticVoltage** and **maxRealisticVoltage**, respectively, 
+and 100 kV for **minNominalVoltageRealisticVoltageCheck**.
+
+The default value is 0 kV.
 
 **reactiveRangeCheckMode**  
 Open Load Flow discards voltage control for generators with a too small reactive power range, because in practice a too
@@ -387,9 +412,11 @@ Allows to ignore active power limits during calculations. Active power limits ar
 Disables voltage control for generators with `targetP` outside the interval [`minP`, `maxP`]. The default value is `false`.
 
 **minNominalVoltageTargetVoltageCheck**  
-This parameter defines the minimal nominal voltage to check the target of voltage control in per-unit.
-The default value is `20 kV`, meaning that under the controlled buses of voltage levels under this value are ignored from the check.
-It must be greater or equal to `0 kV`.
+This parameter defines the minimal nominal voltage, in kV, for which the plausible voltage target checks are applied.
+ 
+Above this voltage level, voltage targets that are, in pu, outside 'minPlausibleTargetVoltage' - 'maxPlausibleTargetVoltage' are ignored.
+
+The default value is `20 kV`. It must be greater or equal to `0 kV`.
 
 **reactivePowerDispatchMode**  
 This parameter defines how reactive power is split among generators with controls (voltage or reactive power).
