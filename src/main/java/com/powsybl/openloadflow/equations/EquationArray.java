@@ -310,12 +310,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
         updateEquationDerivativeVectors();
 
-        // compute all derivatives for each of the term array
-        double[][][] termDerValuesByArrayIndex = new double[termArrays.size()][][];
-        for (int i = 0; i < termArrays.size(); i++) {
-            termDerValuesByArrayIndex[i] = termArrays.get(i).evalDer();
-        }
-
         equationDerivativeVector.update(this);
 
         // calculate all derivative values
@@ -350,16 +344,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
                 prevRow = row;
 
-                // skip inactive terms and get term derivative value
-                if (equationDerivativeVector.termActives[i]) {
-                    // get term array to which this term belongs
-                    int termArrayNum = equationDerivativeVector.termArrayNums[i];
-                    // add value (!!! we can have multiple terms contributing to same matrix element)
-                    double[][] termDerValues = termDerValuesByArrayIndex[termArrayNum];
-                    int termElementNum = equationDerivativeVector.termElementNums[i];
-                    int localIndex = equationDerivativeVector.localIndexes[i];
-                    value += termDerValues[localIndex][termElementNum];
-                }
+                value += equationDerivativeVector.values[i];
             }
 
             // remaining notif
