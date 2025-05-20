@@ -13,14 +13,16 @@ class EquationDerivativeVector {
     // cache
     protected final boolean[] termActives;
     protected final int[] termElementNums;
-    protected final int[][] rows;
+    private final int[][] rowRefs;
+    protected final int[] rows;
     protected final int[] localIndexes;
 
     public EquationDerivativeVector(List<EquationDerivativeElement<?>> elements) {
         int size = elements.size();
         termArrayNums = new int[size];
         termNums = new int[size];
-        rows = new int[size][1];
+        rowRefs = new int[size][1];
+        rows = new int[size];
         termActives = new boolean[size];
         termElementNums = new int[size];
         localIndexes = new int[size];
@@ -30,7 +32,7 @@ class EquationDerivativeVector {
             termNums[i] = element.termNum;
             localIndexes[i] = element.derivative.getLocalIndex();
             Variable<?> variable = element.derivative.getVariable();
-            rows[i] = variable.getRowRef();
+            rowRefs[i] = variable.getRowRef();
         }
     }
 
@@ -42,9 +44,8 @@ class EquationDerivativeVector {
             termActives[i] = termArray.isTermActive(termNum);
             termElementNums[i] = termArray.getTermElementNum(termNum);
         }
-    }
-
-    public int getRow(int i) {
-        return rows[i][0];
+        for (int i = 0; i < termNums.length; i++) {
+            rows[i] = rowRefs[i][0];
+        }
     }
 }

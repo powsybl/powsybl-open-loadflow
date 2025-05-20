@@ -340,7 +340,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             for (int i = iStart; i < iEnd; i++) {
 
                 // the derivative variable row
-                int row = equationDerivativeVector.getRow(i);
+                int row = equationDerivativeVector.rows[i];
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (prevRow != -1 && row != prevRow) {
