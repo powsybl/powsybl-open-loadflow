@@ -20,7 +20,7 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
 
     private final V type;
 
-    private int[] row = new int[] {-1};
+    private final int[] row = new int[] {-1};
 
     Variable(int elementNum, V type) {
         this.elementNum = elementNum;
