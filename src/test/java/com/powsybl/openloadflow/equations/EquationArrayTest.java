@@ -101,6 +101,7 @@ class EquationArrayTest {
         }
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem2 = createEquationSystemUsingArrayEquations(lfNetwork);
+        equationSystem2.compress();
         double[] values2 = new double[lfNetwork.getBuses().size()];
         for (var equationArray : equationSystem2.getEquationArrays()) {
             equationArray.eval(values2);
