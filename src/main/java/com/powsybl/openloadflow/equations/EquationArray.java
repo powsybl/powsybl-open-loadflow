@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.Matrix;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
@@ -44,13 +45,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         private final TIntArrayList indexes = new TIntArrayList();
 
         private int get(int i) {
-            if (i >= indexes.size()) {
-                indexes.add(-1);
-            }
             return indexes.getQuick(i);
         }
 
         private void set(int i, int index) {
+            if (index >= indexes.size()) {
+                indexes.add(-1);
+            }
             indexes.setQuick(i, index);
         }
 
@@ -305,8 +306,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         matrixElementIndexes.reset();
     }
 
-    public void der(DerHandler<V> handler) {
-        Objects.requireNonNull(handler);
+    public void derInit(Matrix matrix) {
+        Objects.requireNonNull(matrix);
 
         updateEquationDerivativeVectors();
 
@@ -338,7 +339,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (prevRow != -1 && row != prevRow) {
-                    onDer(handler, column, prevRow, value, valueIndex);
+                    onDerInit(matrix, column, prevRow, value, valueIndex);
                     valueIndex++;
                     value = 0;
                 }
@@ -349,15 +350,68 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
             // remaining notif
             if (prevRow != -1) {
-                onDer(handler, column, prevRow, value, valueIndex);
+                onDerInit(matrix, column, prevRow, value, valueIndex);
                 valueIndex++;
             }
         }
     }
 
-    private void onDer(DerHandler<V> handler, int column, int row, double value, int valueIndex) {
-        int matrixElementIndex = handler.onDer(column, row, value, matrixElementIndexes.get(valueIndex));
+    public void derUpdate(Matrix matrix) {
+        Objects.requireNonNull(matrix);
+
+        updateEquationDerivativeVectors();
+
+        equationDerivativeVector.update(this);
+
+        // calculate all derivative values
+        // process column by column so equation by equation of the array
+        int valueIndex = 0;
+        for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+            // skip inactive elements
+            if (!elementActive[elementNum]) {
+                continue;
+            }
+
+            // for each equation of the array we already have the list of terms to derive and its variable sorted
+            // by variable row (required by solvers)
+
+            // process term by term
+            double value = 0;
+            int prevRow = -1;
+            var derivativeIndices = this.equationDerivativeVectorIndices[elementNum];
+            int iStart = derivativeIndices.iStart();
+            int iEnd = derivativeIndices.iEnd();
+            for (int i = iStart; i < iEnd; i++) {
+
+                // the derivative variable row
+                int row = equationDerivativeVector.rows[i];
+
+                // if an element at (row, column) is complete (we switch to another row), notify
+                if (prevRow != -1 && row != prevRow) {
+                    onDerUpdate(matrix, value, valueIndex);
+                    valueIndex++;
+                    value = 0;
+                }
+                prevRow = row;
+
+                value += equationDerivativeVector.values[i];
+            }
+
+            // remaining notif
+            if (prevRow != -1) {
+                onDerUpdate(matrix, value, valueIndex);
+                valueIndex++;
+            }
+        }
+    }
+
+    private void onDerInit(Matrix matrix, int column, int row, double value, int valueIndex) {
+        int matrixElementIndex = matrix.addAndGetIndex(row, column, value);
         matrixElementIndexes.set(valueIndex, matrixElementIndex);
+    }
+
+    private void onDerUpdate(Matrix matrix, double value, int valueIndex) {
+        matrix.addAtIndex(matrixElementIndexes.get(valueIndex), value);
     }
 
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {

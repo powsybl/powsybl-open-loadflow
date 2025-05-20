@@ -111,8 +111,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             });
         }
         for (var eq : equationSystem.getEquationArrays()) {
-            eq.der((column, row, value, matrixElementIndex)
-                    -> matrix.addAndGetIndex(row, column, value));
+            eq.derInit(matrix);
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -141,10 +140,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             });
         }
         for (var eq : equationSystem.getEquationArrays()) {
-            eq.der((column, row, value, matrixElementIndex) -> {
-                matrix.addAtIndex(matrixElementIndex, value);
-                return matrixElementIndex; // don't change element index
-            });
+            eq.derUpdate(matrix);
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
