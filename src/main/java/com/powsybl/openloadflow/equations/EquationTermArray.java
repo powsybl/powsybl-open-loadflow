@@ -28,6 +28,14 @@ import java.util.function.DoubleSupplier;
  */
 public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
+    public void compress() {
+        for (int i = 0; i < termNumsByEquationElementNum.length; i++) {
+            termNumsByEquationElementNum[i] = new TIntArrayList(termNumsByEquationElementNum[i]);
+        }
+
+        this.termNumByTermElementNum = new TIntIntHashMap(this.termNumByTermElementNum);
+    }
+
     public interface Evaluator<V extends Enum<V> & Quantity> {
 
         String getName();
@@ -57,7 +65,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private TIntArrayList[] termNumsByEquationElementNum;
 
     // for each term element number, corresponding term number
-    private final TIntIntMap termNumByTermElementNum = new TIntIntHashMap(3, Constants.DEFAULT_LOAD_FACTOR, -1, -1);
+    private TIntIntMap termNumByTermElementNum = new TIntIntHashMap(3, Constants.DEFAULT_LOAD_FACTOR, -1, -1);
 
     // for each term number, corresponding equation element number
     private final TIntArrayList equationElementNums = new TIntArrayList();

@@ -50,6 +50,7 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
             var creator = parameters.isAsymmetrical() ? new AsymmetricalAcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters())
                                                       : createAcEquationSystemCreator();
             equationSystem = creator.create();
+            equationSystem.compress();
         }
         return equationSystem;
     }
