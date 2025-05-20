@@ -37,7 +37,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
 
-    private EquationDerivativeVector<V>[] equationDerivativeVectors;
+    private EquationDerivativeVector[] equationDerivativeVectors;
 
     static class MatrixElementIndexes {
         private final TIntArrayList indexes = new TIntArrayList();
@@ -277,7 +277,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private void computeEquationDerivativeVector(int elementNum) {
         // vectorize terms to evaluate
-        List<EquationDerivativeElement<V>> terms = new ArrayList<>();
+        List<EquationDerivativeElement<?>> terms = new ArrayList<>();
         for (int termArrayNum = 0; termArrayNum < termArrays.size(); termArrayNum++) {
             EquationTermArray<V, E> termArray = termArrays.get(termArrayNum);
             var termNums = termArray.getTermNumsForEquationElementNum(elementNum);
@@ -292,7 +292,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
         // sortByVariableRowAndVectorizedLocalNum
         terms.sort(Comparator.comparingInt(o -> o.derivative.getVariable().getRow()));
-        equationDerivativeVectors[elementNum] = new EquationDerivativeVector<>(terms);
+        equationDerivativeVectors[elementNum] = new EquationDerivativeVector(terms);
     }
 
     void invalidateEquationDerivativeVectors() {
@@ -323,7 +323,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             int column = getElementNumToColumn(elementNum);
             // for each equation of the array we already have the list of terms to derive and its variable sorted
             // by variable row (required by solvers)
-            EquationDerivativeVector<V> equationDerivativeVector = equationDerivativeVectors[elementNum];
+            EquationDerivativeVector equationDerivativeVector = equationDerivativeVectors[elementNum];
             equationDerivativeVector.update(this);
 
             // process term by term

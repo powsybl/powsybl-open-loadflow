@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-class EquationDerivativeVector<V extends Enum<V> & Quantity> {
+class EquationDerivativeVector {
 
     protected final int[] termArrayNums;
     private final int[] termNums;
@@ -16,7 +16,7 @@ class EquationDerivativeVector<V extends Enum<V> & Quantity> {
     protected final int[][] rows;
     protected final int[] localIndexes;
 
-    public EquationDerivativeVector(List<EquationDerivativeElement<V>> elements) {
+    public EquationDerivativeVector(List<EquationDerivativeElement<?>> elements) {
         int size = elements.size();
         termArrayNums = new int[size];
         termNums = new int[size];
@@ -25,11 +25,11 @@ class EquationDerivativeVector<V extends Enum<V> & Quantity> {
         termElementNums = new int[size];
         localIndexes = new int[size];
         for (int i = 0; i < size; i++) {
-            EquationDerivativeElement<V> element = elements.get(i);
+            EquationDerivativeElement<?> element = elements.get(i);
             termArrayNums[i] = element.termArrayNum;
             termNums[i] = element.termNum;
             localIndexes[i] = element.derivative.getLocalIndex();
-            Variable<V> variable = element.derivative.getVariable();
+            Variable<?> variable = element.derivative.getVariable();
             rows[i] = variable.getRowRef();
         }
     }
