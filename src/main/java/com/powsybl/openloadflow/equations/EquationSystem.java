@@ -331,4 +331,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public String writeToString() {
         return writeToString(false);
     }
+
+    public void compress() {
+        this.equationArrays.values().stream().flatMap(ea -> ea.getTermArrays().stream()).forEach(EquationTermArray::compress);
+    }
 }
