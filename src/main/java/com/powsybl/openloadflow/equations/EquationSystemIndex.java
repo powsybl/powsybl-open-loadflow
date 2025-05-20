@@ -75,7 +75,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void updateVariablesToFind(Comparator<Variable<V>> comparator) {
         sortedVariablesToFind = comparator == null ? variablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList())
-                : variablesToFindRefCount.keySet().stream().sorted(comparator).collect(Collectors.toList())
+                : variablesToFindRefCount.keySet().stream().sorted(comparator).collect(Collectors.toList());
         AtomicInteger rowCount  = new AtomicInteger();
         for (Variable<V> variable : sortedVariablesToFind) {
             variable.setRow(rowCount.getAndAdd(1));
