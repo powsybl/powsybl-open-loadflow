@@ -95,8 +95,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void updateForFastDecoupled() {
-        // TODO HG
-        // Define comparators - outside of this method
+        // TODO HG: Should return the index limit between Phi and V parts
+        // TODO HG: Define comparators - outside of this method
         Comparator<Equation<V,E>> equationComparator = new Comparator<Equation<V, E>>() {
             @Override
             public int compare(Equation<V, E> o1, Equation<V, E> o2) {

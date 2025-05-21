@@ -80,6 +80,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateStatus(Status.VALUES_INVALID);
     }
 
+    // TODO HG: Extend this method to use a subset of sortedEquationsToSolve and sortedVariablesToFind
     private void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -116,6 +117,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         clearLu();
     }
 
+    // TODO HG: Extend this method to use a subset of sortedEquationsToSolve
     private void updateDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -203,6 +205,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         getLUDecomposition().solve(b);
     }
 
+    // TODO HG: Extend this solve method to accept a subset of the array
     public void solveTransposed(double[] b) {
         getLUDecomposition().solveTransposed(b);
     }
