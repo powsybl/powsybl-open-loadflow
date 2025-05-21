@@ -30,6 +30,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 2;
+    public static final double DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK = 0;
 
     private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
@@ -52,6 +53,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    private double minNominalVoltageRealisticVoltageCheck = DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK;
 
     private boolean vectorized = true;
 
@@ -150,6 +153,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public double getMinNominalVoltageRealisticVoltageCheck() {
+        return minNominalVoltageRealisticVoltageCheck;
+    }
+
+    public AcLoadFlowParameters setMinNominalVoltageRealisticVoltageCheck(double minNominalVoltageRealisticVoltageCheck) {
+        this.minNominalVoltageRealisticVoltageCheck = minNominalVoltageRealisticVoltageCheck;
+        return this;
+    }
+
     public boolean isVectorized() {
         return vectorized;
     }
@@ -176,6 +188,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", voltageRemoteControlRobustMode=" + voltageRemoteControlRobustMode +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
                 ", vectorized=" + vectorized +
                 ')';
     }

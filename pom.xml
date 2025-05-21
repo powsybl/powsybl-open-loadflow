@@ -53,7 +53,10 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>6.7.0</powsybl-core.version>
+        <powsybl-core.version>6.7.1</powsybl-core.version>
+
+        <!--  This is required for later correct replacement of argline -->
+        <argLine/>
     </properties>
 
     <build>
@@ -92,6 +95,7 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <configuration>
+                        <argLine>@{argLine} -Duser.language=en -Duser.region=US</argLine>
                         <classpathDependencyExcludes>
                             <classpathDependencyExclude>com.powsybl:powsybl-config-classic</classpathDependencyExclude>
                         </classpathDependencyExcludes>
