@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -53,25 +54,55 @@ public class FastDecoupled extends AbstractAcSolver {
         // - add 1 to iteration so that it starts at 1 instead of 0
         ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.getValue() + 1) : null;
 
-        // Phi state vector update
-        // TODO HG: Call method to activate phi equations and variables and deactivate v equations and variables
+        // Solution on PHI
         // solve f(x) = j * dx
         try {
+            // TODO HG: Use the Phi Jacobian and the right subset of equationVector
             j.solveTransposed(equationVector.getArray());
         } catch (MatrixException e) {
             LOGGER.error(e.toString(), e);
             Reports.reportNewtonRaphsonError(reportNode, e.toString());
             return AcSolverStatus.SOLVER_FAILED;
         }
-        // f(x) now contains dx
 
+        // f(x) now contains dx
+        // TODO HG: Use the right subset of equationVector
+        // TODO HG: should ban the using of lineSearch and replace it by none if selected with a warning
         svScaling.apply(equationVector.getArray(), equationSystem, iterationReportNode);
 
         // update x and f(x) will be automatically updated
+        // TODO HG: Adapt this method (minus) to work on subsets
         equationSystem.getStateVector().minus(equationVector.getArray());
 
-        // V state vector update
-        // TODO HG: Call method to activate v equations and variables and deactivate phi equations and variables
+        // subtract targets from f(x)
+        // TODO HG: Use restricted on a subset version
+        equationVector.minus(targetVector);
+        // f(x) now contains equation mismatches
+
+        // TODO HG: Do the same for the V system with a refacto
+
+        if (LOGGER.isTraceEnabled()) {
+            findLargestMismatches(equationSystem, equationVector.getArray(), 5)
+                    .forEach(e -> {
+                        Equation<AcVariableType, AcEquationType> equation = e.getKey();
+                        String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
+                        LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
+                    });
+        }
+
+        // test stopping criteria
+        NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
+
+        LOGGER.debug("|f(x)|={}", testResult.getNorm());
+        if (detailedReport) {
+            Reports.reportNewtonRaphsonNorm(iterationReportNode, testResult.getNorm());
+        }
+        if (detailedReport || LOGGER.isTraceEnabled()) {
+            reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), LOGGER);
+        }
+        if (testResult.isStop()) {
+            return AcSolverStatus.CONVERGED;
+        }
 
         return null;
     } finally {
@@ -81,6 +112,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
+        // TODO HG: launch equation index and variable index sorting. Keep range limit in memory (int)
+        // TODO HG: create Phi and V Jacobian matrices
+
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
@@ -109,6 +143,8 @@ public class FastDecoupled extends AbstractAcSolver {
                 break;
             }
         }
+
+        // TODO HG: Close Phi and V matrices
 
         if (iterations.getValue() >= parameters.getMaxIterations()) {
             status = AcSolverStatus.MAX_ITERATION_REACHED;
