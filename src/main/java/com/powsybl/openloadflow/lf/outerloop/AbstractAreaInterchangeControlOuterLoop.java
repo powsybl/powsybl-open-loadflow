@@ -49,7 +49,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
 
     protected static final String FAILED_TO_DISTRIBUTE_INTERCHANGE_ACTIVE_POWER_MISMATCH = "Failed to distribute interchange active power mismatch";
 
-    protected static final String DEFAULT_NO_AREA_NAME = "NO_AREA";
+    protected static final String DEFAULT_NO_AREA_NAME = "BUSES_WITH_NO_AREA";
 
     protected final double slackBusPMaxMismatch;
     protected final double areaInterchangePMaxMismatch;
@@ -113,30 +113,28 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
                 // We consider that to still distribute the remaining slack will continue to reduce difference between interchange mismatch with slack and interchange mismatch.
                 // Which should at the end of the day end up by not having interchange mismatches.
                 Set<LfBus> busesWithoutArea = contextData.getBusesWithoutArea();
-                Map<String, Pair<Set<LfBus>, Double>> mismatchToDistributeOnBusesWithoutArea = new HashMap<>();
-                mismatchToDistributeOnBusesWithoutArea.put(DEFAULT_NO_AREA_NAME, Pair.of(busesWithoutArea, slackBusActivePowerMismatch));
-                Map<String, ActivePowerDistribution.Result> resultNoArea = distributeActivePower(mismatchToDistributeOnBusesWithoutArea);
+                Map<String, Pair<Set<LfBus>, Double>> busesNoAreaDistributionMap = Map.of(DEFAULT_NO_AREA_NAME, Pair.of(busesWithoutArea, slackBusActivePowerMismatch));
+                Map<String, ActivePowerDistribution.Result> busesNoAreaDistributionResult = distributeActivePower(busesNoAreaDistributionMap);
 
-                // If some mismatch remains (when there is no buses without area that participate for example), we distribute equally among the areas.
-                double mismatchToSplitAmongAreas = resultNoArea.get(DEFAULT_NO_AREA_NAME).remainingMismatch();
-                if (lessThanSlackBusMaxMismatch(mismatchToSplitAmongAreas)) {
-
-                    return buildOuterLoopResult(mismatchToDistributeOnBusesWithoutArea, resultNoArea, reportNode, context);
+                double remainingSlackBusMismatch = busesNoAreaDistributionResult.get(DEFAULT_NO_AREA_NAME).remainingMismatch();
+                if (lessThanSlackBusMaxMismatch(remainingSlackBusMismatch)) {
+                    return buildOuterLoopResult(busesNoAreaDistributionMap, busesNoAreaDistributionResult, reportNode, context);
                 } else {
-                    int areasCount = (int) network.getAreaStream().count();
-                    Map<String, Pair<Set<LfBus>, Double>> mismatchSplitAmongAreas = network.getAreaStream().collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), mismatchToSplitAmongAreas / areasCount)));
-                    Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(mismatchSplitAmongAreas);
-                    return buildOuterLoopResult(mismatchSplitAmongAreas, resultByArea, reportNode, context);
+                    // If some slack mismatch still remains (when there is no buses without area that participate for example), we distribute the remaining slack mismatch on all buses.
+                    // If this mismatch is small, distribution will not change much the interchange of areas: zero, one or two more iterations should be needed to have a successful result.
+                    // If this mismatch is too high and distribution changes a lot the interchanges of areas, then it is very likely that there is no feasible solution that matches the interchange target inputs.
+                    Map<String, Pair<Set<LfBus>, Double>> allBusesDistributionMap = Map.of("ALL_NETWORK", Pair.of(new HashSet<>(network.getBuses()), remainingSlackBusMismatch));
+                    Map<String, ActivePowerDistribution.Result> allBusesDistributionResult = distributeActivePower(allBusesDistributionMap);
+                    return buildOuterLoopResult(allBusesDistributionMap, allBusesDistributionResult, reportNode, context);
                 }
             }
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
-        Map<String, Pair<Set<LfBus>, Double>> areasMap = areasToBalance.stream()
+        Map<String, Pair<Set<LfBus>, Double>> areasDistributionMap = areasToBalance.stream()
                 .collect(Collectors.toMap(LfArea::getId, area -> Pair.of(area.getBuses(), getInterchangeMismatchWithSlack(area, slackBusActivePowerMismatch, areaSlackDistributionParticipationFactor))));
-
-        Map<String, ActivePowerDistribution.Result> resultByArea = distributeActivePower(areasMap);
-        return buildOuterLoopResult(areasMap, resultByArea, reportNode, context);
+        Map<String, ActivePowerDistribution.Result> areasDistributionResults = distributeActivePower(areasDistributionMap);
+        return buildOuterLoopResult(areasDistributionMap, areasDistributionResults, reportNode, context);
     }
 
     protected Map<String, ActivePowerDistribution.Result> distributeActivePower(Map<String, Pair<Set<LfBus>, Double>> areas) {
