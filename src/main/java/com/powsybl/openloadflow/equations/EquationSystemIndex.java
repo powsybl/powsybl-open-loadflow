@@ -238,9 +238,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
             case EQUATION_ACTIVATED:
                 for (var equationTermArray : equationArray.getTermArrays()) {
-                    var indices = equationTermArray.getTermNumsConcatenatedIndices(elementNum);
+                    int[] termNumsConcatenatedStartIndices = equationTermArray.getTermNumsConcatenatedStartIndices();
+                    int iStart = termNumsConcatenatedStartIndices[elementNum];
+                    int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
                     var termNums = equationTermArray.getTermNumsConcatenated();
-                    for (int i = indices.iStart(); i < indices.iEnd(); i++) {
+                    for (int i = iStart; i < iEnd; i++) {
                         int termNum = termNums.get(i);
                         if (equationTermArray.isTermActive(termNum)) {
                             var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
