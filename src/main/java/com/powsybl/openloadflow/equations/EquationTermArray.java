@@ -34,8 +34,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         for (int i = 0; i < termNumsByEquationElementNum.length; i++) {
             int iStart = termNumsConcatenated.size();
             termNumsConcatenated.addAll(termNumsByEquationElementNum[i]);
-            termNumsConcatenatedIndices[i] = new TermNumsConcatenatedIndices(iStart, termNumsConcatenated.size());
+            termNumsConcatenatedStartIndices[i] = iStart;
         }
+        termNumsConcatenatedStartIndices[termNumsByEquationElementNum.length] = termNumsConcatenated.size();
 
         this.termNumByTermElementNum = new TIntIntHashMap(this.termNumByTermElementNum);
     }
@@ -68,7 +69,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each equation element number, term numbers
     private TIntArrayList[] termNumsByEquationElementNum;
     private TIntArrayList termNumsConcatenated;
-    private TermNumsConcatenatedIndices[] termNumsConcatenatedIndices;
+    private int[] termNumsConcatenatedStartIndices;
 
     // for each term element number, corresponding term number
     private TIntIntMap termNumByTermElementNum = new TIntIntHashMap(3, Constants.DEFAULT_LOAD_FACTOR, -1, -1);
@@ -103,7 +104,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
             throw new IllegalArgumentException("Equation term array already added to an equation array");
         }
         this.equationArray = Objects.requireNonNull(equationArray);
-        termNumsConcatenatedIndices = new TermNumsConcatenatedIndices[equationArray.getElementCount()];
+        termNumsConcatenatedStartIndices = new int[equationArray.getElementCount() + 1];
         termNumsByEquationElementNum = new TIntArrayList[equationArray.getElementCount()];
         for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
             termNumsByEquationElementNum[elementNum] = new TIntArrayList(10);
@@ -114,8 +115,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return termNumsByEquationElementNum[equationElementNum];
     }
 
-    public TermNumsConcatenatedIndices getTermNumsConcatenatedIndices(int equationElementNum) {
-        return termNumsConcatenatedIndices[equationElementNum];
+    public int[] getTermNumsConcatenatedStartIndices() {
+        return termNumsConcatenatedStartIndices;
     }
 
     public TIntArrayList getTermNumsConcatenated() {
@@ -265,10 +266,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     public boolean write(Writer writer, boolean writeInactiveTerms, int elementNum, boolean first) throws IOException {
-        var indices = getTermNumsConcatenatedIndices(elementNum);
-        var termNums = getTermNumsConcatenated();
-        for (int i = indices.iStart(); i < indices.iEnd(); i++) {
-            int termNum = termNums.getQuick(i);
+        int iStart = termNumsConcatenatedStartIndices[elementNum];
+        int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
+        for (int i = iStart; i < iEnd; i++) {
+            int termNum = termNumsConcatenated.getQuick(i);
             if (writeInactiveTerms || termActive.getQuick(termNum) == 1) {
                 if (!first) {
                     writer.append(" + ");
@@ -289,11 +290,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
                 if (termActive.getQuick(termNum) == 0) {
                     writer.write(" ]");
                 }
-                if (i < termNums.size() - 1) {
+                if (i < iEnd - 1) {
                     writer.append(" + ");
                 }
             }
         }
-        return !termNums.isEmpty();
+        return iStart < iEnd;
     }
 }
