@@ -93,6 +93,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private LfArea area = null;
 
+    private Double minQ;
+
+    private Double maxQ;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
         this.v = v;
@@ -387,6 +391,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
+        invalidateMinMaxQ();
     }
 
     @Override
@@ -462,21 +467,41 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
-        return generators.stream()
-                .filter(g -> !g.isDisabled())
-                .mapToDouble(generator -> (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
-                        generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) ?
-                        limitQ.applyAsDouble(generator) : generator.getTargetQ()).sum();
+        double sum = 0;
+        for (LfGenerator generator : generators) {
+            if (generator.isDisabled()) {
+                continue;
+            }
+            var controlType = generator.getGeneratorControlType();
+            if (controlType == LfGenerator.GeneratorControlType.VOLTAGE || controlType == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) {
+                sum += limitQ.applyAsDouble(generator);
+            } else {
+                sum += generator.getTargetQ();
+            }
+        }
+        return sum;
+    }
+
+    @Override
+    public void invalidateMinMaxQ() {
+        minQ = null;
+        maxQ = null;
     }
 
     @Override
     public double getMinQ() {
-        return getLimitQ(LfGenerator::getMinQ);
+        if (minQ == null) {
+            minQ = getLimitQ(LfGenerator::getMinQ);
+        }
+        return minQ;
     }
 
     @Override
     public double getMaxQ() {
-        return getLimitQ(LfGenerator::getMaxQ);
+        if (maxQ == null) {
+            maxQ = getLimitQ(LfGenerator::getMaxQ);
+        }
+        return maxQ;
     }
 
     @Override
