@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -36,6 +37,20 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     @Override
     public String getElementType() {
         return "load";
+    }
+
+    @Override
+    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
+        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(buses, referenceGenerator);
+        // unlike in the case of generators, here we only have to capture the targetP-s
+        for (LfBus bus : buses) {
+            if (bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious()) {
+                for (LfLoad load : bus.getLoads()) {
+                    previousStateInfo.previousTargetP().putIfAbsent(load, load.getTargetP());
+                }
+            }
+        }
+        return previousStateInfo;
     }
 
     @Override
