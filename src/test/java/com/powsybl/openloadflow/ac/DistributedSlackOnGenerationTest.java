@@ -720,6 +720,44 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void testSlackMismatchChangingRemainingMargin() {
+        parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
+
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
+        for (var g : network.getGenerators()) {
+            ActivePowerControl<Generator> ext = g.getExtension(ActivePowerControl.class);
+            ext.setParticipationFactor(1.0);
+        }
+
+        g1.setMaxP(110.0);
+        g3.setMaxP(110.0);
+        g4.setMaxP(110.0);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(120.1986, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // Generators should increase generation by 120.1986 MW
+        // generator | targetP | maxP    init_P + mismatch * margin / total_margin = final_P
+        // ----------|---------|-------
+        //   g1      |  100    |  110  --> 100  + 120.1986 *   10    /   150       = 108.01324
+        //   g2      |  200    |  300  --> 200  + 120.1986 *   100   /   150       = 280.1324
+        //   g3      |   90    |  110  --> 90   + 120.1986 *   20    /   150       = 106.02648
+        //   g4      |   90    |  110  --> 90   + 120.1986 *   20    /   150       = 106.02648
+        assertActivePowerEquals(-108.013, g1.getTerminal());
+        assertActivePowerEquals(-280.132, g2.getTerminal());
+        assertActivePowerEquals(-106.026, g3.getTerminal());
+        assertActivePowerEquals(-106.026, g4.getTerminal());
+    }
+
+    @Test
     void testEpsilonDistribution() {
         parametersExt.setSlackBusPMaxMismatch(0.1);
         network = DistributedSlackNetworkFactory.createWithEpsilonDistribution();
