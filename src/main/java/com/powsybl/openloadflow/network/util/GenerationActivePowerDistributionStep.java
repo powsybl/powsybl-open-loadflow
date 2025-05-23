@@ -54,12 +54,12 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     @Override
     public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch) {
-        Boolean positiveMismatch = mismatch.isPresent() ? mismatch.getAsDouble() > 0 : null;
+        Boolean totalMismatchPositive = isTotalMismatchPositive(buses, mismatch);
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
                 .map(gen -> {
-                    double factor = getParticipationFactor(gen, positiveMismatch);
+                    double factor = getParticipationFactor(gen, totalMismatchPositive);
                     if (isParticipating(gen) && factor != 0) {
                         return new ParticipatingElement(gen, factor);
                     }
@@ -67,6 +67,18 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedList::new));
+    }
+
+
+    // Gets total mismatch distributed also by previous outerloop iterations
+    Boolean isTotalMismatchPositive(Collection<LfBus> buses, OptionalDouble mismatch) {
+        // Usefull only for participation factor of REMAINING_MARGIN
+        if (mismatch.isPresent() && participationType == ParticipationType.REMAINING_MARGIN) {
+            double initialTargetP = buses.stream().flatMap(b -> b.getGenerators().stream()).mapToDouble(LfGenerator::getInitialTargetP).sum();
+            double currentTargetp = buses.stream().mapToDouble(LfBus::getGenerationTargetP).sum();
+            return currentTargetp - initialTargetP + mismatch.getAsDouble() > 0;
+        }
+        return null;
     }
 
     @Override
@@ -134,16 +146,16 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return done;
     }
 
-    private double getParticipationFactor(LfGenerator generator, Boolean positiveMismatch) {
+    private double getParticipationFactor(LfGenerator generator, Boolean totalMismatchPositive) {
         return switch (participationType) {
             case MAX -> generator.getMaxP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
             case REMAINING_MARGIN -> {
-                if (positiveMismatch == null) {
+                if (totalMismatchPositive == null) {
                     throw new PowsyblException("The sign of the active power mismatch is unknown, it is mandatory for REMAINING_MARGIN participation type");
                 }
-                yield Boolean.TRUE.equals(positiveMismatch) ? Math.max(0.0, generator.getMaxP() - generator.getTargetP()) : Math.max(0.0, generator.getTargetP() - generator.getMinP());
+                yield totalMismatchPositive ? Math.max(0.0, generator.getMaxP() - generator.getInitialTargetP()) : Math.max(0.0, generator.getInitialTargetP() - generator.getMinP());
             }
         };
     }
