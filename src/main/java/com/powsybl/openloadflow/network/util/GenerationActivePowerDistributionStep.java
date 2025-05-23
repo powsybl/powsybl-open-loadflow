@@ -48,21 +48,22 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public ActivePowerDistribution.InitialStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
-        ActivePowerDistribution.InitialStateInfo initialStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(buses, referenceGenerator);
-        double total = 0;
+    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
+        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(buses, referenceGenerator);
+        double previousMismatch = 0;
         for (LfBus bus : buses) {
             if (bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious()) {
                 for (LfGenerator generator : bus.getGenerators()) {
                     if (generator.isParticipating()) {
-                        total -= generator.getInitialTargetP() - generator.getTargetP();
-                        initialStateInfo.initialState().putIfAbsent(generator, generator.getTargetP());
+                        previousMismatch -= generator.getInitialTargetP() - generator.getTargetP();
+                        // putIfAbsent because the generator might be the reference generator (in which case it was already reinitialized)
+                        previousStateInfo.previousTargetP().putIfAbsent(generator, generator.getTargetP());
                         generator.setTargetP(generator.getInitialTargetP());
                     }
                 }
             }
         }
-        return new ActivePowerDistribution.InitialStateInfo(total + initialStateInfo.previousMismatch(), initialStateInfo.initialState());
+        return new ActivePowerDistribution.PreviousStateInfo(previousMismatch + previousStateInfo.previousMismatch(), previousStateInfo.previousTargetP());
     }
 
     @Override

@@ -34,11 +34,21 @@ public final class ActivePowerDistribution {
      */
     public static final double P_RESIDUE_EPS = Math.pow(10, -5);
 
-    public record InitialStateInfo(double previousMismatch, Map<Object, Double> initialState) {
+    /**
+     * Stores the "previous state" = before active power distribution has run a re-initialization to the initialState
+     * @param previousMismatch how much active power was reverted, so it can be re-included and re-distributed
+     * @param previousTargetP capture of the LfGenerator-s and LfLoad-s targetP-s
+     */
+    public record PreviousStateInfo(double previousMismatch, Map<Object, Double> previousTargetP) {
+        /**
+         * @return true if injections moved significantly after active power distribution compared to the captured "previous state"
+         */
         public boolean moved() {
             // Identify if injections moved significantly, used e.g. to establish stable/unstable outer loop status.
             // The 0.9 magic factor is to handle potential rounding issues.
-            return initialState.entrySet().stream()
+            // Note that the sum of diff is taken: this is because many injections changes below P_RESIDUE_EPS
+            // can have altogether a sum above P_RESIDUE_EPS - hence the slack injection becomes indirectly significant.
+            return previousTargetP.entrySet().stream()
                     .mapToDouble(e -> {
                         Object o = e.getKey();
                         if (o instanceof LfGenerator lfGenerator) {
@@ -57,18 +67,18 @@ public final class ActivePowerDistribution {
         String getElementType();
 
         /**
-         * @return how much active power was reverted, so it can be re-included and re-distributed
+         * @return information about previous state: how much active power has been reverted, capture of generator / loads state
          */
-        default InitialStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
+        default PreviousStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
             double previousMismatch = 0.;
-            Map<Object, Double> initialState = new HashMap<>();
+            Map<Object, Double> previousTargetP = new HashMap<>();
             if (referenceGenerator != null) {
                 // "undo" everything from targetP to go back to initialP for reference generator
                 previousMismatch -= referenceGenerator.getInitialTargetP() - referenceGenerator.getTargetP();
-                initialState.put(referenceGenerator, referenceGenerator.getTargetP());
+                previousTargetP.put(referenceGenerator, referenceGenerator.getTargetP());
                 referenceGenerator.setTargetP(referenceGenerator.getInitialTargetP());
             }
-            return new InitialStateInfo(previousMismatch, initialState);
+            return new PreviousStateInfo(previousMismatch, previousTargetP);
         }
 
         List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch);
@@ -93,8 +103,8 @@ public final class ActivePowerDistribution {
     }
 
     public Result run(LfGenerator referenceGenerator, Collection<LfBus> buses, double activePowerMismatch) {
-        InitialStateInfo initialStateInfo = step.resetToInitialState(buses, referenceGenerator);
-        double remainingMismatch = activePowerMismatch + initialStateInfo.previousMismatch();
+        PreviousStateInfo previousStateInfo = step.resetToInitialState(buses, referenceGenerator);
+        double remainingMismatch = activePowerMismatch + previousStateInfo.previousMismatch();
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses, OptionalDouble.of(remainingMismatch));
 
         int iteration = 0;
@@ -111,7 +121,7 @@ public final class ActivePowerDistribution {
             iteration++;
         }
 
-        return new Result(iteration, remainingMismatch, initialStateInfo.moved());
+        return new Result(iteration, remainingMismatch, previousStateInfo.moved());
     }
 
     public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {

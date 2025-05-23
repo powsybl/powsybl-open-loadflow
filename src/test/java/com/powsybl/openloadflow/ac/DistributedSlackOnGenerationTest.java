@@ -720,19 +720,17 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testSlackMismatchChangingRemainingMargin() {
-        parameters.setUseReactiveLimits(true).getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
+    void testSlackMismatchChangingSignRemainingMargin() {
+        parameters
+                .setUseReactiveLimits(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setSlackBusPMaxMismatch(0.0001);
         network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");
         g3 = network.getGenerator("g3");
         g4 = network.getGenerator("g4");
-
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
-        for (var g : network.getGenerators()) {
-            ActivePowerControl<Generator> ext = g.getExtension(ActivePowerControl.class);
-            ext.setParticipationFactor(1.0);
-        }
 
         g1.setMaxP(110.0);
         g3.setMaxP(110.0);
