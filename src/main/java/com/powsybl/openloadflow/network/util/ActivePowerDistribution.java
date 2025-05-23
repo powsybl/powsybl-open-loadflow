@@ -13,6 +13,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
+import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -20,8 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -35,9 +34,42 @@ public final class ActivePowerDistribution {
      */
     public static final double P_RESIDUE_EPS = Math.pow(10, -5);
 
+    public record InitialStateInfo(double previousMismatch, Map<Object, Double> initialState) {
+        public boolean moved() {
+            // Identify if injections moved significantly, used e.g. to establish stable/unstable outer loop status.
+            // The 0.9 magic factor is to handle potential rounding issues.
+            return initialState.entrySet().stream()
+                    .mapToDouble(e -> {
+                        Object o = e.getKey();
+                        if (o instanceof LfGenerator lfGenerator) {
+                            return Math.abs(lfGenerator.getTargetP() - e.getValue());
+                        } else if (o instanceof LfLoad lfLoad) {
+                            return Math.abs(lfLoad.getTargetP() - e.getValue());
+                        }
+                        throw new IllegalStateException();
+                    })
+                    .sum() > P_RESIDUE_EPS * 0.9;
+        }
+    }
+
     public interface Step {
 
         String getElementType();
+
+        /**
+         * @return how much active power was reverted, so it can be re-included and re-distributed
+         */
+        default InitialStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
+            double previousMismatch = 0.;
+            Map<Object, Double> initialState = new HashMap<>();
+            if (referenceGenerator != null) {
+                // "undo" everything from targetP to go back to initialP for reference generator
+                previousMismatch -= referenceGenerator.getInitialTargetP() - referenceGenerator.getTargetP();
+                initialState.put(referenceGenerator, referenceGenerator.getTargetP());
+                referenceGenerator.setTargetP(referenceGenerator.getInitialTargetP());
+            }
+            return new InitialStateInfo(previousMismatch, initialState);
+        }
 
         List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch);
 
@@ -61,18 +93,11 @@ public final class ActivePowerDistribution {
     }
 
     public Result run(LfGenerator referenceGenerator, Collection<LfBus> buses, double activePowerMismatch) {
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses, OptionalDouble.of(activePowerMismatch));
-        final Map<ParticipatingElement, Double> initialP = participatingElements.stream()
-                .collect(Collectors.toUnmodifiableMap(Function.identity(), ParticipatingElement::getTargetP));
+        InitialStateInfo initialStateInfo = step.resetToInitialState(buses, referenceGenerator);
+        double remainingMismatch = activePowerMismatch + initialStateInfo.previousMismatch();
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses, OptionalDouble.of(remainingMismatch));
 
         int iteration = 0;
-        double remainingMismatch = activePowerMismatch;
-
-        if (referenceGenerator != null) {
-            // "undo" everything from targetP to go back to initialP for reference generator
-            remainingMismatch -= referenceGenerator.getInitialTargetP() - referenceGenerator.getTargetP();
-            referenceGenerator.setTargetP(referenceGenerator.getInitialTargetP());
-        }
 
         while (!participatingElements.isEmpty()
                 && Math.abs(remainingMismatch) > P_RESIDUE_EPS) {
@@ -86,12 +111,7 @@ public final class ActivePowerDistribution {
             iteration++;
         }
 
-        // Identify if injections moved significantly, used e.g. to establish stable/unstable outer loop status.
-        // The 0.9 magic factor is to handle potential rounding issues.
-        final boolean movedBuses = initialP.entrySet().stream()
-                .mapToDouble(e -> Math.abs(e.getKey().getTargetP() - e.getValue())).sum() > P_RESIDUE_EPS * 0.9;
-
-        return new Result(iteration, remainingMismatch, movedBuses);
+        return new Result(iteration, remainingMismatch, initialStateInfo.moved());
     }
 
     public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {

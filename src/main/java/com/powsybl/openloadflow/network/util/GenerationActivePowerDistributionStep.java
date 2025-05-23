@@ -15,12 +15,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.OptionalDouble;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -53,6 +48,24 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
+    public ActivePowerDistribution.InitialStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
+        ActivePowerDistribution.InitialStateInfo initialStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(buses, referenceGenerator);
+        double total = 0;
+        for (LfBus bus : buses) {
+            if (bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious()) {
+                for (LfGenerator generator : bus.getGenerators()) {
+                    if (generator.isParticipating()) {
+                        total -= generator.getInitialTargetP() - generator.getTargetP();
+                        initialStateInfo.initialState().putIfAbsent(generator, generator.getTargetP());
+                        generator.setTargetP(generator.getInitialTargetP());
+                    }
+                }
+            }
+        }
+        return new ActivePowerDistribution.InitialStateInfo(total + initialStateInfo.previousMismatch(), initialStateInfo.initialState());
+    }
+
+    @Override
     public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch) {
         Boolean positiveMismatch = mismatch.isPresent() ? mismatch.getAsDouble() > 0 : null;
         return buses.stream()
@@ -76,16 +89,6 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
 
         double done = 0d;
-        double mismatch = remainingMismatch;
-        if (iteration == 0) {
-            // "undo" everything from targetP to go back to initialP
-            for (ParticipatingElement participatingGenerator : participatingElements) {
-                LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
-                done += generator.getInitialTargetP() - generator.getTargetP();
-                mismatch -= generator.getInitialTargetP() - generator.getTargetP();
-                generator.setTargetP(generator.getInitialTargetP());
-            }
-        }
 
         int modifiedBuses = 0;
         int generatorsAtMax = 0;
@@ -107,12 +110,12 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 minTargetP = Math.max(minTargetP, 0);
             }
 
-            double newTargetP = targetP + mismatch * factor;
-            if (mismatch > 0 && newTargetP > maxTargetP) {
+            double newTargetP = targetP + remainingMismatch * factor;
+            if (remainingMismatch > 0 && newTargetP > maxTargetP) {
                 newTargetP = maxTargetP;
                 generatorsAtMax++;
                 it.remove();
-            } else if (mismatch < 0 && newTargetP < minTargetP) {
+            } else if (remainingMismatch < 0 && newTargetP < minTargetP) {
                 newTargetP = minTargetP;
                 generatorsAtMin++;
                 it.remove();
@@ -128,7 +131,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} generators ({} at max power, {} at min power)",
-                done * PerUnit.SB, mismatch * PerUnit.SB, iteration, modifiedBuses,
+                done * PerUnit.SB, remainingMismatch * PerUnit.SB, iteration, modifiedBuses,
                 generatorsAtMax, generatorsAtMin);
 
         return done;
