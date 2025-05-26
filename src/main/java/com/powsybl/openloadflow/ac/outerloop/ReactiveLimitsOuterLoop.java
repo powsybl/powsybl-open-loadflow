@@ -187,7 +187,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
             int pvPqSwitchCount = contextData.getPvPqSwitchCount(controllerBus.getId());
             if (pvPqSwitchCount >= maxPqPvSwitch) {
-                pqPvNodes.add(Reports.reportPvPqSwitchLimit(reportNode, controllerBus, pvPqSwitchCount, log, LOGGER));
+                pqPvNodes.add(Reports.createRootReportPvPqSwitchLimit(reportNode, controllerBus, pvPqSwitchCount, log, LOGGER));
             } else {
                 controllerBus.setGeneratorVoltageControlEnabled(true);
                 controllerBus.setGenerationTargetQ(0);
@@ -195,7 +195,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 pqPvSwitchCount++;
 
                 if (pqToPvBus.limitType.isMaxLimit()) {
-                    pqPvNodes.add(Reports.reportPqToPvBusMaxLimit(
+                    pqPvNodes.add(Reports.createRootReportPqToPvBusMaxLimit(
                             reportNode,
                             controllerBus,
                             controllerBus.getGeneratorVoltageControl().map(VoltageControl::getControlledBus).orElseThrow(),
@@ -203,7 +203,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                             log,
                             LOGGER));
                 } else {
-                    pqPvNodes.add(Reports.reportPqToPvBusMinLimit(
+                    pqPvNodes.add(Reports.createRootReportPqToPvBusMinLimit(
                             reportNode,
                             controllerBus,
                             controllerBus.getGeneratorVoltageControl().map(VoltageControl::getControlledBus).orElseThrow(),
@@ -345,10 +345,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
             switch (bus.limitType) {
                 case MAX_Q:
-                    switchedNodes.add(Reports.reportReactiveControllerBusesToPqMaxQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
+                    switchedNodes.add(Reports.createRootReportReactiveControllerBusesToPqMaxQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
                     break;
                 case MIN_Q:
-                    switchedNodes.add(Reports.reportReactiveControllerBusesToPqMinQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
+                    switchedNodes.add(Reports.createRootReportReactiveControllerBusesToPqMinQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
                     break;
                 case MIN_REALISTIC_V, MAX_REALISTIC_V:
                     // Note: never happens for now. Robust mode applies only to remote voltage control generators

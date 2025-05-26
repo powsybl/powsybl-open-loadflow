@@ -38,6 +38,7 @@ public interface StateVectorScaling {
     /**
      * Apply scaling to state vector variation before equation mismatches calculation.
      */
+    // TODO HG: Adapt this method to work on subsets of equationSystem
     void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, ReportNode reportNode);
 
     /**
