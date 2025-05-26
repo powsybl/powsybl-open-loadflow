@@ -34,6 +34,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
+//        equationSystem.getEquations().stream().filter()
+//        JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix1 = new JacobianMatrix<>()
         return null;
+
     }
 }

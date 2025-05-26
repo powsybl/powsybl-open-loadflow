@@ -60,6 +60,15 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
         }
     }
 
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        Objects.requireNonNull(variable);
+        if (variable.equals(v1Var)) {
+            return dp1dv1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, g2, b2, 1, r1());
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
+        }
+    }
+
     @Override
     protected String getName() {
         return "ac_p_open_2";
