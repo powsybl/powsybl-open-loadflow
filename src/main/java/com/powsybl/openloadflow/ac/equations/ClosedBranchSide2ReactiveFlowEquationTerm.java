@@ -107,6 +107,26 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         }
     }
 
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        Objects.requireNonNull(variable);
+        double theta = theta2FastDecoupled(ksi, a1());
+        if (variable.equals(v1Var)) {
+            return dq2dv1(y, r1(), v2(), FastMath.cos(theta));
+        } else if (variable.equals(v2Var)) {
+            return dq2dv2(y, FastMath.cos(ksi), b2, v2(), r1(), v2(), FastMath.cos(theta));
+        } else if (variable.equals(ph1Var)) {
+            return dq2dph1(y, 1, r1(), v2(), FastMath.sin(theta));
+        } else if (variable.equals(ph2Var)) {
+            return dq2dph2(y, 1, r1(), v2(), FastMath.sin(theta));
+        } else if (variable.equals(a1Var)) {
+            return dq2da1(y, 1, r1(), v2(), FastMath.sin(theta));
+        } else if (variable.equals(r1Var)) {
+            return dq2dr1(y, 1, v2(), FastMath.cos(theta));
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
+        }
+    }
+
     @Override
     protected String getName() {
         return "ac_q_closed_2";
