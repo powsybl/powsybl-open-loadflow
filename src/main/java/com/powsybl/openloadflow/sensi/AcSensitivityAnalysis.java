@@ -30,6 +30,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.WarmStartVoltageInitializer;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
@@ -171,7 +172,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
-                        LfTopoConfig topoConfig) {
+                        LfTopoConfig topoConfig, boolean useWarmStart) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(factorReader);
@@ -301,7 +302,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 NetworkState networkState = NetworkState.save(lfNetwork);
 
                 // we always restart from base case voltages for contingency simulation
-                context.getParameters().setVoltageInitializer(new WarmStartVoltageInitializer(false));
+                context.getParameters().setVoltageInitializer(useWarmStart ? new WarmStartVoltageInitializer(false) : new PreviousValueVoltageInitializer());
 
                 contingencies.forEach(contingency -> {
                     LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());

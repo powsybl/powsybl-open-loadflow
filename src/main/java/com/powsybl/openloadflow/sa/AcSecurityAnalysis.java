@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.WarmStartVoltageInitializer;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Reports;
@@ -117,8 +118,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void beforeActionLoadFlowRun(AcLoadFlowContext context) {
-        context.getParameters().setVoltageInitializer(new WarmStartVoltageInitializer(true));
+    protected void beforeActionLoadFlowRun(AcLoadFlowContext context, boolean useWarmStart) {
+        context.getParameters().setVoltageInitializer(useWarmStart ? new WarmStartVoltageInitializer(true) : new PreviousValueVoltageInitializer(true));
     }
 
     @Override

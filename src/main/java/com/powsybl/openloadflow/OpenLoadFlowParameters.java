@@ -41,6 +41,7 @@ import com.powsybl.openloadflow.lf.outerloop.config.DefaultDcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitDcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.network.util.WarmStartVoltageInitializer;
@@ -452,7 +453,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum VoltageInitModeOverride {
         NONE,
         VOLTAGE_MAGNITUDE,
-        FULL_VOLTAGE
+        FULL_VOLTAGE,
+        WARM_START
     }
 
     public enum TransformerVoltageControlMode {
@@ -1856,7 +1858,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
-                return new WarmStartVoltageInitializer(false);
+                return new PreviousValueVoltageInitializer();
             case DC_VALUES:
                 return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), parametersExt.getDcApproximationType(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
             default:
@@ -1882,6 +1884,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                       parametersExt.getDcApproximationType(),
                                                       matrixFactory,
                                                       parametersExt.getMaxOuterLoopIterations()));
+            case WARM_START:
+                return new WarmStartVoltageInitializer(true);
 
             default:
                 throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());

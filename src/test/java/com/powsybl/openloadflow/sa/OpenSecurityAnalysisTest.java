@@ -1450,7 +1450,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
 
-        params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        params.getExtension(OpenLoadFlowParameters.class).setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.WARM_START);
         r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), computationManager, params, report);
         assertFalse(r.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, r.getComponentResults().get(0).getStatus());
@@ -1461,6 +1461,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // The same network would converge with a DC init
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+        params.getExtension(OpenLoadFlowParameters.class).setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
         r = runLoadFlow(n, params);
         assertTrue(r.isFullyConverged());
         assertActivePowerEquals(71.821, n.getLine("l12").getTerminal1());
