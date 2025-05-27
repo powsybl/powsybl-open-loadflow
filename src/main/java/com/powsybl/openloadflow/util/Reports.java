@@ -889,7 +889,7 @@ public final class Reports {
 
     public static void reportFreezeHvdc(ReportNode reportNode, String hvdcID, double setPoint, Logger logger) {
         ReportNode node = reportNode.newReportNode()
-                .withMessageTemplate("freezeHvdc", "Freezing HVDC ${ID} at previous active setPoint ${setPoint} MW at bus 1.")
+                .withMessageTemplate("olf.freezeHvdc")
                 .withUntypedValue("ID", hvdcID)
                 .withUntypedValue("setPoint", setPoint)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -899,7 +899,7 @@ public final class Reports {
 
     public static void reportUnfreezeHvdc(ReportNode reportNode, String hvdcID, Logger logger) {
         ReportNode node = reportNode.newReportNode()
-                .withMessageTemplate("unfreezeHvdc", "Setting again HVDC ${ID} in AC emulation mode.")
+                .withMessageTemplate("olf.unfreezeHvdc")
                 .withUntypedValue("ID", hvdcID)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
