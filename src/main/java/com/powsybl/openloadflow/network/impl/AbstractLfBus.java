@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.DoubleConsumer;
+import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -466,9 +468,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generators.stream().mapToDouble(LfGenerator::getMaxTargetP).sum();
     }
 
-    private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
+    private double calcLimitQ(ToDoubleFunction<LfGenerator> limitQ, DoubleConsumer limitSetter) {
         double sum = 0;
+        boolean cache = true;
         for (LfGenerator generator : generators) {
+            if (generator instanceof LfStaticVarCompensator) {
+                cache = false;
+            }
             if (generator.isDisabled()) {
                 continue;
             }
@@ -478,6 +484,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             } else {
                 sum += generator.getTargetQ();
             }
+        }
+        if (cache) {
+            limitSetter.accept(sum);
         }
         return sum;
     }
@@ -491,17 +500,25 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getMinQ() {
         if (minQ == null) {
-            minQ = getLimitQ(LfGenerator::getMinQ);
+            return calcLimitQ(LfGenerator::getMinQ, this::setMinQ);
         }
         return minQ;
+    }
+
+    private void setMinQ(double minQ) {
+        this.minQ = minQ;
     }
 
     @Override
     public double getMaxQ() {
         if (maxQ == null) {
-            maxQ = getLimitQ(LfGenerator::getMaxQ);
+            return calcLimitQ(LfGenerator::getMaxQ, this::setMaxQ);
         }
         return maxQ;
+    }
+
+    private void setMaxQ(double maxQ) {
+        this.maxQ = maxQ;
     }
 
     @Override
