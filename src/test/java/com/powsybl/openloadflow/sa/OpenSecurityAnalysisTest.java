@@ -1448,7 +1448,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         n.getLine("l12big").disconnect();
 
-        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
 
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), computationManager, params, report);
@@ -1469,7 +1469,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // Now test in Security Analysis
         n = HvdcNetworkFactory.createHvdcACEmulationWithHighImpedanceLines();
-        report = ReportNode.newRootReportNode().withMessageTemplate("test", "test").build();
+        report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         Contingency c = new Contingency("l12big", new LineContingency("l12big"));
 
         SecurityAnalysisParameters asParams = new SecurityAnalysisParameters();
