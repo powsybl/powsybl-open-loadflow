@@ -30,6 +30,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
 
     private String contingencyActivePowerLossDistribution = CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_DEFAULT_VALUE;
 
+    private boolean useWarmStart = USE_WARM_START_DEFAULT_VALUE;
+
     public static final String CREATE_RESULT_EXTENSION_PARAM_NAME = "createResultExtension";
     public static final boolean CREATE_RESULT_EXTENSION_DEFAULT_VALUE = false;
     public static final String CONTINGENCY_PROPAGATION_PARAM_NAME = "contingencyPropagation";
@@ -38,6 +40,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
     public static final int THREAD_COUNT_DEFAULT_VALUE = 1;
     public static final String DC_FAST_MODE_PARAM_NAME = "dcFastMode";
     public static final boolean DC_FAST_MODE_DEFAULT_VALUE = false;
+    public static final String USE_WARM_START_PARAM_NAME = "useWarmStart";
+    public static final boolean USE_WARM_START_DEFAULT_VALUE = true;
     public static final String CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_PARAM_NAME = "contingencyActivePowerLossDistribution";
     public static final String CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_DEFAULT_VALUE = "Default";
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(CREATE_RESULT_EXTENSION_PARAM_NAME,
@@ -100,6 +104,15 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
         return this;
     }
 
+    public boolean isUseWarmStart() {
+        return useWarmStart;
+    }
+
+    public OpenSecurityAnalysisParameters setUseWarmStart(boolean useWarmStart) {
+        this.useWarmStart = useWarmStart;
+        return this;
+    }
+
     public static OpenSecurityAnalysisParameters getOrDefault(SecurityAnalysisParameters parameters) {
         OpenSecurityAnalysisParameters parametersExt = parameters.getExtension(OpenSecurityAnalysisParameters.class);
         if (parametersExt == null) {
@@ -120,7 +133,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
                         .setContingencyPropagation(config.getBooleanProperty(CONTINGENCY_PROPAGATION_PARAM_NAME, CONTINGENCY_PROPAGATION_DEFAULT_VALUE))
                         .setThreadCount(config.getIntProperty(THREAD_COUNT_PARAM_NAME, THREAD_COUNT_DEFAULT_VALUE))
                         .setDcFastMode(config.getBooleanProperty(DC_FAST_MODE_PARAM_NAME, DC_FAST_MODE_DEFAULT_VALUE))
-                        .setContingencyActivePowerLossDistribution(config.getStringProperty(CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_PARAM_NAME, CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_DEFAULT_VALUE)));
+                        .setContingencyActivePowerLossDistribution(config.getStringProperty(CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_PARAM_NAME, CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_DEFAULT_VALUE))
+                        .setUseWarmStart(config.getBooleanProperty(USE_WARM_START_PARAM_NAME, USE_WARM_START_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -140,6 +154,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
                 .ifPresent(value -> this.setDcFastMode(Boolean.parseBoolean(value)));
         Optional.ofNullable(properties.get(CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_PARAM_NAME))
                 .ifPresent(this::setContingencyActivePowerLossDistribution);
+        Optional.ofNullable(properties.get(USE_WARM_START_PARAM_NAME))
+                .ifPresent(value -> this.setUseWarmStart(Boolean.parseBoolean(value)));
         return this;
     }
 }
