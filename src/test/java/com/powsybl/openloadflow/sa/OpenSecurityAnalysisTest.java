@@ -1479,6 +1479,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED, result.getPostContingencyResults().get(0).getStatus());
         assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620.1584837694868 MW at bus 1.", report);
+
+        // Test in security analysis with warm start off
+        asParams.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setUseWarmStart(false));
+        result = runSecurityAnalysis(n, List.of(c), Collections.emptyList(), asParams, report);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
