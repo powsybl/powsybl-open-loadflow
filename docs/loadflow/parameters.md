@@ -20,6 +20,13 @@ Additional voltage init modes of PowSyBl Open Load Flow that are not present in 
 - `VOLTAGE_MAGNITUDE`: specific initializer to initialize voltages magnitudes $v$, leaving $\theta=0$. Proven useful for
   unusual input data with transformers rated voltages very far away from bus nominal voltages.
 - `FULL_VOLTAGE`: voltages magnitudes $v$ initialized using `VOLTAGE_MAGNITUDE` initializer, $\theta$ initialized using a DC load flow.
+- `WARM_START`: Same as the PREVIOUS_VALUES initializer, but in addition, the simulator starts by freezing the AC emulation HVDC to the
+   active set point defined by the angles at the HVDC extremities. For N-1 simulations, this allows to detect situations
+   where it is impossible to deliver or evacuate the HVDC active power of the previous set point. If this occurs the simulation fails with a
+   **MAX_ITERATION_REACHED** status. Once the first resolution (and optionally slack distribution) has succeeded, the AC emulation HVDC lines are reset 
+   to their AC emulation mode.
+
+
 
 The default value is `NONE`.
 

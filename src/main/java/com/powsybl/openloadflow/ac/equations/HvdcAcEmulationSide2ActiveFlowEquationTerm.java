@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -24,9 +24,13 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double p2(double ph1, double ph2) {
-        double rawP = rawP(ph1, ph2);
-        // if converterStation2 is controller, then p2 is positive, otherwise it is negative
-        return isController(rawP) ? -boundedP(rawP) : -getAbsActivePowerWithLosses(boundedP(rawP), lossFactor2, lossFactor1);
+        if (frozen) {
+            return frozenP;
+        } else {
+            double rawP = rawP(ph1, ph2);
+            // if converterStation2 is controller, then p2 is positive, otherwise it is negative
+            return isController(rawP) ? -boundedP(rawP) : -getAbsActivePowerWithLosses(boundedP(rawP), lossFactor2, lossFactor1);
+        }
     }
 
     private boolean isController(double rawP) {
@@ -58,6 +62,9 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
+        if (frozen) {
+            return 0;
+        }
         if (variable.equals(ph1Var)) {
             return dp2dph1(ph1(), ph2());
         } else if (variable.equals(ph2Var)) {

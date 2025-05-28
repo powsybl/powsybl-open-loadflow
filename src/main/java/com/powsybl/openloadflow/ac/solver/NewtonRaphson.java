@@ -175,7 +175,7 @@ public class NewtonRaphson extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
-        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
+        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer, reportNode);
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 

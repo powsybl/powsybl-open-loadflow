@@ -33,7 +33,8 @@
       "contingencyPropagation" : false,
       "threadCount" : 1,
       "dcFastMode" : true,
-      "contingencyActivePowerLossDistribution" : "Default"
+      "contingencyActivePowerLossDistribution" : "Default",
+      "useWarmStart" : true
     }
   }
 }

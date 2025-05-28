@@ -1432,6 +1432,56 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testHvdcAcEmulationWarmStart() {
+        Network n = HvdcNetworkFactory.createHvdcACEmulationWithHighImpedanceLines();
+        LoadFlowParameters params = new LoadFlowParameters();
+        params.setHvdcAcEmulation(true);
+        params.addExtension(OpenLoadFlowParameters.class,
+                new OpenLoadFlowParameters()
+                        .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL));
+        LoadFlowResult r = runLoadFlow(n, params);
+        assertTrue(r.isFullyConverged());
+        assertActivePowerEquals(0.0126, n.getLine("l12").getTerminal1());
+        assertActivePowerEquals(628.146, n.getLine("l12big").getTerminal1());
+        assertActivePowerEquals(606.357, n.getLine("l34").getTerminal1());
+        assertActivePowerEquals(193.642, n.getLine("l14").getTerminal1());
+
+        n.getLine("l12big").disconnect();
+
+        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
+
+        params.getExtension(OpenLoadFlowParameters.class).setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.WARM_START);
+        r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), computationManager, params, report);
+        assertFalse(r.isFullyConverged());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, r.getComponentResults().get(0).getStatus());
+        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620.1584837694869 MW at bus 1.", report);
+        n.getLineStream().forEach(l -> {
+            System.out.println(l.getId() + " " + l.getTerminal1().getP() + " MW " + l.getTerminal2().getP() + " MW");
+        });
+
+        // The same network would converge with a DC init
+        params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+        params.getExtension(OpenLoadFlowParameters.class).setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
+        r = runLoadFlow(n, params);
+        assertTrue(r.isFullyConverged());
+        assertActivePowerEquals(71.821, n.getLine("l12").getTerminal1());
+        assertActivePowerEquals(62.422, n.getLine("l34").getTerminal1());
+        assertActivePowerEquals(737.577, n.getLine("l14").getTerminal1());
+
+        // Now test in Security Analysis
+        n = HvdcNetworkFactory.createHvdcACEmulationWithHighImpedanceLines();
+        report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
+        Contingency c = new Contingency("l12big", new LineContingency("l12big"));
+
+        SecurityAnalysisParameters asParams = new SecurityAnalysisParameters();
+        asParams.setLoadFlowParameters(params);
+        SecurityAnalysisResult result = runSecurityAnalysis(n, List.of(c), Collections.emptyList(), asParams, report);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED, result.getPostContingencyResults().get(0).getStatus());
+        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620.1584837694868 MW at bus 1.", report);
+    }
+
+    @Test
     void testHvdcSetpoint() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
