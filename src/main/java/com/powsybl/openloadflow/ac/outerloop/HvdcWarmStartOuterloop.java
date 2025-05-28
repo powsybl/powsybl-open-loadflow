@@ -13,10 +13,12 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfHvdc;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -36,6 +38,17 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     private static final class ContextData {
 
         private Step step = Step.UNFREEZE;
+        private HashMap<String, Double> angles = new HashMap<>();
+        private HashMap<String, Double> voltage = new HashMap<>();
+
+        private ContextData(LfNetwork network) {
+            network.getBuses()
+                    .stream().filter(b -> !b.isDisabled())
+                    .forEach(b -> {
+                        angles.put(b.getId(), Double.isNaN(b.getAngle()) ? 0 : b.getAngle());
+                        voltage.put(b.getId(), Double.isNaN(b.getV()) ? 1 : b.getV());
+                    });
+        }
 
     }
 
@@ -46,7 +59,7 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        ContextData contextData = new ContextData();
+        ContextData contextData = new ContextData(context.getNetwork());
         context.setData(contextData);
     }
 
@@ -54,25 +67,33 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         ContextData contextData = (ContextData) context.getData();
         return switch (contextData.step) {
-            case UNFREEZE -> unfreezeHvdcs(context, reportNode);
+            case UNFREEZE -> unfreezeHvdcs(context, contextData, reportNode);
             case COMPLETE -> new OuterLoopResult(this, OuterLoopStatus.STABLE);
         };
     }
 
-    private OuterLoopResult unfreezeHvdcs(AcOuterLoopContext context, ReportNode reportNode) {
+    private OuterLoopResult unfreezeHvdcs(AcOuterLoopContext context, ContextData contextData, ReportNode reportNode) {
 
         List<LfHvdc> frozenHvdc = context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
                 .filter(LfHvdc::isFrozen)
                 .toList();
 
-        for (LfHvdc lfHvdc : frozenHvdc) {
-            Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
-            if (lfHvdc.unFreezeAndReportSaturationStatus()) {
-                double angle = (lfHvdc.getBus1().getAngle() + lfHvdc.getBus2().getAngle()) / 2;
-                lfHvdc.getBus1().setAngle(angle);
-                lfHvdc.getBus2().setAngle(angle);
+        if (!frozenHvdc.isEmpty()) {
+
+            for (LfHvdc lfHvdc : frozenHvdc) {
+                Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
+                lfHvdc.unFreeze();
             }
+
+            // Return to initial state (we are in a possibly non physical state after first partial resolution)
+            context.getNetwork().getBuses()
+                    .stream()
+                    .filter(b -> !b.isDisabled())
+                    .forEach(b -> {
+                        b.setAngle(contextData.angles.get(b.getId()));
+                        b.setV(contextData.voltage.get(b.getId()));
+                    });
         }
 
         return new OuterLoopResult(this, frozenHvdc.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE);
@@ -85,6 +106,6 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
         // Can be needed in case of solve failure
         context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .forEach(LfHvdc::unFreezeAndReportSaturationStatus);
+                .forEach(LfHvdc::unFreeze);
     }
 }

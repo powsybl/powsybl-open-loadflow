@@ -208,15 +208,13 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public boolean unFreezeAndReportSaturationStatus() {
-        boolean shouldResetAngle = false;
+    public void unFreeze() {
         if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            shouldResetAngle |= pAcEmu.unFreeze();
+            pAcEmu.unFreeze();
         }
         if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            shouldResetAngle |= pAcEmu.unFreeze();
+            pAcEmu.unFreeze();
         }
-        return shouldResetAngle;
     }
 
     @Override

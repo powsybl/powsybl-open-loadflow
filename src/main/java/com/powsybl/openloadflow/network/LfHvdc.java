@@ -54,7 +54,7 @@ public interface LfHvdc extends LfElement {
 
     double freezeFromCurrentAngles();
 
-    boolean unFreezeAndReportSaturationStatus();
+    void unFreeze();
 
     boolean isFrozen();
 
