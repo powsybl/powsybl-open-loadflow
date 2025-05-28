@@ -13,28 +13,13 @@ class EquationDerivativeVector {
     // cache
     private final int[][] rowRefs;
     protected final int[] rows;
-    private final int[] localIndexes;
+    protected final int[] termElementNum;
     protected final double[] values;
+    private final double[][] termDerValues;
 
-    public EquationDerivativeVector(List<EquationDerivativeElement<?>> elements) {
+    public EquationDerivativeVector(List<EquationDerivativeElement<?>> elements, EquationArray<?, ?> equationArray) {
         int size = elements.size();
-        termArrayNums = new int[size];
-        termNums = new int[size];
-        rowRefs = new int[size][1];
-        rows = new int[size];
-        localIndexes = new int[size];
-        values = new double[size];
-        for (int i = 0; i < size; i++) {
-            EquationDerivativeElement<?> element = elements.get(i);
-            termArrayNums[i] = element.termArrayNum;
-            termNums[i] = element.termNum;
-            localIndexes[i] = element.derivative.getLocalIndex();
-            Variable<?> variable = element.derivative.getVariable();
-            rowRefs[i] = variable.getRowRef();
-        }
-    }
 
-    void update(EquationArray<?, ?> equationArray) {
         // compute all derivatives for each of the term array
         var termArrays = equationArray.getTermArrays();
         double[][][] termDerValuesByArrayIndex = new double[termArrays.size()][][];
@@ -42,6 +27,35 @@ class EquationDerivativeVector {
             termDerValuesByArrayIndex[i] = termArrays.get(i).evalDer();
         }
 
+        termArrayNums = new int[size];
+        termNums = new int[size];
+        rowRefs = new int[size][1];
+        rows = new int[size];
+        termElementNum = new int[size];
+        values = new double[size];
+        termDerValues = new double[size][];
+        int[] localIndexes = new int[size];
+        for (int i = 0; i < size; i++) {
+            EquationDerivativeElement<?> element = elements.get(i);
+            termArrayNums[i] = element.termArrayNum;
+            termNums[i] = element.termNum;
+            var termArray = termArrays.get(element.termArrayNum);
+            termElementNum[i] = termArray.getTermElementNum(element.termNum);
+            Variable<?> variable = element.derivative.getVariable();
+            rowRefs[i] = variable.getRowRef();
+            localIndexes[i] = element.derivative.getLocalIndex();
+        }
+
+        for (int i = 0; i < termNums.length; i++) {
+            rows[i] = rowRefs[i][0];
+        }
+        for (int i = 0; i < termNums.length; i++) {
+            termDerValues[i] = termDerValuesByArrayIndex[termArrayNums[i]][localIndexes[i]];
+        }
+    }
+
+    void update(EquationArray<?, ?> equationArray) {
+        var termArrays = equationArray.getTermArrays();
         for (int i = 0; i < termNums.length; i++) {
             int termNum = termNums[i];
             // get term array to which this term belongs
@@ -51,9 +65,7 @@ class EquationDerivativeVector {
             // skip inactive terms and get term derivative value
             if (termArray.isTermActive(termNum)) {
                 // add value (!!! we can have multiple terms contributing to same matrix element)
-                double[][] termDerValues = termDerValuesByArrayIndex[termArrayNum];
-                int termElementNum = termArray.getTermElementNum(termNum);
-                values[i] = termDerValues[localIndexes[i]][termElementNum];
+                values[i] = termDerValues[i][termElementNum[i]];
             } else {
                 values[i] = 0.0;
             }

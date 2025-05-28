@@ -283,7 +283,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 addEquationDerivativeVectorSortedTerms(elementNum, allTerms);
             }
             equationDerivativeVectorStartIndices[elementCount] = allTerms.size();
-            equationDerivativeVector = new EquationDerivativeVector(allTerms);
+            equationDerivativeVector = new EquationDerivativeVector(allTerms, this);
         }
     }
 
