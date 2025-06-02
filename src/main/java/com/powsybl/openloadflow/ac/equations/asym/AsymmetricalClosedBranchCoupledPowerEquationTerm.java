@@ -201,6 +201,11 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
     }
 
     @Override
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        return der(variable);
+    }
+
+    @Override
     public String getName() {
         return "ac_pq_coupled_closed";
     }

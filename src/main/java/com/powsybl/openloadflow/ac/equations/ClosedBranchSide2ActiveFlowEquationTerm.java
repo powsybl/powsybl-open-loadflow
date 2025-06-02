@@ -121,7 +121,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         } else if (variable.equals(a1Var)) {
             return dp2da1(y, 1, r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(r1Var)) {
-            return dp2dr1(y,1, v2(), FastMath.sin(theta));
+            return dp2dr1(y, 1, v2(), FastMath.sin(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

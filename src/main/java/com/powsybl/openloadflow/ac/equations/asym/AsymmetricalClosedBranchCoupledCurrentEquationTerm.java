@@ -181,6 +181,11 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     }
 
     @Override
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        return der(variable);
+    }
+
+    @Override
     public String getName() {
         return "ac_ixiy_coupled_closed";
     }

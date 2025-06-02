@@ -88,7 +88,6 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         return v1 * (2 * r1 * (-b1 + y * cosKsi) - y * R2 * cosTheta);
     }
 
-
     @Override
     public double eval() {
         return q1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta1(ksi, ph1(), a1(), ph2())));

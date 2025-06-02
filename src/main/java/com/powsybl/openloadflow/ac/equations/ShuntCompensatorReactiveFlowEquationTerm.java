@@ -73,6 +73,11 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         }
     }
 
+    @Override
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        return der(variable);
+    }
+
     public static double calculateSensi(double v, double b, double dv, double db) {
         return dqdv(v, b) * dv + dqdb(v) * db;
     }

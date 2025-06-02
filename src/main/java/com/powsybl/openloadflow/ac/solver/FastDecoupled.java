@@ -36,7 +36,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
-    Comparator<Equation<AcVariableType,AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
+    Comparator<Equation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
     Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> 0;
 
     private enum PhiVEquationType {
@@ -73,66 +73,66 @@ public class FastDecoupled extends AbstractAcSolver {
 
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
         LOGGER.debug("Start iteration {}", iterations);
-    try {
-        // create iteration report
-        // - add 1 to iteration so that it starts at 1 instead of 0
-        ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.getValue() + 1) : null;
-
-        // Solution on PHI
-        // solve f(x) = j * dx
         try {
-            // TODO HG: Use the Phi Jacobian and copy the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
-            j.solveTransposed(equationVector.getArray());
-        } catch (MatrixException e) {
-            LOGGER.error(e.toString(), e);
-            Reports.reportNewtonRaphsonError(reportNode, e.toString());
-            return AcSolverStatus.SOLVER_FAILED;
+            // create iteration report
+            // - add 1 to iteration so that it starts at 1 instead of 0
+            ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.getValue() + 1) : null;
+
+            // Solution on PHI
+            // solve f(x) = j * dx
+            try {
+                // TODO HG: Use the Phi Jacobian and copy the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
+                j.solveTransposed(equationVector.getArray());
+            } catch (MatrixException e) {
+                LOGGER.error(e.toString(), e);
+                Reports.reportNewtonRaphsonError(reportNode, e.toString());
+                return AcSolverStatus.SOLVER_FAILED;
+            }
+
+            // TODO HG: copy the result on the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
+            // f(x) now contains dx
+            // TODO HG: Use the right subset of equationVector
+            // TODO HG: should ban the using of lineSearch and replace it by none if selected with a warning
+            svScaling.apply(equationVector.getArray(), equationSystem, iterationReportNode);
+
+            // update x and f(x) will be automatically updated
+            // TODO HG: Adapt this method (minus) to work on subsets
+            equationSystem.getStateVector().minus(equationVector.getArray());
+
+            // subtract targets from f(x)
+            // TODO HG: Use restricted on a subset version
+            equationVector.minus(targetVector);
+            // f(x) now contains equation mismatches
+
+            // TODO HG: Do the same for the V system with a refacto
+
+            if (LOGGER.isTraceEnabled()) {
+                findLargestMismatches(equationSystem, equationVector.getArray(), 5)
+                        .forEach(e -> {
+                            Equation<AcVariableType, AcEquationType> equation = e.getKey();
+                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
+                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
+                        });
+            }
+
+            // test stopping criteria
+            NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
+
+            LOGGER.debug("|f(x)|={}", testResult.getNorm());
+            if (detailedReport) {
+                Reports.reportNewtonRaphsonNorm(iterationReportNode, testResult.getNorm());
+            }
+            if (detailedReport || LOGGER.isTraceEnabled()) {
+                reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), LOGGER);
+            }
+            if (testResult.isStop()) {
+                return AcSolverStatus.CONVERGED;
+            }
+
+            return null;
+        } finally {
+            iterations.increment();
         }
-
-        // TODO HG: copy the result on the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
-        // f(x) now contains dx
-        // TODO HG: Use the right subset of equationVector
-        // TODO HG: should ban the using of lineSearch and replace it by none if selected with a warning
-        svScaling.apply(equationVector.getArray(), equationSystem, iterationReportNode);
-
-        // update x and f(x) will be automatically updated
-        // TODO HG: Adapt this method (minus) to work on subsets
-        equationSystem.getStateVector().minus(equationVector.getArray());
-
-        // subtract targets from f(x)
-        // TODO HG: Use restricted on a subset version
-        equationVector.minus(targetVector);
-        // f(x) now contains equation mismatches
-
-        // TODO HG: Do the same for the V system with a refacto
-
-        if (LOGGER.isTraceEnabled()) {
-            findLargestMismatches(equationSystem, equationVector.getArray(), 5)
-                    .forEach(e -> {
-                        Equation<AcVariableType, AcEquationType> equation = e.getKey();
-                        String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
-                        LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
-                    });
-        }
-
-        // test stopping criteria
-        NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
-
-        LOGGER.debug("|f(x)|={}", testResult.getNorm());
-        if (detailedReport) {
-            Reports.reportNewtonRaphsonNorm(iterationReportNode, testResult.getNorm());
-        }
-        if (detailedReport || LOGGER.isTraceEnabled()) {
-            reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), LOGGER);
-        }
-        if (testResult.isStop()) {
-            return AcSolverStatus.CONVERGED;
-        }
-
-        return null;
-    } finally {
-        iterations.increment();
-    }
     }
 
     @Override
