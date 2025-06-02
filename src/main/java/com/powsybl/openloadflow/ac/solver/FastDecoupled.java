@@ -21,6 +21,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,6 +36,19 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
+    Comparator<Equation<AcVariableType,AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
+    Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> 0;
+
+    private enum PhiVEquationType {
+        PHI_EQUATION_TYPE,
+        V_EQUATION_TYPE;
+    }
+
+    private enum PhiVVariableType {
+        PHI_VARIABLE_TYPE,
+        V_VARIABLE_TYPE;
+    }
+
     public FastDecoupled(LfNetwork network, NewtonRaphsonParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                          JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                          EquationVector<AcVariableType, AcEquationType> equationVector, boolean detailedReport) {
@@ -47,6 +61,16 @@ public class FastDecoupled extends AbstractAcSolver {
         return "Fast Decoupled";
     }
 
+    private PhiVEquationType getPhiVEquationType(AcEquationType acEquationType) {
+        // TODO HG
+        return PhiVEquationType.PHI_EQUATION_TYPE;
+    }
+
+    private PhiVVariableType getPhiVVariableType(AcEquationType acEquationType) {
+        // TODO HG
+        return PhiVVariableType.PHI_VARIABLE_TYPE;
+    }
+
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
         LOGGER.debug("Start iteration {}", iterations);
     try {
@@ -57,7 +81,7 @@ public class FastDecoupled extends AbstractAcSolver {
         // Solution on PHI
         // solve f(x) = j * dx
         try {
-            // TODO HG: Use the Phi Jacobian and the right subset of equationVector
+            // TODO HG: Use the Phi Jacobian and copy the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
             j.solveTransposed(equationVector.getArray());
         } catch (MatrixException e) {
             LOGGER.error(e.toString(), e);
@@ -65,6 +89,7 @@ public class FastDecoupled extends AbstractAcSolver {
             return AcSolverStatus.SOLVER_FAILED;
         }
 
+        // TODO HG: copy the result on the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
         // f(x) now contains dx
         // TODO HG: Use the right subset of equationVector
         // TODO HG: should ban the using of lineSearch and replace it by none if selected with a warning
@@ -113,6 +138,7 @@ public class FastDecoupled extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // TODO HG: launch equation index and variable index sorting. Keep range limit in memory (int)
+        int index = equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
         // TODO HG: create Phi and V Jacobian matrices
 
         // initialize state vector

@@ -94,25 +94,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void updateForFastDecoupled() {
-        // TODO HG: Should return the index limit between Phi and V parts
-        // TODO HG: Define comparators - outside of this method
-        Comparator<Equation<V,E>> equationComparator = new Comparator<Equation<V, E>>() {
-            @Override
-            public int compare(Equation<V, E> o1, Equation<V, E> o2) {
-                return 0;
-            }
-        };
-        Comparator<Variable<V>> variableComparator = new Comparator<Variable<V>>() {
-            @Override
-            public int compare(Variable<V> o1, Variable<V> o2) {
-                return 0;
-            }
-        };
+    public int updateWithComparators(Comparator<Equation<V,E>> equationComparator, Comparator<Variable<V>> variableComparator) {
         // Sort equations to solve
         updateEquationsToSolve(equationComparator);
         // Sort variable to find
         updateVariablesToFind(variableComparator);
+
+        // TODO HG: Should find and return the index limit between Phi and V parts (in other method I think)
+        return 0;
     }
 
     private void addTerm(EquationTerm<V, E> term) {

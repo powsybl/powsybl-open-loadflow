@@ -205,7 +205,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         getLUDecomposition().solve(b);
     }
 
-    // TODO HG: Extend this solve method to accept a subset of the array
     public void solveTransposed(double[] b) {
         getLUDecomposition().solveTransposed(b);
     }
