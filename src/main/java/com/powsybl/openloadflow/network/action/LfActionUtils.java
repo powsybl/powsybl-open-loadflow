@@ -14,7 +14,8 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Reports;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 
 import static com.powsybl.openloadflow.network.action.AbstractLfBranchAction.updateBusesAndBranchStatus;
 
@@ -32,9 +33,9 @@ public final class LfActionUtils {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         return switch (action.getType()) {
-            case SwitchAction.NAME -> new LfSwitchAction(action.getId(), (SwitchAction) action);
+            case SwitchAction.NAME -> new LfSwitchAction(action.getId(), (SwitchAction) action, lfNetwork);
             case TerminalsConnectionAction.NAME ->
-                new LfTerminalsConnectionAction(action.getId(), (TerminalsConnectionAction) action);
+                new LfTerminalsConnectionAction(action.getId(), (TerminalsConnectionAction) action, lfNetwork);
             case PhaseTapChangerTapPositionAction.NAME ->
                 new LfPhaseTapChangerAction(action.getId(), (PhaseTapChangerTapPositionAction) action, lfNetwork);
             case RatioTapChangerTapPositionAction.NAME ->
@@ -82,7 +83,7 @@ public final class LfActionUtils {
         connectivity.startTemporaryChanges();
 
         branchActions.forEach(action -> {
-            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(network, connectivity)) {
+            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(connectivity)) {
                 Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
             }
         });
