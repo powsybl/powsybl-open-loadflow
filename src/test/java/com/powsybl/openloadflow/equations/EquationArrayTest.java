@@ -79,8 +79,12 @@ class EquationArrayTest {
                 return matrixElementIndex;
             });
         }
+        int[] valueIndex = new int[1];
         for (var eq : equationSystem.getEquationArrays()) {
-            eq.derInit(m);
+            eq.der((column, row, value, matrixElementIndex) -> {
+                m.set(row, column, value);
+                return valueIndex[0]++;
+            });
         }
         return m;
     }
