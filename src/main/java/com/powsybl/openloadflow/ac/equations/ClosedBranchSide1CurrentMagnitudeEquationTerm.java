@@ -159,6 +159,11 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        return der(variable);
+    }
+
+    @Override
     protected String getName() {
         return "ac_i_closed_1";
     }

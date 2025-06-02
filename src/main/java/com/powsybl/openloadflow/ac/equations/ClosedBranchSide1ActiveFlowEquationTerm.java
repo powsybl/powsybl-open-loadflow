@@ -16,7 +16,6 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.A2;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**

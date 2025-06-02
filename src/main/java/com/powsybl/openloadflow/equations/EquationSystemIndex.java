@@ -62,7 +62,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onEquationTermChange(term));
     }
 
-    private void updateEquationsToSolve(Comparator<Equation<V,E>> comparator) {
+    private void updateEquationsToSolve(Comparator<Equation<V, E>> comparator) {
         sortedEquationsToSolve = comparator == null ? equationsToSolve.stream().sorted().collect(Collectors.toList())
                 : equationsToSolve.stream().sorted(comparator).collect(Collectors.toList());
         AtomicInteger columnCount = new AtomicInteger();
@@ -76,7 +76,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     private void updateVariablesToFind(Comparator<Variable<V>> comparator) {
         sortedVariablesToFind = comparator == null ? variablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList())
                 : variablesToFindRefCount.keySet().stream().sorted(comparator).collect(Collectors.toList());
-        AtomicInteger rowCount  = new AtomicInteger();
+        AtomicInteger rowCount = new AtomicInteger();
         for (Variable<V> variable : sortedVariablesToFind) {
             variable.setRow(rowCount.getAndAdd(1));
         }
@@ -94,7 +94,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    public int updateWithComparators(Comparator<Equation<V,E>> equationComparator, Comparator<Variable<V>> variableComparator) {
+    public int updateWithComparators(Comparator<Equation<V, E>> equationComparator, Comparator<Variable<V>> variableComparator) {
         // Sort equations to solve
         updateEquationsToSolve(equationComparator);
         // Sort variable to find

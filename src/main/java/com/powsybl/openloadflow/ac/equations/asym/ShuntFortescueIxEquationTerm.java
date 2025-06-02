@@ -63,6 +63,11 @@ public class ShuntFortescueIxEquationTerm extends AbstractShuntFortescueCurrentE
     }
 
     @Override
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        return der(variable);
+    }
+
+    @Override
     public String getName() {
         return "ac_ix_fortescue_shunt";
     }

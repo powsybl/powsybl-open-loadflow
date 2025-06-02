@@ -75,4 +75,9 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
         }
         return value * getTarget();
     }
+
+    @Override
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        return der(variable);
+    }
 }

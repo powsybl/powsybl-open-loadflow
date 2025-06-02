@@ -256,6 +256,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
     }
 
     @Override
+    public double derFastDecoupled(Variable<AcVariableType> variable) {
+        return der(variable);
+    }
+
+    @Override
     public String getName() {
         return "ac_pq_fortescue_load";
     }
