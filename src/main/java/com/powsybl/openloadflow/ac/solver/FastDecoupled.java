@@ -36,9 +36,6 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
-    Comparator<Equation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
-    Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> 0;
-
     private enum PhiVEquationType {
         PHI_EQUATION_TYPE,
         V_EQUATION_TYPE;
@@ -62,14 +59,35 @@ public class FastDecoupled extends AbstractAcSolver {
     }
 
     private PhiVEquationType getPhiVEquationType(AcEquationType acEquationType) {
-        // TODO HG
-        return PhiVEquationType.PHI_EQUATION_TYPE;
+        return switch (acEquationType) {
+            case BUS_TARGET_P,
+                 BUS_TARGET_PHI,
+                 BRANCH_TARGET_P,
+                 BRANCH_TARGET_ALPHA1,
+                 ZERO_PHI,
+                 DUMMY_TARGET_P,
+                 BUS_DISTR_SLACK_P -> PhiVEquationType.PHI_EQUATION_TYPE;
+            case BUS_TARGET_Q,
+                 BUS_TARGET_V,
+                 SHUNT_TARGET_B,
+                 BRANCH_TARGET_Q,
+                 BRANCH_TARGET_RHO1,
+                 DISTR_Q,
+                 ZERO_V,
+                 DISTR_RHO,
+                 DISTR_SHUNT_B,
+                 DUMMY_TARGET_Q -> PhiVEquationType.V_EQUATION_TYPE;
+            default -> null;
+        };
     }
 
     private PhiVVariableType getPhiVVariableType(AcEquationType acEquationType) {
         // TODO HG
         return PhiVVariableType.PHI_VARIABLE_TYPE;
     }
+
+    Comparator<Equation<AcVariableType,AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
+    Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> 0;
 
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
         LOGGER.debug("Start iteration {}", iterations);
