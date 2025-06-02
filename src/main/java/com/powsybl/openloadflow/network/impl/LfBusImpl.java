@@ -12,17 +12,12 @@ import com.powsybl.iidm.network.extensions.LoadAsymmetrical;
 import com.powsybl.iidm.network.extensions.LoadConnectionType;
 import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
-import com.powsybl.iidm.network.extensions.WindingConnectionType;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.network.extensions.iidm.AsymmetricalBranchConnector;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalanced;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.BusBreakerViolationLocation;
@@ -312,7 +307,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetP() {
-        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = this.getAsym();
         if (asymBus != null) {
             return getGenerationTargetP();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
@@ -323,7 +318,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetQ() {
-        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = this.getAsym();
         if (asymBus != null) {
             return getGenerationTargetQ();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation

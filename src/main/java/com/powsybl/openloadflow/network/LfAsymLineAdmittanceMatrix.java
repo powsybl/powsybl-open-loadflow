@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
-import com.powsybl.openloadflow.util.MatrixUtil;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.util.Pair;
 

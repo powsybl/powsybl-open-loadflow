@@ -9,9 +9,7 @@
 package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
@@ -22,13 +20,7 @@ import com.powsybl.openloadflow.network.extensions.StepType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
-import net.jafama.FastMath;
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.complex.Complex;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
@@ -105,11 +97,11 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
         ComplexMatrix mIfortescueConjugate = ComplexMatrix.getComplexMatrixFromRealCartesian(Fortescue.createMatrix().times(m1T0));
         ComplexMatrix mSfortescue = ComplexMatrix.getComplexMatrixFromRealCartesian(mSquareVFortescue.times(mIfortescueConjugate.getRealCartesianMatrix())); //  term T0 = Sfortescue
 
-        return switch (sequenceType) {
-            case ZERO ->
-                    complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
+        switch (sequenceType) {
+            case ZERO :
+                return complexPart == ComplexPart.REAL ? mIfortescueConjugate.getTerm(1, 1).getReal() : -mIfortescueConjugate.getTerm(1, 1).getImaginary(); // IxZero or IyZero
 
-            case POSITIVE:
+            case POSITIVE :
                 // check if positive sequence is modelled as P,Q or Ix,Iy
                 if (asymBus.isPositiveSequenceAsCurrent()) {
                     return complexPart == ComplexPart.REAL ? mIfortescueConjugate.getTerm(2, 1).getReal() : -mIfortescueConjugate.getTerm(2, 1).getImaginary(); // IxZero or IyZero
@@ -117,7 +109,7 @@ public class LoadFortescuePowerEquationTerm extends AsymmetricalLoadTerm {
                     return complexPart == ComplexPart.REAL ? mSfortescue.getTerm(2, 1).getReal() : mSfortescue.getTerm(2, 1).getImaginary(); // Ppositive or Qpositive
                 }
 
-            case NEGATIVE:
+            case NEGATIVE :
                 return complexPart == ComplexPart.REAL ? mIfortescueConjugate.getTerm(3, 1).getReal() : -mIfortescueConjugate.getTerm(3, 1).getImaginary(); // IxNegative or IyNegative
 
             default:

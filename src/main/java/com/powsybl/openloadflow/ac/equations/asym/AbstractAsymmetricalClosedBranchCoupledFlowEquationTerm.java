@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -182,22 +181,6 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
     }
 
     protected static SequenceType getSequenceType(Variable<AcVariableType> variable) {
-        switch (variable.getType()) {
-            case BUS_V:
-            case BUS_PHI:
-                return SequenceType.POSITIVE;
-
-            case BUS_V_NEGATIVE:
-            case BUS_PHI_NEGATIVE:
-                return SequenceType.NEGATIVE;
-
-            case BUS_V_ZERO:
-            case BUS_PHI_ZERO:
-                return SequenceType.ZERO;
-
-            default:
-                throw new IllegalStateException(UNKNOWN_VAR + variable);
-        }
         return switch (variable.getType()) {
             case BUS_V, BUS_PHI -> SequenceType.POSITIVE;
             case BUS_V_NEGATIVE, BUS_PHI_NEGATIVE -> SequenceType.NEGATIVE;

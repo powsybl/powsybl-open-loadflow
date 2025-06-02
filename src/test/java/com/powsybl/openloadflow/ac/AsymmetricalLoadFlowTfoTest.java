@@ -18,8 +18,9 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
+
+import java.time.ZonedDateTime;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -113,7 +114,7 @@ public class AsymmetricalLoadFlowTfoTest {
      */
     public static Network fiveNodescreate() {
         Network network = Network.create("4n", "test");
-        network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
         Substation substation01 = network.newSubstation()
                 .setId("S1")

@@ -18,15 +18,14 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
 import com.powsybl.openloadflow.network.extensions.iidm.*;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.complex.ComplexUtils;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.ZonedDateTime;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -182,7 +181,7 @@ public class Asym34BusFeederTest {
 
     public static Network ieee34LoadFeeder() {
         Network network = Network.create("13n", "test");
-        network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
         double vBase = 24.9;
         double vBaseLow = 4.16;
@@ -862,7 +861,7 @@ public class Asym34BusFeederTest {
         bus832.setV(vBase).setAngle(0.);
 
         AsymmetricalBranchConnector c832 = new AsymmetricalBranchConnector(BusVariableType.WYE,
-                true, true, true, false, true);
+                true, true, true, true, true);
 
         double p832 = 0.;
         double q832 = 0.;
@@ -872,12 +871,12 @@ public class Asym34BusFeederTest {
                 .setP0(p832)
                 .setQ0(q832)
                 .newZipModel()
-                    .setC0p(0.)
+                    .setC0p(1.)
                     .setC1p(0.)
-                    .setC2p(1.)
-                    .setC0q(0.)
+                    .setC2p(0.)
+                    .setC0q(1.)
                     .setC1q(0.)
-                    .setC2q(1.)
+                    .setC2q(0.)
                     .add()
                 .add();
 
@@ -905,7 +904,7 @@ public class Asym34BusFeederTest {
         bus888.setV(vBase).setAngle(0.);
 
         AsymmetricalBranchConnector c888 = new AsymmetricalBranchConnector(BusVariableType.WYE,
-                true, true, true, false, true);
+                true, true, true, true, true);
 
         // Bus 890
         Substation substation890 = network.newSubstation()

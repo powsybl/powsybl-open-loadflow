@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
+//import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisProvider;
@@ -101,8 +101,12 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     }
 
     @Override
-    public String getVersion() {
+    /*public String getVersion() {
         return new PowsyblOpenLoadFlowVersion().toString();
+    }*/
+    public String getVersion() {
+        String ss = "bug version";
+        return ss;
     }
 
     @Override

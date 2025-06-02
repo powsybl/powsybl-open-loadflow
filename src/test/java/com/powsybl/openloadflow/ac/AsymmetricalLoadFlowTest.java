@@ -22,8 +22,6 @@ import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.LoadAsymmetrical2Adder;
-import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;

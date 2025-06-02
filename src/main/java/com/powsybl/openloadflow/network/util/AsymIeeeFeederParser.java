@@ -11,13 +11,13 @@ import com.univocity.parsers.common.processor.BeanListProcessor;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import org.apache.commons.math3.complex.Complex;
-import org.joda.time.DateTime;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 public final class AsymIeeeFeederParser {
@@ -366,6 +366,7 @@ public final class AsymIeeeFeederParser {
                 .add();
 
         LoadConnectionType loadConnectionType;
+        ZipLoadModel zipLoadModel = (ZipLoadModel) load.getModel().orElseThrow();
         LoadType loadTypeOut;
         if (loadType.equals("Y-PQ")) {
             loadConnectionType = LoadConnectionType.Y;
@@ -417,10 +418,6 @@ public final class AsymIeeeFeederParser {
                 .withDeltaPc(pc / 1000.)
                 .withDeltaQc(qc / 1000.)
                 .withConnectionType(loadConnectionType)
-                .add();
-
-        load.newExtension(LoadAsymmetrical2Adder.class)
-                .withLoadType(loadTypeOut)
                 .add();
 
     }
@@ -654,7 +651,7 @@ public final class AsymIeeeFeederParser {
 
     public static Network create(NetworkFactory networkFactory, String path) {
         Network network = networkFactory.createNetwork("EuropeanLvTestFeeder", "csv");
-        network.setCaseDate(DateTime.parse("2023-04-11T23:59:00.000+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2023-04-11T23:59:00.000+01:00"));
 
         // for substation naming when there are tfos:
         List<TfoData> listTfos = parseTfos(path);

@@ -6,20 +6,18 @@ import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.network.extensions.iidm.AsymmetricalBranchConnector;
 import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadAsymmetrical2Adder;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.univocity.parsers.annotations.Parsed;
 import com.univocity.parsers.common.processor.BeanListProcessor;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import org.apache.commons.math3.complex.Complex;
-import org.joda.time.DateTime;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -290,9 +288,6 @@ public final class AsymLvFeederParser {
                     .withDeltaQc(deltaQc)
                     .add();
 
-            l.newExtension(LoadAsymmetrical2Adder.class)
-                    .withLoadType(LoadType.CONSTANT_POWER)
-                    .add();
         }
     }
 
@@ -320,7 +315,8 @@ public final class AsymLvFeederParser {
                 .add();
 
         // modification of bus extension due to generating unit
-        network.getBusBreakerView().getBus(getBusId(busName)).getExtension(BusAsymmetrical.class).setPositiveSequenceAsCurrent(false);
+        //network.getBusBreakerView().getBus(getBusId(busName)).getExtension(BusAsymmetrical.class).setPositiveSequenceAsCurrent(false);
+        bus2Connector.get(getBusId(busName)).setPositiveSequenceAsCurrent(false);
     }
 
     private static WindingConnectionType getConnectionType(String conn) {
@@ -340,11 +336,13 @@ public final class AsymLvFeederParser {
 
     public static Network create(NetworkFactory networkFactory, String path) {
         Network network = networkFactory.createNetwork("EuropeanLvTestFeeder", "csv");
-        network.setCaseDate(DateTime.parse("2023-04-11T23:59:00.000+01:00"));
+        network.setCaseDate(ZonedDateTime.parse("2023-04-11T23:59:00.000+01:00"));
 
-        createBuses(network, path);
-        createSource(network);
-        createLines(network, path);
+        Map<String, AsymmetricalBranchConnector> bus2Connector = new HashMap<>();
+
+        createBuses(network, path, bus2Connector);
+        createSource(network, bus2Connector);
+        createLines(network, path, bus2Connector);
         createLoads(network, path);
         return network;
     }
