@@ -1488,6 +1488,54 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testReactivePowerAndCurrentPerTargetQSensi() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
+
+        List<SensitivityFactor> factors = List.of(
+                createBranchReactivePowerPerTargetQ("NHV1_NHV2_1", "NLOAD", TwoSides.ONE),
+                createBranchReactivePowerPerTargetQ("NHV1_NHV2_1", "NLOAD", TwoSides.TWO),
+                createBranchIntensityPerTargetQ("NHV1_NHV2_1", "NLOAD", TwoSides.ONE),
+                createBranchIntensityPerTargetQ("NHV1_NHV2_1", "NLOAD", TwoSides.TWO)
+        );
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(4, result.getValues().size());
+        assertEquals(-0.626, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.570, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.325, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.461, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        runAcLf(network);
+
+        // check reference flows are consistents with LF ones
+        var line = network.getLine("NHV1_NHV2_1");
+        assertReactivePowerEquals(result.getFunctionReferenceValue("NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1),
+                line.getTerminal1());
+        assertReactivePowerEquals(result.getFunctionReferenceValue("NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2),
+                line.getTerminal2());
+        assertCurrentEquals(result.getFunctionReferenceValue("NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_1),
+                line.getTerminal1());
+        assertCurrentEquals(result.getFunctionReferenceValue("NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_2),
+                line.getTerminal2());
+
+        // check sensi values looks consistent with 2 LF diff
+        double q1Before = line.getTerminal1().getQ();
+        double q2Before = line.getTerminal2().getQ();
+        double i1Before = line.getTerminal1().getI();
+        double i2Before = line.getTerminal2().getI();
+
+        Load load = network.getLoad("LOAD");
+        load.setQ0(load.getQ0() - 1);
+        runAcLf(network);
+
+        assertEquals(-0.6257, line.getTerminal1().getQ() - q1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -0.626
+        assertEquals(0.5699, line.getTerminal2().getQ() - q2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs 0.570
+        assertEquals(-0.3236, line.getTerminal1().getI() - i1Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -0.325
+        assertEquals(-0.4601, line.getTerminal2().getI() - i2Before, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -0.461
+    }
+
+    @Test
     void testUnsupportedVariablesSensiV() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
