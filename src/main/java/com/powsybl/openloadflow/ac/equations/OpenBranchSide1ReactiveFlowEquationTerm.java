@@ -58,15 +58,6 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
         }
     }
 
-    public double derFastDecoupled(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(v2Var)) {
-            return dq2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, b2, 1);
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-    }
-
     @Override
     protected String getName() {
         return "ac_q_open_1";

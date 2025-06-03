@@ -87,4 +87,9 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     public double rhs() {
         return 0;
     }
+
+    @Override
+    public double derFastDecoupled(Variable<V> variable) {
+        return der(variable);
+    }
 }

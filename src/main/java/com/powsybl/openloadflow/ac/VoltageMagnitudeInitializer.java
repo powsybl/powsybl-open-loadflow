@@ -151,11 +151,6 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         @Override
-        public double derFastDecoupled(Variable<InitVmVariableType> variable) {
-            return der(variable);
-        }
-
-        @Override
         protected String getName() {
             return "v_distr";
         }

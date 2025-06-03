@@ -81,11 +81,6 @@ public class ClosedBranchI1xFlowEquationTerm extends AbstractClosedBranchAcFlowE
     }
 
     @Override
-    public double derFastDecoupled(Variable<AcVariableType> variable) {
-        return der(variable);
-    }
-
-    @Override
     public String getName() {
         return "ac_ix_closed_1";
     }

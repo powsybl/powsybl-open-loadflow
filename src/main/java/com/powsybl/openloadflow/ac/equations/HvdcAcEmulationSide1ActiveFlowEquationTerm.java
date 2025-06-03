@@ -68,11 +68,6 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     @Override
-    public double derFastDecoupled(Variable<AcVariableType> variable) {
-        return der(variable);
-    }
-
-    @Override
     protected String getName() {
         return "ac_emulation_p_1";
     }

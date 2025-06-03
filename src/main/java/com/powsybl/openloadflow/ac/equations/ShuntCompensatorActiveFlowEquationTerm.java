@@ -60,11 +60,6 @@ public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompens
     }
 
     @Override
-    public double derFastDecoupled(Variable<AcVariableType> variable) {
-        return der(variable);
-    }
-
-    @Override
     protected String getName() {
         return "ac_p_shunt";
     }
