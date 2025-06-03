@@ -86,7 +86,7 @@ public class FastDecoupled extends AbstractAcSolver {
         return PhiVVariableType.PHI_VARIABLE_TYPE;
     }
 
-    Comparator<Equation<AcVariableType,AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
+    Comparator<Equation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
     Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> 0;
 
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {

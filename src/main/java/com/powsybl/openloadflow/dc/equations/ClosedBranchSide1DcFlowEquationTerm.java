@@ -56,11 +56,6 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double derFastDecoupled(Variable<DcVariableType> variable) {
-        return der(variable);
-    }
-
-    @Override
     public double rhs() {
         if (a1Var != null) {
             return -getPower() * A2;

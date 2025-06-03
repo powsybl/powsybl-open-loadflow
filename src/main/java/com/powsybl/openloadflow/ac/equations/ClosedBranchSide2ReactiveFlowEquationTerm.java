@@ -81,6 +81,10 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         return -y * R2 * v1 * v2 * cosTheta;
     }
 
+    public static double dq2dv2FastDecoupled(double y, double cosKsi, double b2, double v2, double r1, double cosTheta) {
+        return R2 * v2 * (-2 * b2 * R2 - y * r1 * cosTheta + 2 * y * R2 * cosKsi);
+    }
+
     @Override
     public double eval() {
         return q2(y, FastMath.cos(ksi), b2, v1(), r1(), v2(), FastMath.cos(theta2(ksi, ph1(), a1(), ph2())));
@@ -113,13 +117,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         if (variable.equals(v1Var)) {
             return dq2dv1(y, r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(v2Var)) {
-            return dq2dv2(y, FastMath.cos(ksi), b2, v2(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(ph1Var)) {
-            return dq2dph1(y, 1, r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(ph2Var)) {
-            return dq2dph2(y, 1, r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(a1Var)) {
-            return dq2da1(y, 1, r1(), v2(), FastMath.sin(theta));
+            return dq2dv2FastDecoupled(y, FastMath.cos(ksi), b2, v2(), r1(), FastMath.cos(theta));
         } else if (variable.equals(r1Var)) {
             return dq2dr1(y, 1, v2(), FastMath.cos(theta));
         } else {

@@ -110,18 +110,12 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         double theta = theta2FastDecoupled(ksi, a1());
-        if (variable.equals(v1Var)) {
-            return dp2dv1(y, r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(v2Var)) {
-            return dp2dv2(y, FastMath.sin(ksi), g2, v2(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(ph1Var)) {
+        if (variable.equals(ph1Var)) {
             return dp2dph1(y, 1, r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(ph2Var)) {
             return dp2dph2(y, 1, r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(a1Var)) {
             return dp2da1(y, 1, r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(r1Var)) {
-            return dp2dr1(y, 1, v2(), FastMath.sin(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

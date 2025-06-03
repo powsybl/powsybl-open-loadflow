@@ -96,11 +96,6 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public double derFastDecoupled(Variable<AcVariableType> variable) {
-        return der(variable);
-    }
-
-    @Override
     protected String getName() {
         return "ac_i_open_1";
     }

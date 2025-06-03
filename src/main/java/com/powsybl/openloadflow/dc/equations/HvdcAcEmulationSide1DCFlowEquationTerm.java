@@ -43,11 +43,6 @@ public class HvdcAcEmulationSide1DCFlowEquationTerm extends AbstractHvdcAcEmulat
     }
 
     @Override
-    public double derFastDecoupled(Variable<DcVariableType> variable) {
-        return der(variable);
-    }
-
-    @Override
     public boolean hasRhs() {
         return true;
     }
