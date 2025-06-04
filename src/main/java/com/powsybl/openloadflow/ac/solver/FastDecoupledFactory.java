@@ -18,6 +18,8 @@ import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -25,6 +27,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 @AutoService(AcSolverFactory.class)
 public class FastDecoupledFactory implements AcSolverFactory {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupledFactory.class);
     public static final String NAME = "FAST_DECOUPLED";
 
     @Override
@@ -38,7 +41,7 @@ public class FastDecoupledFactory implements AcSolverFactory {
         return new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
                 .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations()) // TODO HG: use another param?
-                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode()) // TODO HG: here to check parameters coherency?
+                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode()) //
                 .setMaxVoltageChangeStateVectorScalingMaxDv(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDv())
                 .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
