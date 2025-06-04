@@ -81,13 +81,50 @@ public class FastDecoupled extends AbstractAcSolver {
         };
     }
 
-    private PhiVVariableType getPhiVVariableType(AcEquationType acEquationType) {
-        // TODO HG
-        return PhiVVariableType.PHI_VARIABLE_TYPE;
+    private PhiVVariableType getPhiVVariableType(AcVariableType acVariableType) {
+        return switch (acVariableType) {
+            case BUS_PHI,
+                 BRANCH_ALPHA1,
+                 DUMMY_P -> PhiVVariableType.PHI_VARIABLE_TYPE;
+            case BUS_V,
+                 SHUNT_B,
+                 BRANCH_RHO1,
+                 DUMMY_Q -> PhiVVariableType.V_VARIABLE_TYPE;
+            default -> null;
+        };
     }
 
-    Comparator<Equation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> 0;
-    Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> 0;
+    Comparator<Equation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
+        PhiVEquationType equationType1 = getPhiVEquationType(o1.getType());
+        PhiVEquationType equationType2 = getPhiVEquationType(o2.getType());
+        if (equationType1 != equationType2) {
+            return equationType1 == PhiVEquationType.PHI_EQUATION_TYPE ? -1 : 1;
+        } else {
+            return o1.compareTo(o2);
+        }
+    };
+
+    Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> {
+        PhiVVariableType variableType1 = getPhiVVariableType(o1.getType());
+        PhiVVariableType variableType2 = getPhiVVariableType(o2.getType());
+        if (variableType1 != variableType2) {
+            return variableType1 == PhiVVariableType.PHI_VARIABLE_TYPE ? -1 : 1;
+        } else {
+            return o1.compareTo(o2);
+        }
+    };
+
+    private int getRangeForPhiSystemPart() {
+        MutableInt index = new MutableInt();
+        for (Variable<AcVariableType> var : equationSystem.getIndex().getSortedVariablesToFind()) {
+            if (getPhiVVariableType(var.getType()) != PhiVVariableType.PHI_VARIABLE_TYPE) {
+                index.increment();
+            } else {
+                break;
+            }
+        }
+        return index.getValue();
+    }
 
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
         LOGGER.debug("Start iteration {}", iterations);
@@ -155,8 +192,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
-        // TODO HG: launch equation index and variable index sorting. Keep range limit in memory (int)
-        int index = equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
+        equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
+        int rangeIndex = getRangeForPhiSystemPart();
+
         // TODO HG: create Phi and V Jacobian matrices
 
         // initialize state vector

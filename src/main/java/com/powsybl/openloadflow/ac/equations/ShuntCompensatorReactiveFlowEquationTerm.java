@@ -71,7 +71,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         if (variable.equals(vVar)) {
             return dqdv(v(), b());
         } else if (variable.equals(bVar)) {
-            return dqdbFastDecoupled(v());
+            return dqdb(v());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -83,7 +83,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         if (variable.equals(vVar)) {
             return dqdv(v(), b());
         } else if (variable.equals(bVar)) {
-            return dqdb(v());
+            return dqdbFastDecoupled(v());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
