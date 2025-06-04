@@ -15,4 +15,6 @@ public interface Vector {
     double[] getArray();
 
     void minus(Vector other);
+
+    void minusWithRange(Vector other, int begin, int end);
 }
