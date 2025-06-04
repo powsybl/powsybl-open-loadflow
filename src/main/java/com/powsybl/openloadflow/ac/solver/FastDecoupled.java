@@ -143,9 +143,7 @@ public class FastDecoupled extends AbstractAcSolver {
         // copy the result on the right subset of equationVector
         System.arraycopy(partialEquationVector, 0, equationVector.getArray(), begin, systemLength);
         // f(x) now contains dx in its "Phi" or "V" part
-        // TODO HG: Use the right subset of equationVector
-        // TODO HG: should ban the using of lineSearch and replace it by none if selected with a warning
-        svScaling.apply(equationVector.getArray(), equationSystem, iterationReportNode);
+        svScaling.applyOnLimitedRange(equationVector.getArray(), equationSystem, iterationReportNode, begin, end, isPhySystem);
 
         // update x and f(x) will be automatically updated
         // TODO HG (OPTIM): Adapt the automatic update part to update only a subset of f(x) when Phi part is updated

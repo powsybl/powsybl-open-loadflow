@@ -11,11 +11,9 @@ package com.powsybl.openloadflow.ac.solver;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.TargetVector;
-import com.powsybl.openloadflow.equations.Vectors;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.util.Reports;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,5 +86,36 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
                                                                ReportNode reportNode) {
         // nothing to do
         return testResult;
+    }
+
+    @Override
+    public void applyOnLimitedRange(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, ReportNode reportNode, int begin, int end, boolean isPhiType) {
+        double maxDelta = isPhiType ? maxDphi : maxDv;
+        AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : AcVariableType.BUS_V;
+        int cutCount = 0;
+        double stepSize = 1.0;
+        for (int i = begin; i < end; i++) {
+            Variable<AcVariableType> var = equationSystem.getIndex().getSortedVariablesToFind().get(i);
+            double absValueChange = Math.abs(dx[i]);
+            if (var.getType() == correctType) {
+                if (absValueChange > maxDelta) {
+                    stepSize = Math.min(stepSize, maxDelta / absValueChange);
+                    cutCount++;
+                }
+            }
+
+            if (cutCount > 0) {
+                String variableName = isPhiType ? "dphi" : "dv";
+                LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
+                if (reportNode != null) {
+                    if (isPhiType) {
+                        Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
+                    } else {
+                        Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
+                    }
+                }
+                Vectors.multWithRange(dx, stepSize, begin, end);
+            }
+        }
     }
 }

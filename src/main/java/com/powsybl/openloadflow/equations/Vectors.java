@@ -49,7 +49,11 @@ public final class Vectors {
      * a = a * b
      */
     public static void mult(double[] a, double b) {
-        for (int i = 0; i < a.length; i++) {
+        multWithRange(a, b, 0, a.length);
+    }
+
+    public static void multWithRange(double[] a, double b, int begin, int end) {
+        for (int i = begin; i < end; i++) {
             a[i] = a[i] * b;
         }
     }
