@@ -36,6 +36,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
+    private JacobianMatrix<AcVariableType, AcEquationType> jPhi;
+    private JacobianMatrix<AcVariableType, AcEquationType> jV;
+
     private enum PhiVEquationType {
         PHI_EQUATION_TYPE,
         V_EQUATION_TYPE;
@@ -126,40 +129,54 @@ public class FastDecoupled extends AbstractAcSolver {
         return index.getValue();
     }
 
-    private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
+    private void runSingleSystemSolution(JacobianMatrix<AcVariableType, AcEquationType> j, double[] partialEquationVector, int rangeIndex, boolean isPhySystem,
+                                         StateVectorScaling svScaling, ReportNode reportNode, ReportNode iterationReportNode) {
+        int systemLength = partialEquationVector.length;
+        int begin = isPhySystem ? 0 : rangeIndex;
+        int end = isPhySystem ? rangeIndex : equationVector.getArray().length;
+
+        // solve f(x) = j * dx
+        // Extract the "Phi" or "V" part of the equation vector
+        System.arraycopy(equationVector.getArray(), begin, partialEquationVector, 0, systemLength);
+        j.solveTransposed(partialEquationVector);
+
+        // copy the result on the right subset of equationVector
+        System.arraycopy(partialEquationVector, 0, equationVector.getArray(), begin, systemLength);
+        // f(x) now contains dx in its "Phi" or "V" part
+        // TODO HG: Use the right subset of equationVector
+        // TODO HG: should ban the using of lineSearch and replace it by none if selected with a warning
+        svScaling.apply(equationVector.getArray(), equationSystem, iterationReportNode);
+
+        // update x and f(x) will be automatically updated
+        // TODO HG (OPTIM): Adapt the automatic update part to update only a subset of f(x) when Phi part is updated
+        equationSystem.getStateVector().minusWithRange(equationVector.getArray(), begin, end);
+
+        // subtract targets from f(x) for next iteration
+        // we need to reverse begin in case of "Phi" to prepare for "V" one
+        // for "V" system we recompute the whole mismatches as they are needed to assess convergence
+        begin = isPhySystem ? rangeIndex : 0;
+        end = equationVector.getArray().length;
+        equationVector.minusWithRange(targetVector, begin, end);
+        // f(x) now contains equation mismatches on either its "Phi" part or on the whole array
+    }
+
+    private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode, double[] phiEquationVector, double[] vEquationVector, int rangeIndex) {
         LOGGER.debug("Start iteration {}", iterations);
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
             ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.getValue() + 1) : null;
 
-            // Solution on PHI
-            // solve f(x) = j * dx
             try {
-                // TODO HG: Use the Phi Jacobian and copy the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
-                j.solveTransposed(equationVector.getArray());
+                // Solution on PHI
+                runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, svScaling, reportNode, iterationReportNode);
+                // Solution on V
+                runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, svScaling, reportNode, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
                 Reports.reportNewtonRaphsonError(reportNode, e.toString());
                 return AcSolverStatus.SOLVER_FAILED;
             }
-
-            // TODO HG: copy the result on the right subset of equationVector: System.arraycopy( src, 0, dest, 0, src.length );
-            // f(x) now contains dx
-            // TODO HG: Use the right subset of equationVector
-            // TODO HG: should ban the using of lineSearch and replace it by none if selected with a warning
-            svScaling.apply(equationVector.getArray(), equationSystem, iterationReportNode);
-
-            // update x and f(x) will be automatically updated
-            // TODO HG: Adapt this method (minus) to work on subsets
-            equationSystem.getStateVector().minus(equationVector.getArray());
-
-            // subtract targets from f(x)
-            // TODO HG: Use restricted on a subset version
-            equationVector.minus(targetVector);
-            // f(x) now contains equation mismatches
-
-            // TODO HG: Do the same for the V system with a refacto
 
             if (LOGGER.isTraceEnabled()) {
                 findLargestMismatches(equationSystem, equationVector.getArray(), 5)
@@ -218,8 +235,12 @@ public class FastDecoupled extends AbstractAcSolver {
         // start iterations
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
+        // prepare half-sized equation vector
+        double[] phiEquationVector = new double[rangeIndex];
+        double[] vEquationVector = new double[equationSystem.getIndex().getSortedEquationsToSolve().size() - rangeIndex];
+
         while (iterations.getValue() <= parameters.getMaxIterations()) {
-            AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode);
+            AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode, phiEquationVector, vEquationVector, rangeIndex);
             if (newStatus != null) {
                 status = newStatus;
                 break;
