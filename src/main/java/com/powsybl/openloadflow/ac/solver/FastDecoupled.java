@@ -117,7 +117,7 @@ public class FastDecoupled extends AbstractAcSolver {
     private int getRangeForPhiSystemPart() {
         MutableInt index = new MutableInt();
         for (Variable<AcVariableType> var : equationSystem.getIndex().getSortedVariablesToFind()) {
-            if (getPhiVVariableType(var.getType()) != PhiVVariableType.PHI_VARIABLE_TYPE) {
+            if (getPhiVVariableType(var.getType()) == PhiVVariableType.PHI_VARIABLE_TYPE) {
                 index.increment();
             } else {
                 break;
