@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
@@ -24,7 +25,12 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
     public static void init(Equation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_P:
-                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
+                LfBus bus = network.getBus(equation.getElementNum());
+                targets[equation.getColumn()] = bus.getTargetP();
+                // Only used for multi slack (BUS_TARGET_P equation is disabled for first slack bus)
+                if (bus.isSlack()) {
+                    targets[equation.getColumn()] += DcLoadFlowEngine.getActivePowerMismatch(network.getBuses()) / network.getSlackBuses().size();
+                }
                 break;
 
             case BUS_TARGET_PHI,

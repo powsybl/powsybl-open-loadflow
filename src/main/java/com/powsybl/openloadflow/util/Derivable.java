@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.util;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 
 /**
@@ -23,5 +22,4 @@ public interface Derivable <V extends Enum<V> & Quantity> extends Evaluable {
 
     boolean isActive();
 
-    double eval(StateVector sv);
 }

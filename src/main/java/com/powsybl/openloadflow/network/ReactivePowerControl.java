@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.TwoSides;
 import java.util.Objects;
 
 /**
- * @author Pierre Arvy <pierre.arvy at artelys.com>
+ * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
 public class ReactivePowerControl extends Control {
 

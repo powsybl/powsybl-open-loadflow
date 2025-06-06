@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac.solver;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonKrylovParameters extends AbstractNewtonParameters<NewtonKrylovParameters> {
+public class NewtonKrylovParameters extends AbstractNewtonParameters<NewtonKrylovParameters> implements AcSolverParameters {
 
     public static final int DEFAULT_MAX_ITERATIONS = 100;
 

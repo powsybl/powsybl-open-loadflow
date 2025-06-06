@@ -8,9 +8,12 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -26,7 +29,13 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     private boolean setVToNan = false;
 
+    protected List<DcOuterLoop> outerLoops = Collections.emptyList();
+
     private int maxOuterLoopIterations = DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
+
+    private double slackBusPMaxMismatch = OpenLoadFlowParameters.SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
+
+    private double areaInterchangePMaxMismatch = OpenLoadFlowParameters.AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE;
 
     public DcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
@@ -70,6 +79,33 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters<DcLoadFlowP
 
     public DcLoadFlowParameters setSetVToNan(boolean setVToNan) {
         this.setVToNan = setVToNan;
+        return this;
+    }
+
+    public List<DcOuterLoop> getOuterLoops() {
+        return outerLoops;
+    }
+
+    public DcLoadFlowParameters setOuterLoops(List<DcOuterLoop> outerLoops) {
+        this.outerLoops = Objects.requireNonNull(outerLoops);
+        return this;
+    }
+
+    public double getSlackBusPMaxMismatch() {
+        return slackBusPMaxMismatch;
+    }
+
+    public DcLoadFlowParameters setSlackBusPMaxMismatch(double slackBusPMaxMismatch) {
+        this.slackBusPMaxMismatch = slackBusPMaxMismatch;
+        return this;
+    }
+
+    public double getAreaInterchangePMaxMismatch() {
+        return areaInterchangePMaxMismatch;
+    }
+
+    public DcLoadFlowParameters setAreaInterchangePMaxMismatch(double areaInterchangePMaxMismatch) {
+        this.areaInterchangePMaxMismatch = areaInterchangePMaxMismatch;
         return this;
     }
 

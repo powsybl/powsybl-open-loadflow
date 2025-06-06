@@ -113,6 +113,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
         assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
         assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
+        assertNull(lfDanglingLineBus.getViolationLocation());
     }
 
     @Test
@@ -134,15 +135,17 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // The area is not of 'ControlArea' type, so it is not created
         assertNull(mainNetwork.getAreaById("Region_AB"));
         assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());
+        assertEquals(ElementType.AREA, lfArea.getType());
+        assertEquals(lfArea.getId(), mainNetwork.getArea(lfArea.getNum()).getId());
+        assertEquals(lfArea.getId(), mainNetwork.getElement(ElementType.AREA, lfArea.getNum()).getId());
     }
 
     @Test
     void networkInvalidAreasTest() {
         // The areas have no boundaries, so they are not created
         network = MultiAreaNetworkFactory.createWithAreaWithoutBoundariesOrTarget();
-        LfNetworkParameters parameters = new LfNetworkParameters();
-        parameters.setAreaInterchangeControl(true);
-
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setAreaInterchangeControl(true);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         assertEquals(1, lfNetworks.size());
         assertEquals(4, lfNetworks.get(0).getBuses().size());
@@ -156,8 +159,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void networkWithInvalidAreasTest2() {
         network = MultiAreaNetworkFactory.createAreaTwoComponentsWithBoundaries();
-        LfNetworkParameters parameters = new LfNetworkParameters();
-        parameters.setAreaInterchangeControl(true);
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setAreaInterchangeControl(true);
 
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         assertEquals(1, lfNetworks.size());
@@ -182,6 +185,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
         assertTrue(lfStarBus.getCountry().isEmpty());
+        assertNull(lfStarBus.getViolationLocation());
     }
 
     @Test

@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -12,21 +12,15 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaphsonParameters> {
+public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaphsonParameters> implements AcSolverParameters {
 
     public static final int DEFAULT_MAX_ITERATIONS = 15;
-    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
-    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 2;
     public static final StateVectorScalingMode DEFAULT_STATE_VECTOR_SCALING_MODE = StateVectorScalingMode.NONE;
     public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
 
     public NewtonRaphsonParameters() {
         super(DEFAULT_MAX_ITERATIONS);
     }
-
-    private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
-
-    private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     private StateVectorScalingMode stateVectorScalingMode = DEFAULT_STATE_VECTOR_SCALING_MODE;
 
@@ -41,24 +35,6 @@ public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaph
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
-
-    public double getMinRealisticVoltage() {
-        return minRealisticVoltage;
-    }
-
-    public NewtonRaphsonParameters setMinRealisticVoltage(double minRealisticVoltage) {
-        this.minRealisticVoltage = minRealisticVoltage;
-        return this;
-    }
-
-    public double getMaxRealisticVoltage() {
-        return maxRealisticVoltage;
-    }
-
-    public NewtonRaphsonParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
-        this.maxRealisticVoltage = maxRealisticVoltage;
-        return this;
-    }
 
     public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
         return stoppingCriteria;
@@ -128,8 +104,6 @@ public class NewtonRaphsonParameters extends AbstractNewtonParameters<NewtonRaph
     public String toString() {
         return "NewtonRaphsonParameters(" +
                 "maxIterations=" + maxIterations +
-                ", minRealisticVoltage=" + minRealisticVoltage +
-                ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +

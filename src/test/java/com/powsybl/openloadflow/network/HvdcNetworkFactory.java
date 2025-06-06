@@ -648,6 +648,56 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
      * <pre>
+     *     g1 - b1           b2 -- hvdc23 -- b3 -- l34 -- b4 - l4
+     *          |            |               |             |
+     *          |           s2 (closed)      s3 (closed)   l45
+     *          |            |               |            |
+     *          C|---l12------                b7--l7       b5---l56-b6-g6
+     *
+     * </pre>
+     * @return
+     */
+    public static Network createHvdcAndSwitch(HvdcConverterStation.HvdcType type) {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1", 400);
+        Bus b2 = createBus(network, "b2", 400);
+        Bus b2Bis = b2.getVoltageLevel().getBusBreakerView().newBus().setId("b2Bis").add();
+        Bus b3 = createBus(network, "b3", 400);
+        Bus b4 = createBus(network, "b4", 400);
+        Bus b5 = createBus(network, "b5", 400);
+        Bus b6 = createBus(network, "b6", 400);
+        Bus b7 = b3.getVoltageLevel().getBusBreakerView().newBus().setId("b7").add();
+
+        createGenerator(b1, "g1", 400, 400);
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b2Bis, "l12Bis", 0.1f);
+        createSwitch(network, b2, b2Bis, "s2").setOpen(false);
+        createSwitch(network, b3, b7, "s3").setOpen(false);
+        HvdcConverterStation cs2 = switch (type) {
+            case LCC -> createLcc(b2, "cs2");
+            case VSC -> createVsc(b2, "cs2", 400, 0);
+        };
+        HvdcConverterStation cs3 = switch (type) {
+            case LCC -> createLcc(b3, "cs3");
+            case VSC -> createVsc(b3, "cs3", 400, 0);
+        };
+        createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 200)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(200)
+                .withEnabled(true)
+                .add();
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        createLoad(b4, "l4", 300, 0);
+        createLoad(b7, "l7", 50, 0);
+        createGenerator(b6, "g6", 400, 400);
+        return network;
+    }
+
+    /**
+     * <pre>
      * b1 ----------+
      * |            |
      * b2 -------- b3 - cs3

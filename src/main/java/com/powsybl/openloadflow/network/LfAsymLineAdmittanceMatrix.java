@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
-import com.powsybl.openloadflow.util.MatrixUtil;
 
 /**
  * This class is made to build and access the admittance terms that will be used to fill up the Jacobian :
@@ -212,15 +211,15 @@ public class LfAsymLineAdmittanceMatrix {
     }
 
     private static void cancelComponentMatrix(DenseMatrix m, int component) {
-        MatrixUtil.resetRow(m, 2 * component - 2);
-        MatrixUtil.resetRow(m, 2 * component - 1);
-        MatrixUtil.resetRow(m, 2 * component + 4);
-        MatrixUtil.resetRow(m, 2 * component + 5);
+        m.resetRow(2 * component - 2);
+        m.resetRow(2 * component - 1);
+        m.resetRow(2 * component + 4);
+        m.resetRow(2 * component + 5);
 
-        MatrixUtil.resetColumn(m, 2 * component - 2);
-        MatrixUtil.resetColumn(m, 2 * component - 1);
-        MatrixUtil.resetColumn(m, 2 * component + 4);
-        MatrixUtil.resetColumn(m, 2 * component + 5);
+        m.resetColumn(2 * component - 2);
+        m.resetColumn(2 * component - 1);
+        m.resetColumn(2 * component + 4);
+        m.resetColumn(2 * component + 5);
     }
 
     private static void add22Bloc(double mx, double my, int i, int j, DenseMatrix m) {
@@ -235,7 +234,7 @@ public class LfAsymLineAdmittanceMatrix {
         DenseMatrix mResult = m1.times(m2M3);
 
         // clean matrix (reset to zero very low values) in case after fortescue and inverse multiplication
-        MatrixUtil.clean(mResult, EPS_VALUE);
+        mResult.removeSmallValues(EPS_VALUE);
 
         return mResult;
     }

@@ -32,7 +32,8 @@
       "createResultExtension" : true,
       "contingencyPropagation" : false,
       "threadCount" : 1,
-      "dcFastMode" : true
+      "dcFastMode" : true,
+      "contingencyActivePowerLossDistribution" : "Default"
     }
   }
 }

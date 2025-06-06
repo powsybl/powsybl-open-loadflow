@@ -58,7 +58,7 @@ $$
 s_{b,kl}^c = s_{b,kl} - \sum_{g \in U} r^c_g s_{g,kl}
 $$
 
-We only support for the moment balance type `PROPORTIONAL_TO_GENERATION_P_MAX` and `PROPORTIONAL_TO_LOAD`.
+We only support for the moment balance type `PROPORTIONAL_TO_GENERATION_P_MAX`, `PROPORTIONAL_TO_GENERATION_P` and `PROPORTIONAL_TO_LOAD`.
 
 ### Contingency management
 

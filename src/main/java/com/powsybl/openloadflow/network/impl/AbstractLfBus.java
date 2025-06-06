@@ -65,6 +65,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfLoad> loads = new ArrayList<>();
 
+    protected Double loadTargetP;
+
+    protected Double loadTargetQ;
+
     protected final List<LfBranch> branches = new ArrayList<>();
 
     protected final List<LfHvdc> hvdcs = new ArrayList<>();
@@ -183,11 +187,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl) {
-        this.generatorVoltageControl = Objects.requireNonNull(generatorVoltageControl);
-        if (hasGeneratorVoltageControllerCapability()) {
-            this.generatorVoltageControlEnabled = true;
-        } else if (!isGeneratorVoltageControlled()) {
-            throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
+        this.generatorVoltageControl = generatorVoltageControl;
+        if (generatorVoltageControl != null) {
+            if (hasGeneratorVoltageControllerCapability()) {
+                this.generatorVoltageControlEnabled = true;
+            } else if (!isGeneratorVoltageControlled()) {
+                throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
+            }
+        } else {
+            this.generatorVoltageControlEnabled = false;
         }
     }
 
@@ -302,7 +310,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs, parameters)) {
+        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs)) {
             // Note: Load is determined statically - contingencies or actions that change an LCC Station connectivity
             // will continue to give incorrect result
             getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
@@ -389,7 +397,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getGenerationTargetP() {
         if (generationTargetP == null) {
-            generationTargetP = generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
+            generationTargetP = 0.0;
+            for (LfGenerator generator : generators) {
+                generationTargetP += generator.getTargetP();
+            }
         }
         return generationTargetP;
     }
@@ -411,17 +422,43 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void invalidateLoadTargetP() {
+        loadTargetP = null;
+    }
+
+    @Override
     public double getLoadTargetP() {
+        if (loadTargetP == null) {
+            loadTargetP = 0.0;
+            for (LfLoad load : loads) {
+                loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
+            }
+        }
+        return loadTargetP;
+    }
+
+    @Override
+    public double getNonFictitiousLoadTargetP() {
         return loads.stream()
-                .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
+                .mapToDouble(load -> load.getNonFictitiousLoadTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
                 .sum();
     }
 
     @Override
+    public void invalidateLoadTargetQ() {
+        loadTargetQ = null;
+    }
+
+    @Override
     public double getLoadTargetQ() {
-        return loads.stream()
-                .mapToDouble(load -> load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
-                .sum();
+        if (loadTargetQ == null) {
+            double sum = 0.0;
+            for (LfLoad load : loads) {
+                sum += load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
+            }
+            loadTargetQ = sum;
+        }
+        return loadTargetQ;
     }
 
     @Override
@@ -431,6 +468,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
         return generators.stream()
+                .filter(g -> !g.isDisabled())
                 .mapToDouble(generator -> (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
                         generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) ?
                         limitQ.applyAsDouble(generator) : generator.getTargetQ()).sum();
@@ -837,4 +875,5 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public void setArea(LfArea area) {
         this.area = area;
     }
+
 }

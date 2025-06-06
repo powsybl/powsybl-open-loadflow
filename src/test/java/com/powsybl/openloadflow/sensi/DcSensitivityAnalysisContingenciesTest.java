@@ -24,6 +24,8 @@ import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -2459,9 +2461,21 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(600.0, result.getBranchFlow1FunctionReferenceValue("NGEN", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testVSCLoss() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testVSCLoss(boolean withFictiveLoad) {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        if (withFictiveLoad) {
+            network.getBusBreakerView().getBus("b2").getVoltageLevel()
+                    .newLoad()
+                    .setId("fictiveLoad")
+                    .setP0(5)
+                    .setQ0(1)
+                    .setBus("b2")
+                    .setConnectableBus("b2")
+                    .setFictitious(true)
+                    .add();
+        }
         List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")),
                                                   new Contingency("bus", new BusContingency("b2")));
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l34", "l4"));

@@ -17,9 +17,8 @@ import java.util.*;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
+public class LfAreaImpl extends AbstractElement implements LfArea {
 
-    private final LfNetwork network;
     private final Ref<Area> areaRef;
 
     private double interchangeTarget;
@@ -28,8 +27,8 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
 
     private final Set<Boundary> boundaries;
 
-    protected LfAreaImpl(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network, LfNetworkParameters parameters) {
-        this.network = network;
+    protected LfAreaImpl(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork lfNetwork, LfNetworkParameters parameters) {
+        super(lfNetwork);
         this.areaRef = Ref.create(area, parameters.isCacheEnabled());
         this.interchangeTarget = area.getInterchangeTarget().orElse(0.0) / PerUnit.SB;
         this.buses = buses;
@@ -49,6 +48,11 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     @Override
     public String getId() {
         return getArea().getId();
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.AREA;
     }
 
     @Override
@@ -74,11 +78,6 @@ public class LfAreaImpl extends AbstractPropertyBag implements LfArea {
     @Override
     public Set<Boundary> getBoundaries() {
         return boundaries;
-    }
-
-    @Override
-    public LfNetwork getNetwork() {
-        return network;
     }
 
     public static class BoundaryImpl implements Boundary {

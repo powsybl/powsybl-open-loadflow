@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -21,11 +22,14 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -279,21 +283,22 @@ class AcLoadFlowEurostagTutorialExample1Test {
         network.getGenerator("GEN").setVoltageRegulatorOn(false);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("unitTest", "")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("unitTest")
                 .build();
         LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(0).getStatus());
+        assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL.toString(), result.getComponentResults().get(0).getStatusText());
         // also check there is a report added for this error
         assertEquals(1, reportNode.getChildren().size());
         ReportNode lfReportNode = reportNode.getChildren().get(0);
         assertEquals(1, lfReportNode.getChildren().size());
         ReportNode networkReportNode = lfReportNode.getChildren().get(0);
-        assertEquals("lfNetwork", networkReportNode.getMessageKey());
+        assertEquals("olf.lfNetwork", networkReportNode.getMessageKey());
         ReportNode networkInfoReportNode = networkReportNode.getChildren().get(0);
-        assertEquals("networkInfo", networkInfoReportNode.getMessageKey());
+        assertEquals("olf.networkInfo", networkInfoReportNode.getMessageKey());
         assertEquals(1, networkInfoReportNode.getChildren().size());
         assertEquals("Network must have at least one bus with generator voltage control enabled",
                 networkInfoReportNode.getChildren().get(0).getMessage());
@@ -311,7 +316,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(0).getStatus());
 
         // but if we do not take into account reactive limits in parameters, calculation should be ok
         parameters.setUseReactiveLimits(false);
@@ -459,7 +464,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
                 .add();
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reportNode);
         assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
@@ -468,14 +474,44 @@ class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    void maxOuterLoopIterationTest() {
+    void maxOuterLoopIterationTest() throws IOException {
+        ReportNode report = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
         gen.setTargetP(1000);
         parameters.setDistributedSlack(true);
         parametersExt.setMaxOuterLoopIterations(1);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        LoadFlowResult result = loadFlowRunner.run(network,
+                network.getVariantManager().getWorkingVariantId(),
+                LocalComputationManager.getDefault(),
+                parameters,
+                report
+                );
+
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
         assertEquals("Reached outer loop max iterations limit. Last outer loop name: DistributedSlack", result.getComponentResults().get(0).getStatusText());
+
+        String expected = """
+                + test
+                   + Load flow on network 'sim1'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 4 branches
+                            Network balance: active generation=1000 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
+                            Angle reference bus: VLGEN_0
+                            Slack bus: VLGEN_0
+                         + Outer loop DistributedSlack
+                            + Outer loop iteration 1
+                               Slack bus active power (-394.444523 MW) distributed in 1 distribution iteration(s)
+                            Outer loop unsuccessful with status: UNSTABLE
+                         Maximum number of outerloop iterations reached: 1
+                         AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=UNSTABLE)
+                """;
+
+        assertReportEquals(new ByteArrayInputStream(expected.getBytes()), report);
     }
 
     @Test

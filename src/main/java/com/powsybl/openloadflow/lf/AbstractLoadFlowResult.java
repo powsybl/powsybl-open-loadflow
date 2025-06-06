@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.lf;
 
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
@@ -19,10 +20,16 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
     protected final LfNetwork network;
 
     protected final double slackBusActivePowerMismatch;
+    protected final int outerLoopIterations;
+    protected final OuterLoopResult outerLoopResult;
+    protected final double distributedActivePower;
 
-    protected AbstractLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch) {
+    protected AbstractLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, int outerLoopIterations, OuterLoopResult outerLoopResult, double distributedActivePower) {
         this.network = Objects.requireNonNull(network);
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
+        this.outerLoopIterations = outerLoopIterations;
+        this.outerLoopResult = Objects.requireNonNull(outerLoopResult);
+        this.distributedActivePower = distributedActivePower;
     }
 
     @Override
@@ -33,5 +40,17 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
     @Override
     public double getSlackBusActivePowerMismatch() {
         return slackBusActivePowerMismatch;
+    }
+
+    public int getOuterLoopIterations() {
+        return outerLoopIterations;
+    }
+
+    public OuterLoopResult getOuterLoopResult() {
+        return outerLoopResult;
+    }
+
+    public double getDistributedActivePower() {
+        return distributedActivePower;
     }
 }

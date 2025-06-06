@@ -204,9 +204,7 @@ Hence, by solving the system using LU decomposition, you can compute the voltage
 
 ## Area Interchange Control
 
-Area Interchange Control consists in having the Load Flow finding a solution where area interchanges are solved to match the input target interchange values.
-
-Currently, Area Interchange Control is only supported for AC load flow, DC load flow support is planned for future release.
+Area Interchange Control consists in having the Load Flow finding a solution where area interchanges are solved to match the input target interchange values. It is supported for both AC and DC Load Flow computations.
 
 The area interchange control feature is optional, can be activated via the [parameter `areaInterchangeControl`](parameters.md)
 and is performed by an outer loop.
@@ -247,12 +245,11 @@ $$
 Interchange Mismatch = Interchange - Interchange Target
 $$
 
-If this mismatch for all areas and the slack injection of the buses without area are below the configured [parameter `slackBusPMaxMismatch`](parameters.md)
-then the outerloop is stable and declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
+If this mismatch for all areas and the slack injection of the buses without area are below the configured [parameter `slackBusPMaxMismatch`](parameters.md), then the outer loop declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
 
-If not, the remaining mismatch is first distributed over the buses that have no area.
+If not, the remaining slack bus mismatch is first distributed over the buses that have no area.
 
-If some mismatch still remains, it is distributed equally over all the areas.
+If some slack bus mismatch still remains, it is distributed equally over all the areas.
 
 ### Areas validation
 There are some cases where areas are considered invalid and will not be considered for the area interchange control:
@@ -279,3 +276,10 @@ Indeed, in this case the slack injection can be seen as an interchange to 'the v
     - Connected to only buses that have an area:
         - All connected branches are boundaries of those areas: Not attributed to anyone, the mismatch will already be present in the interchange mismatch
         - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
+
+### Zero impedance boundary branches
+The following applies when the [`lowImpedanceBranchMode`](parameters.md) is set to `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
+Currently, computations involving zero-impedance branches used as boundary branches are not supported.
+However, it is still possible to submit network models that include zero-impedance boundary branches.  
+If a terminal of a zero-impedance branch is designated as a boundary, Open LoadFlow will internally assign the branch
+an impedance value equal to the [`lowImpedanceThreshold`](parameters.md) parameter.

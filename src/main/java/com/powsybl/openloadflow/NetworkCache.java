@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -239,7 +240,7 @@ public enum NetworkCache {
                 } else {
                     connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
                 }
-                LfAction.updateBusesAndBranchStatus(connectivity);
+                AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
             } finally {
                 connectivity.undoTemporaryChanges();
             }
@@ -339,7 +340,7 @@ public enum NetworkCache {
         }
 
         @Override
-        public void onExtensionUpdate(Extension<?> extension, String attribute, Object oldValue, Object newValue) {
+        public void onExtensionUpdate(Extension<?> extension, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null || pause) {
                 return;
             }
@@ -391,17 +392,17 @@ public enum NetworkCache {
         }
 
         @Override
-        public void onElementAdded(Identifiable identifiable, String attribute, Object newValue) {
+        public void onPropertyAdded(Identifiable identifiable, String attribute, Object newValue) {
             onPropertyChange();
         }
 
         @Override
-        public void onElementReplaced(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
+        public void onPropertyReplaced(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
             onPropertyChange();
         }
 
         @Override
-        public void onElementRemoved(Identifiable identifiable, String attribute, Object oldValue) {
+        public void onPropertyRemoved(Identifiable identifiable, String attribute, Object oldValue) {
             onPropertyChange();
         }
 

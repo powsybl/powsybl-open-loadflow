@@ -20,6 +20,8 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
@@ -450,8 +452,9 @@ class AcLoadFlowVscTest {
         assertVoltageEquals(vcs3, network.getVscConverterStation("cs3").getTerminal().getBusView().getBus());
     }
 
-    @Test
-    void testVscVoltageControlWithOneSideDisconnected() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testVscVoltageControlWithOneSideDisconnected(boolean withFictiveLoad) {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         // Set specific voltage setPoints to the stations
@@ -460,15 +463,33 @@ class AcLoadFlowVscTest {
         network.getVscConverterStation("cs2").setVoltageSetpoint(vcs2);
         network.getVscConverterStation("cs3").setVoltageSetpoint(vcs3);
 
+        if (withFictiveLoad) {
+            // Add a fictive load to the bus that will be disconnected
+            network.getBusBreakerView().getBus("b3").getVoltageLevel().newLoad()
+                    .setId("fictiveLoad")
+                    .setBus("b3")
+                    .setConnectableBus("b3")
+                    .setP0(5)
+                    .setQ0(2)
+                    .setFictitious(true)
+                    .add();
+        }
+
+        LoadFlowParameters p = new LoadFlowParameters();
+        LoadFlowResult result = loadFlowRunner.run(network, p);
+
+        assertTrue(result.isFullyConverged());
+        // Just test that the HVDC is open - no need for more precision
+        assertTrue(network.getVscConverterStation("cs2").getTerminal().getP() > 100);
+        assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
+
         // Disconnect line at HVDCoutput
         Line l34 = network.getLine("l34");
         l34.getTerminals().stream().forEach(Terminal::disconnect);
 
-        LoadFlowParameters p = new LoadFlowParameters();
-
         // without AC emulation
         p.setHvdcAcEmulation(false);
-        LoadFlowResult result = loadFlowRunner.run(network, p);
+        result = loadFlowRunner.run(network, p);
 
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());

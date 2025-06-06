@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -15,6 +16,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
 import org.junit.jupiter.api.Test;
@@ -36,7 +38,8 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     void testEsgTuto() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testEsgTutoReport")
                 .build();
         runAcLf(network, reportNode);
 
@@ -54,7 +57,8 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     void testEsgTutoDetailedNrLogsSensi() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testEsgTutoReport")
                 .build();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
