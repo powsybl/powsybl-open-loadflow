@@ -244,9 +244,7 @@ class GeneratorRemoteControlPQSwitchTest {
                                 + Outer loop iteration 3
                                    Slack bus active power (-21.141636 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
-                             + Outer loop ReactiveLimits
-                                + Outer loop iteration 4
-                                   1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                             Outer loop ReactiveLimits
                              Outer loop DistributedSlack
                              Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
@@ -405,9 +403,7 @@ class GeneratorRemoteControlPQSwitchTest {
                                 + Outer loop iteration 3
                                    Slack bus active power (-17.327551 MW) distributed in 1 distribution iteration(s)
                              Outer loop VoltageMonitoring
-                             + Outer loop ReactiveLimits
-                                + Outer loop iteration 4
-                                   1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                             Outer loop ReactiveLimits
                              Outer loop DistributedSlack
                              Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
