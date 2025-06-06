@@ -11,6 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.slf4j.Logger;
 
@@ -365,6 +366,16 @@ public final class Reports {
                 .withMessageTemplate("olf.busForcedToBePv")
                 .withUntypedValue(BUS_ID, busId)
                 .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorWithUpdatedTargetQ(ReportNode reportNode, LfGenerator generator, double oldTargetQ, double newTargetQ) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorWithUpdatedTargetQ")
+                .withUntypedValue("generatorId", generator.getId())
+                .withUntypedValue("oldTargetQ", oldTargetQ)
+                .withUntypedValue("newTargetQ", newTargetQ)
+                .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 

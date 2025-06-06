@@ -129,10 +129,10 @@ class AcLoadFlowGeneratorTest {
         assertActivePowerEquals(-2.0, g1.getTerminal()); // at targetP, no slack needed
         assertReactivePowerEquals(-1.5, g1.getTerminal()); // at targetQ and at curve limit
 
-        d3.setP0(2.5);
+        d3.setP0(3.);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(-2.5, g1.getTerminal()); // increased from 2 to 2.5 because slack distribution
-        assertReactivePowerEquals(-1.374997, g1.getTerminal()); // not at targetQ because at curve limit
+        assertActivePowerEquals(-3.0, g1.getTerminal()); // increased from 2 to 3 because slack distribution
+        assertReactivePowerEquals(-1.25, g1.getTerminal()); // not at targetQ because at curve limit
     }
 }
