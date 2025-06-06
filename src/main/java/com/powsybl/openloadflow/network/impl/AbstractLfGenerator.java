@@ -47,6 +47,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected TwoSides controlledBranchSide;
 
+    protected double targetQ = Double.NaN;
+
     protected double remoteTargetQ = Double.NaN;
 
     private boolean disabled;
@@ -336,7 +338,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return true;
     }
 
-    protected void setRemoteReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+    protected void setRemoteReactivePowerControl(Terminal regulatingTerminal, double remoteTargetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
         if (connectable instanceof Branch<?> branch) {
             this.controlledBranchSide = branch.getSide(regulatingTerminal);
@@ -350,7 +352,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             return;
         }
         this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
-        this.remoteTargetQ = targetQ / PerUnit.SB;
+        this.remoteTargetQ = remoteTargetQ / PerUnit.SB;
     }
 
     @Override
