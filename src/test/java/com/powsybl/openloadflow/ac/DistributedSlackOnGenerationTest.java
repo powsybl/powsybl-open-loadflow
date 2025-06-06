@@ -35,10 +35,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.OptionalDouble;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;

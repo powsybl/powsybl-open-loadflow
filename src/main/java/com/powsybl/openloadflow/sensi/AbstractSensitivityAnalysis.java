@@ -775,6 +775,24 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
+    private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeDanglingLine(Network network, SensitivityFunctionType functionType, String functionId) {
+        if (isFlowFunction(functionType) || isReactivePowerFunctionType(functionType)) {
+            DanglingLine danglingLine = network.getDanglingLine(functionId);
+            if (danglingLine != null && danglingLine.isPaired()) {
+                if (functionType.getSide().orElseThrow() != 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
+                    throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
+                }
+                TieLine tieLine = danglingLine.getTieLine().orElseThrow();
+                TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
+                }
+                return Pair.of(updateFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
+            }
+        }
+        return Pair.of(functionType, functionId); // Returning input as it is
+    }
+
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
         Branch<?> branch = network.getBranch(branchId);
         if (branch != null) {
@@ -972,7 +990,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         final Map<String, Bus> busCache = new HashMap<>();
         InjectionVariableIdToBusIdCache injectionVariableIdToBusIdCache = new InjectionVariableIdToBusIdCache();
         int[] factorIndex = new int[1];
-        factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+        factorReader.read((functionTypeToCheck, functionIdToCheck, variableType, variableId, variableSet, contingencyContext) -> {
+            SensitivityFunctionType functionType = functionTypeToCheck;
+            String functionId = functionIdToCheck;
+            if (network.getDanglingLine(functionIdToCheck) != null && network.getDanglingLine(functionIdToCheck).isPaired()) {
+                //In case of dangling line associated to a tie line, we have to update the sensitivity function
+                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeDanglingLine(network, functionTypeToCheck, functionIdToCheck);
+                functionType = updatedFunction.getLeft();
+                functionId = updatedFunction.getRight();
+            }
             if (variableSet) {
                 if (isActivePowerFunctionType(functionType)) {
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
@@ -1142,6 +1168,19 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return functionType == SensitivityFunctionType.BRANCH_CURRENT_1
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_3;
+    }
+
+    private static SensitivityFunctionType updateFunctionTypeSide(SensitivityFunctionType functionType, TwoSides side) {
+        if (side != null) {
+            if (isActivePowerFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+            } else if (isReactivePowerFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_REACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_REACTIVE_POWER_2;
+            } else if (isCurrentFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+            }
+        }
+        throw new IllegalArgumentException("Illegal function type side switching");
     }
 
     protected Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
