@@ -91,11 +91,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private LfArea area = null;
 
-    protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
+    protected boolean forceTargetQInReactiveLimits;
+
+    protected AbstractLfBus(LfNetwork network, double v, double angle, LfNetworkParameters parameters) {
         super(network);
         this.v = v;
         this.angle = angle;
-        this.distributedOnConformLoad = distributedOnConformLoad;
+        this.distributedOnConformLoad = parameters.isDistributedOnConformLoad();
+        this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits();
     }
 
     @Override
@@ -385,7 +388,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
-        if (!isGeneratorVoltageControlled()) {
+        // If targetP is modified, reactive limits may be modified, so if the parameter forceTargetQInReactiveLimits is true,
+        // then we have to check again is the targetQ is in the reactive limits.
+        if (forceTargetQInReactiveLimits && !isGeneratorVoltageControlled()) {
             setGenerationTargetQ(getGenerators().stream()
                     .mapToDouble(LfGenerator::getTargetQ)
                     .filter(d -> !Double.isNaN(d))
