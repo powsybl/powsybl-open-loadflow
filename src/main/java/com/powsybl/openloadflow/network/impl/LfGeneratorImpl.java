@@ -52,8 +52,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final double minTargetP;
 
-    private Double targetQ = null;
-
     private final boolean forceTargetQInReactiveLimits;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -175,7 +173,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
+        boolean isFirstComputing = false;
         if (targetQ == null) {
+            isFirstComputing = true;
             targetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
         }
         if (forceTargetQInReactiveLimits) {
@@ -187,8 +187,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             } else if (computedTargetQ > maxQ) {
                 computedTargetQ = maxQ;
             }
-            if (Math.abs(targetQ - computedTargetQ) > TARGET_Q_EPSILON) { // Log message only if updated value
-                LOGGER.info("TargetQ of generator {} has been updated because outside reactive power limits (from {} MVar to {} MVar)", getId(), targetQ * PerUnit.SB, maxQ * PerUnit.SB);
+            if (isFirstComputing && Math.abs(targetQ - computedTargetQ) > TARGET_Q_EPSILON) { // Log message only if updated value
+                // Logging info and report if at generator creation
+                LOGGER.info("TargetQ of generator {} has been updated to fit within reactive power limits (from {} MVar to {} MVar)", getId(), targetQ * PerUnit.SB, maxQ * PerUnit.SB);
                 Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
             }
             targetQ = computedTargetQ;

@@ -375,7 +375,7 @@ public final class Reports {
                 .withUntypedValue("generatorId", generator.getId())
                 .withUntypedValue("oldTargetQ", oldTargetQ)
                 .withUntypedValue("newTargetQ", newTargetQ)
-                .withSeverity(TypedValue.INFO_SEVERITY)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 

@@ -47,7 +47,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected TwoSides controlledBranchSide;
 
-    protected double targetQ = Double.NaN;
+    protected Double targetQ = null;
 
     protected double remoteTargetQ = Double.NaN;
 

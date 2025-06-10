@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -390,7 +391,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
-        if (forceTargetQInReactiveLimits && !isGeneratorVoltageControlled()) {
+        if (forceTargetQInReactiveLimits && !isVoltageControlled()) {
             invalidateGenerationTargetQ();
         }
     }
