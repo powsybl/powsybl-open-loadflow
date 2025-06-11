@@ -24,13 +24,9 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double p1(double ph1, double ph2) {
-        if (frozen) {
-            return frozenP;
-        } else {
-            double rawP = rawP(ph1, ph2);
-            // if converterStation1 is controller, then p1 is positive, otherwise it is negative
-            return isController(rawP) ? boundedP(rawP) : -getAbsActivePowerWithLosses(boundedP(rawP), lossFactor1, lossFactor2);
-        }
+        double rawP = rawP(ph1, ph2);
+        // if converterStation1 is controller, then p1 is positive, otherwise it is negative
+        return isController(rawP) ? boundedP(rawP) : -getAbsActivePowerWithLosses(boundedP(rawP), lossFactor1, lossFactor2);
     }
 
     private static boolean isController(double rawP) {
@@ -56,13 +52,13 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
 
     @Override
     public double eval() {
-        return p1(ph1(), ph2());
+        return element.isAcEmulationFrozen() ? p1(element.getAngleDifferenceToFreeze(), 0) : p1(ph1(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        if (frozen) {
+        if (element.isAcEmulationFrozen()) {
             return 0;
         }
         if (variable.equals(ph1Var)) {

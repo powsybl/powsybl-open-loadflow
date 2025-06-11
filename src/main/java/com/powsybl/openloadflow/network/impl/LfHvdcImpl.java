@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
-import com.powsybl.openloadflow.ac.equations.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -51,6 +50,10 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     private final double pMaxFromCS1toCS2;
 
     private final double pMaxFromCS2toCS1;
+
+    private double angleToFreeze;
+
+    private boolean acEmulationFrozen = false;
 
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
@@ -195,35 +198,35 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS2toCS1 / PerUnit.SB;
     }
 
-    @Override
     public double freezeFromCurrentAngles() {
-        double p1Val = Double.NaN;
-        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu && pAcEmu.isActive()) {
-            p1Val = pAcEmu.freezeFromCurrentAngles();
-        }
-        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu && pAcEmu.isActive()) {
-            pAcEmu.freezeFromCurrentAngles();
-        }
-        return p1Val;
-    }
-
-    @Override
-    public void unFreeze() {
-        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            pAcEmu.unFreeze();
-        }
-        if (p2 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            pAcEmu.unFreeze();
-        }
-    }
-
-    @Override
-    public boolean isFrozen() {
-        if (p1 instanceof AbstractHvdcAcEmulationFlowEquationTerm pAcEmu) {
-            return pAcEmu.isActive() && pAcEmu.isFrozen();
+        angleToFreeze = bus1.getAngle() - bus2.getAngle();
+        if (!Double.isNaN(angleToFreeze)) {
+            acEmulationFrozen = true;
+            return p1.eval();
         } else {
-            return false;
+            // Might happen if an HVDC is reconnected by an action. In this case
+            // the freeze should be ignoered
+            return Double.NaN;
         }
     }
 
+    @Override
+    public boolean isAcEmulationFrozen() {
+        return acEmulationFrozen;
+    }
+
+    @Override
+    public void setAcEmulationFrozen(boolean frozen) {
+        this.acEmulationFrozen = frozen;
+    }
+
+    @Override
+    public double getAngleDifferenceToFreeze() {
+        return isAcEmulationFrozen() ? angleToFreeze : getBus1().getAngle() - getBus2().getAngle();
+    }
+
+    @Override
+    public void setAngleDifferenceToFreeze(double frozenP) {
+        this.angleToFreeze = frozenP;
+    }
 }

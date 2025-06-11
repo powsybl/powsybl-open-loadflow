@@ -54,8 +54,12 @@ public interface LfHvdc extends LfElement {
 
     double freezeFromCurrentAngles();
 
-    void unFreeze();
+    boolean isAcEmulationFrozen();
 
-    boolean isFrozen();
+    void setAcEmulationFrozen(boolean frozen);
+
+    double getAngleDifferenceToFreeze();
+
+    void setAngleDifferenceToFreeze(double angleToFreeze);
 
 }

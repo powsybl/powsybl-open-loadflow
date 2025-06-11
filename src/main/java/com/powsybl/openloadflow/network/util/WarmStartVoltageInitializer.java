@@ -46,6 +46,7 @@ public class WarmStartVoltageInitializer extends PreviousValueVoltageInitializer
     public void afterInit(LfNetwork network, ReportNode reportNode) {
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
+                .filter(lfHvdc -> !lfHvdc.isDisabled())
                 .forEach(lfHvdc -> {
                     double setPointBus1 = lfHvdc.freezeFromCurrentAngles();
                     if (!Double.isNaN(setPointBus1)) {

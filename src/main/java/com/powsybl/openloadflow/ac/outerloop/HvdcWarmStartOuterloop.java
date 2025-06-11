@@ -76,14 +76,14 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
 
         List<LfHvdc> frozenHvdc = context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .filter(LfHvdc::isFrozen)
+                .filter(LfHvdc::isAcEmulationFrozen)
                 .toList();
 
         if (!frozenHvdc.isEmpty()) {
 
             for (LfHvdc lfHvdc : frozenHvdc) {
                 Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
-                lfHvdc.unFreeze();
+                lfHvdc.setAcEmulationFrozen(false);
             }
 
             // Return to initial state (we are in a possibly non physical state after first partial resolution)
@@ -100,12 +100,4 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
 
     }
 
-    @Override
-    public void cleanup(AcOuterLoopContext context) {
-        // Ensures all hvdc links are in unfrozen state
-        // Can be needed in case of solve failure
-        context.getNetwork().getHvdcs().stream()
-                .filter(LfHvdc::isAcEmulation)
-                .forEach(LfHvdc::unFreeze);
-    }
 }

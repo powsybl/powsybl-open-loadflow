@@ -42,10 +42,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double pMaxFromCS2toCS1;
 
-    protected double frozenP = Double.NaN;
-
-    protected boolean frozen = false;
-
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
@@ -104,22 +100,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
     @Override
     public boolean hasRhs() {
         return false;
-    }
-
-    public double freezeFromCurrentAngles() {
-        frozen = false; // Make sure P is computed according to angles
-        frozenP = isActive() ? eval() : Double.NaN;
-        frozen = true;
-        return frozenP;
-    }
-
-    public void unFreeze() {
-        frozen = false;
-        frozenP = Double.NaN;
-    }
-
-    public boolean isFrozen() {
-        return frozen;
     }
 
 }
