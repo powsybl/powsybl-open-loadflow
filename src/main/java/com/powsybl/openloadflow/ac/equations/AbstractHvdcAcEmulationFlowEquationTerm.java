@@ -113,11 +113,9 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return frozenP;
     }
 
-    public boolean unFreeze() {
+    public void unFreeze() {
         frozen = false;
         frozenP = Double.NaN;
-        // Returns true if angles should be reset
-        return isActive() ? (der(ph1Var) == 0) : false;
     }
 
     public boolean isFrozen() {

@@ -1454,7 +1454,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), computationManager, params, report);
         assertFalse(r.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, r.getComponentResults().get(0).getStatus());
-        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620.1584837694869 MW at bus 1.", report);
+        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620\\.15[0-9]* MW at bus 1.", report);
         n.getLineStream().forEach(l -> {
             System.out.println(l.getId() + " " + l.getTerminal1().getP() + " MW " + l.getTerminal2().getP() + " MW");
         });

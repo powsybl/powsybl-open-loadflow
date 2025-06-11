@@ -38,8 +38,8 @@ public class WarmStartVoltageInitializer extends PreviousValueVoltageInitializer
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WarmStartVoltageInitializer.class);
 
-    public WarmStartVoltageInitializer(boolean defaultToUnformValues) {
-        super(defaultToUnformValues);
+    public WarmStartVoltageInitializer(boolean defaultToUniformValues) {
+        super(defaultToUniformValues);
     }
 
     @Override
