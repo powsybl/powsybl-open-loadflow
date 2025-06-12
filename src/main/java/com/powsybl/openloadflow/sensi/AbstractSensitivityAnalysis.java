@@ -1273,7 +1273,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig, boolean useWarmStart);
+                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig, boolean startWithFrozenACEmulation);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

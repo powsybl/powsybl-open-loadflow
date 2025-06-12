@@ -172,7 +172,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
-                        LfTopoConfig topoConfig, boolean useWarmStart) {
+                        LfTopoConfig topoConfig, boolean startWithFrozenACEmulation) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(factorReader);
@@ -304,7 +304,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 // we always restart from base case voltages for contingency simulation
                 context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
 
-                if (useWarmStart) {
+                if (startWithFrozenACEmulation) {
                     context.getParameters().setOuterLoops(FreezeHvdcACEmulationOuterloop.updateOuterLoopList(context.getParameters().getOuterLoops()));
                 }
 
