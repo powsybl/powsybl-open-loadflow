@@ -21,12 +21,12 @@ import java.util.Optional;
 public class OpenSensitivityAnalysisParameters extends AbstractExtension<SensitivityAnalysisParameters> {
 
     private String debugDir;
-    private boolean useWarmStart = USE_WARM_START_DEFAULT_VALUE;
+    private boolean startWithFrozenACEmulation = START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE;
 
     public static final String DEBUG_DIR_PARAM_NAME = "debugDir";
     public static final String DEBUG_DIR_DEFAULT_VALUE = "";
-    public static final String USE_WARM_START_PARAM_NAME = "useWarmStart";
-    public static final boolean USE_WARM_START_DEFAULT_VALUE = true;
+    public static final String START_WITH_FROZEN_AC_EMULATION_PARAM_NAME = "startWithFrozenACEmulation";
+    public static final boolean START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE = true;
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(DEBUG_DIR_PARAM_NAME);
 
     @Override
@@ -43,12 +43,12 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
         return this;
     }
 
-    public boolean isUseWarmStart() {
-        return useWarmStart;
+    public boolean isStartWithFrozenACEmulation() {
+        return startWithFrozenACEmulation;
     }
 
-    public OpenSensitivityAnalysisParameters setUseWarmStart(boolean useWarmStart) {
-        this.useWarmStart = useWarmStart;
+    public OpenSensitivityAnalysisParameters setStartWithFrozenACEmulation(boolean startWithFrozenACEmulation) {
+        this.startWithFrozenACEmulation = startWithFrozenACEmulation;
         return this;
     }
 
@@ -61,15 +61,15 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
         platformConfig.getOptionalModuleConfig("open-sensitivityanalysis-default-parameters")
                 .ifPresent(config -> parameters
                         .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, DEBUG_DIR_DEFAULT_VALUE))
-                        .setUseWarmStart(config.getBooleanProperty(USE_WARM_START_PARAM_NAME, USE_WARM_START_DEFAULT_VALUE)));
+                        .setStartWithFrozenACEmulation(config.getBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE)));
         return parameters;
     }
 
     public static OpenSensitivityAnalysisParameters load(Map<String, String> properties) {
         OpenSensitivityAnalysisParameters parameters = new OpenSensitivityAnalysisParameters();
         Optional.ofNullable(properties.get(DEBUG_DIR_PARAM_NAME)).ifPresent(parameters::setDebugDir);
-        Optional.ofNullable(properties.get(USE_WARM_START_PARAM_NAME))
-                .ifPresent(value -> parameters.setUseWarmStart(Boolean.parseBoolean(value)));
+        Optional.ofNullable(properties.get(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME))
+                .ifPresent(value -> parameters.setStartWithFrozenACEmulation(Boolean.parseBoolean(value)));
         return parameters;
     }
 }

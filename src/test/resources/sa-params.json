@@ -34,7 +34,7 @@
       "threadCount" : 1,
       "dcFastMode" : true,
       "contingencyActivePowerLossDistribution" : "Default",
-      "useWarmStart" : true
+      "startWithFrozenACEmulation" : true
     }
   }
 }

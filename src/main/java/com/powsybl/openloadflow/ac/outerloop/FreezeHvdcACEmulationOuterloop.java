@@ -20,17 +20,19 @@ import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
-public class HvdcWarmStartOuterloop implements AcOuterLoop {
+public class FreezeHvdcACEmulationOuterloop implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HvdcWarmStartOuterloop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FreezeHvdcACEmulationOuterloop.class);
 
-    public static final String NAME = "HvdcWarmStart";
+    public static final String NAME = "FreezeHvdcACEmulation";
 
     private enum Step {
         UNFREEZE,
@@ -57,6 +59,21 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    public static List<AcOuterLoop> updateOuterLoopList(List<AcOuterLoop> outerLoopList) {
+        // Do nothing is the loop is already present
+        if (outerLoopList.stream().anyMatch(o -> o instanceof FreezeHvdcACEmulationOuterloop)) {
+            return outerLoopList;
+        }
+        List<AcOuterLoop> result = new ArrayList<>(outerLoopList);
+        // Place a WarmStartOuterLoop after the slackDistribution OuterLoop
+        int index = IntStream.range(0, outerLoopList.size())
+                .filter(i -> outerLoopList.get(i) instanceof AcActivePowerDistributionOuterLoop)
+                .findFirst()
+                .orElse(-1);
+        result.add(index + 1, new FreezeHvdcACEmulationOuterloop());
+        return result;
     }
 
     @Override

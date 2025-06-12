@@ -18,13 +18,13 @@ The next section details the parameters that are specific to PowSyBl Open LoadFL
 Allows to dump debug files to a specific directory.  
 The default value is undefined (`null`), disabling any debug files writing.
 
-**useWarmStart**
+**startWithFrozenACEmulation**
 
-If `true`, contingence simulation use the `WARM_START` voltage initializer. The simulator starts by freezing the AC emulation
-HVDC to the active set point defined by the angles at the HVDC extremities. If a solution exists is foudn then the simulator
+If `true`, contingence simulation starts with HVDC link configured in AC emulation frozen at their previous active set point
+defined by the angles at the HVDC extremities in the base case. If a solution is found then the simulator
 continues with the HVDC set to AC emulation mode. Otherwise, the contingence simulation fails.
 
-If `false`, contingence simulation use the 'PREVIOUS_VALU' voltage intializer.
+If `false`, contingence simulation allows HVDC lines to immediatly adapt to the new angles.
 
 The default value is `true`
 

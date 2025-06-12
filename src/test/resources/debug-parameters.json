@@ -106,7 +106,7 @@
   "extensions" : {
     "open-sensitivity-parameters" : {
       "debugDir" : "/work",
-      "useWarmStart" : true
+      "startWithFrozenACEmulation" : true
     }
   }
 }
