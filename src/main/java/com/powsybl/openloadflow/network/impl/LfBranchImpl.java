@@ -125,7 +125,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         double zb = PerUnit.zb(nominalV2);
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
-        if (ptc != null && (ptc.isRegulating() && ptc.hasLoadTapChangingCapabilities() || retainPtc)) {
+        if (ptc != null && (ptc.isRegulating() || retainPtc)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());

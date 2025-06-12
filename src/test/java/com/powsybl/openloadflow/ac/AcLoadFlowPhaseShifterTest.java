@@ -174,15 +174,15 @@ class AcLoadFlowPhaseShifterTest {
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
-                .setLoadTapChangingCapabilities(false)
+                .setLoadTapChangingCapabilities(false) // should not be a real case as regulating is true
                 .setTapPosition(2)
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83); // in A
 
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
-        assertCurrentEquals(129.436, t2wt.getTerminal1());
-        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+        assertCurrentEquals(48.482, t2wt.getTerminal1());
+        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
 
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
@@ -375,7 +375,7 @@ class AcLoadFlowPhaseShifterTest {
 
         t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
-                .setLoadTapChangingCapabilities(false)
+                .setLoadTapChangingCapabilities(false) // should not be a real case as regulating is true
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(t3wt.getLeg2().getTerminal())
@@ -383,9 +383,9 @@ class AcLoadFlowPhaseShifterTest {
 
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
-        assertActivePowerEquals(26.277861524499986, line2.getTerminal1());
-        assertActivePowerEquals(-26.26641402107318, line2.getTerminal2());
-        assertEquals(1, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
+        assertActivePowerEquals(-0.7403999884197101, line2.getTerminal1());
+        assertActivePowerEquals(0.7428793087142719, line2.getTerminal2());
+        assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
 
         t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
