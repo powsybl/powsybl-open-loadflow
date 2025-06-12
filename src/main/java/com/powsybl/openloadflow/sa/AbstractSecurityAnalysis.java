@@ -787,9 +787,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 lfNetwork.setReportNode(postContSimReportNode);
 
                                 ContingencyLoadFlowParameters contingencyLoadFlowParameters = propagatedContingency.getContingency().getExtension(ContingencyLoadFlowParameters.class);
-                                if (contingencyLoadFlowParameters != null) {
-                                    applyContingencyParameters(context.getParameters(), contingencyLoadFlowParameters, loadFlowParameters, openLoadFlowParameters);
-                                }
+                                applyContingencyParameters(context.getParameters(), contingencyLoadFlowParameters, loadFlowParameters, openLoadFlowParameters, openSecurityAnalysisParameters);
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
@@ -838,10 +836,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 if (contingencyIt.hasNext()) {
                                     // restore base state
                                     networkState.restore();
-                                    if (contingencyLoadFlowParameters != null) {
-                                        // reset parameters
-                                        parametersResetter.accept(context.getParameters());
-                                    }
+                                    // reset parameters
+                                    parametersResetter.accept(context.getParameters());
                                 }
                             });
                 }
@@ -867,7 +863,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
      * Applies the custom parameters that are contained in the ContingencyLoadFlowParameters extension for a specific contingency.
      * If the extension is present, modifies the ac/dcLoadFlowParameters contained in the LoadFlowContext accordingly.
      */
-    protected abstract void applyContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters);
+    protected abstract void applyContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyParameters,
+                                                       LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters,
+                                                       OpenSecurityAnalysisParameters openSecurityAnalysisParameters);
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
                                                                  LimitViolationManager preContingencyLimitViolationManager,
@@ -896,7 +894,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // restart LF on post contingency equation system
-        PostContingencyComputationStatus status = runActionLoadFlow(context, OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).isUseWarmStart()); // FIXME: change name.
+        PostContingencyComputationStatus status = runActionLoadFlow(context); // FIXME: change name.
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
         var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
 
@@ -957,7 +955,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // restart LF on post contingency and post actions equation system
-        PostContingencyComputationStatus status = runActionLoadFlow(context, OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).isUseWarmStart());
+        PostContingencyComputationStatus status = runActionLoadFlow(context);
         var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
         var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
@@ -990,11 +988,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    protected void beforeActionLoadFlowRun(C context, boolean useWarmStart) {
+    protected void beforeActionLoadFlowRun(C context) {
     }
 
-    protected PostContingencyComputationStatus runActionLoadFlow(C context, boolean useWarmStart) {
-        beforeActionLoadFlowRun(context, useWarmStart);
+    protected PostContingencyComputationStatus runActionLoadFlow(C context) {
+        beforeActionLoadFlowRun(context);
         R result = createLoadFlowEngine(context).run();
         return postContingencyStatusFromLoadFlowResult(result);
     }

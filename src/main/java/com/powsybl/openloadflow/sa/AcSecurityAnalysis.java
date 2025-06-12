@@ -118,8 +118,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void beforeActionLoadFlowRun(AcLoadFlowContext context, boolean useWarmStart) {
-        context.getParameters().setVoltageInitializer(useWarmStart ? new WarmStartVoltageInitializer(true) : new PreviousValueVoltageInitializer(true));
+    protected void beforeActionLoadFlowRun(AcLoadFlowContext context) {
+        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
     }
 
     @Override
@@ -129,10 +129,18 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void applyContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
-                .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
-                        : new DefaultAcOuterLoopConfig());
-        parameters.setOuterLoops(outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters));
+    protected void applyContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters,
+                                              OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+        List<AcOuterLoop> outerLoops = parameters.getOuterLoops();
+        if (contingencyParameters != null) {
+            AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
+                    .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
+                            : new DefaultAcOuterLoopConfig());
+            outerLoops = outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters);
+        }
+        if (openSecurityAnalysisParameters.isUseWarmStart()) {
+            outerLoops = WarmStartVoltageInitializer.updateOuterLoopList(outerLoops);
+        }
+        parameters.setOuterLoops(outerLoops);
     }
 }

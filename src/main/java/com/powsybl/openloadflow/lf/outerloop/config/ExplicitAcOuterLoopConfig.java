@@ -40,7 +40,8 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      TransformerVoltageControlOuterLoop.NAME,
                                                      AutomationSystemOuterLoop.NAME,
                                                      IncrementalTransformerReactivePowerControlOuterLoop.NAME,
-                                                     AbstractAreaInterchangeControlOuterLoop.NAME);
+                                                     AbstractAreaInterchangeControlOuterLoop.NAME,
+                                                     HvdcWarmStartOuterloop.NAME);
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
@@ -74,6 +75,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
             case AutomationSystemOuterLoop.NAME -> createAutomationSystemOuterLoop(parametersExt);
             case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
             case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
+            case HvdcWarmStartOuterloop.NAME -> Optional.of(new HvdcWarmStartOuterloop()); // Until OpenLoadFlow support an N-1 start mode, this outerloop can only be used in workflow by explicit listing.
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for AC load flow");
         };
     }

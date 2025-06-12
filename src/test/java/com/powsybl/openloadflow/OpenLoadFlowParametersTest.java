@@ -472,7 +472,7 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt));
         assertEquals("Unknown outer loop 'Foo' for AC load flow", e.getMessage());
 
-        assertEquals("Ordered explicit list of outer loop names, supported outer loops are for AC : [IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl], and for DC : [IncrementalPhaseControl, AreaInterchangeControl]",
+        assertEquals("Ordered explicit list of outer loop names, supported outer loops are for AC : [IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl, HvdcWarmStart], and for DC : [IncrementalPhaseControl, AreaInterchangeControl]",
                      OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
     }
 

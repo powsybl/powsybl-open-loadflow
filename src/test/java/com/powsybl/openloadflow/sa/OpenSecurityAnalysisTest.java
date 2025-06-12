@@ -34,6 +34,10 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.HvdcWarmStartOuterloop;
+import com.powsybl.openloadflow.ac.outerloop.MonitoringVoltageOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -1450,7 +1454,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
 
-        params.getExtension(OpenLoadFlowParameters.class).setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.WARM_START);
+        // TODO: Need an easier way to simulate run N-1 in the same way as AS
+        params.getExtension(OpenLoadFlowParameters.class).setOuterLoopNames(List.of(DistributedSlackOuterLoop.NAME, HvdcWarmStartOuterloop.NAME, MonitoringVoltageOuterLoop.NAME, ReactiveLimitsOuterLoop.NAME));
+        params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
         r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), computationManager, params, report);
         assertFalse(r.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, r.getComponentResults().get(0).getStatus());
@@ -1458,6 +1465,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         n.getLineStream().forEach(l -> {
             System.out.println(l.getId() + " " + l.getTerminal1().getP() + " MW " + l.getTerminal2().getP() + " MW");
         });
+        // restore default outerloops
+        params.getExtension(OpenLoadFlowParameters.class).setOuterLoopNames(null);
 
         // The same network would converge with a DC init
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);

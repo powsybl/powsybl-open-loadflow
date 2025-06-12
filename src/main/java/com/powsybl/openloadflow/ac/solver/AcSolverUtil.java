@@ -75,7 +75,6 @@ public final class AcSolverUtil {
             }
         }
         equationSystem.getStateVector().set(x);
-        initializer.afterInit(network, reportNode);
     }
 
     public static void updateNetwork(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {

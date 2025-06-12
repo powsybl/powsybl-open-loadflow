@@ -302,7 +302,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 NetworkState networkState = NetworkState.save(lfNetwork);
 
                 // we always restart from base case voltages for contingency simulation
-                context.getParameters().setVoltageInitializer(useWarmStart ? new WarmStartVoltageInitializer(false) : new PreviousValueVoltageInitializer());
+                context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+
+                if (useWarmStart) {
+                    context.getParameters().setOuterLoops(WarmStartVoltageInitializer.updateOuterLoopList(context.getParameters().getOuterLoops()));
+                }
 
                 contingencies.forEach(contingency -> {
                     LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());

@@ -9,11 +9,13 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +63,22 @@ public class HvdcWarmStartOuterloop implements AcOuterLoop {
     public void initialize(AcOuterLoopContext context) {
         ContextData contextData = new ContextData(context.getNetwork());
         context.setData(contextData);
+        LfNetwork network = context.getNetwork();
+        network.getHvdcs().stream()
+                .filter(LfHvdc::isAcEmulation)
+                .filter(lfHvdc -> !lfHvdc.isDisabled())
+                .forEach(lfHvdc -> {
+                    double setPointBus1 = lfHvdc.freezeFromCurrentAngles();
+                    if (!Double.isNaN(setPointBus1)) {
+                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), setPointBus1 * PerUnit.SB, LOGGER);
+                    }
+                });
+    }
+
+    @Override
+    public boolean isNeeded(AcLoadFlowContext context) {
+        // Needed if the network contains an lfHVDC in AC Emulation mode
+        return context.getNetwork().getHvdcs().stream().anyMatch(LfHvdc::isAcEmulation);
     }
 
     @Override

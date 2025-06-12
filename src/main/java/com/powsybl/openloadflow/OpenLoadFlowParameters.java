@@ -44,7 +44,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.network.util.WarmStartVoltageInitializer;
 import de.vandermeer.asciitable.AsciiTable;
 import de.vandermeer.asciitable.CWC_LongestWord;
 import org.slf4j.Logger;
@@ -453,8 +452,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum VoltageInitModeOverride {
         NONE,
         VOLTAGE_MAGNITUDE,
-        FULL_VOLTAGE,
-        WARM_START
+        FULL_VOLTAGE
     }
 
     public enum TransformerVoltageControlMode {
@@ -1884,9 +1882,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                       parametersExt.getDcApproximationType(),
                                                       matrixFactory,
                                                       parametersExt.getMaxOuterLoopIterations()));
-            case WARM_START:
-                return new WarmStartVoltageInitializer(true);
-
             default:
                 throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
         }
