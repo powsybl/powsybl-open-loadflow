@@ -36,9 +36,6 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
-    private JacobianMatrix<AcVariableType, AcEquationType> jPhi;
-    private JacobianMatrix<AcVariableType, AcEquationType> jV;
-
     private enum PhiVEquationType {
         PHI_EQUATION_TYPE,
         V_EQUATION_TYPE;
@@ -138,7 +135,8 @@ public class FastDecoupled extends AbstractAcSolver {
         // solve f(x) = j * dx
         // Extract the "Phi" or "V" part of the equation vector
         System.arraycopy(equationVector.getArray(), begin, partialEquationVector, 0, systemLength);
-        j.solveTransposed(partialEquationVector);
+        JacobianMatrixFastDecoupled jFastDecoupled = new JacobianMatrixFastDecoupled(equationSystem, j.matrixFactory, rangeIndex, isPhySystem);
+        jFastDecoupled.solveTransposed(partialEquationVector);
 
         // copy the result on the right subset of equationVector
         System.arraycopy(partialEquationVector, 0, equationVector.getArray(), begin, systemLength);
@@ -167,9 +165,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
             try {
                 // Solution on PHI
-                runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, svScaling, reportNode, iterationReportNode);
+                runSingleSystemSolution(j, phiEquationVector, rangeIndex, true, svScaling, reportNode, iterationReportNode);
                 // Solution on V
-                runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, svScaling, reportNode, iterationReportNode);
+                runSingleSystemSolution(j, vEquationVector, rangeIndex, false, svScaling, reportNode, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
                 Reports.reportNewtonRaphsonError(reportNode, e.toString());
