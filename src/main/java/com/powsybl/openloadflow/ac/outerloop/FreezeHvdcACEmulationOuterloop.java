@@ -41,9 +41,9 @@ public class FreezeHvdcACEmulationOuterloop implements AcOuterLoop {
 
     private static final class ContextData {
 
-        private Step step = Step.UNFREEZE;
-        private HashMap<String, Double> angles = new HashMap<>();
-        private HashMap<String, Double> voltage = new HashMap<>();
+        private final Step step = Step.UNFREEZE;
+        private final HashMap<String, Double> angles = new HashMap<>();
+        private final HashMap<String, Double> voltage = new HashMap<>();
 
         private ContextData(LfNetwork network) {
             network.getBuses()
@@ -63,7 +63,7 @@ public class FreezeHvdcACEmulationOuterloop implements AcOuterLoop {
 
     public static List<AcOuterLoop> updateOuterLoopList(List<AcOuterLoop> outerLoopList) {
         // Do nothing is the loop is already present
-        if (outerLoopList.stream().anyMatch(o -> o instanceof FreezeHvdcACEmulationOuterloop)) {
+        if (outerLoopList.stream().anyMatch(FreezeHvdcACEmulationOuterloop.class::isInstance)) {
             return outerLoopList;
         }
         List<AcOuterLoop> result = new ArrayList<>(outerLoopList);
@@ -121,7 +121,7 @@ public class FreezeHvdcACEmulationOuterloop implements AcOuterLoop {
                 lfHvdc.setAcEmulationFrozen(false);
             }
 
-            // Return to initial state (we are in a possibly non physical state after first partial resolution)
+            // Return to initial state (we are in a possibly non-physical state after first partial resolution)
             context.getNetwork().getBuses()
                     .stream()
                     .filter(b -> !b.isDisabled())
