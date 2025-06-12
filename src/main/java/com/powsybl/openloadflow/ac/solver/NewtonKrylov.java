@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2023-2025, RTE (http://www.rte-france.com)
+/**
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -55,7 +55,7 @@ public class NewtonKrylov extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
-        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer, reportNode);
+        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
         KinsolParameters kinsolParameters = new KinsolParameters()
                 .setMaxIters(parameters.getMaxIterations())

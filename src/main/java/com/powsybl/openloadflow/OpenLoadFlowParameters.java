@@ -1882,6 +1882,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                       parametersExt.getDcApproximationType(),
                                                       matrixFactory,
                                                       parametersExt.getMaxOuterLoopIterations()));
+
             default:
                 throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
         }
