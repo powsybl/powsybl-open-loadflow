@@ -183,21 +183,49 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             Variable<V> variable = e.getKey();
             int row = variable.getRow();
             if (row != -1) {
-                double value = 0;
-                // create a derivative even if all terms are not active, to allow later reactivation of terms
-                // that won't create a new matrix element and a simple update of the matrix
-                for (EquationTerm<V, E> term : e.getValue()) {
-                    if (term.isActive()) {
-                        value += term.der(variable);
+                variableIndex = processVariableDerivative(handler, e.getValue(), variable, variableIndex);
+            }
+        }
+    }
+
+    private int processVariableDerivative(DerHandler<V> handler,
+                                          List<EquationTerm<V, E>> terms,
+                                          Variable<V> variable,
+                                          int variableIndex) {
+        double value = 0;
+        // create a derivative even if all terms are not active, to allow later reactivation of terms
+        // that won't create a new matrix element and a simple update of the matrix
+        for (EquationTerm<V, E> term : terms) {
+            if (term.isActive()) {
+                value += term.der(variable);
+            }
+        }
+        int oldMatrixElementIndex = (matrixElementIndexes == null) ? -1 : matrixElementIndexes[variableIndex];
+        int matrixElementIndex = handler.onDer(variable, value, oldMatrixElementIndex);
+
+        if (matrixElementIndexes == null) {
+            matrixElementIndexes = new int[termsByVariable.size()];
+        }
+        matrixElementIndexes[variableIndex] = matrixElementIndex;
+        return variableIndex + 1;
+    }
+
+    public void derFastDecoupled(DerHandler<V> handler, int rangeIndex, boolean isPhySystem) {
+        Objects.requireNonNull(handler);
+        int variableIndex = 0;
+        for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+            Variable<V> variable = e.getKey();
+            int row = variable.getRow();
+            if (row != -1) {
+                if (isPhySystem) {
+                    if (row < rangeIndex) {
+                        variableIndex = processVariableDerivative(handler, e.getValue(), variable, variableIndex);
+                    }
+                } else {
+                    if (row >= rangeIndex) {
+                        variableIndex = processVariableDerivative(handler, e.getValue(), variable, variableIndex);
                     }
                 }
-                int oldMatrixElementIndex = matrixElementIndexes == null ? -1 : matrixElementIndexes[variableIndex];
-                int matrixElementIndex = handler.onDer(variable, value, oldMatrixElementIndex);
-                if (matrixElementIndexes == null) {
-                    matrixElementIndexes = new int[termsByVariable.size()];
-                }
-                matrixElementIndexes[variableIndex] = matrixElementIndex;
-                variableIndex++;
             }
         }
     }
