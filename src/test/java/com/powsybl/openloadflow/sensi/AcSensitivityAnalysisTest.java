@@ -1272,7 +1272,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double iLeg3Before = network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().getI();
 
         // Storing all p and i values to check sensitivities to injection active power
-        network.getLoad("LOAD_4").setP0(network.getLoad("LOAD_4").getP0() - 0.1) ; // increasing injection active power (decreasing load consumption)
+        network.getLoad("LOAD_4").setP0(network.getLoad("LOAD_4").getP0() - 0.1); // increasing injection active power (decreasing load consumption)
         runAcLf(network);
         double pLeg1After = network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().getP();
         double iLeg1After = network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().getI();
@@ -1282,8 +1282,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double iLeg3After = network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().getI();
 
         // Storing all q values to check sensitivities to injection reactive power
-        network.getLoad("LOAD_4").setP0(network.getLoad("LOAD_4").getP0() + 0.1) ; // Back to previous P0
-        network.getLoad("LOAD_4").setQ0(network.getLoad("LOAD_4").getQ0() - 0.1) ; // increasing injection reactive power
+        network.getLoad("LOAD_4").setP0(network.getLoad("LOAD_4").getP0() + 0.1); // Back to previous P0
+        network.getLoad("LOAD_4").setQ0(network.getLoad("LOAD_4").getQ0() - 0.1); // increasing injection reactive power
         runAcLf(network);
         double qLeg1After = network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().getQ();
         double qLeg2After = network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().getQ();
@@ -1329,9 +1329,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(-1.001, result.getBranchFlow1SensitivityValue("LOAD_4", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0., result.getBranchFlow2SensitivityValue("LOAD_4", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(1., result.getBranchFlow3SensitivityValue("LOAD_4", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1., result.getSensitivityValue("LOAD_4","T3wT", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0., result.getSensitivityValue("LOAD_4","T3wT", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);        assertEquals(0., result.getFunctionReferenceValue("T3wT", SensitivityFunctionType.BRANCH_REACTIVE_POWER_3), LoadFlowAssert.DELTA_POWER);
-        assertEquals(1., result.getSensitivityValue("LOAD_4","T3wT", SensitivityFunctionType.BRANCH_REACTIVE_POWER_3, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1., result.getSensitivityValue("LOAD_4", "T3wT", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0., result.getSensitivityValue("LOAD_4", "T3wT", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1., result.getSensitivityValue("LOAD_4", "T3wT", SensitivityFunctionType.BRANCH_REACTIVE_POWER_3, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
