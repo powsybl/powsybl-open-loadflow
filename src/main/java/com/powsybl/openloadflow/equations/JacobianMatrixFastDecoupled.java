@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2025, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,31 +8,22 @@
 package com.powsybl.openloadflow.equations;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * @author Jeanne Archambault {@literal <geoffroy.jamgotchian at rte-france.com>}
+ * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
         extends JacobianMatrix<V, E> {
 
-    private int rangeIndex;
+    private final int rangeIndex;
 
-    private boolean isPhySystem;
-
-    private List<Equation<V, E>> subsetEquationsToSolve;
-
-    private List<Variable<V>> subsetVariablesToFind;
+    private final boolean isPhySystem;
 
     public JacobianMatrixFastDecoupled(EquationSystem<V, E> equationSystem,
                                        MatrixFactory matrixFactory,
@@ -41,40 +32,22 @@ public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends
         super(equationSystem, matrixFactory);
         this.rangeIndex = rangeIndex;
         this.isPhySystem = isPhySystem;
-        setSubsetEquationsToSolve();
-        setSubsetVariablesToFind();
-    }
-
-    public void setSubsetEquationsToSolve() {
-        if (isPhySystem) {
-            this.subsetEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex);
-        } else {
-            this.subsetEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
-        }
-    }
-
-    public void setSubsetVariablesToFind() {
-        if (isPhySystem) {
-            this.subsetVariablesToFind = equationSystem.getIndex().getSortedVariablesToFind().subList(0, rangeIndex);
-        } else {
-            this.subsetVariablesToFind = equationSystem.getIndex().getSortedVariablesToFind().subList(rangeIndex, equationSystem.getIndex().getSortedVariablesToFind().size());
-        }
     }
 
     @Override
-    public void initDer() {
+    protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        int rowCount = subsetEquationsToSolve.size();
-        int columnCount = subsetVariablesToFind.size();
+        List<Equation<V, E>> subsetEquationsToSolve = isPhySystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
+                : equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
 
-        if (rowCount != columnCount) {
-            throw new PowsyblException("Expected to have same number of equations (" + rowCount
-                    + ") and variables (" + columnCount + ")");
-        }
+        List<Variable<V>> subsetVariablesToFind = isPhySystem ? equationSystem.getIndex().getSortedVariablesToFind().subList(0, rangeIndex)
+                : equationSystem.getIndex().getSortedVariablesToFind().subList(rangeIndex, equationSystem.getIndex().getSortedVariablesToFind().size());
 
-        int estimatedNonZeroValueCount = rowCount * 3;
-        matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
+        int rowColumnCount = subsetEquationsToSolve.size();
+
+        int estimatedNonZeroValueCount = rowColumnCount * 3;
+        matrix = matrixFactory.create(rowColumnCount, rowColumnCount, estimatedNonZeroValueCount);
 
         for (Equation<V, E> eq : subsetEquationsToSolve) {
             int column = eq.getColumn();
@@ -86,16 +59,20 @@ public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends
             } else {
                 eq.derFastDecoupled((variable, value, matrixElementIndex) -> {
                     int row = variable.getRow();
-                    return matrix.addAndGetIndex(row- rangeIndex, column- rangeIndex, value);
-                }, rangeIndex, isPhySystem);            }
+                    return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
+                }, rangeIndex, isPhySystem);
+            }
         }
 
-        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     @Override
-    public void updateDer() {
+    protected void updateDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
+
+        List<Equation<V, E>> subsetEquationsToSolve = isPhySystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
+                : equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
 
         matrix.reset();
         for (Equation<V, E> eq : subsetEquationsToSolve) {
@@ -105,6 +82,6 @@ public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends
             }, rangeIndex, isPhySystem);
         }
 
-        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 }

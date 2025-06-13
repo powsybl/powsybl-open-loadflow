@@ -36,6 +36,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
+    private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jPhi;
+    private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jV;
+
     private enum PhiVEquationType {
         PHI_EQUATION_TYPE,
         V_EQUATION_TYPE;
@@ -135,8 +138,7 @@ public class FastDecoupled extends AbstractAcSolver {
         // solve f(x) = j * dx
         // Extract the "Phi" or "V" part of the equation vector
         System.arraycopy(equationVector.getArray(), begin, partialEquationVector, 0, systemLength);
-        JacobianMatrixFastDecoupled jFastDecoupled = new JacobianMatrixFastDecoupled(equationSystem, j.matrixFactory, rangeIndex, isPhySystem);
-        jFastDecoupled.solveTransposed(partialEquationVector);
+        j.solveTransposed(partialEquationVector);
 
         // copy the result on the right subset of equationVector
         System.arraycopy(partialEquationVector, 0, equationVector.getArray(), begin, systemLength);
@@ -165,9 +167,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
             try {
                 // Solution on PHI
-                runSingleSystemSolution(j, phiEquationVector, rangeIndex, true, svScaling, reportNode, iterationReportNode);
+                runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, svScaling, reportNode, iterationReportNode);
                 // Solution on V
-                runSingleSystemSolution(j, vEquationVector, rangeIndex, false, svScaling, reportNode, iterationReportNode);
+                runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, svScaling, reportNode, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
                 Reports.reportNewtonRaphsonError(reportNode, e.toString());
@@ -208,7 +210,8 @@ public class FastDecoupled extends AbstractAcSolver {
         equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
         int rangeIndex = getRangeForPhiSystemPart();
 
-        // TODO HG: create Phi and V Jacobian matrices
+        jPhi = new JacobianMatrixFastDecoupled<>(equationSystem, j.getMatrixFactory(), rangeIndex, true);
+        jV = new JacobianMatrixFastDecoupled<>(equationSystem, j.getMatrixFactory(), rangeIndex, false);
 
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
@@ -243,7 +246,8 @@ public class FastDecoupled extends AbstractAcSolver {
             }
         }
 
-        // TODO HG: Close Phi and V matrices
+        jPhi.close();
+        jV.close();
 
         if (iterations.getValue() >= parameters.getMaxIterations()) {
             status = AcSolverStatus.MAX_ITERATION_REACHED;
