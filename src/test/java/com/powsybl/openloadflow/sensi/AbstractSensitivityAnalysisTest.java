@@ -193,6 +193,13 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
+    protected static SensitivityFactor createTransformerLegReactiveFlowPerTargetQ(String functionId, String variableId, ThreeSides side) {
+        SensitivityFunctionType ftype = side.equals(ThreeSides.ONE) ? SensitivityFunctionType.BRANCH_REACTIVE_POWER_1
+                : side.equals(ThreeSides.TWO) ? SensitivityFunctionType.BRANCH_REACTIVE_POWER_2
+                : SensitivityFunctionType.BRANCH_REACTIVE_POWER_3;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_REACTIVE_POWER, variableId, false, ContingencyContext.all());
+    }
+
     protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId) {
         return createBranchFlowPerPSTAngle(functionId, variableId, null, TwoSides.ONE);
     }
