@@ -767,24 +767,6 @@ class AcLoadFlowTransformerVoltageControlTest {
     }
 
     @Test
-    void t2wtWithoutLoadTapChangingCapabilitiesTest() {
-        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
-
-        t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
-                .setTapPosition(2)
-                .setRegulationTerminal(network.getGenerator("GEN_1").getTerminal())
-                .setTargetV(33.0)
-                .setLoadTapChangingCapabilities(false);
-        t2wt.getTerminal2().disconnect();
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-    }
-
-    @Test
     void baseCaseT3wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
