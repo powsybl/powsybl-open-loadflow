@@ -423,8 +423,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setGenerationTargetQ(double generationTargetQ) {
-        if (generationTargetQ != this.generationTargetQ) {
-            double oldGenerationTargetQ = this.generationTargetQ;
+        if (generationTargetQ != getGenerationTargetQ()) {
+            double oldGenerationTargetQ = getGenerationTargetQ();
             this.generationTargetQ = generationTargetQ;
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, generationTargetQ);
