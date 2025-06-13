@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,8 @@ import java.util.OptionalDouble;
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
+
+    private static final double TARGET_Q_EPSILON = 1e-2 / PerUnit.SB;
 
     private final Ref<Generator> generatorRef;
 
@@ -170,15 +173,26 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        double targetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        boolean isFirstComputing = false;
+        if (targetQ == null) {
+            isFirstComputing = true;
+            targetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        }
         if (forceTargetQInReactiveLimits) {
+            double computedTargetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
             double minQ = getMinQ();
             double maxQ = getMaxQ();
-            if (targetQ < minQ) {
-                targetQ = minQ;
-            } else if (targetQ > maxQ) {
-                targetQ = maxQ;
+            if (computedTargetQ < minQ) {
+                computedTargetQ = minQ;
+            } else if (computedTargetQ > maxQ) {
+                computedTargetQ = maxQ;
             }
+            if (isFirstComputing && Math.abs(targetQ - computedTargetQ) > TARGET_Q_EPSILON) { // Log message only if updated value
+                // Logging info and report if at generator creation
+                LOGGER.info("TargetQ of generator {} has been updated to fit within reactive power limits (from {} MVar to {} MVar)", getId(), targetQ * PerUnit.SB, maxQ * PerUnit.SB);
+                Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
+            }
+            targetQ = computedTargetQ;
         }
         return targetQ;
     }
