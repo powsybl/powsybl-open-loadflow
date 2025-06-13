@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Double generationTargetP;
 
-    protected Double generationTargetQ = 0.;
+    private Double generationTargetQ = 0.;
 
     protected QLimitType qLimitType;
 
