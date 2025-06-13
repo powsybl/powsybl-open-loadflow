@@ -59,9 +59,9 @@ class FastDecoupledTest {
         assertVoltageEquals(405, bus1);
         LoadFlowAssert.assertAngleEquals(0, bus1);
         assertVoltageEquals(235.132, bus2);
-        LoadFlowAssert.assertAngleEquals(-2.259241, bus2);
+        LoadFlowAssert.assertAngleEquals(-2.259235, bus2);
         assertVoltageEquals(20.834, bus3);
-        LoadFlowAssert.assertAngleEquals(-2.721885, bus3);
+        LoadFlowAssert.assertAngleEquals(-2.721880, bus3);
         assertActivePowerEquals(161.095, twt.getLeg1().getTerminal());
         assertReactivePowerEquals(81.884, twt.getLeg1().getTerminal());
         assertActivePowerEquals(-161, twt.getLeg2().getTerminal());

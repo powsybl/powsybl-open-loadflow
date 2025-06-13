@@ -32,7 +32,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     protected final EquationSystem<V, E> equationSystem;
 
-    public final MatrixFactory matrixFactory;
+    protected final MatrixFactory matrixFactory;
 
     protected Matrix matrix;
 
@@ -52,6 +52,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
+    }
+
+    public MatrixFactory getMatrixFactory() {
+        return matrixFactory;
     }
 
     protected void updateStatus(Status status) {
@@ -80,7 +84,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateStatus(Status.VALUES_INVALID);
     }
 
-    public void initDer() {
+    protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
@@ -116,7 +120,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         clearLu();
     }
 
-    public void updateDer() {
+    protected void updateDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
