@@ -35,7 +35,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.FreezeHvdcACEmulationOuterloop;
+import com.powsybl.openloadflow.ac.outerloop.FreezingHvdcACEmulationOuterloop;
 import com.powsybl.openloadflow.ac.outerloop.MonitoringVoltageOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
@@ -1455,7 +1455,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
 
         // TODO: Need an easier way to simulate run N-1 in the same way as AS
-        params.getExtension(OpenLoadFlowParameters.class).setOuterLoopNames(List.of(DistributedSlackOuterLoop.NAME, FreezeHvdcACEmulationOuterloop.NAME, MonitoringVoltageOuterLoop.NAME, ReactiveLimitsOuterLoop.NAME));
+        params.getExtension(OpenLoadFlowParameters.class).setOuterLoopNames(List.of(DistributedSlackOuterLoop.NAME, FreezingHvdcACEmulationOuterloop.NAME, MonitoringVoltageOuterLoop.NAME, ReactiveLimitsOuterLoop.NAME));
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
 
         r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), computationManager, params, report);

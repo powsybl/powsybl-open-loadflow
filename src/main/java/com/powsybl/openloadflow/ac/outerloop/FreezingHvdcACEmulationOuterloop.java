@@ -28,11 +28,11 @@ import java.util.stream.IntStream;
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
-public class FreezeHvdcACEmulationOuterloop implements AcOuterLoop {
+public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FreezeHvdcACEmulationOuterloop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FreezingHvdcACEmulationOuterloop.class);
 
-    public static final String NAME = "FreezeHvdcACEmulation";
+    public static final String NAME = "FreezingHvdcACEmulation";
 
     private enum Step {
         UNFREEZE,
@@ -63,16 +63,16 @@ public class FreezeHvdcACEmulationOuterloop implements AcOuterLoop {
 
     public static List<AcOuterLoop> updateOuterLoopList(List<AcOuterLoop> outerLoopList) {
         // Do nothing is the loop is already present
-        if (outerLoopList.stream().anyMatch(FreezeHvdcACEmulationOuterloop.class::isInstance)) {
+        if (outerLoopList.stream().anyMatch(FreezingHvdcACEmulationOuterloop.class::isInstance)) {
             return outerLoopList;
         }
         List<AcOuterLoop> result = new ArrayList<>(outerLoopList);
-        // Place a WarmStartOuterLoop after the slackDistribution OuterLoop
+        // Place this outerloop after the slackDistribution if present
         int index = IntStream.range(0, outerLoopList.size())
                 .filter(i -> outerLoopList.get(i) instanceof AcActivePowerDistributionOuterLoop)
                 .findFirst()
                 .orElse(-1);
-        result.add(index + 1, new FreezeHvdcACEmulationOuterloop());
+        result.add(index + 1, new FreezingHvdcACEmulationOuterloop());
         return result;
     }
 

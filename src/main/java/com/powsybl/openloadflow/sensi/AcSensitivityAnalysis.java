@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.outerloop.FreezeHvdcACEmulationOuterloop;
+import com.powsybl.openloadflow.ac.outerloop.FreezingHvdcACEmulationOuterloop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -305,7 +305,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
 
                 if (startWithFrozenACEmulation) {
-                    context.getParameters().setOuterLoops(FreezeHvdcACEmulationOuterloop.updateOuterLoopList(context.getParameters().getOuterLoops()));
+                    context.getParameters().setOuterLoops(FreezingHvdcACEmulationOuterloop.updateOuterLoopList(context.getParameters().getOuterLoops()));
                 }
 
                 contingencies.forEach(contingency -> {

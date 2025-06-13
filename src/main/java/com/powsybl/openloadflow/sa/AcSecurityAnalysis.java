@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.FreezeHvdcACEmulationOuterloop;
+import com.powsybl.openloadflow.ac.outerloop.FreezingHvdcACEmulationOuterloop;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
@@ -139,7 +139,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
             outerLoops = outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters);
         }
         if (openSecurityAnalysisParameters.isStartWithFrozenACEmulation()) {
-            outerLoops = FreezeHvdcACEmulationOuterloop.updateOuterLoopList(outerLoops);
+            outerLoops = FreezingHvdcACEmulationOuterloop.updateOuterLoopList(outerLoops);
         }
         parameters.setOuterLoops(outerLoops);
     }
