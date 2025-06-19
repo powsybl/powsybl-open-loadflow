@@ -67,12 +67,11 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, OptionalDouble mismatch) {
-        Boolean positiveMismatch = mismatch.isPresent() ? mismatch.getAsDouble() > 0 : null;
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, double mismatch) {
         return participatingBuses.stream()
                 .flatMap(bus -> bus.getGenerators().stream())
                 .map(gen -> {
-                    double factor = getParticipationFactor(gen, positiveMismatch);
+                    double factor = getParticipationFactor(gen, mismatch);
                     if (isParticipating(gen) && factor != 0) {
                         return new ParticipatingElement(gen, factor);
                     }
@@ -137,16 +136,16 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return done;
     }
 
-    private double getParticipationFactor(LfGenerator generator, Boolean positiveMismatch) {
+    private double getParticipationFactor(LfGenerator generator, double mismatch) {
         return switch (participationType) {
             case MAX -> generator.getMaxP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
             case REMAINING_MARGIN -> {
-                if (positiveMismatch == null) {
+                if (Double.isNaN(mismatch)) {
                     throw new PowsyblException("The sign of the active power mismatch is unknown, it is mandatory for REMAINING_MARGIN participation type");
                 }
-                yield Boolean.TRUE.equals(positiveMismatch) ? Math.max(0.0, generator.getMaxP() - generator.getTargetP()) : Math.max(0.0, generator.getTargetP() - generator.getMinP());
+                yield mismatch > 0. ? Math.max(0.0, generator.getMaxP() - generator.getTargetP()) : Math.max(0.0, generator.getTargetP() - generator.getMinP());
             }
         };
     }

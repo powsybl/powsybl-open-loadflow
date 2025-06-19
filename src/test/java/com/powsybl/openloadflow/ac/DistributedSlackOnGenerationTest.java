@@ -225,7 +225,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void testGetParticipatingElementsWithMismatch() {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector(Set.of())).get(0);
-        final OptionalDouble mismatch = OptionalDouble.of(30);
+        final double mismatch = 30.;
         final Collection<LfBus> participatingBuses = ActivePowerDistribution.filterParticipatingBuses(lfNetwork.getBuses());
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
@@ -240,7 +240,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void testGetParticipatingElementsWithoutMismatch() {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector(Set.of())).get(0);
-        final OptionalDouble emptyMismatch = OptionalDouble.empty();
+        final double emptyMismatch = Double.NaN;
         final Collection<LfBus> participatingBuses = ActivePowerDistribution.filterParticipatingBuses(lfNetwork.getBuses());
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());

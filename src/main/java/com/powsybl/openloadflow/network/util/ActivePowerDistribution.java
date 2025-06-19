@@ -81,7 +81,7 @@ public final class ActivePowerDistribution {
             return new PreviousStateInfo(previousMismatch, previousTargetP);
         }
 
-        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, OptionalDouble mismatch);
+        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, double mismatch);
 
         double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
@@ -106,7 +106,7 @@ public final class ActivePowerDistribution {
         var participatingBuses = filterParticipatingBuses(buses);
         PreviousStateInfo previousStateInfo = step.resetToInitialState(participatingBuses, referenceGenerator);
         double remainingMismatch = activePowerMismatch + previousStateInfo.previousMismatch();
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(participatingBuses, OptionalDouble.of(remainingMismatch));
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(participatingBuses, remainingMismatch);
 
         int iteration = 0;
 
