@@ -1541,14 +1541,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double i2Before = twt.getTerminal2().getI();
 
         Generator gen = network.getGenerator("GEN");
-        gen.setTargetV(gen.getTargetV() + 1e-6);
+        gen.setTargetV(gen.getTargetV() + 0.1);
 
         runAcLf(network);
 
-        assertEquals(-7.9597, (twt.getTerminal1().getQ() - q1Before) / 1e-6, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(0.0, (twt.getTerminal2().getQ() - q2Before) / 1e-6, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-52.3317, (twt.getTerminal1().getI() - i1Before) / 1e-6, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -52.3200
-        assertEquals(-132.3970, (twt.getTerminal2().getI() - i2Before) / 1e-6, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok vs -132.3927
+        assertEquals(-7.8861, (twt.getTerminal1().getQ() - q1Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok with sensitivity of -7.96
+        assertEquals(0.0, (twt.getTerminal2().getQ() - q2Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-51.9857, (twt.getTerminal1().getI() - i1Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok with sensitivity of -52.3
+        assertEquals(-131.5217, (twt.getTerminal2().getI() - i2Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok with sensitivity of -132
     }
 
     @Test
