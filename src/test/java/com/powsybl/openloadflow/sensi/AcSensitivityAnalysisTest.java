@@ -1301,7 +1301,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0., qLeg2Before, LoadFlowAssert.DELTA_POWER);
         assertEquals(0., qLeg3Before, LoadFlowAssert.DELTA_POWER);
 
-        // checking function reference values from sensitivity analysis
+        // checking that they are the same as function reference values from sensitivity analysis
         assertEquals(43.03, result.getBranchCurrent1FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_I);
         assertEquals(83.91, result.getBranchCurrent2FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_I);
         assertEquals(279.70, result.getBranchCurrent3FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_I);
@@ -1323,6 +1323,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0., (qLeg2After - qLeg2Before) / 0.1, LoadFlowAssert.DELTA_POWER);
         assertEquals(1., (qLeg3After - qLeg3Before) / 0.1, LoadFlowAssert.DELTA_POWER);
 
+        // checking that they are the same as sensitivity values from sentivitiy analysis
         assertEquals(-4.309, result.getBranchCurrent1SensitivityValue("LOAD_4", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
         assertEquals(-0.010, result.getBranchCurrent2SensitivityValue("LOAD_4", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
         assertEquals(-55.987, result.getBranchCurrent3SensitivityValue("LOAD_4", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
@@ -1541,14 +1542,15 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double i2Before = twt.getTerminal2().getI();
 
         Generator gen = network.getGenerator("GEN");
-        gen.setTargetV(gen.getTargetV() + 0.1);
+        gen.setTargetV(gen.getTargetV() + 0.01);
 
         runAcLf(network);
 
-        assertEquals(-7.8861, (twt.getTerminal1().getQ() - q1Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok with sensitivity of -7.96
-        assertEquals(0.0, (twt.getTerminal2().getQ() - q2Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-51.9857, (twt.getTerminal1().getI() - i1Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok with sensitivity of -52.3
-        assertEquals(-131.5217, (twt.getTerminal2().getI() - i2Before) / 0.1, LoadFlowAssert.DELTA_SENSITIVITY_VALUE); // looks ok with sensitivity of -132
+        // for asserts, accepting 3 significant digits precision to compare with sensitivity values of the sensitivity analysis
+        assertEquals(-7.96, (twt.getTerminal1().getQ() - q1Before) / 0.01, 0.01);
+        assertEquals(0.0, (twt.getTerminal2().getQ() - q2Before) / 0.01, 0.01);
+        assertEquals(-52.3, (twt.getTerminal1().getI() - i1Before) / 0.01, 0.1);
+        assertEquals(-132, (twt.getTerminal2().getI() - i2Before) / 0.01, 1.);
     }
 
     @Test
