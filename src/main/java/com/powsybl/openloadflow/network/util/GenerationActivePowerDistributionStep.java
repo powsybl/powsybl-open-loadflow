@@ -48,18 +48,16 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
-        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(buses, referenceGenerator);
+    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> participatingBuses, LfGenerator referenceGenerator) {
+        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(participatingBuses, referenceGenerator);
         double previousMismatch = 0;
-        for (LfBus bus : buses) {
-            if (bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious()) {
-                for (LfGenerator generator : bus.getGenerators()) {
-                    if (generator.isParticipating()) {
-                        previousMismatch -= generator.getInitialTargetP() - generator.getTargetP();
-                        // putIfAbsent because the generator might be the reference generator (in which case it was already reinitialized)
-                        previousStateInfo.previousTargetP().putIfAbsent(generator, generator.getTargetP());
-                        generator.setTargetP(generator.getInitialTargetP());
-                    }
+        for (LfBus bus : participatingBuses) {
+            for (LfGenerator generator : bus.getGenerators()) {
+                if (generator.isParticipating()) {
+                    previousMismatch -= generator.getInitialTargetP() - generator.getTargetP();
+                    // putIfAbsent because the generator might be the reference generator (in which case it was already reinitialized)
+                    previousStateInfo.previousTargetP().putIfAbsent(generator, generator.getTargetP());
+                    generator.setTargetP(generator.getInitialTargetP());
                 }
             }
         }

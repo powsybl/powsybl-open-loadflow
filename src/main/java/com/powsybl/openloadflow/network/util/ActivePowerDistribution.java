@@ -69,7 +69,7 @@ public final class ActivePowerDistribution {
         /**
          * @return information about previous state: how much active power has been reverted, capture of generator / loads state
          */
-        default PreviousStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
+        default PreviousStateInfo resetToInitialState(Collection<LfBus> participatingBuses, LfGenerator referenceGenerator) {
             double previousMismatch = 0.;
             Map<Object, Double> previousTargetP = new HashMap<>();
             if (referenceGenerator != null) {

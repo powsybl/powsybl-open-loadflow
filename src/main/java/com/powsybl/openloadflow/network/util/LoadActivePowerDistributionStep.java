@@ -39,14 +39,12 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> buses, LfGenerator referenceGenerator) {
-        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(buses, referenceGenerator);
+    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> participatingBuses, LfGenerator referenceGenerator) {
+        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(participatingBuses, referenceGenerator);
         // unlike in the case of generators, here we only have to capture the targetP-s
-        for (LfBus bus : buses) {
-            if (bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious()) {
-                for (LfLoad load : bus.getLoads()) {
-                    previousStateInfo.previousTargetP().putIfAbsent(load, load.getTargetP());
-                }
+        for (LfBus bus : participatingBuses) {
+            for (LfLoad load : bus.getLoads()) {
+                previousStateInfo.previousTargetP().putIfAbsent(load, load.getTargetP());
             }
         }
         return previousStateInfo;
