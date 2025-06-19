@@ -145,7 +145,18 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 if (Double.isNaN(mismatch)) {
                     throw new PowsyblException("The sign of the active power mismatch is unknown, it is mandatory for REMAINING_MARGIN participation type");
                 }
-                yield mismatch > 0. ? Math.max(0.0, generator.getMaxP() - generator.getTargetP()) : Math.max(0.0, generator.getTargetP() - generator.getMinP());
+                // Distribution does not change sign of targetP, we take this into account in remaining margin calculation.
+                // All participating generators should hit their limit together, depending on the direction and initial targetP,
+                // their limit may be not only minP/maxP, but also the forbidden zero crossing.
+                double targetP = generator.getTargetP();
+                double minP = generator.getMinP();
+                double maxP = generator.getMaxP();
+                if (targetP < 0) {
+                    maxP = Math.min(maxP, 0);
+                } else {
+                    minP = Math.max(minP, 0);
+                }
+                yield mismatch > 0. ? Math.max(0.0, maxP - targetP) : Math.max(0.0, targetP - minP);
             }
         };
     }

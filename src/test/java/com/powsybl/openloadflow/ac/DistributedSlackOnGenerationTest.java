@@ -793,6 +793,47 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void testSlackMismatchChangingSignRemainingMargin3() {
+        parameters
+                .setUseReactiveLimits(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setSlackBusPMaxMismatch(0.0001);
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
+        network.getLoad("l1").setP0(300.);
+
+        g1.setMinP(-100.0).setMaxP(150.0);
+        g2.setMinP(200.0).setMaxP(310.0);
+        g3.setMinP(-50.0).setMaxP(110.0);
+        g4.setMinP(-60.0).setMaxP(110.0).setTargetP(-10.);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(-79.8564, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // Generators should decrease generation by -79.84712 MW
+        // - margin counted till zero for Generators injecting
+        // - margin counted till Pmin for Generators pumping
+        //
+        // generator | targetP | minP    init_P + mismatch * margin / total_margin = final_P
+        // ----------|---------|-------
+        //   g1      |  100    | -100  --> 100  + -79.8564 *   100   /   240       = 66.7265
+        //   g2      |  200    |  200  --> 200  + -79.8564 *   0     /   240       = 200
+        //   g3      |   90    |  -50  --> 90   + -79.8564 *   90    /   240       = 60.0538
+        //   g4      |  -10    |  -60  --> -10  + -79.8564 *   50    /   240       = -26.6367
+        assertActivePowerEquals(-66.7265, g1.getTerminal());
+        assertActivePowerEquals(-200., g2.getTerminal());
+        assertActivePowerEquals(-60.0538, g3.getTerminal());
+        assertActivePowerEquals(26.6367, g4.getTerminal());
+    }
+
+    @Test
     void testEpsilonDistribution() {
         parametersExt.setSlackBusPMaxMismatch(0.1);
         network = DistributedSlackNetworkFactory.createWithEpsilonDistribution();
