@@ -54,9 +54,8 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch) {
-        return buses.stream()
-                .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, OptionalDouble mismatch) {
+        return participatingBuses.stream()
                 .flatMap(bus -> bus.getLoads().stream())
                 .filter(load -> load.getAbsVariableTargetP() != 0)
                 .map(load -> new ParticipatingElement(load, getParticipationFactor(load)))

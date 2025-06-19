@@ -81,7 +81,7 @@ public final class ActivePowerDistribution {
             return new PreviousStateInfo(previousMismatch, previousTargetP);
         }
 
-        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch);
+        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, OptionalDouble mismatch);
 
         double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
@@ -103,9 +103,10 @@ public final class ActivePowerDistribution {
     }
 
     public Result run(LfGenerator referenceGenerator, Collection<LfBus> buses, double activePowerMismatch) {
-        PreviousStateInfo previousStateInfo = step.resetToInitialState(buses, referenceGenerator);
+        var participatingBuses = filterParticipatingBuses(buses);
+        PreviousStateInfo previousStateInfo = step.resetToInitialState(participatingBuses, referenceGenerator);
         double remainingMismatch = activePowerMismatch + previousStateInfo.previousMismatch();
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses, OptionalDouble.of(remainingMismatch));
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(participatingBuses, OptionalDouble.of(remainingMismatch));
 
         int iteration = 0;
 
@@ -141,6 +142,12 @@ public final class ActivePowerDistribution {
             case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN ->
                     new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN, useActiveLimits);
         };
+    }
+
+    public static Collection<LfBus> filterParticipatingBuses(Collection<LfBus> buses) {
+        return buses.stream()
+                .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
+                .toList();
     }
 
     public record ResultWithFailureBehaviorHandling(boolean failed, String failedMessage, int iteration, double remainingMismatch, boolean movedBuses, double failedDistributedActivePower) { }

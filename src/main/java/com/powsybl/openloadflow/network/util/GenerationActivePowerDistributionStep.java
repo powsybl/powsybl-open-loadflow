@@ -67,10 +67,9 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch) {
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, OptionalDouble mismatch) {
         Boolean positiveMismatch = mismatch.isPresent() ? mismatch.getAsDouble() > 0 : null;
-        return buses.stream()
-                .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
+        return participatingBuses.stream()
                 .flatMap(bus -> bus.getGenerators().stream())
                 .map(gen -> {
                     double factor = getParticipationFactor(gen, positiveMismatch);

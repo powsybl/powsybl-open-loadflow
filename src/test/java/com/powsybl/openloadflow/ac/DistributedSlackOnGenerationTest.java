@@ -226,13 +226,13 @@ class DistributedSlackOnGenerationTest {
     void testGetParticipatingElementsWithMismatch() {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector(Set.of())).get(0);
         final OptionalDouble mismatch = OptionalDouble.of(30);
-        final List<LfBus> buses = lfNetwork.getBuses();
+        final Collection<LfBus> participatingBuses = ActivePowerDistribution.filterParticipatingBuses(lfNetwork.getBuses());
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             switch (balanceType) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertEquals(4, step.getParticipatingElements(buses, mismatch).size());
-                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(buses, mismatch).size());
-                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(buses, mismatch).size());
+                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertEquals(4, step.getParticipatingElements(participatingBuses, mismatch).size());
+                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(participatingBuses, mismatch).size());
+                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(participatingBuses, mismatch).size());
             }
         }
     }
@@ -241,14 +241,14 @@ class DistributedSlackOnGenerationTest {
     void testGetParticipatingElementsWithoutMismatch() {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector(Set.of())).get(0);
         final OptionalDouble emptyMismatch = OptionalDouble.empty();
-        final List<LfBus> buses = lfNetwork.getBuses();
+        final Collection<LfBus> participatingBuses = ActivePowerDistribution.filterParticipatingBuses(lfNetwork.getBuses());
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             switch (balanceType) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P -> assertEquals(4, step.getParticipatingElements(buses, emptyMismatch).size());
-                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(buses, emptyMismatch).size());
-                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(buses, emptyMismatch).size());
-                case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertThrows(PowsyblException.class, () -> step.getParticipatingElements(buses, emptyMismatch),
+                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P -> assertEquals(4, step.getParticipatingElements(participatingBuses, emptyMismatch).size());
+                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(participatingBuses, emptyMismatch).size());
+                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(participatingBuses, emptyMismatch).size());
+                case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertThrows(PowsyblException.class, () -> step.getParticipatingElements(participatingBuses, emptyMismatch),
                         "The sign of the active power mismatch is unknown, it is mandatory for REMAINING_MARGIN participation type");
             }
         }
