@@ -1117,10 +1117,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     } else if (isReactivePowerFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                        } else {
-                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        switch (variableType) {
+                            case BUS_TARGET_VOLTAGE :
+                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                                break;
+                            case INJECTION_REACTIVE_POWER:
+                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                                variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                                break;
+                            default:
+                                throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER) {
                         String functionInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
