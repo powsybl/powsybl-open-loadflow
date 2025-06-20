@@ -49,7 +49,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Double generationTargetP;
 
-    protected double generationTargetQ = 0;
+    private double generationTargetQ = Double.NaN;
+
+    private boolean invalidatedGenerationTargetQ = true;
 
     protected QLimitType qLimitType;
 
@@ -93,11 +95,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private LfArea area = null;
 
-    protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
+    protected boolean forceTargetQInReactiveLimits;
+
+    protected AbstractLfBus(LfNetwork network, double v, double angle, LfNetworkParameters parameters) {
         super(network);
         this.v = v;
         this.angle = angle;
-        this.distributedOnConformLoad = distributedOnConformLoad;
+        this.distributedOnConformLoad = parameters.isDistributedOnConformLoad();
+        this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
     }
 
     @Override
@@ -315,9 +320,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
-        if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
-            generationTargetQ += generator.getTargetQ();
-        }
+        invalidateGenerationTargetQ();
     }
 
     void addGenerator(Generator generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -387,6 +390,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
+        if (forceTargetQInReactiveLimits && !isVoltageControlled()) {
+            invalidateGenerationTargetQ();
+        }
+    }
+
+    public void invalidateGenerationTargetQ() {
+        invalidatedGenerationTargetQ = true;
     }
 
     @Override
@@ -400,20 +410,35 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generationTargetP;
     }
 
+    private void updateGenerationTargetQ(double newGenerationTargetQ, double oldGenerationTargetQ) {
+        if (Double.isNaN(newGenerationTargetQ)) {
+            throw new PowsyblException("Cannot set generationTargetQ with NaN value");
+        }
+        if (!Double.isNaN(oldGenerationTargetQ) && newGenerationTargetQ != oldGenerationTargetQ) { // Call listeners if updating an old value
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, newGenerationTargetQ);
+            }
+        }
+        this.generationTargetQ = newGenerationTargetQ;
+        invalidatedGenerationTargetQ = false;
+    }
+
     @Override
     public double getGenerationTargetQ() {
+        if (invalidatedGenerationTargetQ) {
+            updateGenerationTargetQ(getGenerators().stream()
+                        .filter(g -> g.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE)
+                        .mapToDouble(LfGenerator::getTargetQ)
+                        .filter(d -> !Double.isNaN(d))
+                        .sum(),
+                    this.generationTargetQ);
+        }
         return generationTargetQ;
     }
 
     @Override
     public void setGenerationTargetQ(double generationTargetQ) {
-        if (generationTargetQ != this.generationTargetQ) {
-            double oldGenerationTargetQ = this.generationTargetQ;
-            this.generationTargetQ = generationTargetQ;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, generationTargetQ);
-            }
-        }
+        updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
     }
 
     @Override
@@ -732,7 +757,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
+        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : getGenerationTargetQ(),
                 parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
