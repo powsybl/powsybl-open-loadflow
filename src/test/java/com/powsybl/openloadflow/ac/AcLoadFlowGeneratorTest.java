@@ -119,6 +119,7 @@ class AcLoadFlowGeneratorTest {
     @Test
     void testGeneratorForceTargetQInCurveDiagram() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
+        Bus b1 = network.getBusBreakerView().getBus("b1");
         Generator g1 = network.getGenerator("g1");
         assertEquals(2, g1.getTargetP());
         // disable slack generation on g4 so that only g1 moves
@@ -137,17 +138,20 @@ class AcLoadFlowGeneratorTest {
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-1.5, g1.getTerminal()); // lowered from 2 to 1.5 because slack distribution
         assertReactivePowerEquals(-1.5, g1.getTerminal()); // at targetQ, inside curve
+        assertEquals(0, b1.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum(), 0.001); // check that reactive powers are balanced
 
         d3.setP0(2.);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-2.0, g1.getTerminal()); // at targetP, no slack needed
         assertReactivePowerEquals(-1.5, g1.getTerminal()); // at targetQ and at curve limit
+        assertEquals(0, b1.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum(), 0.001); // check that reactive powers are balanced
 
         d3.setP0(3.);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-3.0, g1.getTerminal()); // increased from 2 to 3 because slack distribution
         assertReactivePowerEquals(-1.25, g1.getTerminal()); // not at targetQ because at curve limit
+        assertEquals(0, b1.getConnectedTerminalStream().mapToDouble(Terminal::getQ).sum(), 0.001); // check that reactive powers are balanced
     }
 }
