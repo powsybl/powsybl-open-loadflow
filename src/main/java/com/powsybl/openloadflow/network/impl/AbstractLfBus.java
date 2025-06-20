@@ -414,7 +414,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (Double.isNaN(newGenerationTargetQ)) {
             throw new PowsyblException("Cannot set generationTargetQ with NaN value");
         }
-        if (!Double.isNaN(oldGenerationTargetQ) && newGenerationTargetQ != oldGenerationTargetQ) {
+        if (!Double.isNaN(oldGenerationTargetQ) && newGenerationTargetQ != oldGenerationTargetQ) { // Call listeners if updating an old value
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, newGenerationTargetQ);
             }
