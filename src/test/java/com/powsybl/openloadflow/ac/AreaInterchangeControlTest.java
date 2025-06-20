@@ -16,6 +16,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,6 +63,40 @@ class AreaInterchangeControlTest {
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
         double interchangeTarget2 = 40;
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 4);
+        parameters.setDc(true);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
+    }
+
+    @Test
+    void zeroImpedanceBoundaryBranchesNetworkConversion() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        network.getLine("l23_A1").setX(0);          // boundary
+        network.getDanglingLine("dl1").setX(0);     // boundary
+        network.getLine("l12").setX(0);             // not boundary
+
+        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setAreaInterchangeControl(false)).get(0);
+        assertTrue(lfNetwork.getBranchById("dl1").isZeroImpedance(LoadFlowModel.AC));
+        assertTrue(lfNetwork.getBranchById("l23_A1").isZeroImpedance(LoadFlowModel.AC));
+        assertTrue(lfNetwork.getBranchById("l12").isZeroImpedance(LoadFlowModel.AC));
+
+        lfNetwork = Networks.load(network, new LfNetworkParameters().setAreaInterchangeControl(true)).get(0);
+        assertFalse(lfNetwork.getBranchById("dl1").isZeroImpedance(LoadFlowModel.AC));
+        assertEquals(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, lfNetwork.getBranchById("dl1").getPiModel().getX());
+        assertFalse(lfNetwork.getBranchById("l23_A1").isZeroImpedance(LoadFlowModel.AC));
+        assertEquals(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, lfNetwork.getBranchById("l23_A1").getPiModel().getX());
+        assertTrue(lfNetwork.getBranchById("l12").isZeroImpedance(LoadFlowModel.AC));
+
+    }
+
+    @Test
+    void twoAreasWithZeroImpedanceBoundaryBranches() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        double interchangeTarget1 = -40;
+        double interchangeTarget2 = 20;
+        network.getLine("l23_A1").setX(0);
+        network.getDanglingLine("dl1").setX(0);
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 2);
         parameters.setDc(true);
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
     }

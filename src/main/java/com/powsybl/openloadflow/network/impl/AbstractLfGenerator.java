@@ -57,9 +57,12 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected boolean reference;
 
-    protected AbstractLfGenerator(LfNetwork network, double targetP) {
+    private final boolean extrapolateReactiveLimits;
+
+    protected AbstractLfGenerator(LfNetwork network, double targetP, LfNetworkParameters parameters) {
         super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
+        this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
     }
 
     protected record ActivePowerControlHelper(boolean participating, double participationFactor, double droop, double minTargetP, double maxTargetP) {
@@ -152,16 +155,28 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     @Override
     public double getMinQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(-Double.MAX_VALUE);
+        if (getReactiveLimits().isEmpty()) {
+            return -Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else {
+            return reactiveLimits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB;
+        }
     }
 
     @Override
     public double getMaxQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(Double.MAX_VALUE);
+        if (getReactiveLimits().isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else {
+            return reactiveLimits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB;
+        }
     }
 
     @Override
@@ -361,15 +376,17 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     public static boolean checkActivePowerControl(String generatorId, double targetP, double maxP,
                                                   double minTargetP, double maxTargetP, double plausibleActivePowerLimit,
                                                   boolean useActiveLimits, LfNetworkLoadingReport report) {
-        boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {
+            // if generator is not started, it is not participating, and we can skip the rest of the checks
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) equals 0",
                     generatorId, targetP);
             if (report != null) {
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
             }
-            participating = false;
+            return false;
         }
+
+        boolean participating = true;
         if (maxP > plausibleActivePowerLimit) {
             // note that we still want this check applied even if active power limits are not to be enforced,
             // e.g. in case of distribution modes proportional to maxP or remaining margin, we don't want to introduce crazy high participation
