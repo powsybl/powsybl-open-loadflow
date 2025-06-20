@@ -41,7 +41,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private Double qPercent;
 
-    private boolean targetQForcedWithinReactiveLimits = false;
+    private boolean isTargetQForcedinReactiveLimits = false;
 
     private final boolean forceVoltageControl;
 
@@ -180,11 +180,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             } else if (computedTargetQ > maxQ) {
                 computedTargetQ = maxQ;
             }
-            if (!targetQForcedWithinReactiveLimits) { // Logging and reporting only on first update to avoid too much messages
+            if (!isTargetQForcedinReactiveLimits) { // Logging and reporting only on first update to avoid too much messages
                 if (targetQ != computedTargetQ) {
                     String message = Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
                     LOGGER.info(message);
-                    targetQForcedWithinReactiveLimits = true;
+                    isTargetQForcedinReactiveLimits = true;
                 }
             }
             targetQ = computedTargetQ;
