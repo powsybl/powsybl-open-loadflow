@@ -49,7 +49,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Double generationTargetP;
 
-    private Double generationTargetQ;
+    private double generationTargetQ = Double.NaN;
 
     private boolean invalidatedGenerationTargetQ = true;
 
@@ -410,14 +410,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generationTargetP;
     }
 
-    private void updateGenerationTargetQ(Double generationTargetQ, Double oldGenerationTargetQ) {
-        this.generationTargetQ = generationTargetQ;
-        invalidatedGenerationTargetQ = false;
-        if (oldGenerationTargetQ != null && !generationTargetQ.equals(oldGenerationTargetQ)) {
+    private void updateGenerationTargetQ(double newGenerationTargetQ, double oldGenerationTargetQ) {
+        if (Double.isNaN(newGenerationTargetQ)) {
+            throw new PowsyblException("Cannot set generationTargetQ with NaN value");
+        }
+        if (!Double.isNaN(oldGenerationTargetQ) && newGenerationTargetQ != oldGenerationTargetQ) {
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, generationTargetQ);
+                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, newGenerationTargetQ);
             }
         }
+        this.generationTargetQ = newGenerationTargetQ;
+        invalidatedGenerationTargetQ = false;
     }
 
     @Override
