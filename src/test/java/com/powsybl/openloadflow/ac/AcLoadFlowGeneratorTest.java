@@ -8,6 +8,9 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
@@ -17,6 +20,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -82,7 +86,17 @@ class AcLoadFlowGeneratorTest {
         g1.setTargetQ(2).setVoltageRegulatorOn(false);
         parametersExt.setForceTargetQInReactiveLimits(true);
 
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        ReportNode report = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network,
+                network.getVariantManager().getWorkingVariantId(),
+                LocalComputationManager.getDefault(),
+                parameters,
+                report
+        );
+
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(1.028108, b1);
         assertAngleEquals(0, b1);
@@ -99,6 +113,7 @@ class AcLoadFlowGeneratorTest {
         assertVoltageEquals(1.0, b4);
         assertAngleEquals(-1.089083, b4);
         assertReactivePowerEquals(1, g1.getTerminal());
+        assertReportContains("TargetQ of generator g1 has been updated to fit within reactive power limits \\(from 2\\.0 MVar to 1\\.0 MVar\\)", report);
     }
 
     @Test

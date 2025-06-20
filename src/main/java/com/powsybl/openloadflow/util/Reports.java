@@ -369,14 +369,15 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorWithUpdatedTargetQ(ReportNode reportNode, LfGenerator generator, double oldTargetQ, double newTargetQ) {
-        reportNode.newReportNode()
+    public static String reportGeneratorWithUpdatedTargetQ(ReportNode reportNode, LfGenerator generator, double oldTargetQ, double newTargetQ) {
+        ReportNode result = reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorWithUpdatedTargetQ")
                 .withUntypedValue("generatorId", generator.getId())
                 .withUntypedValue("oldTargetQ", oldTargetQ)
                 .withUntypedValue("newTargetQ", newTargetQ)
-                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
+        return result.getMessage();
     }
 
     public static void reportBusesWithUpdatedQLimits(ReportNode reportNode, int numBusesWithUpdatedQLimits) {

@@ -49,7 +49,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Double generationTargetP;
 
-    private Double generationTargetQ = 0.;
+    private Double generationTargetQ;
+
+    private boolean invalidatedGenerationTargetQ = true;
 
     protected QLimitType qLimitType;
 
@@ -318,9 +320,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
-        if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
-            generationTargetQ += generator.getTargetQ();
-        }
+        invalidateGenerationTargetQ();
+        //if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
+        //    generationTargetQ += generator.getTargetQ();
+        //}
     }
 
     void addGenerator(Generator generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -396,7 +399,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     public void invalidateGenerationTargetQ() {
-        generationTargetQ = null;
+        invalidatedGenerationTargetQ = true;
     }
 
     @Override
@@ -410,26 +413,32 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generationTargetP;
     }
 
+    private void updateGenerationTargetQ(Double generationTargetQ, Double oldGenerationTargetQ) {
+        this.generationTargetQ = generationTargetQ;
+        invalidatedGenerationTargetQ = false;
+        if (oldGenerationTargetQ != null && !generationTargetQ.equals(oldGenerationTargetQ)) {
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, generationTargetQ);
+            }
+        }
+    }
+
     @Override
     public double getGenerationTargetQ() {
-        if (generationTargetQ == null) {
-            generationTargetQ = getGenerators().stream()
-                    .mapToDouble(LfGenerator::getTargetQ)
-                    .filter(d -> !Double.isNaN(d))
-                    .sum();
+        if (invalidatedGenerationTargetQ) {
+            updateGenerationTargetQ(getGenerators().stream()
+                        .filter(g -> g.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE)
+                        .mapToDouble(LfGenerator::getTargetQ)
+                        .filter(d -> !Double.isNaN(d))
+                        .sum(),
+                    this.generationTargetQ);
         }
         return generationTargetQ;
     }
 
     @Override
     public void setGenerationTargetQ(double generationTargetQ) {
-        if (generationTargetQ != getGenerationTargetQ()) {
-            double oldGenerationTargetQ = getGenerationTargetQ();
-            this.generationTargetQ = generationTargetQ;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, generationTargetQ);
-            }
-        }
+        updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
     }
 
     @Override
