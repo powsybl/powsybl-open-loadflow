@@ -180,12 +180,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             } else if (computedTargetQ > maxQ) {
                 computedTargetQ = maxQ;
             }
-            if (!isTargetQForcedInReactiveLimits) { // Logging and reporting only on first update to avoid too much messages
-                if (targetQ != computedTargetQ) {
-                    String message = Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
-                    LOGGER.info(message);
-                    isTargetQForcedInReactiveLimits = true;
-                }
+            if (!isTargetQForcedInReactiveLimits && targetQ != computedTargetQ) { // Logging and reporting only on first update to avoid too much messages
+                String message = Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
+                LOGGER.info(message);
+                isTargetQForcedInReactiveLimits = true;
             }
             targetQ = computedTargetQ;
         }

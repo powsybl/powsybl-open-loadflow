@@ -321,9 +321,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         generators.add(generator);
         generator.setBus(this);
         invalidateGenerationTargetQ();
-        //if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
-        //    generationTargetQ += generator.getTargetQ();
-        //}
     }
 
     void addGenerator(Generator generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
