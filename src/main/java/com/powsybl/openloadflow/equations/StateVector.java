@@ -51,6 +51,11 @@ public class StateVector {
         notifyStateUpdate();
     }
 
+    public void minusWithRange(double[] b, int begin, int end) {
+        Vectors.minusWithRange(array, b, begin, end);
+        notifyStateUpdate(); // TODO HG (OPTIM): we can optimize this update
+    }
+
     private void notifyStateUpdate() {
         for (StateVectorListener listener : listeners) {
             listener.onStateUpdate();

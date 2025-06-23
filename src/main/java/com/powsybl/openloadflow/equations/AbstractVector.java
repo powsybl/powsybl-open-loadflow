@@ -92,4 +92,10 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         Objects.requireNonNull(other);
         Vectors.minus(getArray(), other.getArray());
     }
+
+    @Override
+    public void minusWithRange(Vector other, int begin, int end) {
+        Objects.requireNonNull(other);
+        Vectors.minusWithRange(getArray(), other.getArray(), begin, end);
+    }
 }
