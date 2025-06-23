@@ -324,9 +324,10 @@ class AcLoadFlowWithCachingTest {
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
-        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
 
-        shunt.setSectionCount(0);
+        shunt.setSolvedSectionCount(0);
         assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
     }
 
@@ -342,9 +343,10 @@ class AcLoadFlowWithCachingTest {
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
-        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
 
-        shunt.setSectionCount(1);
+        shunt.setSolvedSectionCount(1);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
 

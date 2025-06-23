@@ -263,7 +263,7 @@ public class LfShuntImpl extends AbstractLfShunt {
                     ShuntCompensator sc = ((ControllerImpl) controller).getShuntCompensatorRef().get();
                     sc.getTerminal().setP(controller.getG() * vSquare / zb);
                     sc.getTerminal().setQ(-controller.getB() * vSquare / zb);
-                    sc.setSectionCount(controller.getPosition());
+                    sc.setSolvedSectionCount(controller.getPosition());
                 }
             }
         }
