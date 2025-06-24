@@ -269,12 +269,14 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setConnectableBus(bus.getId())
             .setBmin(-1.0)
             .setBmax(1.0)
-            .setRegulationMode(RegulationMode.OFF)
+            .setRegulating(false)
+            .setRegulationMode(RegulationMode.VOLTAGE)
             .add();
         svc.setRegulatingTerminal(svc.getTerminal())
             .setVoltageSetpoint(vSetpoint)
             .setReactivePowerSetpoint(qSetpoint)
-            .setRegulationMode(regulationMode);
+            .setRegulationMode(regulationMode)
+            .setRegulating(true);
 
         return svc;
     }

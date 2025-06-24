@@ -250,6 +250,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b3")
                 .setVoltageSetpoint(20)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulating(true)
                 .setBmax(30 / value)
                 .setBmin(-1000 / value)
                 .add();
