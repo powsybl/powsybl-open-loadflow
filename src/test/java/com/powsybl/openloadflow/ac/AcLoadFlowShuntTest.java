@@ -120,7 +120,7 @@ class AcLoadFlowShuntTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(399.921, network.getBusBreakerView().getBus("b4"));
-        assertNull(shuntCompensator2.getSolvedSectionCount());
+        assertEquals(0, shuntCompensator2.getSolvedSectionCount());
         assertEquals(0, shuntCompensator2.getSectionCount());
         assertEquals(24, shuntCompensator3.getSolvedSectionCount());
         assertEquals(0, shuntCompensator3.getSectionCount());
@@ -227,7 +227,7 @@ class AcLoadFlowShuntTest {
         assertEquals(2, shunt.getSectionCount());
         assertEquals(1, shunt.getSolvedSectionCount());
         assertEquals(1, shunt2.getSectionCount());
-        assertNull(shunt2.getSolvedSectionCount());
+        assertEquals(1, shunt2.getSolvedSectionCount());
     }
 
     @Test
@@ -482,7 +482,7 @@ class AcLoadFlowShuntTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(402.354, network.getBusBreakerView().getBus("b4"));
-        assertNull(shuntCompensator2.getSolvedSectionCount());
+        assertEquals(0, shuntCompensator2.getSolvedSectionCount());
         assertEquals(0, shuntCompensator2.getSectionCount());
         assertEquals(16, shuntCompensator3.getSolvedSectionCount());
         assertEquals(0, shuntCompensator3.getSectionCount());
@@ -491,7 +491,7 @@ class AcLoadFlowShuntTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertVoltageEquals(399.922, network.getBusBreakerView().getBus("b4"));
-        assertNull(shuntCompensator2.getSolvedSectionCount());
+        assertEquals(0, shuntCompensator2.getSolvedSectionCount());
         assertEquals(0, shuntCompensator2.getSectionCount());
         assertEquals(24, shuntCompensator3.getSolvedSectionCount());
         assertEquals(0, shuntCompensator3.getSectionCount());
@@ -632,7 +632,7 @@ class AcLoadFlowShuntTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(390.930, bus3);
-        assertNull(shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSolvedSectionCount());
         assertEquals(0, shunt.getSectionCount());
         assertEquals(2, shunt2.getSolvedSectionCount());
         assertEquals(1, shunt2.getSectionCount());
@@ -646,7 +646,7 @@ class AcLoadFlowShuntTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertVoltageEquals(408.150, bus3);
-        assertNull(shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSolvedSectionCount());
         assertEquals(0, shunt.getSectionCount());
         assertEquals(2, shunt2.getSolvedSectionCount());
         assertEquals(1, shunt2.getSectionCount());
