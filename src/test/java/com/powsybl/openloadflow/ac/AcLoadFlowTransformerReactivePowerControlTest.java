@@ -125,7 +125,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(0.891, regulatedTerminal);
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
 
         // with transformer/generator regulating, generator target Q is held
         t2wt.getRatioTapChanger().setTapPosition(1);
@@ -141,7 +142,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-5.0, g4.getTerminal()); // limit of generator
         assertReactivePowerEquals(gTargetQ, regulatedTerminal); // targetQ of generator is held
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
 
         // Test the report
         String expected = """
@@ -275,7 +277,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-6.927, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.573, t2wt.getTerminal1());
         assertReactivePowerEquals(5.170e-5, t2wt.getTerminal2());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -297,6 +300,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-6.927, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.573, t2wt.getTerminal1());
         assertReactivePowerEquals(5.170e-5, t2wt.getTerminal2());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -319,7 +323,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-7.318, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.181, t2wt.getTerminal1());
         assertReactivePowerEquals(3.205e-5, t2wt.getTerminal2());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -341,7 +346,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-7.311, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.186, t2wt.getTerminal1());
         assertReactivePowerEquals(0.0038, t2wt.getTerminal2());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -363,7 +369,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-7.021, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.479, t2wt.getTerminal1());
         assertReactivePowerEquals(7.654e-5, t2wt.getTerminal2());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -385,7 +392,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-6.918, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.579, t2wt.getTerminal1());
         assertReactivePowerEquals(0.006, t2wt.getTerminal2());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -440,7 +448,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-2.665, t2wt.getTerminal2());
         assertReactivePowerEquals(-3.071, t2wt2.getTerminal1());
         assertReactivePowerEquals(2.665, t2wt2.getTerminal2());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -471,8 +480,10 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(2.672, t2wt.getTerminal2());
         assertReactivePowerEquals(2.455, t2wt2.getTerminal1());
         assertReactivePowerEquals(-2.660, t2wt2.getTerminal2());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -495,7 +506,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(7.308, network.getLine("LINE_12").getTerminal1());
         assertReactivePowerEquals(-7.308, network.getLine("LINE_12").getTerminal2());
         assertReactivePowerEquals(-0.192, t2wt.getTerminal1());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -516,7 +528,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(3.891, network.getLine("LINE_12").getTerminal1());
-        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -570,7 +583,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(0.035, t3wt.getLeg1().getTerminal());
         assertReactivePowerEquals(8.076e-6, t3wt.getLeg2().getTerminal());
         assertReactivePowerEquals(6.698e-8, t3wt.getLeg3().getTerminal());
-        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -590,6 +604,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         t2wt.getTerminal2().disconnect();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
 
         // no transformer reactive power control if terminal 1 is opened
@@ -597,6 +612,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         t2wt.getTerminal1().disconnect();
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -617,6 +633,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         t2wt2.getTerminal2().disconnect();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
 
         // no transformer reactive power control if terminal 1 is opened on controlled branch
@@ -627,6 +644,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         t2wt2.getTerminal1().disconnect();
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -647,6 +665,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -678,7 +697,9 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         assertReactivePowerEquals(-2.665, t2wt.getTerminal2());
         assertReactivePowerEquals(-3.071, t2wt2.getTerminal1());
         assertReactivePowerEquals(2.665, t2wt2.getTerminal2());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
     }
 

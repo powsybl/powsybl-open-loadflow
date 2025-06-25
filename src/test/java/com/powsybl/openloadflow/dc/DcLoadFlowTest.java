@@ -417,7 +417,8 @@ class DcLoadFlowTest {
 
         loadFlowRunner.run(network, parameters);
 
-        assertEquals(2, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(2, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(1, ps1.getPhaseTapChanger().getTapPosition());
         assertEquals(18.5, l1.getTerminal1().getP(), 0.01);
         assertEquals(-18.5, l1.getTerminal2().getP(), 0.01);
         assertEquals(81.5, l2.getTerminal1().getP(), 0.01);
@@ -431,7 +432,8 @@ class DcLoadFlowTest {
 
         loadFlowRunner.run(network, parameters);
 
-        assertEquals(1, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(1, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(0, ps1.getPhaseTapChanger().getTapPosition());
         assertEquals(50, l1.getTerminal1().getP(), 0.01);
         assertEquals(-50, l1.getTerminal2().getP(), 0.01);
         assertEquals(50, l2.getTerminal1().getP(), 0.01);
