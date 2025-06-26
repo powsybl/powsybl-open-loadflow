@@ -345,7 +345,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (branch instanceof TwoWindingsTransformer twt) {
             if (twt.hasPhaseTapChanger()) {
                 PhaseTapChanger ptc = twt.getPhaseTapChanger();
-                if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
+                if (isDisabled()) {
+                    ptc.unsetSolvedTapPosition();
+                } else if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
                     // it means there is a regulating phase tap changer located on that branch
                     changeSolvedTapPosition(ptc);
                 } else {
@@ -355,7 +357,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
             if (twt.hasRatioTapChanger()) {
                 RatioTapChanger rtc = twt.getRatioTapChanger();
-                if (parameters.isTransformerVoltageControlOn() && isVoltageController()
+                if (isDisabled()) {
+                    rtc.unsetSolvedTapPosition();
+                } else if (parameters.isTransformerVoltageControlOn() && isVoltageController()
                         || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
                     double baseRatio = Transformers.getRatioPerUnitBase(twt);
                     double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
