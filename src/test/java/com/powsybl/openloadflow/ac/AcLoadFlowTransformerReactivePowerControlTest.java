@@ -11,7 +11,7 @@ package com.powsybl.openloadflow.ac;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
@@ -133,7 +133,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setTransformerReactivePowerControl(true);
 
         ReportNode report = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
 
@@ -208,7 +208,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         parametersExt.setGeneratorReactivePowerRemoteControl(true);
 
         ReportNode report = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
 
