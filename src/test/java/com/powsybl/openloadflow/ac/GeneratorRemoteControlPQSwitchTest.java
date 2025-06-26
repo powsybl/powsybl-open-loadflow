@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
@@ -169,7 +169,7 @@ class GeneratorRemoteControlPQSwitchTest {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         loggerContext.getLogger(ReactiveLimitsOuterLoop.class).setLevel(Level.TRACE);
         reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test").build();
     }
 
