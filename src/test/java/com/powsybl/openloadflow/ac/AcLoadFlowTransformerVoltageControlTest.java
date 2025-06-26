@@ -219,6 +219,43 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
 
+        // Same as above with exchange positions
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(3)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+        stableParams = parameters.copy();
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlUseInitialTapPosition(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+        // Now set solvedTapPosition swapped values
+        t2wt.getRatioTapChanger().setSolvedTapPosition(3);
+        t2wt2.getRatioTapChanger().setSolvedTapPosition(1);
+        // Re-run to prove that solvedTapPotistions do not influence the result
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+
         // still stable mode but with movement needed
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
