@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -498,7 +498,7 @@ class DcLoadFlowTest {
                 .setMaxOuterLoopIterations(1);
 
         ReportNode reportNodeWithLimit1 = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
 
