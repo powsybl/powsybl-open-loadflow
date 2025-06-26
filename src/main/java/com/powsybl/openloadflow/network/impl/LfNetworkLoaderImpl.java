@@ -181,10 +181,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 .stream()
                 .filter(lfGenerator -> lfGenerator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
                 .forEach(lfGenerator -> lfGenerator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
-        controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream()
+        controllerBus.invalidateGenerationTargetQ();
+        /*setGenerationTargetQ(controllerBus.getGenerators().stream()
                 .mapToDouble(LfGenerator::getTargetQ)
                 .filter(d -> !Double.isNaN(d))
-                .sum());
+                .sum());*/
     }
 
     private static void checkGeneratorsWithSlope(GeneratorVoltageControl voltageControl) {

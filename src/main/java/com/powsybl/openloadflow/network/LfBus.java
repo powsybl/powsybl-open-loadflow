@@ -114,13 +114,15 @@ public interface LfBus extends LfElement {
 
     void invalidateGenerationTargetP();
 
+    void invalidateGenerationTargetQ();
+
     double getGenerationTargetP();
 
     double getMaxP();
 
     double getGenerationTargetQ();
 
-    void setGenerationTargetQ(double generationTargetQ);
+    void freezeGenerationTargetQ(double generationTargetQ);
 
     double getMinQ();
 

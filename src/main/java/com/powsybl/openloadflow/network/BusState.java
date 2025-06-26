@@ -77,8 +77,12 @@ public class BusState extends BusDcState {
         super.restore();
         element.setAngle(angle);
         element.setV(voltage);
-        element.setGenerationTargetQ(generationTargetQ);
         element.setGeneratorVoltageControlEnabled(voltageControlEnabled);
+        if (voltageControlEnabled || !element.isVoltageControlled()) {
+            element.invalidateGenerationTargetQ();
+        } else {
+            element.freezeGenerationTargetQ(generationTargetQ);
+        }
         element.setGeneratorReactivePowerControlEnabled(reactiveControlEnabled);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);

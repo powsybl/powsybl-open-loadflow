@@ -95,6 +95,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private LfArea area = null;
 
+    private boolean isGenerationTargetQFrozen = false;
+
     protected boolean forceTargetQInReactiveLimits;
 
     protected AbstractLfBus(LfNetwork network, double v, double angle, LfNetworkParameters parameters) {
@@ -390,13 +392,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
-        if (forceTargetQInReactiveLimits && !isVoltageControlled()) {
+        if (forceTargetQInReactiveLimits && !isGenerationTargetQFrozen) {
             invalidateGenerationTargetQ();
         }
     }
 
     public void invalidateGenerationTargetQ() {
+        // If generationTargetQ was frozen, it is now freed. generationTargetQ is computed according to its definition in getGenerationTargetQ()
         invalidatedGenerationTargetQ = true;
+        isGenerationTargetQFrozen = false;
     }
 
     @Override
@@ -427,7 +431,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public double getGenerationTargetQ() {
         if (invalidatedGenerationTargetQ) {
             updateGenerationTargetQ(getGenerators().stream()
-                        .filter(g -> g.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE)
+                        .filter(g -> g.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !g.isDisabled())
                         .mapToDouble(LfGenerator::getTargetQ)
                         .filter(d -> !Double.isNaN(d))
                         .sum(),
@@ -437,8 +441,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void setGenerationTargetQ(double generationTargetQ) {
-        updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
+    public void freezeGenerationTargetQ(double generationTargetQ) {
+        // This is only used in case of PV bus switched to PQ bus (Reactive limit outerloop) or in the transformer voltage control algorithm
+        if (!isGeneratorVoltageControlEnabled()) {
+            updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
+            isGenerationTargetQFrozen = true;
+        } else {
+            throw new PowsyblException("Generation targetQ cannot be frozen if generatorVoltageControl is enabled") ;
+        }
     }
 
     @Override
