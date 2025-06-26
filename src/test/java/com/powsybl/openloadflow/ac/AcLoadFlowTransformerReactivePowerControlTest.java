@@ -289,7 +289,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
-                .setSolvedTapPosition(0)
+                .setSolvedTapPosition(0) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(3)
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
@@ -570,7 +570,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         t3wt.getLeg2().getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
-                .setSolvedTapPosition(0)
+                .setSolvedTapPosition(0) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(0)
                 .setRegulationTerminal(t3wt.getLeg2().getTerminal())
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)

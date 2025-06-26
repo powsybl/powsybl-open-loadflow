@@ -164,7 +164,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(false)
                 .setLoadTapChangingCapabilities(true)
-                .setSolvedTapPosition(1)
+                .setSolvedTapPosition(1) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(2)
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83); // in A
@@ -404,7 +404,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setLoadTapChangingCapabilities(true)
                 .setRegulating(false)
-                .setSolvedTapPosition(0)
+                .setSolvedTapPosition(0) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(1)
                 .setRegulationTerminal(t3wt.getLeg2().getTerminal())
                 .setRegulationValue(0.);

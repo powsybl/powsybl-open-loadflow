@@ -115,9 +115,9 @@ class AcLoadFlowShuntTest {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
         shuntCompensator2.setVoltageRegulatorOn(false);
-        shuntCompensator2.setSolvedSectionCount(1);
+        shuntCompensator2.setSolvedSectionCount(1); // set the solved section count to ensure that it has been updated by the loadflow
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
-        shuntCompensator3.setSolvedSectionCount(1);
+        shuntCompensator3.setSolvedSectionCount(1); // set the solved section count to ensure that it has been updated by the loadflow
         parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
