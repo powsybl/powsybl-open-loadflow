@@ -452,6 +452,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public boolean isGenerationTargetQFrozen() {
+        return isGenerationTargetQFrozen;
+    }
+
+    @Override
     public void invalidateLoadTargetP() {
         loadTargetP = null;
     }
