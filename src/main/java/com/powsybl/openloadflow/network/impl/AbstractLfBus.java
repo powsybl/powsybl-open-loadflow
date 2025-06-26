@@ -447,7 +447,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
             isGenerationTargetQFrozen = true;
         } else {
-            throw new PowsyblException("Generation targetQ cannot be frozen if generatorVoltageControl is enabled") ;
+            throw new PowsyblException("Generation targetQ cannot be frozen if generatorVoltageControl is enabled");
         }
     }
 
