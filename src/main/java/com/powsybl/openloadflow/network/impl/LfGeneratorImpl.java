@@ -187,7 +187,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             }
             targetQ = computedTargetQ;
         }
-        System.out.println(this.getId() + ".getTargetQ() -> " + targetQ);
         return targetQ;
     }
 
