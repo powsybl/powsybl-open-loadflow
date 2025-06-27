@@ -2976,7 +2976,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(393, b3);
-        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(0, shunt2.getSolvedSectionCount());
         assertEquals(0, shunt2.getSectionCount());
         assertReactivePowerEquals(-134.585, g2.getTerminal());
 
@@ -2986,8 +2988,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertVoltageEquals(395, b3);
-        assertEquals(1, shunt.getSectionCount());
-        assertEquals(1, shunt2.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(1, shunt2.getSolvedSectionCount());
+        assertEquals(0, shunt2.getSectionCount());
         assertReactivePowerEquals(-110.176, g2.getTerminal());
 
         shunt.setSectionCount(0);
