@@ -196,7 +196,7 @@ public class LfContingency {
                 bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
                 bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
             } else {
-                bus.invalidateLoadTargetQ();
+                bus.invalidateGenerationTargetQ();
             }
             if (generator instanceof LfStaticVarCompensator svc) {
                 svc.getStandByAutomatonShunt().ifPresent(svcShunt -> {
