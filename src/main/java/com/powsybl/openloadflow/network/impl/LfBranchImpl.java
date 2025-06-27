@@ -349,7 +349,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     ptc.unsetSolvedTapPosition();
                 } else if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
                     // it means there is a regulating phase tap changer located on that branch
-                    changeSolvedTapPosition(ptc);
+                    updateSolvedTapPosition(ptc);
                 } else {
                     ptc.setSolvedTapPosition(ptc.getTapPosition());
                 }
@@ -364,7 +364,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     double baseRatio = Transformers.getRatioPerUnitBase(twt);
                     double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
                     double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
-                    changeSolvedTapPosition(rtc, ptcRho, rho);
+                    updateSolvedTapPosition(rtc, ptcRho, rho);
                 } else {
                     rtc.setSolvedTapPosition(rtc.getTapPosition());
                 }

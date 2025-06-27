@@ -255,12 +255,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    protected void changeSolvedTapPosition(PhaseTapChanger ptc) {
+    protected void updateSolvedTapPosition(PhaseTapChanger ptc) {
         int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
         ptc.setSolvedTapPosition(tapPosition);
     }
 
-    protected void changeSolvedTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
+    protected void updateSolvedTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
         Transformers.findTapPosition(rtc, ptcRho, rho).ifPresent(rtc::setSolvedTapPosition);
     }
 
