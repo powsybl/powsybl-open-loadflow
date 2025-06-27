@@ -249,6 +249,7 @@ public class LfShuntImpl extends AbstractLfShunt {
             for (var scRef : shuntCompensatorsRefs) {
                 var sc = scRef.get();
                 sc.getTerminal().setP(0);
+                sc.setSolvedSectionCount(sc.getSectionCount());
             }
         } else {
             double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
@@ -257,13 +258,14 @@ public class LfShuntImpl extends AbstractLfShunt {
                     var sc = scRef.get();
                     sc.getTerminal().setP(sc.getG() * vSquare);
                     sc.getTerminal().setQ(-sc.getB() * vSquare);
+                    sc.setSolvedSectionCount(sc.getSectionCount());
                 }
             } else {
                 for (Controller controller : controllers) {
                     ShuntCompensator sc = ((ControllerImpl) controller).getShuntCompensatorRef().get();
                     sc.getTerminal().setP(controller.getG() * vSquare / zb);
                     sc.getTerminal().setQ(-controller.getB() * vSquare / zb);
-                    sc.setSectionCount(controller.getPosition());
+                    sc.setSolvedSectionCount(controller.getPosition());
                 }
             }
         }

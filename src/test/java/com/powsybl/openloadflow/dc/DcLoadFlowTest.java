@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
@@ -417,7 +417,8 @@ class DcLoadFlowTest {
 
         loadFlowRunner.run(network, parameters);
 
-        assertEquals(2, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(2, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(1, ps1.getPhaseTapChanger().getTapPosition());
         assertEquals(18.5, l1.getTerminal1().getP(), 0.01);
         assertEquals(-18.5, l1.getTerminal2().getP(), 0.01);
         assertEquals(81.5, l2.getTerminal1().getP(), 0.01);
@@ -431,7 +432,8 @@ class DcLoadFlowTest {
 
         loadFlowRunner.run(network, parameters);
 
-        assertEquals(1, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(1, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(0, ps1.getPhaseTapChanger().getTapPosition());
         assertEquals(50, l1.getTerminal1().getP(), 0.01);
         assertEquals(-50, l1.getTerminal2().getP(), 0.01);
         assertEquals(50, l2.getTerminal1().getP(), 0.01);
@@ -498,7 +500,7 @@ class DcLoadFlowTest {
                 .setMaxOuterLoopIterations(1);
 
         ReportNode reportNodeWithLimit1 = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
 
