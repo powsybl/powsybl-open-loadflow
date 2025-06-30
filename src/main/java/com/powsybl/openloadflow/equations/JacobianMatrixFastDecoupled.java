@@ -41,9 +41,6 @@ public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends
         List<Equation<V, E>> subsetEquationsToSolve = isPhySystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
                 : equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
 
-        List<Variable<V>> subsetVariablesToFind = isPhySystem ? equationSystem.getIndex().getSortedVariablesToFind().subList(0, rangeIndex)
-                : equationSystem.getIndex().getSortedVariablesToFind().subList(rangeIndex, equationSystem.getIndex().getSortedVariablesToFind().size());
-
         int rowColumnCount = subsetEquationsToSolve.size();
 
         int estimatedNonZeroValueCount = rowColumnCount * 3;
