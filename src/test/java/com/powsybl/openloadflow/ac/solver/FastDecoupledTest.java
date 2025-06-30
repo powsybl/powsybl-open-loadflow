@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2025, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -24,30 +24,24 @@ import java.util.stream.Collectors;
 class FastDecoupledTest {
     private LoadFlowParameters parametersFastDecoupled;
 
-    private OpenLoadFlowParameters parametersExtFastDecoupled;
-
     private LoadFlowParameters parametersNewtonRaphson;
-
-    private OpenLoadFlowParameters parametersExtNewtonRaphson;
-
-    private OpenLoadFlowProvider loadFlowProvider;
 
     private LoadFlow.Runner loadFlowRunner;
 
-    private Double defaultErrorToleranceVoltages = Math.pow(10, -3);
+    private static final Double DEFAULT_ERROR_TOLERANCE_VOLTAGES = Math.pow(10, -3);
 
-    private Double defaultErrorToleranceAngles = Math.pow(10, -2);
+    private static final Double DEFAULT_ERROR_TOLERANCE_ANGLES = Math.pow(10, -2);
 
     @BeforeEach
     void setUp() {
         parametersFastDecoupled = new LoadFlowParameters();
-        parametersExtFastDecoupled = OpenLoadFlowParameters.create(parametersFastDecoupled)
+        OpenLoadFlowParameters.create(parametersFastDecoupled)
                 .setAcSolverType(FastDecoupledFactory.NAME)
                 .setMaxNewtonRaphsonIterations(30);
         parametersNewtonRaphson = new LoadFlowParameters();
-        parametersExtNewtonRaphson = OpenLoadFlowParameters.create(parametersNewtonRaphson)
+        OpenLoadFlowParameters.create(parametersNewtonRaphson)
                 .setAcSolverType(NewtonRaphsonFactory.NAME);
-        loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
+        OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
@@ -103,8 +97,8 @@ class FastDecoupledTest {
         List<Double> anglesNewtonRaphson = getAngles(network);
 
         assertEquals(resultFastDecoupled.getComponentResults().get(0).getStatus(), resultNewtonRaphson.getComponentResults().get(0).getStatus());
-//        compareResults(voltagesFastDecoupled, voltagesNewtonRaphson, defaultErrorToleranceVoltages);
-//        compareResults(anglesFastDecoupled, anglesNewtonRaphson, defaultErrorToleranceAngles);
+        compareResults(voltagesFastDecoupled, voltagesNewtonRaphson, DEFAULT_ERROR_TOLERANCE_VOLTAGES);
+        compareResults(anglesFastDecoupled, anglesNewtonRaphson, DEFAULT_ERROR_TOLERANCE_ANGLES);
     }
 
     private List<Double> getVoltages(Network network) {
