@@ -37,10 +37,15 @@ class FastDecoupledTest {
         parametersFastDecoupled = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parametersFastDecoupled)
                 .setAcSolverType(FastDecoupledFactory.NAME)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
+                .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
                 .setMaxNewtonRaphsonIterations(30);
         parametersNewtonRaphson = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parametersNewtonRaphson)
-                .setAcSolverType(NewtonRaphsonFactory.NAME);
+                .setAcSolverType(NewtonRaphsonFactory.NAME)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
+                .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
+                .setMaxNewtonRaphsonIterations(30);
         OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
