@@ -34,10 +34,9 @@ class FastDecoupledTest {
 
     private LoadFlow.Runner loadFlowRunner;
 
-    private Double DEFAULT_ERROR_TOLERANCE_VOLTAGES = Math.pow(10, -3);
+    private Double defaultErrorToleranceVoltages = Math.pow(10, -3);
 
-    private Double DEFAULT_ERROR_TOLERANCE_ANGLES = Math.pow(10, -2);
-
+    private Double defaultErrorToleranceAngles = Math.pow(10, -2);
 
     @BeforeEach
     void setUp() {
@@ -104,8 +103,8 @@ class FastDecoupledTest {
         List<Double> anglesNewtonRaphson = getAngles(network);
 
         assertEquals(resultFastDecoupled.getComponentResults().get(0).getStatus(), resultNewtonRaphson.getComponentResults().get(0).getStatus());
-//        compareResults(voltagesFastDecoupled, voltagesNewtonRaphson, DEFAULT_ERROR_TOLERANCE_VOLTAGES);
-//        compareResults(anglesFastDecoupled, anglesNewtonRaphson, DEFAULT_ERROR_TOLERANCE_ANGLES);
+//        compareResults(voltagesFastDecoupled, voltagesNewtonRaphson, defaultErrorToleranceVoltages);
+//        compareResults(anglesFastDecoupled, anglesNewtonRaphson, defaultErrorToleranceAngles);
     }
 
     private List<Double> getVoltages(Network network) {

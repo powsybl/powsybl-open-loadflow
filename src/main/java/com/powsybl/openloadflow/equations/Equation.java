@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
+import java.util.function.ToDoubleFunction;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -188,16 +189,17 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
-    private int processVariableDerivative(DerHandler<V> handler,
-                                          List<EquationTerm<V, E>> terms,
-                                          Variable<V> variable,
-                                          int variableIndex) {
+    private int processVariableDerivativeGeneric(DerHandler<V> handler,
+                                                 List<EquationTerm<V, E>> terms,
+                                                 Variable<V> variable,
+                                                 int variableIndex,
+                                                 ToDoubleFunction<EquationTerm<V, E>> derivativeFunction) {
         double value = 0;
         // create a derivative even if all terms are not active, to allow later reactivation of terms
         // that won't create a new matrix element and a simple update of the matrix
         for (EquationTerm<V, E> term : terms) {
             if (term.isActive()) {
-                value += term.der(variable);
+                value += derivativeFunction.applyAsDouble(term);
             }
         }
         int oldMatrixElementIndex = (matrixElementIndexes == null) ? -1 : matrixElementIndexes[variableIndex];
@@ -210,6 +212,17 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return variableIndex + 1;
     }
 
+    private int processVariableDerivative(DerHandler<V> handler,
+                                                       List<EquationTerm<V, E>> terms,
+                                                       Variable<V> variable,
+                                                       int variableIndex) {
+        return processVariableDerivativeGeneric(handler,
+                terms,
+                variable,
+                variableIndex,
+                term -> term.der(variable));
+    }
+
     public void derFastDecoupled(DerHandler<V> handler, int rangeIndex, boolean isPhySystem) {
         Objects.requireNonNull(handler);
         int variableIndex = 0;
@@ -219,16 +232,28 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             if (row != -1) {
                 if (isPhySystem) {
                     if (row < rangeIndex) {
-                        variableIndex = processVariableDerivative(handler, e.getValue(), variable, variableIndex);
+                        variableIndex = processVariableDerivativeFastDecoupled(handler, e.getValue(), variable, variableIndex);
                     }
                 } else {
                     if (row >= rangeIndex) {
-                        variableIndex = processVariableDerivative(handler, e.getValue(), variable, variableIndex);
+                        variableIndex = processVariableDerivativeFastDecoupled(handler, e.getValue(), variable, variableIndex);
                     }
                 }
             }
         }
     }
+
+    private int processVariableDerivativeFastDecoupled(DerHandler<V> handler,
+                                          List<EquationTerm<V, E>> terms,
+                                          Variable<V> variable,
+                                          int variableIndex) {
+        return processVariableDerivativeGeneric(handler,
+                terms,
+                variable,
+                variableIndex,
+                term -> term.derFastDecoupled(variable));
+    }
+
 
     public double rhs() {
         double rhs = 0;

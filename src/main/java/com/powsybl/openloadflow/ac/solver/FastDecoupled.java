@@ -129,7 +129,7 @@ public class FastDecoupled extends AbstractAcSolver {
         return index.getValue();
     }
 
-    private void runSingleSystemSolution(JacobianMatrix<AcVariableType, AcEquationType> j, double[] partialEquationVector, int rangeIndex, boolean isPhySystem,
+    private void runSingleSystemSolution(JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> j, double[] partialEquationVector, int rangeIndex, boolean isPhySystem,
                                          StateVectorScaling svScaling, ReportNode reportNode, ReportNode iterationReportNode) {
         int systemLength = partialEquationVector.length;
         int begin = isPhySystem ? 0 : rangeIndex;
