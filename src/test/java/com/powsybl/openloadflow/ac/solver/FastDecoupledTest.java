@@ -72,8 +72,25 @@ class FastDecoupledTest {
     @Test
     void testIEEE57() {
         Network network = IeeeCdfNetworkFactory.create57();
-        LoadFlowResult resultFastDecoupled = loadFlowRunner.run(network, parametersFastDecoupled);
         // compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+        // On this one, fast decoupled is non converging
+
+        // First NR
+        LoadFlowResult resultNR1 = loadFlowRunner.run(network, parametersNewtonRaphson);
+
+        // Fast decoupled limited to 5 iterations
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setAlwaysUpdateNetwork(true)
+                .setMaxNewtonRaphsonIterations(5);
+        loadFlowRunner.run(network, parametersFastDecoupled);
+
+        // Second NR starting with fast decoupled best point
+        parametersNewtonRaphson.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setAlwaysUpdateNetwork(true)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
+        LoadFlowResult resultNR2 = loadFlowRunner.run(network, parametersNewtonRaphson);
+
+        System.out.println("NR1 : " + resultNR1.getComponentResults().get(0).getIterationCount());
+        System.out.println("NR2 : " + resultNR2.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
@@ -86,6 +103,24 @@ class FastDecoupledTest {
     void testIEEE300() {
         Network network = IeeeCdfNetworkFactory.create300();
         // compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+        // On this one, fast decoupled is non converging
+
+        // First NR
+        LoadFlowResult resultNR1 = loadFlowRunner.run(network, parametersNewtonRaphson);
+
+        // Fast decoupled limited to 5 iterations
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setAlwaysUpdateNetwork(true)
+                .setMaxNewtonRaphsonIterations(3);
+        loadFlowRunner.run(network, parametersFastDecoupled);
+
+        // Second NR starting with fast decoupled best point
+        parametersNewtonRaphson.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setAlwaysUpdateNetwork(true)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
+        LoadFlowResult resultNR2 = loadFlowRunner.run(network, parametersNewtonRaphson);
+
+        System.out.println("NR1 : " + resultNR1.getComponentResults().get(0).getIterationCount());
+        System.out.println("NR2 : " + resultNR2.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
