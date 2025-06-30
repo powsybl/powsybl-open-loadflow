@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -31,8 +30,6 @@ import java.util.Objects;
 public class FastDecoupled extends AbstractAcSolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupled.class);
-
-    public static final List<AcEquationType> REPORTED_AC_EQUATION_TYPES = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
 
     protected final NewtonRaphsonParameters parameters;
 
@@ -130,7 +127,7 @@ public class FastDecoupled extends AbstractAcSolver {
     }
 
     private void runSingleSystemSolution(JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> j, double[] partialEquationVector, int rangeIndex, boolean isPhySystem,
-                                         StateVectorScaling svScaling, ReportNode reportNode, ReportNode iterationReportNode) {
+                                         StateVectorScaling svScaling, ReportNode iterationReportNode) {
         int systemLength = partialEquationVector.length;
         int begin = isPhySystem ? 0 : rangeIndex;
         int end = isPhySystem ? rangeIndex : equationVector.getArray().length;
@@ -167,9 +164,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
             try {
                 // Solution on PHI
-                runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, svScaling, reportNode, iterationReportNode);
+                runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, svScaling, iterationReportNode);
                 // Solution on V
-                runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, svScaling, reportNode, iterationReportNode);
+                runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, svScaling, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
                 Reports.reportNewtonRaphsonError(reportNode, e.toString());

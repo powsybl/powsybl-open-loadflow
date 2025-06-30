@@ -254,7 +254,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
                 term -> term.derFastDecoupled(variable));
     }
 
-
     public double rhs() {
         double rhs = 0;
         for (var term : terms) {

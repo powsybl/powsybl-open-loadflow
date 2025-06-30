@@ -102,19 +102,18 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
                     cutCount++;
                 }
             }
-
-            if (cutCount > 0) {
-                String variableName = isPhiType ? "dphi" : "dv";
-                LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
-                if (reportNode != null) {
-                    if (isPhiType) {
-                        Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
-                    } else {
-                        Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
-                    }
+        }
+        if (cutCount > 0) {
+            String variableName = isPhiType ? "dphi" : "dv";
+            LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
+            if (reportNode != null) {
+                if (isPhiType) {
+                    Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
+                } else {
+                    Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
                 }
-                Vectors.multWithRange(dx, stepSize, begin, end);
             }
+            Vectors.multWithRange(dx, stepSize, begin, end);
         }
     }
 }
