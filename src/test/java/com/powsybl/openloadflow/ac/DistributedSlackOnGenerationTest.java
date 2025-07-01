@@ -35,10 +35,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.OptionalDouble;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -228,14 +225,14 @@ class DistributedSlackOnGenerationTest {
     @Test
     void testGetParticipatingElementsWithMismatch() {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector(Set.of())).get(0);
-        final OptionalDouble mismatch = OptionalDouble.of(30);
-        final List<LfBus> buses = lfNetwork.getBuses();
+        final double mismatch = 30.;
+        final Collection<LfBus> participatingBuses = ActivePowerDistribution.filterParticipatingBuses(lfNetwork.getBuses());
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             switch (balanceType) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertEquals(4, step.getParticipatingElements(buses, mismatch).size());
-                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(buses, mismatch).size());
-                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(buses, mismatch).size());
+                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertEquals(4, step.getParticipatingElements(participatingBuses, mismatch).size());
+                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(participatingBuses, mismatch).size());
+                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(participatingBuses, mismatch).size());
             }
         }
     }
@@ -243,15 +240,15 @@ class DistributedSlackOnGenerationTest {
     @Test
     void testGetParticipatingElementsWithoutMismatch() {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector(Set.of())).get(0);
-        final OptionalDouble emptyMismatch = OptionalDouble.empty();
-        final List<LfBus> buses = lfNetwork.getBuses();
+        final double emptyMismatch = Double.NaN;
+        final Collection<LfBus> participatingBuses = ActivePowerDistribution.filterParticipatingBuses(lfNetwork.getBuses());
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             switch (balanceType) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P -> assertEquals(4, step.getParticipatingElements(buses, emptyMismatch).size());
-                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(buses, emptyMismatch).size());
-                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(buses, emptyMismatch).size());
-                case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertThrows(PowsyblException.class, () -> step.getParticipatingElements(buses, emptyMismatch),
+                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P -> assertEquals(4, step.getParticipatingElements(participatingBuses, emptyMismatch).size());
+                case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(participatingBuses, emptyMismatch).size());
+                case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(participatingBuses, emptyMismatch).size());
+                case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertThrows(PowsyblException.class, () -> step.getParticipatingElements(participatingBuses, emptyMismatch),
                         "The sign of the active power mismatch is unknown, it is mandatory for REMAINING_MARGIN participation type");
             }
         }
@@ -720,6 +717,120 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-310.2021, g2.getTerminal());
         assertActivePowerEquals(-90.000, g3.getTerminal());
         assertActivePowerEquals(-90.000, g4.getTerminal());
+    }
+
+    @Test
+    void testSlackMismatchChangingSignRemainingMargin() {
+        parameters
+                .setUseReactiveLimits(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setSlackBusPMaxMismatch(0.0001);
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
+
+        g1.setMaxP(110.0);
+        g3.setMaxP(110.0);
+        g4.setMaxP(110.0);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(120.1986, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // Generators should increase generation by 120.1986 MW
+        // generator | targetP | maxP    init_P + mismatch * margin / total_margin = final_P
+        // ----------|---------|-------
+        //   g1      |  100    |  110  --> 100  + 120.1986 *   10    /   150       = 108.01324
+        //   g2      |  200    |  300  --> 200  + 120.1986 *   100   /   150       = 280.1324
+        //   g3      |   90    |  110  --> 90   + 120.1986 *   20    /   150       = 106.02648
+        //   g4      |   90    |  110  --> 90   + 120.1986 *   20    /   150       = 106.02648
+        assertActivePowerEquals(-108.013, g1.getTerminal());
+        assertActivePowerEquals(-280.132, g2.getTerminal());
+        assertActivePowerEquals(-106.026, g3.getTerminal());
+        assertActivePowerEquals(-106.026, g4.getTerminal());
+    }
+
+    @Test
+    void testSlackMismatchChangingSignRemainingMargin2() {
+        parameters
+                .setUseReactiveLimits(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setSlackBusPMaxMismatch(0.0001);
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
+
+        g1.setMinP(50.0).setMaxP(100.0); // no margin up
+        g2.setMinP(200.0).setMaxP(310.0); // no margin down
+        g3.setMinP(50.0).setMaxP(110.0); // margin up & down
+        g4.setMinP(50.0).setMaxP(110.0); // margin up & down
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(120.200, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // Generators should increase generation by 120.1986 MW
+        // generator | targetP | maxP    init_P + mismatch * margin / total_margin = final_P
+        // ----------|---------|-------
+        //   g1      |  100    |  100  --> 100  + 120.200 *   0     /   150       = 100.0000
+        //   g2      |  200    |  310  --> 200  + 120.200 *   110   /   150       = 288.147
+        //   g3      |   90    |  110  --> 90   + 120.200 *   20    /   150       = 106.02666
+        //   g4      |   90    |  110  --> 90   + 120.200 *   20    /   150       = 106.02666
+        assertActivePowerEquals(-100.000, g1.getTerminal());
+        assertActivePowerEquals(-288.147, g2.getTerminal());
+        assertActivePowerEquals(-106.026, g3.getTerminal());
+        assertActivePowerEquals(-106.026, g4.getTerminal());
+    }
+
+    @Test
+    void testSlackMismatchChangingSignRemainingMargin3() {
+        parameters
+                .setUseReactiveLimits(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setSlackBusPMaxMismatch(0.0001);
+        network = DistributedSlackNetworkFactory.createWithLossesAndPvPqTypeSwitch();
+        g1 = network.getGenerator("g1");
+        g2 = network.getGenerator("g2");
+        g3 = network.getGenerator("g3");
+        g4 = network.getGenerator("g4");
+        network.getLoad("l1").setP0(300.);
+
+        g1.setMinP(-100.0).setMaxP(150.0);
+        g2.setMinP(200.0).setMaxP(310.0);
+        g3.setMinP(-50.0).setMaxP(110.0);
+        g4.setMinP(-60.0).setMaxP(110.0).setTargetP(-10.);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        var expectedDistributedActivePower = -network.getGeneratorStream().mapToDouble(g -> g.getTargetP() + g.getTerminal().getP()).sum();
+        assertEquals(-79.8564, expectedDistributedActivePower, LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedDistributedActivePower, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // Generators should decrease generation by -79.84712 MW
+        // - margin counted till zero for Generators injecting
+        // - margin counted till Pmin for Generators pumping
+        //
+        // generator | targetP | minP    init_P + mismatch * margin / total_margin = final_P
+        // ----------|---------|-------
+        //   g1      |  100    | -100  --> 100  + -79.8564 *   100   /   240       = 66.7265
+        //   g2      |  200    |  200  --> 200  + -79.8564 *   0     /   240       = 200
+        //   g3      |   90    |  -50  --> 90   + -79.8564 *   90    /   240       = 60.0538
+        //   g4      |  -10    |  -60  --> -10  + -79.8564 *   50    /   240       = -26.6367
+        assertActivePowerEquals(-66.7265, g1.getTerminal());
+        assertActivePowerEquals(-200., g2.getTerminal());
+        assertActivePowerEquals(-60.0538, g3.getTerminal());
+        assertActivePowerEquals(26.6367, g4.getTerminal());
     }
 
     @Test
