@@ -396,6 +396,34 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void generatorStartedMwThresholdDefaultValueTest() {
+        g1.setMinP(0.);
+        g1.setTargetP(0.);
+        assertEquals(1e-4, parametersExt.getGeneratorStartedMwThreshold(), 1e-7);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0., g1.getTerminal()); // not participating
+        assertActivePowerEquals(-300.0, g2.getTerminal());
+        assertActivePowerEquals(-150.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(220., result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void generatorStartedMwThresholdDisabledCheckTest() {
+        g1.setMinP(0.);
+        g1.setTargetP(0.);
+        parametersExt.setGeneratorStartedMwThreshold(0.);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-32.0, g1.getTerminal()); // participating (prop to Pmax)
+        assertActivePowerEquals(-296.0, g2.getTerminal());
+        assertActivePowerEquals(-122.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(220., result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void zeroParticipatingGeneratorsThrowTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
