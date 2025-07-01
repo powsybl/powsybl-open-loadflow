@@ -533,11 +533,19 @@ detection of the minimal nominal voltage based on an analysis of nominal voltage
 value of this parameter is $-1$: with this value the parameter is ignored and the outer loop relies only on the automatic
 detection.
 
+**generatorStartedMwThreshold**  
+Defines the minimum absolute power output (in MW) used to determine whether a generator is considered started.
+This threshold is applied as follows:
+- If the absolute value of `targetP` is below the threshold, the generator is excluded from slack distribution.
+- If the absolute value of `targetP` is below the threshold and `minP` is above the threshold, voltage control is disabled.
+
+The default value is `0.0001 MW`. A zero or negative value disables the check.
+
 **fictitiousGeneratorVoltageControlCheckMode**  
 Specifies the active power checks exemption for fictitious generators voltage control.
 
 PowSyBl open-loadflow performs these checks on generators:
-- if `targetP` equals zero, voltage control is disabled.
+- if the absolute value of `targetP` is below the `generatorStartedMwThreshold` parameter and `minP` is above `generatorStartedMwThreshold`, voltage control is disabled.
 - if parameter `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled, a generator with a `targetP` lower
 than `minP` or greater than `maxP`, voltage control is disabled.
 
@@ -546,7 +554,6 @@ The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the abo
 - Use mode `NORMAL` for no exemption at all, i.e. fictitious generators are processed identically to real generators.
  
 The default mode is `FORCED`.
-
 
 ## Configuration file example
 See below an extract of a config file that could help:

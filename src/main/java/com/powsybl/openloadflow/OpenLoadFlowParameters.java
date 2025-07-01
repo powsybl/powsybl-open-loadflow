@@ -300,6 +300,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME = "extrapolateReactiveLimits";
 
+    public static final String GENERATOR_STARTED_MW_THRESHOLD_PARAM_NAME = "generatorStartedMwThreshold";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -446,7 +448,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control robust mode", VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Force targetQ in the reactive limit diagram", FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY)
+        new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(GENERATOR_STARTED_MW_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "MW threshold to consider generator started.", LfNetworkParameters.GENERATOR_STARTED_MW_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -639,6 +642,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean disableInconsistentVoltageControls = LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
 
     private boolean extrapolateReactiveLimits = LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private double generatorStartedMwThreshold = LfNetworkParameters.GENERATOR_STARTED_MW_THRESHOLD_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1410,6 +1415,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getGeneratorStartedMwThreshold() {
+        return generatorStartedMwThreshold;
+    }
+
+    public OpenLoadFlowParameters setGeneratorStartedMwThreshold(double generatorStartedMwThreshold) {
+        this.generatorStartedMwThreshold = generatorStartedMwThreshold;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1534,6 +1548,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                             .ifPresent(this::setFictitiousGeneratorVoltageControlCheckMode);
                     config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME).ifPresent(this::setVoltageRemoteControlRobustMode);
                     config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
+                    config.getOptionalDoubleProperty(GENERATOR_STARTED_MW_THRESHOLD_PARAM_NAME).ifPresent(this::setGeneratorStartedMwThreshold);
                 });
         return this;
     }
@@ -1694,11 +1709,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setDisableInconsistentVoltageControls(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME))
                 .ifPresent(prop -> this.setExtrapolateReactiveLimits(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(GENERATOR_STARTED_MW_THRESHOLD_PARAM_NAME))
+                .ifPresent(prop -> this.setGeneratorStartedMwThreshold(Double.parseDouble(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(71);
+        Map<String, Object> map = new LinkedHashMap<>(77);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1775,6 +1792,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, forceTargetQInReactiveLimits);
         map.put(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, disableInconsistentVoltageControls);
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
+        map.put(GENERATOR_STARTED_MW_THRESHOLD_PARAM_NAME, generatorStartedMwThreshold);
         return map;
     }
 
@@ -1934,7 +1952,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
-                .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits());
+                .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
+                .setGeneratorStartedMwThreshold(parametersExt.getGeneratorStartedMwThreshold());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2178,7 +2197,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isForceTargetQInReactiveLimits() == extension2.isForceTargetQInReactiveLimits() &&
                 extension1.isDisableInconsistentVoltageControls() == extension2.isDisableInconsistentVoltageControls() &&
                 extension1.getMinNominalVoltageRealisticVoltageCheck() == extension2.getMinNominalVoltageRealisticVoltageCheck() &&
-                extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits();
+                extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
+                extension1.getGeneratorStartedMwThreshold() == extension2.getGeneratorStartedMwThreshold();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2279,7 +2299,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setVoltageRemoteControlRobustMode(extension.isVoltageRemoteControlRobustMode())
                     .setForceTargetQInReactiveLimits(extension.isForceTargetQInReactiveLimits())
                     .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls())
-                    .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits());
+                    .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
+                    .setGeneratorStartedMwThreshold(extension.getGeneratorStartedMwThreshold());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

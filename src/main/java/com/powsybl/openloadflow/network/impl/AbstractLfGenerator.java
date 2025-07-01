@@ -259,7 +259,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected boolean checkVoltageControlConsistency(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         return checkIfReactiveRangesAreLargeEnoughForVoltageControl(parameters, report) &&
-                checkIfGeneratorStartedForVoltageControl(report) &&
+                checkIfGeneratorStartedForVoltageControl(parameters, report) &&
                 checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
 
@@ -303,8 +303,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return consistency;
     }
 
-    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
-        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        if (Math.abs(getTargetP()) < parameters.getGeneratorStartedMwThreshold() && getMinP() > parameters.getGeneratorStartedMwThreshold()) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
             return false;
@@ -375,8 +375,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     public static boolean checkActivePowerControl(String generatorId, double targetP, double maxP,
                                                   double minTargetP, double maxTargetP, double plausibleActivePowerLimit,
-                                                  boolean useActiveLimits, LfNetworkLoadingReport report) {
-        if (Math.abs(targetP) < POWER_EPSILON_SI) {
+                                                  boolean useActiveLimits, double generatorStartedMwThreshold, LfNetworkLoadingReport report) {
+        if (Math.abs(targetP) < generatorStartedMwThreshold) {
             // if generator is not started, it is not participating, and we can skip the rest of the checks
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) equals 0",
                     generatorId, targetP);

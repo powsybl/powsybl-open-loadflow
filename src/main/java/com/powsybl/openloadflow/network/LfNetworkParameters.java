@@ -94,6 +94,8 @@ public class LfNetworkParameters {
 
     private boolean distributedOnConformLoad = DISTRIBUTED_ON_CONFORM_LOAD_DEFAULT_VALUE;
 
+    public static final double GENERATOR_STARTED_MW_THRESHOLD_DEFAULT_VALUE = 1e-4;
+
     private boolean phaseControl = false;
 
     private boolean transformerVoltageControl = false;
@@ -158,6 +160,8 @@ public class LfNetworkParameters {
 
     private boolean extrapolateReactiveLimits = EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE;
 
+    private double generatorStartedMwThreshold = GENERATOR_STARTED_MW_THRESHOLD_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -205,6 +209,7 @@ public class LfNetworkParameters {
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+        this.generatorStartedMwThreshold = other.generatorStartedMwThreshold;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -635,6 +640,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public double getGeneratorStartedMwThreshold() {
+        return generatorStartedMwThreshold;
+    }
+
+    public LfNetworkParameters setGeneratorStartedMwThreshold(double generatorStartedMwThreshold) {
+        this.generatorStartedMwThreshold = generatorStartedMwThreshold;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -679,6 +693,7 @@ public class LfNetworkParameters {
                 ", forceTargetQInReactiveLimits=" + forceTargetQInReactiveLimits +
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
+                ", generatorStartedMwThreshold=" + generatorStartedMwThreshold +
                 ')';
     }
 }
