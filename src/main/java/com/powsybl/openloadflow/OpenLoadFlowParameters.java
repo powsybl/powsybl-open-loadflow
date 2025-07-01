@@ -449,7 +449,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Force targetQ in the reactive limit diagram", FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(GENERATOR_STARTED_MW_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "MW threshold to consider generator started.", LfNetworkParameters.GENERATOR_STARTED_MW_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
+        new Parameter(GENERATOR_STARTED_MW_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Active power threshold to consider generator started, in MW", LfNetworkParameters.GENERATOR_STARTED_MW_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
