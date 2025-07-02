@@ -49,7 +49,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         maxTargetP = apcHelper.maxTargetP();
 
         if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMaxP(), minTargetP, maxTargetP,
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), parameters.getGeneratorStartedMwThreshold(), report)) {
             participating = false;
         }
 
@@ -140,7 +140,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         participating = initialParticipating;
         var battery = getBattery();
         if (!checkActivePowerControl(battery.getId(), targetP * PerUnit.SB, battery.getMaxP(), minTargetP, maxTargetP,
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), parameters.getGeneratorStartedMwThreshold(), report)) {
             participating = false;
         }
     }
