@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -17,7 +18,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
 /**
@@ -39,9 +39,20 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, OptionalDouble mismatch) {
-        return buses.stream()
-                .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
+    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> participatingBuses, LfGenerator referenceGenerator) {
+        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(participatingBuses, referenceGenerator);
+        // unlike in the case of generators, here we only have to capture the targetP-s
+        for (LfBus bus : participatingBuses) {
+            for (LfLoad load : bus.getLoads()) {
+                previousStateInfo.previousTargetP().putIfAbsent(load, load.getTargetP());
+            }
+        }
+        return previousStateInfo;
+    }
+
+    @Override
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, double mismatch) {
+        return participatingBuses.stream()
                 .flatMap(bus -> bus.getLoads().stream())
                 .filter(load -> load.getAbsVariableTargetP() != 0)
                 .map(load -> new ParticipatingElement(load, getParticipationFactor(load)))
