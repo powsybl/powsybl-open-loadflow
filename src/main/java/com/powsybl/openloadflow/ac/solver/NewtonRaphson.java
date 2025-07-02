@@ -219,7 +219,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         // start iterations
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
-        while (iterations.getValue() <= parameters.getMaxIterations()) {
+        while (iterations.getValue() < parameters.getMaxIterations()) {
             AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode);
             if (newStatus != null) {
                 status = newStatus;

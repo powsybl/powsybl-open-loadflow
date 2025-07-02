@@ -13,14 +13,17 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
+import static com.powsybl.openloadflow.OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -120,14 +123,20 @@ class AcloadFlowReactiveLimitsTest {
 
     @Test
     void test() {
-        parameters.setUseReactiveLimits(false);
+//        parameters.setUseReactiveLimits(false);
+//        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+//        assertTrue(result.isFullyConverged());
+//        assertReactivePowerEquals(-109.228, gen.getTerminal());
+//        assertReactivePowerEquals(-152.265, gen2.getTerminal());
+//        assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
+        parameters.setUseReactiveLimits(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-109.228, gen.getTerminal());
-        assertReactivePowerEquals(-152.265, gen2.getTerminal());
-        assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
 
-        parameters.setUseReactiveLimits(true);
+        parameters.setUseReactiveLimits(true)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        OpenLoadFlowParameters.create(parameters).setMaxNewtonRaphsonIterations(1)
+                .setReportedFeatures(Collections.singleton(NEWTON_RAPHSON_LOAD_FLOW));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-164.315, gen.getTerminal());

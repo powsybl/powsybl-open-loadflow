@@ -15,7 +15,7 @@ public abstract class AbstractNewtonParameters<T extends AbstractNewtonParameter
     protected int maxIterations;
 
     public static int checkMaxIteration(int maxIteration) {
-        if (maxIteration < 1) {
+        if (maxIteration < 0) {
             throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
         }
         return maxIteration;

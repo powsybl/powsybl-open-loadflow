@@ -735,7 +735,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxNewtonRaphsonIterations(int maxNewtonRaphsonIterations) {
         this.maxNewtonRaphsonIterations = checkParameterValue(maxNewtonRaphsonIterations,
-                maxNewtonRaphsonIterations >= 1,
+                maxNewtonRaphsonIterations >= 0,
                 MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME);
         return this;
     }
