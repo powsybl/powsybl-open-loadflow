@@ -122,6 +122,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
+    protected void updateContext(AcLoadFlowResult result, AcLoadFlowContext context) {
+        context.setOuterLoopInitData(result.getOuterLoopInitData());
+    }
+
     protected Consumer<AcLoadFlowParameters> createParametersResetter(AcLoadFlowParameters parameters) {
         List<AcOuterLoop> oldOuterLoops = List.copyOf(parameters.getOuterLoops());
         return p -> p.setOuterLoops(oldOuterLoops);
