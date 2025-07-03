@@ -160,7 +160,9 @@ class AcLoadFlowPhaseShifterTest {
     void currentLimiterT2wtTest() {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         parameters.setPhaseShifterRegulationOn(true);
-        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+        PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
+
+        ptc.setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(false)
                 .setLoadTapChangingCapabilities(true)
@@ -172,28 +174,26 @@ class AcLoadFlowPhaseShifterTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertCurrentEquals(129.436, t2wt.getTerminal1());
-        assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
-        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+        assertEquals(2, ptc.getSolvedTapPosition());
+        assertEquals(2, ptc.getTapPosition());
 
         // should not be possible with a PTC not able to regulate on load
-        Exception e = assertThrows(
-                ValidationException.class, () -> t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+        ptc.setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
-                .setLoadTapChangingCapabilities(false)
                 .setTapPosition(2)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationValue(83) // in A
-        );
+                .setRegulationValue(83); // in A
+        Exception e = assertThrows(ValidationException.class, () -> ptc.setLoadTapChangingCapabilities(false));
         assertEquals("2 windings transformer 'PS1': regulation cannot be enabled on phase tap changer without load tap changing capabilities", e.getMessage());
 
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertCurrentEquals(48.482, t2wt.getTerminal1());
-        assertEquals(0, t2wt.getPhaseTapChanger().getSolvedTapPosition());
-        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+        assertEquals(0, ptc.getSolvedTapPosition());
+        assertEquals(2, ptc.getTapPosition());
 
-        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+        ptc.setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setLoadTapChangingCapabilities(true)
@@ -204,10 +204,10 @@ class AcLoadFlowPhaseShifterTest {
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isFullyConverged());
         assertCurrentEquals(48.482, t2wt.getTerminal1());
-        assertEquals(0, t2wt.getPhaseTapChanger().getSolvedTapPosition());
-        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+        assertEquals(0, ptc.getSolvedTapPosition());
+        assertEquals(2, ptc.getTapPosition());
 
-        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+        ptc.setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setLoadTapChangingCapabilities(true)
@@ -218,13 +218,13 @@ class AcLoadFlowPhaseShifterTest {
         LoadFlowResult result4 = loadFlowRunner.run(network, parameters);
         assertTrue(result4.isFullyConverged());
         assertCurrentEquals(83.680, line2.getTerminal1());
-        assertEquals(1, t2wt.getPhaseTapChanger().getSolvedTapPosition());
-        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
+        assertEquals(1, ptc.getSolvedTapPosition());
+        assertEquals(1, ptc.getTapPosition());
 
-        t2wt.getPhaseTapChanger().getStep(0).setAlpha(5.);
-        t2wt.getPhaseTapChanger().getStep(1).setAlpha(0.);
-        t2wt.getPhaseTapChanger().getStep(2).setAlpha(-5.);
-        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+        ptc.getStep(0).setAlpha(5.);
+        ptc.getStep(1).setAlpha(0.);
+        ptc.getStep(2).setAlpha(-5.);
+        ptc.setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setLoadTapChangingCapabilities(true)
@@ -235,8 +235,8 @@ class AcLoadFlowPhaseShifterTest {
         LoadFlowResult result5 = loadFlowRunner.run(network, parameters);
         assertTrue(result5.isFullyConverged());
         assertCurrentEquals(48.492, line2.getTerminal1());
-        assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
-        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+        assertEquals(2, ptc.getSolvedTapPosition());
+        assertEquals(0, ptc.getTapPosition());
     }
 
     @Test
@@ -375,7 +375,8 @@ class AcLoadFlowPhaseShifterTest {
     void flowControlT3wtTest() {
         selectNetwork(PhaseControlFactory.createNetworkWithT3wt());
         parameters.setPhaseShifterRegulationOn(true);
-        t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+        PhaseTapChanger ptcLeg2 = t3wt.getLeg2().getPhaseTapChanger();
+        ptcLeg2.setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setLoadTapChangingCapabilities(true)
                 .setRegulating(true)
@@ -387,20 +388,20 @@ class AcLoadFlowPhaseShifterTest {
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-0.7403999884197101, line2.getTerminal1());
         assertActivePowerEquals(0.7428793087142719, line2.getTerminal2());
-        assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getSolvedTapPosition());
-        assertEquals(1, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
+        assertEquals(2, ptcLeg2.getSolvedTapPosition());
+        assertEquals(1, ptcLeg2.getTapPosition());
 
         // should not be possible with a PTC not able to regulate on load
-        Exception e = assertThrows(ValidationException.class, () -> t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+        ptcLeg2.setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
-                .setLoadTapChangingCapabilities(false)
-                .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(t3wt.getLeg2().getTerminal())
-                .setRegulationValue(0.));
+                .setRegulationValue(0.)
+                .setRegulating(true);
+        Exception e = assertThrows(ValidationException.class, () -> ptcLeg2.setLoadTapChangingCapabilities(false));
         assertEquals("3 windings transformer leg2 'PS1': regulation cannot be enabled on phase tap changer without load tap changing capabilities", e.getMessage());
 
-        t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+        ptcLeg2.setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setLoadTapChangingCapabilities(true)
                 .setRegulating(false)
@@ -413,8 +414,8 @@ class AcLoadFlowPhaseShifterTest {
         assertTrue(result3.isFullyConverged());
         assertActivePowerEquals(26.277861524499986, line2.getTerminal1());
         assertActivePowerEquals(-26.26641402107318, line2.getTerminal2());
-        assertEquals(1, t3wt.getLeg2().getPhaseTapChanger().getSolvedTapPosition());
-        assertEquals(1, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
+        assertEquals(1, ptcLeg2.getSolvedTapPosition());
+        assertEquals(1, ptcLeg2.getTapPosition());
     }
 
     @Test

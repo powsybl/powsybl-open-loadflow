@@ -704,10 +704,10 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         Network network = NodeBreakerNetworkFactory.createWith4Bars();
 
         // add small limits on disabled lines to verify there is no violation detected
-        network.getLine("L3").newCurrentLimits1().setPermanentLimit(0.1).add();
-        network.getLine("L3").newCurrentLimits2().setPermanentLimit(0.1).add();
-        network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
-        network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
+        network.getLine("L3").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(0.1).add();
+        network.getLine("L3").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(0.1).add();
+        network.getLine("L4").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(0.1).add();
+        network.getLine("L4").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(0.1).add();
 
         setSlackBusId(parameters, "VL1_0");
         SecurityAnalysisParameters securityParameters = new SecurityAnalysisParameters();

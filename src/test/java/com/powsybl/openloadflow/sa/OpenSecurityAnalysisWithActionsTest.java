@@ -871,7 +871,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getLine("l24").newActivePowerLimits1().setPermanentLimit(150).add();
+        network.getLine("l24").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(150).add();
         double initialL4 = network.getLoad("l4").getP0();
 
         List<Contingency> contingencies = Stream.of("l2")
@@ -1548,7 +1548,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // hvdc flow power from generator to load
         network.getHvdcLine("hvdc23").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
         network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
-        network.getLine("l14").newCurrentLimits1()
+        network.getLine("l14").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                 .setPermanentLimit(290)
                 .add();
         network.newLine()
