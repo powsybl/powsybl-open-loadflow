@@ -14,7 +14,6 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -63,12 +62,13 @@ class LfBusImplTest {
                 .setId("svc1")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setRegulating(false)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setBmin(-0.006)
                 .setBmax(0.006)
                 .add();
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulating(true)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(0.01)
                 .add();
@@ -76,12 +76,13 @@ class LfBusImplTest {
                 .setId("svc2")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setRegulating(false)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setBmin(-0.001)
                 .setBmax(0.001)
                 .add();
         svc2.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulating(true)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(0.015)
                 .add();
@@ -89,12 +90,13 @@ class LfBusImplTest {
                 .setId("svc3")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setRegulating(false)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setBmin(-0.00075)
                 .setBmax(0.00075)
                 .add();
         svc3.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulating(true)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(0.02)
                 .add();
@@ -115,15 +117,10 @@ class LfBusImplTest {
         return network;
     }
 
-    @BeforeEach
-    void setUp() {
-        network = createNetwork();
-        List<LfNetwork> networks = Networks.load(network, new MostMeshedSlackBusSelector());
-        lfNetwork = networks.get(0);
-    }
-
     @Test
     void updateGeneratorsStateTest() {
+        network = createNetwork();
+
         List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = networks.get(0);
 
@@ -278,6 +275,9 @@ class LfBusImplTest {
 
     @Test
     void testBusHasCountryAttributeAfterLoading() {
+        network = createNetwork();
+        List<LfNetwork> networks = Networks.load(network, new MostMeshedSlackBusSelector());
+        lfNetwork = networks.get(0);
         assertTrue(lfNetwork.getBusById("vl1_0").getCountry().isPresent());
         assertTrue(lfNetwork.getBusById("vl2_0").getCountry().isPresent());
         assertEquals(Country.FR, lfNetwork.getBusById("vl1_0").getCountry().orElseThrow());

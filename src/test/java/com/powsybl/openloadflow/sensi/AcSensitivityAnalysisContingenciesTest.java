@@ -1244,7 +1244,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testStaticVarCompensatorContingency() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
-        network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).setRegulating(true);
         List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")));
         SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
         List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b2", "g1"), createBusVoltagePerTargetV("b2", "g1", "svc1"));
@@ -1271,7 +1271,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testStaticVarCompensatorContingency2() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
-        svc1.setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).setRegulating(true);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(400)
                 .withLowVoltageThreshold(380)
