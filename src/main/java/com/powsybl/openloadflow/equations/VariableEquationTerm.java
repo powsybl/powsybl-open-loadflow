@@ -56,6 +56,11 @@ public class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E
     }
 
     @Override
+    public double derFastDecoupled(Variable<V> variable) {
+        return der(variable);
+    }
+
+    @Override
     public double calculateSensi(DenseMatrix dx, int column) {
         return dx.get(getVariable().getRow(), column);
     }
