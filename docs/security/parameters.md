@@ -90,6 +90,8 @@ continues with the HVDC set to AC emulation mode. Otherwise, the contingence sim
 
 If `false`, contingence simulation allows HVDC lines to immediatly adapt to the new angles.
 
+This parameter overrides the loadflow parameter with the same name.
+
 The default value is `true`
 
 ## Configuration file example

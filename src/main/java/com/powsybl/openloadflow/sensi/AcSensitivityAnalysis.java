@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.outerloop.FreezingHvdcACEmulationOuterloop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -304,9 +303,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 // we always restart from base case voltages for contingency simulation
                 context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
 
-                if (startWithFrozenACEmulation) {
-                    context.getParameters().setOuterLoops(FreezingHvdcACEmulationOuterloop.updateOuterLoopList(context.getParameters().getOuterLoops()));
-                }
+                OpenLoadFlowParameters contingencylfParametersExt = applyGenericContingencyParameters(context, lfParameters, lfParametersExt, startWithFrozenACEmulation);
 
                 contingencies.forEach(contingency -> {
                     LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
@@ -341,13 +338,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                                 // buses that contain elements participating to slack distribution)
                                 if (lfParameters.isDistributedSlack()) {
-                                    postContingencySlackParticipationByBus = getParticipatingElements(slackConnectedComponent, lfParameters.getBalanceType(), lfParametersExt).stream().collect(Collectors.toMap(
+                                    postContingencySlackParticipationByBus = getParticipatingElements(slackConnectedComponent, lfParameters.getBalanceType(), contingencylfParametersExt).stream().collect(Collectors.toMap(
                                             ParticipatingElement::getLfBus, element -> -element.getFactor(), Double::sum));
                                 } else {
                                     postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
                                 }
                                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
-                                        lfParameters, lfParametersExt, lfContingency.getIndex(), resultWriter, Boolean.TRUE.equals(hasBusTargetVoltage.getRight()));
+                                        lfParameters, contingencylfParametersExt, lfContingency.getIndex(), resultWriter, Boolean.TRUE.equals(hasBusTargetVoltage.getRight()));
 
                                 if (hasChanged) {
                                     rescaleGlsk(factorGroups, Collections.emptySet());
@@ -365,5 +362,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 });
             }
         }
+    }
+
+    private OpenLoadFlowParameters applyGenericContingencyParameters(AcLoadFlowContext context, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean startWithFrozenACEmulation) {
+        OpenLoadFlowParameters contingencylfParametersExt = lfParametersExt;
+        if (startWithFrozenACEmulation) {
+            contingencylfParametersExt = OpenLoadFlowParameters.clone(lfParametersExt);
+            contingencylfParametersExt.setStartWithFrozenACEmulation(true);
+            context.getParameters().setOuterLoops(OpenLoadFlowParameters.createAcOuterLoops(lfParameters, contingencylfParametersExt));
+        }
+        return contingencylfParametersExt;
     }
 }

@@ -19,7 +19,6 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.FreezingHvdcACEmulationOuterloop;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
@@ -129,18 +128,31 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void applyContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters,
-                                              OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+    protected void applySpecificContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters,
+                                                      OpenLoadFlowParameters openLoadFlowParameters) {
         List<AcOuterLoop> outerLoops = parameters.getOuterLoops();
-        if (contingencyParameters != null) {
-            AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
-                    .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
-                            : new DefaultAcOuterLoopConfig());
-            outerLoops = outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters);
-        }
+        AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
+                .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
+                        : new DefaultAcOuterLoopConfig());
+        outerLoops = outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters);
+        parameters.setOuterLoops(outerLoops);
+    }
+
+    @Override
+    protected OpenLoadFlowParameters applyGenericContingencyParameters(AcLoadFlowParameters parameters, LoadFlowParameters loadFlowParameters,
+                                                     OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+        List<AcOuterLoop> outerLoops = parameters.getOuterLoops();
+
+        // By defaut, no override
+        OpenLoadFlowParameters genericContingencyOpenLoadFlowParameters = openLoadFlowParameters;
+
         if (openSecurityAnalysisParameters.isStartWithFrozenACEmulation()) {
-            outerLoops = FreezingHvdcACEmulationOuterloop.updateOuterLoopList(outerLoops);
+            // in this case overrides the loadflow startWithFrowenAcEmulation setting
+            genericContingencyOpenLoadFlowParameters = OpenLoadFlowParameters.clone(openLoadFlowParameters);
+            genericContingencyOpenLoadFlowParameters.setStartWithFrozenACEmulation(true);
+            outerLoops = OpenLoadFlowParameters.createAcOuterLoops(loadFlowParameters, genericContingencyOpenLoadFlowParameters);
         }
         parameters.setOuterLoops(outerLoops);
+        return genericContingencyOpenLoadFlowParameters;
     }
 }

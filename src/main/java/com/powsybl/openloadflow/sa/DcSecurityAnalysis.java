@@ -91,8 +91,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     }
 
     @Override
-    protected void applyContingencyParameters(DcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters,
-                                              OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+    protected void applySpecificContingencyParameters(DcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters,
+                                                      OpenLoadFlowParameters openLoadFlowParameters) {
         // Only contingencyParameters influence the outerloop list. openSecurityAnalysisParameters have no impact.
         if (contingencyParameters != null) {
             DcOuterLoopConfig outerLoopConfig = AbstractDcOuterLoopConfig.getOuterLoopConfig()
@@ -102,5 +102,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             contingencyParameters.isDistributedSlack().ifPresent(parameters::setDistributedSlack);
             contingencyParameters.getBalanceType().ifPresent(parameters::setBalanceType);
         }
+    }
+
+    @Override
+    protected OpenLoadFlowParameters applyGenericContingencyParameters(DcLoadFlowParameters parameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+        // Nothing to do
+        return openLoadFlowParameters;
     }
 }

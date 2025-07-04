@@ -774,8 +774,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 // save base state for later restoration after each contingency
                 NetworkState networkState = NetworkState.save(lfNetwork);
 
-                // Create consumer to reset parameters if they are modified for a contingency
-                Consumer<P> parametersResetter = createParametersResetter(acParameters);
+                // Reset parameters for next component
+                Consumer<P> componentParametersResetter = createParametersResetter(acParameters);
+
+                // openLoadFlow parameters can be overriden by security analys parameters
+                OpenLoadFlowParameters contingencyOpenLoadFlowParameters = applyGenericContingencyParameters(context.getParameters(), loadFlowParameters, openLoadFlowParameters, openSecurityAnalysisParameters);
+
+                // Reset parameters between contingencies
+                Consumer<P> contingencyParametersResetter = createParametersResetter(acParameters);
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
@@ -787,7 +793,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 lfNetwork.setReportNode(postContSimReportNode);
 
                                 ContingencyLoadFlowParameters contingencyLoadFlowParameters = propagatedContingency.getContingency().getExtension(ContingencyLoadFlowParameters.class);
-                                applyContingencyParameters(context.getParameters(), contingencyLoadFlowParameters, loadFlowParameters, openLoadFlowParameters, openSecurityAnalysisParameters);
+                                if (contingencyLoadFlowParameters != null) {
+                                    applySpecificContingencyParameters(context.getParameters(), contingencyLoadFlowParameters, loadFlowParameters, contingencyOpenLoadFlowParameters);
+                                }
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
@@ -836,11 +844,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 if (contingencyIt.hasNext()) {
                                     // restore base state
                                     networkState.restore();
-                                    // reset parameters
-                                    parametersResetter.accept(context.getParameters());
+                                    if (contingencyLoadFlowParameters != null) {
+                                        // reset parameters
+                                        contingencyParametersResetter.accept(context.getParameters());
+                                    }
                                 }
                             });
                 }
+
+                // Restore parameters in case they are used for another component
+                componentParametersResetter.accept(acParameters);
             }
 
             return new SecurityAnalysisResult(
@@ -855,17 +868,23 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     /**
      * @return a consumer for Ac/DcLoadFlowParameters that resets them to their original state, in case they have been modified according
-     * to the ContingencyLoadFlowParameters extension with {@link #applyContingencyParameters}.
+     * to the ContingencyLoadFlowParameters extension with {@link #applySpecificContingencyParameters}.
      */
     protected abstract Consumer<P> createParametersResetter(P parameters);
+
+    /**
+     * Applies the custom parameters overridden by the openSecurityAnalysisParameters
+     */
+    protected abstract OpenLoadFlowParameters applyGenericContingencyParameters(P parameters,
+                                                              LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters,
+                                                              OpenSecurityAnalysisParameters openSecurityAnalysisParameters);
 
     /**
      * Applies the custom parameters that are contained in the ContingencyLoadFlowParameters extension for a specific contingency.
      * If the extension is present, modifies the ac/dcLoadFlowParameters contained in the LoadFlowContext accordingly.
      */
-    protected abstract void applyContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyParameters,
-                                                       LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters,
-                                                       OpenSecurityAnalysisParameters openSecurityAnalysisParameters);
+    protected abstract void applySpecificContingencyParameters(P parameters, ContingencyLoadFlowParameters contingencyParameters,
+                                                               LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters);
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
                                                                  LimitViolationManager preContingencyLimitViolationManager,

@@ -20,10 +20,8 @@ import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.IntStream;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
@@ -59,21 +57,6 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
     @Override
     public String getName() {
         return NAME;
-    }
-
-    public static List<AcOuterLoop> updateOuterLoopList(List<AcOuterLoop> outerLoopList) {
-        // Do nothing is the loop is already present
-        if (outerLoopList.stream().anyMatch(FreezingHvdcACEmulationOuterloop.class::isInstance)) {
-            return outerLoopList;
-        }
-        List<AcOuterLoop> result = new ArrayList<>(outerLoopList);
-        // Place this outerloop after the slackDistribution if present
-        int index = IntStream.range(0, outerLoopList.size())
-                .filter(i -> outerLoopList.get(i) instanceof AcActivePowerDistributionOuterLoop)
-                .findFirst()
-                .orElse(-1);
-        result.add(index + 1, new FreezingHvdcACEmulationOuterloop());
-        return result;
     }
 
     @Override
