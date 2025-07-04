@@ -179,8 +179,13 @@ public class RemoteVoltageTargetChecker {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), generatorControlledBuses.size());
         for (LfBus controlledBus : generatorControlledBuses) {
             equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                    .ifPresent(equation -> rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d));
+                    .ifPresent(equation -> {
+                        if (equation.getColumn() >= 0) {
+                            rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d);
+                        }
+                    });
         }
+
         j.solveTransposed(rhs);
 
         for (LfBus controlledBus : generatorControlledBuses) {
