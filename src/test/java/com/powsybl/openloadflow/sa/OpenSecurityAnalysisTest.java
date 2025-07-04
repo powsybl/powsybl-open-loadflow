@@ -1336,6 +1336,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setPhaseShifterRegulationOn(true);
+        // Set slack mismatch equal to comparison epsilon
+        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters().setSlackBusPMaxMismatch(0.001));
 
         List<Contingency> contingencies = List.of(Contingency.line("L2"), Contingency.twoWindingsTransformer("PS1"), Contingency.line("L1")); // I added L2 and PS1 before to assert there is no impact on L1 contingency
 
