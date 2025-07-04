@@ -95,7 +95,8 @@
         "areaInterchangePMaxMismatch" : 2.0,
         "forceTargetQInReactiveLimits" : false,
         "disableInconsistentVoltageControls" : false,
-        "extrapolateReactiveLimits" : false
+        "extrapolateReactiveLimits" : false,
+        "startWithFrozenACEmulation" : false
       }
     }
   },
@@ -105,7 +106,8 @@
   "angle-flow-sensitivity-value-threshold" : 0.0,
   "extensions" : {
     "open-sensitivity-parameters" : {
-      "debugDir" : "/work"
+      "debugDir" : "/work",
+      "startWithFrozenACEmulation" : true
     }
   }
 }
