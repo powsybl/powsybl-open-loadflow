@@ -120,6 +120,23 @@ public class NewtonRaphson extends AbstractAcSolver {
             // - add 1 to iteration so that it starts at 1 instead of 0
             ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.getValue() + 1) : null;
 
+            if (parameters.getMaxIterations() == 0) {
+                NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
+                testResult = svScaling.applyAfter(equationSystem, equationVector, targetVector,
+                        parameters.getStoppingCriteria(), testResult,
+                        iterationReportNode);
+
+                LOGGER.debug("|f(x)|={}", testResult.getNorm());
+                if (detailedReport) {
+                    Reports.reportNewtonRaphsonNorm(iterationReportNode, testResult.getNorm());
+                }
+                if (detailedReport || LOGGER.isTraceEnabled()) {
+                    reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray());
+                }
+                if (testResult.isStop()) {
+                    return AcSolverStatus.CONVERGED;
+                }
+            }
             // solve f(x) = j * dx
             try {
                 j.solveTransposed(equationVector.getArray());
@@ -219,6 +236,12 @@ public class NewtonRaphson extends AbstractAcSolver {
         // start iterations
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
+        if (parameters.getMaxIterations() == 0) {
+            AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode);
+            if (newStatus != null) {
+                status = newStatus;
+            }
+        }
         while (iterations.getValue() < parameters.getMaxIterations()) {
             AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode);
             if (newStatus != null) {
@@ -227,7 +250,7 @@ public class NewtonRaphson extends AbstractAcSolver {
             }
         }
 
-        if (iterations.getValue() >= parameters.getMaxIterations()) {
+        if (iterations.getValue() >= parameters.getMaxIterations() && parameters.getMaxIterations() != 0) {
             status = AcSolverStatus.MAX_ITERATION_REACHED;
         }
 

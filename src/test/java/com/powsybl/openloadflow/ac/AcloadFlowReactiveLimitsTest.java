@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
@@ -123,19 +124,35 @@ class AcloadFlowReactiveLimitsTest {
 
     @Test
     void test() {
-//        parameters.setUseReactiveLimits(false);
-//        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-//        assertTrue(result.isFullyConverged());
-//        assertReactivePowerEquals(-109.228, gen.getTerminal());
-//        assertReactivePowerEquals(-152.265, gen2.getTerminal());
-//        assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
-        parameters.setUseReactiveLimits(true);
+        parameters.setUseReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-109.228, gen.getTerminal());
+        assertReactivePowerEquals(-152.265, gen2.getTerminal());
+        assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
+
+        parameters.setUseReactiveLimits(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-164.315, gen.getTerminal());
+        assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
+        assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
+        assertReactivePowerEquals(-200, nhv2Nload.getTerminal2());
+
+        for (var g : network.getGenerators()) {
+            Terminal t = g.getTerminal();
+            double v = t.getBusView().getBus().getV();
+            if (g.isVoltageRegulatorOn()) {
+                if (Objects.equals(g.getId(), "GEN2")) {
+                    g.setTargetQ(-t.getQ());
+                    g.setVoltageRegulatorOn(false);
+                }
+            }
+        }
 
         parameters.setUseReactiveLimits(true)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        OpenLoadFlowParameters.create(parameters).setMaxNewtonRaphsonIterations(1)
+        OpenLoadFlowParameters.create(parameters).setMaxNewtonRaphsonIterations(0)
                 .setReportedFeatures(Collections.singleton(NEWTON_RAPHSON_LOAD_FLOW));
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());

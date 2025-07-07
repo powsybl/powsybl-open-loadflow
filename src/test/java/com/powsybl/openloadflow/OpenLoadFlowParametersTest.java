@@ -464,8 +464,8 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
 
         // for integer parameters
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonRaphsonIterations(0));
-        assertEquals("Invalid value for parameter maxNewtonRaphsonIterations: 0", e.getMessage());
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxNewtonRaphsonIterations(-1));
+        assertEquals("Invalid value for parameter maxNewtonRaphsonIterations: -1", e.getMessage());
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxOuterLoopIterations(0));
         assertEquals("Invalid value for parameter maxOuterLoopIterations: 0", e.getMessage());
