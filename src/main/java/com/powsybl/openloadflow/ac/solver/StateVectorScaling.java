@@ -50,8 +50,4 @@ public interface StateVectorScaling {
                                                         NewtonRaphsonStoppingCriteria.TestResult testResult,
                                                         ReportNode reportNode);
 
-    /**
-     * Apply scaling to state vector variation before equation mismatches calculation on a limited range and only on one type of variable: either phases or voltages
-     */
-    void applyOnLimitedRange(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, ReportNode reportNode, int begin, int end, boolean isPhiType);
-}
+    }

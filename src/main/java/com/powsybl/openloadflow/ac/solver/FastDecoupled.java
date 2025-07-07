@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
+import net.jafama.FastMath;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,36 +127,93 @@ public class FastDecoupled extends AbstractAcSolver {
         return index.getValue();
     }
 
-    private void runSingleSystemSolution(JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> j, double[] partialEquationVector, int rangeIndex, boolean isPhySystem,
-                                         StateVectorScaling svScaling, ReportNode iterationReportNode) {
+    private void applyMaxVoltageUpdates(double[] dx, ReportNode reportNode, boolean isPhiType, int rangeIndex) {
+        int begin = isPhiType ? 0 : rangeIndex;
+        double maxDelta = isPhiType ? Math.toRadians(10) : 0.1;
+        AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : AcVariableType.BUS_V;
+        int cutCount = 0;
+        double stepSize = 1.0;
+        for (int i = 0; i < dx.length; i++) {
+            Variable<AcVariableType> var = equationSystem.getIndex().getSortedVariablesToFind().get(begin + i);
+            if (var.getType() == correctType) {
+                double absValueChange = Math.abs(dx[i]);
+                if (absValueChange > maxDelta) {
+                    stepSize = Math.min(stepSize, maxDelta / absValueChange);
+                    cutCount++;
+                }
+            }
+        }
+
+        if (cutCount > 0) {
+            String variableName = isPhiType ? "dphi" : "dv";
+            LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
+            if (reportNode != null) {
+                if (isPhiType) {
+                    Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
+                } else {
+                    Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
+                }
+            }
+            Vectors.mult(dx, stepSize);
+        }
+    }
+
+    private void applyLineSearch(EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                 EquationVector<AcVariableType, AcEquationType> equationVector, double[] initialStateVector,
+                                 double[] partialEquationVector, double initialNorm, int rangeIndex,
+                                 boolean isPhiSystem, ReportNode reportNode) {
+        double currentNorm = Vectors.norm2(equationVector.getArray());
+        double stepSize = 1;
+        int iteration = 1;
+        int begin = isPhiSystem ? 0 : rangeIndex;
+
+        while (currentNorm > initialNorm && iteration <= 10) {
+            // Restore x
+            equationSystem.getStateVector().set(initialStateVector.clone());
+
+            Vectors.mult(partialEquationVector, 0.5);
+            // update x and f(x) will be automatically updated
+            equationSystem.getStateVector().minusWithRange(partialEquationVector, begin);
+            // subtract targets from f(x) for next iteration
+            equationVector.minus(targetVector);
+
+            // and recompute new norm
+            currentNorm = Vectors.norm2(equationVector.getArray());
+
+            iteration++;
+            stepSize *= 0.5;
+        }
+
+        LOGGER.debug("Step size: {}", stepSize);
+        if (reportNode != null) {
+            Reports.reportLineSearchStateVectorScaling(reportNode, stepSize);
+        }
+    }
+
+    private void runSingleSystemSolution(JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> j, double[] partialEquationVector, int rangeIndex, boolean isPhiSystem,
+                                         ReportNode iterationReportNode) {
         int systemLength = partialEquationVector.length;
-        int begin = isPhySystem ? 0 : rangeIndex;
-        int end = isPhySystem ? rangeIndex : equationVector.getArray().length;
+        int begin = isPhiSystem ? 0 : rangeIndex;
+        double initialNorm = Vectors.norm2(equationVector.getArray());
 
         // solve f(x) = j * dx
         // Extract the "Phi" or "V" part of the equation vector
         System.arraycopy(equationVector.getArray(), begin, partialEquationVector, 0, systemLength);
         j.solveTransposed(partialEquationVector);
 
-        // copy the result on the right subset of equationVector
-        System.arraycopy(partialEquationVector, 0, equationVector.getArray(), begin, systemLength);
-        // f(x) now contains dx in its "Phi" or "V" part
-        svScaling.applyOnLimitedRange(equationVector.getArray(), equationSystem, iterationReportNode, begin, end, isPhySystem);
+        // Apply max magnitude and angle voltage updates
+        applyMaxVoltageUpdates(partialEquationVector, iterationReportNode, isPhiSystem, rangeIndex);
 
         // update x and f(x) will be automatically updated
-        // TODO HG (OPTIM): Adapt the automatic update part to update only a subset of f(x) when Phi part is updated
-        equationSystem.getStateVector().minusWithRange(equationVector.getArray(), begin, end);
-
+        double[] initialStateVector = equationSystem.getStateVector().get().clone();
+        equationSystem.getStateVector().minusWithRange(partialEquationVector, begin);
         // subtract targets from f(x) for next iteration
-        // we need to reverse begin in case of "Phi" to prepare for "V" one
-        // for "V" system we recompute the whole mismatches as they are needed to assess convergence
-        begin = isPhySystem ? rangeIndex : 0;
-        end = equationVector.getArray().length;
-        equationVector.minusWithRange(targetVector, begin, end);
-        // f(x) now contains equation mismatches on either its "Phi" part or on the whole array
+        equationVector.minus(targetVector);
+        // Apply line-search
+        applyLineSearch(equationSystem, equationVector, initialStateVector, partialEquationVector, initialNorm, rangeIndex, isPhiSystem, iterationReportNode);
     }
 
-    private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode, double[] phiEquationVector, double[] vEquationVector, int rangeIndex) {
+    private AcSolverStatus runIteration(MutableInt iterations, ReportNode reportNode, double[] phiEquationVector, double[] vEquationVector, int rangeIndex) {
         LOGGER.debug("Start iteration {}", iterations);
         try {
             // create iteration report
@@ -164,9 +222,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
             try {
                 // Solution on PHI
-                runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, svScaling, iterationReportNode);
+                runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, iterationReportNode);
                 // Solution on V
-                runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, svScaling, iterationReportNode);
+                runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
                 Reports.reportNewtonRaphsonError(reportNode, e.toString());
@@ -216,7 +274,6 @@ public class FastDecoupled extends AbstractAcSolver {
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
-        StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters, initialTestResult);
 
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
@@ -236,7 +293,7 @@ public class FastDecoupled extends AbstractAcSolver {
         double[] vEquationVector = new double[equationSystem.getIndex().getSortedEquationsToSolve().size() - rangeIndex];
 
         while (iterations.getValue() <= parameters.getMaxIterations()) {
-            AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode, phiEquationVector, vEquationVector, rangeIndex);
+            AcSolverStatus newStatus = runIteration(iterations, reportNode, phiEquationVector, vEquationVector, rangeIndex);
             if (newStatus != null) {
                 status = newStatus;
                 break;

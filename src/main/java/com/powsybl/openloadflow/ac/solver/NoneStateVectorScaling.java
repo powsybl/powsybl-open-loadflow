@@ -39,8 +39,4 @@ public class NoneStateVectorScaling implements StateVectorScaling {
         return testResult;
     }
 
-    @Override
-    public void applyOnLimitedRange(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem, ReportNode reportNode, int begin, int end, boolean isPhiType) {
-        // nothing to do
-    }
 }
