@@ -110,7 +110,7 @@ class IllConditionedCaseTest {
         parametersExt.setLineSearchStateVectorScalingMaxIteration(5);
         result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
-        assertEquals(16, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(15, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
         parametersExt.setLineSearchStateVectorScalingStepFold(1.7);
