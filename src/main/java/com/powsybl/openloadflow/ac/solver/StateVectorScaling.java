@@ -49,5 +49,4 @@ public interface StateVectorScaling {
                                                         NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                         NewtonRaphsonStoppingCriteria.TestResult testResult,
                                                         ReportNode reportNode);
-
-    }
+}
