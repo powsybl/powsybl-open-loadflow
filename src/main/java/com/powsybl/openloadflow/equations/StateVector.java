@@ -53,7 +53,7 @@ public class StateVector {
 
     public void minusWithRange(double[] b, int begin) {
         for (int i = 0; i < b.length; i++) {
-            array[begin+i] -= b[i];
+            array[begin + i] -= b[i];
         }
         notifyStateUpdate(); // TODO HG (OPTIM): we can optimize this update
     }
