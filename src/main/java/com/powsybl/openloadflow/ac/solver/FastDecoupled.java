@@ -33,6 +33,11 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
+    private final static double maxVoltageAngleMove = Math.toRadians(10);
+    private final static double maxVoltageMagnitudeMove = 0.1;
+    private final static int lineSearchMaxIt = 4;
+    private final static double lineSearchStepUpdate = 0.5;
+
     private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jPhi;
     private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jV;
 
@@ -128,7 +133,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
     private void applyMaxVoltageUpdates(double[] dx, ReportNode reportNode, boolean isPhiType, int rangeIndex) {
         int begin = isPhiType ? 0 : rangeIndex;
-        double maxDelta = isPhiType ? Math.toRadians(10) : 0.1;
+        double maxDelta = isPhiType ? maxVoltageAngleMove : maxVoltageMagnitudeMove;
         AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : AcVariableType.BUS_V;
         int cutCount = 0;
         double stepSize = 1.0;
@@ -166,11 +171,11 @@ public class FastDecoupled extends AbstractAcSolver {
         int iteration = 1;
         int begin = isPhiSystem ? 0 : rangeIndex;
 
-        while (currentNorm > initialNorm && iteration <= 10) {
+        while (currentNorm > initialNorm && iteration <= lineSearchMaxIt) {
             // Restore x
             equationSystem.getStateVector().set(initialStateVector.clone());
 
-            Vectors.mult(partialEquationVector, 0.5);
+            Vectors.mult(partialEquationVector, lineSearchStepUpdate);
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minusWithRange(partialEquationVector, begin);
             // subtract targets from f(x) for next iteration
@@ -180,7 +185,7 @@ public class FastDecoupled extends AbstractAcSolver {
             currentNorm = Vectors.norm2(equationVector.getArray());
 
             iteration++;
-            stepSize *= 0.5;
+            stepSize *= lineSearchStepUpdate;
         }
 
         LOGGER.debug("Step size: {}", stepSize);
