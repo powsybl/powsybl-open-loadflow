@@ -33,10 +33,10 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
-    private final static double maxVoltageAngleMove = Math.toRadians(10);
-    private final static double maxVoltageMagnitudeMove = 0.1;
-    private final static int lineSearchMaxIt = 4;
-    private final static double lineSearchStepUpdate = 0.5;
+    private static final double MAX_VOLTAGE_ANGLE_MOVE = Math.toRadians(10);
+    private static final double MAX_VOLTAGE_MAGNITUDE_MOVE = 0.1;
+    private static final int LINE_SEARCH_MAX_IT = 4;
+    private static final double LINE_SEARCH_STEP_UPDATE = 0.5;
 
     private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jPhi;
     private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jV;
@@ -133,7 +133,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
     private void applyMaxVoltageUpdates(double[] dx, ReportNode reportNode, boolean isPhiType, int rangeIndex) {
         int begin = isPhiType ? 0 : rangeIndex;
-        double maxDelta = isPhiType ? maxVoltageAngleMove : maxVoltageMagnitudeMove;
+        double maxDelta = isPhiType ? MAX_VOLTAGE_ANGLE_MOVE : MAX_VOLTAGE_MAGNITUDE_MOVE;
         AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : AcVariableType.BUS_V;
         int cutCount = 0;
         double stepSize = 1.0;
@@ -171,11 +171,11 @@ public class FastDecoupled extends AbstractAcSolver {
         int iteration = 1;
         int begin = isPhiSystem ? 0 : rangeIndex;
 
-        while (currentNorm > initialNorm && iteration <= lineSearchMaxIt) {
+        while (currentNorm > initialNorm && iteration <= LINE_SEARCH_MAX_IT) {
             // Restore x
             equationSystem.getStateVector().set(initialStateVector.clone());
 
-            Vectors.mult(partialEquationVector, lineSearchStepUpdate);
+            Vectors.mult(partialEquationVector, LINE_SEARCH_STEP_UPDATE);
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minusWithRange(partialEquationVector, begin);
             // subtract targets from f(x) for next iteration
@@ -185,7 +185,7 @@ public class FastDecoupled extends AbstractAcSolver {
             currentNorm = Vectors.norm2(equationVector.getArray());
 
             iteration++;
-            stepSize *= lineSearchStepUpdate;
+            stepSize *= LINE_SEARCH_STEP_UPDATE;
         }
 
         LOGGER.debug("Step size: {}", stepSize);
