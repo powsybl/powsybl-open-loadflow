@@ -113,11 +113,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double derFastDecoupled(Variable<V> variable) {
-            return der(variable);
-        }
-
-        @Override
         public boolean hasRhs() {
             return term.hasRhs();
         }
@@ -197,14 +192,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * @return value of the partial derivative
      */
     double der(Variable<V> variable);
-
-    /**
-     * Get partial derivative for fast decoupled.
-     *
-     * @param variable the variable the partial derivative is with respect to
-     * @return value of the partial derivative
-     */
-    double derFastDecoupled(Variable<V> variable);
 
     /**
      * Check {@link #rhs()} can return a value different from zero.

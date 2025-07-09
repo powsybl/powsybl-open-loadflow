@@ -117,14 +117,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return ksi + a1 - A2 + ph1 - ph2;
     }
 
-    protected static double theta1FastDecoupled(double ksi, double a1) {
-        return ksi - a1 + A2;
-    }
-
-    protected static double theta2FastDecoupled(double ksi, double a1) {
-        return ksi + a1 - A2;
-    }
-
     protected abstract double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1);
 
     @Override

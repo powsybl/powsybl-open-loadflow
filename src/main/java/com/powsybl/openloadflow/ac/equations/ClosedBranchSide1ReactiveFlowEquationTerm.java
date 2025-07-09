@@ -84,15 +84,6 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         return v1 * (2 * r1 * v1 * (-b1 + y * cosKsi) - y * R2 * v2 * cosTheta);
     }
 
-    public static double dq1dv1FastDecoupled(double y, double cosKsi, double b1, double v1, double r1, double cosTheta) {
-        return r1 * v1 * (-2 * b1 * r1 + 2 * y * r1 * cosKsi
-                - y * R2 * cosTheta);
-    }
-
-    public static double dq1dr1FastDecoupled(double y, double cosKsi, double b1, double v1, double r1, double cosTheta) {
-        return v1 * (2 * r1 * (-b1 + y * cosKsi) - y * R2 * cosTheta);
-    }
-
     @Override
     public double eval() {
         return q1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta1(ksi, ph1(), a1(), ph2())));
@@ -114,20 +105,6 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
             return dq1da1(y, v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(r1Var)) {
             return dq1dr1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta));
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-    }
-
-    public double derFastDecoupled(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        double theta = theta1FastDecoupled(ksi, a1());
-        if (variable.equals(v1Var)) {
-            return dq1dv1FastDecoupled(y, FastMath.cos(ksi), b1, v1(), r1(), FastMath.cos(theta));
-        } else if (variable.equals(v2Var)) {
-            return dq1dv2(y, v1(), r1(), FastMath.cos(theta));
-        } else if (variable.equals(r1Var)) {
-            return dq1dr1FastDecoupled(y, FastMath.cos(ksi), b1, v1(), r1(), FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
