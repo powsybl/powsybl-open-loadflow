@@ -58,11 +58,6 @@ public class DerivableTest {
         }
 
         @Override
-        public double derFastDecoupled(Variable<AcVariableType> variable) {
-            return der(variable);
-        }
-
-        @Override
         public void write(Writer writer) throws IOException {
         }
     }
@@ -95,11 +90,6 @@ public class DerivableTest {
         @Override
         public double der(Variable<AcVariableType> variable) {
             return DER;
-        }
-
-        @Override
-        public double derFastDecoupled(Variable<AcVariableType> variable) {
-            return der(variable);
         }
 
         @Override

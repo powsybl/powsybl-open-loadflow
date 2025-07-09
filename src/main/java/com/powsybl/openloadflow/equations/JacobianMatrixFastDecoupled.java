@@ -9,8 +9,10 @@ package com.powsybl.openloadflow.equations;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.math.matrix.*;
+import com.powsybl.openloadflow.ac.equations.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -34,6 +36,15 @@ public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends
         this.isPhySystem = isPhySystem;
     }
 
+    // List of EquationTerms that require a specific derivative for Fast Decoupled
+    private static final Set<Class<? extends EquationTerm>> TERMS_WITH_DEDICATED_DERIVATIVE = Set.of(
+            ClosedBranchSide1ActiveFlowEquationTerm.class,
+            ClosedBranchSide1ReactiveFlowEquationTerm.class,
+            ClosedBranchSide2ActiveFlowEquationTerm.class,
+            ClosedBranchSide2ReactiveFlowEquationTerm.class,
+            ShuntCompensatorReactiveFlowEquationTerm.class
+    );
+
     @Override
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -49,19 +60,51 @@ public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends
         for (Equation<V, E> eq : subsetEquationsToSolve) {
             int column = eq.getColumn();
             if (isPhySystem) {
-                eq.derFastDecoupled((variable, value, matrixElementIndex) -> {
-                    int row = variable.getRow();
-                    return matrix.addAndGetIndex(row, column, value);
-                }, rangeIndex, isPhySystem);
+                // check if one of the term of the equation has specific derivative
+                if (termsHaveDedicatedDerivative(eq.getTerms())) {
+                    EquationFastDecoupled eqFastDecoupled = new EquationFastDecoupled(eq);
+                    eqFastDecoupled.derFastDecoupled((variable, value, matrixElementIndex) -> {
+                        int row = variable.getRow();
+                        return matrix.addAndGetIndex(row, column, value);
+                    }, rangeIndex, true);
+                } else {
+                    eq.der((variable, value, matrixElementIndex) -> {
+                        int row = variable.getRow();
+                        return matrix.addAndGetIndex(row, column, value);
+                    });
+                }
             } else {
-                eq.derFastDecoupled((variable, value, matrixElementIndex) -> {
-                    int row = variable.getRow();
-                    return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
-                }, rangeIndex, isPhySystem);
+                if (termsHaveDedicatedDerivative(eq.getTerms())) {
+                    EquationFastDecoupled eqFastDecoupled = new EquationFastDecoupled(eq);
+                    eqFastDecoupled.derFastDecoupled((variable, value, matrixElementIndex) -> {
+                        int row = variable.getRow();
+                        return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
+                    }, rangeIndex, false);
+                } else {
+                    eq.der((variable, value, matrixElementIndex) -> {
+                        int row = variable.getRow();
+                        return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
+                    });
+                }
             }
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+    }
+
+    // checks if the term provided has a dedicated derivative
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> boolean termHasDedicatedDerivative(EquationTerm<V, E> term) {
+        return TERMS_WITH_DEDICATED_DERIVATIVE.contains(term.getClass());
+    }
+
+    // checks if one of the terms provided has a dedicated derivative
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> boolean termsHaveDedicatedDerivative(List<EquationTerm<V, E>> terms) {
+        for (EquationTerm<V, E> term : terms) {
+            if (TERMS_WITH_DEDICATED_DERIVATIVE.contains(term.getClass())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -73,12 +116,22 @@ public class JacobianMatrixFastDecoupled<V extends Enum<V> & Quantity, E extends
 
         matrix.reset();
         for (Equation<V, E> eq : subsetEquationsToSolve) {
-            eq.derFastDecoupled((variable, value, matrixElementIndex) -> {
-                matrix.addAtIndex(matrixElementIndex, value);
-                return matrixElementIndex; // don't change element index
-            }, rangeIndex, isPhySystem);
+            // check if one of the term of the equation has a dedicated derivative
+            if (termsHaveDedicatedDerivative(eq.getTerms())) {
+                EquationFastDecoupled eqFastDecoupled = new EquationFastDecoupled(eq);
+                eqFastDecoupled.derFastDecoupled((variable, value, matrixElementIndex) -> {
+                    matrix.addAtIndex(matrixElementIndex, value);
+                    return matrixElementIndex; // don't change element index
+                }, rangeIndex, isPhySystem);
+            } else {
+                eq.der((variable, value, matrixElementIndex) -> {
+                    matrix.addAtIndex(matrixElementIndex, value);
+                    return matrixElementIndex;
+                });
+            }
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
+
 }

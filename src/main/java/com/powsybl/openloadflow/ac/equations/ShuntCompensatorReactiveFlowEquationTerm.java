@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
 
-    private Variable<AcVariableType> bVar;
+    protected Variable<AcVariableType> bVar;
 
     private final List<Variable<AcVariableType>> variables;
 
@@ -40,7 +40,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         return variables;
     }
 
-    private double b() {
+    double b() {
         return bVar != null ? sv.get(bVar.getRow()) : element.getB();
     }
 
@@ -56,10 +56,6 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         return -v * v;
     }
 
-    private static double dqdbFastDecoupled(double v) {
-        return -v;
-    }
-
     @Override
     public double eval() {
         return q(v(), b());
@@ -72,18 +68,6 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
             return dqdv(v(), b());
         } else if (variable.equals(bVar)) {
             return dqdb(v());
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-    }
-
-    @Override
-    public double derFastDecoupled(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(vVar)) {
-            return dqdv(v(), b());
-        } else if (variable.equals(bVar)) {
-            return dqdbFastDecoupled(v());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
