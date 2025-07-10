@@ -130,11 +130,12 @@ class AcLoadFlowVscTest {
                 .add();
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
+//        LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
+        LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        LoadFlowResult result =loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
         VscConverterStation cs2 = network.getVscConverterStation("cs2");

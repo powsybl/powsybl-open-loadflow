@@ -7,14 +7,16 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.ac.networktest.LfDcLine;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.PiModel;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
+public abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfElement, AcVariableType, AcEquationType> {
 
     protected final double b1;
     protected final double b2;
@@ -24,6 +26,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
     protected final double ksi;
     protected final double g12;
     protected final double b12;
+    protected final double r;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         super(branch);
@@ -40,6 +43,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         // y12 = g12+j.b12 = 1/(r+j.x)
         g12 = piModel.getR() * y * y;
         b12 = -piModel.getX() * y * y;
+        r = Math.cos(ksi) / y;
     }
 
     public double getB1() {

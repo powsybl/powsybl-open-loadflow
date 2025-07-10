@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.openloadflow.ac.networktest.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
@@ -40,7 +42,7 @@ public class AcEquationSystemCreator {
     }
 
     protected void createBusEquation(LfBus bus,
-                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
@@ -65,6 +67,27 @@ public class AcEquationSystemCreator {
 
         createShuntEquations(bus, equationSystem);
         createLoadEquations(bus, equationSystem);
+    }
+
+    protected void createDcNodeEquation(LfDcNode dcNode,
+                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        var p = equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_P);
+        dcNode.setP(p);
+        if(!dcNode.getVscConverterStations().isEmpty()){
+            for(LfVscConverterStationV2 vsccs:dcNode.getVscConverterStations()){
+                if(vsccs.isPControlled()){
+                    equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_P_REF)
+                            .addTerm(equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_P)
+                                    .createTerm());
+                }
+                else{
+                    equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_V_REF)
+                            .addTerm(equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_V)
+                                    .createTerm());
+
+                }
+            }
+        }
     }
 
     private void createLoadEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -93,6 +116,12 @@ public class AcEquationSystemCreator {
     private void createBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBus bus : network.getBuses()) {
             createBusEquation(bus, equationSystem);
+        }
+    }
+
+    private void createDcNodesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfDcNode dcNode : network.getDcNodes()) {
+            createDcNodeEquation(dcNode, equationSystem);
         }
     }
 
@@ -359,7 +388,7 @@ public class AcEquationSystemCreator {
                     q = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm();
                 } else {
                     q = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).<AcEquationType>createTerm()
-                                    .minus();
+                            .minus();
                 }
             } else {
                 boolean deriveA1 = isDeriveA1(branch, creationParameters);
@@ -760,13 +789,34 @@ public class AcEquationSystemCreator {
                 openP1, openQ1, openI1,
                 openP2, openQ2, openI2);
 
-        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+//        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+//
+//        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+//
+//        updateBranchEquations(branch);
+//
+//        createTransformerReactivePowerControlEquations(branch, equationSystem);
+    }
 
-        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+    protected void createDcLine(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2,
+                                EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        Evaluable p1;
+        Evaluable p2 ;
 
-        updateBranchEquations(branch);
+        // closed equations, could be null because line already open on base case
+        EquationTerm<AcVariableType, AcEquationType> closedP1 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedP2 = null;
 
-        createTransformerReactivePowerControlEquations(branch, equationSystem);
+
+        closedP1 = new ClosedBranchSide1DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+        closedP2 = new ClosedBranchSide2DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+        p1 = closedP1;
+        p2 = closedP2;
+        createDcLineEquations(dcLine, dcNode1, dcNode2, equationSystem,
+                p1,
+                p2,
+                closedP1,
+                closedP2);
     }
 
     protected static void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -852,6 +902,44 @@ public class AcEquationSystemCreator {
         if (i2 != null) {
             branch.setI2(i2);
         }
+    }
+
+    protected static void createDcLineEquations(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                Evaluable p1,
+                                                Evaluable p2,
+                                                EquationTerm<AcVariableType, AcEquationType> closedP1,
+                                                EquationTerm<AcVariableType, AcEquationType> closedP2) {
+        if (closedP1 != null) {
+            equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
+                    .addTerm(closedP1);
+            dcLine.setClosedP1(closedP1);
+
+        }
+        if (p1 != null) {
+            dcLine.setP1(p1);
+        }
+
+        if (closedP2 != null) {
+            equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
+                    .addTerm(closedP2);
+            dcLine.setClosedP2(closedP2);
+        }
+        if (p2 != null) {
+            dcLine.setP2(p2);
+        }
+    }
+
+    protected static void createConverterStationEquations(LfVscConverterStationV2 vscConverterStation, EquationSystem<AcVariableType, AcEquationType> equationSystem){
+        LfDcNode dcNode = vscConverterStation.getDcNode();
+        EquationTerm<AcVariableType, AcEquationType> pDc = equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_P).createTerm();
+        equationSystem.getEquation(dcNode.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
+                .addTerm(pDc);
+        vscConverterStation.setPdc(pDc);
+
+        LfBus bus = vscConverterStation.getBus();
+            equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
+                    .addTerm(equationSystem.getVariable(vscConverterStation.getDcNode().getNum(), AcVariableType.DC_NODE_P)
+                            .createTerm());
     }
 
     static void updateBranchEquations(LfBranch branch) {
@@ -971,9 +1059,27 @@ public class AcEquationSystemCreator {
         }
     }
 
+    private void createDcLineEquations(LfDcLine dcLine,
+                                       EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        createDcLine(dcLine, dcLine.getDcNode1(), dcLine.getDcNode2(), equationSystem);
+
+    }
+
     private void createBranchesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             createImpedantBranchEquations(branch, equationSystem);
+        }
+    }
+
+    private void createDcLinesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfDcLine dcLine : network.getDcLines()) {
+            createDcLineEquations(dcLine, equationSystem);
+        }
+    }
+
+    private void  createConverterStationsEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfVscConverterStationV2 vscConverterStation : network.getVscConverterStations()) {
+            createConverterStationEquations(vscConverterStation, equationSystem);
         }
     }
 
@@ -1059,10 +1165,26 @@ public class AcEquationSystemCreator {
         createBusesEquations(equationSystem);
         createMultipleSlackBusesEquations(equationSystem);
         createBranchesEquations(equationSystem);
+        createDcNodesEquations(equationSystem);
+        createDcLinesEquations(equationSystem);
+        createConverterStationsEquations(equationSystem);
 
-        for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcAcEmulationEquations(hvdc, equationSystem);
+        System.out.println("##############################_____Equation Description_____##############################");
+
+        for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()) {
+            System.out.println("Équation : " + equation.getType() + " Bus" + equation.getElementNum());
+
+            for (EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()) {
+                for(Variable variable : term.getVariables()){
+                    System.out.println("  Variable : " + variable.getType() + variable.getElementNum());
+                }
+                System.out.println("  Element : " + term.getElementType() + term.getElementNum());
+            }
         }
+
+//        for (LfHvdc hvdc : network.getHvdcs()) {
+//            createHvdcAcEmulationEquations(hvdc, equationSystem);
+//        }
 
         createVoltageControlEquations(equationSystem);
 

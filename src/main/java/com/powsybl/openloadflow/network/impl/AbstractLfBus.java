@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2;
+import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2Impl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -59,6 +61,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected QLimitType qLimitType;
 
     protected final List<LfGenerator> generators = new ArrayList<>();
+
+    protected final List<LfVscConverterStationV2Impl> vscConverterStations = new ArrayList<>();
 
     protected LfShunt shunt;
 
@@ -345,8 +349,18 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
+    public void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        // A MODIFIER
+        //        add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
+        LfVscConverterStationV2Impl lfVsccs = LfVscConverterStationV2Impl.create(vscCs, network, parameters, report);
+        vscConverterStations.add(lfVsccs);
+        lfVsccs.addBus(this);
+
+//                add(LfVscConverterStationV2Impl.create(vscCs, network, parameters, report));
+    }
+
+    public List<LfVscConverterStationV2Impl> getVscConverterStations(){
+        return vscConverterStations;
     }
 
     void addBattery(Battery generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {

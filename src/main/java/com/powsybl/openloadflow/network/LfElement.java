@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -35,4 +36,7 @@ public interface LfElement extends PropertyBag {
     LfNetwork getNetwork();
 
     void removeEvaluable(Evaluable evaluable);
-}
+
+    default PiModel getPiModel(){return null;};
+
+    }

@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;

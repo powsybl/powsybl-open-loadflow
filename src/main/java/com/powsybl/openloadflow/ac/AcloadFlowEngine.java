@@ -14,7 +14,10 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationSystemIndex;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -29,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -101,7 +105,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
                 runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
                 runningContext.outerLoopTotalIterations++;
-
                 outerLoopIteration.increment();
             }
         } while (outerLoopResult.status() == OuterLoopStatus.UNSTABLE
@@ -197,7 +200,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN);
             return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
         }
-
         AcSolver solver = solverFactory.create(context.getNetwork(),
                                                context.getParameters(),
                                                context.getEquationSystem(),
@@ -238,6 +240,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         boolean checkUnrealisticStates = runningContext.lastUnrealisticStateFixingLoop == null;
 
         // initial solver run
+
         runningContext.lastSolverResult = runAcSolverAndCheckRealisticState(solver, voltageInitializer, reportNode, checkUnrealisticStates, context.getParameters());
 
         runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
@@ -300,6 +303,18 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
         }
 
+        //print the Jacobian
+        //Powsybl invert columns and rows for calculation, so we revert that
+        List<String> colLabels= context.getEquationSystem().getColumnNames(context.getNetwork());
+        List<String> rowLabels = context.getEquationSystem().getRowNames(context.getNetwork());
+
+
+        System.out.println("\n\n");
+        System.out.println("##############################_____Jacobian Matrix_____##############################");
+        System.out.println("\n");
+        context.getJacobianMatrix().getMatrix().transpose().print(System.out, colLabels, rowLabels);
+        //
+
         return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower);
     }
 
@@ -331,8 +346,13 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .map(n -> {
                     if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
-                            return new AcloadFlowEngine(context)
+
+
+
+                            AcLoadFlowResult result = new AcloadFlowEngine(context)
                                     .run();
+
+                            return result;
                         }
                     }
                     return AcLoadFlowResult.createNoCalculationResult(n);

@@ -12,8 +12,13 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.openloadflow.ac.networktest.LfDcLine;
+import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+import com.powsybl.openloadflow.ac.networktest.LfHvdcV2Impl;
+import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.network.impl.LfHvdcImpl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.anarres.graphviz.builder.GraphVizGraph;
@@ -85,6 +90,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
+
+    private final List<LfDcNode> dcNodesByIndex = new ArrayList<>();
+
+    private final List<LfDcLine> dcLines = new ArrayList<>();
+
+    private final List<LfVscConverterStationV2> vscConverterStations = new ArrayList<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -196,6 +207,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
+            case DC_NODE -> getDcNode(num);
+            case DC_LINE -> getHvdc(num);
         };
     }
 
@@ -939,4 +952,46 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public String toString() {
         return getId();
     }
+
+    public void addDcNode(LfDcNode dcNode){
+        Objects.requireNonNull(dcNode);
+        dcNode.setNum(dcNodesByIndex.size());
+        dcNodesByIndex.add(dcNode);
+    }
+
+    public LfDcNode getDcNode(int num) {
+        return dcNodesByIndex.get(num);
+    }
+
+    public List<LfDcNode> getDcNodes() {
+        return dcNodesByIndex;
+    }
+
+    public void addDcLine(LfDcLine dcLine){
+        dcLine.setNum(dcLines.size());
+        dcLines.add(dcLine);
+    }
+
+    public LfDcLine getDcLine(int num) {
+        return dcLines.get(num);
+    }
+
+    public List<LfDcLine> getDcLines() {
+        return dcLines;
+    }
+
+    public void addVscConverterStation(LfVscConverterStationV2 vscConverterStation){
+        vscConverterStation.setNum(vscConverterStations.size());
+        vscConverterStations.add(vscConverterStation);
+    }
+
+    public LfVscConverterStationV2 getVscConverterStation(int num) {
+        return vscConverterStations.get(num);
+    }
+
+    public List<LfVscConverterStationV2> getVscConverterStations() {
+        return vscConverterStations;
+    }
+
+
 }

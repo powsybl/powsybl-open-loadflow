@@ -235,7 +235,6 @@ public final class Networks {
             retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
             List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
-
             if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
                 Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream()
                         .filter(Objects::nonNull)

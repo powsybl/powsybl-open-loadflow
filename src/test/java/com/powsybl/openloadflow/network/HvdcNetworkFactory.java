@@ -173,46 +173,46 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = Network.create("lcc", "test");
 
         Substation s1 = network.newSubstation()
-                               .setId("S1")
-                               .add();
+                .setId("S1")
+                .add();
 
         VoltageLevel vl1 = s1.newVoltageLevel()
-                             .setId("vl1")
-                             .setNominalV(400)
-                             .setTopologyKind(TopologyKind.BUS_BREAKER)
-                             .add();
+                .setId("vl1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
         vl1.getBusBreakerView().newBus()
-           .setId("b1")
-           .add();
+                .setId("b1")
+                .add();
         vl1.newGenerator()
-           .setId("g1")
-           .setConnectableBus("b1")
-           .setBus("b1")
-           .setTargetP(102.56)
-           .setTargetV(390)
-           .setMinP(0)
-           .setMaxP(500)
-           .setVoltageRegulatorOn(true)
-            .add();
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(102.56)
+                .setTargetV(390)
+                .setMinP(0)
+                .setMaxP(500)
+                .setVoltageRegulatorOn(true)
+                .add();
 
         Substation s2 = network.newSubstation()
-                               .setId("S2")
-                               .add();
+                .setId("S2")
+                .add();
         VoltageLevel vl2 = s2.newVoltageLevel()
-                             .setId("vl2")
-                             .setNominalV(400)
-                             .setTopologyKind(TopologyKind.BUS_BREAKER)
-                             .add();
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
         vl2.getBusBreakerView().newBus()
-           .setId("b2")
-           .add();
+                .setId("b2")
+                .add();
         vl2.newLoad()
-           .setId("ld2")
-           .setConnectableBus("b2")
-           .setBus("b2")
-           .setP0(50)
-           .setQ0(10)
-            .add();
+                .setId("ld2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setP0(50)
+                .setQ0(10)
+                .add();
         vl2.newLccConverterStation()
            .setId("cs2")
            .setConnectableBus("b2")
@@ -222,59 +222,59 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .add();
 
         Substation s3 = network.newSubstation()
-                               .setId("S3")
-                               .add();
+                .setId("S3")
+                .add();
         VoltageLevel vl3 = s3.newVoltageLevel()
-                             .setId("vl3")
-                             .setNominalV(400)
-                             .setTopologyKind(TopologyKind.BUS_BREAKER)
-                             .add();
+                .setId("vl3")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
         vl3.getBusBreakerView().newBus()
-           .setId("b3")
-           .add();
+                .setId("b3")
+                .add();
         vl3.newLoad()
-           .setId("ld3")
-           .setConnectableBus("b3")
-           .setBus("b3")
-           .setP0(50)
-           .setQ0(10)
-            .add();
+                .setId("ld3")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setP0(50)
+                .setQ0(10)
+                .add();
         vl3.newLccConverterStation()
-           .setId("cs3")
-           .setConnectableBus("b3")
-           .setBus("b3")
-           .setPowerFactor(0.8f)
-           .setLossFactor(1.1f)
-            .add();
+                .setId("cs3")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setPowerFactor(0.8f)
+                .setLossFactor(1.1f)
+                .add();
         vl3.newGenerator()
-           .setId("g3")
-           .setConnectableBus("b3")
-           .setBus("b3")
-           .setTargetP(102.56)
-           .setTargetV(380)
-           .setMinP(0)
-           .setMaxP(500)
-           .setVoltageRegulatorOn(true)
-            .add();
+                .setId("g3")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setTargetP(102.56)
+                .setTargetV(380)
+                .setMinP(0)
+                .setMaxP(500)
+                .setVoltageRegulatorOn(true)
+                .add();
 
         network.newLine()
-               .setId("l12")
-               .setBus1("b1")
-               .setBus2("b2")
-               .setR(1)
-               .setX(3)
-               .add();
+                .setId("l12")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .add();
 
         network.newHvdcLine()
-               .setId("hvdc23")
-               .setConverterStationId1("cs2")
-               .setConverterStationId2("cs3")
-               .setNominalV(400)
-               .setR(0.1)
-               .setActivePowerSetpoint(50)
-               .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
-               .setMaxP(500)
-               .add();
+                .setId("hvdc23")
+                .setConverterStationId1("cs2")
+                .setConverterStationId2("cs3")
+                .setNominalV(400)
+                .setR(0.1)
+                .setActivePowerSetpoint(50)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                .setMaxP(500)
+                .add();
 
         return network;
     }
@@ -289,7 +289,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *                                                  g3
      * </pre>
      *
- * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
+     * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
      */
     public static Network createLccWithBiggerComponents() {
         Network network = createLcc();
@@ -302,11 +302,11 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b5, b6, "l56", 0.1f);
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b4, b5, "l45", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
-            .beginStep()
-            .setX(0.1f)
-            .setAlpha(1)
-            .endStep()
-            .add();
+                .beginStep()
+                .setX(0.1f)
+                .setAlpha(1)
+                .endStep()
+                .add();
 
         createGenerator(b6, "g6", 1);
 
@@ -378,6 +378,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *            |                                        |
      *            ---------------------l14------------------
      * </pre>
+     *
      * @return
      */
     public static Network createHvdcLinkedByTwoLinesAndSwitch() {
@@ -466,11 +467,11 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b3, "l13", 0.1f);
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b2, b3, "l23", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
-            .beginStep()
-            .setX(0.1f)
-            .setAlpha(1)
-            .endStep()
-            .add();
+                .beginStep()
+                .setX(0.1f)
+                .setAlpha(1)
+                .endStep()
+                .add();
         HvdcConverterStation cs3 = createLcc(b3, "cs3");
         HvdcConverterStation cs4 = createLcc(b4, "cs4");
         createHvdcLine(network, "hvdc34", cs3, cs4, 400, 0.1, 2);
@@ -601,13 +602,14 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
-     *       ------------l12--------------
-     *      |                            |
+     * ------------l12--------------
+     * |                            |
      * g1--b1-----vsc1--hvdc12--vsc2----b2--g2
-     *     |                             |
-     *     l1                            l2
+     * |                             |
+     * l1                            l2
+     * <p>
+     * Initially, g1 is on. g2 is off.
      *
-     *     Initially, g1 is on. g2 is off.
      * @return
      */
     public static Network createHvdcInAcEmulationInSymetricNetwork() {
@@ -641,6 +643,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *          |                                         |
      *          ---------------------l14-------------------
      * </pre>
+     *
      * @return
      */
     public static Network createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType type) {
@@ -726,6 +729,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *          C|---l12------                b7--l7       b5---l56-b6-g6
      *
      * </pre>
+     *
      * @return
      */
     public static Network createHvdcAndSwitch(HvdcConverterStation.HvdcType type) {

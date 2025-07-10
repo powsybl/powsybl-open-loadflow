@@ -34,7 +34,10 @@ public enum AcEquationType implements Quantity {
     BUS_TARGET_IX_ZERO("bus_target_ix_zero", ElementType.BUS), // bus real part current target for zero sequence
     BUS_TARGET_IY_ZERO("bus_target_iy_zero", ElementType.BUS), // bus imaginary part current target for zero sequence
     BUS_TARGET_IX_NEGATIVE("bus_target_ix_negative", ElementType.BUS), // bus real part current target for negative sequence
-    BUS_TARGET_IY_NEGATIVE("bus_target_iy_negative", ElementType.BUS); // bus imaginary part current target for negative sequence
+    BUS_TARGET_IY_NEGATIVE("bus_target_iy_negative", ElementType.BUS), // bus imaginary part current target for negative sequence
+    DC_NODE_TARGET_P("dc_node_target_p", ElementType.DC_NODE),
+    DC_NODE_TARGET_P_REF("dc_node_target_p_ref", ElementType.DC_NODE),
+    DC_NODE_TARGET_V_REF("dc_node_target_v_ref", ElementType.DC_NODE);
 
     private final String symbol;
 
