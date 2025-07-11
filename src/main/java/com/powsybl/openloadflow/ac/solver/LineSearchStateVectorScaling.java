@@ -99,4 +99,5 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
         }
         return lastTestResult;
     }
+
 }

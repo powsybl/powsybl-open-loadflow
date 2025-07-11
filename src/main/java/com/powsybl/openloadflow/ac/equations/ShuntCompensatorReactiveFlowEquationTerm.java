@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
 
-    private Variable<AcVariableType> bVar;
+    protected Variable<AcVariableType> bVar;
 
     private final List<Variable<AcVariableType>> variables;
 
@@ -40,7 +40,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         return variables;
     }
 
-    private double b() {
+    double b() {
         return bVar != null ? sv.get(bVar.getRow()) : element.getB();
     }
 

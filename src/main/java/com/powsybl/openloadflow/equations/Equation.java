@@ -37,13 +37,13 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
-    private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+    protected final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
     /**
      * Element index of a two dimensions matrix (equations * variables) indexed by variable index (order of the variable
      * in {@link @termsByVariable}.
      */
-    private int[] matrixElementIndexes;
+    protected int[] matrixElementIndexes;
 
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
