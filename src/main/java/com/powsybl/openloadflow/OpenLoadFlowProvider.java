@@ -273,7 +273,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(reportNode);
 
-        LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
+        //LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
         ReportNode lfReportNode = Reports.createLoadFlowReporter(reportNode, network.getId());
 
