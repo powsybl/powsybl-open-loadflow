@@ -28,6 +28,7 @@ import java.time.ZonedDateTime;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static org.apache.commons.math3.complex.ComplexUtils.polar2Complex;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -43,6 +44,54 @@ public class Asym4nodesFeederTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+
+
+    @Test
+    void ygYgI12Test() {
+        // Test avec l'utilisation de la matrice d'admittance
+
+        double numPi = 3.1415927;
+        double toRads = numPi / 180;
+        double feetInMile = 5280;
+        double length1InFeet = 2000;
+        double length2InFeet = 2500;
+
+        ComplexMatrix v12 = new ComplexMatrix(6, 1);
+        v12.set(1, 1, polar2Complex(7.2, 0. * toRads));
+        v12.set(2, 1, polar2Complex(7.2, -120. * toRads));
+        v12.set(3, 1, polar2Complex(7.2, 120 * toRads));
+        v12.set(4, 1, polar2Complex(7.107, -0.3 * toRads));
+        v12.set(5, 1, polar2Complex(7.140, -120.3 * toRads));
+        v12.set(6, 1, polar2Complex(7.121, 119.6 * toRads));
+
+        // addition of asymmetrical extensions
+        ComplexMatrix yabc12 = ComplexMatrix.getMatrixScaled(buildAdmittanceMatrixFromImpedance(getZyImpedanceMatrix()), feetInMile / length1InFeet);
+        ComplexMatrix i12dm = ComplexMatrix.getComplexMatrixFromRealCartesian(yabc12.getRealCartesianMatrix().times(v12.getRealCartesianMatrix()));
+
+        System.out.println(" ---------------- YgYg I12 TEST !!!! ");
+        System.out.println(" IA 12 = " + i12dm.getTerm(1, 1).abs() + " (" + Math.toDegrees(i12dm.getTerm(1, 1).getArgument()));
+        System.out.println(" IB 12 = " + i12dm.getTerm(2, 1).abs() + " (" + Math.toDegrees(i12dm.getTerm(2, 1).getArgument()));
+        System.out.println(" IC 12 = " + i12dm.getTerm(3, 1).abs() + " (" + Math.toDegrees(i12dm.getTerm(3, 1).getArgument()));
+
+        ComplexMatrix v34 = new ComplexMatrix(6, 1);
+        v34.set(1, 1, polar2Complex(2.2476, -3.7 * toRads));
+        v34.set(2, 1, polar2Complex(2.269, -123.5 * toRads));
+        v34.set(3, 1, polar2Complex(2.256, 116.4 * toRads));
+        v34.set(4, 1, polar2Complex(1.918, -9.1 * toRads));
+        v34.set(5, 1, polar2Complex(2.061, -128.3 * toRads));
+        v34.set(6, 1, polar2Complex(1.981, 110.9 * toRads));
+
+        // addition of asymmetrical extensions
+        ComplexMatrix yabc34 = ComplexMatrix.getMatrixScaled(buildAdmittanceMatrixFromImpedance(getZyImpedanceMatrix()), feetInMile / length2InFeet);
+        ComplexMatrix i34dm = ComplexMatrix.getComplexMatrixFromRealCartesian(yabc34.getRealCartesianMatrix().times(v34.getRealCartesianMatrix()));
+
+        System.out.println(" ---------------- YgYg I34 TEST !!!! ");
+        System.out.println(" IA 34 = " + i34dm.getTerm(1, 1).abs() + " (" + Math.toDegrees(i34dm.getTerm(1, 1).getArgument()));
+        System.out.println(" IB 34 = " + i34dm.getTerm(2, 1).abs() + " (" + Math.toDegrees(i34dm.getTerm(2, 1).getArgument()));
+        System.out.println(" IC 34 = " + i34dm.getTerm(3, 1).abs() + " (" + Math.toDegrees(i34dm.getTerm(3, 1).getArgument()));
+
+
+    }
 
     @Test
     void ygYgUnbalancedTest() {
@@ -431,6 +480,7 @@ public class Asym4nodesFeederTest {
         if (loadConnectionType == WindingConnectionType.Y_GROUNDED) {
             p = 1.2;
             q = p * 0.9;
+            //q = p * 36.3 / 75.; //def of 0.9 pf
 
             // balanced load
             Load load4 = vl4.newLoad()
@@ -503,45 +553,10 @@ public class Asym4nodesFeederTest {
         double length2InFeet = 2500;
 
         // building of YWyeabc from given Y impedance matrix Zy
-        ComplexMatrix zy = new ComplexMatrix(3, 3);
-        zy.set(1, 1, new Complex(0.4576, 1.078));
-        zy.set(1, 2, new Complex(0.1559, 0.5017));
-        zy.set(1, 3, new Complex(0.1535, 0.3849));
-        zy.set(2, 1, new Complex(0.1559, 0.5017));
-        zy.set(2, 2, new Complex(0.4666, 1.0482));
-        zy.set(2, 3, new Complex(0.158, 0.4236));
-        zy.set(3, 1, new Complex(0.1535, 0.3849));
-        zy.set(3, 2, new Complex(0.158, 0.4236));
-        zy.set(3, 3, new Complex(0.4615, 1.0651));
-
-        DenseMatrix bwye3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
-        DenseMatrix minusId3 = ComplexMatrix.getMatrixScaled(ComplexMatrix.complexMatrixIdentity(3), -1.).getRealCartesianMatrix();
-        DenseMatrix zWye = zy.getRealCartesianMatrix();
-        zWye.decomposeLU().solve(bwye3);
-
-        DenseMatrix minusBwye3 = bwye3.times(minusId3);
-        DenseMatrix realYwyeabc = AsymThreePhaseTransfo.buildFromBlocs(bwye3, minusBwye3, minusBwye3, bwye3);
-        ComplexMatrix ywyeabc = ComplexMatrix.getComplexMatrixFromRealCartesian(realYwyeabc);
+        ComplexMatrix ywyeabc = buildAdmittanceMatrixFromImpedance(getZyImpedanceMatrix());
 
         // building of YDeltaabc from given Y impedance matrix Zd
-        ComplexMatrix zd = new ComplexMatrix(3, 3);
-        zd.set(1, 1, new Complex(0.4013, 1.4133));
-        zd.set(1, 2, new Complex(0.0953, 0.8515));
-        zd.set(1, 3, new Complex(0.0953, 0.7266));
-        zd.set(2, 1, new Complex(0.0953, 0.8515));
-        zd.set(2, 2, new Complex(0.4013, 1.4133));
-        zd.set(2, 3, new Complex(0.0953, 0.7802));
-        zd.set(3, 1, new Complex(0.0953, 0.7266));
-        zd.set(3, 2, new Complex(0.0953, 0.7802));
-        zd.set(3, 3, new Complex(0.4013, 1.4133));
-
-        DenseMatrix bdelta3 = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
-        DenseMatrix zDelta = zd.getRealCartesianMatrix();
-        zDelta.decomposeLU().solve(bdelta3);
-
-        DenseMatrix minusBdelta3 = bdelta3.times(minusId3);
-        DenseMatrix realYdeltaabc = AsymThreePhaseTransfo.buildFromBlocs(bdelta3, minusBdelta3, minusBdelta3, bdelta3);
-        ComplexMatrix yDeltaabc = ComplexMatrix.getComplexMatrixFromRealCartesian(realYdeltaabc);
+        ComplexMatrix yDeltaabc = buildAdmittanceMatrixFromImpedance(getZdImpedanceMatrix());
 
         Line line12 = network.newLine()
                 .setId("B1_B2")
@@ -561,6 +576,7 @@ public class Asym4nodesFeederTest {
 
         // addition of asymmetrical extensions
         ComplexMatrix yabc12 = ComplexMatrix.getMatrixScaled(ywyeabc, feetInMile / length1InFeet);
+
         if (side1VariableType == BusVariableType.DELTA) {
             yabc12 = ComplexMatrix.getMatrixScaled(yDeltaabc, feetInMile / length1InFeet);
         }
@@ -697,6 +713,50 @@ public class Asym4nodesFeederTest {
                 .withYc(buildSinglePhaseAdmittanceMatrix(zPhase, yPhase, yPhase))
                 .withStepWindingConnectionType(stepWindingConnectionType)
                 .add();
+    }
+
+    public static ComplexMatrix getZyImpedanceMatrix() {
+        // building of YWyeabc from given Y impedance matrix Zy
+        ComplexMatrix zy = new ComplexMatrix(3, 3);
+        zy.set(1, 1, new Complex(0.4576, 1.078));
+        zy.set(1, 2, new Complex(0.1559, 0.5017));
+        zy.set(1, 3, new Complex(0.1535, 0.3849));
+        zy.set(2, 1, new Complex(0.1559, 0.5017));
+        zy.set(2, 2, new Complex(0.4666, 1.0482));
+        zy.set(2, 3, new Complex(0.158, 0.4236));
+        zy.set(3, 1, new Complex(0.1535, 0.3849));
+        zy.set(3, 2, new Complex(0.158, 0.4236));
+        zy.set(3, 3, new Complex(0.4615, 1.0651));
+
+        return zy;
+    }
+
+    public static ComplexMatrix getZdImpedanceMatrix() {
+        // building of YWyeabc from given Y impedance matrix Zy
+        ComplexMatrix zd = new ComplexMatrix(3, 3);
+        zd.set(1, 1, new Complex(0.4013, 1.4133));
+        zd.set(1, 2, new Complex(0.0953, 0.8515));
+        zd.set(1, 3, new Complex(0.0953, 0.7266));
+        zd.set(2, 1, new Complex(0.0953, 0.8515));
+        zd.set(2, 2, new Complex(0.4013, 1.4133));
+        zd.set(2, 3, new Complex(0.0953, 0.7802));
+        zd.set(3, 1, new Complex(0.0953, 0.7266));
+        zd.set(3, 2, new Complex(0.0953, 0.7802));
+        zd.set(3, 3, new Complex(0.4013, 1.4133));
+
+        return zd;
+    }
+
+    public static ComplexMatrix buildAdmittanceMatrixFromImpedance(ComplexMatrix z) {
+
+        DenseMatrix b = ComplexMatrix.complexMatrixIdentity(3).getRealCartesianMatrix();
+        DenseMatrix minusId3 = ComplexMatrix.getMatrixScaled(ComplexMatrix.complexMatrixIdentity(3), -1.).getRealCartesianMatrix();
+        DenseMatrix zWye = z.getRealCartesianMatrix();
+        zWye.decomposeLU().solve(b);
+
+        DenseMatrix minusB = b.times(minusId3);
+        DenseMatrix realYwyeabc = AsymThreePhaseTransfo.buildFromBlocs(b, minusB, minusB, b);
+        return ComplexMatrix.getComplexMatrixFromRealCartesian(realYwyeabc);
     }
 
     public static ComplexMatrix buildSinglePhaseAdmittanceMatrix(Complex z, Complex y1, Complex y2) {
