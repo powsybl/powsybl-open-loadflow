@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2;
+//import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2;
 import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2Impl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -359,7 +359,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 //                add(LfVscConverterStationV2Impl.create(vscCs, network, parameters, report));
     }
 
-    public List<LfVscConverterStationV2Impl> getVscConverterStations(){
+    public List<LfVscConverterStationV2Impl> getVscConverterStations() {
         return vscConverterStations;
     }
 

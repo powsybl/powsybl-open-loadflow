@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.VscConverterStation;
-import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+//import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2Impl;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoadingReport;
 import com.powsybl.openloadflow.util.Evaluable;

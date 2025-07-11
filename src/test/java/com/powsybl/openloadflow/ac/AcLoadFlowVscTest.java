@@ -135,7 +135,7 @@ class AcLoadFlowVscTest {
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
-        LoadFlowResult result =loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
         VscConverterStation cs2 = network.getVscConverterStation("cs2");

@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,11 +193,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         if (!generatorsWithSlope.isEmpty()) {
             if (voltageControl.isSharedControl()) {
-                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
+                generatorsWithSlope.forEach(generator -> generator.getaBus().removeGeneratorSlopes());
                 LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators",
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
             } else if (!voltageControl.isLocalControl()) {
-                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
+                generatorsWithSlope.forEach(generator -> generator.getaBus().removeGeneratorSlopes());
                 LOGGER.warn("Non supported: remote control on bus {} with {} generator(s) controlling voltage with slope",
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
             }
@@ -548,10 +547,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 //            A MODIFIER
 
             LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());;
+            LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
 
-            double V1 = 400;
-            double P2 = 50;
+            double v1 = 350;
+            double p2 = 30;
 
             //A modifier quand il y aura plusieurs vscconverterstations sur un même bus
             LfVscConverterStationV2Impl cs1 = lfBus1.getVscConverterStations().get(0);
@@ -560,16 +559,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (cs1 != null && cs2 != null) {
                 LfDcNode dcNode1 = new LfDcNodeImpl(lfNetwork, parameters, "dcNode1");
                 LfDcNode dcNode2 = new LfDcNodeImpl(lfNetwork, parameters, "dcNode2");
-                cs1.setTargetVdc(V1);
-                cs2.setTargetPdc(P2);
+                cs1.setTargetVdc(v1);
+                cs2.setTargetPdc(p2);
                 dcNode1.addVscConverterStation(cs1, lfBus1);
                 dcNode2.addVscConverterStation(cs2, lfBus2);
                 LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, parameters, hvdcLine);
                 LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
                 lfNetwork.addHvdc(lfHvdc);
-
-
-
 
             } else {
                 LOGGER.warn("The converter stations of hvdc line {} are not in the same synchronous component: no hvdc link created to model active power flow.", hvdcLine.getId());

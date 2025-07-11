@@ -26,7 +26,7 @@ class LfStandbyAutomatonShuntTest {
         Mockito.when(bus.getNetwork()).thenReturn(network);
         Mockito.when(bus.getNominalV()).thenReturn(380d);
         LfStaticVarCompensator svc = Mockito.mock(LfStaticVarCompensator.class);
-        Mockito.when(svc.getBus()).thenReturn(bus);
+        Mockito.when(svc.getaBus()).thenReturn(bus);
         Mockito.when(svc.getId()).thenReturn("svc");
         Mockito.when(svc.getOriginalId()).thenReturn("svc");
         Mockito.when(svc.getB0()).thenReturn(0.001);

@@ -2,16 +2,16 @@ package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.Transformers;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+//import com.powsybl.openloadflow.network.impl.Transformers;
+//import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.PerUnit;
-import net.jafama.FastMath;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import com.powsybl.openloadflow.util.PerUnit;
+//import net.jafama.FastMath;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Supplier;
+//import java.util.function.Supplier;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLine {
@@ -141,6 +141,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     public Evaluable getClosedP2() {
         return this.closedP2;
     }
+
     @Override
     public void setClosedV1(Evaluable closedV1) {
         this.closedV1 = closedV1;

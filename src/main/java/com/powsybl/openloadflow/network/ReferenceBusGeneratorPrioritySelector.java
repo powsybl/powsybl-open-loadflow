@@ -48,7 +48,7 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
                 .min(Comparator.comparingDouble(LfGenerator::getMaxTargetP).reversed().thenComparing(LfGenerator::getId)
                 ).orElse(null);
         if (referenceGenerator != null) {
-            LfBus referenceBus = referenceGenerator.getBus();
+            LfBus referenceBus = referenceGenerator.getaBus();
             return new SelectedGeneratorReferenceBus(referenceBus, METHOD_NAME, referenceGenerator);
         } else {
             // E.g. an island with only Vsc Hvdc Converter and/or only Static Var Compensator.

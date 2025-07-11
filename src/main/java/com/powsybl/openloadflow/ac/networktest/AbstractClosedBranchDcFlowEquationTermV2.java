@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.util.Fortescue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
 public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractBranchAcFlowEquationTerm {
 
     protected final Variable<AcVariableType> v1Var;
@@ -25,8 +26,6 @@ public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractB
             case ZERO -> AcVariableType.BUS_V_ZERO;
         };
     }
-
-
 
     protected AbstractClosedBranchDcFlowEquationTermV2(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
         super(dcLine);
@@ -45,7 +44,6 @@ public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractB
     protected double v2() {
         return sv.get(v2Var.getRow());
     }
-
 
     protected abstract double calculateSensi(double dv1, double dv2);
 

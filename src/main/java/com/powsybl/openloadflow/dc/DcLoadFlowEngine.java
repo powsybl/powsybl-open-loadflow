@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+//import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -250,7 +250,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
         // and reuse the array to fill with the solution
         // so we need to copy to later the target as it is and reusable for next run
-        var targetVectorArray = targetVector.getArray().clone();// First linear system solution
+        var targetVectorArray = targetVector.getArray().clone(); // First linear system solution
         runningContext.lastSolverSuccess = solve(targetVectorArray, context.getJacobianMatrix(), reportNode);
 
         equationSystem.getStateVector().set(targetVectorArray);

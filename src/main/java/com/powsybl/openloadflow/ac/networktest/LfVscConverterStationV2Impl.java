@@ -1,6 +1,6 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-import com.google.errorprone.annotations.NoAllocation;
+//import com.google.errorprone.annotations.NoAllocation;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
@@ -10,8 +10,8 @@ import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.ArrayList;
-import java.util.List;
+//import java.util.ArrayList;
+//import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -23,7 +23,7 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     private final boolean hvdcDandlingInIidm;
 
-    protected LfBus Bus;
+    protected LfBus aBus;
 
     protected LfDcNode dcNode;
 
@@ -59,7 +59,6 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     VscConverterStation getStation() {
         return stationRef.get();
     }
-
 
     @Override
     public double getTargetP() {
@@ -123,19 +122,18 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     }
 
     @Override
-    public void addBus(LfBus bus){
+    public void addBus(LfBus bus) {
         this.bus = bus;
     }
 
     @Override
-    public LfBus getBus(){
+    public LfBus getaBus() {
         return bus;
     }
 
-
     @Override
     public void addDcNode(LfDcNode dcNode) {
-       this.dcNode = dcNode;
+        this.dcNode = dcNode;
     }
 
     @Override
@@ -144,29 +142,29 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     }
 
     @Override
-    public void setTargetPdc(double p){
+    public void setTargetPdc(double p) {
         isPcontrolled = true;
         this.targetPdc = p;
     }
 
     @Override
-    public void setTargetVdc(double v){
+    public void setTargetVdc(double v) {
         isPcontrolled = false;
         this.targetVdc = v;
     }
 
     @Override
-    public double getTargetPdc(){
-            return targetPdc;
+    public double getTargetPdc() {
+        return targetPdc;
     }
 
     @Override
-    public double getTargetVdc(){
-            return targetVdc;
+    public double getTargetVdc() {
+        return targetVdc;
     }
 
     @Override
-    public boolean isPControlled(){
+    public boolean isPControlled() {
         return isPcontrolled;
     }
 

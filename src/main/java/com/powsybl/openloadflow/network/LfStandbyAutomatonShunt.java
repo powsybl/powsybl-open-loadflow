@@ -25,9 +25,9 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
     private double b;
 
     private LfStandbyAutomatonShunt(LfStaticVarCompensator svc) {
-        super(svc.getBus().getNetwork());
+        super(svc.getaBus().getNetwork());
         this.svc = svc;
-        double zb = PerUnit.zb(svc.getBus().getNominalV());
+        double zb = PerUnit.zb(svc.getaBus().getNominalV());
         b = svc.getB0() * zb;
     }
 

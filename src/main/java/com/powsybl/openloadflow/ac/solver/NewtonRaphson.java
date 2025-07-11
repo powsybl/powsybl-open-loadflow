@@ -7,12 +7,12 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-import com.powsybl.commons.json.JsonUtil;
+//import com.powsybl.commons.json.JsonUtil;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+//import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
@@ -23,7 +23,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Array;
+//import java.lang.reflect.Array;
 import java.util.*;
 
 /**

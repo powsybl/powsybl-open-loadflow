@@ -15,8 +15,6 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
-import java.util.Arrays;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -74,9 +72,6 @@ public final class AcSolverUtil {
                 case DC_NODE_P:
                     x[v.getRow()] = initializer.getPower(network.getDcNode(v.getElementNum()));
                     break;
-                case DC_CONVERTER_P:
-                    x[v.getRow()] = initializer.getPower(network.getDcNode(v.getElementNum()));
-                    break;
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());
             }
@@ -131,11 +126,11 @@ public final class AcSolverUtil {
                     break;
 
                 case DC_NODE_P:
-                    network.getDcNode(v.getElementNum()).setP(stateVector.get(v.getRow()));
+                    network.getDcNode(v.getElementNum()).setPdc(stateVector.get(v.getRow()));
                     break;
 
                 case DC_NODE_V:
-                    network.getDcNode(v.getElementNum()).setV(stateVector.get(v.getRow()));
+                    network.getDcNode(v.getElementNum()).setVdc(stateVector.get(v.getRow()));
                     break;
 
                 default:

@@ -1,16 +1,16 @@
 package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.ThreeSides;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
+//import com.powsybl.iidm.network.ThreeSides;
+//import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.PerUnit;
+//import com.powsybl.openloadflow.util.Evaluable;
+//import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.Objects;
-import java.util.Optional;
+//import java.util.Objects;
+//import java.util.Optional;
 
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+//import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 public class LfDcLineImpl extends AbstractLfDcLine {
 

@@ -20,9 +20,9 @@ import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+//import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+//import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
+//import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AcLoadFlowVscTest2 {
 

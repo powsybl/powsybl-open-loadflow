@@ -14,11 +14,11 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.networktest.LfDcLine;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
-import com.powsybl.openloadflow.ac.networktest.LfHvdcV2Impl;
+//import com.powsybl.openloadflow.ac.networktest.LfHvdcV2Impl;
 import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.impl.LfHvdcImpl;
+//import com.powsybl.openloadflow.network.impl.LfHvdcImpl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.anarres.graphviz.builder.GraphVizGraph;
@@ -953,7 +953,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return getId();
     }
 
-    public void addDcNode(LfDcNode dcNode){
+    public void addDcNode(LfDcNode dcNode) {
         Objects.requireNonNull(dcNode);
         dcNode.setNum(dcNodesByIndex.size());
         dcNodesByIndex.add(dcNode);
@@ -967,7 +967,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return dcNodesByIndex;
     }
 
-    public void addDcLine(LfDcLine dcLine){
+    public void addDcLine(LfDcLine dcLine) {
         dcLine.setNum(dcLines.size());
         dcLines.add(dcLine);
     }
@@ -980,7 +980,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return dcLines;
     }
 
-    public void addVscConverterStation(LfVscConverterStationV2 vscConverterStation){
+    public void addVscConverterStation(LfVscConverterStationV2 vscConverterStation) {
         vscConverterStation.setNum(vscConverterStations.size());
         vscConverterStations.add(vscConverterStation);
     }
@@ -992,6 +992,5 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public List<LfVscConverterStationV2> getVscConverterStations() {
         return vscConverterStations;
     }
-
 
 }

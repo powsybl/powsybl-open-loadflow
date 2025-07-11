@@ -101,7 +101,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return getId();
     }
 
-    public LfBus getBus() {
+    public LfBus getaBus() {
         return bus;
     }
 

@@ -2,25 +2,24 @@ package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfHvdc;
+//import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.List;
+//import java.util.List;
+
 public interface LfVscConverterStationV2 extends LfGenerator {
 
     double getLossFactor();
 
     void addBus(LfBus bus);
 
-    LfBus getBus();
+    LfBus getaBus();
 
     void addDcNode(LfDcNode lfDcNode);
 
     LfDcNode getDcNode();
 
-
     void setTargetPdc(double p);
-
 
     void setTargetVdc(double v);
 

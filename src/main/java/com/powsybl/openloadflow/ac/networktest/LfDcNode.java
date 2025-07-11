@@ -7,9 +7,9 @@ import java.util.*;
 
 public interface LfDcNode extends LfElement {
 
-    Evaluable getV();
+    Evaluable getVdc();
 
-    Evaluable getP();
+    Evaluable getPdc();
 
     void setP(Evaluable p);
 
@@ -23,9 +23,9 @@ public interface LfDcNode extends LfElement {
 
     void addLfDcLine(LfDcLine lfdcline);
 
-    void setP(double P);
+    void setPdc(double pdc);
 
-    void setV(double V);
+    void setVdc(double vdc);
 
     double getp();
 
@@ -39,9 +39,9 @@ public interface LfDcNode extends LfElement {
 
     List<LfVscConverterStationV2> getVscConverterStations();
 
-    void setTargetV(double V);
+    void setTargetV(double vdc);
 
-    void setTargetP(double P);
+    void setTargetP(double pdc);
 
     double getTargetV();
 

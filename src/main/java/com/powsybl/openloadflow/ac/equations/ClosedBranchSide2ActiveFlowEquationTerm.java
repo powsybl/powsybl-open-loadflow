@@ -83,6 +83,11 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     @Override
     public double eval() {
+        System.out.println("##############################_____Pji_____##############################");
+        System.out.println(v1());
+        System.out.println(v2());
+        System.out.println(r);
+        System.out.println(p2(y, FastMath.sin(ksi), g2, v1(), r1(), v2(), FastMath.sin(theta2(ksi, ph1(), a1(), ph2()))));
         return p2(y, FastMath.sin(ksi), g2, v1(), r1(), v2(), FastMath.sin(theta2(ksi, ph1(), a1(), ph2())));
     }
 

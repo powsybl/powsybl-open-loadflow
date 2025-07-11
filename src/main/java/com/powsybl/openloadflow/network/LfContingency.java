@@ -73,7 +73,7 @@ public class LfContingency {
             disconnectedElementIds.addAll(lostLoad.getOriginalIds());
         }
         for (LfGenerator generator : lostGenerators) {
-            if (!disabledNetwork.getBuses().contains(generator.getBus())) {
+            if (!disabledNetwork.getBuses().contains(generator.getaBus())) {
                 disconnectedGenerationActivePower += generator.getTargetP();
             }
             disconnectedElementIds.add(generator.getOriginalId());
@@ -181,7 +181,7 @@ public class LfContingency {
             // DC and AC quantities
             generator.setTargetP(0);
             generator.setInitialTargetP(0);
-            LfBus bus = generator.getBus();
+            LfBus bus = generator.getaBus();
             generatorBuses.add(bus);
             generator.setParticipating(false);
             generator.setDisabled(true);
@@ -252,7 +252,7 @@ public class LfContingency {
             }
         }
         for (LfGenerator generator : lostGenerators) {
-            LfBus bus = generator.getBus();
+            LfBus bus = generator.getaBus();
             if (bus != null) {
                 buses.add(bus);
             }

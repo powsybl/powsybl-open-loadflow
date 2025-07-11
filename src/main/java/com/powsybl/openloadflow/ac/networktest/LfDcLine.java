@@ -1,6 +1,6 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-import com.powsybl.openloadflow.network.LfBranch;
+//import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.Evaluable;
