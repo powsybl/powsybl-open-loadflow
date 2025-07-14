@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -50,6 +50,10 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     private final double pMaxFromCS1toCS2;
 
     private final double pMaxFromCS2toCS1;
+
+    private double angleToFreeze;
+
+    private boolean acEmulationFrozen = false;
 
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
@@ -192,5 +196,37 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public double getPMaxFromCS2toCS1() {
         return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS2toCS1 / PerUnit.SB;
+    }
+
+    public double freezeFromCurrentAngles() {
+        angleToFreeze = bus1.getAngle() - bus2.getAngle();
+        if (!Double.isNaN(angleToFreeze)) {
+            acEmulationFrozen = true;
+            return p1.eval();
+        } else {
+            // Might happen if an HVDC is reconnected by an action. In this case
+            // the freeze should be ignoered
+            return Double.NaN;
+        }
+    }
+
+    @Override
+    public boolean isAcEmulationFrozen() {
+        return acEmulationFrozen;
+    }
+
+    @Override
+    public void setAcEmulationFrozen(boolean frozen) {
+        this.acEmulationFrozen = frozen;
+    }
+
+    @Override
+    public double getAngleDifferenceToFreeze() {
+        return isAcEmulationFrozen() ? angleToFreeze : getBus1().getAngle() - getBus2().getAngle();
+    }
+
+    @Override
+    public void setAngleDifferenceToFreeze(double frozenP) {
+        this.angleToFreeze = frozenP;
     }
 }
