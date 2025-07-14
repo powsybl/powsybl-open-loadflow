@@ -47,7 +47,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
-        super(network, v, angle, parameters.isDistributedOnConformLoad());
+        super(network, v, angle, parameters);
         this.busRef = Ref.create(bus, parameters.isCacheEnabled());
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
