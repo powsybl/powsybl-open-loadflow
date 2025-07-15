@@ -10,8 +10,6 @@ package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 
-import java.util.function.DoubleSupplier;
-
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
  */
@@ -24,7 +22,6 @@ public class MultiplyByScalarFastDecoupledEquationTerm implements AbstractFastDe
         this.scalar = scalar;
         this.fastDecoupledEquationTerm = fastDecoupledEquationTerm;
     }
-
 
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         return scalar * fastDecoupledEquationTerm.derFastDecoupled(variable);
