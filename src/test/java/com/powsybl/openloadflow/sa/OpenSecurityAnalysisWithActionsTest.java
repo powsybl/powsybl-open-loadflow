@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.*;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
@@ -92,7 +92,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         saParameters.setLoadFlowParameters(lfParameters);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testSaReport")
                 .build();
         runSecurityAnalysis(network, contingencies, Collections.emptyList(),
@@ -138,7 +138,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisParameters.setLoadFlowParameters(parameters);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testSaReportWithOperatorStrategies")
                 .build();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
@@ -373,7 +373,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(639.268, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
         loadFlowRunner.run(network, parameters);
@@ -871,7 +871,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getLine("l24").newActivePowerLimits1().setPermanentLimit(150).add();
+        network.getLine("l24").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(150).add();
         double initialL4 = network.getLoad("l4").getP0();
 
         List<Contingency> contingencies = Stream.of("l2")
@@ -1548,7 +1548,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // hvdc flow power from generator to load
         network.getHvdcLine("hvdc23").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
         network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
-        network.getLine("l14").newCurrentLimits1()
+        network.getLine("l14").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                 .setPermanentLimit(290)
                 .add();
         network.newLine()
@@ -1760,7 +1760,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 ContingencyContext.specificContingency("NHV1_NHV2_2"), new TrueCondition(), List.of("open NGEN_NHV1")));
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testSaReport")
                 .build();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), operatorStrategies, actions, reportNode);

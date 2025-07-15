@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import org.junit.jupiter.api.Test;
 import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +22,7 @@ class ReportsTest {
     void useReportWithFranceLocaleTest() {
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withLocale(Locale.FRANCE)
-                .withResourceBundles(PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
                 .build();
         assertEquals("Rapport de test en français", reportNode.getMessage());
@@ -32,7 +32,7 @@ class ReportsTest {
     void useReportWithJVMLocaleTest() {
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withLocale(Locale.ENGLISH)
-                .withResourceBundles(PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
                 .build();
         assertEquals("Test Report", reportNode.getMessage());
