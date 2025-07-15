@@ -29,7 +29,11 @@ public abstract class AbstractShuntCompensatorEquationTerm extends AbstractEleme
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
     }
 
-    protected double v() {
+    public double v() {
         return sv.get(vVar.getRow());
+    }
+
+    public Variable<AcVariableType> getVVar() {
+        return vVar;
     }
 }
