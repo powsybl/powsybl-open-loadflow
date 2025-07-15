@@ -77,10 +77,9 @@ public class JacobianMatrixFastDecoupled
     private double computeDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term, Variable<AcVariableType> variable) {
         if (term instanceof EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) {
             AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getTerm());
-            return new MultiplyByScalarFastDecoupledEquationTerm(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getScalar(),fastDecoupledEquationTerm)
+            return new MultiplyByScalarFastDecoupledEquationTerm(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getScalar(), fastDecoupledEquationTerm)
                     .derFastDecoupled(variable);
-        }
-        else {
+        } else {
             return buildFastDecoupledTerm(term).derFastDecoupled(variable);
         }
     }
@@ -110,7 +109,7 @@ public class JacobianMatrixFastDecoupled
         equation.getMatrixElementIndexes()[variableIndex] = matrixElementIndex;
     }
 
-    public void derFastDecoupled(Equation<AcVariableType,AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhySystem) {
+    public void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhySystem) {
         Objects.requireNonNull(handler);
         int variableIndex = 0;
         for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
