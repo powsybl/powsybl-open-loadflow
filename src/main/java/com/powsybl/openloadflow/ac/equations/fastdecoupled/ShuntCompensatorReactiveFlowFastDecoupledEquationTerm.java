@@ -5,8 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import java.util.Objects;
 
@@ -15,12 +17,12 @@ import static com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlow
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ShuntCompensatorReactiveFlowFastDecoupledEquationTerm {
+public class ShuntCompensatorReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
 
-    private ShuntCompensatorReactiveFlowEquationTerm shuntCompensatorReactiveFlowEquationTerm;
+    private final ShuntCompensatorReactiveFlowEquationTerm term;
 
     public ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(ShuntCompensatorReactiveFlowEquationTerm shuntCompensatorReactiveFlowEquationTerm) {
-        this.shuntCompensatorReactiveFlowEquationTerm = shuntCompensatorReactiveFlowEquationTerm;
+        this.term = shuntCompensatorReactiveFlowEquationTerm;
     }
 
     private static double dqdbFastDecoupled(double v) {
@@ -29,10 +31,10 @@ public class ShuntCompensatorReactiveFlowFastDecoupledEquationTerm {
 
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        if (variable.equals(shuntCompensatorReactiveFlowEquationTerm.vVar)) {
-            return dqdv(shuntCompensatorReactiveFlowEquationTerm.v(), shuntCompensatorReactiveFlowEquationTerm.b());
-        } else if (variable.equals(shuntCompensatorReactiveFlowEquationTerm.bVar)) {
-            return dqdbFastDecoupled(shuntCompensatorReactiveFlowEquationTerm.v());
+        if (variable.equals(term.getVVar())) {
+            return dqdv(term.v(), term.b());
+        } else if (variable.equals(term.getbVar())) {
+            return dqdbFastDecoupled(term.v());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

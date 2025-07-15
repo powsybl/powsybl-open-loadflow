@@ -38,17 +38,17 @@ public class FastDecoupled extends AbstractAcSolver {
     private static final int LINE_SEARCH_MAX_IT = 4;
     private static final double LINE_SEARCH_STEP_UPDATE = 0.5;
 
-    private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jPhi;
-    private JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> jV;
+    private JacobianMatrixFastDecoupled jPhi;
+    private JacobianMatrixFastDecoupled jV;
 
     private enum PhiVEquationType {
         PHI_EQUATION_TYPE,
-        V_EQUATION_TYPE;
+        V_EQUATION_TYPE
     }
 
     private enum PhiVVariableType {
         PHI_VARIABLE_TYPE,
-        V_VARIABLE_TYPE;
+        V_VARIABLE_TYPE
     }
 
     public FastDecoupled(LfNetwork network, NewtonRaphsonParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -194,7 +194,7 @@ public class FastDecoupled extends AbstractAcSolver {
         }
     }
 
-    private void runSingleSystemSolution(JacobianMatrixFastDecoupled<AcVariableType, AcEquationType> j, double[] partialEquationVector, int rangeIndex, boolean isPhiSystem,
+    private void runSingleSystemSolution(JacobianMatrixFastDecoupled j, double[] partialEquationVector, int rangeIndex, boolean isPhiSystem,
                                          ReportNode iterationReportNode) {
         int systemLength = partialEquationVector.length;
         int begin = isPhiSystem ? 0 : rangeIndex;
@@ -269,8 +269,8 @@ public class FastDecoupled extends AbstractAcSolver {
         equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
         int rangeIndex = getRangeForPhiSystemPart();
 
-        jPhi = new JacobianMatrixFastDecoupled<>(equationSystem, j.getMatrixFactory(), rangeIndex, true);
-        jV = new JacobianMatrixFastDecoupled<>(equationSystem, j.getMatrixFactory(), rangeIndex, false);
+        jPhi = new JacobianMatrixFastDecoupled(equationSystem, j.getMatrixFactory(), rangeIndex, true);
+        jV = new JacobianMatrixFastDecoupled(equationSystem, j.getMatrixFactory(), rangeIndex, false);
 
         // initialize state vector
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
