@@ -38,4 +38,5 @@ public class NoneStateVectorScaling implements StateVectorScaling {
                                                                ReportNode reportNode) {
         return testResult;
     }
+
 }
