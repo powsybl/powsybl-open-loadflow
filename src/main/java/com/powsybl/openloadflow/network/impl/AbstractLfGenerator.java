@@ -242,6 +242,10 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
             return;
         }
+        if (regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent() == null) {
+            LOGGER.warn("Synchronous component of regulating terminal of LfGenerator {} is not found: voltage control discarded", getId());
+            return;
+        }
         boolean inSameSynchronousComponent = parameters.isBreakers()
                 ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().getNum() == terminal.getBusBreakerView().getBus().getSynchronousComponent().getNum()
                 : regulatingTerminal.getBusView().getBus().getSynchronousComponent().getNum() == terminal.getBusView().getBus().getSynchronousComponent().getNum();
