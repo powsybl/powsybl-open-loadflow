@@ -18,8 +18,6 @@ import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -27,7 +25,6 @@ import org.slf4j.LoggerFactory;
 @AutoService(AcSolverFactory.class)
 public class FastDecoupledFactory implements AcSolverFactory {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupledFactory.class);
     public static final String NAME = "FAST_DECOUPLED";
 
     @Override
