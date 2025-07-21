@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
@@ -130,6 +131,54 @@ class FastDecoupledTest {
 
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @Test
+    void testWithContinuousTransformerVoltageControl() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        parametersFastDecoupled.setDistributedSlack(true);
+        parametersNewtonRaphson.setDistributedSlack(true);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersFastDecoupled.setTransformerVoltageControlOn(true);
+        parametersNewtonRaphson.setTransformerVoltageControlOn(true);
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @Test
+    void testWithContinuousTransformerActivePowerControl() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+
+        parametersFastDecoupled.setDistributedSlack(false).setUseReactiveLimits(false);
+        parametersNewtonRaphson.setDistributedSlack(false).setUseReactiveLimits(false);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersFastDecoupled.setPhaseShifterRegulationOn(true);
+        parametersNewtonRaphson.setPhaseShifterRegulationOn(true);
+
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83);
+
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
