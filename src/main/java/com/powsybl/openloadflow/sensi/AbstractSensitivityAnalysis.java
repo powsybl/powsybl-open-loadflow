@@ -1041,7 +1041,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     throw createFunctionTypeNotSupportedException(functionType);
                 }
             } else {
-                if (isActivePowerFunctionType(functionType) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                if ((isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
 
