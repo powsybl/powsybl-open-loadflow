@@ -121,14 +121,26 @@ public class FastDecoupled extends AbstractAcSolver {
 
     private int getRangeForPhiSystemPart() {
         MutableInt index = new MutableInt();
-        for (Variable<AcVariableType> var : equationSystem.getIndex().getSortedVariablesToFind()) {
-            if (getPhiVVariableType(var.getType()) == PhiVVariableType.PHI_VARIABLE_TYPE) {
+        for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
+            if (getPhiVVariableType(variable.getType()) == PhiVVariableType.PHI_VARIABLE_TYPE) {
                 index.increment();
             } else {
                 break;
             }
         }
         return index.getValue();
+    }
+
+    private void reportMaxVoltageUpdates(boolean isPhiType, double stepSize, int cutCount, ReportNode reportNode) {
+        String variableName = isPhiType ? "dphi" : "dv";
+        LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
+        if (reportNode != null) {
+            if (isPhiType) {
+                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
+            } else {
+                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
+            }
+        }
     }
 
     private void applyMaxVoltageUpdates(double[] dx, ReportNode reportNode, boolean isPhiType, int rangeIndex) {
@@ -138,8 +150,8 @@ public class FastDecoupled extends AbstractAcSolver {
         int cutCount = 0;
         double stepSize = 1.0;
         for (int i = 0; i < dx.length; i++) {
-            Variable<AcVariableType> var = equationSystem.getIndex().getSortedVariablesToFind().get(begin + i);
-            if (var.getType() == correctType) {
+            Variable<AcVariableType> variable = equationSystem.getIndex().getSortedVariablesToFind().get(begin + i);
+            if (variable.getType() == correctType) {
                 double absValueChange = Math.abs(dx[i]);
                 if (absValueChange > maxDelta) {
                     stepSize = Math.min(stepSize, maxDelta / absValueChange);
@@ -149,27 +161,17 @@ public class FastDecoupled extends AbstractAcSolver {
         }
 
         if (cutCount > 0) {
-            String variableName = isPhiType ? "dphi" : "dv";
-            LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
-            if (reportNode != null) {
-                if (isPhiType) {
-                    Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
-                } else {
-                    Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
-                }
-            }
+            reportMaxVoltageUpdates(isPhiType, stepSize, cutCount, reportNode);
             Vectors.mult(dx, stepSize);
         }
     }
 
     private void applyLineSearch(EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                  EquationVector<AcVariableType, AcEquationType> equationVector, double[] initialStateVector,
-                                 double[] partialEquationVector, double initialNorm, int rangeIndex,
-                                 boolean isPhiSystem, ReportNode reportNode) {
+                                 double[] partialEquationVector, double initialNorm, int systemFirstIndex, ReportNode reportNode) {
         double currentNorm = Vectors.norm2(equationVector.getArray());
         double stepSize = 1;
         int iteration = 1;
-        int begin = isPhiSystem ? 0 : rangeIndex;
 
         while (currentNorm > initialNorm && iteration <= LINE_SEARCH_MAX_IT) {
             // Restore x
@@ -177,7 +179,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
             Vectors.mult(partialEquationVector, LINE_SEARCH_STEP_UPDATE);
             // update x and f(x) will be automatically updated
-            equationSystem.getStateVector().minusWithRange(partialEquationVector, begin);
+            equationSystem.getStateVector().minusWithRange(partialEquationVector, systemFirstIndex);
             // subtract targets from f(x) for next iteration
             equationVector.minus(targetVector);
 
@@ -214,7 +216,7 @@ public class FastDecoupled extends AbstractAcSolver {
         // subtract targets from f(x) for next iteration
         equationVector.minus(targetVector);
         // Apply line-search
-        applyLineSearch(equationSystem, equationVector, initialStateVector, partialEquationVector, initialNorm, rangeIndex, isPhiSystem, iterationReportNode);
+        applyLineSearch(equationSystem, equationVector, initialStateVector, partialEquationVector, initialNorm, begin, iterationReportNode);
     }
 
     private AcSolverStatus runIteration(MutableInt iterations, ReportNode reportNode, double[] phiEquationVector, double[] vEquationVector, int rangeIndex) {
