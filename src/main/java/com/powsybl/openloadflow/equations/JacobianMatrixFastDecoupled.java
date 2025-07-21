@@ -75,9 +75,9 @@ public class JacobianMatrixFastDecoupled
 
     // Build fast decoupled version of a term, if it has dedicated derivative
     private double computeDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term, Variable<AcVariableType> variable) {
-        if (term instanceof EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) {
-            AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getTerm());
-            return new MultiplyByScalarFastDecoupledEquationTerm(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getScalar(), fastDecoupledEquationTerm)
+        if (term instanceof EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
+            AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(multiplyByTerm.getTerm());
+            return new MultiplyByScalarFastDecoupledEquationTerm(multiplyByTerm.getScalar(), fastDecoupledEquationTerm)
                     .derFastDecoupled(variable);
         } else {
             return buildFastDecoupledTerm(term).derFastDecoupled(variable);
