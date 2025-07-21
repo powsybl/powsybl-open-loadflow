@@ -15,10 +15,14 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.ShuntNetworkFactory;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -90,6 +94,42 @@ class FastDecoupledTest {
     @Test
     void testIEEE9ZeroImpedance() {
         Network network = IeeeCdfNetworkFactory.create9zeroimpedance();
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @Test
+    void testWithSharedVoltageControl() {
+        Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        parametersFastDecoupled.setUseReactiveLimits(false).setDistributedSlack(false);
+        parametersNewtonRaphson.setUseReactiveLimits(false).setDistributedSlack(false);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setVoltageRemoteControl(true);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setVoltageRemoteControl(true);
+
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @Test
+    void testWithShuntVoltageControl() {
+        Network network = ShuntNetworkFactory.create();
+        ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        parametersFastDecoupled.setUseReactiveLimits(true)
+                .setDistributedSlack(true);
+        parametersNewtonRaphson.setUseReactiveLimits(true)
+                .setDistributedSlack(true);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        parametersFastDecoupled.setShuntCompensatorVoltageControlOn(true);
+        parametersNewtonRaphson.setShuntCompensatorVoltageControlOn(true);
+
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
