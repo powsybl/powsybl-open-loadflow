@@ -37,7 +37,7 @@ public class FastDecoupledFactory implements AcSolverFactory {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         return new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
-                .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations()) // TODO HG: use another param?
+                .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode()) //
                 .setMaxVoltageChangeStateVectorScalingMaxDv(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDv())
                 .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
