@@ -251,7 +251,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
             if (detailedReport) {
-                Reports.reportNewtonRaphsonNorm(iterationReportNode, testResult.getNorm());
+                Reports.reportFastDecoupledNorm(iterationReportNode, testResult.getNorm());
             }
             if (detailedReport || LOGGER.isTraceEnabled()) {
                 reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), LOGGER);
@@ -285,7 +285,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
         ReportNode initialReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, 0) : null;
         if (detailedReport) {
-            Reports.reportNewtonRaphsonNorm(initialReportNode, initialTestResult.getNorm());
+            Reports.reportFastDecoupledNorm(initialReportNode, initialTestResult.getNorm());
         }
         if (detailedReport || LOGGER.isTraceEnabled()) {
             reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);
