@@ -12,6 +12,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
@@ -1052,7 +1053,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
                     Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
 
-                    // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
+                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
+                        if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled() && parameters.getLoadFlowParameters().isHvdcAcEmulation()) {
+                            LOGGER.warn("HVDC line {} has AC emulation enabled, using it as HVDC_LINE_ACTIVE_POWER variable may be wrong because its set point cannot be controlled",
+                                    variableId);
+                        }
+                    }
+
+                    // corresponds to an augmentation of +1 on the active power setpoint (TODO : currently it corresponds to an augmentation of +1 of active power transit, not setpoint (corner case of AC emulation))
+                    // on each side on the HVDC line
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
                     Set<String> originalVariableSetIds = new HashSet<>(2);
