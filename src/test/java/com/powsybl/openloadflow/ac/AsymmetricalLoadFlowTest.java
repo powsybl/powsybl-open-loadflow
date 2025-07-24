@@ -357,7 +357,6 @@ public class AsymmetricalLoadFlowTest {
         assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
     }
 
-
     @Test
     void incompatibilityWithFastDecoupledTest() {
         Network network = TwoBusNetworkFactory.create();
