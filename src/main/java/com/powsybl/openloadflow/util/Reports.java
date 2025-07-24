@@ -775,6 +775,14 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportFastDecoupledNorm(ReportNode reportNode, double norm) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.FDNorm")
+                .withUntypedValue("norm", norm)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add();
+    }
+
     public static void reportNewtonRaphsonLargestMismatches(ReportNode reportNode, String acEquationType, BusReport busReport) {
         String mismatchUnit;
         double mismatchUnitConverter;
