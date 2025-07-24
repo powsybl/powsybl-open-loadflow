@@ -22,6 +22,8 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.asym.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
+import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -352,6 +355,21 @@ public class AsymmetricalLoadFlowTest {
         assertVoltageEquals(99.78067026758131, bus2); // balanced = 99.79736062173895
         assertVoltageEquals(99.5142639108648, bus3); // balanced = 99.54462759204546
         assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
+    }
+
+
+    @Test
+    void incompatibilityWithFastDecoupledTest() {
+        Network network = TwoBusNetworkFactory.create();
+        Bus bus1 = network.getBusBreakerView().getBus("b1");
+        Bus bus2 = network.getBusBreakerView().getBus("b2");
+        Line line1 = network.getLine("l12");
+        parametersExt.setAcSolverType(FastDecoupledFactory.NAME);
+        parametersExt.setAsymmetrical(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertTrue(parametersExt.isAsymmetrical()
+                && Objects.equals(parametersExt.getAcSolverType(), NewtonRaphsonFactory.NAME));
     }
 
     /**

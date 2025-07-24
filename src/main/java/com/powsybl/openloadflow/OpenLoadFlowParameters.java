@@ -1981,6 +1981,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         List<AcOuterLoop> outerLoops = createAcOuterLoops(parameters, parametersExt);
 
+        if (parametersExt.isAsymmetrical() && Objects.equals(parametersExt.getAcSolverType(), FastDecoupledFactory.NAME)) {
+            parametersExt.setAcSolverType(NewtonRaphsonFactory.NAME);
+            LOGGER.warn("Fast-Decoupled solver is incompatible with asymmetrical load flow, Newton Raphson is used instead");
+        } else if (parameters.isHvdcAcEmulation() && Objects.equals(AcSolverFactory.find(parametersExt.getAcSolverType()).getName(), FastDecoupledFactory.NAME)) {
+            parametersExt.setAcSolverType(NewtonRaphsonFactory.NAME);
+            LOGGER.warn("Fast-Decoupled solver is incompatible with AcEmulation, Newton Raphson is used instead");
+        }
         AcSolverFactory solverFactory = AcSolverFactory.find(parametersExt.getAcSolverType());
 
         return new AcLoadFlowParameters()
