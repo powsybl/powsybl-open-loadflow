@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
@@ -44,9 +45,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
+    public static final boolean FIX_REMOTE_VOLTAGE_TARGET_DEFAULT_VALUE = false;
+
+    private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
+
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
     private boolean detailedReport = false;
+
+    private boolean fixRemoteVoltageTarget = FIX_REMOTE_VOLTAGE_TARGET_DEFAULT_VALUE;
 
     private boolean voltageRemoteControlRobustMode = true;
 
@@ -124,6 +131,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isFixRemoteVoltageTarget() {
+        return fixRemoteVoltageTarget;
+    }
+
+    public AcLoadFlowParameters setFixRemoteVoltageTarget(boolean fixRemoteVoltageTarget) {
+        this.fixRemoteVoltageTarget = fixRemoteVoltageTarget;
+        return this;
+    }
+
     public boolean isVoltageRemoteControlRobustMode() {
         return voltageRemoteControlRobustMode;
     }
@@ -174,6 +190,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
                 ", solverFactory=" + solverFactory.getClass().getSimpleName() +
                 ", detailedReport=" + detailedReport +
+                ", fixRemoteTargetVoltage=" + fixRemoteVoltageTarget +
                 ", voltageRemoteControlRobustMode=" + voltageRemoteControlRobustMode +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
