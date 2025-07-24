@@ -45,13 +45,13 @@ class FastDecoupledTest {
 
     @BeforeEach
     void setUp() {
-        parametersFastDecoupled = new LoadFlowParameters();
+        parametersFastDecoupled = new LoadFlowParameters().setHvdcAcEmulation(false);
         OpenLoadFlowParameters.create(parametersFastDecoupled)
                 .setAcSolverType(FastDecoupledFactory.NAME)
                 .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
                 .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
                 .setMaxNewtonRaphsonIterations(30);
-        parametersNewtonRaphson = new LoadFlowParameters();
+        parametersNewtonRaphson = new LoadFlowParameters().setHvdcAcEmulation(false);
         OpenLoadFlowParameters.create(parametersNewtonRaphson)
                 .setAcSolverType(NewtonRaphsonFactory.NAME)
                 .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
