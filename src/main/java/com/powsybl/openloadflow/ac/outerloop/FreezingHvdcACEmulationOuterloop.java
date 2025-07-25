@@ -70,7 +70,7 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
                 .forEach(lfHvdc -> {
                     double setPointBus1 = lfHvdc.freezeFromCurrentAngles();
                     if (!Double.isNaN(setPointBus1)) {
-                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), setPointBus1 * PerUnit.SB, LOGGER);
+                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);
                     }
                 });
     }

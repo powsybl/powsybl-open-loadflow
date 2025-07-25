@@ -887,10 +887,11 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcID, double setPoint, Logger logger) {
+    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String stationId, double setPoint, Logger logger) {
         ReportNode node = reportNode.newReportNode()
                 .withMessageTemplate("olf.freezeHvdc")
-                .withUntypedValue("ID", hvdcID)
+                .withUntypedValue("hvdcId", hvdcId)
+                .withUntypedValue("stationId", stationId)
                 .withUntypedValue("setPoint", setPoint)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
