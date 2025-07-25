@@ -528,8 +528,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     theta1 = AbstractClosedBranchAcFlowEquationTerm.theta1(ksi[branchNum], ph1[branchNum], a1Evaluated, ph2[branchNum]);
                     sinTheta1 = FastMath.sin(theta1);
                     cosTheta1 = FastMath.cos(theta1);
-                    // TODO: incrementalPhaseShifterActovePowerControlTest fails if those terms are shared per branch
-                    // Add a listener on tap position change
                 }
                 if (sortedTermsVecToValForDer[termIndex] != null) {
                     deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] +=
