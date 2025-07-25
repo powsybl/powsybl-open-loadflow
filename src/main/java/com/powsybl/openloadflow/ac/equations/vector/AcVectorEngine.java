@@ -110,6 +110,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     private int[] termByVariableBranchNumForDer;
     private VecToVal[] sortedTermsVecToValForDer;
 
+    private Map<Integer, String> branchNameByBranchNum = new HashMap<>();
+
     public AcVectorEngine(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         this.equationSystem = equationSystem;
         if (equationSystem != null) {
@@ -124,6 +126,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     r1[branch.getNum()] = branch.getPiModel().getR1();
                 }
             });
+            network.getBranches().forEach(b -> branchNameByBranchNum.put(b.getNum(), b.getId()));
         }
 
         int branchCount = network == null ? 1 : network.getBranches().size();
@@ -472,7 +475,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     evalResultPerEquation[termByEvalResultIndex[termIndex]] +=
                         sortedTermsVecToValForEval[termIndex].value(v1[branchNum], v2[branchNum], sinKsi, cosKsi, sinTheta2, cosTheta2, sinTheta1, cosTheta1,
                                 b1[branchNum], b2[branchNum],
-                                g1[branchNum], g2[branchNum], y[branchNum], g12[branchNum], b12[branchNum], a1Evaluated, r1Evaluated);
+                                g1[branchNum], g2[branchNum], y[branchNum], g12[branchNum], b12[branchNum], a1Evaluated, r1Evaluated,
+                                branchNum, branchNameByBranchNum);
                 }
             }
         }
@@ -531,7 +535,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] +=
                             sortedTermsVecToValForDer[termIndex].value(v1[branchNum], v2[branchNum], sinKsi, cosKsi, sinTheta2, cosTheta2, sinTheta1, cosTheta1,
                                     b1[branchNum], b2[branchNum],
-                                    g1[branchNum], g2[branchNum], y[branchNum], g12[branchNum], b12[branchNum], a1Evaluated, r1Evaluated);
+                                    g1[branchNum], g2[branchNum], y[branchNum], g12[branchNum], b12[branchNum], a1Evaluated, r1Evaluated,
+                                    branchNum, branchNameByBranchNum);
                 }
             }
         }

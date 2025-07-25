@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
+import java.util.Map;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.network.PiModel.R2;
@@ -75,7 +76,8 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     public static double vec2q1(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
                                      double sinTheta1, double cosTheta1,
                                      double b1, double b2, double g1, double g2, double y,
-                                     double g12, double b12, double a1, double r1) {
+                                     double g12, double b12, double a1, double r1,
+                                     int branchElementNum, Map<Integer, String> branchNameByBranchNum) {
         return q1(y, cosKsi, b1, v1, r1, v2, cosTheta1);
     }
 
@@ -87,7 +89,8 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     public static double vec2dq1dv1(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
                                     double sinTheta1, double cosTheta1,
                                     double b1, double b2, double g1, double g2, double y,
-                                    double g12, double b12, double a1, double r1) {
+                                    double g12, double b12, double a1, double r1,
+                                    int branchElementNum, Map<Integer, String> branchNameByBranchNum) {
         return dq1dv1(y, cosKsi, b1, v1, r1, v2, cosTheta1);
     }
 
@@ -99,7 +102,8 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     public static double vec2dq1dv2(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
                                     double sinTheta1, double cosTheta1,
                                     double b1, double b2, double g1, double g2, double y,
-                                    double g12, double b12, double a1, double r1) {
+                                    double g12, double b12, double a1, double r1,
+                                    int branchElementNum, Map<Integer, String> branchNameByBranchNum) {
         return dq1dv2(y, v1, r1, cosTheta1);
     }
 
@@ -110,7 +114,8 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     public static double vec2dq1dph1(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
                                     double sinTheta1, double cosTheta1,
                                     double b1, double b2, double g1, double g2, double y,
-                                    double g12, double b12, double a1, double r1) {
+                                    double g12, double b12, double a1, double r1,
+                                     int branchElementNum, Map<Integer, String> branchNameByBranchNum) {
         return dq1dph1(y, v1, r1, v2, sinTheta1);
     }
 
@@ -121,7 +126,8 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     public static double vec2dq1dph2(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
                                      double sinTheta1, double cosTheta1,
                                      double b1, double b2, double g1, double g2, double y,
-                                     double g12, double b12, double a1, double r1) {
+                                     double g12, double b12, double a1, double r1,
+                                     int branchElementNum, Map<Integer, String> branchNameByBranchNum) {
         return dq1dph2(y, v1, r1, v2, sinTheta1);
     }
 

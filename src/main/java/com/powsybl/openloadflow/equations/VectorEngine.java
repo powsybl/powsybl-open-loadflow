@@ -10,13 +10,17 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.Matrix;
 
+import java.util.Map;
+
 public interface VectorEngine<V extends Enum<V> & Quantity> {
 
     interface VecToVal {
         double value(double v1, double v2, double sinKsi, double cosKsi, double sinTheta2, double cosTheta2,
                      double sinTheta1, double cosTheta1,
                      double b1, double b2, double g1, double g2, double y,
-                     double g12, double b12, double a1, double r1);
+                     double g12, double b12, double a1, double r1, int branchNum, Map<Integer, String> branchNameByBranchNum);
+        // brancNum and branchNameByBranchNum provided as debug info
+        // For example to set a conditional breakpoint in an equation for a given branch
     }
 
     void der(boolean update, Matrix matrix);
