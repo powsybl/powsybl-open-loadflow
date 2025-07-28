@@ -26,7 +26,7 @@ Here is a table to summarize supported use cases:
 
 <div style="font-size: 0.6em; width: 100%; overflow-x: auto;">
 
-| Function \ Variable     | INJECTION_ACTIVE_POWER                   | INJECTION_REACTIVE_POWER            | TRANSFORMER_PHASE                        | BUS_TARGET_VOLTAGE                  | HVDC_LINE_ACTIVE_POWER                   | TRANSFORMER_PHASE_1                      | TRANSFORMER_PHASE_2                      | TRANSFORMER_PHASE_3                      |
+| Function \ Variable     | INJECTION_ACTIVE_POWER                   | INJECTION_REACTIVE_POWER            | TRANSFORMER_PHASE                        | BUS_TARGET_VOLTAGE                  | HVDC_LINE_ACTIVE_POWER*                  | TRANSFORMER_PHASE_1                      | TRANSFORMER_PHASE_2                      | TRANSFORMER_PHASE_3                      |
 |-------------------------|------------------------------------------|-------------------------------------|------------------------------------------|-------------------------------------|------------------------------------------|------------------------------------------|------------------------------------------|------------------------------------------|
 | BRANCH_ACTIVE_POWER_1   | <span style="color:green">AC + DC</span> | <span style="color:red">N/A</span>  | <span style="color:green">AC + DC</span> | <span style="color:red">N/A</span>  | <span style="color:green">AC + DC</span> | <span style="color:green">AC + DC</span> | <span style="color:green">AC + DC</span> | <span style="color:green">AC + DC</span> |
 | BRANCH_CURRENT_1        | <span style="color:green">AC</span>      | <span style="color:green">AC</span> | <span style="color:green">AC</span>      | <span style="color:green">AC</span> | <span style="color:green">AC</span>      | <span style="color:green">AC</span>      | <span style="color:green">AC</span>      | <span style="color:green">AC</span>      |
@@ -41,6 +41,8 @@ Here is a table to summarize supported use cases:
 | BUS_REACTIVE_POWER      | <span style="color:red">N/A</span>       | <span style="color:green">AC</span> | <span style="color:red">N/A</span>       | <span style="color:green">AC</span> | <span style="color:red">N/A</span>       | <span style="color:red">N/A</span>       | <span style="color:red">N/A</span>       | <span style="color:red">N/A</span>       |
 
 </div>
+
+*HVDC_LINE_ACTIVE_POWER is used to compute the sensitivity according to the active power set point of the HVDC. This is not applicable for HVDCs that are in AC emulation mode.
 
 ## Input function types
 
