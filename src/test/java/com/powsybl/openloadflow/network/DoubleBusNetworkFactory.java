@@ -4,7 +4,10 @@ import com.powsybl.iidm.network.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class DoubleBusNetworkFactory {
+public final class DoubleBusNetworkFactory {
+
+    private DoubleBusNetworkFactory() {
+    }
 
     /**
      * vl1 : 400 kv Double bus Voltage Level
@@ -16,7 +19,7 @@ public class DoubleBusNetworkFactory {
      */
     public static Network create() {
         Network network = NetworkFactory.findDefault().createNetwork("double-bus", "source");
-        AtomicInteger node =  new AtomicInteger();
+        AtomicInteger node = new AtomicInteger();
         Substation substation = network.newSubstation()
                 .setId("station")
                 .add();
@@ -81,12 +84,10 @@ public class DoubleBusNetworkFactory {
                 .add();
         createLoad(node, "1", substation, vlLoads, vl, bbs2, bbs1);
 
-
-
         return network;
     }
 
-    static private void createGroup(AtomicInteger node, String suffix, Substation substation, VoltageLevel vlGens,
+    private static void createGroup(AtomicInteger node, String suffix, Substation substation, VoltageLevel vlGens,
                                     VoltageLevel vl, BusbarSection bbs1, BusbarSection bbs2, boolean withDandlingControlTerminal) {
 
         BusbarSection bbsgen = vlGens.getNodeBreakerView()
@@ -114,17 +115,15 @@ public class DoubleBusNetworkFactory {
                 .setRetained(true)
                 .add();
 
-
         TwoWindingsTransformer tw = substation.newTwoWindingsTransformer()
                 .setVoltageLevel1(vl.getId())
                 .setNode1(node.incrementAndGet())
                 .setVoltageLevel2(vlGens.getId())
                 .setNode2(node.incrementAndGet())
-                .setId("twg"+suffix)
+                .setId("twg" + suffix)
                 .setR(0)
                 .setX(0.1)
                 .add();
-
 
         g.setRegulatingTerminal(tw.getTerminal1());
 
@@ -186,7 +185,7 @@ public class DoubleBusNetworkFactory {
 
     }
 
-    static private void createLoad(AtomicInteger node, String suffix, Substation substation, VoltageLevel vlLoads,
+    private static void createLoad(AtomicInteger node, String suffix, Substation substation, VoltageLevel vlLoads,
                                    VoltageLevel vl, BusbarSection bbs1, BusbarSection bbs2) {
 
         BusbarSection bbsLoad = vlLoads.getNodeBreakerView()
@@ -218,13 +217,12 @@ public class DoubleBusNetworkFactory {
                 .setRetained(true)
                 .add();
 
-
         TwoWindingsTransformer tw = substation.newTwoWindingsTransformer()
                 .setVoltageLevel1(vl.getId())
                 .setNode1(node.incrementAndGet())
                 .setVoltageLevel2(vlLoads.getId())
                 .setNode2(node.incrementAndGet())
-                .setId("twl"+suffix)
+                .setId("twl" + suffix)
                 .setR(0)
                 .setX(0.1)
                 .add();
@@ -233,7 +231,6 @@ public class DoubleBusNetworkFactory {
                 .setNode1(tw.getTerminal(vlLoads.getId()).getNodeBreakerView().getNode())
                 .setNode2(bbsLoad.getTerminal().getNodeBreakerView().getNode())
                 .add();
-
 
         vl.getNodeBreakerView().newSwitch()
                 .setId(tw.getId() + bbs1.getId())
