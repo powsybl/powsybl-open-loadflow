@@ -1,7 +1,7 @@
 + Test Report
    + Load flow on network 'svc'
       + Network CC0 SC0
-         Controller shunt vl3_0_controller_shunt_compensators is already in a shunt voltage control. The second controlled bus vl2_0 is ignored
+         Another shunt, vl3_0_controller_shunt_compensators, already controls the voltage at a different point on the same bus vl2_0. The second shunt is removed from the voltage control.
          + Network info
             Network has 3 buses and 2 branches
             Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
