@@ -79,7 +79,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     protected static Network createNodeBreakerNetwork() {
         Network network = NodeBreakerNetworkFactory.create();
 
-        network.getLine("L1").newCurrentLimits1()
+        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                 .setPermanentLimit(940.0)
                 .beginTemporaryLimit()
                 .setName("60")
@@ -87,10 +87,10 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 .setValue(1000)
                 .endTemporaryLimit()
                 .add();
-        network.getLine("L1").newCurrentLimits2()
+        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits()
                 .setPermanentLimit(940.0)
                 .add();
-        network.getLine("L2").newCurrentLimits1()
+        network.getLine("L2").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                 .setPermanentLimit(940.0)
                 .beginTemporaryLimit()
                 .setName("60")
@@ -98,7 +98,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
                 .setValue(950)
                 .endTemporaryLimit()
                 .add();
-        network.getLine("L2").newCurrentLimits2()
+        network.getLine("L2").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits()
                 .setPermanentLimit(940.0)
                 .beginTemporaryLimit()
                 .setName("600")

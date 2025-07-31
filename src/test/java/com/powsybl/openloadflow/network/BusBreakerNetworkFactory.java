@@ -74,10 +74,10 @@ public final class BusBreakerNetworkFactory {
                 .setQ0(200.0)
                 .add();
 
-        network.getLine("L1").newCurrentLimits1().setPermanentLimit(940.0).add();
-        network.getLine("L1").newCurrentLimits2().setPermanentLimit(940.0).add();
-        network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).add();
-        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).add();
+        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(940.0).add();
+        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(940.0).add();
+        network.getLine("L2").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(940.0).add();
+        network.getLine("L2").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(940.0).add();
 
         return network;
     }
@@ -109,7 +109,7 @@ public final class BusBreakerNetworkFactory {
             .setB1(386E-6 / 2)
             .setB2(386E-6 / 2)
             .add();
-        network.getLine(id).newCurrentLimits1().setPermanentLimit(940.0).add();
-        network.getLine(id).newCurrentLimits2().setPermanentLimit(940.0).add();
+        network.getLine(id).getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(940.0).add();
+        network.getLine(id).getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(940.0).add();
     }
 }
