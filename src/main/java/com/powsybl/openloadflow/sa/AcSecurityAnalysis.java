@@ -117,11 +117,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void beforeActionLoadFlowRun(AcLoadFlowContext context) {
-        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
-    }
-
-    @Override
     protected Consumer<AcLoadFlowParameters> createParametersResetter(AcLoadFlowParameters parameters) {
         List<AcOuterLoop> oldOuterLoops = List.copyOf(parameters.getOuterLoops());
         return p -> p.setOuterLoops(oldOuterLoops);
@@ -153,6 +148,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
             outerLoops = OpenLoadFlowParameters.createAcOuterLoops(loadFlowParameters, genericContingencyOpenLoadFlowParameters);
         }
         parameters.setOuterLoops(outerLoops);
+        parameters.setVoltageInitializer(new PreviousValueVoltageInitializer(true));
         return genericContingencyOpenLoadFlowParameters;
     }
 }

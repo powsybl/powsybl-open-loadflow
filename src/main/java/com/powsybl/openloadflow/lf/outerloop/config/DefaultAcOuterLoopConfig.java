@@ -31,7 +31,7 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         // primary frequency control
         createDistributedSlackOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         // freezing hvdc in AC emulation
-        createFreezingHvdcInACEmulationOuterLoop(parametersExt).ifPresent(outerLoops::add);
+        createFreezingHvdcACEmulationOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // area interchange control
         createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         // secondary voltage control

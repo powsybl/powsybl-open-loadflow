@@ -45,7 +45,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createFreezingHvdcInACEmulationOuterLoop(OpenLoadFlowParameters parametersExt) {
+    protected static Optional<AcOuterLoop> createFreezingHvdcACEmulationOuterLoop(OpenLoadFlowParameters parametersExt) {
         if (parametersExt.isStartWithFrozenACEmulation()) {
             return Optional.of(new FreezingHvdcACEmulationOuterloop());
         }

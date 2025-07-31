@@ -777,8 +777,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 // Reset parameters for next component
                 Consumer<P> componentParametersResetter = createParametersResetter(acParameters);
 
-                // openLoadFlow parameters can be overriden by security analys parameters
-                OpenLoadFlowParameters contingencyOpenLoadFlowParameters = applyGenericContingencyParameters(context.getParameters(), loadFlowParameters, openLoadFlowParameters, openSecurityAnalysisParameters);
+                // openLoadFlow parameters can be overriden by security analys parameters - may modify acParameters
+                OpenLoadFlowParameters contingencyOpenLoadFlowParameters = applyGenericContingencyParameters(acParameters, loadFlowParameters, openLoadFlowParameters, openSecurityAnalysisParameters);
 
                 // Reset parameters between contingencies
                 Consumer<P> contingencyParametersResetter = createParametersResetter(acParameters);
@@ -1007,11 +1007,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    protected void beforeActionLoadFlowRun(C context) {
-    }
-
     protected PostContingencyComputationStatus runActionLoadFlow(C context) {
-        beforeActionLoadFlowRun(context);
         R result = createLoadFlowEngine(context).run();
         return postContingencyStatusFromLoadFlowResult(result);
     }

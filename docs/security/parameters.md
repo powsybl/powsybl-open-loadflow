@@ -84,11 +84,11 @@ see the [programming guide](../advanced_programming/contingency_active_power_los
 
 **startWithFrozenACEmulation**
 
-If `true`, contingence simulation starts with HVDC link configured in AC emulation frozen at their previous active set point 
+If `true`, contingency simulation starts with HVDC link configured in AC emulation frozen at their previous active set point 
 defined by the angles at the HVDC extremities in the base case. If a solution is found then the simulator
-continues with the HVDC set to AC emulation mode. Otherwise, the contingence simulation fails.
+continues with the HVDC set to AC emulation mode. Otherwise, the contingency simulation fails.
 
-If `false`, contingence simulation allows HVDC lines to immediatly adapt to the new angles.
+If `false`, contingency simulation allows HVDC lines to immediately adapt to the new angles.
 
 This parameter overrides the loadflow parameter with the same name.
 

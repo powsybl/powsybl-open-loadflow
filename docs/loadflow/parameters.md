@@ -551,13 +551,13 @@ The default mode is `FORCED`.
 
 If `true`, simulation starts with HVDC link configured in AC emulation frozen at their previous active set point
 defined by the angles at the HVDC extremities in the base case. If a solution is found then the simulator
-continues with the HVDC set to AC emulation mode. Otherwise, the contingence simulation fails. 
+continues with the HVDC set to AC emulation mode. Otherwise, the simulation fails. 
 
-If `false`, simulation allows HVDC lines to immediatly adapt to the new angles.
+If `false`, simulation allows HVDC lines to immediately adapt to the new angles.
 
 The value 'true' is typically used to use a loadFlow to simulate an N-K contingency after a loadflow has previously be run.
 
-The default value is `false`. This parameter can be overriden by the security analysis parameter with same name.
+The default value is `false`. This parameter can be overridden by the security analysis parameter with same name.
 
 ## Configuration file example
 See below an extract of a config file that could help:
