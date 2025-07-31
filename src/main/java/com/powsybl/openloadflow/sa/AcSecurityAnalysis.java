@@ -123,14 +123,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void applySpecificContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters,
-                                                      OpenLoadFlowParameters openLoadFlowParameters) {
-        List<AcOuterLoop> outerLoops = parameters.getOuterLoops();
+    protected void applySpecificContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
                         : new DefaultAcOuterLoopConfig());
-        outerLoops = outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters);
-        parameters.setOuterLoops(outerLoops);
+        parameters.setOuterLoops(outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters));
     }
 
     @Override
