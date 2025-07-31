@@ -4598,4 +4598,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertReactivePowerEquals(-6.5, network.getGenerator("g2").getTerminal());
 
     }
+
+    @Test
+    void testDoubleBus() {
+        Network network = DoubleBusNetworkFactory.create();
+
+        List<Contingency> contingencies = network.getVoltageLevel("vl1")
+                .getNodeBreakerView()
+                .getBusbarSectionStream()
+                .map(bbs -> Contingency.busbarSection(bbs.getId())).toList();
+
+        // Thrwos a NPE
+        runSecurityAnalysis(network, contingencies);
+    }
 }
