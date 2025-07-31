@@ -100,6 +100,7 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
         assertEquals(ContingencyLoadFlowParameters.class, new ContingencyLoadFlowParametersJsonSerializer().getExtensionClass());
 
         ContingencyLoadFlowParameters contingencyLoadFlowParameters2 = new ContingencyLoadFlowParameters();
+        contingencyLoadFlowParameters2.setScope(ContingencyLoadFlowParameters.Scope.CONTINGENCY_ONLY);
         Contingency contingency2 = new Contingency("L5", new BranchContingency("L5"));
         contingency2.addExtension(ContingencyLoadFlowParameters.class, contingencyLoadFlowParameters2);
 

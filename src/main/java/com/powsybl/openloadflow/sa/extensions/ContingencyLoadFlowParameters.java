@@ -14,12 +14,29 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency> implements LoadFlowParametersOverride {
+
+    /**
+     * Specifies whether the overridden load flow parameters also apply to the operator strategy simulations
+     */
+    public enum Scope {
+        /**
+         * The overridden load flow parameters are applied to both the contingency itself and any operator strategies associated with it
+         */
+        CONTINGENCY_AND_OPERATOR_STRATEGY,
+        /**
+         * The overridden load flow parameters are applied only to the contingency and not to the associated operator strategies
+         */
+        CONTINGENCY_ONLY,
+    }
+
+    private Scope scope = Scope.CONTINGENCY_AND_OPERATOR_STRATEGY;
 
     private Boolean distributedSlack;
 
@@ -32,6 +49,10 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
     @Override
     public String getName() {
         return "contingency-load-flow-parameters";
+    }
+
+    public Scope getScope() {
+        return scope;
     }
 
     @Override
@@ -68,6 +89,11 @@ public class ContingencyLoadFlowParameters extends AbstractExtension<Contingency
 
     public Optional<List<String>> getOuterLoopNames() {
         return Optional.ofNullable(outerLoopNames);
+    }
+
+    public ContingencyLoadFlowParameters setScope(Scope scope) {
+        this.scope = Objects.requireNonNull(scope);
+        return this;
     }
 
     public ContingencyLoadFlowParameters setDistributedSlack(Boolean distributedSlack) {
