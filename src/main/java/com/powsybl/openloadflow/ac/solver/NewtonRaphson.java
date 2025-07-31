@@ -192,7 +192,7 @@ public class NewtonRaphson extends AbstractAcSolver {
             reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray());
         }
 
-        // start iterations
+        // start iterationsw
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
         while (iterations.getValue() <= parameters.getMaxIterations()) {
@@ -209,6 +209,9 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             AcSolverUtil.updateNetwork(network, equationSystem);
+            AbcResults abcResults = new AbcResults();
+            abcResults.fillAbcBussesResults(network); // stores ABC voltages and phases
+            abcResults.fillAbcBranchesResults(network);
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
