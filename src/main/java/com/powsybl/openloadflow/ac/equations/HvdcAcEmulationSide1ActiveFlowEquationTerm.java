@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -52,12 +52,15 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
 
     @Override
     public double eval() {
-        return p1(ph1(), ph2());
+        return element.isAcEmulationFrozen() ? p1(element.getAngleDifferenceToFreeze(), 0) : p1(ph1(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
+        if (element.isAcEmulationFrozen()) {
+            return 0;
+        }
         if (variable.equals(ph1Var)) {
             return dp1dph1(ph1(), ph2());
         } else if (variable.equals(ph2Var)) {
@@ -71,4 +74,5 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     protected String getName() {
         return "ac_emulation_p_1";
     }
+
 }
