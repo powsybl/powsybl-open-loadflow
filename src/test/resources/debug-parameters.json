@@ -95,7 +95,8 @@
         "areaInterchangePMaxMismatch" : 2.0,
         "forceTargetQInReactiveLimits" : false,
         "disableInconsistentVoltageControls" : false,
-        "extrapolateReactiveLimits" : false
+        "extrapolateReactiveLimits" : false,
+        "generatorsWithZeroMwTargetAreNotStarted" : true
       }
     }
   },

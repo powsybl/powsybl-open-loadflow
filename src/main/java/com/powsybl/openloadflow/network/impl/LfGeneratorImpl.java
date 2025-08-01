@@ -69,7 +69,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         setReferencePriority(ReferencePriority.get(generator));
 
         if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters, report)) {
             participating = false;
         }
 
@@ -99,7 +99,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         participating = initialParticipating;
         var generator = getGenerator();
         if (!checkActivePowerControl(generator.getId(), targetP * PerUnit.SB, generator.getMaxP(), minTargetP, maxTargetP,
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters, report)) {
             participating = false;
         }
     }
@@ -240,8 +240,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
-        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(report);
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(parameters, report);
     }
 
     @Override
