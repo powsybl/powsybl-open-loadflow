@@ -202,7 +202,7 @@ public final class Networks {
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
                                      LfTopoConfig topoConfig, ReportNode reportNode) {
-        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reportNode);
+     return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reportNode);
     }
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,

@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
-//import com.powsybl.openloadflow.ac.networktest.LfDcLine;
+
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -64,9 +64,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         Objects.requireNonNull(variableSet);
         AcVariableType vType = getVoltageMagnitudeType(sequenceType);
         AcVariableType angleType = getVoltageAngleType(sequenceType);
-        System.out.println("##############################");
-        System.out.println("bus_i = " + bus1.getId());
-        System.out.println("bus_j = " + bus2.getId());
         v1Var = variableSet.getVariable(bus1.getNum(), vType);
         v2Var = variableSet.getVariable(bus2.getNum(), vType);
         ph1Var = variableSet.getVariable(bus1.getNum(), angleType);

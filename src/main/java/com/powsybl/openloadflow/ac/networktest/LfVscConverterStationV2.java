@@ -2,14 +2,11 @@ package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
-//import com.powsybl.openloadflow.network.LfHvdc;
+
 import com.powsybl.openloadflow.util.Evaluable;
 
-//import java.util.List;
 
 public interface LfVscConverterStationV2 extends LfGenerator {
-
-    double getLossFactor();
 
     void addBus(LfBus bus);
 
@@ -27,11 +24,14 @@ public interface LfVscConverterStationV2 extends LfGenerator {
 
     double getTargetVdc();
 
+    void setTargetVac(double V);
+
+    double getTargetVac();
     boolean isPControlled();
 
-    void setPdc(Evaluable p);
+    boolean isControllingVAc();
 
-    Evaluable getPdc();
+    void setPdc(Evaluable p);
 
     void setNum(int num);
 

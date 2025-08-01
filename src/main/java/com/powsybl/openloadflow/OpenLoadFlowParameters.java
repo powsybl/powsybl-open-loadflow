@@ -653,6 +653,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
+    private int dcVscConverterScenario;
+
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
             throw new IllegalArgumentException("Invalid value for parameter " + parameterName + ": " + parameterValue);
@@ -1989,6 +1991,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
+                .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
+                .setDcVscConverterScenario(parametersExt.getDcVscConverterScenario());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2345,5 +2349,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         return parameters2;
     }
-}
 
+    public void setDcVscConverterScenario(int scenario){
+        this.dcVscConverterScenario = scenario;
+    }
+
+    public int getDcVscConverterScenario(){
+        return dcVscConverterScenario;
+    }
+}

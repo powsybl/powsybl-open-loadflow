@@ -1,35 +1,22 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.util.Evaluable;
-
-import java.util.*;
+import java.util.List;
 
 public interface LfDcNode extends LfElement {
 
-    Evaluable getVdc();
-
-    Evaluable getPdc();
 
     void setP(Evaluable p);
 
     void setV(Evaluable v);
-
-    Evaluable getCalculatedV();
-
-    void setCalculatedV(Evaluable calculatedV);
-
-    List<LfDcLine> getLfDcLines();
 
     void addLfDcLine(LfDcLine lfdcline);
 
     void setPdc(double pdc);
 
     void setVdc(double vdc);
-
-    double getp();
-
-    double getv();
 
     default boolean isParticipating() {
         return false;
@@ -39,12 +26,14 @@ public interface LfDcNode extends LfElement {
 
     List<LfVscConverterStationV2> getVscConverterStations();
 
+    double getTargetV();
+
     void setTargetV(double vdc);
+
+    double getTargetP();
 
     void setTargetP(double pdc);
 
-    double getTargetV();
-
-    double getTargetP();
+    double getNominalV();
 
 }

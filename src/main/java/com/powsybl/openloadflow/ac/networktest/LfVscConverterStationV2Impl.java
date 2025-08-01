@@ -1,6 +1,5 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-//import com.google.errorprone.annotations.NoAllocation;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
@@ -10,8 +9,7 @@ import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
-//import java.util.ArrayList;
-//import java.util.List;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,19 +17,17 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     private final Ref<VscConverterStation> stationRef;
 
-    private final double lossFactor;
-
-    private final boolean hvdcDandlingInIidm;
-
-    protected LfBus aBus;
-
     protected LfDcNode dcNode;
 
     protected double targetVdc;
 
     protected double targetPdc;
 
+    protected double targetVac;
+
     protected boolean isPcontrolled;
+
+    protected boolean isControllingVAc = false;
 
     protected Evaluable pdc;
 
@@ -39,9 +35,7 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     public LfVscConverterStationV2Impl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB, parameters);
-        this.hvdcDandlingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
-        this.lossFactor = station.getLossFactor();
         network.addVscConverterStation(this);
         // local control only
         if (station.isVoltageRegulatorOn()) {
@@ -63,7 +57,7 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     @Override
     public double getTargetP() {
 //            return super.getTargetP();
-        return getTargetPdc();
+        return getTargetPdc()/PerUnit.SB;
     }
 
     @Override
@@ -74,11 +68,6 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     @Override
     public void setInitialTargetPToTargetP() {
         // no-op
-    }
-
-    @Override
-    public double getLossFactor() {
-        return lossFactor;
     }
 
     @Override
@@ -155,12 +144,12 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     @Override
     public double getTargetPdc() {
-        return targetPdc;
+        return targetPdc/PerUnit.SB;
     }
 
     @Override
     public double getTargetVdc() {
-        return targetVdc;
+        return targetVdc/this.getDcNode().getNominalV();
     }
 
     @Override
@@ -174,11 +163,6 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     }
 
     @Override
-    public Evaluable getPdc() {
-        return this.pdc;
-    }
-
-    @Override
     public void setNum(int num) {
         this.num = num;
     }
@@ -186,5 +170,21 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     @Override
     public int getNum() {
         return num;
+    }
+
+    @Override
+    public void setTargetVac(double V) {
+        this.targetVac = V;
+        isControllingVAc = true;
+    }
+
+    @Override
+    public double getTargetVac() {
+        return targetVac/this.getaBus().getNominalV();
+    }
+
+    @Override
+    public boolean isControllingVAc() {
+        return isControllingVAc;
     }
 }

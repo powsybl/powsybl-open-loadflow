@@ -1,49 +1,36 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.AbstractElement;
+import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
-//import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNode {
 
-    protected Evaluable v;
-
-    protected double vdc;
-
-    protected double pdc;
-
-    protected Evaluable calculatedV;
-
     protected final List<LfDcLine> lfdclines = new ArrayList<>();
-
     protected final List<LfVscConverterStationV2> vscConverterStations = new ArrayList<>();
-
+    protected Evaluable v;
+    protected double vdc;
+    protected double pdc;
     protected Evaluable p;
 
-    protected AbstractLfDcNode(LfNetwork network) {
+    protected double nominalV;
+
+    protected AbstractLfDcNode(LfNetwork network, double nominalV) {
+
         super(network);
+        this.nominalV = nominalV;
     }
 
     @Override
     public ElementType getType() {
         return ElementType.DC_NODE;
-    }
-
-    @Override
-    public Evaluable getCalculatedV() {
-        return calculatedV;
-    }
-
-    @Override
-    public void setCalculatedV(Evaluable calculatedV) {
-        this.calculatedV = Objects.requireNonNull(calculatedV);
-    }
-
-    @Override
-    public List<LfDcLine> getLfDcLines() {
-        return lfdclines;
     }
 
     @Override
@@ -68,8 +55,8 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     }
 
     @Override
-    public Evaluable getPdc() {
-        return this.p;
+    public double getTargetP() {
+        return pdc / PerUnit.SB;
     }
 
     @Override
@@ -78,18 +65,8 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     }
 
     @Override
-    public double getTargetP() {
-        return pdc;
-    }
-
-    @Override
     public void setVdc(double vdc) {
         this.vdc = vdc;
-    }
-
-    @Override
-    public Evaluable getVdc() {
-        return v;
     }
 
     @Override
@@ -103,22 +80,17 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     }
 
     @Override
-    public void setTargetV(double vdc) {
-        this.vdc = vdc;
-    }
-
-    @Override
     public double getTargetV() {
         return vdc;
     }
 
     @Override
-    public double getv() {
-        return vdc;
+    public void setTargetV(double vdc) {
+        this.vdc = vdc;
     }
 
     @Override
-    public double getp() {
-        return pdc;
+    public double getNominalV() {
+        return nominalV;
     }
 }

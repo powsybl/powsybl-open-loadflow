@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.TwoSides;
-//import com.powsybl.iidm.network.VscConverterStation;
+
 import com.powsybl.openloadflow.ac.networktest.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -231,7 +231,7 @@ public class AcEquationSystemCreator {
 
     private static void createGeneratorReactivePowerDistributionEquations(Control control, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                           AcEquationSystemCreationParameters creationParameters) {
-        List<LfBus> controllerBuses = null;
+        List<LfBus> controllerBuses;
         if (control instanceof GeneratorVoltageControl generatorVoltageControl) {
             controllerBuses = generatorVoltageControl.getMergedControllerElements();
         } else if (control instanceof GeneratorReactivePowerControl generatorReactivePowerControl) {
@@ -788,12 +788,8 @@ public class AcEquationSystemCreator {
         Evaluable p1;
         Evaluable p2;
 
-        // closed equations, could be null because line already open on base case
-        EquationTerm<AcVariableType, AcEquationType> closedP1 = null;
-        EquationTerm<AcVariableType, AcEquationType> closedP2 = null;
-
-        closedP1 = new ClosedBranchSide1DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
-        closedP2 = new ClosedBranchSide2DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+        EquationTerm<AcVariableType, AcEquationType> closedP1 = new ClosedBranchSide1DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+        EquationTerm<AcVariableType, AcEquationType> closedP2 = new ClosedBranchSide2DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
         p1 = closedP1;
         p2 = closedP2;
         createDcLineEquations(dcLine, dcNode1, dcNode2, equationSystem,
@@ -947,11 +943,16 @@ public class AcEquationSystemCreator {
         LfBus bus = vscConverterStation.getaBus();
         LfDcNode vscDcNode = vscConverterStation.getDcNode();
         // we create a new equation term related to the injection of the vsc converter into the AC grid
-        EquationTerm<AcVariableType, AcEquationType> pDctoAc = null;
-        pDctoAc = new VscToAcActivePowerEquationTerm(vscDcNode, bus, equationSystem.getVariableSet());
+        EquationTerm<AcVariableType, AcEquationType> pDctoAc = new VscToAcActivePowerEquationTerm(vscDcNode, bus, equationSystem.getVariableSet());
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pDctoAc);
 
+        if(vscConverterStation.isControllingVAc()){
+            equationSystem.removeEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V_REF)
+                    .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+                            .createTerm());
+        }
         /*equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(equationSystem.getVariable(vscConverterStation.getDcNode().getNum(), AcVariableType.DC_NODE_P)
                         .createTerm());*/

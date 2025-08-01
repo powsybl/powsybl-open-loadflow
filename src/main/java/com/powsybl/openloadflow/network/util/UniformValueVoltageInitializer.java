@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-//import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 

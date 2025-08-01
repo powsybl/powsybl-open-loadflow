@@ -15,11 +15,7 @@ public class ClosedBranchSide1DcPowerEquationTermV2 extends AbstractClosedBranch
 
     public static double calculateSensi(double v1, double v2,
                                         double dv1, double dv2, double r) {
-        return dp1dv1(v1, v2, r) * dv1 + dp1dv2(v1, v2, r) * dv2;
-    }
-
-    protected double calculateSensi(double dv1, double dv2) {
-        return calculateSensi(v1(), v2(), dv1, dv2, r);
+        return dp1dv1(v1, v2, r) * dv1 + dp1dv2(v1, r) * dv2;
     }
 
     public static double p1(double v1, double v2, double r) {
@@ -30,17 +26,16 @@ public class ClosedBranchSide1DcPowerEquationTermV2 extends AbstractClosedBranch
         return (v2 - 2 * v1) / r;
     }
 
-    public static double dp1dv2(double v1, double v2, double r) {
+    public static double dp1dv2(double v1, double r) {
         return v1 / r;
+    }
+
+    protected double calculateSensi(double dv1, double dv2) {
+        return calculateSensi(v1(), v2(), dv1, dv2, r);
     }
 
     @Override
     public double eval() {
-        System.out.println("##############################_____P1_____##############################");
-        System.out.println(v1());
-        System.out.println(v2());
-        System.out.println(r);
-        System.out.println(p1(v1(), v2(), r));
         return p1(v1(), v2(), r);
     }
 
@@ -50,7 +45,7 @@ public class ClosedBranchSide1DcPowerEquationTermV2 extends AbstractClosedBranch
         if (variable.equals(v1Var)) {
             return dp1dv1(v1(), v2(), r);
         } else if (variable.equals(v2Var)) {
-            return dp1dv2(v1(), v2(), r);
+            return dp1dv2(v1(), r);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

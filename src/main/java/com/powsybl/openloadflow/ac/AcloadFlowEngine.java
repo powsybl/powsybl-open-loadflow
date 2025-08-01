@@ -14,10 +14,10 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
-//import com.powsybl.openloadflow.dc.equations.DcEquationType;
-//import com.powsybl.openloadflow.dc.equations.DcVariableType;
+
+
 import com.powsybl.openloadflow.equations.EquationSystem;
-//import com.powsybl.openloadflow.equations.EquationSystemIndex;
+
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-//import java.util.stream.Collectors;
+
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -304,14 +304,23 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         //print the Jacobian
-        //Powsybl invert columns and rows for calculation, so we revert that
         List<String> colLabels = context.getEquationSystem().getColumnNames(context.getNetwork());
         List<String> rowLabels = context.getEquationSystem().getRowNames(context.getNetwork());
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < colLabels.size(); i++) indices.add(i);
 
+        indices.sort(Comparator.comparing(colLabels::get));
+
+        List<String> newColl = new ArrayList<>();
+        List<String> newRow  = new ArrayList<>();
+        for (int idx : indices) {
+            newColl.add(colLabels.get(idx));
+            newRow.add(rowLabels.get(idx));
+        }
         System.out.println("\n\n");
         System.out.println("##############################_____Jacobian Matrix_____##############################");
         System.out.println("\n");
-        context.getJacobianMatrix().getMatrix().transpose().print(System.out, colLabels, rowLabels);
+        context.getJacobianMatrix().getMatrix().transpose().print(System.out, newColl, newRow);
         //
 
         return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower);
@@ -346,10 +355,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
 
-                            AcLoadFlowResult result = new AcloadFlowEngine(context)
+                            return new AcloadFlowEngine(context)
                                     .run();
-
-                            return result;
                         }
                     }
                     return AcLoadFlowResult.createNoCalculationResult(n);

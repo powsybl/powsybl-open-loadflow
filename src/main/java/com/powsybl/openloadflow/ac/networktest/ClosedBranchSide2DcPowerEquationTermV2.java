@@ -15,18 +15,14 @@ public class ClosedBranchSide2DcPowerEquationTermV2 extends AbstractClosedBranch
 
     public static double calculateSensi(double v1, double v2,
                                         double dv1, double dv2, double r) {
-        return dp2dv1(v1, v2, r) * dv1 + dp2dv2(v1, v2, r) * dv2;
-    }
-
-    protected double calculateSensi(double dv1, double dv2) {
-        return calculateSensi(v1(), v2(), dv1, dv2, r);
+        return dp2dv1(v2, r) * dv1 + dp2dv2(v1, v2, r) * dv2;
     }
 
     public static double p2(double v1, double v2, double r) {
         return -v2 * (v2 - v1) / r;
     }
 
-    public static double dp2dv1(double v1, double v2, double r) {
+    public static double dp2dv1(double v2, double r) {
         return v2 / r;
     }
 
@@ -34,18 +30,22 @@ public class ClosedBranchSide2DcPowerEquationTermV2 extends AbstractClosedBranch
         return (-2 * v2 + v1) / r;
     }
 
+    protected double calculateSensi(double dv1, double dv2) {
+        return calculateSensi(v1(), v2(), dv1, dv2, r);
+    }
+
     @Override
     public double eval() {
         return p2(v1(), v2(), r);
-    } // TODO: verification the convention is OK: flow injected into a DC node is positive
+    }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp2dv1(v1(), v2(), r); // TODO: verification the convention is OK: flow injected into a DC node is positive
+            return dp2dv1(v2(), r);
         } else if (variable.equals(v2Var)) {
-            return dp2dv2(v1(), v2(), r); // TODO: verification the convention is OK: flow injected into a DC node is positive
+            return dp2dv2(v1(), v2(), r);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

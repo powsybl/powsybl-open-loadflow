@@ -7,13 +7,13 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
-//import com.powsybl.commons.json.JsonUtil;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-//import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -23,7 +23,6 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-//import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -166,6 +165,12 @@ public class NewtonRaphson extends AbstractAcSolver {
                 System.out.println("  V = " + bus.getV());
                 System.out.println("  Angle = " + bus.getAngle());
             }
+            for (LfBranch branch : network.getBranches()){
+                System.out.println("Branch" + branch.getId() + ":");
+                double P = branch.getP2().eval() - branch.getP1().eval();
+                System.out.println("P = " + P);
+            }
+
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();

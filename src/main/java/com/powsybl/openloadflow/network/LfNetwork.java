@@ -14,11 +14,11 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.networktest.LfDcLine;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
-//import com.powsybl.openloadflow.ac.networktest.LfHvdcV2Impl;
+
 import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-//import com.powsybl.openloadflow.network.impl.LfHvdcImpl;
+
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.anarres.graphviz.builder.GraphVizGraph;

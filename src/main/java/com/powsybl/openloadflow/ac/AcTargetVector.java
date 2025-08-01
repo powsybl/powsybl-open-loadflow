@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-//import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
@@ -120,7 +120,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case DC_NODE_TARGET_P:
-                targets[equation.getColumn()] = network.getDcNode(equation.getElementNum()).getTargetP();
+                targets[equation.getColumn()] = 0;
                 break;
 
             case DC_NODE_TARGET_P_REF:
@@ -130,7 +130,9 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
             case DC_NODE_TARGET_V_REF:
                 targets[equation.getColumn()] = network.getDcNode(equation.getElementNum()).getVscConverterStations().get(0).getTargetVdc();
                 break;
-
+            case BUS_TARGET_V_REF:
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getVscConverterStations().get(0).getTargetVac();
+                break;
             case DISTR_RHO,
                  DISTR_SHUNT_B,
                  DUMMY_TARGET_P,
