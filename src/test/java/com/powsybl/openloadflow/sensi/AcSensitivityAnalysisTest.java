@@ -188,7 +188,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
         Network network = FourBusNetworkFactory.create();
-        runLf(network, sensiParameters.getLoadFlowParameters());
 
         List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("g1", 0.25f),
                 new WeightedSensitivityVariable("g4", 0.25f),
@@ -208,11 +207,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(5, result.getValues().size());
 
-        assertEquals(-25.36d, result.getBranchCurrent1SensitivityValue("glsk", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-39.919d, result.getBranchCurrent1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(17.942d, result.getBranchCurrent1SensitivityValue("glsk", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(3.515d, result.getBranchCurrent1SensitivityValue("glsk", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-21.609d, result.getBranchCurrent1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-25.36d, result.getBranchCurrent1SensitivityValue("glsk", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(-39.919d, result.getBranchCurrent1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(17.942d, result.getBranchCurrent1SensitivityValue("glsk", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(3.515d, result.getBranchCurrent1SensitivityValue("glsk", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(-21.609d, result.getBranchCurrent1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
     }
 
     @Test
