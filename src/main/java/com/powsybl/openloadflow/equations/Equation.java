@@ -150,6 +150,14 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return termsByVariable;
     }
 
+    public int[] getMatrixElementIndexes() {
+        return matrixElementIndexes;
+    }
+
+    public void setMatrixElementIndexes(int[] matrixElementIndexes) {
+        this.matrixElementIndexes = matrixElementIndexes;
+    }
+
     @Override
     public double eval() {
         double value = 0;
