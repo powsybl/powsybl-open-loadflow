@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -100,7 +100,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
                 .build();
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reportNode);
@@ -326,7 +326,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
                 .build();
         List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
