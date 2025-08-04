@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -359,16 +360,16 @@ public class AsymmetricalLoadFlowTest {
 
     @Test
     void incompatibilityWithFastDecoupledTest() {
-        Network network = TwoBusNetworkFactory.create();
-        Bus bus1 = network.getBusBreakerView().getBus("b1");
-        Bus bus2 = network.getBusBreakerView().getBus("b2");
-        Line line1 = network.getLine("l12");
+        Network n = TwoBusNetworkFactory.create();
         parametersExt.setAcSolverType(FastDecoupledFactory.NAME);
         parametersExt.setAsymmetrical(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(n, parameters, parametersExt, new DenseMatrixFactory(),
+                new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false);
+        LoadFlowResult result = loadFlowRunner.run(n, parameters);
         assertTrue(result.isFullyConverged());
         assertTrue(parametersExt.isAsymmetrical()
-                && Objects.equals(parametersExt.getAcSolverType(), NewtonRaphsonFactory.NAME));
+                && Objects.equals(acParameters.getSolverFactory().getName(), NewtonRaphsonFactory.NAME));
+
     }
 
     /**
