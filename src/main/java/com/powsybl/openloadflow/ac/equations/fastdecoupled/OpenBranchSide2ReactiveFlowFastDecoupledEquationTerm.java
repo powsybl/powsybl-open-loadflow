@@ -8,33 +8,27 @@
 package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.OpenBranchSide2ReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
+import static com.powsybl.openloadflow.ac.equations.OpenBranchSide2ReactiveFlowEquationTerm.dq1dv1;
+import net.jafama.FastMath;
 import java.util.Objects;
-
-import static com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm.dqdv;
 
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ShuntCompensatorReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
+public class OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
 
-    private final ShuntCompensatorReactiveFlowEquationTerm term;
+    private final OpenBranchSide2ReactiveFlowEquationTerm term;
 
-    public ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(ShuntCompensatorReactiveFlowEquationTerm shuntCompensatorReactiveFlowEquationTerm) {
-        this.term = shuntCompensatorReactiveFlowEquationTerm;
-    }
-
-    private static double dqdbFastDecoupled(double v) {
-        return -v;
+    public OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm(OpenBranchSide2ReactiveFlowEquationTerm openBranchSide2ReactiveFlowEquationTerm) {
+        this.term = openBranchSide2ReactiveFlowEquationTerm;
     }
 
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        if (variable.equals(term.getVVar())) {
-            return dqdv(1, term.b());
-        } else if (variable.equals(term.getbVar())) {
-            return dqdbFastDecoupled(1);
+        if (variable.equals(term.getV1Var())) {
+            return dq1dv1(term.getY(), FastMath.cos(term.getKsi()), FastMath.sin(term.getKsi()), term.getB1(), term.getG2(), term.getB2(), 1, term.r1());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

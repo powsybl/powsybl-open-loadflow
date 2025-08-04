@@ -22,7 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+
+import static com.powsybl.openloadflow.ac.equations.AcVariableType.BUS_V;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -143,10 +146,19 @@ public class FastDecoupled extends AbstractAcSolver {
         }
     }
 
+    public static Integer findBusVRow(List<Variable<AcVariableType>> variables, int elementNum) {
+        for (Variable<AcVariableType> variable : variables) {
+            if (variable.getElementNum() == elementNum && variable.getType() == BUS_V) {
+                return variable.getRow();
+            }
+        }
+        throw new IllegalArgumentException("No BUS_V variable found with elementNum = " + elementNum);
+    }
+
     private void applyMaxVoltageUpdates(double[] dx, ReportNode reportNode, boolean isPhiType, int rangeIndex) {
         int begin = isPhiType ? 0 : rangeIndex;
         double maxDelta = isPhiType ? MAX_VOLTAGE_ANGLE_MOVE : MAX_VOLTAGE_MAGNITUDE_MOVE;
-        AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : AcVariableType.BUS_V;
+        AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : BUS_V;
         int cutCount = 0;
         double stepSize = 1.0;
         for (int i = 0; i < dx.length; i++) {
@@ -203,8 +215,17 @@ public class FastDecoupled extends AbstractAcSolver {
         double initialNorm = Vectors.norm2(equationVector.getArray());
 
         // solve f(x) = j * dx
+        // Devide equation vector by tension
+        for (Equation equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
+            if (JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
+                int eqColumn = equation.getColumn();
+                int varRow = findBusVRow(equationSystem.getIndex().getSortedVariablesToFind(), equation.getElementNum());
+                equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(varRow);
+            }
+        }
         // Extract the "Phi" or "V" part of the equation vector
         System.arraycopy(equationVector.getArray(), begin, partialEquationVector, 0, systemLength);
+        // Transpose J
         j.solveTransposed(partialEquationVector);
 
         // Apply max magnitude and angle voltage updates

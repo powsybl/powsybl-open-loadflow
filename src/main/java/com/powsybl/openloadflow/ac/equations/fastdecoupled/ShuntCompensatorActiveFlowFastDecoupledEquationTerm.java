@@ -8,33 +8,29 @@
 package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ShuntCompensatorActiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import java.util.Objects;
-
-import static com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm.dqdv;
 
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ShuntCompensatorReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
+public class ShuntCompensatorActiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
 
-    private final ShuntCompensatorReactiveFlowEquationTerm term;
+    private final ShuntCompensatorActiveFlowEquationTerm term;
 
-    public ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(ShuntCompensatorReactiveFlowEquationTerm shuntCompensatorReactiveFlowEquationTerm) {
-        this.term = shuntCompensatorReactiveFlowEquationTerm;
+    public ShuntCompensatorActiveFlowFastDecoupledEquationTerm(ShuntCompensatorActiveFlowEquationTerm shuntCompensatorActiveFlowEquationTerm) {
+        this.term = shuntCompensatorActiveFlowEquationTerm;
     }
 
-    private static double dqdbFastDecoupled(double v) {
-        return -v;
+    public static double dpdv(double v, double g) {
+        return 2 * g * v;
     }
 
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(term.getVVar())) {
-            return dqdv(1, term.b());
-        } else if (variable.equals(term.getbVar())) {
-            return dqdbFastDecoupled(1);
+            return dpdv(1, term.g());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

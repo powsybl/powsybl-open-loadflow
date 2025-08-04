@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static com.powsybl.openloadflow.ac.equations.AcEquationType.*;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
@@ -39,16 +40,43 @@ public class JacobianMatrixFastDecoupled
         this.isPhySystem = isPhySystem;
     }
 
-    // List of EquationTerms that require a specific derivative for Fast Decoupled
+    @Override
+    public void onStateUpdate() {
+        updateStatus(Status.VALID);
+    }
+
+    // List of Equation that require a dedicated derivative for Fast Decoupled
+    private static final Set<AcEquationType> EQUATIONS_WITH_DEDICATED_DERIVATE = Set.of(
+            BUS_TARGET_P,
+            BRANCH_TARGET_P,
+            BUS_TARGET_Q,
+            BRANCH_TARGET_Q,
+            DISTR_Q,
+            BUS_DISTR_SLACK_P
+    );
+
+    // Checks if equation has a dedicated derivative for Fast Decoupled
+    public static boolean equationHasDedicatedDerivative(Equation equation) {
+        return EQUATIONS_WITH_DEDICATED_DERIVATE.contains(equation.getType());
+    }
+
+    // List of EquationTerms that require a dedicated derivative for Fast Decoupled
     private static final Set<String> TERMS_WITH_DEDICATED_DERIVATIVE = Set.of(
             ClosedBranchSide1ActiveFlowEquationTerm.class.getName(),
             ClosedBranchSide1ReactiveFlowEquationTerm.class.getName(),
             ClosedBranchSide2ActiveFlowEquationTerm.class.getName(),
             ClosedBranchSide2ReactiveFlowEquationTerm.class.getName(),
-            ShuntCompensatorReactiveFlowEquationTerm.class.getName()
+            OpenBranchSide1ActiveFlowEquationTerm.class.getName(),
+            OpenBranchSide1ReactiveFlowEquationTerm.class.getName(),
+            OpenBranchSide2ActiveFlowEquationTerm.class.getName(),
+            OpenBranchSide2ReactiveFlowEquationTerm.class.getName(),
+            ShuntCompensatorActiveFlowEquationTerm.class.getName(),
+            ShuntCompensatorReactiveFlowEquationTerm.class.getName(),
+            LoadModelActiveFlowEquationTerm.class.getName(),
+            LoadModelReactiveFlowEquationTerm.class.getName()
     );
 
-    // checks if the term provided has a dedicated derivative
+    // Checks if the term provided has a dedicated derivative
     public static boolean termHasDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term) {
         if (term instanceof EquationTerm.MultiplyByScalarEquationTerm) {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getTerm().getClass().getName());
@@ -66,8 +94,22 @@ public class JacobianMatrixFastDecoupled
             return new ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof ClosedBranchSide2ReactiveFlowEquationTerm typedTerm) {
             return new ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
+        } else if (term instanceof OpenBranchSide1ActiveFlowEquationTerm typedTerm) {
+            return new OpenBranchSide1ActiveFlowFastDecoupledEquationTerm(typedTerm);
+        } else if (term instanceof OpenBranchSide2ActiveFlowEquationTerm typedTerm) {
+            return new OpenBranchSide2ActiveFlowFastDecoupledEquationTerm(typedTerm);
+        } else if (term instanceof OpenBranchSide1ReactiveFlowEquationTerm typedTerm) {
+            return new OpenBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
+        } else if (term instanceof OpenBranchSide2ReactiveFlowEquationTerm typedTerm) {
+            return new OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof ShuntCompensatorReactiveFlowEquationTerm typedTerm) {
             return new ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(typedTerm);
+        } else if (term instanceof ShuntCompensatorActiveFlowEquationTerm typedTerm) {
+            return new ShuntCompensatorActiveFlowFastDecoupledEquationTerm(typedTerm);
+        } else if (term instanceof LoadModelActiveFlowEquationTerm typedTerm) {
+            return new LoadModelActiveFlowFastDecoupledEquationTerm(typedTerm);
+        } else if (term instanceof LoadModelReactiveFlowEquationTerm typedTerm) {
+            return new LoadModelReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else {
             throw new IllegalStateException("Unexpected term class: " + term.getClass());
         }

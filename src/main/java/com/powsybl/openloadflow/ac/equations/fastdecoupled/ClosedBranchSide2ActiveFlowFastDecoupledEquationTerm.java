@@ -36,11 +36,11 @@ public class ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm implements Abs
         Objects.requireNonNull(variable);
         double theta = theta2FastDecoupled(term.getKsi(), term.a1());
         if (variable.equals(term.getPhi1Var())) {
-            return dp2dph1(term.getY(), 1, term.r1(), term.v2(), FastMath.cos(theta));
+            return dp2dph1(term.getY(), 1, term.r1(), 1, FastMath.cos(theta));
         } else if (variable.equals(term.getPhi2Var())) {
-            return dp2dph2(term.getY(), 1, term.r1(), term.v2(), FastMath.cos(theta));
+            return dp2dph2(term.getY(), 1, term.r1(), 1, FastMath.cos(theta));
         } else if (variable.equals(term.getA1Var())) {
-            return dp2da1(term.getY(), 1, term.r1(), term.v2(), FastMath.cos(theta));
+            return dp2da1(term.getY(), 1, term.r1(), 1, FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

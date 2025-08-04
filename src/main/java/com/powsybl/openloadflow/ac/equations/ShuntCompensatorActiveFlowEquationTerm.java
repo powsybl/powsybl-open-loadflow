@@ -32,7 +32,7 @@ public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompens
         return variables;
     }
 
-    private double g() {
+    public double g() {
         return element.getG();
     }
 

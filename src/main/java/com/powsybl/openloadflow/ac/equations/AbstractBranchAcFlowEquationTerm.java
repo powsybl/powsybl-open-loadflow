@@ -50,6 +50,14 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         return b2;
     }
 
+    public double getG1() {
+        return g1;
+    }
+
+    public double getG2() {
+        return g2;
+    }
+
     public double getY() {
         return y;
     }

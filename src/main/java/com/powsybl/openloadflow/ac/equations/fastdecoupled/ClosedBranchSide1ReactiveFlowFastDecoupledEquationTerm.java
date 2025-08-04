@@ -45,11 +45,11 @@ public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm implements A
         Objects.requireNonNull(variable);
         double theta = theta1FastDecoupled(term.getKsi(), term.a1());
         if (variable.equals(term.getV1Var())) {
-            return dq1dv1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), term.v1(), term.r1(), FastMath.cos(theta));
+            return dq1dv1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), 1, term.r1(), FastMath.cos(theta));
         } else if (variable.equals(term.getV2Var())) {
-            return dq1dv2(term.getY(), term.v1(), term.r1(), FastMath.cos(theta));
+            return dq1dv2(term.getY(), 1, term.r1(), FastMath.cos(theta));
         } else if (variable.equals(term.getR1Var())) {
-            return dq1dr1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), term.v1(), term.r1(), FastMath.cos(theta));
+            return dq1dr1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), 1, term.r1(), FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
