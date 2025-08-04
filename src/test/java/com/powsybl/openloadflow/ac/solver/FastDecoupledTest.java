@@ -253,7 +253,7 @@ class FastDecoupledTest {
                 "                  Bus injection: -127.984785 MW, -49.170685 MVar\n" +
                 "               + Largest V mismatch: 0 p.u.\n" +
                 "                  Bus Id: VL1_0 (nominalVoltage=100kV)\n" +
-                "                  Bus V: 1.04 pu, 0 rad\n" +
+                "                  Bus V: 1.04 pu, -0 rad\n" +
                 "                  Bus injection: 71.154018 MW, 26.903194 MVar\n" +
                 "            + Iteration 2 mismatch\n" +
                 "               Step size: 1 (line search)\n" +
