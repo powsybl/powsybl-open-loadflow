@@ -42,21 +42,21 @@ public class JacobianMatrixFastDecoupled
 
     @Override
     public void onStateUpdate() {
-        updateStatus(Status.VALID);
+        // Nothing to do
     }
 
     // List of Equation that require a dedicated derivative for Fast Decoupled
     private static final Set<AcEquationType> EQUATIONS_WITH_DEDICATED_DERIVATE = Set.of(
             BUS_TARGET_P,
-            BRANCH_TARGET_P,
             BUS_TARGET_Q,
+            BRANCH_TARGET_P,
             BRANCH_TARGET_Q,
             DISTR_Q,
             BUS_DISTR_SLACK_P
     );
 
     // Checks if equation has a dedicated derivative for Fast Decoupled
-    public static boolean equationHasDedicatedDerivative(Equation equation) {
+    public static boolean equationHasDedicatedDerivative(Equation<AcVariableType, AcEquationType> equation) {
         return EQUATIONS_WITH_DEDICATED_DERIVATE.contains(equation.getType());
     }
 
@@ -126,9 +126,8 @@ public class JacobianMatrixFastDecoupled
         }
     }
 
-    public void computeDerivativeAndUpdateMatrix(Equation<AcVariableType, AcEquationType> equation, Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e,
-                                                 Variable<AcVariableType> variable, int variableIndex, Equation.DerHandler<AcVariableType> handler) {
-
+    public void computeDerivative(Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e,
+                                                 Variable<AcVariableType> variable, Equation.DerHandler<AcVariableType> handler) {
         double value = 0;
 
         for (EquationTerm<AcVariableType, AcEquationType> term : e.getValue()) {
@@ -142,18 +141,12 @@ public class JacobianMatrixFastDecoupled
             }
         }
 
-        // update matrix
-        int oldMatrixElementIndex = equation.getMatrixElementIndexes() == null ? -1 : equation.getMatrixElementIndexes()[variableIndex];
-        int matrixElementIndex = handler.onDer(variable, value, oldMatrixElementIndex);
-        if (equation.getMatrixElementIndexes() == null) {
-            equation.setMatrixElementIndexes(new int[equation.getTermsByVariable().size()]);
-        }
-        equation.getMatrixElementIndexes()[variableIndex] = matrixElementIndex;
+        // init matrix
+        handler.onDer(variable, value, -1);
     }
 
     public void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhySystem) {
         Objects.requireNonNull(handler);
-        int variableIndex = 0;
         for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
             Variable<AcVariableType> variable = e.getKey();
             int row = variable.getRow();
@@ -161,14 +154,13 @@ public class JacobianMatrixFastDecoupled
                 if (isPhySystem) {
                     // for Phi equations, we only consider the (rangeIndex-1) first variables
                     if (row < rangeIndex) {
-                        computeDerivativeAndUpdateMatrix(equation, e, variable, variableIndex, handler);
+                        computeDerivative(e, variable, handler);
                     }
                 } else {
                     if (row >= rangeIndex) {
-                        computeDerivativeAndUpdateMatrix(equation, e, variable, variableIndex, handler);
+                        computeDerivative(e, variable, handler);
                     }
                 }
-                variableIndex++;
             }
         }
     }
@@ -201,24 +193,6 @@ public class JacobianMatrixFastDecoupled
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
-    }
-
-    @Override
-    protected void updateDer() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        List<Equation<AcVariableType, AcEquationType>> subsetEquationsToSolve = isPhySystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
-                : equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
-
-        matrix.reset();
-        for (Equation<AcVariableType, AcEquationType> eq : subsetEquationsToSolve) {
-            derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
-                matrix.addAtIndex(matrixElementIndex, value);
-                return matrixElementIndex; // don't change element index
-            }, rangeIndex, isPhySystem);
-        }
-
-        LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
 }

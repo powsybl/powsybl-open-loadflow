@@ -9,8 +9,7 @@ package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
@@ -22,10 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.Objects;
-
-import static com.powsybl.openloadflow.ac.equations.AcVariableType.BUS_V;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -146,19 +142,10 @@ public class FastDecoupled extends AbstractAcSolver {
         }
     }
 
-    public static Integer findBusVRow(List<Variable<AcVariableType>> variables, int elementNum) {
-        for (Variable<AcVariableType> variable : variables) {
-            if (variable.getElementNum() == elementNum && variable.getType() == BUS_V) {
-                return variable.getRow();
-            }
-        }
-        throw new IllegalArgumentException("No BUS_V variable found with elementNum = " + elementNum);
-    }
-
     private void applyMaxVoltageUpdates(double[] dx, ReportNode reportNode, boolean isPhiType, int rangeIndex) {
         int begin = isPhiType ? 0 : rangeIndex;
         double maxDelta = isPhiType ? MAX_VOLTAGE_ANGLE_MOVE : MAX_VOLTAGE_MAGNITUDE_MOVE;
-        AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : BUS_V;
+        AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : AcVariableType.BUS_V;
         int cutCount = 0;
         double stepSize = 1.0;
         for (int i = 0; i < dx.length; i++) {
@@ -208,6 +195,32 @@ public class FastDecoupled extends AbstractAcSolver {
         }
     }
 
+    private int retrieveBusNumFromEquation(Equation<AcVariableType, AcEquationType> equation) {
+        if (equation.getType() == AcEquationType.BRANCH_TARGET_P || equation.getType() == AcEquationType.BRANCH_TARGET_Q) {
+            // Equations of those types have only one term
+            if (equation.getTerms().size() != 1) {
+                throw new IllegalStateException("Equation: " + equation + " is expected to have only one term not " + equation.getTerms().size());
+            }
+            EquationTerm<AcVariableType, AcEquationType> term = equation.getTerms().get(0);
+            if (term.getClass().equals(ClosedBranchSide1ActiveFlowEquationTerm.class)) {
+                return ((ClosedBranchSide1ActiveFlowEquationTerm) term).getV1Var().getElementNum();
+            }
+            if (term.getClass().equals(ClosedBranchSide1ReactiveFlowEquationTerm.class)) {
+                return ((ClosedBranchSide1ReactiveFlowEquationTerm) term).getV1Var().getElementNum();
+            }
+            if (term.getClass().equals(ClosedBranchSide2ActiveFlowEquationTerm.class)) {
+                return ((ClosedBranchSide2ActiveFlowEquationTerm) term).getV2Var().getElementNum();
+            }
+            if (term.getClass().equals(ClosedBranchSide2ReactiveFlowEquationTerm.class)) {
+                return ((ClosedBranchSide2ReactiveFlowEquationTerm) term).getV2Var().getElementNum();
+            }
+            throw new IllegalStateException("Equation: " + equation + " is expected to have a term of type ClosedBranch");
+        } else {
+            // Trivial because equation element is the bus
+            return equation.getElementNum();
+        }
+    }
+
     private void runSingleSystemSolution(JacobianMatrixFastDecoupled j, double[] partialEquationVector, int rangeIndex, boolean isPhiSystem,
                                          ReportNode iterationReportNode) {
         int systemLength = partialEquationVector.length;
@@ -215,17 +228,19 @@ public class FastDecoupled extends AbstractAcSolver {
         double initialNorm = Vectors.norm2(equationVector.getArray());
 
         // solve f(x) = j * dx
-        // Devide equation vector by tension
-        for (Equation equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        // Divide equation vector by voltage magnitude
+        for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
             if (JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
                 int eqColumn = equation.getColumn();
-                int varRow = findBusVRow(equationSystem.getIndex().getSortedVariablesToFind(), equation.getElementNum());
-                equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(varRow);
+                int busNum = retrieveBusNumFromEquation(equation);
+                Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
+                equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
             }
         }
+
         // Extract the "Phi" or "V" part of the equation vector
         System.arraycopy(equationVector.getArray(), begin, partialEquationVector, 0, systemLength);
-        // Transpose J
+        // Solve linear system
         j.solveTransposed(partialEquationVector);
 
         // Apply max magnitude and angle voltage updates
