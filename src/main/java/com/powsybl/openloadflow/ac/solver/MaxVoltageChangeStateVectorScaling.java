@@ -11,7 +11,10 @@ package com.powsybl.openloadflow.ac.solver;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationVector;
+import com.powsybl.openloadflow.equations.TargetVector;
+import com.powsybl.openloadflow.equations.Vectors;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,5 +89,4 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
         // nothing to do
         return testResult;
     }
-
 }
