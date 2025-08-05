@@ -148,7 +148,7 @@ class FastDecoupledTest {
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonConvEpsPerEq(1e-5);
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
-                .setNewtonRaphsonConvEpsPerEq(1e-5);;
+                .setNewtonRaphsonConvEpsPerEq(1e-5);
 
         // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newExtension(RemoteReactivePowerControlAdder.class)
