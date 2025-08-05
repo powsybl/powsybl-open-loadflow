@@ -111,6 +111,16 @@ class FastDecoupledTest {
     }
 
     @Test
+    void testIEEE9WithOpenBranches() {
+        Network network = IeeeCdfNetworkFactory.create9();
+        network.getLine("L7-5-0").getTerminal1().disconnect();
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+        network.getLine("L7-5-0").getTerminal1().connect();
+        network.getLine("L7-5-0").getTerminal2().disconnect();
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @Test
     void testIEEE9PerEquationStoppingCriteria() {
         Network network = IeeeCdfNetworkFactory.create9();
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);

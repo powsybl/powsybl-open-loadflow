@@ -232,12 +232,10 @@ public class FastDecoupled extends AbstractAcSolver {
         // Divide equation vector by voltage magnitude
         for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int eqColumn = equation.getColumn();
-            if (eqColumn >= begin && eqColumn < end) {
-                if (JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
-                    int busNum = retrieveBusNumFromEquation(equation);
-                    Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
-                    equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
-                }
+            if (eqColumn >= begin && eqColumn < end && JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
+                int busNum = retrieveBusNumFromEquation(equation);
+                Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
+                equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
             }
         }
 

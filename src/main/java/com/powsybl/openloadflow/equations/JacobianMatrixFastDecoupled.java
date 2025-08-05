@@ -66,11 +66,8 @@ public class JacobianMatrixFastDecoupled
             ClosedBranchSide1ReactiveFlowEquationTerm.class.getName(),
             ClosedBranchSide2ActiveFlowEquationTerm.class.getName(),
             ClosedBranchSide2ReactiveFlowEquationTerm.class.getName(),
-            OpenBranchSide1ActiveFlowEquationTerm.class.getName(),
             OpenBranchSide1ReactiveFlowEquationTerm.class.getName(),
-            OpenBranchSide2ActiveFlowEquationTerm.class.getName(),
             OpenBranchSide2ReactiveFlowEquationTerm.class.getName(),
-            ShuntCompensatorActiveFlowEquationTerm.class.getName(),
             ShuntCompensatorReactiveFlowEquationTerm.class.getName(),
             LoadModelActiveFlowEquationTerm.class.getName(),
             LoadModelReactiveFlowEquationTerm.class.getName()
@@ -94,18 +91,12 @@ public class JacobianMatrixFastDecoupled
             return new ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof ClosedBranchSide2ReactiveFlowEquationTerm typedTerm) {
             return new ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof OpenBranchSide1ActiveFlowEquationTerm typedTerm) {
-            return new OpenBranchSide1ActiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof OpenBranchSide2ActiveFlowEquationTerm typedTerm) {
-            return new OpenBranchSide2ActiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof OpenBranchSide1ReactiveFlowEquationTerm typedTerm) {
             return new OpenBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof OpenBranchSide2ReactiveFlowEquationTerm typedTerm) {
             return new OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof ShuntCompensatorReactiveFlowEquationTerm typedTerm) {
             return new ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof ShuntCompensatorActiveFlowEquationTerm typedTerm) {
-            return new ShuntCompensatorActiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof LoadModelActiveFlowEquationTerm typedTerm) {
             return new LoadModelActiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof LoadModelReactiveFlowEquationTerm typedTerm) {
