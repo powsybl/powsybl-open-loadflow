@@ -15,5 +15,4 @@ public interface Vector {
     double[] getArray();
 
     void minus(Vector other);
-
 }

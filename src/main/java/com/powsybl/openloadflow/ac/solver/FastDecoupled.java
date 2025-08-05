@@ -225,16 +225,19 @@ public class FastDecoupled extends AbstractAcSolver {
                                          ReportNode iterationReportNode) {
         int systemLength = partialEquationVector.length;
         int begin = isPhiSystem ? 0 : rangeIndex;
+        int end = isPhiSystem ? rangeIndex : equationVector.getArray().length;
         double initialNorm = Vectors.norm2(equationVector.getArray());
 
         // solve f(x) = j * dx
         // Divide equation vector by voltage magnitude
         for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
-            if (JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
-                int eqColumn = equation.getColumn();
-                int busNum = retrieveBusNumFromEquation(equation);
-                Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
-                equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
+            int eqColumn = equation.getColumn();
+            if (eqColumn >= begin && eqColumn < end) {
+                if (JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
+                    int busNum = retrieveBusNumFromEquation(equation);
+                    Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
+                    equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
+                }
             }
         }
 

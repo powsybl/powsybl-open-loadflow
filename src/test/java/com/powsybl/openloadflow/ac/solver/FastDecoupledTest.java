@@ -12,6 +12,7 @@ import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -134,6 +135,37 @@ class FastDecoupledTest {
     }
 
     @Test
+    void testWithRemoteReactivePowerControl() {
+        // create a basic 4-buses network
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = network.getGenerator("g4");
+        Line l34 = network.getLine("l34");
+
+        double targetQ = 1.0;
+
+        // disable voltage control on g4
+        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
+                .setNewtonRaphsonConvEpsPerEq(1e-5);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
+                .setNewtonRaphsonConvEpsPerEq(1e-5);;
+
+        // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
+                .withEnabled(true).add();
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+
+        // second test: generator g4 regulates reactive power on line 4->3 (on opposite side)
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34.getTerminal(TwoSides.ONE))
+                .withEnabled(true).add();
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @Test
     void testWithShuntVoltageControl() {
         Network network = ShuntNetworkFactory.create();
         ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
@@ -190,6 +222,7 @@ class FastDecoupledTest {
         parametersFastDecoupled.setPhaseShifterRegulationOn(true);
         parametersNewtonRaphson.setPhaseShifterRegulationOn(true);
 
+        // Regulation on side 1
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
@@ -197,7 +230,10 @@ class FastDecoupledTest {
                 .setTapPosition(1)
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
+        // Regulation on side 2
+        t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
