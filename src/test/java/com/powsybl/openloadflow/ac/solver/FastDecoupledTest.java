@@ -13,6 +13,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -24,7 +25,7 @@ import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBun
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -244,6 +245,36 @@ class FastDecoupledTest {
 
         // Regulation on side 2
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @Test
+    void testWithLoadModel() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network.getLoad("LOAD");
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        vlload.newLoad()
+                .setId("ZIPLOAD")
+                .setBus("NLOAD")
+                .setP0(50)
+                .setQ0(30)
+                .newZipModel()
+                .setC0p(0.5)
+                .setC0q(0.55)
+                .setC1p(0.3)
+                .setC1q(0.35)
+                .setC2p(0.2)
+                .setC2q(0.1)
+                .add()
+                .add();
+
+        parametersFastDecoupled.setDistributedSlack(false).setUseReactiveLimits(false);
+        parametersNewtonRaphson.setDistributedSlack(false).setUseReactiveLimits(false);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setUseLoadModel(true);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setUseLoadModel(true);
+
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 

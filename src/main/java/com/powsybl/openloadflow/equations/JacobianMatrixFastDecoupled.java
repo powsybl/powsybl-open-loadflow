@@ -69,7 +69,6 @@ public class JacobianMatrixFastDecoupled
             OpenBranchSide1ReactiveFlowEquationTerm.class.getName(),
             OpenBranchSide2ReactiveFlowEquationTerm.class.getName(),
             ShuntCompensatorReactiveFlowEquationTerm.class.getName(),
-            LoadModelActiveFlowEquationTerm.class.getName(),
             LoadModelReactiveFlowEquationTerm.class.getName()
     );
 
@@ -97,8 +96,6 @@ public class JacobianMatrixFastDecoupled
             return new OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof ShuntCompensatorReactiveFlowEquationTerm typedTerm) {
             return new ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof LoadModelActiveFlowEquationTerm typedTerm) {
-            return new LoadModelActiveFlowFastDecoupledEquationTerm(typedTerm);
         } else if (term instanceof LoadModelReactiveFlowEquationTerm typedTerm) {
             return new LoadModelReactiveFlowFastDecoupledEquationTerm(typedTerm);
         } else {
