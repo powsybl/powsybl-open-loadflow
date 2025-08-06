@@ -76,10 +76,13 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     // term data ordered by branch
     record TermData(EquationTerm<AcVariableType, AcEquationType> term,
                     boolean isBranch,
-                    int branchNum,
-                    int busNum,
+                    int termElementNum,
+                    int equationElementNum,
                     int indexForResult,
                     Variable<AcVariableType> v) {
+        int getBranchNum() {
+            return isBranch ? termElementNum : -1;
+        }
     }
 
     // equation replicated data for quick access
@@ -102,7 +105,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // sorted term data per equation and variable (for der)
     private EquationTerm<AcVariableType, AcEquationType>[] sortedTermsForDer;
-    private int[] termActiveStatusIndexForDer;
+    private int[] termDataIndexForDer;
     private int[] termEquationActiveStatusIndexForDer;
     private Variable<AcVariableType>[] termVariable;
     private int[] termByVariableDeriveResultIndex;
@@ -276,6 +279,9 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     r1[brTerm.getElementNum()] = brTerm.r1();
                     a1[brTerm.getElementNum()] = brTerm.a1();
                 }
+                // All term data must be created
+                // Accelerated terms are evaluated in evalSortedTermsVec
+                // Non accerelated terms are evaluated in evalSortedTermsObj
                 termDataListForEval.add(new TermData(t,
                         t.getElementType() == ElementType.BRANCH,
                         t.getElementNum(),  // branch num
@@ -303,18 +309,23 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         termsByVariableAndEquation = termsByVariableAndEquationList.toArray(new EquationTerm[0]);
 
         termDataListForDer.sort((t1, t2) -> {
-            // Branch elements together, sorted by branchNum then by bus, then by variable
+            // To optimize memory access during term evaluation or derivation,
+            // branch equation term  are sorted by branch then by bus.
+
+            // Branch elements together, sorted by termElementNum then by bus, then by variable
             int compare = -Boolean.compare(t1.isBranch, t2.isBranch); // Put branch terms first
             if (compare != 0) {
                 return compare;
             }
 
-            compare = t1.branchNum - t2.branchNum;
+            // For branch terms, element num is branchNum. This is the second sorting key
+            compare = t1.termElementNum - t2.termElementNum;
             if (compare != 0) {
                 return compare;
             }
 
-            compare = t1.busNum - t2.busNum;
+            // For branch term, equation num is busNum. This is the third sorting key.
+            compare = t1.equationElementNum - t2.equationElementNum;
             if (compare != 0) {
                 return compare;
             }
@@ -325,7 +336,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         int termByVariableCount = termDataListForDer.size();
         sortedTermsForDer = new EquationTerm[termByVariableCount];
-        termActiveStatusIndexForDer = new int[termByVariableCount];
+        termDataIndexForDer = new int[termByVariableCount];
         termEquationActiveStatusIndexForDer = new int[termByVariableCount];
         termVariable = new Variable[termByVariableCount];
         termByVariableDeriveResultIndex = new int[termByVariableCount];
@@ -334,28 +345,28 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         int sortedTermIndex = 0;
         for (TermData termData : termDataListForDer) {
             sortedTermsForDer[sortedTermIndex] = termData.term;
-            termActiveStatusIndexForDer[sortedTermIndex] = termData.term.getVectorIndex();
+            termDataIndexForDer[sortedTermIndex] = termData.term.getVectorIndex();
             termEquationActiveStatusIndexForDer[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
             termVariable[sortedTermIndex] = termData.v;
-            termByVariableBranchNumForDer[sortedTermIndex] = termData.isBranch ? termData.branchNum : -1;
+            termByVariableBranchNumForDer[sortedTermIndex] = termData.getBranchNum();
             sortedTermsVecToValForDer[sortedTermIndex] = termData.term.getVecToVal(termData.v);
             termByVariableDeriveResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
         }
 
         termDataListForEval.sort((t1, t2) -> {
-            // Branch elements together, sorted by branchNum then by bus, then by variable
+            // Branch elements together, sorted by termElementNum then by bus, then by variable
             int compare = -Boolean.compare(t1.isBranch, t2.isBranch); // Put branch terms first
             if (compare != 0) {
                 return compare;
             }
 
-            compare = t1.branchNum - t2.branchNum;
+            compare = t1.termElementNum - t2.termElementNum;
             if (compare != 0) {
                 return compare;
             }
 
-            return t1.busNum - t2.busNum;
+            return t1.equationElementNum - t2.equationElementNum;
 
         });
 
@@ -371,7 +382,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             sortedTermsForEval[sortedTermIndex] = termData.term;
             termDataIndexForEval[sortedTermIndex] = termData.term.getVectorIndex();
             termEquationActiveStatusIndexForEval[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
-            termByEquationBranchNumForEval[sortedTermIndex] = termData.term instanceof AbstractClosedBranchAcFlowEquationTerm ? termData.branchNum : -1;
+            termByEquationBranchNumForEval[sortedTermIndex] = termData.term instanceof AbstractClosedBranchAcFlowEquationTerm ? termData.termElementNum : -1;
             sortedTermsVecToValForEval[sortedTermIndex] = termData.term.getVecToVal(null);
             termByEvalResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
@@ -505,8 +516,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         double cosTheta1 = Double.NaN;
         for (int termIndex = 0; termIndex < sortedTermsForDer.length; termIndex++) {
             if (equationActiveStatus[termEquationActiveStatusIndexForDer[termIndex]] &&
-                    termActiveStatus[termActiveStatusIndexForDer[termIndex]]) {
-                int termStatusIndex = termActiveStatusIndexForDer[termIndex];
+                    termActiveStatus[termDataIndexForDer[termIndex]]) {
+                int termStatusIndex = termDataIndexForDer[termIndex];
                 if (termByVariableBranchNumForDer[termIndex] != branchNum && termByVariableBranchNumForDer[termIndex] != -1) {
                     branchNum = termByVariableBranchNumForDer[termIndex];
                     sinKsi = FastMath.sin(ksi[branchNum]);
@@ -534,7 +545,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     private void derSortedTermsObj() {
         for (int termIndex = 0; termIndex < sortedTermsForDer.length; termIndex++) {
             if (equationActiveStatus[termEquationActiveStatusIndexForDer[termIndex]] &&
-                    termActiveStatus[termActiveStatusIndexForDer[termIndex]]) {
+                    termActiveStatus[termDataIndexForDer[termIndex]]) {
                 if (sortedTermsVecToValForDer[termIndex] == null) {
                     deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] += sortedTermsForDer[termIndex].der(termVariable[termIndex]);
                 }
