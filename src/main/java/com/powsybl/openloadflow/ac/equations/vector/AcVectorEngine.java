@@ -89,13 +89,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // term replicated data for quick access
     private boolean[] termActiveStatus;
-    private int[] termBranchNum;
     public DoubleSupplier[] a1TermSupplier;
     public DoubleSupplier[] r1TermSupplier;
 
     // sorted term data per equation (for eval)
     private EquationTerm<AcVariableType, AcEquationType>[] sortedTermsForEval;
-    private int[] termActiveStatusIndexForEval;
+    private int[] termDataIndexForEval;
     private int[] termEquationActiveStatusIndexForEval;
     private int[] termByEvalResultIndex;
     private int[] termByEquationBranchNumForEval;
@@ -254,7 +253,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             index += 1;
         }
         termActiveStatus = new boolean[termCount];
-        termBranchNum = new int[termCount];
         a1TermSupplier = new DoubleSupplier[termCount];
         r1TermSupplier = new DoubleSupplier[termCount];
         variablePerEquationIndex = new int[equationCount];
@@ -268,11 +266,11 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         int indexEq = 0;
         int indexForTermData = 0;
         for (Equation<AcVariableType, AcEquationType> e : equationList) {
+            boolean hasBranchTerm = false;
             for (EquationTerm<AcVariableType, AcEquationType> t : e.getTerms()) {
                 t.setVectorIndex(indexForTermData);
                 termActiveStatus[indexForTermData] = t.isActive();
                 if (t instanceof AbstractClosedBranchAcFlowEquationTerm brTerm) {
-                    termBranchNum[indexForTermData] = brTerm.getElementNum();
                     a1TermSupplier[indexForTermData] = brTerm.getA1Supplier();
                     r1TermSupplier[indexForTermData] = brTerm.getR1Supplier();
                     r1[brTerm.getElementNum()] = brTerm.r1();
@@ -363,7 +361,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         int termByEquationCount = termDataListForEval.size();
         sortedTermsForEval = new EquationTerm[termByEquationCount];
-        termActiveStatusIndexForEval = new int[termByEquationCount];
+        termDataIndexForEval = new int[termByEquationCount];
         termEquationActiveStatusIndexForEval = new int[termByEquationCount];
         termByEvalResultIndex = new int[termByEquationCount];
         termByEquationBranchNumForEval = new int[termByEquationCount];
@@ -371,7 +369,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         sortedTermIndex = 0;
         for (TermData termData : termDataListForEval) {
             sortedTermsForEval[sortedTermIndex] = termData.term;
-            termActiveStatusIndexForEval[sortedTermIndex] = termData.term.getVectorIndex();
+            termDataIndexForEval[sortedTermIndex] = termData.term.getVectorIndex();
             termEquationActiveStatusIndexForEval[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
             termByEquationBranchNumForEval[sortedTermIndex] = termData.term instanceof AbstractClosedBranchAcFlowEquationTerm ? termData.branchNum : -1;
             sortedTermsVecToValForEval[sortedTermIndex] = termData.term.getVecToVal(null);
@@ -449,8 +447,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         double cosTheta1 = Double.NaN;
         for (int termIndex = 0; termIndex < sortedTermsForEval.length; termIndex++) {
             if (equationActiveStatus[termEquationActiveStatusIndexForEval[termIndex]] &&
-                    termActiveStatus[termActiveStatusIndexForEval[termIndex]]) {
-                int termStatusIndex = termActiveStatusIndexForEval[termIndex];
+                    termActiveStatus[termDataIndexForEval[termIndex]]) {
+                int termStatusIndex = termDataIndexForEval[termIndex];
                 if (termByEquationBranchNumForEval[termIndex] != branchNum && termByEquationBranchNumForEval[termIndex] != -1) {
                     branchNum = termByEquationBranchNumForEval[termIndex];
                     sinKsi = FastMath.sin(ksi[branchNum]);
@@ -478,7 +476,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     private void evalSortedTermsObj() {
         for (int termIndex = 0; termIndex < sortedTermsForEval.length; termIndex++) {
             if (equationActiveStatus[termEquationActiveStatusIndexForEval[termIndex]] &&
-                    termActiveStatus[termActiveStatusIndexForEval[termIndex]]) {
+                    termActiveStatus[termDataIndexForEval[termIndex]]) {
                 if (sortedTermsVecToValForEval[termIndex] == null) {
                     evalResultPerEquation[termByEvalResultIndex[termIndex]] += sortedTermsForEval[termIndex].evalLhs();
                 }
