@@ -280,8 +280,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                 }
                 termDataListForEval.add(new TermData(t,
                         t.getElementType() == ElementType.BRANCH,
-                        t.getElementNum(),
-                        t.getEquation().getElementNum(),
+                        t.getElementNum(),  // branch num
+                        e.getElementNum(),  // bus num
                         indexEq,
                         null));
                 indexForTermData += 1;
@@ -293,8 +293,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                     termsByVariableAndEquationList.add(t);
                     termDataListForDer.add(new TermData(t,
                             t.getElementType() == ElementType.BRANCH,
-                            t.getElementNum(),
-                            e.getElementNum(),
+                            t.getElementNum(), // branch num
+                            e.getElementNum(), // bus num
                             indexVar,
                             v));
                 }
