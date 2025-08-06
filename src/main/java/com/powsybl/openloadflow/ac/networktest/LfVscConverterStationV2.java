@@ -16,11 +16,11 @@ public interface LfVscConverterStationV2 extends LfGenerator {
 
     LfDcNode getDcNode();
 
-    void setTargetPdc(double p);
+    void setTargetPac(double p);
 
     void setTargetVdc(double v);
 
-    double getTargetPdc();
+    double getTargetPac();
 
     double getTargetVdc();
 
@@ -31,7 +31,7 @@ public interface LfVscConverterStationV2 extends LfGenerator {
 
     boolean isControllingVAc();
 
-    void setPdc(Evaluable p);
+    void setPac(Evaluable p);
 
     void setNum(int num);
 

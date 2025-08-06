@@ -21,7 +21,7 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     protected double targetVdc;
 
-    protected double targetPdc;
+    protected double targetPac;
 
     protected double targetVac;
 
@@ -54,11 +54,6 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
         return stationRef.get();
     }
 
-    @Override
-    public double getTargetP() {
-//            return super.getTargetP();
-        return getTargetPdc()/PerUnit.SB;
-    }
 
     @Override
     public void setInitialTargetP(double initialTargetP) {
@@ -131,9 +126,9 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     }
 
     @Override
-    public void setTargetPdc(double p) {
+    public void setTargetPac(double p) {
         isPcontrolled = true;
-        this.targetPdc = p;
+        this.targetPac = p;
     }
 
     @Override
@@ -143,8 +138,8 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     }
 
     @Override
-    public double getTargetPdc() {
-        return targetPdc/PerUnit.SB;
+    public double getTargetPac() {
+        return targetPac/PerUnit.SB;
     }
 
     @Override
@@ -158,7 +153,7 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     }
 
     @Override
-    public void setPdc(Evaluable p) {
+    public void setPac(Evaluable p) {
         this.pdc = p;
     }
 

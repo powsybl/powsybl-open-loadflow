@@ -917,11 +917,12 @@ public class AcEquationSystemCreator {
     protected static void createConverterStationEquations(LfVscConverterStationV2 vscConverterStation, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
 
         LfDcNode dcNode = vscConverterStation.getDcNode();
+        LfBus bus = vscConverterStation.getaBus();
 
         // if a converter is set with fixed P at the DC node, then an equation at the DC node inherited from the converter is Pdc = Pref, Pref is the set point of power injected into the DC node
         // if a converter is set with fixed V at the DC node, then an equation at the DC node inherited from the converter is Vdc = Vref
         if (vscConverterStation.isPControlled()) {
-            equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_P_REF)
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_REF)
                     .addTerm(equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_P)
                             .createTerm());
         } else {
@@ -935,15 +936,14 @@ public class AcEquationSystemCreator {
         EquationTerm<AcVariableType, AcEquationType> pDc = equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_P).createTerm();
         equationSystem.getEquation(dcNode.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
                 .addTerm(pDc);
-        vscConverterStation.setPdc(pDc);
+        vscConverterStation.setPac(pDc);
 
         // on AC side, the sum of power must be zero at AC node connected to the converter, Pdc is the power injected to the DC grid, then with no loss,
         // then (-Pdc) must be the power injected to the AC grid
         // we must be careful, on AC side, active power is per-unitized, then (-Pdc/PerUnit.SB) is injected on the AC side
-        LfBus bus = vscConverterStation.getaBus();
-        LfDcNode vscDcNode = vscConverterStation.getDcNode();
+
         // we create a new equation term related to the injection of the vsc converter into the AC grid
-        EquationTerm<AcVariableType, AcEquationType> pDctoAc = new VscToAcActivePowerEquationTerm(vscDcNode, bus, equationSystem.getVariableSet());
+        EquationTerm<AcVariableType, AcEquationType> pDctoAc = new VscToAcActivePowerEquationTerm(dcNode, bus, equationSystem.getVariableSet());
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pDctoAc);
 
