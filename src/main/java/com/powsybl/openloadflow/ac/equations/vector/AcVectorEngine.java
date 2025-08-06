@@ -266,15 +266,15 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         List<TermData> termDataListForEval = new ArrayList<>();
         int indexVar = 0;
         int indexEq = 0;
-        int indexForTermStatus = 0;
+        int indexForTermData = 0;
         for (Equation<AcVariableType, AcEquationType> e : equationList) {
             for (EquationTerm<AcVariableType, AcEquationType> t : e.getTerms()) {
-                t.setVectorIndex(indexForTermStatus);
-                termActiveStatus[indexForTermStatus] = t.isActive();
+                t.setVectorIndex(indexForTermData);
+                termActiveStatus[indexForTermData] = t.isActive();
                 if (t instanceof AbstractClosedBranchAcFlowEquationTerm brTerm) {
-                    termBranchNum[indexForTermStatus] = brTerm.getElementNum();
-                    a1TermSupplier[indexForTermStatus] = brTerm.getA1Supplier();
-                    r1TermSupplier[indexForTermStatus] = brTerm.getR1Supplier();
+                    termBranchNum[indexForTermData] = brTerm.getElementNum();
+                    a1TermSupplier[indexForTermData] = brTerm.getA1Supplier();
+                    r1TermSupplier[indexForTermData] = brTerm.getR1Supplier();
                     r1[brTerm.getElementNum()] = brTerm.r1();
                     a1[brTerm.getElementNum()] = brTerm.a1();
                 }
@@ -284,7 +284,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                         t.getEquation().getElementNum(),
                         indexEq,
                         null));
-                indexForTermStatus += 1;
+                indexForTermData += 1;
             }
             variablePerEquationIndex[indexEq] = indexVar;
             for (Variable<AcVariableType> v : e.getVariables()) {
