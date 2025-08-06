@@ -414,7 +414,11 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             sortEquations();
         }
 
-        updateVariables(); // do not depend on listener call order
+        // Although in normal call scenarios variables are up to date
+        // the der can be triggered by unusual scenario (any event that updates
+        // the Jacobian Matrix). To be sure to get the correct value for the derivation
+        // computation we force an update here
+        updateVariables();
 
         derSortedTerms();
 
