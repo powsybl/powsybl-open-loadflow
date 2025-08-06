@@ -983,6 +983,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void addVscConverterStation(LfVscConverterStationV2 vscConverterStation) {
         vscConverterStation.setNum(vscConverterStations.size());
         vscConverterStations.add(vscConverterStation);
+        System.out.println("##############################_____TEST_____##############################");
+        System.out.println(vscConverterStations);
     }
 
     public LfVscConverterStationV2 getVscConverterStation(int num) {

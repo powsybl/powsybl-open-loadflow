@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -31,11 +32,14 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     protected Evaluable pdc;
 
+    protected List<Double> lossFactors;
+
     int num = -1;
 
-    public LfVscConverterStationV2Impl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    public LfVscConverterStationV2Impl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report, List<Double> lossFactors) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB, parameters);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
+        this.lossFactors = lossFactors;
         network.addVscConverterStation(this);
         // local control only
         if (station.isVoltageRegulatorOn()) {
@@ -47,7 +51,15 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
         Objects.requireNonNull(station);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        return new LfVscConverterStationV2Impl(station, network, parameters, report);
+        return new LfVscConverterStationV2Impl(station, network, parameters, report, List.of(6.62, 1.8, 1.98, 3.00));
+    }
+
+
+    public static LfVscConverterStationV2Impl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report, List<Double> lossFactors) {
+        Objects.requireNonNull(station);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
+        return new LfVscConverterStationV2Impl(station, network, parameters, report, lossFactors);
     }
 
     VscConverterStation getStation() {
@@ -129,6 +141,7 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     public void setTargetPac(double p) {
         isPcontrolled = true;
         this.targetPac = p;
+        targetP = p;
     }
 
     @Override
@@ -181,5 +194,10 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     @Override
     public boolean isControllingVAc() {
         return isControllingVAc;
+    }
+
+    @Override
+    public List<Double> getLossFactors() {
+        return lossFactors;
     }
 }

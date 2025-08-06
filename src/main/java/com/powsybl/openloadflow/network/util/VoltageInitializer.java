@@ -24,6 +24,10 @@ public interface VoltageInitializer {
         return 1;
     }
 
+    default double getPower(LfBus bus) {
+        return 1;
+    }
+
     default double getMagnitude(LfDcNode dcNode) {
         return 1;
     }

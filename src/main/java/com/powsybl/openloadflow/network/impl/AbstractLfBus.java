@@ -351,12 +351,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     public void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // A MODIFIER
-        //        add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
+        System.out.println("##############################_____VSC CONVERTER STATIONS_____##############################");
+        System.out.println(network.getVscConverterStations());
         LfVscConverterStationV2Impl lfVsccs = LfVscConverterStationV2Impl.create(vscCs, network, parameters, report);
-        vscConverterStations.add(lfVsccs);
+        add(lfVsccs);
+        this.vscConverterStations.add(lfVsccs);
         lfVsccs.addBus(this);
-
-//                add(LfVscConverterStationV2Impl.create(vscCs, network, parameters, report));
     }
 
     public List<LfVscConverterStationV2Impl> getVscConverterStations() {

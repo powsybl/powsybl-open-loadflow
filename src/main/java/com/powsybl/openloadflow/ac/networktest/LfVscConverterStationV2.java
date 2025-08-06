@@ -5,6 +5,8 @@ import com.powsybl.openloadflow.network.LfGenerator;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.List;
+
 
 public interface LfVscConverterStationV2 extends LfGenerator {
 
@@ -36,4 +38,6 @@ public interface LfVscConverterStationV2 extends LfGenerator {
     void setNum(int num);
 
     int getNum();
+
+    List<Double> getLossFactors();
 }

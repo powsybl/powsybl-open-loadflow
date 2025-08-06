@@ -19,6 +19,14 @@ public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractB
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
+    public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
+        return switch (sequenceType) {
+            case POSITIVE -> AcVariableType.DC_NODE_V;
+            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
+            case ZERO -> AcVariableType.BUS_V_ZERO;
+        };
+    }
+
     protected AbstractClosedBranchDcFlowEquationTermV2(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
         super(dcLine);
         Objects.requireNonNull(variableSet);
@@ -27,14 +35,6 @@ public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractB
         v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
         variables.add(v1Var);
         variables.add(v2Var);
-    }
-
-    public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.DC_NODE_V;
-            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_V_ZERO;
-        };
     }
 
     protected double v1() {
