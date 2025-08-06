@@ -77,7 +77,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         v2Var = variableSet.getVariable(bus2.getNum(), vType);
         ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
         ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
-        // Just equations with V and phi are vectorized
+        // For now, only the variables used in the symmetric case (positive sequence) are accelerated by the vector engine
         if (vType == AcVariableType.BUS_V) {
             acVectorEngine.v1Var[branch.getNum()] = v1Var;
             acVectorEngine.v2Var[branch.getNum()] = v2Var;
