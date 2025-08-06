@@ -24,8 +24,8 @@ import java.util.Objects;
 public class ClosedBranchI1yFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchI1yFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                           boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEnginee) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, acVectorEnginee);
+                                           boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEngine) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, acVectorEngine);
     }
 
     public double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {

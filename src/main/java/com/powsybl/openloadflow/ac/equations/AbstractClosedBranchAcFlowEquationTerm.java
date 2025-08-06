@@ -66,8 +66,8 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEnginee) {
-        super(branch, acVectorEnginee);
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEngine) {
+        super(branch, acVectorEngine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
@@ -79,12 +79,12 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
         // Just equations with V and phi are vectorized
         if (vType == AcVariableType.BUS_V) {
-            acVectorEnginee.v1Var[branch.getNum()] = v1Var;
-            acVectorEnginee.v2Var[branch.getNum()] = v2Var;
+            acVectorEngine.v1Var[branch.getNum()] = v1Var;
+            acVectorEngine.v2Var[branch.getNum()] = v2Var;
         }
         if (angleType == AcVariableType.BUS_PHI) {
-            acVectorEnginee.ph1Var[branch.getNum()] = ph1Var;
-            acVectorEnginee.ph2Var[branch.getNum()] = ph2Var;
+            acVectorEngine.ph1Var[branch.getNum()] = ph1Var;
+            acVectorEngine.ph2Var[branch.getNum()] = ph2Var;
         }
 
         isArrayPiModel = branch.getPiModel() instanceof PiModelArray;
@@ -100,7 +100,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         if (a1Var != null) {
             variables.add(a1Var);
         } else {
-            acVectorEnginee.a1[branch.getNum()] = branch.getPiModel().getA1();
+            acVectorEngine.a1[branch.getNum()] = branch.getPiModel().getA1();
         }
         if (r1Var != null) {
             variables.add(r1Var);
@@ -111,7 +111,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     public void setEquation(Equation<AcVariableType, AcEquationType> equation) {
         super.setEquation(equation);
         if (equation != null) {
-            acVectorEnginee.addSupplyingTerm(this);
+            acVectorEngine.addSupplyingTerm(this);
         }
     }
 

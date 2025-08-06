@@ -27,8 +27,8 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                         boolean deriveA1, boolean deriveR1, AcVectorEngine acVectorEnginee) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, acVectorEnginee);
+                                                         boolean deriveA1, boolean deriveR1, AcVectorEngine acVectorEngine) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, acVectorEngine);
     }
 
     public static double calculateSensi(double y, double ksi, double g2, double b2,

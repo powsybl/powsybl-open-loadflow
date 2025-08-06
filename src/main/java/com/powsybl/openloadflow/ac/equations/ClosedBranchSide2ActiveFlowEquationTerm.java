@@ -28,13 +28,13 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                   boolean deriveA1, boolean deriveR1, AcVectorEngine acVectorEnginee) {
-        this(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, acVectorEnginee);
+                                                   boolean deriveA1, boolean deriveR1, AcVectorEngine acVectorEngine) {
+        this(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, acVectorEngine);
     }
 
     public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                   boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEnginee) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, acVectorEnginee);
+                                                   boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEngine) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, acVectorEngine);
     }
 
     @Override

@@ -17,61 +17,61 @@ import com.powsybl.openloadflow.network.PiModel;
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
-    protected final AcVectorEngine acVectorEnginee;
+    protected final AcVectorEngine acVectorEngine;
     protected final int branchNum;
 
-    protected AbstractBranchAcFlowEquationTerm(LfBranch branch, AcVectorEngine acVectorEnginee) {
+    protected AbstractBranchAcFlowEquationTerm(LfBranch branch, AcVectorEngine acVectorEngine) {
         super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
         }
         branchNum = branch.getNum();
-        this.acVectorEnginee = acVectorEnginee;
-        if (!acVectorEnginee.networkDataInitialized[branchNum]) {
-            acVectorEnginee.b1[branchNum] = piModel.getB1();
-            acVectorEnginee.b2[branchNum] = piModel.getB2();
-            acVectorEnginee.g1[branchNum] = piModel.getG1();
-            acVectorEnginee.g2[branchNum] = piModel.getG2();
-            acVectorEnginee.y[branchNum] = piModel.getY();
-            acVectorEnginee.ksi[branchNum] = piModel.getKsi();
+        this.acVectorEngine = acVectorEngine;
+        if (!acVectorEngine.networkDataInitialized[branchNum]) {
+            acVectorEngine.b1[branchNum] = piModel.getB1();
+            acVectorEngine.b2[branchNum] = piModel.getB2();
+            acVectorEngine.g1[branchNum] = piModel.getG1();
+            acVectorEngine.g2[branchNum] = piModel.getG2();
+            acVectorEngine.y[branchNum] = piModel.getY();
+            acVectorEngine.ksi[branchNum] = piModel.getKsi();
             // y12 = g12+j.b12 = 1/(r+j.x)
-            acVectorEnginee.g12[branchNum] = piModel.getR() * y() * y();
-            acVectorEnginee.b12[branchNum] = -piModel.getX() * y() * y();
-            acVectorEnginee.networkDataInitialized[branchNum] = true;
+            acVectorEngine.g12[branchNum] = piModel.getR() * y() * y();
+            acVectorEngine.b12[branchNum] = -piModel.getX() * y() * y();
+            acVectorEngine.networkDataInitialized[branchNum] = true;
         }
     }
 
     protected double b1() {
-        return acVectorEnginee.b1[branchNum];
+        return acVectorEngine.b1[branchNum];
     }
 
     protected double b2() {
-        return acVectorEnginee.b2[branchNum];
+        return acVectorEngine.b2[branchNum];
     }
 
     protected double g1() {
-        return acVectorEnginee.g1[branchNum];
+        return acVectorEngine.g1[branchNum];
     }
 
     protected double g2() {
-        return acVectorEnginee.g2[branchNum];
+        return acVectorEngine.g2[branchNum];
     }
 
     protected double y() {
-        return acVectorEnginee.y[branchNum];
+        return acVectorEngine.y[branchNum];
     }
 
     protected double ksi() {
-        return acVectorEnginee.ksi[branchNum];
+        return acVectorEngine.ksi[branchNum];
     }
 
     protected double g12() {
-        return acVectorEnginee.g12[branchNum];
+        return acVectorEngine.g12[branchNum];
     }
 
     protected double b12() {
-        return acVectorEnginee.b12[branchNum];
+        return acVectorEngine.b12[branchNum];
     }
 
 }

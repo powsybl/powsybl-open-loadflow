@@ -23,13 +23,13 @@ import java.util.Objects;
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
     private final AcEquationSystemCreationParameters parameters;
-    private final AcVectorEngine acVectorEnginee;
+    private final AcVectorEngine acVectorEngine;
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                   AcEquationSystemCreationParameters parameters, AcVectorEngine acVectorEnginee) {
+                                   AcEquationSystemCreationParameters parameters, AcVectorEngine acVectorEngine) {
         super(equationSystem, LoadFlowModel.AC);
         this.parameters = Objects.requireNonNull(parameters);
-        this.acVectorEnginee = acVectorEnginee;
+        this.acVectorEngine = acVectorEngine;
     }
 
     private void updateVoltageControls(LfBus bus) {
@@ -135,7 +135,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             bus.getGeneratorVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator
-                            .recreateReactivePowerDistributionEquations(bus.getNetwork(), voltageControl, equationSystem, parameters, acVectorEnginee));
+                            .recreateReactivePowerDistributionEquations(bus.getNetwork(), voltageControl, equationSystem, parameters, acVectorEngine));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(bus.getNetwork(), voltageControl, equationSystem));

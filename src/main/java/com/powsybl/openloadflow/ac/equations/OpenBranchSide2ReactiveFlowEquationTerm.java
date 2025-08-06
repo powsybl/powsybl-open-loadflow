@@ -23,8 +23,8 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
 
     private final Variable<AcVariableType> v1Var;
 
-    public OpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet, AcVectorEngine acVectorEnginee) {
-        super(branch, AcVariableType.BUS_V, bus1, variableSet, acVectorEnginee);
+    public OpenBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet, AcVectorEngine acVectorEngine) {
+        super(branch, AcVariableType.BUS_V, bus1, variableSet, acVectorEngine);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 

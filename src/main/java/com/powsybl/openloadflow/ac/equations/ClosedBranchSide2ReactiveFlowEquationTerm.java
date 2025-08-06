@@ -28,13 +28,13 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, AcVectorEngine acVectorEnginee) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, acVectorEnginee);
+                                                     boolean deriveA1, boolean deriveR1, AcVectorEngine acVectorEngine) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE, acVectorEngine);
     }
 
     public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEnginee) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, acVectorEnginee);
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType, AcVectorEngine acVectorEngine) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType, acVectorEngine);
     }
 
     @Override
@@ -52,7 +52,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         }
         return null;
         // TODO return for eval
-        // acVectorEnginee.vecToP2[element.getNum()] = ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;}
+        // acVectorEngine.vecToP2[element.getNum()] = ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;}
     }
 
     public static double calculateSensi(double y, double ksi, double b2,
