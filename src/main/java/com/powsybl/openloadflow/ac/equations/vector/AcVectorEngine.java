@@ -303,14 +303,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             indexEq += 1;
         }
         termsByVariableAndEquation = termsByVariableAndEquationList.toArray(new EquationTerm[0]);
-        for (int eqIndex = 0; eqIndex < equationActiveStatus.length; eqIndex++) {
-            if (equationActiveStatus[eqIndex]) {
-                int varEnd = variablePerEquationIndex[eqIndex] + variableCountPerEquation[eqIndex];
-                for (int varIndex = variablePerEquationIndex[eqIndex]; varIndex < varEnd; varIndex++) {
-                    Variable<AcVariableType> v = variablesPerEquation[varIndex];
-                }
-            }
-        }
+
         termDataListForDer.sort((t1, t2) -> {
             // Branch elements together, sorted by branchNum then by bus, then by variable
             int compare = -Boolean.compare(t1.isBranch, t2.isBranch); // Put branch terms first
