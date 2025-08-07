@@ -22,10 +22,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystemIndex.class);
 
-    private final Set<Equation<V, E>> equationsToSolve = new HashSet<>();
+    private final Set<Equation<V, E>> equationsToSolve = new TreeSet<>();
 
     // variable reference counting in equation terms
-    private final Map<Variable<V>, MutableInt> variablesToFindRefCount = new HashMap<>();
+    private final Map<Variable<V>, MutableInt> variablesToFindRefCount = new TreeMap<>();
 
     private List<Equation<V, E>> sortedEquationsToSolve = Collections.emptyList();
 

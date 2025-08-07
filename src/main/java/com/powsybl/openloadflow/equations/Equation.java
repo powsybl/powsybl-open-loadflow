@@ -37,6 +37,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
      */
     private boolean active = true;
 
+    private boolean hasRhs = false;
+
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
     private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
@@ -139,6 +141,9 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
+        if (term.hasRhs()) {
+            hasRhs = true;
+        }
         return this;
     }
 
@@ -226,6 +231,9 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     }
 
     public double rhs() {
+        if (!hasRhs) {
+            return 0;
+        }
         double rhs = 0;
         for (var term : terms) {
             if (term.isActive() && term.hasRhs()) {
