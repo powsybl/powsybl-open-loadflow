@@ -18,17 +18,16 @@ public interface LfVscConverterStationV2 extends LfGenerator {
 
     LfDcNode getDcNode();
 
-    void setTargetPac(double p);
+    void setTargetVdcControl(double v);
 
-    void setTargetVdc(double v);
+    double getTargetVdcControl();
 
-    double getTargetPac();
-
-    double getTargetVdc();
+    void setTargetPacControl(double p);
 
     void setTargetVac(double V);
 
     double getTargetVac();
+
     boolean isPControlled();
 
     boolean isControllingVAc();
@@ -40,4 +39,6 @@ public interface LfVscConverterStationV2 extends LfGenerator {
     int getNum();
 
     List<Double> getLossFactors();
+
+    boolean isDcNodeConnectedSide1();
 }

@@ -538,14 +538,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             //J'ai fait plusieurs scénarios selon qui contrôle quelle puissance, pour rajouter un noeud DC où pour faire
             // du multi terminal. Tout est codé en dur dans le code vu que je n'ai pas encore les composants DC IIDM pour faire ça proprement
             double nominalV = 400;
-            double v1 = 200.0;
-            double p2 = 30.0;
+            double v1 = 320;
+            double p2 = 51;
             double p3 = 30.0;
             int scenario = parameters.getDcVscConverterScenario();
             double targetVac = 380;
 
-            double v2 = 300;
-            double p1 = 10;
+            double v2 = 320;
+            double p1 = 51;
 
             LfDcNode dcNode1 = new LfDcNodeImpl(lfNetwork, nominalV,"dcNode1");
             LfDcNode dcNode2 = new LfDcNodeImpl(lfNetwork, nominalV,"dcNode2");
@@ -553,15 +553,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfVscConverterStationV2Impl cs1 = lfBus1.getVscConverterStations().get(0);
             LfVscConverterStationV2Impl cs2 = lfBus2.getVscConverterStations().get(0);
-            dcNode1.addVscConverterStation(cs1, lfBus1);
-            dcNode2.addVscConverterStation(cs2, lfBus2);
+            dcNode1.addVscConverterStation(cs1, lfBus1, false);
+            dcNode2.addVscConverterStation(cs2, lfBus2, true);
 
             switch (scenario) {
                 case 1:
                     //cs1 controls V and cs2 controls P
                     if (cs1 != null && cs2 != null) {
-                        cs1.setTargetVdc(v1);
-                        cs2.setTargetPac(p2);
+                        cs1.setTargetVdcControl(v1);
+                        cs2.setTargetPacControl(p2);
                         LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, hvdcLine);
                         LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
                         lfNetwork.addHvdc(lfHvdc);
@@ -571,8 +571,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 case 2:
                     //cs1 controls P and cs2 controls V
                     if (cs1 != null && cs2 != null) {
-                        cs1.setTargetPac(p1);
-                        cs2.setTargetVdc(v2);
+                        cs1.setTargetPacControl(p1);
+                        cs2.setTargetVdcControl(v2);
                         LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, hvdcLine);
                         LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
                         lfNetwork.addHvdc(lfHvdc);
@@ -582,8 +582,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 case 3:
                     //cs1 controls V and cs2 controls P and cs1 controls Vac instead of Q
                     if (cs1 != null && cs2 != null) {
-                        cs1.setTargetVdc(v1);
-                        cs2.setTargetPac(p2);
+                        cs1.setTargetVdcControl(v1);
+                        cs2.setTargetPacControl(p2);
                         cs1.setTargetVac(targetVac);
                         LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, hvdcLine);
                         LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
@@ -594,8 +594,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 case 4:
                     //there is another DcNode between the two stations
                     if (cs1 != null && cs2 != null) {
-                        cs1.setTargetVdc(v1);
-                        cs2.setTargetPac(p2);
+                        cs1.setTargetVdcControl(v1);
+                        cs2.setTargetPacControl(p2);
                         LfDcNode dcNode3 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode3");
                         LfDcLine dcLine13 = new LfDcLineImpl(dcNode1, dcNode3, lfNetwork, hvdcLine);
                         LfDcLine dcLine23 = new LfDcLineImpl(dcNode2, dcNode3, lfNetwork, hvdcLine);
@@ -624,10 +624,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
                         LfBus lfBus3 = lfNetwork.getBusById("vl4_0");
                         LfVscConverterStationV2Impl cs3 = lfBus3.getVscConverterStations().get(0);
-                        dcNode3.addVscConverterStation(cs3, lfBus3);
-                        cs1.setTargetVdc(v1);
-                        cs2.setTargetPac(p2);
-                        cs3.setTargetPac(p3);
+                        dcNode3.addVscConverterStation(cs3, lfBus3, true);
+                        cs1.setTargetVdcControl(v1);
+                        cs2.setTargetPacControl(p2);
+                        cs3.setTargetPacControl(p3);
                         break;
                     }
             }

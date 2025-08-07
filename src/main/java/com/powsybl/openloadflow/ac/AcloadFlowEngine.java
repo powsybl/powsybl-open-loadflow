@@ -306,21 +306,10 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         //print the Jacobian
         List<String> colLabels = context.getEquationSystem().getColumnNames(context.getNetwork());
         List<String> rowLabels = context.getEquationSystem().getRowNames(context.getNetwork());
-        List<Integer> indices = new ArrayList<>();
-        for (int i = 0; i < colLabels.size(); i++) indices.add(i);
-
-        indices.sort(Comparator.comparing(colLabels::get));
-
-        List<String> newColl = new ArrayList<>();
-        List<String> newRow  = new ArrayList<>();
-        for (int idx : indices) {
-            newColl.add(colLabels.get(idx));
-            newRow.add(rowLabels.get(idx));
-        }
         System.out.println("\n\n");
         System.out.println("##############################_____Jacobian Matrix_____##############################");
         System.out.println("\n");
-        context.getJacobianMatrix().getMatrix().transpose().print(System.out, newColl, newRow);
+        context.getJacobianMatrix().getMatrix().transpose().print(System.out, colLabels, rowLabels);
         //
 
         return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower);

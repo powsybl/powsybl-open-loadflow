@@ -22,8 +22,6 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     protected double targetVdc;
 
-    protected double targetPac;
-
     protected double targetVac;
 
     protected boolean isPcontrolled;
@@ -33,6 +31,8 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     protected Evaluable pdc;
 
     protected List<Double> lossFactors;
+
+    protected boolean isDcNodeConnectedSide1;
 
     int num = -1;
 
@@ -138,25 +138,24 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     }
 
     @Override
-    public void setTargetPac(double p) {
-        isPcontrolled = true;
-        this.targetPac = p;
+    public void setTargetP(double p) {
         targetP = p;
     }
 
     @Override
-    public void setTargetVdc(double v) {
+    public void setTargetPacControl(double p) {
+        isPcontrolled = true;
+        targetP = p/PerUnit.SB;
+    }
+
+    @Override
+    public void setTargetVdcControl(double v) {
         isPcontrolled = false;
         this.targetVdc = v;
     }
 
     @Override
-    public double getTargetPac() {
-        return targetPac/PerUnit.SB;
-    }
-
-    @Override
-    public double getTargetVdc() {
+    public double getTargetVdcControl() {
         return targetVdc/this.getDcNode().getNominalV();
     }
 
@@ -199,5 +198,10 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
     @Override
     public List<Double> getLossFactors() {
         return lossFactors;
+    }
+
+    @Override
+    public boolean isDcNodeConnectedSide1() {
+        return isDcNodeConnectedSide1;
     }
 }

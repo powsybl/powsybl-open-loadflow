@@ -26,7 +26,6 @@ public abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEq
     protected final double ksi;
     protected final double g12;
     protected final double b12;
-    protected final double r;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         super(branch);
@@ -43,7 +42,6 @@ public abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEq
         // y12 = g12+j.b12 = 1/(r+j.x)
         g12 = piModel.getR() * y * y;
         b12 = -piModel.getX() * y * y;
-        r = Math.cos(ksi) / y;
     }
 
     public double getB1() {

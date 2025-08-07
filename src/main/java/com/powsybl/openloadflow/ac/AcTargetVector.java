@@ -123,12 +123,12 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = 0;
                 break;
 
-            case BUS_TARGET_P_REF:
-                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getVscConverterStations().get(0).getTargetPac();
+            case AC_VSC_TARGET_P:
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getVscConverterStations().get(0).getTargetP();
                 break;
 
             case DC_NODE_TARGET_V_REF:
-                targets[equation.getColumn()] = network.getDcNode(equation.getElementNum()).getVscConverterStations().get(0).getTargetVdc();
+                targets[equation.getColumn()] = network.getDcNode(equation.getElementNum()).getVscConverterStations().get(0).getTargetVdcControl();
                 break;
             case BUS_TARGET_V_REF:
                 targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getVscConverterStations().get(0).getTargetVac();

@@ -39,10 +39,13 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     }
 
     @Override
-    public void addVscConverterStation(LfVscConverterStationV2Impl vsccs, LfBus lfBus) {
+    public void addVscConverterStation(LfVscConverterStationV2Impl vsccs, LfBus lfBus, boolean isConnectedSide1) {
         vscConverterStations.add(Objects.requireNonNull(vsccs));
         vsccs.addBus(lfBus);
         vsccs.addDcNode(this);
+        //the parameter isDcNodeConnectedSide1 tells on which direction the converter is set : if the power flows from DC to AC or the contrary.
+        //With new IIDM DC representation, it will be directly implemented in IIDM
+        vsccs.isDcNodeConnectedSide1 = isConnectedSide1;
     }
 
     public List<LfVscConverterStationV2> getVscConverterStations() {

@@ -58,9 +58,6 @@ public class NewtonRaphson extends AbstractAcSolver {
 
             // solve f(x) = j * dx
             try {
-                System.out.println("##############################_____Equation Vector 4_____##############################");
-                System.out.println(Arrays.toString(equationVector.getArray()));
-                System.out.println(Arrays.toString(equationSystem.getStateVector().get()));
                 j.solveTransposed(equationVector.getArray());
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
@@ -114,10 +111,6 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
-        System.out.println("##############################_____Target Vector_____##############################");
-        System.out.println(Arrays.toString(targetVector.getArray()));
-        System.out.println(Arrays.toString(equationVector.getArray()));
-
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
         StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters, initialTestResult);
 
@@ -158,6 +151,18 @@ public class NewtonRaphson extends AbstractAcSolver {
                 System.out.println(variable.getType().getSymbol() + variable.getElementNum() + " = " + value);
             }
             System.out.println("\n");
+
+            System.out.println("##############################_____Equation Terms_____##############################");
+            for(Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()){
+                System.out.println("Equation " + equation.getType() + equation.getElementNum());
+                for(EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()){
+                    System.out.println("        Type " + term.getElementType() + term.getElementNum() + " = " + term.eval());
+                }
+            }
+            System.out.println("\n");
+
+
+
             for (LfBus bus : network.getBuses()) {
                 System.out.println("Bus " + bus.getId() + ":");
                 System.out.println("  P = " + bus.getP().eval());

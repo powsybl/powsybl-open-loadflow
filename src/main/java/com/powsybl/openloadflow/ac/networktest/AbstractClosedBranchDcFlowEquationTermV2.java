@@ -6,6 +6,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.util.Fortescue;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,8 @@ public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractB
     protected final Variable<AcVariableType> v2Var;
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
+
+    protected final double r;
 
     public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
         return switch (sequenceType) {
@@ -35,6 +38,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractB
         v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
         variables.add(v1Var);
         variables.add(v2Var);
+        r = dcLine.getR()/ (dcNode1.getNominalV()* dcNode2.getNominalV()/PerUnit.SB);
     }
 
     protected double v1() {
