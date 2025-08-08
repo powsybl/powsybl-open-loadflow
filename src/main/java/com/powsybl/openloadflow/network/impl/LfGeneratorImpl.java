@@ -27,7 +27,7 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
 
     private final Ref<Generator> generatorRef;
 
