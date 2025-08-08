@@ -1967,6 +1967,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return outerLoopConfig.configure(parameters, parametersExt);
     }
 
+    private static AcSolverFactory createAcSolverFactory(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        String solverName = parametersExt.getAcSolverType();
+
+        // Deal with non-compatibility between Fast-Decoupled and other features
+        if (parametersExt.isAsymmetrical() && Objects.equals(parametersExt.getAcSolverType(), FastDecoupledFactory.NAME)) {
+            solverName = NewtonRaphsonFactory.NAME;
+            LOGGER.warn("Fast-Decoupled solver is incompatible with asymmetrical load flow, Newton Raphson is used instead");
+        }
+        if (parameters.isHvdcAcEmulation() && Objects.equals(parametersExt.getAcSolverType(), FastDecoupledFactory.NAME)) {
+            solverName = NewtonRaphsonFactory.NAME;
+            LOGGER.warn("Fast-Decoupled solver is incompatible with AcEmulation, Newton Raphson is used instead");
+        }
+        return AcSolverFactory.find(solverName);
+    }
+
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
@@ -1981,7 +1996,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         List<AcOuterLoop> outerLoops = createAcOuterLoops(parameters, parametersExt);
 
-        AcSolverFactory solverFactory = AcSolverFactory.find(parametersExt.getAcSolverType());
+        AcSolverFactory solverFactory = createAcSolverFactory(parameters, parametersExt);
 
         return new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
