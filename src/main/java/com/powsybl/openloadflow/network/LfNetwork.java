@@ -15,7 +15,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.networktest.LfDcLine;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 
-import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcVscConverterStation;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
@@ -95,7 +95,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfDcLine> dcLines = new ArrayList<>();
 
-    private final List<LfVscConverterStationV2> vscConverterStations = new ArrayList<>();
+    private final List<LfAcDcVscConverterStation> acDcVscConverterStations = new ArrayList<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -972,25 +972,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         dcLines.add(dcLine);
     }
 
-    public LfDcLine getDcLine(int num) {
-        return dcLines.get(num);
-    }
-
     public List<LfDcLine> getDcLines() {
         return dcLines;
     }
 
-    public void addVscConverterStation(LfVscConverterStationV2 vscConverterStation) {
-        vscConverterStation.setNum(vscConverterStations.size());
-        vscConverterStations.add(vscConverterStation);
+    public void addAcDcVscConverterStation(LfAcDcVscConverterStation vscConverterStation) {
+        vscConverterStation.setNum(acDcVscConverterStations.size());
+        acDcVscConverterStations.add(vscConverterStation);
     }
 
-    public LfVscConverterStationV2 getVscConverterStation(int num) {
-        return vscConverterStations.get(num);
-    }
-
-    public List<LfVscConverterStationV2> getVscConverterStations() {
-        return vscConverterStations;
+    public List<LfAcDcVscConverterStation> getAcDcVscConverterStations() {
+        return acDcVscConverterStations;
     }
 
 }

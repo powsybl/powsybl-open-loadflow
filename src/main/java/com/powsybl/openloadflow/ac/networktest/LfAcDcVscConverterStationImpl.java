@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements LfVscConverterStationV2 {
+public class LfAcDcVscConverterStationImpl extends AbstractLfGenerator implements LfAcDcVscConverterStation {
 
     private final Ref<VscConverterStation> stationRef;
 
@@ -36,30 +36,30 @@ public class LfVscConverterStationV2Impl extends AbstractLfGenerator implements 
 
     int num = -1;
 
-    public LfVscConverterStationV2Impl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report, List<Double> lossFactors) {
+    public LfAcDcVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report, List<Double> lossFactors) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB, parameters);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactors = lossFactors;
-        network.addVscConverterStation(this);
+        network.addAcDcVscConverterStation(this);
         // local control only
         if (station.isVoltageRegulatorOn()) {
             setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
         }
     }
 
-    public static LfVscConverterStationV2Impl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    public static LfAcDcVscConverterStationImpl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        return new LfVscConverterStationV2Impl(station, network, parameters, report, List.of(6.62, 1.8, 1.98, 3.00));
+        return new LfAcDcVscConverterStationImpl(station, network, parameters, report, List.of(6.62, 1.8, 1.98, 3.00));
     }
 
 
-    public static LfVscConverterStationV2Impl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report, List<Double> lossFactors) {
+    public static LfAcDcVscConverterStationImpl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report, List<Double> lossFactors) {
         Objects.requireNonNull(station);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        return new LfVscConverterStationV2Impl(station, network, parameters, report, lossFactors);
+        return new LfAcDcVscConverterStationImpl(station, network, parameters, report, lossFactors);
     }
 
     VscConverterStation getStation() {

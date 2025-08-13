@@ -141,7 +141,7 @@ public final class AcSolverUtil {
                     break;
 
                 case AC_VSC_P:
-                    network.getBus(v.getElementNum()).getVscConverterStations().get(0).setTargetP(stateVector.get(v.getRow()));
+                    network.getBus(v.getElementNum()).getAcDcVscConverterStations().get(0).setTargetP(stateVector.get(v.getRow()));
                     break;
 
                 case AC_VSC_Q:

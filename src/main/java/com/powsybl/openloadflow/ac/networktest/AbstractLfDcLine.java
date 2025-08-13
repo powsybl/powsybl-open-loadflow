@@ -1,6 +1,5 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.openloadflow.network.AbstractElement;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -35,13 +34,13 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     protected Evaluable closedP2 = NAN;
     private double r = Double.NaN;
 
-    protected AbstractLfDcLine(LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, HvdcLine hvdcLine) {
+    protected AbstractLfDcLine(LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, double r) {
         super(network);
         this.dcNode1 = dcNode1;
         dcNode1.addLfDcLine(this);
         this.dcNode2 = dcNode2;
         dcNode2.addLfDcLine(this);
-        this.r = hvdcLine.getR();
+        this.r = r;
 
     }
 

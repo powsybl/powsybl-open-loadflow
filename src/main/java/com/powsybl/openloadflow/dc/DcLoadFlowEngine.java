@@ -180,7 +180,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     public DcLoadFlowResult run() {
-        System.out.println("##########################################################runDC");
         LfNetwork network = context.getNetwork();
         ReportNode reportNode = network.getReportNode();
         EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();

@@ -13,7 +13,6 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -141,40 +140,40 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             AcSolverUtil.updateNetwork(network, equationSystem);
-            System.out.println("##############################_____Variables Values_____##############################");
-            StateVector stateVector = equationSystem.getStateVector();
+//            System.out.println("##############################_____Variables Values_____##############################");
+//            StateVector stateVector = equationSystem.getStateVector();
 
-            for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
-                int row = variable.getRow();
-                double value = stateVector.get(row);
+//            for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
+//                int row = variable.getRow();
+//                double value = stateVector.get(row);
+//
+//                System.out.println(variable.getType().getSymbol() + variable.getElementNum() + " = " + value);
+//            }
+//            System.out.println("\n");
+//
+//            System.out.println("##############################_____Equation Terms_____##############################");
+//            for(Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()){
+//                System.out.println("Equation " + equation.getType() + equation.getElementNum());
+//                for(EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()){
+//                    System.out.println("        Type " + term.getElementType() + term.getElementNum() + " = " + term.eval());
+//                }
+//            }
+//            System.out.println("\n");
 
-                System.out.println(variable.getType().getSymbol() + variable.getElementNum() + " = " + value);
-            }
-            System.out.println("\n");
-
-            System.out.println("##############################_____Equation Terms_____##############################");
-            for(Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()){
-                System.out.println("Equation " + equation.getType() + equation.getElementNum());
-                for(EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()){
-                    System.out.println("        Type " + term.getElementType() + term.getElementNum() + " = " + term.eval());
-                }
-            }
-            System.out.println("\n");
 
 
-
-            for (LfBus bus : network.getBuses()) {
-                System.out.println("Bus " + bus.getId() + ":");
-                System.out.println("  P = " + bus.getP().eval());
-                System.out.println("  Q = " + bus.getQ().eval());
-                System.out.println("  V = " + bus.getV());
-                System.out.println("  Angle = " + bus.getAngle());
-            }
-            for (LfBranch branch : network.getBranches()){
-                System.out.println("Branch" + branch.getId() + ":");
-                double P = branch.getP2().eval() - branch.getP1().eval();
-                System.out.println("P = " + P);
-            }
+//            for (LfBus bus : network.getBuses()) {
+//                System.out.println("Bus " + bus.getId() + ":");
+//                System.out.println("  P = " + bus.getP().eval());
+//                System.out.println("  Q = " + bus.getQ().eval());
+//                System.out.println("  V = " + bus.getV());
+//                System.out.println("  Angle = " + bus.getAngle());
+//            }
+//            for (LfBranch branch : network.getBranches()){
+//                System.out.println("Branch" + branch.getId() + ":");
+//                double P = branch.getP2().eval() - branch.getP1().eval();
+//                System.out.println("P = " + P);
+//            }
 
         }
 

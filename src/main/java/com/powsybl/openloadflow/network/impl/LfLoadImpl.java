@@ -92,8 +92,6 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         loadsDisablingStatus.put(load.getId(), false);
         double p0 = load.getP0();
         double q0 = load.getQ0();
-        System.out.println(">>>> Load : " + load.getId() + " P0 = " + p0 + " ; Q0 = " + q0);
-        System.out.println(">>>> per unit SB : " + PerUnit.SB);
         targetP += p0 / PerUnit.SB;
         initialTargetP += p0 / PerUnit.SB;
         targetQ += q0 / PerUnit.SB;

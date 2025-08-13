@@ -8,7 +8,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import java.util.List;
 
 
-public interface LfVscConverterStationV2 extends LfGenerator {
+public interface LfAcDcVscConverterStation extends LfGenerator {
 
     void addBus(LfBus bus);
 

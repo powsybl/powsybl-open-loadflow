@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.VscConverterStation;
 
-import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2Impl;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcVscConverterStationImpl;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoadingReport;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.ViolationLocation;
@@ -249,7 +249,7 @@ public interface LfBus extends LfElement {
 
     ViolationLocation getViolationLocation();
 
-    void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report);
+    void addAcDcVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report);
 
-    List<LfVscConverterStationV2Impl> getVscConverterStations();
+    List<LfAcDcVscConverterStationImpl> getAcDcVscConverterStations();
 }

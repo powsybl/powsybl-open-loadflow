@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 
-import com.powsybl.openloadflow.ac.networktest.LfVscConverterStationV2Impl;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcVscConverterStationImpl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -62,7 +62,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
-    protected final List<LfVscConverterStationV2Impl> vscConverterStations = new ArrayList<>();
+    protected final List<LfAcDcVscConverterStationImpl> acDcVscConverterStations = new ArrayList<>();
 
     protected LfShunt shunt;
 
@@ -349,15 +349,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    public void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        LfVscConverterStationV2Impl lfVsccs = LfVscConverterStationV2Impl.create(vscCs, network, parameters, report);
-//        add(lfVsccs);
-        this.vscConverterStations.add(lfVsccs);
-        lfVsccs.addBus(this);
+    public void addAcDcVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        if(parameters.isAcDcNetwork()) {
+            LfAcDcVscConverterStationImpl lfAcDcVscConverterStation = LfAcDcVscConverterStationImpl.create(vscCs, network, parameters, report);
+            this.acDcVscConverterStations.add(lfAcDcVscConverterStation);
+            lfAcDcVscConverterStation.addBus(this);
+        }
+        else{
+            add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
+        }
     }
 
-    public List<LfVscConverterStationV2Impl> getVscConverterStations() {
-        return vscConverterStations;
+    public List<LfAcDcVscConverterStationImpl> getAcDcVscConverterStations() {
+        return acDcVscConverterStations;
     }
 
     void addBattery(Battery generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {

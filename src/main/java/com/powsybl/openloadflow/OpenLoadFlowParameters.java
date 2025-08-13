@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.collect.ImmutableMap;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.ModuleConfig;
@@ -654,6 +655,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
     private int dcVscConverterScenario;
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private boolean acDcNetwork = false;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1992,7 +1996,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
-                .setDcVscConverterScenario(parametersExt.getDcVscConverterScenario());
+                .setDcVscConverterScenario(parametersExt.getDcVscConverterScenario())
+                .setAcDcNetwork(parametersExt.isAcDcNetwork());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2350,11 +2355,20 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return parameters2;
     }
 
-    public void setDcVscConverterScenario(int scenario){
+    public OpenLoadFlowParameters setDcVscConverterScenario(int scenario){
         this.dcVscConverterScenario = scenario;
+        return this;
     }
 
     public int getDcVscConverterScenario(){
         return dcVscConverterScenario;
+    }
+
+    public void setAcDcNetwork(boolean acDcNetwork){
+        this.acDcNetwork = acDcNetwork;
+    }
+
+    public boolean isAcDcNetwork(){
+        return acDcNetwork;
     }
 }

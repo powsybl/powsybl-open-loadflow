@@ -13,7 +13,7 @@ import java.util.Objects;
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 public class SelectedReferenceBus {
-    private final LfBus lfBus;
+    private final LfBus     lfBus;
     private final String selectionMethod;
 
     public SelectedReferenceBus(LfBus lfBus, String selectionMethod) {

@@ -32,7 +32,7 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
         Objects.requireNonNull(dcNode);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
-        LfVscConverterStationV2 converterStation = bus.getVscConverterStations().get(0);
+        LfAcDcVscConverterStation converterStation = bus.getAcDcVscConverterStations().get(0);
         AcVariableType pType = AcVariableType.AC_VSC_P;
         AcVariableType qType = AcVariableType.AC_VSC_Q;
         pAcVar = variableSet.getVariable(bus.getNum(), pType);

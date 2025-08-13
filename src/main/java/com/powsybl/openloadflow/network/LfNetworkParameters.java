@@ -164,6 +164,8 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
+    private boolean isAcDcNetwork;
+
     public LfNetworkParameters() {
     }
 
@@ -707,5 +709,14 @@ public class LfNetworkParameters {
 
     public int getDcVscConverterScenario(){
         return dcVscConverterScenario;
+    }
+
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork){
+        this.isAcDcNetwork = isAcDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork(){
+        return isAcDcNetwork;
     }
 }

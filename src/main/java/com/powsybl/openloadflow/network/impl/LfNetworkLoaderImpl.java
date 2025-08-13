@@ -423,7 +423,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 switch (converterStation.getHvdcType()) {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
-                        lfBus.addVscConverterStation(vscConverterStation, parameters, report);
+                        lfBus.addAcDcVscConverterStation(vscConverterStation, parameters, report);
 
                         if (converterStation.getHvdcLine() != null) {
                             loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
@@ -534,102 +534,120 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
-        for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
-            //J'ai fait plusieurs scénarios selon qui contrôle quelle puissance, pour rajouter un noeud DC où pour faire
-            // du multi terminal. Tout est codé en dur dans le code vu que je n'ai pas encore les composants DC IIDM pour faire ça proprement
-            double nominalV = 400;
-            double v1 = 320;
-            double p2 = 51;
-            double p3 = 30.0;
-            int scenario = parameters.getDcVscConverterScenario();
-            double targetVac = 380;
+        if(!parameters.isAcDcNetwork()) {
+            for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
+                LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
+                LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
+                LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
+                LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
+                if (cs1 != null && cs2 != null) {
+                    LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, parameters.isHvdcAcEmulation());
+                    lfHvdc.setConverterStation1(cs1);
+                    lfHvdc.setConverterStation2(cs2);
+                    lfNetwork.addHvdc(lfHvdc);
+                } else {
+                    LOGGER.warn("The converter stations of hvdc line {} are not in the same synchronous component: no hvdc link created to model active power flow.", hvdcLine.getId());
+                }
+            }
+        }
 
-            double v2 = 320;
-            double p1 = 51;
+        else {
+            for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
+                //There is some Tests with simple networks, implemented here in LfNetworkLoader before I can get the IIDM DC modelization
+                double nominalV = 400;
+                double v1 = 320;
+                double p2 = 51;
+                double p3 = 30.0;
+                int scenario = parameters.getDcVscConverterScenario();
+                double targetVac = 380;
 
-            LfDcNode dcNode1 = new LfDcNodeImpl(lfNetwork, nominalV,"dcNode1");
-            LfDcNode dcNode2 = new LfDcNodeImpl(lfNetwork, nominalV,"dcNode2");
-            LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfVscConverterStationV2Impl cs1 = lfBus1.getVscConverterStations().get(0);
-            LfVscConverterStationV2Impl cs2 = lfBus2.getVscConverterStations().get(0);
-            dcNode1.addVscConverterStation(cs1, lfBus1, false);
-            dcNode2.addVscConverterStation(cs2, lfBus2, true);
+                double v2 = 320;
+                double p1 = 51;
 
-            switch (scenario) {
-                case 1:
-                    //cs1 controls V and cs2 controls P
-                    if (cs1 != null && cs2 != null) {
-                        cs1.setTargetVdcControl(v1);
-                        cs2.setTargetPacControl(p2);
-                        LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, hvdcLine);
-                        LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
-                        lfNetwork.addHvdc(lfHvdc);
-                        break;
-                    }
+                LfDcNode dcNode1 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode1");
+                LfDcNode dcNode2 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode2");
+                LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
+                LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
+                LfAcDcVscConverterStationImpl cs1 = lfBus1.getAcDcVscConverterStations().get(0);
+                LfAcDcVscConverterStationImpl cs2 = lfBus2.getAcDcVscConverterStations().get(0);
+                dcNode1.addVscConverterStation(cs1, lfBus1, false);
+                dcNode2.addVscConverterStation(cs2, lfBus2, true);
 
-                case 2:
-                    //cs1 controls P and cs2 controls V
-                    if (cs1 != null && cs2 != null) {
-                        cs1.setTargetPacControl(p1);
-                        cs2.setTargetVdcControl(v2);
-                        LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, hvdcLine);
-                        LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
-                        lfNetwork.addHvdc(lfHvdc);
-                        break;
-                    }
-
-                case 3:
-                    //cs1 controls V and cs2 controls P and cs1 controls Vac instead of Q
-                    if (cs1 != null && cs2 != null) {
-                        cs1.setTargetVdcControl(v1);
-                        cs2.setTargetPacControl(p2);
-                        cs1.setTargetVac(targetVac);
-                        LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, hvdcLine);
-                        LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
-                        lfNetwork.addHvdc(lfHvdc);
-                        break;
-                    }
-
-                case 4:
-                    //there is another DcNode between the two stations
-                    if (cs1 != null && cs2 != null) {
-                        cs1.setTargetVdcControl(v1);
-                        cs2.setTargetPacControl(p2);
-                        LfDcNode dcNode3 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode3");
-                        LfDcLine dcLine13 = new LfDcLineImpl(dcNode1, dcNode3, lfNetwork, hvdcLine);
-                        LfDcLine dcLine23 = new LfDcLineImpl(dcNode2, dcNode3, lfNetwork, hvdcLine);
-                        LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2, dcNode3), Arrays.asList(dcLine13, dcLine23));
-                        lfNetwork.addHvdc(lfHvdc);
-                        break;
-                    }
-
-                case 5:
-                    //third converter station
-                    if (cs1 != null && cs2 != null) {
-                        LfDcNode dcNode3 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode3");
-                        LfDcNode dcNode4 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode4");
-                        LfDcLine dcLine14 = new LfDcLineImpl(dcNode1, dcNode4, lfNetwork, hvdcLine);
-                        LfDcLine dcLine24 = new LfDcLineImpl(dcNode2, dcNode4, lfNetwork, hvdcLine);
-                        LfDcLine dcLine34 = new LfDcLineImpl(dcNode3, dcNode4, lfNetwork, hvdcLine);
-                        List<LfDcNode> dcNodes = Arrays.asList(dcNode1, dcNode2, dcNode3, dcNode4);
-                        List<LfDcLine> dcLines = Arrays.asList(dcLine14, dcLine24, dcLine34);
-
-                        for (LfDcNode dcNode : dcNodes) {
-                            lfNetwork.addDcNode(dcNode);
-                        }
-                        for (LfDcLine dcLine : dcLines) {
-                            lfNetwork.addDcLine(dcLine);
+                switch (scenario) {
+                    case 1:
+                        //cs1 controls V and cs2 controls P
+                        if (cs1 != null && cs2 != null) {
+                            cs1.setTargetVdcControl(v1);
+                            cs2.setTargetPacControl(p2);
+                            LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, 1.0, "dcLine");
+                            LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
+                            lfNetwork.addHvdc(lfHvdc);
+                            break;
                         }
 
-                        LfBus lfBus3 = lfNetwork.getBusById("vl4_0");
-                        LfVscConverterStationV2Impl cs3 = lfBus3.getVscConverterStations().get(0);
-                        dcNode3.addVscConverterStation(cs3, lfBus3, true);
-                        cs1.setTargetVdcControl(v1);
-                        cs2.setTargetPacControl(p2);
-                        cs3.setTargetPacControl(p3);
-                        break;
-                    }
+                    case 2:
+                        //cs1 controls P and cs2 controls V
+                        if (cs1 != null && cs2 != null) {
+                            cs1.setTargetPacControl(p1);
+                            cs2.setTargetVdcControl(v2);
+                            LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, 1.0, "dcLine");
+                            LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
+                            lfNetwork.addHvdc(lfHvdc);
+                            break;
+                        }
+
+                    case 3:
+                        //cs1 controls V and cs2 controls P and cs1 controls Vac instead of Q
+                        if (cs1 != null && cs2 != null) {
+                            cs1.setTargetVdcControl(v1);
+                            cs2.setTargetPacControl(p2);
+                            cs1.setTargetVac(targetVac);
+                            LfDcLine dcLine = new LfDcLineImpl(dcNode1, dcNode2, lfNetwork, 1.0, "dcLine");
+                            LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2), Arrays.asList(dcLine));
+                            lfNetwork.addHvdc(lfHvdc);
+                            break;
+                        }
+
+                    case 4:
+                        //there is another DcNode between the two stations
+                        if (cs1 != null && cs2 != null) {
+                            cs1.setTargetVdcControl(v1);
+                            cs2.setTargetPacControl(p2);
+                            LfDcNode dcNode3 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode3");
+                            LfDcLine dcLine13 = new LfDcLineImpl(dcNode1, dcNode3, lfNetwork, 0.5, "dcLine13");
+                            LfDcLine dcLine23 = new LfDcLineImpl(dcNode2, dcNode3, lfNetwork, 0.5, "dcLine23");
+                            LfHvdcV2Impl lfHvdc = new LfHvdcV2Impl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine, Arrays.asList(dcNode1, dcNode2, dcNode3), Arrays.asList(dcLine13, dcLine23));
+                            lfNetwork.addHvdc(lfHvdc);
+                            break;
+                        }
+
+                    case 5:
+                        //third converter station
+                        if (cs1 != null && cs2 != null) {
+                            LfDcNode dcNode3 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode3");
+                            LfDcNode dcNode4 = new LfDcNodeImpl(lfNetwork, nominalV, "dcNode4");
+                            LfDcLine dcLine14 = new LfDcLineImpl(dcNode1, dcNode4, lfNetwork, 1.0, "dcLine14");
+                            LfDcLine dcLine24 = new LfDcLineImpl(dcNode2, dcNode4, lfNetwork, 1.0, "dcLine24");
+                            LfDcLine dcLine34 = new LfDcLineImpl(dcNode3, dcNode4, lfNetwork, 1.0, "dcLine34");
+                            List<LfDcNode> dcNodes = Arrays.asList(dcNode1, dcNode2, dcNode3, dcNode4);
+                            List<LfDcLine> dcLines = Arrays.asList(dcLine14, dcLine24, dcLine34);
+
+                            for (LfDcNode dcNode : dcNodes) {
+                                lfNetwork.addDcNode(dcNode);
+                            }
+                            for (LfDcLine dcLine : dcLines) {
+                                lfNetwork.addDcLine(dcLine);
+                            }
+
+                            LfBus lfBus3 = lfNetwork.getBusById("vl4_0");
+                            LfAcDcVscConverterStationImpl cs3 = lfBus3.getAcDcVscConverterStations().get(0);
+                            dcNode3.addVscConverterStation(cs3, lfBus3, true);
+                            cs1.setTargetVdcControl(v1);
+                            cs2.setTargetPacControl(p2);
+                            cs3.setTargetPacControl(p3);
+                            break;
+                        }
+                }
             }
         }
     }

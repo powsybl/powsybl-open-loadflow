@@ -688,7 +688,7 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected static void createConverterStationEquations(LfVscConverterStationV2 vscConverterStation, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected static void createConverterStationEquations(LfAcDcVscConverterStation vscConverterStation, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
 
         LfDcNode dcNode = vscConverterStation.getDcNode();
         LfBus bus = vscConverterStation.getaBus();
@@ -1028,13 +1028,13 @@ public class AcEquationSystemCreator {
                 openP1, openQ1, openI1,
                 openP2, openQ2, openI2);
 
-//        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-//
-//        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-//
-//       updateBranchEquations(branch);
-//
-//        createTransformerReactivePowerControlEquations(branch, equationSystem);
+        createGeneratorReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+
+        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+
+       updateBranchEquations(branch);
+
+        createTransformerReactivePowerControlEquations(branch, equationSystem);
     }
 
     protected void createDcLine(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2,
@@ -1091,7 +1091,7 @@ public class AcEquationSystemCreator {
     }
 
     private void createConverterStationsEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (LfVscConverterStationV2 vscConverterStation : network.getVscConverterStations()) {
+        for (LfAcDcVscConverterStation vscConverterStation : network.getAcDcVscConverterStations()) {
             createConverterStationEquations(vscConverterStation, equationSystem);
         }
     }
@@ -1188,16 +1188,15 @@ public class AcEquationSystemCreator {
             System.out.println("Équation : " + equation.getType() + " Bus" + equation.getElementNum());
 
             for (EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()) {
-                for (Variable variable : term.getVariables()) {
+                for (Variable<AcVariableType> variable : term.getVariables()) {
                     System.out.println("  Variable : " + variable.getType() + variable.getElementNum());
                 }
                 System.out.println("  Element : " + term.getElementType() + term.getElementNum());
             }
         }
-
-//        for (LfHvdc hvdc : network.getHvdcs()) {
-//            createHvdcAcEmulationEquations(hvdc, equationSystem);
-//        }
+        for (LfHvdc hvdc : network.getHvdcs()) {
+            createHvdcAcEmulationEquations(hvdc, equationSystem);
+        }
 
         createVoltageControlEquations(equationSystem);
 
