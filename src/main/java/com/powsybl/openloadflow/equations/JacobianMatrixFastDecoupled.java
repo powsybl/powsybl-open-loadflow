@@ -180,7 +180,11 @@ public class JacobianMatrixFastDecoupled
             }
         }
 
-        LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        if (isPhySystem) {
+            LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Phi system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        } else {
+            LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled V system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+       }
     }
 
 }
