@@ -140,17 +140,17 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             AcSolverUtil.updateNetwork(network, equationSystem);
-//            System.out.println("##############################_____Variables Values_____##############################");
-//            StateVector stateVector = equationSystem.getStateVector();
+            System.out.println("##############################_____Variables Values_____##############################");
+            StateVector stateVector = equationSystem.getStateVector();
 
-//            for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
-//                int row = variable.getRow();
-//                double value = stateVector.get(row);
-//
-//                System.out.println(variable.getType().getSymbol() + variable.getElementNum() + " = " + value);
-//            }
-//            System.out.println("\n");
-//
+            for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
+                int row = variable.getRow();
+                double value = stateVector.get(row);
+
+                System.out.println(variable.getType().getSymbol() + variable.getElementNum() + " = " + value);
+            }
+            System.out.println("\n");
+
 //            System.out.println("##############################_____Equation Terms_____##############################");
 //            for(Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()){
 //                System.out.println("Equation " + equation.getType() + equation.getElementNum());

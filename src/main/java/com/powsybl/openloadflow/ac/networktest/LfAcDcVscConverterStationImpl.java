@@ -1,5 +1,6 @@
 package com.powsybl.openloadflow.ac.networktest;
 
+import com.powsybl.iidm.network.HvdcConverterStation;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
@@ -32,7 +33,7 @@ public class LfAcDcVscConverterStationImpl extends AbstractLfGenerator implement
 
     protected List<Double> lossFactors;
 
-    protected boolean isDcNodeConnectedSide1;
+    protected ConverterStationMode mode;
 
     int num = -1;
 
@@ -41,6 +42,24 @@ public class LfAcDcVscConverterStationImpl extends AbstractLfGenerator implement
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactors = lossFactors;
         network.addAcDcVscConverterStation(this);
+        HvdcLine hvdcLine = station.getHvdcLine();
+        VscConverterStation station1 = (VscConverterStation) hvdcLine.getConverterStation1();
+        if(hvdcLine.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER){
+            if(station1 == station){
+                mode = ConverterStationMode.RECTIFIER;
+            }
+            else{
+                mode = ConverterStationMode.INVERTER;
+            }
+        }
+        else if(hvdcLine.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER){
+            if(station1 == station){
+                mode = ConverterStationMode.INVERTER;
+            }
+            else{
+                mode = ConverterStationMode.RECTIFIER;
+            }
+        }
         // local control only
         if (station.isVoltageRegulatorOn()) {
             setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
@@ -51,7 +70,7 @@ public class LfAcDcVscConverterStationImpl extends AbstractLfGenerator implement
         Objects.requireNonNull(station);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        return new LfAcDcVscConverterStationImpl(station, network, parameters, report, List.of(6.62, 1.8, 1.98, 3.00));
+        return new LfAcDcVscConverterStationImpl(station, network, parameters, report, java.util.List.of(6.62, 1.8, 1.98, 3.00));
     }
 
 
@@ -201,7 +220,7 @@ public class LfAcDcVscConverterStationImpl extends AbstractLfGenerator implement
     }
 
     @Override
-    public boolean isDcNodeConnectedSide1() {
-        return isDcNodeConnectedSide1;
+    public ConverterStationMode getMode() {
+        return mode;
     }
 }

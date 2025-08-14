@@ -36,10 +36,12 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public static double lossC() {
-        if (isRectifier) {
+        if (converterMode == ConverterStationMode.INVERTER) {
             return lossFactors.get(3) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
         }
-        return lossFactors.get(2) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
+        else {
+            return lossFactors.get(2) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
+        }
     }
 
     public static double dpDcdqAc(double pAc, double qAc) { //pAc and qAc are perUnit
@@ -47,13 +49,12 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public double pDc(double pAcPerUnit, double qAcPerUnit) {
-        isRectifier = pDcSign > 0; //if pDcSign > 0, AC inject power in DC
         double iAcPerUnit = iAcPerUnit(pAcPerUnit, qAcPerUnit);
-        return pDcSign * pAcPerUnit - pLoss(iAcPerUnit);
+        return -pAcPerUnit - pLoss(iAcPerUnit);
     }
 
     public double dpDcdpAc(double pAc, double qAc) {
-        return pDcSign * 1 - 2 * pAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (2 * Math.sqrt(pAc * pAc + qAc * qAc) * nominalV * Math.sqrt(6));
+        return -1 - 2 * pAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (2 * Math.sqrt(pAc * pAc + qAc * qAc) * nominalV * Math.sqrt(6));
     }
 
     @Override

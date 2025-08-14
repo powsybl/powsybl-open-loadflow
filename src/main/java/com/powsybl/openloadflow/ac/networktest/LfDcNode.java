@@ -22,7 +22,7 @@ public interface LfDcNode extends LfElement {
         return false;
     }
 
-    void addVscConverterStation(LfAcDcVscConverterStationImpl vsccs, LfBus lfBus, boolean isConnectedSide1);
+    void addVscConverterStation(LfAcDcVscConverterStationImpl vsccs, LfBus lfBus);
 
     List<LfAcDcVscConverterStation> getVscConverterStations();
 

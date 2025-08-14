@@ -414,6 +414,16 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                 .setMaxP(500)
                 .add();
+        network.newHvdcLine()
+                .setId("hvdc24")
+                .setConverterStationId1("cs2")
+                .setConverterStationId2("cs4")
+                .setNominalV(400)
+                .setR(0.1)
+                .setActivePowerSetpoint(50)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                .setMaxP(500)
+                .add();
         network.newLine()
                 .setId("l14")
                 .setBus1("b2")

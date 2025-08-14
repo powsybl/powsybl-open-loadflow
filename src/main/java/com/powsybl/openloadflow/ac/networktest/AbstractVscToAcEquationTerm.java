@@ -25,7 +25,7 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
 
     protected boolean isControllingVac;
 
-    protected double pDcSign;
+    protected static ConverterStationMode converterMode;
 
     protected AbstractVscToAcEquationTerm(LfDcNode dcNode, LfBus bus, VariableSet<AcVariableType> variableSet, boolean isControllingVac) {
         super(dcNode);
@@ -40,21 +40,10 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
         variables.add(pAcVar);
         lossFactors = converterStation.getLossFactors();
         nominalV = bus.getNominalV();
+        converterMode = converterStation.getMode();
         this.isControllingVac = isControllingVac;
         if(isControllingVac){
             variables.add(qAcVar);
-        }
-        if(converterStation.isDcNodeConnectedSide1()){
-            //side1   side 2
-            // DC ----- AC
-            //DC is injecting power in AC
-            pDcSign = -1.0;
-        }
-        else{
-            //side1   side 2
-            // AC ----- DC
-            //AC is injecting power in DC
-            pDcSign = 1.0;
         }
     }
 

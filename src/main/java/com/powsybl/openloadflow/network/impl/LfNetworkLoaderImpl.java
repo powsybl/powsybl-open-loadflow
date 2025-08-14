@@ -570,8 +570,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
                 LfAcDcVscConverterStationImpl cs1 = lfBus1.getAcDcVscConverterStations().get(0);
                 LfAcDcVscConverterStationImpl cs2 = lfBus2.getAcDcVscConverterStations().get(0);
-                dcNode1.addVscConverterStation(cs1, lfBus1, false);
-                dcNode2.addVscConverterStation(cs2, lfBus2, true);
+                dcNode1.addVscConverterStation(cs1, lfBus1);
+                dcNode2.addVscConverterStation(cs2, lfBus2);
 
                 switch (scenario) {
                     case 1:
@@ -641,7 +641,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
                             LfBus lfBus3 = lfNetwork.getBusById("vl4_0");
                             LfAcDcVscConverterStationImpl cs3 = lfBus3.getAcDcVscConverterStations().get(0);
-                            dcNode3.addVscConverterStation(cs3, lfBus3, true);
+                            dcNode3.addVscConverterStation(cs3, lfBus3);
                             cs1.setTargetVdcControl(v1);
                             cs2.setTargetPacControl(p2);
                             cs3.setTargetPacControl(p3);

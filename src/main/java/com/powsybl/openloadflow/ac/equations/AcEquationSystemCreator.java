@@ -705,18 +705,27 @@ public class AcEquationSystemCreator {
                             .createTerm());
         }
 
-        //The VSC Controller station act as a generator at AC side, so it adds a term AC_VSC_P in the BUS_TARGET_P equation
         EquationTerm<AcVariableType, AcEquationType> pAc = equationSystem.getVariable(bus.getNum(), AcVariableType.AC_VSC_P).createTerm();
+        if(vscConverterStation.getMode() == ConverterStationMode.INVERTER) {
+            //DC -> AC so the converter acts as a generator at AC side, pAc > 0 in AC power balance
+            pAc = pAc.multiply(1);
+        }
+        else{
+            //AC -> DC so the converter acts as a load at AC side, pAc < 0 in AC power balance
+            pAc = pAc.multiply(-1);
+        }
+        //The Converter add its power pAc in AC power balance
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pAc);
         vscConverterStation.setPac(pAc);
 
-        //The VSC Controller station act as a generator at DC side, so it adds a term AC_VSC_P in the DC_NODE_TARGET_P equation, but the DC power value depends on the AC power one
+
+        //The VSC Converter station act as a generator at DC side, so it adds a term AC_VSC_P in the DC_NODE_TARGET_P equation, but the DC power value depends on the AC power one
         EquationTerm<AcVariableType, AcEquationType> pActoDc = new VscToAcActivePowerEquationTerm(dcNode, bus, equationSystem.getVariableSet(), vscConverterStation.isControllingVAc());
         equationSystem.getEquation(dcNode.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
                 .addTerm(pActoDc);
 
-        //If the Controller station control V instead of Q
+        //If the Converter station control V instead of Q
         if (vscConverterStation.isControllingVAc()) {
             equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.AC_VSC_Q)

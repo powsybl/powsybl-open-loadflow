@@ -40,5 +40,5 @@ public interface LfAcDcVscConverterStation extends LfGenerator {
 
     List<Double> getLossFactors();
 
-    boolean isDcNodeConnectedSide1();
+    ConverterStationMode getMode();
 }
