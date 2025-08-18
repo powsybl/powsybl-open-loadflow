@@ -68,7 +68,7 @@
             + Outer loop iteration 1
                Slack bus active power (-2.888261 MW) distributed in 1 distribution iteration(s)
          + Newton Raphson on Network CC0 SC0
-            Newton-Raphson of outer loop iteration 1 of type DistributedSlack
+            Newton Raphson of outer loop iteration 1 of type DistributedSlack
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.028883
                + Largest P mismatch: 2.888261 MW
@@ -110,7 +110,7 @@
             + Outer loop iteration 4
                1 reactive power-controlled branches are outside of their target deadbands
          + Newton Raphson on Network CC0 SC0
-            Newton-Raphson of outer loop iteration 2 of type IncrementalTransformerReactivePowerControl
+            Newton Raphson of outer loop iteration 2 of type IncrementalTransformerReactivePowerControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.081872
                + Largest P mismatch: -6.141369 MW
@@ -168,7 +168,7 @@
                   Bus V: 1.022727 pu, 0.011768 rad
                   Bus injection: 22.111739 MW, 7.318486 MVar
          + Newton Raphson on Network CC0 SC0
-            Newton-Raphson of outer loop iteration 3 of type IncrementalTransformerReactivePowerControl
+            Newton Raphson of outer loop iteration 3 of type IncrementalTransformerReactivePowerControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.031683
                + Largest P mismatch: -2.449384 MW
@@ -215,7 +215,7 @@
             + Outer loop iteration 4
                Slack bus active power (2.379903 MW) distributed in 1 distribution iteration(s)
          + Newton Raphson on Network CC0 SC0
-            Newton-Raphson of outer loop iteration 4 of type DistributedSlack
+            Newton Raphson of outer loop iteration 4 of type DistributedSlack
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.023799
                + Largest P mismatch: -2.379902 MW

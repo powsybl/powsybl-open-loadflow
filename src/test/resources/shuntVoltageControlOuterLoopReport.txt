@@ -59,7 +59,7 @@
             + Outer loop iteration 1
                1 shunts changed section
          + Newton Raphson on Network CC0 SC0
-            Newton-Raphson of outer loop iteration 1 of type IncrementalShuntVoltageControl
+            Newton Raphson of outer loop iteration 1 of type IncrementalShuntVoltageControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=1.509955
                + Largest P mismatch: -0.000214 MW

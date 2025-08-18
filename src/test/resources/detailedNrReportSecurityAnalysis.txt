@@ -132,7 +132,7 @@
                + Outer loop iteration 1
                   Slack bus active power (4.564672 MW) distributed in 1 distribution iteration(s)
             + Newton Raphson on Network CC0 SC0
-               Newton-Raphson of outer loop iteration 1 of type DistributedSlack
+               Newton Raphson of outer loop iteration 1 of type DistributedSlack
                + Initial mismatch
                   Newton-Raphson norm |f(x)|=0
                   + Largest P mismatch: 0.000002 MW
