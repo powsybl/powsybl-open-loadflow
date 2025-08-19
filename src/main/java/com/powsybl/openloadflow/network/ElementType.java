@@ -17,5 +17,6 @@ public enum ElementType {
     HVDC,
     DC_LINE,
     AREA,
-    DC_NODE
+    DC_NODE,
+    CONVERTER;
 }

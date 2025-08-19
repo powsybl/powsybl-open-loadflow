@@ -22,17 +22,13 @@ public interface LfDcNode extends LfElement {
         return false;
     }
 
-    void addVscConverterStation(LfAcDcVscConverterStationImpl vsccs, LfBus lfBus);
-
-    List<LfAcDcVscConverterStation> getVscConverterStations();
+    List<LfAcDcConverter> getVscConverterStations();
 
     double getTargetV();
 
     void setTargetV(double vdc);
 
     double getTargetP();
-
-    void setTargetP(double pdc);
 
     double getNominalV();
 

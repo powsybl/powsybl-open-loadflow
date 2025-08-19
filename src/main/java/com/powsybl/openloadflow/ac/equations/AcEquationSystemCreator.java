@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.networktest.*;
 import com.powsybl.openloadflow.equations.*;
@@ -669,7 +670,7 @@ public class AcEquationSystemCreator {
         // We propose the convention where P injected to the DC node is positive
         // Therefore, P1 and P2 are power flowing from the line to the DC nodes 1 and 2 respectively
         if (closedP1 != null) {
-            equationSystem.getEquation(dcNode1.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_NODE_TARGET_P).orElseThrow()
+            equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
                     .addTerm(closedP1);
             dcLine.setClosedP1(closedP1);
 
@@ -679,7 +680,7 @@ public class AcEquationSystemCreator {
         }
 
         if (closedP2 != null) {
-            equationSystem.getEquation(dcNode2.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_NODE_TARGET_P).orElseThrow()
+            equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
                     .addTerm(closedP2);
             dcLine.setClosedP2(closedP2);
         }
@@ -688,49 +689,40 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected static void createConverterStationEquations(LfAcDcVscConverterStation vscConverterStation, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-
-        LfDcNode dcNode = vscConverterStation.getDcNode();
-        LfBus bus = vscConverterStation.getaBus();
+    protected static void createConverterStationEquations(LfAcDcConverter acDcConverter, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfDcNode dcNode = acDcConverter.getDcNode1();
+        LfBus bus = acDcConverter.getBus1();
 
         // if a converter is set with fixed P at the AC Bus, then an equation at the Ac Bus inherited from the converter is Pac = Pref, Pref is the set point of power injected into the AC Bus
         // if a converter is set with fixed V at the DC node, then an equation at the DC node inherited from the converter is Vdc = Vref
-        if (vscConverterStation.isPControlled()) {
-            equationSystem.createEquation(bus, AcEquationType.AC_VSC_TARGET_P)
-                    .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.AC_VSC_P)
+        if (acDcConverter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
+            equationSystem.createEquation(acDcConverter, AcEquationType.AC_VSC_TARGET_P)
+                    .addTerm(equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_P)
                             .createTerm());
         } else {
-            equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_V_REF)
+            equationSystem.createEquation(acDcConverter, AcEquationType.DC_NODE_TARGET_V_REF)
                     .addTerm(equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_V)
                             .createTerm());
         }
 
-        EquationTerm<AcVariableType, AcEquationType> pAc = equationSystem.getVariable(bus.getNum(), AcVariableType.AC_VSC_P).createTerm();
-        if(vscConverterStation.getMode() == ConverterStationMode.INVERTER) {
-            //DC -> AC so the converter acts as a generator at AC side, pAc > 0 in AC power balance
-            pAc = pAc.multiply(1);
-        }
-        else{
-            //AC -> DC so the converter acts as a load at AC side, pAc < 0 in AC power balance
-            pAc = pAc.multiply(-1);
-        }
+        EquationTerm<AcVariableType, AcEquationType> pAc = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_P).createTerm();
         //The Converter add its power pAc in AC power balance
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pAc);
-        vscConverterStation.setPac(pAc);
+        acDcConverter.setPac(pAc);
 
 
         //The VSC Converter station act as a generator at DC side, so it adds a term AC_VSC_P in the DC_NODE_TARGET_P equation, but the DC power value depends on the AC power one
-        EquationTerm<AcVariableType, AcEquationType> pActoDc = new VscToAcActivePowerEquationTerm(dcNode, bus, equationSystem.getVariableSet(), vscConverterStation.isControllingVAc());
+        EquationTerm<AcVariableType, AcEquationType> pActoDc = new VscToAcActivePowerEquationTerm(acDcConverter, equationSystem.getVariableSet());
         equationSystem.getEquation(dcNode.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
                 .addTerm(pActoDc);
 
         //If the Converter station control V instead of Q
-        if (vscConverterStation.isControllingVAc()) {
+        if (acDcConverter.isVoltageRegulatorOn()) {
             equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
-                    .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.AC_VSC_Q)
+                    .addTerm(equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_Q)
                             .createTerm());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V_REF)
+            equationSystem.createEquation(acDcConverter, AcEquationType.BUS_TARGET_V_REF)
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                             .createTerm());
         }
@@ -1100,8 +1092,8 @@ public class AcEquationSystemCreator {
     }
 
     private void createConverterStationsEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (LfAcDcVscConverterStation vscConverterStation : network.getAcDcVscConverterStations()) {
-            createConverterStationEquations(vscConverterStation, equationSystem);
+        for (LfAcDcConverter acDcConverter : network.getAcDcConverters()) {
+            createConverterStationEquations(acDcConverter, equationSystem);
         }
     }
 

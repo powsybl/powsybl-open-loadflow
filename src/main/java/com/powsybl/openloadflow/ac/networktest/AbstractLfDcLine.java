@@ -30,8 +30,11 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     protected Evaluable v1 = NAN;
 
     protected Evaluable v2 = NAN;
+
     protected Evaluable closedP1 = NAN;
+
     protected Evaluable closedP2 = NAN;
+
     private double r = Double.NaN;
 
     protected AbstractLfDcLine(LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, double r) {

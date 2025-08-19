@@ -199,13 +199,40 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public List<String> getRowNames(LfNetwork network) {
         return index.getSortedVariablesToFind().stream()
-                .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
+                .map(eq -> {
+                    String id = "Null";
+                    if(eq.getType().getElementType() == ElementType.BUS){
+                        id = network.getBus(eq.getElementNum()).getId();
+                    }
+
+                    else if(eq.getType().getElementType() == ElementType.CONVERTER){
+                        id = network.getAcDcConverter(eq.getElementNum()).getId();
+                    }
+                    else if(eq.getType().getElementType() == ElementType.DC_NODE){
+                        id = network.getDcNode(eq.getElementNum()).getId();
+                    }
+                    return id + "/" + eq.getType();
+                })
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames(LfNetwork network) {
         return index.getSortedEquationsToSolve().stream()
-                .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
+                .map(v -> {
+                    String id = "Null";
+                    if(v.getType().getElementType() == ElementType.BUS){
+                        id = network.getBus(v.getElementNum()).getId();
+                    }
+
+                    else if(v.getType().getElementType() == ElementType.CONVERTER) {
+                        id = network.getAcDcConverter(v.getElementNum()).getId();
+                    }
+
+                    else if(v.getType().getElementType() == ElementType.DC_NODE) {
+                        id = network.getDcNode(v.getElementNum()).getId();
+                    }
+                    return id + "/" + v.getType();
+                })
                 .collect(Collectors.toList());
     }
 

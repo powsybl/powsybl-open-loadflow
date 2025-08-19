@@ -204,7 +204,7 @@ public class LfBusImpl extends AbstractLfBus {
                     yield nodes.isEmpty() ? null : new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
                 }
                 case BUS_BREAKER -> {
-                    // are we in breaker mode ?
+                    // are we in breaker ConverterMode ?
                     var busBreakerView = getBus().getVoltageLevel().getBusBreakerView();
                     if (getBus() == busBreakerView.getBus(getBus().getId())) {
                         yield new BusBreakerViolationLocation(List.of(getBus().getId()));

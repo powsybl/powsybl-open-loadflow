@@ -14,7 +14,7 @@ import java.util.Objects;
 public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNode {
 
     protected final List<LfDcLine> lfdclines = new ArrayList<>();
-    protected final List<LfAcDcVscConverterStation> vscConverterStations = new ArrayList<>();
+    protected final List<LfAcDcConverter> vscConverterStations = new ArrayList<>();
     protected Evaluable v;
     protected double vdc;
     protected double pdc;
@@ -38,14 +38,7 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
         lfdclines.add(Objects.requireNonNull(lfdcline));
     }
 
-    @Override
-    public void addVscConverterStation(LfAcDcVscConverterStationImpl vsccs, LfBus lfBus) {
-        vscConverterStations.add(Objects.requireNonNull(vsccs));
-        vsccs.addBus(lfBus);
-        vsccs.addDcNode(this);
-    }
-
-    public List<LfAcDcVscConverterStation> getVscConverterStations() {
+    public List<LfAcDcConverter> getVscConverterStations() {
         return vscConverterStations;
     }
 
@@ -57,11 +50,6 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     @Override
     public double getTargetP() {
         return pdc / PerUnit.SB;
-    }
-
-    @Override
-    public void setTargetP(double pdc) {
-        this.pdc = pdc;
     }
 
     @Override

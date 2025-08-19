@@ -21,15 +21,15 @@ public interface VoltageInitializer {
     double getMagnitude(LfBus bus);
 
     default double getPower(LfDcNode dcNode) {
-        return 1;
+        return 1.0;
     }
 
     default double getPower(LfBus bus) {
-        return 1;
+        return 1.0;
     }
 
     default double getMagnitude(LfDcNode dcNode) {
-        return 1;
+        return 1.0;
     }
 
     double getAngle(LfBus bus);

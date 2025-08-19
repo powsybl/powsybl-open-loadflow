@@ -5,7 +5,6 @@ import com.powsybl.openloadflow.ac.equations.AbstractBranchAcFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
@@ -22,18 +21,10 @@ public abstract class AbstractClosedBranchDcFlowEquationTermV2 extends AbstractB
 
     protected final double r;
 
-    public static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
-        return switch (sequenceType) {
-            case POSITIVE -> AcVariableType.DC_NODE_V;
-            case NEGATIVE -> AcVariableType.BUS_V_NEGATIVE;
-            case ZERO -> AcVariableType.BUS_V_ZERO;
-        };
-    }
-
-    protected AbstractClosedBranchDcFlowEquationTermV2(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
+    protected AbstractClosedBranchDcFlowEquationTermV2(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
         super(dcLine);
         Objects.requireNonNull(variableSet);
-        AcVariableType vType = getVoltageMagnitudeType(sequenceType);
+        AcVariableType vType = AcVariableType.DC_NODE_V;
         v1Var = variableSet.getVariable(dcNode1.getNum(), vType);
         v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
         variables.add(v1Var);

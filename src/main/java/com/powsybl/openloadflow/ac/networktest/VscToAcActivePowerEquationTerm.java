@@ -3,17 +3,14 @@ package com.powsybl.openloadflow.ac.networktest;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 
 public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm {
 
-    protected static boolean isRectifier;
-
-    public VscToAcActivePowerEquationTerm(LfDcNode vscDcNode, LfBus bus, VariableSet<AcVariableType> variableSet, boolean isControllingVac) {
-        super(vscDcNode, bus, variableSet, isControllingVac);
+    public VscToAcActivePowerEquationTerm(LfAcDcConverter converter, VariableSet<AcVariableType> variableSet) {
+        super(converter, variableSet);
     }
 
     public static double iAcPerUnit(double pAcPerUnit, double qAcPerUnit) {
@@ -36,16 +33,11 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public static double lossC() {
-        if (converterMode == ConverterStationMode.INVERTER) {
-            return lossFactors.get(3) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
-        }
-        else {
-            return lossFactors.get(2) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
-        }
+        return lossFactors.get(2) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
     }
 
     public static double dpDcdqAc(double pAc, double qAc) { //pAc and qAc are perUnit
-        return -2 * qAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (2 * Math.sqrt(pAc * pAc + qAc * qAc) * nominalV * Math.sqrt(6));
+        return -qAc*(lossB()+2*lossC()*iAcPerUnit(pAc,qAc))/(Math.sqrt(pAc*pAc+qAc*qAc));
     }
 
     public double pDc(double pAcPerUnit, double qAcPerUnit) {
@@ -54,7 +46,7 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public double dpDcdpAc(double pAc, double qAc) {
-        return -1 - 2 * pAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (2 * Math.sqrt(pAc * pAc + qAc * qAc) * nominalV * Math.sqrt(6));
+        return -1-pAc*(lossB()+2*lossC()*iAcPerUnit(pAc,qAc))/(Math.sqrt(pAc*pAc+qAc*qAc));
     }
 
     @Override
@@ -76,6 +68,6 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
 
     @Override
     protected String getName() {
-        return "ac_p_closed_1";
+        return "ac_p";
     }
 }

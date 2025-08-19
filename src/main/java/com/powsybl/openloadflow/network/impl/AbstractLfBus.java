@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 
-import com.powsybl.openloadflow.ac.networktest.LfAcDcVscConverterStationImpl;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcConverterImpl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -62,7 +62,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
-    protected final List<LfAcDcVscConverterStationImpl> acDcVscConverterStations = new ArrayList<>();
+    protected final List<LfAcDcConverterImpl> acDcVscConverterStations = new ArrayList<>();
 
     protected LfShunt shunt;
 
@@ -350,17 +350,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     public void addAcDcVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        if(parameters.isAcDcNetwork()) {
-            LfAcDcVscConverterStationImpl lfAcDcVscConverterStation = LfAcDcVscConverterStationImpl.create(vscCs, network, parameters, report);
-            this.acDcVscConverterStations.add(lfAcDcVscConverterStation);
-            lfAcDcVscConverterStation.addBus(this);
-        }
-        else{
             add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
-        }
     }
 
-    public List<LfAcDcVscConverterStationImpl> getAcDcVscConverterStations() {
+    public List<LfAcDcConverterImpl> getAcDcVscConverterStations() {
         return acDcVscConverterStations;
     }
 

@@ -91,13 +91,6 @@ public class NewtonRaphson extends AbstractAcSolver {
 
             return reportAndReturnStatus(LOGGER, testResult, iterationReportNode);
         } finally {
-
-//            // add this to print the Jacobian
-//            System.out.println("\n\n##############################_____Newton-Raphson iteration_____##############################");
-//            j.getMatrix().print(System.out);
-//            System.out.println("\n");
-//            //
-
             iterations.increment();
         }
     }

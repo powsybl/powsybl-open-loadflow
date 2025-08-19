@@ -74,10 +74,10 @@ public final class AcSolverUtil {
                     break;
 
                 case AC_VSC_P:
-                    x[v.getRow()] = initializer.getPower(network.getBus(v.getElementNum()));
+                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()).getBus1());
                     break;
                 case AC_VSC_Q:
-                    x[v.getRow()] = initializer.getPower(network.getBus(v.getElementNum()));
+                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()).getBus1());
                     break;
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());
@@ -141,7 +141,7 @@ public final class AcSolverUtil {
                     break;
 
                 case AC_VSC_P:
-                    network.getBus(v.getElementNum()).getAcDcVscConverterStations().get(0).setTargetP(stateVector.get(v.getRow()));
+                    network.getAcDcConverter(v.getElementNum()).setTargetP(stateVector.get(v.getRow()));
                     break;
 
                 case AC_VSC_Q:

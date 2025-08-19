@@ -265,6 +265,10 @@ public final class Networks {
                         : terminal.getBusView().getBus();
     }
 
+    public static DcNode getDcNode(DcTerminal terminal) {
+        return terminal.getDcNode();
+    }
+
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
         // used only for hvdc lines.
         // this criteria can be improved later depending on use case

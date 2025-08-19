@@ -12,10 +12,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.iidm.network.AcDcConverter;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
 import com.powsybl.openloadflow.ac.networktest.LfDcLine;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 
-import com.powsybl.openloadflow.ac.networktest.LfAcDcVscConverterStation;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
@@ -93,9 +95,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfDcNode> dcNodesByIndex = new ArrayList<>();
 
+    private final Map<String, LfDcNode> dcNodesById = new LinkedHashMap<>();
+
     private final List<LfDcLine> dcLines = new ArrayList<>();
 
-    private final List<LfAcDcVscConverterStation> acDcVscConverterStations = new ArrayList<>();
+    private final List<LfAcDcConverter> acDcConvertersByIndex = new ArrayList<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -209,6 +213,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case AREA -> getArea(num);
             case DC_NODE -> getDcNode(num);
             case DC_LINE -> getHvdc(num);
+            case CONVERTER -> getAcDcConverter(num);
         };
     }
 
@@ -435,6 +440,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public LfHvdc getHvdc(int num) {
         return hvdcs.get(num);
+    }
+
+    public LfAcDcConverter getAcDcConverter(int num) {
+        return acDcConvertersByIndex.get(num);
     }
 
     public LfHvdc getHvdcById(String id) {
@@ -957,6 +966,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(dcNode);
         dcNode.setNum(dcNodesByIndex.size());
         dcNodesByIndex.add(dcNode);
+        dcNodesById.put(dcNode.getId(), dcNode);
+    }
+
+    public LfDcNode getDcNodeById(String id) {
+        Objects.requireNonNull(id);
+        return dcNodesById.get(id);
     }
 
     public LfDcNode getDcNode(int num) {
@@ -976,13 +991,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return dcLines;
     }
 
-    public void addAcDcVscConverterStation(LfAcDcVscConverterStation vscConverterStation) {
-        vscConverterStation.setNum(acDcVscConverterStations.size());
-        acDcVscConverterStations.add(vscConverterStation);
+    public void addAcDcConverter(LfAcDcConverter acDcConverter){
+        acDcConverter.setNum(acDcConvertersByIndex.size());
+        acDcConvertersByIndex.add(acDcConverter);
     }
 
-    public List<LfAcDcVscConverterStation> getAcDcVscConverterStations() {
-        return acDcVscConverterStations;
+    public List<LfAcDcConverter> getAcDcConverters(){
+        return acDcConvertersByIndex;
     }
 
 }

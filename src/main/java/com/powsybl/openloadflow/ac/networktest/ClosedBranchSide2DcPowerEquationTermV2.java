@@ -10,7 +10,7 @@ import java.util.Objects;
 public class ClosedBranchSide2DcPowerEquationTermV2 extends AbstractClosedBranchDcFlowEquationTermV2 {
 
     public ClosedBranchSide2DcPowerEquationTermV2(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
-        super(dcLine, dcNode1, dcNode2, variableSet, Fortescue.SequenceType.POSITIVE);
+        super(dcLine, dcNode1, dcNode2, variableSet);
     }
 
     public static double calculateSensi(double v1, double v2,
