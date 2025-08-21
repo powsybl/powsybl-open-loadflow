@@ -15,8 +15,6 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
 
     protected double targetVdc;
 
-    protected double targetVac;
-
     protected List<Double> lossFactors;
 
     protected ConverterStationMode converterMode;
@@ -24,6 +22,9 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
     protected AcDcConverter.ControlMode controlMode;
 
     protected boolean isVoltageRegulatorOn = false;
+
+    protected double targetQ;
+
 
     int num = -1;
 
@@ -35,6 +36,12 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
         this.controlMode = converter.getControlMode();
         if(converter instanceof VoltageSourceConverter){
             this.isVoltageRegulatorOn = ((VoltageSourceConverter) converter).isVoltageRegulatorOn();
+            if(!isVoltageRegulatorOn) {
+                this.targetQ = ((VoltageSourceConverter) converter).getReactivePowerSetpoint()/PerUnit.SB;
+            }
+            else{
+                this.targetVac = ((VoltageSourceConverter) converter).getVoltageSetpoint()/ bus1.getNominalV();
+            }
         }
         this.targetP = converter.getTargetP()/PerUnit.SB;
         if (targetP > 0) {
@@ -98,5 +105,15 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
     @Override
     public double getTargetVdcControl() {
         return targetVdc;
+    }
+
+    @Override
+    public double getTargetQ() {
+        return targetQ;
+    }
+
+    @Override
+    public void setTargetQ(double q) {
+        targetQ = q;
     }
 }

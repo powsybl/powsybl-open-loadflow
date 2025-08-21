@@ -5,9 +5,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network;
+package com.powsybl.openloadflow.ac.networktest;
 
-import com.powsybl.openloadflow.ac.networktest.SelectedReferenceBuses;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.ReferenceBusSelector;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,8 +17,8 @@ import java.util.Objects;
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
-public class ReferenceBusFirstSlackSelector implements ReferenceBusSelector {
-    private static final String METHOD_NAME = "First slack";
+public class ReferenceBusMultipleSelector implements ReferenceBusSelector {
+    private static final String METHOD_NAME = "All slack";
 
     @Override
     public SelectedReferenceBuses select(LfNetwork lfNetwork) {
@@ -26,6 +28,6 @@ public class ReferenceBusFirstSlackSelector implements ReferenceBusSelector {
         if (slackBuses.isEmpty()) {
             throw new IllegalStateException("No slack bus for network " + lfNetwork);
         }
-        return new SelectedReferenceBuses(List.of(slackBuses.get(0)), METHOD_NAME);
+        return new SelectedReferenceBuses(slackBuses, METHOD_NAME);
     }
 }

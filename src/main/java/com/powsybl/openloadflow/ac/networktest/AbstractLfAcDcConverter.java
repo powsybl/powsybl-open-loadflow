@@ -15,11 +15,10 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetP;
 
+
     protected double P;
 
     protected double targetVac;
-
-    protected Evaluable pdc;
 
     protected List<Double> lossFactors;
 

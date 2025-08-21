@@ -992,11 +992,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<DcNode> dcNodes = new ArrayList<>();
         List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
         List<LfDcNode> lfDcNodes = new ArrayList<>();
-        List<LfAcDcConverter> lfAcDcConverters = new ArrayList<>();
 
         if(parameters.isAcDcNetwork()){
             network.getDcNodes().forEach(dcNodes::add);
-
             for(AcDcConverter<?> acDcConverter : network.getDcConnectables(AcDcConverter.class)){
                 acDcConverters.add(acDcConverter);
                 DcTerminal terminal1 = acDcConverter.getDcTerminal1();

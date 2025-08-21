@@ -18,5 +18,8 @@ public enum ReferenceBusSelectionMode {
     /**
      * angle reference bus selected from generator reference priorities
      */
-    GENERATOR_REFERENCE_PRIORITY
+    GENERATOR_REFERENCE_PRIORITY,
+
+
+    MULTIPLE_REFERENCES
 }

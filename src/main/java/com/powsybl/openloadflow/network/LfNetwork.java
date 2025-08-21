@@ -12,10 +12,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.iidm.network.AcDcConverter;
-import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.networktest.LfDcLine;
-import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+import com.powsybl.openloadflow.ac.networktest.*;
 
 import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
@@ -63,7 +60,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
+    //TODO : find a better way to implement multiple reference buses in AcDc Networks
     private LfBus referenceBus;
+
+    private List<LfBus> referenceBuses;
 
     private List<LfBus> slackBuses;
 
@@ -240,6 +240,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 excludedSlackBuses.isEmpty() ? busesByIndex :
                     busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
+
             slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
                 selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBuses, maxSlackBusCount);
@@ -253,18 +254,32 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 slackBus.setSlack(true);
             }
             // reference bus must be selected after slack bus, because of ReferenceBusFirstSlackSelector implementation requiring slackBuses
-            SelectedReferenceBus selectedReferenceBus = referenceBusSelector.select(this);
-            referenceBus = selectedReferenceBus.getLfBus();
-            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
-            referenceBus.setReference(true);
-            if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
-                referenceGenerator = generatorReferenceBus.getLfGenerator();
+            SelectedReferenceBuses selectedReferenceBuses = referenceBusSelector.select(this);
+            //TODO Modify the way reference bus is treated to have multiple reference bus for each AC SubNetwork in ACDC Network
+            referenceBuses = selectedReferenceBuses.getLfBuses();
+            referenceBus = selectedReferenceBuses.getLfBuses().get(0);
+            for(LfBus bus:referenceBuses){
+                bus.setReference(true);
+            }
+            if (selectedReferenceBuses instanceof SelectedGeneratorReferenceBuses generatorReferenceBuses) {
+                referenceGenerator = generatorReferenceBuses.getLfGenerator();
                 LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
                 referenceGenerator.setReference(true);
             }
             if (connectivity != null) {
                 connectivity.setMainComponentVertex(slackBuses.get(0));
             }
+//            referenceBus = selectedReferenceBuses.getLfBuses();
+//            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
+//            referenceBus.setReference(true);
+//            if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
+//                referenceGenerator = generatorReferenceBus.getLfGenerator();
+//                LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
+//                referenceGenerator.setReference(true);
+//            }
+//            if (connectivity != null) {
+//                connectivity.setMainComponentVertex(slackBuses.get(0));
+//            }
         }
     }
 
@@ -347,6 +362,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfBus getReferenceBus() {
         updateSlackBusesAndReferenceBus();
         return referenceBus;
+    }
+
+    public List<LfBus> getReferenceBuses() {
+        return referenceBuses;
     }
 
     public LfBus getSlackBus() {

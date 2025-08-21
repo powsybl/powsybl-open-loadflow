@@ -145,6 +145,7 @@ public final class AcSolverUtil {
                     break;
 
                 case AC_VSC_Q:
+                    network.getAcDcConverter(v.getElementNum()).setTargetQ(stateVector.get(v.getRow()));
                     break;
 
                 default:

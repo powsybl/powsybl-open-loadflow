@@ -24,7 +24,7 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
 
     protected static double nominalV;
 
-    protected boolean isControllingVac;
+    protected boolean isVoltageRegulatorOn;
 
     protected AcDcConverter.ControlMode controlMode;
 
@@ -41,8 +41,8 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
         lossFactors = converter.getLossFactors();
         nominalV = bus.getNominalV();
         controlMode = converter.getControlMode();
-        this.isControllingVac = (converter.isVoltageRegulatorOn());
-        if(isControllingVac){
+        this.isVoltageRegulatorOn = (converter.isVoltageRegulatorOn());
+        if(isVoltageRegulatorOn){
             variables.add(qAcVar);
         }
     }
@@ -54,11 +54,11 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
     }
 
     protected double qAc(){
-        if(isControllingVac){
+        if(isVoltageRegulatorOn){
             return sv.get(qAcVar.getRow());
         }
         else{
-            return 0;
+            return 0.0;
         }
     }
 

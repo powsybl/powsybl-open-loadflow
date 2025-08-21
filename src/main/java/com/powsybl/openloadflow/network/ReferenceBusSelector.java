@@ -7,6 +7,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.ac.networktest.ReferenceBusMultipleSelector;
+import com.powsybl.openloadflow.ac.networktest.SelectedReferenceBuses;
+
 import java.util.Objects;
 
 /**
@@ -17,13 +20,14 @@ public interface ReferenceBusSelector {
     ReferenceBusSelectionMode DEFAULT_MODE = ReferenceBusSelectionMode.FIRST_SLACK;
     ReferenceBusSelector DEFAULT_SELECTOR = ReferenceBusSelector.fromMode(DEFAULT_MODE);
 
-    SelectedReferenceBus select(LfNetwork lfNetwork);
+    SelectedReferenceBuses select(LfNetwork lfNetwork);
 
     static ReferenceBusSelector fromMode(ReferenceBusSelectionMode mode) {
         Objects.requireNonNull(mode);
         return switch (mode) {
             case FIRST_SLACK -> new ReferenceBusFirstSlackSelector();
             case GENERATOR_REFERENCE_PRIORITY -> new ReferenceBusGeneratorPrioritySelector();
+            case MULTIPLE_REFERENCES -> new ReferenceBusMultipleSelector();
         };
     }
 }

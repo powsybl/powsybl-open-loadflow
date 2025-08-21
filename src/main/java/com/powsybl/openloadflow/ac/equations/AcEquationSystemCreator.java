@@ -709,7 +709,6 @@ public class AcEquationSystemCreator {
         //The Converter add its power pAc in AC power balance
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pAc);
-        acDcConverter.setPac(pAc);
 
 
         //The VSC Converter station act as a generator at DC side, so it adds a term AC_VSC_P in the DC_NODE_TARGET_P equation, but the DC power value depends on the AC power one
@@ -719,9 +718,10 @@ public class AcEquationSystemCreator {
 
         //If the Converter station control V instead of Q
         if (acDcConverter.isVoltageRegulatorOn()) {
+            EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_Q).createTerm();
+            //The Converter add its reactive power qAc in AC reactive power balance
             equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
-                    .addTerm(equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_Q)
-                            .createTerm());
+                    .addTerm(qAc);
             equationSystem.createEquation(acDcConverter, AcEquationType.BUS_TARGET_V_REF)
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                             .createTerm());
@@ -839,6 +839,8 @@ public class AcEquationSystemCreator {
                             .createTerm());
         }
         if (bus.isSlack()) {
+            System.out.println("##############################_____SLACK_____##############################");
+            System.out.println(bus.getId());
             p.setActive(false);
         }
 
@@ -1152,7 +1154,9 @@ public class AcEquationSystemCreator {
 
     private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         List<LfBus> slackBuses = network.getSlackBuses();
-        if (slackBuses.size() > 1) {
+        int networkNumber = network.getReferenceBuses().size();
+        //network number is the number of Ac subNetworks in the AC DC Network
+        if (slackBuses.size() > networkNumber) {
             LfBus firstSlackBus = slackBuses.get(0);
             for (int i = 1; i < slackBuses.size(); i++) {
                 LfBus slackBus = slackBuses.get(i);
@@ -1182,6 +1186,15 @@ public class AcEquationSystemCreator {
         createDcNodesEquations(equationSystem);
         createDcLinesEquations(equationSystem);
         createConverterStationsEquations(equationSystem);
+        for (LfHvdc hvdc : network.getHvdcs()) {
+            createHvdcAcEmulationEquations(hvdc, equationSystem);
+        }
+
+        createVoltageControlEquations(equationSystem);
+
+        EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
+
+        network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, creationParameters)));
 
         System.out.println("##############################_____Equation Description_____##############################");
 
@@ -1195,15 +1208,6 @@ public class AcEquationSystemCreator {
                 System.out.println("  Element : " + term.getElementType() + term.getElementNum());
             }
         }
-        for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcAcEmulationEquations(hvdc, equationSystem);
-        }
-
-        createVoltageControlEquations(equationSystem);
-
-        EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
-
-        network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, creationParameters)));
 
         return equationSystem;
     }

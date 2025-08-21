@@ -132,6 +132,8 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case BUS_TARGET_V_REF:
+                System.out.println("##############################_____VAC_____##############################");
+                System.out.println(network.getAcDcConverter(equation.getElementNum()).getTargetVac());
                 targets[equation.getColumn()] = network.getAcDcConverter(equation.getElementNum()).getTargetVac();
                 break;
 

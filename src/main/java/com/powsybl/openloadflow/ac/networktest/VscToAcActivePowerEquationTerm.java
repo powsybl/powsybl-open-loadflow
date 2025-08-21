@@ -14,7 +14,6 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public static double iAcPerUnit(double pAcPerUnit, double qAcPerUnit) {
-
         double pAc = pAcPerUnit * PerUnit.SB;
         double qAc = qAcPerUnit * PerUnit.SB;
         return Math.sqrt(pAc * pAc + qAc * qAc) / (Math.sqrt(3) * nominalV * PerUnit.ib(nominalV));
@@ -40,12 +39,16 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
         return -qAc*(lossB()+2*lossC()*iAcPerUnit(pAc,qAc))/(Math.sqrt(pAc*pAc+qAc*qAc));
     }
 
-    public double pDc(double pAcPerUnit, double qAcPerUnit) {
+    public static double pDc(double pAcPerUnit, double qAcPerUnit) {
         double iAcPerUnit = iAcPerUnit(pAcPerUnit, qAcPerUnit);
         return -pAcPerUnit - pLoss(iAcPerUnit);
     }
 
-    public double dpDcdpAc(double pAc, double qAc) {
+    public static double dpDcdpAc(double pAc, double qAc) {
+        System.out.println("##############################_____Q_____##############################");
+        System.out.println(qAc);
+        System.out.println(pAc);
+        System.out.println(dpDcdqAc(pAc, qAc));
         return -1-pAc*(lossB()+2*lossC()*iAcPerUnit(pAc,qAc))/(Math.sqrt(pAc*pAc+qAc*qAc));
     }
 

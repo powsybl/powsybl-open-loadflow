@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openloadflow.ac.networktest.MultipleSlackBusSelector;
 
 import java.util.List;
 import java.util.Objects;
@@ -33,6 +34,8 @@ public interface SlackBusSelector {
                 return new NameSlackBusSelector(slackBusesIds, countries, new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countries));
             case LARGEST_GENERATOR:
                 return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countries);
+            case MULTIPLE:
+                return new MultipleSlackBusSelector(countries);
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }

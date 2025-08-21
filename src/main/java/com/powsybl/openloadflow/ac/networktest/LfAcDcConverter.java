@@ -19,6 +19,8 @@ public interface LfAcDcConverter extends LfElement {
 
     double getTargetP();
 
+    double getTargetQ();
+
     double getTargetVdcControl();
 
     double getTargetVac();
@@ -30,6 +32,8 @@ public interface LfAcDcConverter extends LfElement {
     AcDcConverter.ControlMode getControlMode();
 
     void setTargetP(double p);
+
+    void setTargetQ(double q);
 
     void setPac(Evaluable p);
 
