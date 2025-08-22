@@ -53,15 +53,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
     }
 
-    private static Map<Integer, Integer> buildBusIndex(List<LfBus> buses) {
-        Map<Integer, Integer> busIndex = new LinkedHashMap<>();
-        for (int i = 0; i < buses.size(); i++) {
-            var bus = buses.get(i);
-            busIndex.put(bus.getNum(), i);
-        }
-        return busIndex;
-    }
-
     static class SensitivityContext {
 
         private final Map<Integer, Integer> controlledBusIndex;
@@ -257,8 +248,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .distinct()
                 .toList();
 
-        var controllerBusIndex = buildBusIndex(allControllerBuses);
-        var controlledBusIndex = buildBusIndex(allControlledBuses);
+        var controllerBusIndex = LfBus.buildIndex(allControllerBuses);
+        var controlledBusIndex = LfBus.buildIndex(allControlledBuses);
 
         // compute target voltage sensitivities for all controlled buses
         SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBuses, controlledBusIndex, loadFlowContext);
