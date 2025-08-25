@@ -45,15 +45,13 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public static double dpDcdpAc(double pAc, double qAc) {
-        System.out.println("##############################_____Q_____##############################");
-        System.out.println(qAc);
-        System.out.println(pAc);
-        System.out.println(dpDcdqAc(pAc, qAc));
         return -1-pAc*(lossB()+2*lossC()*iAcPerUnit(pAc,qAc))/(Math.sqrt(pAc*pAc+qAc*qAc));
     }
 
     @Override
     public double eval() {
+        System.out.println("##############################_____QAC_____##############################");
+        System.out.println(qAc());
         return pDc(pAc(), qAc());
     }
 

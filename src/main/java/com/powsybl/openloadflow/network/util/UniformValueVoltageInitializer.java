@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -30,5 +32,24 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
         return 0;
     }
 
+    @Override
+    public double getMagnitude(LfDcNode dcNode) {
+        return 1.0;
+    }
+
+    @Override
+    public double getPower(LfDcNode dcNode) {
+        return 1.0;
+    }
+
+    @Override
+    public double getPower(LfAcDcConverter converter) {
+        return 1.0;
+    }
+
+    @Override
+    public double getCurrent(LfAcDcConverter converter) {
+        return 1.0;
+    }
 }
 

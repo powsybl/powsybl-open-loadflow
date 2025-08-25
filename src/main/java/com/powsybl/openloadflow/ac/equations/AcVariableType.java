@@ -26,9 +26,10 @@ public enum AcVariableType implements Quantity {
     DUMMY_P("dummy_p", ElementType.BRANCH), // dummy active power injection (zero impedance branch)
     DUMMY_Q("dummy_q", ElementType.BRANCH), // dummy reactive power injection (zero impedance branch)
     DC_NODE_V("v_dc", ElementType.DC_NODE),
-    DC_NODE_P("p_dc", ElementType.DC_NODE),
-    AC_VSC_P("ac_vsc_p", ElementType.CONVERTER),
-    AC_VSC_Q("ac_vsc_q", ElementType.CONVERTER);
+    CONV_P_AC("conv_p_ac", ElementType.CONVERTER),
+    CONV_Q_AC("conv_q_ac", ElementType.CONVERTER),
+    CONV_I("conv_i", ElementType.CONVERTER);
+
     private final String symbol;
 
     private final ElementType elementType;

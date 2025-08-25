@@ -32,8 +32,8 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
         super(converter);
         Objects.requireNonNull(converter);
         Objects.requireNonNull(variableSet);
-        AcVariableType pType = AcVariableType.AC_VSC_P;
-        AcVariableType qType = AcVariableType.AC_VSC_Q;
+        AcVariableType pType = AcVariableType.CONV_P_AC;
+        AcVariableType qType = AcVariableType.CONV_Q_AC;
         LfBus bus = converter.getBus1();
         pAcVar = variableSet.getVariable(converter.getNum(), pType);
         qAcVar = variableSet.getVariable(converter.getNum(), qType);

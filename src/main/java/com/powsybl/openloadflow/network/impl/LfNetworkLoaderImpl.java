@@ -1023,7 +1023,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createDcLines(lfNetwork, network, topoConfig, parameters);
         createAcDcConverters(acDcConverters, lfNetwork, parameters);
 
-
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters, report);
             if (parameters.isGeneratorReactivePowerRemoteControl()) {

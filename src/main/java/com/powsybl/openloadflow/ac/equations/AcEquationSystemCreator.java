@@ -658,67 +658,88 @@ public class AcEquationSystemCreator {
             branch.setI2(i2);
         }
     }
-
-    protected static void createDcLineEquations(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                Evaluable p1,
-                                                Evaluable p2,
-                                                EquationTerm<AcVariableType, AcEquationType> closedP1,
-                                                EquationTerm<AcVariableType, AcEquationType> closedP2) {
-        // A DC Line injects power at both ends of a line, into DC nodes
-        // each DC node must guarantee that the sum of power injected at this DC node is zero
-        // therefore we add two equation terms from DC Line ends to each equation of DC node to ensure a balanced DC_NODE_TARGET_P
-        // We propose the convention where P injected to the DC node is positive
-        // Therefore, P1 and P2 are power flowing from the line to the DC nodes 1 and 2 respectively
-        if (closedP1 != null) {
-            equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
-                    .addTerm(closedP1);
-            dcLine.setClosedP1(closedP1);
+    protected static void createDcLineEquations(LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                EquationTerm<AcVariableType, AcEquationType> closedI1,
+                                                EquationTerm<AcVariableType, AcEquationType> closedI2) {
+        if (closedI1 != null) {
+            equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+                    .addTerm(closedI1);
 
         }
-        if (p1 != null) {
-            dcLine.setP1(p1);
-        }
-
-        if (closedP2 != null) {
-            equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
-                    .addTerm(closedP2);
-            dcLine.setClosedP2(closedP2);
-        }
-        if (p2 != null) {
-            dcLine.setP2(p2);
+        if (closedI2 != null) {
+            equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+                    .addTerm(closedI2);
         }
     }
 
     protected static void createConverterStationEquations(LfAcDcConverter acDcConverter, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        LfDcNode dcNode = acDcConverter.getDcNode1();
         LfBus bus = acDcConverter.getBus1();
-
-        // if a converter is set with fixed P at the AC Bus, then an equation at the Ac Bus inherited from the converter is Pac = Pref, Pref is the set point of power injected into the AC Bus
-        // if a converter is set with fixed V at the DC node, then an equation at the DC node inherited from the converter is Vdc = Vref
+        LfDcNode dcNode1 = acDcConverter.getDcNode1();
+        LfDcNode dcNodeR = acDcConverter.getDcNode2();
         if (acDcConverter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
-            equationSystem.createEquation(acDcConverter, AcEquationType.AC_VSC_TARGET_P)
-                    .addTerm(equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_P)
-                            .createTerm());
-        } else {
-            equationSystem.createEquation(acDcConverter, AcEquationType.DC_NODE_TARGET_V_REF)
-                    .addTerm(equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_V)
+            // if a converter is in PCC Mode, we add an equation to set Pac injected by the converter
+            equationSystem.createEquation(acDcConverter, AcEquationType.AC_CONV_TARGET_P_REF)
+                    .addTerm(equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.CONV_P_AC)
                             .createTerm());
         }
+        else {
+            // if a converter is in V Mode, we add an equation to set Vdc, the tension of the DcNode connected to the converter
+            if(acDcConverter.isBipolar()) {
+                //if this is bipolar model, Vpositive - Vreturn = targetV
+                EquationTerm<AcVariableType, AcEquationType> vReturn = equationSystem.getVariable(dcNodeR.getNum(), AcVariableType.DC_NODE_V)
+                        .createTerm();
+                EquationTerm<AcVariableType, AcEquationType> vLayer = equationSystem.getVariable(dcNode1.getNum(), AcVariableType.DC_NODE_V)
+                        .createTerm();
+                equationSystem.createEquation(acDcConverter, AcEquationType.DC_NODE_TARGET_V_REF)
+                        .addTerm(vLayer)
+                        .addTerm(vReturn.minus());
+            }
+            else{
+                //if not, it is just Vdc = targetV
+                equationSystem.createEquation(acDcConverter, AcEquationType.DC_NODE_TARGET_V_REF)
+                        .addTerm(equationSystem.getVariable(dcNode1.getNum(), AcVariableType.DC_NODE_V)
+                                .createTerm());
+            }
+        }
 
-        EquationTerm<AcVariableType, AcEquationType> pAc = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_P).createTerm();
         //The Converter add its power pAc in AC power balance
+        EquationTerm<AcVariableType, AcEquationType> pAc = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.CONV_P_AC).createTerm();
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pAc);
 
 
-        //The VSC Converter station act as a generator at DC side, so it adds a term AC_VSC_P in the DC_NODE_TARGET_P equation, but the DC power value depends on the AC power one
+        //We add this equation to set the DC power of the converter pConv, in function of the AC power injected pAc, including losses
         EquationTerm<AcVariableType, AcEquationType> pActoDc = new VscToAcActivePowerEquationTerm(acDcConverter, equationSystem.getVariableSet());
-        equationSystem.getEquation(dcNode.getNum(), AcEquationType.DC_NODE_TARGET_P).orElseThrow()
-                .addTerm(pActoDc);
+        EquationTerm<AcVariableType, AcEquationType> pConv;
 
-        //If the Converter station control V instead of Q
+        if(acDcConverter.isBipolar()){
+            pConv = new ConverterDcPowerEquationTerm(acDcConverter, dcNode1, dcNodeR, equationSystem.getVariableSet());
+        }
+        else{
+            pConv = new ConverterDcPowerEquationTerm(acDcConverter, dcNode1, equationSystem.getVariableSet());
+        }
+
+        equationSystem.createEquation(acDcConverter.getNum(), AcEquationType.CONV_TARGET_P)
+                .addTerm(pActoDc)
+                .addTerm(pConv.minus());
+
+        //The converter is injecting current Iconv into DcNode, so we add Iconv to current balance
+        EquationTerm<AcVariableType, AcEquationType> iConv1 = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.CONV_I)
+                .createTerm();
+        equationSystem.createEquation(dcNode1, AcEquationType.DC_NODE_TARGET_I)
+                .addTerm(iConv1);
+
+        if(acDcConverter.isBipolar() &&!dcNodeR.isGrounded()) {
+            EquationTerm<AcVariableType, AcEquationType> iConvR = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.CONV_I)
+                    .createTerm();
+            equationSystem.createEquation(dcNodeR, AcEquationType.DC_NODE_TARGET_I)
+                    .addTerm(iConvR.minus());
+        }
+
+
+            //If the Converter station control vAc instead of Q
         if (acDcConverter.isVoltageRegulatorOn()) {
-            EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.AC_VSC_Q).createTerm();
+            EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(acDcConverter.getNum(), AcVariableType.CONV_Q_AC).createTerm();
             //The Converter add its reactive power qAc in AC reactive power balance
             equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
                     .addTerm(qAc);
@@ -839,8 +860,6 @@ public class AcEquationSystemCreator {
                             .createTerm());
         }
         if (bus.isSlack()) {
-            System.out.println("##############################_____SLACK_____##############################");
-            System.out.println(bus.getId());
             p.setActive(false);
         }
 
@@ -858,8 +877,15 @@ public class AcEquationSystemCreator {
 
     protected void createDcNodeEquation(LfDcNode dcNode,
                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        var p = equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_P);
-        dcNode.setP(p);
+        if(dcNode.isGrounded()){
+            var v = equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_GROUND)
+                            .addTerm(equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_V)
+                            .createTerm());
+            dcNode.setV(v);
+        }
+        else {
+            equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_I);
+        }
     }
 
     private void createLoadEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -921,8 +947,8 @@ public class AcEquationSystemCreator {
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
 
             // we only support one generator controlling voltage with a non zero slope at a bus.
-            // equation is: V + slope * qSVC = targetV
-            // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
+            // equation is: v + slope * qSVC = targetV
+            // which is modeled here with: v + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
             equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).orElseThrow()
                     .addTerms(createReactiveTerms(bus, equationSystem.getVariableSet(), creationParameters)
                             .stream()
@@ -1040,20 +1066,17 @@ public class AcEquationSystemCreator {
         createTransformerReactivePowerControlEquations(branch, equationSystem);
     }
 
-    protected void createDcLine(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2,
-                                EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        Evaluable p1;
-        Evaluable p2;
+    protected void createDcLine(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        EquationTerm<AcVariableType, AcEquationType> closedI1 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedI2 = null;
+        if(!dcNode1.isGrounded()) {
+            closedI1 = new ClosedBranchSide1DcCurrentEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+        }
+        if(!dcNode2.isGrounded()) {
+            closedI2 = new ClosedBranchSide2DcCurrentEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+        }
 
-        EquationTerm<AcVariableType, AcEquationType> closedP1 = new ClosedBranchSide1DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
-        EquationTerm<AcVariableType, AcEquationType> closedP2 = new ClosedBranchSide2DcPowerEquationTermV2(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
-        p1 = closedP1;
-        p2 = closedP2;
-        createDcLineEquations(dcLine, dcNode1, dcNode2, equationSystem,
-                p1,
-                p2,
-                closedP1,
-                closedP2);
+        createDcLineEquations(dcNode1, dcNode2, equationSystem, closedI1, closedI2);
     }
 
     private void createImpedantBranchEquations(LfBranch branch,
@@ -1196,18 +1219,18 @@ public class AcEquationSystemCreator {
 
         network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, creationParameters)));
 
-        System.out.println("##############################_____Equation Description_____##############################");
-
-        for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()) {
-            System.out.println("Équation : " + equation.getType() + " Bus" + equation.getElementNum());
-
-            for (EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()) {
-                for (Variable<AcVariableType> variable : term.getVariables()) {
-                    System.out.println("  Variable : " + variable.getType() + variable.getElementNum());
-                }
-                System.out.println("  Element : " + term.getElementType() + term.getElementNum());
-            }
-        }
+//        System.out.println("##############################_____Equation Description_____##############################");
+//
+//        for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()) {
+//            System.out.println("Équation : " + equation.getType() + " Bus" + equation.getElementNum());
+//
+//            for (EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()) {
+//                for (Variable<AcVariableType> variable : term.getVariables()) {
+//                    System.out.println("  Variable : " + variable.getType() + variable.getElementNum());
+//                }
+//                System.out.println("  Element : " + term.getElementType() + term.getElementNum());
+//            }
+//        }
 
         return equationSystem;
     }

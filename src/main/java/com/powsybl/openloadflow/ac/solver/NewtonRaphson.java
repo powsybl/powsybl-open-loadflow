@@ -133,16 +133,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             AcSolverUtil.updateNetwork(network, equationSystem);
-            System.out.println("##############################_____Variables Values_____##############################");
-            StateVector stateVector = equationSystem.getStateVector();
 
-            for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
-                int row = variable.getRow();
-                double value = stateVector.get(row);
-
-                System.out.println(variable.getType().getSymbol() + variable.getElementNum() + " = " + value);
-            }
-            System.out.println("\n");
 
 //            System.out.println("##############################_____Equation Terms_____##############################");
 //            for(Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()){
@@ -159,7 +150,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 //                System.out.println("Bus " + bus.getId() + ":");
 //                System.out.println("  P = " + bus.getP().eval());
 //                System.out.println("  Q = " + bus.getQ().eval());
-//                System.out.println("  V = " + bus.getV());
+//                System.out.println("  v = " + bus.getV());
 //                System.out.println("  Angle = " + bus.getAngle());
 //            }
 //            for (LfBranch branch : network.getBranches()){
@@ -170,6 +161,16 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         }
 
+        System.out.println("##############################_____Variables Values_____##############################");
+        StateVector stateVector = equationSystem.getStateVector();
+
+        for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
+            int row = variable.getRow();
+            double value = stateVector.get(row);
+
+            System.out.println(variable.getType().getSymbol() + " " + network.getElement(variable.getType().getElementType(), variable.getElementNum()) + " = " + value);
+        }
+        System.out.println("\n");
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }

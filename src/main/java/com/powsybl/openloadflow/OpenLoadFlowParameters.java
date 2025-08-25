@@ -654,8 +654,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
-    private int dcVscConverterScenario;
-
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean acDcNetwork = false;
 
@@ -1996,7 +1994,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
-                .setDcVscConverterScenario(parametersExt.getDcVscConverterScenario())
                 .setAcDcNetwork(parametersExt.isAcDcNetwork());
     }
 
@@ -2353,15 +2350,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
 
         return parameters2;
-    }
-
-    public OpenLoadFlowParameters setDcVscConverterScenario(int scenario){
-        this.dcVscConverterScenario = scenario;
-        return this;
-    }
-
-    public int getDcVscConverterScenario(){
-        return dcVscConverterScenario;
     }
 
     public void setAcDcNetwork(boolean acDcNetwork){

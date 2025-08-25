@@ -160,8 +160,6 @@ public class LfNetworkParameters {
 
     private boolean extrapolateReactiveLimits = EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE;
 
-    private int dcVscConverterScenario;
-
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
     private boolean isAcDcNetwork;
@@ -214,7 +212,7 @@ public class LfNetworkParameters {
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
-        this.dcVscConverterScenario = other.dcVscConverterScenario;
+        this.isAcDcNetwork = other.isAcDcNetwork;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -700,15 +698,6 @@ public class LfNetworkParameters {
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
                 ')';
-    }
-
-    public LfNetworkParameters setDcVscConverterScenario (int scenario){
-        dcVscConverterScenario = scenario;
-        return this;
-    }
-
-    public int getDcVscConverterScenario(){
-        return dcVscConverterScenario;
     }
 
     public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork){

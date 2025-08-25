@@ -11,6 +11,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
@@ -93,5 +95,25 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     @Override
     public double getAngle(LfBus bus) {
         return bus.getAngle();
+    }
+
+    @Override
+    public double getPower(LfDcNode dcNode) {
+        return 1;
+    }
+
+    @Override
+    public double getPower(LfAcDcConverter converter) {
+        return 1;
+    }
+
+    @Override
+    public double getMagnitude(LfDcNode dcNode) {
+        return 1;
+    }
+
+    @Override
+    public double getCurrent(LfAcDcConverter converter) {
+        return 1;
     }
 }

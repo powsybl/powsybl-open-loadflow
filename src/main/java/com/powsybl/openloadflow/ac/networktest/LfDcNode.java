@@ -1,8 +1,8 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 
 public interface LfDcNode extends LfElement {
@@ -14,9 +14,13 @@ public interface LfDcNode extends LfElement {
 
     void addLfDcLine(LfDcLine lfdcline);
 
-    void setPdc(double pdc);
+    double getP();
 
-    void setVdc(double vdc);
+    void setP(double p);
+
+    double getV();
+
+    void setV(double v);
 
     default boolean isParticipating() {
         return false;
@@ -26,10 +30,13 @@ public interface LfDcNode extends LfElement {
 
     double getTargetV();
 
-    void setTargetV(double vdc);
+    void setTargetV(double v);
 
     double getTargetP();
 
     double getNominalV();
 
+    boolean isGrounded();
+
+    List<LfDcLine> getDcLines();
 }

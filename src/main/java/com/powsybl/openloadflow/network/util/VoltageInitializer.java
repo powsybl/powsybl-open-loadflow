@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -15,22 +16,18 @@ import com.powsybl.openloadflow.network.LfNetwork;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface VoltageInitializer {
-
+//TODO : Implement clean Voltage Initializer for Dc Elements
     void prepare(LfNetwork network);
 
     double getMagnitude(LfBus bus);
 
-    default double getPower(LfDcNode dcNode) {
-        return 1.0;
-    }
+    double getPower(LfDcNode dcNode);
 
-    default double getPower(LfBus bus) {
-        return 1.0;
-    }
+    double getPower(LfAcDcConverter converter);
 
-    default double getMagnitude(LfDcNode dcNode) {
-        return 1.0;
-    }
+    double getCurrent(LfAcDcConverter converter);
+
+    double getMagnitude(LfDcNode dcNode);
 
     double getAngle(LfBus bus);
 }

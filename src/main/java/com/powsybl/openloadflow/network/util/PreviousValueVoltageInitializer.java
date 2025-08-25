@@ -8,6 +8,8 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -57,5 +59,57 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
             }
         }
         return angle;
+    }
+
+    @Override
+    public double getPower(LfDcNode dcNode) {
+        double p = dcNode.getP();
+        if (Double.isNaN(p)) {
+            if (defaultToUniformValue) {
+                return defaultVoltageInitializer.getPower(dcNode);
+            } else {
+                throw new PowsyblException("Power is undefined for dcNode '" + dcNode.getId() + "'");
+            }
+        }
+        return p;
+    }
+
+    @Override
+    public double getPower(LfAcDcConverter converter) {
+        double p = converter.getPac();
+        if (Double.isNaN(p)) {
+            if (defaultToUniformValue) {
+                return defaultVoltageInitializer.getPower(converter);
+            } else {
+                throw new PowsyblException("Power is undefined for converter '" + converter.getId() + "'");
+            }
+        }
+        return p;
+    }
+
+    @Override
+    public double getMagnitude(LfDcNode dcNode) {
+        double v = dcNode.getV();
+        if (Double.isNaN(v)) {
+            if (defaultToUniformValue) {
+                return defaultVoltageInitializer.getPower(dcNode);
+            } else {
+                throw new PowsyblException("Power is undefined for dcNode '" + dcNode.getId() + "'");
+            }
+        }
+        return v;
+    }
+
+    @Override
+    public double getCurrent(LfAcDcConverter converter) {
+        double i = converter.getIConv();
+        if (Double.isNaN(i)) {
+            if (defaultToUniformValue) {
+                return defaultVoltageInitializer.getCurrent(converter);
+            } else {
+                throw new PowsyblException("Power is undefined for converter '" + converter.getId() + "'");
+            }
+        }
+        return i;
     }
 }

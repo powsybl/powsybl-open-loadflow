@@ -56,39 +56,6 @@ $$
 Where $Loss_{A}, Loss_{B}$ and $Loss_{C}$ are loss factors that depend on the Converter, and $I_{ACpu}$ is the 
 current flowing from AC side to the converter, or from the converter to AC side depending on the converter mode.
 
-$I_{AC,pu}$ is calculated by : 
-$$
-\begin{aligned}
-I_{AC,SI} &= \frac{\sqrt{Q_{AC,SI}^{2} + P_{AC,SI}^{2}}}{\sqrt{3}*V_{AC,Base}} \\ 
-I_{AC,pu} &= \frac{I_{AC,SI}}{I_{AC,Base}}
-\end{aligned}
-$$
-
-And in the Jacobian, we then have the two derivatives: $\frac{\partial P_{DC,pu}}{\partial P_{AC,pu}}$ and 
-$\frac{\partial P_{DC,pu}}{\partial Q_{AC,pu}}$ :
-
-$$
-\begin{aligned}
-\frac{\partial P_{DC,pu}}{\partial P_{AC,pu}} &= -1- \frac{\partial P_{Loss,pu}}{\partial P_{AC,pu}} \\
-&=-1-\frac{\partial}{\partial P_{AC,pu}}(Loss_{A} + Loss_{B}*I_{AC,pu} + Loss_{C}*I_{AC,pu}^{2}) \\
-&= -1-(Loss_{B}*\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}+2I_{AC,pu}Loss_{C}\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}) \\
-&= -1-(Loss_{B}+2I_{AC,pu}Loss_{C})*\frac{\partial I_{AC,pu}}{\partial P_{AC,SI}}*\frac{\partial P_{AC,SI}}{\partial P_{AC,pu}}\\
-&= -1-(Loss_{B}+2I_{AC,pu}Loss_{C})*2P_{AC,SI}\frac{1}{2\sqrt{3}*V_{AC,Base}*I_{AC,Base}*\sqrt{Q_{AC,SI}^{2} + P_{AC,SI}^{2}}}*S_{Base}\\ 
-&= -1-\frac{P_{AC,SI}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{\sqrt{Q_{AC,SI}^{2} + P_{AC,SI}^{2}}}
-\end{aligned}
-$$
-
-And by the same calculation : 
-$$
-\begin{aligned}
-\frac{\partial P_{DC,pu}}{\partial Q_{AC,pu}} &= - \frac{\partial P_{Loss,pu}}{\partial Q_{AC,pu}} \\
-&= \frac{-Q_{AC,SI}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{\sqrt{Q_{AC,SI}^{2} + P_{AC,SI}^{2}}}
-\end{aligned}
-$$
-
-
-
-
 $I_{AC,pu}$ is calculated by :
 $$
 \begin{aligned}
@@ -108,3 +75,12 @@ $$
 &= -1-\frac{P_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
 \end{aligned}
 $$
+
+And by the same calculation :
+$$
+\begin{aligned}
+\frac{\partial P_{DC,pu}}{\partial Q_{AC,pu}} &= - \frac{\partial P_{Loss,pu}}{\partial Q_{AC,pu}} \\
+&= \frac{-Q_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
+\end{aligned}
+$$
+

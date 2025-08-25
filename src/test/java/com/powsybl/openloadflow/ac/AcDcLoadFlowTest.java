@@ -23,7 +23,6 @@ public class AcDcLoadFlowTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDcVscConverterScenario(5)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -37,7 +36,6 @@ public class AcDcLoadFlowTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDcVscConverterScenario(5)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -46,12 +44,11 @@ public class AcDcLoadFlowTest {
 
     @Test
     void testThreeConverters(){
-        Network network = AcDcNetworkFactory.createAcDcNetwork3();
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDcVscConverterScenario(5)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -60,12 +57,11 @@ public class AcDcLoadFlowTest {
 
     @Test
     void testAcVoltageControl(){
-        Network network = AcDcNetworkFactory.createAcDcNetwork4();
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithAcVoltageControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDcVscConverterScenario(5)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -74,15 +70,81 @@ public class AcDcLoadFlowTest {
 
 
     @Test
-    void testTwoAcNetworksDeconnected(){
-        Network network = AcDcNetworkFactory.createAcDcNetwork5();
+    void testTwoAcNetworksWithAcSubNetworks(){
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MULTIPLE)
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.MULTIPLE_REFERENCES)
                 .setMaxSlackBusCount(2)
-                .setDcVscConverterScenario(5)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+
+    @Test
+    void testBipolarModel(){
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testBipolarModelWithAcSubNetworks(){
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcSubNetworks();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MULTIPLE)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.MULTIPLE_REFERENCES)
+                .setMaxSlackBusCount(2)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testBipolarModelWithOtherControl(){
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithOtherControl();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testBipolarModelThreeConverters(){
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithThreeConverters();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testBipolarModelAcVoltageControl(){
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcVoltageControl();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

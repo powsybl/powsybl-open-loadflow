@@ -69,15 +69,17 @@ public final class AcSolverUtil {
                     x[v.getRow()] = initializer.getMagnitude(network.getDcNode(v.getElementNum()));
                     break;
 
-                case DC_NODE_P:
-                    x[v.getRow()] = initializer.getPower(network.getDcNode(v.getElementNum()));
-                    break;
+                case CONV_P_AC:
+                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()));
 
-                case AC_VSC_P:
-                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()).getBus1());
                     break;
-                case AC_VSC_Q:
-                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()).getBus1());
+                case CONV_Q_AC:
+                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()));
+
+                    break;
+                case CONV_I:
+                    x[v.getRow()] = initializer.getCurrent(network.getAcDcConverter(v.getElementNum()));
+
                     break;
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());
@@ -132,21 +134,22 @@ public final class AcSolverUtil {
                     // nothing to do
                     break;
 
-                case DC_NODE_P:
-                    network.getDcNode(v.getElementNum()).setPdc(stateVector.get(v.getRow()));
-                    break;
-
                 case DC_NODE_V:
-                    network.getDcNode(v.getElementNum()).setVdc(stateVector.get(v.getRow()));
+                    network.getDcNode(v.getElementNum()).setV(stateVector.get(v.getRow()));
                     break;
 
-                case AC_VSC_P:
-                    network.getAcDcConverter(v.getElementNum()).setTargetP(stateVector.get(v.getRow()));
+                case CONV_P_AC:
+                    network.getAcDcConverter(v.getElementNum()).setPac(stateVector.get(v.getRow()));
                     break;
 
-                case AC_VSC_Q:
+                case CONV_Q_AC:
                     network.getAcDcConverter(v.getElementNum()).setTargetQ(stateVector.get(v.getRow()));
                     break;
+
+                case CONV_I:
+                    network.getAcDcConverter(v.getElementNum()).setIConv(stateVector.get(v.getRow()));
+                    break;
+
 
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());

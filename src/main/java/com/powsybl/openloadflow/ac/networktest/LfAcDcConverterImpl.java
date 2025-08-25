@@ -17,14 +17,13 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
 
     protected List<Double> lossFactors;
 
-    protected ConverterStationMode converterMode;
-
     protected AcDcConverter.ControlMode controlMode;
 
     protected boolean isVoltageRegulatorOn = false;
 
     protected double targetQ;
 
+    protected boolean isBipolar;
 
     int num = -1;
 
@@ -44,15 +43,10 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
             }
         }
         this.targetP = converter.getTargetP()/PerUnit.SB;
-        if (targetP > 0) {
-            converterMode = ConverterStationMode.INVERTER;
-        } else {
-            converterMode = ConverterStationMode.RECTIFIER;
-        }
-
         if (controlMode == AcDcConverter.ControlMode.V_DC) {
             targetVdc = converter.getTargetVdc()/ dcNode1.getNominalV();
         }
+        isBipolar = converter.getDcTerminal2().isConnected();
     }
 
     public static LfAcDcConverterImpl create(AcDcConverter<?> acDcConverter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
@@ -88,11 +82,6 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
     }
 
     @Override
-    public ConverterStationMode getConverterMode() {
-        return converterMode;
-    }
-
-    @Override
     public AcDcConverter.ControlMode getControlMode() {
         return controlMode;
     }
@@ -103,7 +92,7 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
     }
 
     @Override
-    public double getTargetVdcControl() {
+    public double getTargetVdc() {
         return targetVdc;
     }
 
@@ -115,5 +104,10 @@ public class LfAcDcConverterImpl extends AbstractLfAcDcConverter {
     @Override
     public void setTargetQ(double q) {
         targetQ = q;
+    }
+
+    @Override
+    public boolean isBipolar() {
+        return isBipolar;
     }
 }
