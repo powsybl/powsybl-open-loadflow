@@ -23,6 +23,7 @@ import com.powsybl.iidm.criteria.VoltageInterval;
 import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -338,7 +339,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
 
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertSame(PostContingencyComputationStatus.FAILED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
@@ -2400,7 +2401,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setBus("BUS_3")
                 .setMinP(0.0)
                 .setMaxP(140)
-                .setTargetP(0)
+                .setTargetP(1)
                 .setTargetV(33)
                 .setVoltageRegulatorOn(true)
                 .add();
@@ -2410,14 +2411,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         lfParameters.setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
-        openLoadFlowParameters.setMinRealisticVoltage(0.0);
-        openLoadFlowParameters.setMaxRealisticVoltage(3.0);
         lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Collections.emptySet(), Collections.singleton("VL_2"), Collections.emptySet()));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
-        assertEquals(148.396, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("BUS_2").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals(111.761, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("BUS_2").getV(), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -3111,7 +3110,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0, l34p1, 0);
         assertEquals(0, l34q1, 0);
         assertEquals(0, l34p2, DELTA_POWER);
-        assertEquals(-1.334, l34q2, DELTA_POWER);
+        assertEquals(-1.335, l34q2, DELTA_POWER);
 
         l23.getTerminal2().connect();
         l34.getTerminal1().connect();
@@ -3140,7 +3139,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(l34p1, l34Result.getP1(), DELTA_POWER);
         assertEquals(l34q1, l34Result.getQ1(), DELTA_POWER);
         assertEquals(l34p2, l34Result.getP2(), DELTA_POWER);
-        assertEquals(-1.334, l34Result.getQ2(), DELTA_POWER); // ????
+        assertEquals(-1.335, l34Result.getQ2(), DELTA_POWER); // ????
     }
 
     @Test
@@ -3595,13 +3594,22 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     private void testWithFictitiousLoad(LoadFlowParameters.BalanceType balanceType) {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+
+        // Add a variable capacity to each load
+        network.getLoadStream().filter(l -> l.getExtension(LoadDetail.class) == null)
+                .forEach(l ->
+                l.newExtension(LoadDetailAdder.class)
+                        .withFixedActivePower(l.getP0())
+                        .withVariableActivePower(l.getP0())
+                        .add());
+
         network.getLoad("l1").setFictitious(true); // single load on bus
-        network.getLoad("l4").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
+        network.getLoad("l3").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
 
         List<Contingency> contingencies = List.of(
                 new Contingency("l5", new LoadContingency("l5")),
                 new Contingency("l1", new LoadContingency("l1")),
-                new Contingency("l4", new LoadContingency("l4")));
+                new Contingency("l3", new LoadContingency("l3")));
 
         List<StateMonitor> monitors = List.of(
                 new StateMonitor(ContingencyContext.all(), Set.of("l14", "l24", "l34"), emptySet(), emptySet())
@@ -3642,7 +3650,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getLoad("l1").getTerminal().connect();
 
         // contingency 2: only fictitious load amongst many on the bus
-        network.getLoad("l4").getTerminal().disconnect();
+        network.getLoad("l3").getTerminal().disconnect();
         loadFlowRunner.run(network, parameters);
         NetworkResult networkResultContingency2 = result.getPostContingencyResults().get(2).getNetworkResult();
         assertEquals(network.getLine("l24").getTerminal1().getP(), networkResultContingency2.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -3659,6 +3667,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     private void testWithFictitiousLoad2(LoadFlowParameters.BalanceType balanceType) {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+
+        // Add a variable capacity to each load
+        network.getLoadStream().filter(l -> l.getExtension(LoadDetail.class) == null)
+                .forEach(l ->
+                        l.newExtension(LoadDetailAdder.class)
+                                .withFixedActivePower(l.getP0())
+                                .withVariableActivePower(l.getP0())
+                                .add());
+
         network.getLoad("l4").setLoadType(LoadType.FICTITIOUS); // one load amongst many on the bus
 
         // contigency on two loads on the same bus: one is fictitious and one is not

@@ -21,7 +21,7 @@ import java.util.*;
  */
 public class LfNetworkParameters {
 
-    public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
+    public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 10000;
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
 

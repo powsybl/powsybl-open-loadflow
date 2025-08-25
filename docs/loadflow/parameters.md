@@ -45,7 +45,8 @@ This option defines the behavior in case the slack distribution fails. Available
 - `DISTRIBUTE_ON_REFERENCE_GENERATOR` if you want to put the slack on the reference generator, disregarding active power limits.
   There must be a reference generator defined, i.e. `referenceBusSelectionMode` must be `GENERATOR_REFERENCE_PRIORITY` - otherwise this mode falls back to `FAIL` mode automatically.
 
-The default value is `LEAVE_ON_SLACK_BUS`.
+The default value is `FAIL` 
+Note: In version 1.16 and before, the default value was LEAVE_ON_SLACK_BUS.
 
 **slackBusSelectionMode**  
 The `slackBusSelectionMode` property is an optional property that defines how to select the slack bus. The three options are available through the configuration file:
@@ -310,7 +311,8 @@ The `plausibleActivePowerLimit` property is an optional property that defines a 
 - slack distribution (if `balanceType` equals to any of the `PROPORTIONAL_TO_GENERATION_<any>` types)
 - slack selection (if `slackBusSelectionMode` equals to `LARGEST_GENERATOR`)
 
-The default value is $5000 MW$.
+The default value is $10000 MW$.
+Note: In version 1.16.0 and before the default value was $5000 MW$.
 
 **minPlausibleTargetVoltage** and **maxPlausibleTargetVoltage**  
 Equipments with voltage regulation target voltage outside these per-unit thresholds
