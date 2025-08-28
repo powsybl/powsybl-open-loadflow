@@ -54,10 +54,9 @@ public abstract class AbstractConverterDcPowerEquationTerm extends AbstractEleme
     }
 
     protected double vR() {
-        if(isBipolar) {
+        if (isBipolar) {
             return sv.get(vRVar.getRow());
-        }
-        else{
+        } else {
             return 0;
         }
     }

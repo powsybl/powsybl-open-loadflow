@@ -15,12 +15,13 @@ public class LfDcNodeImpl extends AbstractLfDcNode {
     public LfDcNodeImpl(DcNode dcNode, LfNetwork network, double nominalV, LfNetworkParameters parameters) {
         super(network, nominalV, dcNode.getV());
         this.dcNodeRef = Ref.create(dcNode, parameters.isCacheEnabled());
-        if(dcNode.getV() == 0.0){
+        if (dcNode.getV() == 0.0) {
             isGrounded = true;
         }
     }
 
     public static LfDcNodeImpl create(DcNode dcNode, LfNetwork network, LfNetworkParameters parameters) {
+        Objects.requireNonNull(network);
         Objects.requireNonNull(dcNode);
         Objects.requireNonNull(parameters);
         return new LfDcNodeImpl(dcNode, network, dcNode.getNominalV(), parameters);
@@ -29,6 +30,7 @@ public class LfDcNodeImpl extends AbstractLfDcNode {
     private DcNode getDcNode() {
         return dcNodeRef.get();
     }
+
     @Override
     public String getId() {
         return getDcNode().getId();

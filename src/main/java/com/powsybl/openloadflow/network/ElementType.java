@@ -18,5 +18,5 @@ public enum ElementType {
     DC_LINE,
     AREA,
     DC_NODE,
-    CONVERTER;
+    CONVERTER
 }

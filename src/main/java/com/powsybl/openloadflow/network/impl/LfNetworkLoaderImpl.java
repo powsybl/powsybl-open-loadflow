@@ -11,7 +11,10 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.extensions.ControlUnit;
+import com.powsybl.iidm.network.extensions.ControlZone;
+import com.powsybl.iidm.network.extensions.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.openloadflow.ac.networktest.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
@@ -485,7 +488,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void addAcDcConverter(LfNetwork lfNetwork, LfAcDcConverter acDcConverter) {
-        lfNetwork.addAcDcConverter(acDcConverter);
+        if (acDcConverter instanceof LfVoltageSourceConverter) {
+            lfNetwork.addVoltageSourceConverter((LfVoltageSourceConverter) acDcConverter);
+        }
     }
 
     private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, LfTopoConfig topoConfig, LoadingContext loadingContext,
@@ -575,23 +580,25 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDcLines(LfNetwork lfNetwork, Network network, LfTopoConfig topoConfig, LfNetworkParameters parameters) {
-        for(DcLine dcLine:network.getDcLines()){
+    private static void createDcLines(LfNetwork lfNetwork, Network network, LfNetworkParameters parameters) {
+        for (DcLine dcLine : network.getDcLines()) {
             LfDcNode lfDcNode1 = getLfDcNode(dcLine.getDcTerminal1(), lfNetwork);
             LfDcNode lfDcNode2 = getLfDcNode(dcLine.getDcTerminal2(), lfNetwork);
-            LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcNode1, lfDcNode2, topoConfig, parameters);
+            LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcNode1, lfDcNode2, parameters);
             addDcLine(lfNetwork, lfDcLine);
         }
     }
 
     private static void createAcDcConverters(List<AcDcConverter<?>> acDcConverters, LfNetwork lfNetwork, LfNetworkParameters parameters) {
-        for(AcDcConverter<?> acDcConverter:acDcConverters){
+        for (AcDcConverter<?> acDcConverter : acDcConverters) {
             LfDcNode lfDcNode1 = getLfDcNode(acDcConverter.getDcTerminal1(), lfNetwork);
             LfDcNode lfDcNode2 = getLfDcNode(acDcConverter.getDcTerminal2(), lfNetwork);
             LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-            LfAcDcConverterImpl lfAcDcConverter = LfAcDcConverterImpl.create(acDcConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, lfBus2, parameters);
-            addAcDcConverter(lfNetwork, lfAcDcConverter);
+            if (acDcConverter instanceof VoltageSourceConverter) {
+                LfVoltageSourceConverterImpl lfAcDcConverter = LfVoltageSourceConverterImpl.create((VoltageSourceConverter) acDcConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, lfBus2, parameters);
+                addAcDcConverter(lfNetwork, lfAcDcConverter);
+            }
         }
     }
 
@@ -993,16 +1000,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
         List<LfDcNode> lfDcNodes = new ArrayList<>();
 
-        if(parameters.isAcDcNetwork()){
+        if (parameters.isAcDcNetwork()) {
             network.getDcNodes().forEach(dcNodes::add);
-            for(AcDcConverter<?> acDcConverter : network.getDcConnectables(AcDcConverter.class)){
+            for (AcDcConverter<?> acDcConverter : network.getDcConnectables(AcDcConverter.class)) {
                 acDcConverters.add(acDcConverter);
                 DcTerminal terminal1 = acDcConverter.getDcTerminal1();
                 DcTerminal terminal2 = acDcConverter.getDcTerminal2();
-                if(!terminal1.isConnected()){
+                if (!terminal1.isConnected()) {
                     dcNodes.remove(terminal1.getDcNode());
                 }
-                if(!terminal2.isConnected()){
+                if (!terminal2.isConnected()) {
                     dcNodes.remove(terminal2.getDcNode());
                 }
             }
@@ -1020,7 +1027,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
         createAreas(lfNetwork, loadingContext, postProcessors, parameters);
         createDcNodes(dcNodes, parameters, lfNetwork, lfDcNodes);
-        createDcLines(lfNetwork, network, topoConfig, parameters);
+        createDcLines(lfNetwork, network, parameters);
         createAcDcConverters(acDcConverters, lfNetwork, parameters);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
@@ -1344,7 +1351,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        if(!parameters.isAcDcNetwork()) {
+        if (!parameters.isAcDcNetwork()) {
             Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
             Iterable<Bus> buses = Networks.getBuses(network, parameters.isBreakers());
             for (Bus bus : buses) {
@@ -1392,14 +1399,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return lfNetworks;
-        }
-        else {
+        } else {
             List<LfNetwork> lfNetworks = new ArrayList<>();
             List<Bus> busesList = new ArrayList<>();
             network.getBusView().getBuses().forEach(busesList::add);
             List<Switch> switchesList = new ArrayList<>();
             network.getSwitches().forEach(switchesList::add);
-            lfNetworks.add(create(0,0, network, busesList, switchesList,
+            lfNetworks.add(create(0, 0, network, busesList, switchesList,
                     topoConfig, parameters, Reports.createRootLfNetworkReportNode(reportNode, 0, 0)));
             return lfNetworks;
         }

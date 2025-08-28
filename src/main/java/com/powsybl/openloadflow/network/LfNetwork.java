@@ -12,12 +12,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.ac.networktest.*;
-
-import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.networktest.LfDcLine;
+import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.ac.networktest.SelectedReferenceBuses;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.anarres.graphviz.builder.GraphVizGraph;
@@ -99,7 +99,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfDcLine> dcLines = new ArrayList<>();
 
-    private final List<LfAcDcConverter> acDcConvertersByIndex = new ArrayList<>();
+    private final List<LfVoltageSourceConverter> VoltageSourceConvertersByIndex = new ArrayList<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -213,7 +213,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case AREA -> getArea(num);
             case DC_NODE -> getDcNode(num);
             case DC_LINE -> getHvdc(num);
-            case CONVERTER -> getAcDcConverter(num);
+            case CONVERTER -> getVoltageSourceConverter(num);
         };
     }
 
@@ -237,8 +237,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
             List<LfBus> selectableBuses =
-                excludedSlackBuses.isEmpty() ? busesByIndex :
-                    busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
+                    excludedSlackBuses.isEmpty() ? busesByIndex :
+                            busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
 
             slackBuses = selectedSlackBus.getBuses();
@@ -258,7 +258,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             //TODO Modify the way reference bus is treated to have multiple reference bus for each AC SubNetwork in ACDC Network
             referenceBuses = selectedReferenceBuses.getLfBuses();
             referenceBus = selectedReferenceBuses.getLfBuses().get(0);
-            for(LfBus bus:referenceBuses){
+            for (LfBus bus : referenceBuses) {
                 bus.setReference(true);
             }
             if (selectedReferenceBuses instanceof SelectedGeneratorReferenceBuses generatorReferenceBuses) {
@@ -461,8 +461,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return hvdcs.get(num);
     }
 
-    public LfAcDcConverter getAcDcConverter(int num) {
-        return acDcConvertersByIndex.get(num);
+    public LfVoltageSourceConverter getVoltageSourceConverter(int num) {
+        return VoltageSourceConvertersByIndex.get(num);
     }
 
     public LfHvdc getHvdcById(String id) {
@@ -673,9 +673,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void reportSize(ReportNode reportNode) {
-        Reports.reportNetworkSize(reportNode, busesById.values().size(), branches.size());
+        Reports.reportNetworkSize(reportNode, busesById.size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
-            this, busesById.values().size(), branches.size());
+                this, busesById.size(), branches.size());
     }
 
     public void reportBalance(ReportNode reportNode) {
@@ -692,7 +692,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
         Reports.reportNetworkBalance(reportNode, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
-            this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+                this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
     public void fix(boolean minImpedance, double lowImpedanceThreshold) {
@@ -874,8 +874,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 continue;
             }
             boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
-                k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
-                        .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
+                    k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
+                            .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
             if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
@@ -1010,13 +1010,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return dcLines;
     }
 
-    public void addAcDcConverter(LfAcDcConverter acDcConverter){
-        acDcConverter.setNum(acDcConvertersByIndex.size());
-        acDcConvertersByIndex.add(acDcConverter);
+    public void addVoltageSourceConverter(LfVoltageSourceConverter VoltageSourceConverter) {
+        VoltageSourceConverter.setNum(VoltageSourceConvertersByIndex.size());
+        VoltageSourceConvertersByIndex.add(VoltageSourceConverter);
     }
 
-    public List<LfAcDcConverter> getAcDcConverters(){
-        return acDcConvertersByIndex;
+    public List<LfVoltageSourceConverter> getVoltageSourceConverters() {
+        return VoltageSourceConvertersByIndex;
     }
 
 }

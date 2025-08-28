@@ -15,7 +15,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *           |                                         |
      *           |l23---------------------------------------
      * </pre>
-     *
      */
     public static Network createAcDcNetwork1() {
         Network network = Network.create("vsc", "test");
@@ -113,7 +112,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(0.62505149*400)
+                .setTargetVdc(0.62505149 * 400)
                 .setId("converter23")
                 .setBus1("b2")
                 .setDcNode1("dcNode3")
@@ -153,7 +152,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *           |                                         |
      *           |l23---------------------------------------
      * </pre>
-     *
      */
     public static Network createAcDcNetwork2() {
         Network network = Network.create("vsc", "test");
@@ -291,7 +289,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *           |                            dcNode5-cs56-b6_ld6             |
      *           |l23----------------------------------------------------------
      * </pre>
-     *
      */
     public static Network createAcDcNetworkWithThreeConverters() {
         Network network = Network.create("vsc", "test");
@@ -492,7 +489,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *           |                                         |
      *           |l23---------------------------------------
      * </pre>
-     *
      */
     public static Network createAcDcNetworkWithAcVoltageControl() {
         Network network = Network.create("vsc", "test");
@@ -633,7 +629,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *
      *
      * </pre>
-     *
      */
     public static Network createAcDcNetworkWithAcSubNetworks() {
         Network network = Network.create("vsc", "test");

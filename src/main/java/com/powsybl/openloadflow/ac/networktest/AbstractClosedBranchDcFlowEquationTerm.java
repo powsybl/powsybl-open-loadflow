@@ -29,7 +29,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
         variables.add(v1Var);
         variables.add(v2Var);
-        r = dcLine.getR()/ (dcNode1.getNominalV()* dcNode2.getNominalV()/PerUnit.SB);
+        r = dcLine.getR() / (dcNode1.getNominalV() * dcNode2.getNominalV() / PerUnit.SB);
     }
 
     protected double v1() {

@@ -14,21 +14,21 @@ import java.util.Objects;
 
 public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquationTerm<LfAcDcConverter, AcVariableType, AcEquationType> {
 
+    protected static List<Double> lossFactors = new ArrayList<>();
+
+    protected static double nominalV;
+
     protected final Variable<AcVariableType> pAcVar;
 
     protected final Variable<AcVariableType> qAcVar;
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    protected static List<Double> lossFactors = new ArrayList<>();
-
-    protected static double nominalV;
-
     protected boolean isVoltageRegulatorOn;
 
     protected AcDcConverter.ControlMode controlMode;
 
-    protected AbstractVscToAcEquationTerm(LfAcDcConverter converter, VariableSet<AcVariableType> variableSet) {
+    protected AbstractVscToAcEquationTerm(LfVoltageSourceConverter converter, VariableSet<AcVariableType> variableSet) {
         super(converter);
         Objects.requireNonNull(converter);
         Objects.requireNonNull(variableSet);
@@ -42,22 +42,19 @@ public abstract class AbstractVscToAcEquationTerm extends AbstractElementEquatio
         nominalV = bus.getNominalV();
         controlMode = converter.getControlMode();
         this.isVoltageRegulatorOn = (converter.isVoltageRegulatorOn());
-        if(isVoltageRegulatorOn){
+        if (isVoltageRegulatorOn) {
             variables.add(qAcVar);
         }
     }
-
-
 
     protected double pAc() {
         return sv.get(pAcVar.getRow());
     }
 
-    protected double qAc(){
-        if(isVoltageRegulatorOn){
+    protected double qAc() {
+        if (isVoltageRegulatorOn) {
             return sv.get(qAcVar.getRow());
-        }
-        else{
+        } else {
             return 0.0;
         }
     }

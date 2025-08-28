@@ -8,17 +8,17 @@ import java.util.List;
 public interface LfDcNode extends LfElement {
 
 
-    void setP(Evaluable p);
-
-    void setV(Evaluable v);
-
     void addLfDcLine(LfDcLine lfdcline);
 
     double getP();
 
+    void setP(Evaluable p);
+
     void setP(double p);
 
     double getV();
+
+    void setV(Evaluable v);
 
     void setV(double v);
 

@@ -1,7 +1,8 @@
 package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.iidm.network.AcDcConverter;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 
 import java.util.List;
 
@@ -18,7 +19,7 @@ public interface LfAcDcConverter extends LfElement {
 
     double getTargetP();
 
-    double getTargetQ();
+    void setTargetP(double p);
 
     double getTargetVdc();
 
@@ -28,19 +29,13 @@ public interface LfAcDcConverter extends LfElement {
 
     AcDcConverter.ControlMode getControlMode();
 
-    void setTargetP(double p);
-
-    void setTargetQ(double q);
-
-    boolean isVoltageRegulatorOn();
-
     boolean isBipolar();
-
-    void setPac(double pdc);
 
     double getPac();
 
-    void setIConv(double iConv);
+    void setPac(double pdc);
 
     double getIConv();
+
+    void setIConv(double iConv);
 }

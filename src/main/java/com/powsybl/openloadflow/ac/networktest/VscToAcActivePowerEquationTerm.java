@@ -9,7 +9,7 @@ import java.util.Objects;
 
 public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm {
 
-    public VscToAcActivePowerEquationTerm(LfAcDcConverter converter, VariableSet<AcVariableType> variableSet) {
+    public VscToAcActivePowerEquationTerm(LfVoltageSourceConverter converter, VariableSet<AcVariableType> variableSet) {
         super(converter, variableSet);
     }
 
@@ -36,7 +36,7 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public static double dpDcdqAc(double pAc, double qAc) { //pAc and qAc are perUnit
-        return -qAc*(lossB()+2*lossC()*iAcPerUnit(pAc,qAc))/(Math.sqrt(pAc*pAc+qAc*qAc));
+        return -qAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (Math.sqrt(pAc * pAc + qAc * qAc));
     }
 
     public static double pDc(double pAcPerUnit, double qAcPerUnit) {
@@ -45,13 +45,11 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
     }
 
     public static double dpDcdpAc(double pAc, double qAc) {
-        return -1-pAc*(lossB()+2*lossC()*iAcPerUnit(pAc,qAc))/(Math.sqrt(pAc*pAc+qAc*qAc));
+        return -1 - pAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (Math.sqrt(pAc * pAc + qAc * qAc));
     }
 
     @Override
     public double eval() {
-        System.out.println("##############################_____QAC_____##############################");
-        System.out.println(qAc());
         return pDc(pAc(), qAc());
     }
 

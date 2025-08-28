@@ -12,12 +12,11 @@ import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
-
 import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AcDcLoadFlowTest {
 
     @Test
-    void testAcDcExample(){
+    void testAcDcExample() {
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -30,7 +29,7 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
-    void testAcDcExampleWithOtherControl(){
+    void testAcDcExampleWithOtherControl() {
         Network network = AcDcNetworkFactory.createAcDcNetwork2();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -43,7 +42,7 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
-    void testThreeConverters(){
+    void testThreeConverters() {
         Network network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -56,7 +55,7 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
-    void testAcVoltageControl(){
+    void testAcVoltageControl() {
         Network network = AcDcNetworkFactory.createAcDcNetworkWithAcVoltageControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -70,7 +69,7 @@ public class AcDcLoadFlowTest {
 
 
     @Test
-    void testTwoAcNetworksWithAcSubNetworks(){
+    void testTwoAcNetworksWithAcSubNetworks() {
         Network network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -86,7 +85,7 @@ public class AcDcLoadFlowTest {
 
 
     @Test
-    void testBipolarModel(){
+    void testBipolarModel() {
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -98,7 +97,7 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
-    void testBipolarModelWithAcSubNetworks(){
+    void testBipolarModelWithAcSubNetworks() {
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -113,7 +112,7 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
-    void testBipolarModelWithOtherControl(){
+    void testBipolarModelWithOtherControl() {
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithOtherControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -126,7 +125,7 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
-    void testBipolarModelThreeConverters(){
+    void testBipolarModelThreeConverters() {
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithThreeConverters();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -139,7 +138,7 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
-    void testBipolarModelAcVoltageControl(){
+    void testBipolarModelAcVoltageControl() {
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcVoltageControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();

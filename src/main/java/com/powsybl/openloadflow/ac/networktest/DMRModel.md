@@ -23,7 +23,6 @@ We add the Power injected by the Converter to AC side :
 
 #### BUS_TARGET_P : $\sum_{i} P_i + P_{AC} = 0$
 
-
 ## - DC Equations
 
 We add an equation to ensure the conservation of power between AC and DC. We introduce the variable $I_{CONV}$
@@ -32,11 +31,13 @@ $P_{DC} = -P_{AC} - P_{LOSS}$ which is the Power injected by the converter to th
 
 #### CONV_TARGET_P : $P_{DC} = I_{CONV}*(V_1-V_{RETURN})$
 
-Then, we add this power to the power equations of the positive/negative and the return Nodes.
+Then, we add this power to the current balances of the positive/negative and the return Nodes.
 
-#### DC_NODE_TARGET_P : $\sum_{i} P_i + I_{CONV}*(V_1-V_{RETURN}) = 0$ for positive/negative
+#### DC_NODE_TARGET_I : $\sum_{i} I_i + I_{CONVp} = 0$ for positive
 
-#### DC_NODE_TARGET_P : $\sum_{i} P_i - I_{CONV}*(V_1-V_{RETURN}) = 0$ for return
+#### DC_NODE_TARGET_I : $\sum_{i} I_i + I_{CONVn} = 0$ for negative
+
+#### DC_NODE_TARGET_I : $\sum_{i} I_i - I_{CONVp} - I_{CONVn} = 0$ for return
 
 ## - Grounding
 

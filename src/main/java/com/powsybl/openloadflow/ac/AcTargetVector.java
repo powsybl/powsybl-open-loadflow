@@ -10,13 +10,13 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -67,11 +67,11 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     public static void init(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
-            case BUS_TARGET_P :
+            case BUS_TARGET_P:
                 targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
                 break;
 
-            case BUS_DISTR_SLACK_P :
+            case BUS_DISTR_SLACK_P:
                 targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP() - network.getSlackBuses().get(0).getTargetP();
                 break;
 
@@ -124,11 +124,11 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case AC_CONV_TARGET_P_REF:
-                targets[equation.getColumn()] = network.getAcDcConverter(equation.getElementNum()).getTargetP();
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetP();
                 break;
 
             case DC_NODE_TARGET_V_REF:
-                targets[equation.getColumn()] = network.getAcDcConverter(equation.getElementNum()).getTargetVdc();
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetVdc();
                 break;
 
             case DC_NODE_GROUND:
@@ -136,7 +136,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case BUS_TARGET_V_REF:
-                targets[equation.getColumn()] = network.getAcDcConverter(equation.getElementNum()).getTargetVac();
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetVac();
                 break;
 
             case CONV_TARGET_P:

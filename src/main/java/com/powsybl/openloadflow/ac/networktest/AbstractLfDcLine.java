@@ -1,8 +1,9 @@
 package com.powsybl.openloadflow.ac.networktest;
 
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+import com.powsybl.openloadflow.network.AbstractElement;
+import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
 
 public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLine {
 
@@ -19,7 +20,6 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
         this.dcNode2 = dcNode2;
         dcNode2.addLfDcLine(this);
         this.r = r;
-
     }
 
     @Override

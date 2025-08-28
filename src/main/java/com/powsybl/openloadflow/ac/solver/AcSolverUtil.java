@@ -70,15 +70,15 @@ public final class AcSolverUtil {
                     break;
 
                 case CONV_P_AC:
-                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()));
+                    x[v.getRow()] = initializer.getPower(network.getVoltageSourceConverter(v.getElementNum()));
 
                     break;
                 case CONV_Q_AC:
-                    x[v.getRow()] = initializer.getPower(network.getAcDcConverter(v.getElementNum()));
+                    x[v.getRow()] = initializer.getPower(network.getVoltageSourceConverter(v.getElementNum()));
 
                     break;
                 case CONV_I:
-                    x[v.getRow()] = initializer.getCurrent(network.getAcDcConverter(v.getElementNum()));
+                    x[v.getRow()] = initializer.getCurrent(network.getVoltageSourceConverter(v.getElementNum()));
 
                     break;
                 default:
@@ -139,15 +139,15 @@ public final class AcSolverUtil {
                     break;
 
                 case CONV_P_AC:
-                    network.getAcDcConverter(v.getElementNum()).setPac(stateVector.get(v.getRow()));
+                    network.getVoltageSourceConverter(v.getElementNum()).setPac(stateVector.get(v.getRow()));
                     break;
 
                 case CONV_Q_AC:
-                    network.getAcDcConverter(v.getElementNum()).setTargetQ(stateVector.get(v.getRow()));
+                    network.getVoltageSourceConverter(v.getElementNum()).setTargetQ(stateVector.get(v.getRow()));
                     break;
 
                 case CONV_I:
-                    network.getAcDcConverter(v.getElementNum()).setIConv(stateVector.get(v.getRow()));
+                    network.getVoltageSourceConverter(v.getElementNum()).setIConv(stateVector.get(v.getRow()));
                     break;
 
 

@@ -48,18 +48,8 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     }
 
     @Override
-    public void setP(double p) {
-        this.p = p;
-    }
-
-    @Override
     public double getTargetP() {
         return p / PerUnit.SB;
-    }
-
-    @Override
-    public void setV(Evaluable calculatedV) {
-        this.calculatedV = calculatedV;
     }
 
     @Override
@@ -68,13 +58,13 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     }
 
     @Override
-    public void setV(double v) {
-        this.v = v;
+    public void setV(Evaluable calculatedV) {
+        this.calculatedV = calculatedV;
     }
 
     @Override
-    public void setP(Evaluable calculatedP) {
-        this.calculatedP = calculatedP;
+    public void setV(double v) {
+        this.v = v;
     }
 
     @Override
@@ -95,6 +85,16 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     @Override
     public double getP() {
         return p;
+    }
+
+    @Override
+    public void setP(double p) {
+        this.p = p;
+    }
+
+    @Override
+    public void setP(Evaluable calculatedP) {
+        this.calculatedP = calculatedP;
     }
 
     @Override

@@ -8,7 +8,10 @@
 package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.iidm.network.Country;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.AbstractSlackBusSelector;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
+import com.powsybl.openloadflow.network.SelectedSlackBus;
 
 import java.util.Collections;
 import java.util.List;

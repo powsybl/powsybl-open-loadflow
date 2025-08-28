@@ -27,10 +27,6 @@ public class ClosedBranchSide1DcPowerEquationTerm extends AbstractClosedBranchDc
 
     @Override
     public double eval() {
-        System.out.println("##############################_____V1 V2 P1 side1_____##############################");
-        System.out.println(v1());
-        System.out.println(v2());
-        System.out.println(p1(v1(), v2(), r));
         return p1(v1(), v2(), r);
     }
 
