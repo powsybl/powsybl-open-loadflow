@@ -408,6 +408,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 .setComputationManager(LocalComputationManager.getDefault())
                 .setSecurityAnalysisParameters(securityAnalysisParameters)
                 .setMonitors(monitors);
+        OpenLoadFlowParameters.create(runParameters.getSecurityAnalysisParameters().getLoadFlowParameters())
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
         SecurityAnalysisResult result = provider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
                         n -> contingencies,

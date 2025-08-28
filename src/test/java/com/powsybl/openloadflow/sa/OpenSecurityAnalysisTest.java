@@ -755,6 +755,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         saParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters()
                 .setCreateResultExtension(true));
 
+        OpenLoadFlowParameters.create(saParameters.getLoadFlowParameters())
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -796,7 +799,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(-6.181, preContingencyResult.getNetworkResult().getBranchResult("LINE_12").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-6.177, preContingencyResult.getNetworkResult().getBranchResult("LINE_12").getQ2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "N-2");
@@ -3225,6 +3228,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters.create(loadFlowParameters)
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL)
                 .setVoltageTargetPriorities(List.of("TRANSFORMER"));
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(loadFlowParameters);
@@ -3305,7 +3309,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
                 .setDistributedSlack(false)
                 .setTransformerVoltageControlOn(true);
-        OpenLoadFlowParameters.create(loadFlowParameters);
+        OpenLoadFlowParameters.create(loadFlowParameters)
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters()

@@ -514,6 +514,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setTargetV(34.0);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL_1_0", true);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
 
         List<SensitivityFactor> factors = network.getBusBreakerView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "T2wT"))
