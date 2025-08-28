@@ -25,8 +25,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class AcLoadFlowVscTest {
 
@@ -492,7 +491,7 @@ class AcLoadFlowVscTest {
         result = loadFlowRunner.run(network, p);
 
         // SC 1 fails if there is a fictive load
-        assertTrue(result.getComponentResults().get(0).getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
         assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
 
