@@ -8,7 +8,7 @@
             Network balance: active generation=25 MW, active load=16.2 MW, reactive generation=0 MVar, reactive load=7.5 MVar
             Angle reference bus: VL_2_0
             Slack bus: VL_2_0
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.297136
@@ -55,8 +55,8 @@
          + Outer loop DistributedSlack
             + Outer loop iteration 1
                Slack bus active power (5.819582 MW) distributed in 1 distribution iteration(s)
-         + Newton Raphson on Network CC0 SC0
-            Newton Raphson of outer loop iteration 1 of type DistributedSlack
+         + Newton-Raphson on Network CC0 SC0
+            Newton-Raphson of outer loop iteration 1 of type DistributedSlack
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.058188
                + Largest P mismatch: -5.818836 MW
@@ -88,8 +88,8 @@
          Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop SimpleTransformerVoltageControl
-         + Newton Raphson on Network CC0 SC0
-            Newton Raphson of outer loop iteration 2 of type SimpleTransformerVoltageControl
+         + Newton-Raphson on Network CC0 SC0
+            Newton-Raphson of outer loop iteration 2 of type SimpleTransformerVoltageControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.00036
                + Largest P mismatch: 0.030561 MW

@@ -6,7 +6,7 @@
             Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
             Angle reference bus: vl2_0
             Slack bus: vl2_0
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
                Newton-Raphson norm |f(x)|=1.810563
@@ -58,8 +58,8 @@
          + Outer loop IncrementalShuntVoltageControl
             + Outer loop iteration 1
                1 shunts changed section
-         + Newton Raphson on Network CC0 SC0
-            Newton Raphson of outer loop iteration 1 of type IncrementalShuntVoltageControl
+         + Newton-Raphson on Network CC0 SC0
+            Newton-Raphson of outer loop iteration 1 of type IncrementalShuntVoltageControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=1.509955
                + Largest P mismatch: -0.000214 MW
