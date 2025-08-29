@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -61,26 +62,43 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onEquationTermChange(term));
     }
 
+    private void updateEquationsToSolve(Comparator<Equation<V, E>> comparator) {
+        sortedEquationsToSolve = comparator == null ? equationsToSolve.stream().sorted().collect(Collectors.toList())
+                : equationsToSolve.stream().sorted(comparator).collect(Collectors.toList());
+        AtomicInteger columnCount = new AtomicInteger();
+        for (Equation<V, E> equation : sortedEquationsToSolve) {
+            equation.setColumn(columnCount.getAndAdd(1));
+        }
+        equationsIndexValid = true;
+        LOGGER.debug("Equations index updated ({} columns)", columnCount);
+    }
+
+    private void updateVariablesToFind(Comparator<Variable<V>> comparator) {
+        sortedVariablesToFind = comparator == null ? variablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList())
+                : variablesToFindRefCount.keySet().stream().sorted(comparator).collect(Collectors.toList());
+        AtomicInteger rowCount = new AtomicInteger();
+        for (Variable<V> variable : sortedVariablesToFind) {
+            variable.setRow(rowCount.getAndAdd(1));
+        }
+        variablesIndexValid = true;
+        LOGGER.debug("Variables index updated ({} rows)", rowCount);
+    }
+
     private void update() {
         if (!equationsIndexValid) {
-            sortedEquationsToSolve = equationsToSolve.stream().sorted().collect(Collectors.toList());
-            int columnCount = 0;
-            for (Equation<V, E> equation : sortedEquationsToSolve) {
-                equation.setColumn(columnCount++);
-            }
-            equationsIndexValid = true;
-            LOGGER.debug("Equations index updated ({} columns)", columnCount);
+            updateEquationsToSolve(null);
         }
 
         if (!variablesIndexValid) {
-            sortedVariablesToFind = variablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList());
-            int rowCount = 0;
-            for (Variable<V> variable : sortedVariablesToFind) {
-                variable.setRow(rowCount++);
-            }
-            variablesIndexValid = true;
-            LOGGER.debug("Variables index updated ({} rows)", rowCount);
+            updateVariablesToFind(null);
         }
+    }
+
+    public void updateWithComparators(Comparator<Equation<V, E>> equationComparator, Comparator<Variable<V>> variableComparator) {
+        // Sort equations to solve
+        updateEquationsToSolve(equationComparator);
+        // Sort variable to find
+        updateVariablesToFind(variableComparator);
     }
 
     private void addTerm(EquationTerm<V, E> term) {

@@ -51,6 +51,13 @@ public class StateVector {
         notifyStateUpdate();
     }
 
+    public void minusWithRange(double[] b, int begin) {
+        for (int i = 0; i < b.length; i++) {
+            array[begin + i] -= b[i];
+        }
+        notifyStateUpdate();
+    }
+
     private void notifyStateUpdate() {
         for (StateVectorListener listener : listeners) {
             listener.onStateUpdate();
