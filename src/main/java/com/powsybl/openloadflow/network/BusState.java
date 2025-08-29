@@ -18,6 +18,7 @@ public class BusState extends BusDcState {
     private final double angle;
     private final double voltage;
     private final double generationTargetQ;
+    private final boolean isGenerationTargetQFrozen;
     private final boolean voltageControlEnabled;
     private final Boolean shuntVoltageControlEnabled;
     private final Boolean reactiveControlEnabled;
@@ -52,6 +53,7 @@ public class BusState extends BusDcState {
         this.angle = bus.getAngle();
         this.voltage = bus.getV();
         this.generationTargetQ = bus.getGenerationTargetQ();
+        this.isGenerationTargetQFrozen = bus.isGenerationTargetQFrozen();
         this.voltageControlEnabled = bus.isGeneratorVoltageControlEnabled();
         this.reactiveControlEnabled = bus.isGeneratorReactivePowerControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
@@ -77,8 +79,12 @@ public class BusState extends BusDcState {
         super.restore();
         element.setAngle(angle);
         element.setV(voltage);
-        element.setGenerationTargetQ(generationTargetQ);
         element.setGeneratorVoltageControlEnabled(voltageControlEnabled);
+        if (isGenerationTargetQFrozen) {
+            element.freezeGenerationTargetQ(generationTargetQ);
+        } else {
+            element.invalidateGenerationTargetQ();
+        }
         element.setGeneratorReactivePowerControlEnabled(reactiveControlEnabled);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
