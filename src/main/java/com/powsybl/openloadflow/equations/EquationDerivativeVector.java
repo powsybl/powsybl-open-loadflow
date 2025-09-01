@@ -1,7 +1,5 @@
 package com.powsybl.openloadflow.equations;
 
-import com.fasterxml.jackson.core.TreeNode;
-
 import java.util.List;
 
 /**
@@ -36,7 +34,7 @@ class EquationDerivativeVector {
         }
     }
 
-    void update(EquationArray<?,?> equationArray) {
+    void update(EquationArray<?, ?> equationArray) {
         // compute all derivatives for each of the term array
         var termArrays = equationArray.getTermArrays();
         double[][][] termDerValuesByArrayIndex = new double[termArrays.size()][][];

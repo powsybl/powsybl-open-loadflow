@@ -271,7 +271,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public interface DerHandler<V extends Enum<V> & Quantity> {
+    public interface DerHandler {
 
         int onDer(int column, int row, double value, int matrixElementIndex);
     }
@@ -317,7 +317,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         matrixElementIndexes.reset();
     }
 
-    public void der(DerHandler<V> handler) {
+    public void der(DerHandler handler) {
         Objects.requireNonNull(handler);
 
         updateEquationDerivativeVectors();
@@ -366,7 +366,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    private void onDer(DerHandler<V> handler, int column, int row, double value, int valueIndex) {
+    private void onDer(DerHandler handler, int column, int row, double value, int valueIndex) {
         int matrixElementIndex = handler.onDer(column, row, value, matrixElementIndexes.get(valueIndex));
         matrixElementIndexes.set(valueIndex, matrixElementIndex);
     }
