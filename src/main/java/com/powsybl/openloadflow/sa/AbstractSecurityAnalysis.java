@@ -801,6 +801,12 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                                                          preContingencyNetworkResult, createResultExtension, limitReductions);
                                 postContingencyResults.add(postContingencyResult);
 
+                                if (contingencyLoadFlowParameters != null &&
+                                        Objects.equals(ContingencyLoadFlowParameters.Scope.CONTINGENCY_ONLY, contingencyLoadFlowParameters.getScope())) {
+                                    // reset parameters
+                                    parametersResetter.accept(context.getParameters());
+                                }
+
                                 List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least one operator strategy for this contingency.
@@ -838,7 +844,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                 if (contingencyIt.hasNext()) {
                                     // restore base state
                                     networkState.restore();
-                                    if (contingencyLoadFlowParameters != null) {
+                                    if (contingencyLoadFlowParameters != null &&
+                                            Objects.equals(ContingencyLoadFlowParameters.Scope.CONTINGENCY_AND_OPERATOR_STRATEGY, contingencyLoadFlowParameters.getScope())) {
                                         // reset parameters
                                         parametersResetter.accept(context.getParameters());
                                     }

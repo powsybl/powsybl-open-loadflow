@@ -59,7 +59,7 @@ Please note that fast mode has a few limitations:
 it is considered completely disabled, and no results are reported for this branch.
 - AC emulation of HVDC lines is disabled, as it is not yet supported.
 Instead, the [active power setpoint](../loadflow/loadflow.md#computing-hvdc-power-flow) mode is used to control the active power flow through these lines. 
-- Only PST remedial actions are supported for now.
+- Only PST and topological (except for transformer closing) remedial actions are supported for now.
 - Slack relocation following the application of a contingency is not supported.
 As a result, security analysis is carried out only in slack component, and not necessarily in the largest one.
 - Customizing the way contingency imbalances are compensated via `contingencyActivePowerLossDistribution` parameter is not supported.
@@ -115,7 +115,11 @@ The behaviour is as follows:
 - When the extension is added: The specified parameters override the corresponding SA input parameters.
 - When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
 
-Note that if the operator strategies are defined for the contingency, the overridden load flow parameters will apply to
-the operator strategies actions simulation too.
+When operator strategies are defined for a contingency, the `scope` attribute of `ContingencyLoadFlowParameters`
+defines whether the overridden parameters also apply to the operator strategy simulations:
+- `CONTINGENCY_AND_OPERATOR_STRATEGY` (default): The overridden load flow parameters are applied to
+both the contingency itself and any operator associated with it.
+- `CONTINGENCY_ONLY`: The overridden load flow parameters are applied only to the contingency
+and not to the associated operator strategies.
 
 This extension does not override any parameter in case of a sensitivity analysis.

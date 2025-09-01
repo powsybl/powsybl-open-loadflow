@@ -108,9 +108,13 @@ public interface LfBus extends LfElement {
 
     double getNonFictitiousLoadTargetP();
 
+    void invalidateLoadTargetQ();
+
     double getLoadTargetQ();
 
     void invalidateGenerationTargetP();
+
+    void invalidateGenerationTargetQ();
 
     double getGenerationTargetP();
 
@@ -118,7 +122,9 @@ public interface LfBus extends LfElement {
 
     double getGenerationTargetQ();
 
-    void setGenerationTargetQ(double generationTargetQ);
+    void freezeGenerationTargetQ(double generationTargetQ);
+
+    boolean isGenerationTargetQFrozen();
 
     double getMinQ();
 

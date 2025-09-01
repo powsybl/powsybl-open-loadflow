@@ -10,6 +10,9 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
@@ -491,6 +494,49 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .addVoltageLevel(vl2)
                 .addAreaBoundary(l2.getTerminal1(), true)
                 .add();
+
+        return network;
+    }
+
+    public static Network createTenAreas() {
+        Network network = Network.create("tenAreas", "test");
+
+        for (int i = 0; i < 10; i++) {
+            Bus b = createBus(network, "b" + i);
+
+            DanglingLine dl0 = createDanglingLine(b, "dlb" + i + "_0", 0.1, 0, 0);
+            DanglingLine dl1 = createDanglingLine(b, "dlb" + i + "_1", 0.1, 0, 0);
+            dl0.setPairingKey("key_" + i);
+            int key1 = i == 9 ? 0 : i + 1;
+            dl1.setPairingKey("key_" + key1);
+
+            double interchangeTarget;
+            if (List.of(1, 3, 4, 8, 9).contains(i)) {
+                interchangeTarget = -2;
+            } else {
+                interchangeTarget = 2;
+            }
+            createGenerator(b, "g" + i, 5);
+            createLoad(b, "l" + i, 5 + interchangeTarget + 0.05); // add 0.05 to have no interchange mismatch but still some slack bus mismatch
+
+            network.newArea()
+                    .setId("A" + i)
+                    .setName("Area " + i)
+                    .setAreaType("ControlArea")
+                    .setInterchangeTarget(interchangeTarget)
+                    .addVoltageLevel(b.getVoltageLevel())
+                    .addAreaBoundary(dl0.getBoundary(), true)
+                    .addAreaBoundary(dl1.getBoundary(), true)
+                    .add();
+        }
+
+        network.getDanglingLineStream()
+                .collect(Collectors.groupingBy(DanglingLine::getPairingKey))
+                .forEach((key, value) -> network.newTieLine()
+                        .setId(key).setName(key)
+                        .setDanglingLine1(value.get(0).getId())
+                        .setDanglingLine2(value.get(1).getId())
+                        .add());
 
         return network;
     }

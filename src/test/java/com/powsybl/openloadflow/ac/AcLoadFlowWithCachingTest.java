@@ -324,9 +324,10 @@ class AcLoadFlowWithCachingTest {
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
-        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
 
-        shunt.setSectionCount(0);
+        shunt.setSolvedSectionCount(0);
         assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
     }
 
@@ -342,9 +343,10 @@ class AcLoadFlowWithCachingTest {
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
-        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
 
-        shunt.setSectionCount(1);
+        shunt.setSolvedSectionCount(1);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
 
@@ -614,14 +616,16 @@ class AcLoadFlowWithCachingTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(1, twt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt.getRatioTapChanger().getTapPosition());
 
         twt.getRatioTapChanger().setTargetV(32);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(2, twt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, twt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt.getRatioTapChanger().getTapPosition());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
     }
 
@@ -641,14 +645,16 @@ class AcLoadFlowWithCachingTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(1, twt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
 
         twt.getLeg2().getRatioTapChanger().setTargetV(26);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(2, twt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertEquals(2, twt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
     }
 
@@ -656,6 +662,7 @@ class AcLoadFlowWithCachingTest {
     void testTransfo2TapPositionChange() {
         var network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         var twt = network.getTwoWindingsTransformer("T2wT");
+        assertNull(twt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getRatioTapChanger().getTapPosition());
 
         parametersExt.setActionableTransformersIds(Set.of("T2wT"));
@@ -676,6 +683,7 @@ class AcLoadFlowWithCachingTest {
     void testTransfo3TapPositionChange() {
         var network = VoltageControlNetworkFactory.createNetworkWithT3wt();
         var twt = network.getThreeWindingsTransformer("T3wT");
+        assertNull(twt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
 
         parametersExt.setActionableTransformersIds(Set.of("T3wT"));

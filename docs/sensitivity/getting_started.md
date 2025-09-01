@@ -41,3 +41,16 @@ Here is a table to summarize supported use cases:
 | BUS_REACTIVE_POWER      | <span style="color:red">N/A</span>       | <span style="color:green">AC</span> | <span style="color:red">N/A</span>       | <span style="color:green">AC</span> | <span style="color:red">N/A</span>       | <span style="color:red">N/A</span>       | <span style="color:red">N/A</span>       | <span style="color:red">N/A</span>       |
 
 </div>
+
+## Input function types
+
+### Branch sensitivity functions : 
+BRANCH_ACTIVE_POWER_#, BRANCH_REACTIVE_POWER_# or BRANCH_CURRENT_# are associated to branch objects (lines, transformers, dangling lines, tie lines). The # index corresponding to the side of the studied branch. 
+- If it is a line, a tie line, or a two windings transformer : The side is 1 or 2.
+- If it is a three windings transformer : The side is 1, 2 or 3 corresponding to the studied leg of the transformer.
+- If it is a dangling line : The side is 1 (network side) or 2 (boundary side). Note that if the dangling line is paired, only side 1 (network side) can be specified, and the sensitivity function is computed at the corresponding tie line side.
+
+### Bus sensitivity functions :
+BUS_VOLTAGE or BUS_REACTIVE_POWER are associated to the bus of the given network element.
+
+

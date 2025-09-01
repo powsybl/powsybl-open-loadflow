@@ -13,7 +13,7 @@ import com.powsybl.action.LoadActionBuilder;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.commons.test.TestUtil;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -207,7 +207,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testActivePowerLimitViolations() {
         Network network = createNodeBreakerNetwork();
-        network.getLine("L1").newActivePowerLimits1()
+        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits()
                .setPermanentLimit(1.0)
                .beginTemporaryLimit()
                .setName("60")
@@ -248,7 +248,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testApparentPowerLimitViolations() {
         Network network = createNodeBreakerNetwork();
-        network.getLine("L1").newApparentPowerLimits1()
+        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits()
                .setPermanentLimit(1.0)
                .beginTemporaryLimit()
                .setName("60")
@@ -504,11 +504,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testSaWithStateMonitorLfLeg() {
         Network network = T3wtFactory.create();
-        List<Contingency> contingencies = network.getBranchStream()
-                .limit(1)
-                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
-                .collect(Collectors.toList());
-
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         parameters.setLoadFlowParameters(new LoadFlowParameters());
         parameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
@@ -551,11 +546,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
 
-        fourBusNetwork.getLine("l14").newActivePowerLimits1().setPermanentLimit(0.1).add();
-        fourBusNetwork.getLine("l12").newActivePowerLimits1().setPermanentLimit(0.2).add();
-        fourBusNetwork.getLine("l23").newActivePowerLimits1().setPermanentLimit(0.25).add();
-        fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
-        fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l14").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l12").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.2).add();
+        fourBusNetwork.getLine("l23").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.25).add();
+        fourBusNetwork.getLine("l34").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.15).add();
+        fourBusNetwork.getLine("l13").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.1).add();
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
@@ -647,11 +642,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
 
-        fourBusNetwork.getLine("l14").newActivePowerLimits1().setPermanentLimit(0.1).add();
-        fourBusNetwork.getLine("l12").newActivePowerLimits1().setPermanentLimit(0.2).add();
-        fourBusNetwork.getLine("l23").newActivePowerLimits1().setPermanentLimit(0.25).add();
-        fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
-        fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l14").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l12").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.2).add();
+        fourBusNetwork.getLine("l23").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.25).add();
+        fourBusNetwork.getLine("l34").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.15).add();
+        fourBusNetwork.getLine("l13").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.1).add();
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
@@ -1231,7 +1226,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testPostContingencyFiltering() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
-        network.getLine("NHV1_NHV2_2").newCurrentLimits1()
+        network.getLine("NHV1_NHV2_2").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                 .setPermanentLimit(300)
                 .add();
         network.getVoltageLevel("VLHV1").setLowVoltageLimit(410);
@@ -1252,12 +1247,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1008.928, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
         List<LimitViolation> preContingencyLimitViolationsOnVoltageLevel = result.getPreContingencyResult().getLimitViolationsResult()
-                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).toList();
         assertEquals(LimitViolationType.LOW_VOLTAGE, preContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
         assertEquals(402.143, preContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
         List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel = result.getPostContingencyResults().get(0).getLimitViolationsResult()
-                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).toList();
         assertEquals(LimitViolationType.LOW_VOLTAGE, postContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
         assertEquals(398.265, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
@@ -1271,7 +1266,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0, postContingencyLimitViolationsOnLine2.size());
 
         List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
-                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).toList();
         assertEquals(0, postContingencyLimitViolationsOnVoltageLevel2.size());
     }
 
@@ -1304,7 +1299,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testViolationOnThreeWindingsTransformersLeg() {
         Network network = T3wtFactory.create();
-        network.getThreeWindingsTransformer("3wt").getLeg2().newCurrentLimits()
+        network.getThreeWindingsTransformer("3wt").getLeg2().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
                 .setPermanentLimit(400.)
                 .beginTemporaryLimit()
                 .setName("60'")
@@ -1645,11 +1640,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
-        network.getLine("l14").newCurrentLimits1().setPermanentLimit(60.0).add();
-        network.getLine("l12").newCurrentLimits1().setPermanentLimit(120.0).add();
-        network.getLine("l23").newCurrentLimits2().setPermanentLimit(150.0).add();
-        network.getLine("l34").newCurrentLimits1().setPermanentLimit(90.0).add();
-        network.getLine("l13").newCurrentLimits2().setPermanentLimit(60.0).add();
+        network.getLine("l14").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(60.0).add();
+        network.getLine("l12").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(120.0).add();
+        network.getLine("l23").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(150.0).add();
+        network.getLine("l34").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(90.0).add();
+        network.getLine("l13").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(60.0).add();
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
@@ -1698,19 +1693,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
-        network.getLine("l14").newCurrentLimits1().setPermanentLimit(60.0)
+        network.getLine("l14").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(60.0)
                 .beginTemporaryLimit().setName("60").setAcceptableDuration(Integer.MAX_VALUE).setValue(200.0).endTemporaryLimit()
                 .beginTemporaryLimit().setName("0").setAcceptableDuration(60).setValue(Double.MAX_VALUE).endTemporaryLimit().add();
-        network.getLine("l12").newCurrentLimits1().setPermanentLimit(120.0)
+        network.getLine("l12").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(120.0)
                 .beginTemporaryLimit().setName("60").setAcceptableDuration(Integer.MAX_VALUE).setValue(300.0).endTemporaryLimit()
                 .beginTemporaryLimit().setName("0").setAcceptableDuration(60).setValue(Double.MAX_VALUE).endTemporaryLimit().add();
-        network.getLine("l23").newCurrentLimits2().setPermanentLimit(150.0)
+        network.getLine("l23").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(150.0)
                 .beginTemporaryLimit().setName("60").setAcceptableDuration(Integer.MAX_VALUE).setValue(500.0).endTemporaryLimit()
                 .beginTemporaryLimit().setName("0").setAcceptableDuration(60).setValue(Double.MAX_VALUE).endTemporaryLimit().add();
-        network.getLine("l34").newCurrentLimits1().setPermanentLimit(90.0)
+        network.getLine("l34").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(90.0)
                 .beginTemporaryLimit().setName("60").setAcceptableDuration(Integer.MAX_VALUE).setValue(300.0).endTemporaryLimit()
                 .beginTemporaryLimit().setName("0").setAcceptableDuration(60).setValue(Double.MAX_VALUE).endTemporaryLimit().add();
-        network.getLine("l13").newCurrentLimits2().setPermanentLimit(60.0)
+        network.getLine("l13").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(60.0)
                 .beginTemporaryLimit().setName("60").setAcceptableDuration(Integer.MAX_VALUE).setValue(300.0).endTemporaryLimit()
                 .beginTemporaryLimit().setName("0").setAcceptableDuration(60).setValue(Double.MAX_VALUE).endTemporaryLimit().add();
 
@@ -1777,7 +1772,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("TestSecurityAnalysis")
                 .build();
 
@@ -2579,7 +2574,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getGenerator("GEN").setMaxP(4000).setMinP(-4000);
 
         TieLine line = network.getTieLine("NHV1_NHV2_1");
-        line.newCurrentLimits2()
+        line.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits()
                 .setPermanentLimit(900.0)
                 .beginTemporaryLimit()
                     .setName("10'")
@@ -2593,7 +2588,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .endTemporaryLimit()
                 .add();
         TieLine line2 = network.getTieLine("NHV1_NHV2_2");
-        line2.newCurrentLimits2()
+        line2.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits()
                 .setPermanentLimit(900.0)
                 .beginTemporaryLimit()
                     .setName("20'")
@@ -2633,8 +2628,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .getLimitViolationsResult().getLimitViolations().get(0));
         assertEquals(0, compare3); // FIXME line open at one side
 
-        line.newCurrentLimits1().setPermanentLimit(900.0).add();
-        line2.newCurrentLimits1().setPermanentLimit(900.0).add();
+        line.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(900.0).add();
+        line2.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(900.0).add();
         securityAnalysisParameters.getLoadFlowParameters().setDc(true);
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
 
@@ -2972,7 +2967,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(393, b3);
-        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(0, shunt2.getSolvedSectionCount());
         assertEquals(0, shunt2.getSectionCount());
         assertReactivePowerEquals(-134.585, g2.getTerminal());
 
@@ -2982,8 +2979,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertVoltageEquals(395, b3);
-        assertEquals(1, shunt.getSectionCount());
-        assertEquals(1, shunt2.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(1, shunt2.getSolvedSectionCount());
+        assertEquals(0, shunt2.getSectionCount());
         assertReactivePowerEquals(-110.176, g2.getTerminal());
 
         shunt.setSectionCount(0);
@@ -3002,7 +3001,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testPermanentLimitName() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        network.getLine("NHV1_NHV2_1").newCurrentLimits1()
+        network.getLine("NHV1_NHV2_1").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                 .setPermanentLimit(300)
                 .add();
         SecurityAnalysisResult result = runSecurityAnalysis(network);
@@ -3725,7 +3724,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         );
 
         ReportNode testReport = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("TEST")
                 .build();
 
@@ -3830,7 +3829,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .toList();
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("TEST")
                 .build();
 
@@ -4456,10 +4455,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = NodeBreakerNetworkFactory.createWith4Bars();
 
         // add small limits on disabled lines to verify there is no violation detected
-        network.getLine("L3").newCurrentLimits1().setPermanentLimit(0.1).add();
-        network.getLine("L3").newCurrentLimits2().setPermanentLimit(0.1).add();
-        network.getLine("L4").newCurrentLimits1().setPermanentLimit(0.1).add();
-        network.getLine("L4").newCurrentLimits2().setPermanentLimit(0.1).add();
+        network.getLine("L3").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(0.1).add();
+        network.getLine("L3").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(0.1).add();
+        network.getLine("L4").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(0.1).add();
+        network.getLine("L4").getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(0.1).add();
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.setDc(true);
