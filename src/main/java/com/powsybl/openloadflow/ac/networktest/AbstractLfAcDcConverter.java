@@ -34,14 +34,11 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     LfBus bus1;
 
-    LfBus bus2;
-
-    public AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1, LfBus bus2) {
+    public AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1) {
         super(network);
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;
         this.bus1 = bus1;
-        this.bus2 = bus2;
         this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
@@ -56,10 +53,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         return bus1;
     }
 
-    @Override
-    public LfBus getBus2() {
-        return bus2;
-    }
 
     @Override
     public LfDcNode getDcNode1() {

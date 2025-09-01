@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
 
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */

@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.util;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -62,24 +63,24 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public double getPower(LfDcNode dcNode) {
-        double p = dcNode.getP();
-        if (Double.isNaN(p)) {
+    public double getReactivePower(LfVoltageSourceConverter converter) {
+        double q = converter.getTargetQ();
+        if (Double.isNaN(q)) {
             if (defaultToUniformValue) {
-                return defaultVoltageInitializer.getPower(dcNode);
+                return defaultVoltageInitializer.getReactivePower(converter);
             } else {
-                throw new PowsyblException("Power is undefined for dcNode '" + dcNode.getId() + "'");
+                throw new PowsyblException("Reactive Power is undefined for converter '" + converter.getId() + "'");
             }
         }
-        return p;
+        return q;
     }
 
     @Override
-    public double getPower(LfAcDcConverter converter) {
+    public double getActivePower(LfAcDcConverter converter) {
         double p = converter.getPac();
         if (Double.isNaN(p)) {
             if (defaultToUniformValue) {
-                return defaultVoltageInitializer.getPower(converter);
+                return defaultVoltageInitializer.getActivePower(converter);
             } else {
                 throw new PowsyblException("Power is undefined for converter '" + converter.getId() + "'");
             }
@@ -92,7 +93,7 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
         double v = dcNode.getV();
         if (Double.isNaN(v)) {
             if (defaultToUniformValue) {
-                return defaultVoltageInitializer.getPower(dcNode);
+                return defaultVoltageInitializer.getMagnitude(dcNode);
             } else {
                 throw new PowsyblException("Power is undefined for dcNode '" + dcNode.getId() + "'");
             }

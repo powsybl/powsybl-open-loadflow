@@ -3,15 +3,11 @@ package com.powsybl.openloadflow.ac.networktest;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
-
 import java.util.List;
-
 
 public interface LfAcDcConverter extends LfElement {
 
     LfBus getBus1();
-
-    LfBus getBus2();
 
     LfDcNode getDcNode1();
 
@@ -38,4 +34,6 @@ public interface LfAcDcConverter extends LfElement {
     double getIConv();
 
     void setIConv(double iConv);
+
+
 }

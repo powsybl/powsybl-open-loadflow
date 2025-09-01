@@ -2352,11 +2352,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return parameters2;
     }
 
-    public void setAcDcNetwork(boolean acDcNetwork){
+    public void setAcDcNetwork(boolean acDcNetwork) {
         this.acDcNetwork = acDcNetwork;
     }
 
-    public boolean isAcDcNetwork(){
+    public boolean isAcDcNetwork() {
         return acDcNetwork;
     }
 }

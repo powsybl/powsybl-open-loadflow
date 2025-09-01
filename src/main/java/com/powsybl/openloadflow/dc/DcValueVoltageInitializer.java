@@ -13,6 +13,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
+import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
@@ -98,12 +99,12 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public double getPower(LfDcNode dcNode) {
+    public double getReactivePower(LfVoltageSourceConverter converter) {
         return 1;
     }
 
     @Override
-    public double getPower(LfAcDcConverter converter) {
+    public double getActivePower(LfAcDcConverter converter) {
         return 1;
     }
 

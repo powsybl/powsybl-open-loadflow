@@ -15,7 +15,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.networktest.LfDcLine;
 import com.powsybl.openloadflow.ac.networktest.LfDcNode;
 import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
-import com.powsybl.openloadflow.ac.networktest.SelectedReferenceBuses;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -63,9 +62,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     //TODO : find a better way to implement multiple reference buses in AcDc Networks
     private LfBus referenceBus;
 
-    private List<LfBus> referenceBuses;
+    private final List<LfBus> referenceBuses = new ArrayList<>();
 
-    private List<LfBus> slackBuses;
+    private List<LfBus> slackBuses = new ArrayList<>();
 
     private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
@@ -99,7 +98,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfDcLine> dcLines = new ArrayList<>();
 
-    private final List<LfVoltageSourceConverter> VoltageSourceConvertersByIndex = new ArrayList<>();
+    private final List<LfVoltageSourceConverter> voltageSourceConvertersByIndex = new ArrayList<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -116,6 +115,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
     private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
+
+    private final List<LfNetwork> acSubNetworks = new ArrayList<>();
 
     public enum Validity {
         VALID("Valid"),
@@ -235,6 +236,29 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public void updateSlackBusesAndReferenceBus() {
+        updateSubNetworksSlackBusesAndReferenceBus();
+        if(!acSubNetworks.isEmpty()){
+            for(LfNetwork subNetwork : acSubNetworks) {
+                subNetwork.updateSubNetworksSlackBusesAndReferenceBus();
+                for (LfBus bus: subNetwork.slackBuses) {
+                    LfBus slackBus = this.getBusById(bus.getId());
+                    if (!slackBuses.contains(slackBus)) {
+                        slackBus.setSlack(true);
+                        this.slackBuses.add(slackBus);
+                    }
+                }
+                LfBus referenceBus = this.getBusById(subNetwork.referenceBus.getId());
+                if (!referenceBuses.contains(referenceBus)) {
+                   referenceBus.setReference(true);
+                   this.referenceBuses.add(referenceBus);
+                }
+            }
+        }
+        LOGGER.info("Network {}, reference buses are {}", this, referenceBuses);
+        LOGGER.info("Network {}, slack buses are {}", this, slackBuses);
+    }
+
+    public void updateSubNetworksSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
             List<LfBus> selectableBuses =
                     excludedSlackBuses.isEmpty() ? busesByIndex :
@@ -249,37 +273,23 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 }
                 slackBuses = selectedSlackBus.getBuses();
             }
-            LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
+//            LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
             // reference bus must be selected after slack bus, because of ReferenceBusFirstSlackSelector implementation requiring slackBuses
-            SelectedReferenceBuses selectedReferenceBuses = referenceBusSelector.select(this);
-            //TODO Modify the way reference bus is treated to have multiple reference bus for each AC SubNetwork in ACDC Network
-            referenceBuses = selectedReferenceBuses.getLfBuses();
-            referenceBus = selectedReferenceBuses.getLfBuses().get(0);
-            for (LfBus bus : referenceBuses) {
-                bus.setReference(true);
-            }
-            if (selectedReferenceBuses instanceof SelectedGeneratorReferenceBuses generatorReferenceBuses) {
-                referenceGenerator = generatorReferenceBuses.getLfGenerator();
+            SelectedReferenceBus selectedReferenceBus = referenceBusSelector.select(this);
+            referenceBus = selectedReferenceBus.getLfBus();
+//            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
+            referenceBus.setReference(true);
+            if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
+                referenceGenerator = generatorReferenceBus.getLfGenerator();
                 LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
                 referenceGenerator.setReference(true);
             }
             if (connectivity != null) {
                 connectivity.setMainComponentVertex(slackBuses.get(0));
             }
-//            referenceBus = selectedReferenceBuses.getLfBuses();
-//            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
-//            referenceBus.setReference(true);
-//            if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
-//                referenceGenerator = generatorReferenceBus.getLfGenerator();
-//                LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
-//                referenceGenerator.setReference(true);
-//            }
-//            if (connectivity != null) {
-//                connectivity.setMainComponentVertex(slackBuses.get(0));
-//            }
         }
     }
 
@@ -462,7 +472,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfVoltageSourceConverter getVoltageSourceConverter(int num) {
-        return VoltageSourceConvertersByIndex.get(num);
+        return voltageSourceConvertersByIndex.get(num);
     }
 
     public LfHvdc getHvdcById(String id) {
@@ -1010,13 +1020,20 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return dcLines;
     }
 
-    public void addVoltageSourceConverter(LfVoltageSourceConverter VoltageSourceConverter) {
-        VoltageSourceConverter.setNum(VoltageSourceConvertersByIndex.size());
-        VoltageSourceConvertersByIndex.add(VoltageSourceConverter);
+    public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {
+        voltageSourceConverter.setNum(voltageSourceConvertersByIndex.size());
+        voltageSourceConvertersByIndex.add(voltageSourceConverter);
     }
 
     public List<LfVoltageSourceConverter> getVoltageSourceConverters() {
-        return VoltageSourceConvertersByIndex;
+        return voltageSourceConvertersByIndex;
     }
 
+    public void addAcSubNetwork(LfNetwork network) {
+        acSubNetworks.add(network);
+    }
+
+    public List<LfNetwork> getAcSubNetworks() {
+        return acSubNetworks;
+    }
 }

@@ -1,6 +1,6 @@
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -8,10 +8,8 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
-import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AcDcLoadFlowTest {
 
@@ -22,6 +20,19 @@ public class AcDcLoadFlowTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testAcDcExampleGridForming() {
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -67,22 +78,18 @@ public class AcDcLoadFlowTest {
         assertTrue(result.isFullyConverged());
     }
 
-
     @Test
-    void testTwoAcNetworksWithAcSubNetworks() {
+    void testTwoAcSubNetworks() {
         Network network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MULTIPLE)
-                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.MULTIPLE_REFERENCES)
-                .setMaxSlackBusCount(2)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
     }
-
 
     @Test
     void testBipolarModel() {
@@ -97,14 +104,37 @@ public class AcDcLoadFlowTest {
     }
 
     @Test
+    void testBipolarModelGridForming() {
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setAcDcNetwork(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
     void testBipolarModelWithAcSubNetworks() {
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MULTIPLE)
-                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.MULTIPLE_REFERENCES)
-                .setMaxSlackBusCount(2)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testBipolarModelWithAcSubNetworksGridForming() {
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcSubNetworksAndVoltageControl();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -144,6 +174,19 @@ public class AcDcLoadFlowTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testDcSubNetworks() {
+        Network network = AcDcNetworkFactory.createAcDcNetworkDcSubNetworks();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

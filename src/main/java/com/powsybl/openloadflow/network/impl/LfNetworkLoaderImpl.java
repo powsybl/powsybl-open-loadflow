@@ -591,13 +591,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createAcDcConverters(List<AcDcConverter<?>> acDcConverters, LfNetwork lfNetwork, LfNetworkParameters parameters) {
         for (AcDcConverter<?> acDcConverter : acDcConverters) {
-            LfDcNode lfDcNode1 = getLfDcNode(acDcConverter.getDcTerminal1(), lfNetwork);
-            LfDcNode lfDcNode2 = getLfDcNode(acDcConverter.getDcTerminal2(), lfNetwork);
             LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-            LfBus lfBus2 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-            if (acDcConverter instanceof VoltageSourceConverter) {
-                LfVoltageSourceConverterImpl lfAcDcConverter = LfVoltageSourceConverterImpl.create((VoltageSourceConverter) acDcConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, lfBus2, parameters);
-                addAcDcConverter(lfNetwork, lfAcDcConverter);
+            if(lfBus1!=null) {
+                LfDcNode lfDcNode1 = getLfDcNode(acDcConverter.getDcTerminal1(), lfNetwork);
+                LfDcNode lfDcNode2 = getLfDcNode(acDcConverter.getDcTerminal2(), lfNetwork);
+                if (acDcConverter instanceof VoltageSourceConverter) {
+                    LfVoltageSourceConverterImpl lfAcDcConverter = LfVoltageSourceConverterImpl.create((VoltageSourceConverter) acDcConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, parameters);
+                    addAcDcConverter(lfNetwork, lfAcDcConverter);
+                }
             }
         }
     }
@@ -1350,64 +1351,65 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         Stopwatch stopwatch = Stopwatch.createStarted();
-
-        if (!parameters.isAcDcNetwork()) {
-            Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
-            Iterable<Bus> buses = Networks.getBuses(network, parameters.isBreakers());
-            for (Bus bus : buses) {
-                Component cc = bus.getConnectedComponent();
-                Component sc = bus.getSynchronousComponent();
-                if (cc != null && sc != null) {
-                    busesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(bus);
-                }
-                network.getDcConnectables(AcDcConverter.class);
+        Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
+        Iterable<Bus> buses = Networks.getBuses(network, parameters.isBreakers());
+        for (Bus bus : buses) {
+            Component cc = bus.getConnectedComponent();
+            Component sc = bus.getSynchronousComponent();
+            if (cc != null && sc != null) {
+                busesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(bus);
             }
+            network.getDcConnectables(AcDcConverter.class);
+        }
 
-            Map<Pair<Integer, Integer>, List<Switch>> switchesByCc = new HashMap<>();
-            if (parameters.isBreakers()) {
-                for (VoltageLevel vl : network.getVoltageLevels()) {
-                    for (Switch sw : vl.getBusBreakerView().getSwitches()) {
-                        if (!sw.isOpen()) { // only create closed switches as in security analysis we can only open switches
-                            Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
-                            Component cc = bus1.getConnectedComponent();
-                            Component sc = bus1.getSynchronousComponent();
-                            if (cc != null && sc != null) {
-                                switchesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(sw);
-                            }
+        Map<Pair<Integer, Integer>, List<Switch>> switchesByCc = new HashMap<>();
+        if (parameters.isBreakers()) {
+            for (VoltageLevel vl : network.getVoltageLevels()) {
+                for (Switch sw : vl.getBusBreakerView().getSwitches()) {
+                    if (!sw.isOpen()) { // only create closed switches as in security analysis we can only open switches
+                        Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
+                        Component cc = bus1.getConnectedComponent();
+                        Component sc = bus1.getSynchronousComponent();
+                        if (cc != null && sc != null) {
+                            switchesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(sw);
                         }
                     }
                 }
             }
+        }
 
-            Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
-                    ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    : busesByCc.entrySet().stream();
-            List<LfNetwork> lfNetworks = filteredBusesByCcStream
-                    .map(e -> {
-                        var networkKey = e.getKey();
-                        int numCc = networkKey.getLeft();
-                        int numSc = networkKey.getRight();
+        Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
+                ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+                : busesByCc.entrySet().stream();
+        List<LfNetwork> lfNetworks = filteredBusesByCcStream
+                .map(e -> {
+                    var networkKey = e.getKey();
+                    int numCc = networkKey.getLeft();
+                    int numSc = networkKey.getRight();
 
-                        List<Bus> lfBuses = e.getValue();
-                        return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                                parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
-                    })
-                    .collect(Collectors.toList());
+                    List<Bus> lfBuses = e.getValue();
+                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
+                            parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
+                })
+                .collect(Collectors.toList());
 
-            stopwatch.stop();
+        stopwatch.stop();
 
-            LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
+        if (!parameters.isAcDcNetwork()) {
             return lfNetworks;
         } else {
-            List<LfNetwork> lfNetworks = new ArrayList<>();
             List<Bus> busesList = new ArrayList<>();
             network.getBusView().getBuses().forEach(busesList::add);
             List<Switch> switchesList = new ArrayList<>();
             network.getSwitches().forEach(switchesList::add);
-            lfNetworks.add(create(0, 0, network, busesList, switchesList,
-                    topoConfig, parameters, Reports.createRootLfNetworkReportNode(reportNode, 0, 0)));
-            return lfNetworks;
+            LfNetwork acDcNetwork = create(0, 0, network, busesList, switchesList,
+                    topoConfig, parameters, Reports.createRootLfNetworkReportNode(reportNode, 0, 0));
+            for(LfNetwork lfNetwork: lfNetworks){
+                acDcNetwork.addAcSubNetwork(lfNetwork);
+            }
+            return List.of(acDcNetwork);
         }
     }
 

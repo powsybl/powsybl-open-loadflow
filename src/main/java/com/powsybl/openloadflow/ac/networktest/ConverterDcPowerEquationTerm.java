@@ -31,10 +31,11 @@ public class ConverterDcPowerEquationTerm extends AbstractConverterDcPowerEquati
     public static double dpConvdiConv(double v1, double vR) {
         //TODO: find a better way to avoid V initialization error
         //V initialization set v1 = 1 and vR = 1 so there is a problem
+        double vReturn = vR;
         if (v1 == vR) {
-            vR = vR + 0.1;
+            vReturn = vR + 0.1;
         }
-        return v1 - vR;
+        return v1 - vReturn;
     }
 
     @Override

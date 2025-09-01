@@ -127,6 +127,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetP();
                 break;
 
+            case AC_CONV_TARGET_Q_REF:
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetQ();
+                break;
+
             case DC_NODE_TARGET_V_REF:
                 targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetVdc();
                 break;

@@ -14,8 +14,7 @@ import java.util.List;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public interface
-LoadFlowParametersOverride {
+public interface LoadFlowParametersOverride {
 
     LoadFlowParametersOverride NO_OVERRIDE = new LoadFlowParametersOverride() { };
 

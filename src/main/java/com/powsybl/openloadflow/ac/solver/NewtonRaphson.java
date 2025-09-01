@@ -134,7 +134,6 @@ public class NewtonRaphson extends AbstractAcSolver {
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             AcSolverUtil.updateNetwork(network, equationSystem);
 
-
 //            System.out.println("##############################_____Equation Terms_____##############################");
 //            for(Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()){
 //                System.out.println("Equation " + equation.getType() + equation.getElementNum());
@@ -143,8 +142,6 @@ public class NewtonRaphson extends AbstractAcSolver {
 //                }
 //            }
 //            System.out.println("\n");
-
-
 
 //            for (LfBus bus : network.getBuses()) {
 //                System.out.println("Bus " + bus.getId() + ":");
@@ -158,7 +155,6 @@ public class NewtonRaphson extends AbstractAcSolver {
 //                double P = branch.getP2().eval() - branch.getP1().eval();
 //                System.out.println("P = " + P);
 //            }
-
         }
 
         System.out.println("##############################_____Variables Values_____##############################");

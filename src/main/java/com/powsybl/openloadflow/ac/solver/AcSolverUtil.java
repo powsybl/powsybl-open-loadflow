@@ -70,11 +70,11 @@ public final class AcSolverUtil {
                     break;
 
                 case CONV_P_AC:
-                    x[v.getRow()] = initializer.getPower(network.getVoltageSourceConverter(v.getElementNum()));
+                    x[v.getRow()] = initializer.getActivePower(network.getVoltageSourceConverter(v.getElementNum()));
 
                     break;
                 case CONV_Q_AC:
-                    x[v.getRow()] = initializer.getPower(network.getVoltageSourceConverter(v.getElementNum()));
+                    x[v.getRow()] = initializer.getReactivePower(network.getVoltageSourceConverter(v.getElementNum()));
 
                     break;
                 case CONV_I:
@@ -149,7 +149,6 @@ public final class AcSolverUtil {
                 case CONV_I:
                     network.getVoltageSourceConverter(v.getElementNum()).setIConv(stateVector.get(v.getRow()));
                     break;
-
 
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());

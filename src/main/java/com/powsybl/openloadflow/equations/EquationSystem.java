@@ -28,16 +28,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
     private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsByElement = new HashMap<>();
-
-    private Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement;
-
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
-
     private final VariableSet<V> variableSet;
-
     private final StateVector stateVector = new StateVector();
-
     private final EquationSystemIndex<V, E> index;
+    private Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement;
 
     public EquationSystem() {
         this(new VariableSet<>());
@@ -201,39 +196,30 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return index.getSortedVariablesToFind().stream()
                 .map(eq -> {
                     String id = "Null";
-                    if(eq.getType().getElementType() == ElementType.BUS){
+                    if (eq.getType().getElementType() == ElementType.BUS) {
                         id = network.getBus(eq.getElementNum()).getId();
-                    }
-
-                    else if(eq.getType().getElementType() == ElementType.CONVERTER){
-                        id = network.getAcDcConverter(eq.getElementNum()).getId();
-                    }
-                    else if(eq.getType().getElementType() == ElementType.DC_NODE){
+                    } else if (eq.getType().getElementType() == ElementType.CONVERTER) {
+                        id = network.getVoltageSourceConverter(eq.getElementNum()).getId();
+                    } else if (eq.getType().getElementType() == ElementType.DC_NODE) {
                         id = network.getDcNode(eq.getElementNum()).getId();
                     }
                     return id + "/" + eq.getType();
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
     }
 
     public List<String> getColumnNames(LfNetwork network) {
         return index.getSortedEquationsToSolve().stream()
                 .map(v -> {
                     String id = "Null";
-                    if(v.getType().getElementType() == ElementType.BUS){
+                    if (v.getType().getElementType() == ElementType.BUS) {
                         id = network.getBus(v.getElementNum()).getId();
-                    }
-
-                    else if(v.getType().getElementType() == ElementType.CONVERTER) {
-                        id = network.getAcDcConverter(v.getElementNum()).getId();
-                    }
-
-                    else if(v.getType().getElementType() == ElementType.DC_NODE) {
+                    } else if (v.getType().getElementType() == ElementType.CONVERTER) {
+                        id = network.getVoltageSourceConverter(v.getElementNum()).getId();
+                    } else if (v.getType().getElementType() == ElementType.DC_NODE) {
                         id = network.getDcNode(v.getElementNum()).getId();
                     }
                     return id + "/" + v.getType();
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
     }
 
     public void addListener(EquationSystemListener<V, E> listener) {

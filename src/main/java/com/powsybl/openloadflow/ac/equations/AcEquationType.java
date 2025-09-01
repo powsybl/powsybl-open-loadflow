@@ -38,6 +38,7 @@ public enum AcEquationType implements Quantity {
     DC_NODE_TARGET_P("dc_node_target_p", ElementType.DC_NODE),
     DC_NODE_TARGET_I("dc_node_target_i", ElementType.DC_NODE),
     AC_CONV_TARGET_P_REF("bus_target_p_ref", ElementType.CONVERTER),
+    AC_CONV_TARGET_Q_REF("bus_target_q_ref", ElementType.CONVERTER),
     DC_NODE_TARGET_V_REF("dc_node_target_v_ref", ElementType.CONVERTER),
     DC_NODE_GROUND("dc_node_ground", ElementType.DC_NODE),
     CONV_TARGET_P("conv_target_p", ElementType.CONVERTER),

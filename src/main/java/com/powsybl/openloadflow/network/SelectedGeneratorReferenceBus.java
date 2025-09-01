@@ -7,19 +7,17 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.ac.networktest.SelectedReferenceBuses;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
-public final class SelectedGeneratorReferenceBuses extends SelectedReferenceBuses {
+public final class SelectedGeneratorReferenceBus extends SelectedReferenceBus {
     private final LfGenerator lfGenerator;
 
-    public SelectedGeneratorReferenceBuses(List<LfBus> lfBuses, String selectionMethod, LfGenerator lfGenerator) {
-        super(lfBuses, selectionMethod);
+    public SelectedGeneratorReferenceBus(LfBus lfBus, String selectionMethod, LfGenerator lfGenerator) {
+        super(lfBus, selectionMethod);
         this.lfGenerator = Objects.requireNonNull(lfGenerator);
     }
 

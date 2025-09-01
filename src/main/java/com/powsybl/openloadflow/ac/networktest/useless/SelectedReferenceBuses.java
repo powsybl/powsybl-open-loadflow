@@ -9,23 +9,22 @@ package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.openloadflow.network.LfBus;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
-public class SelectedReferenceBuses {
-    private final List<LfBus> lfBuses;
+public class SelectedReferenceBus {
+    private final LfBus lfBus;
     private final String selectionMethod;
 
-    public SelectedReferenceBuses(List<LfBus> lfBuses, String selectionMethod) {
-        this.lfBuses = Objects.requireNonNull(lfBuses);
+    public SelectedReferenceBus(LfBus lfBus, String selectionMethod) {
+        this.lfBus = Objects.requireNonNull(lfBus);
         this.selectionMethod = Objects.requireNonNull(selectionMethod);
     }
 
-    public List<LfBus> getLfBuses() {
-        return lfBuses;
+    public LfBus getLfBus() {
+        return lfBus;
     }
 
     public String getSelectionMethod() {

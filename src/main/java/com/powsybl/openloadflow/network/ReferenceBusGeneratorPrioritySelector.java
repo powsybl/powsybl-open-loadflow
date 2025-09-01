@@ -6,8 +6,6 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
-
-import com.powsybl.openloadflow.ac.networktest.SelectedReferenceBuses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +23,7 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
     private static final ReferenceBusSelector FALLBACK_SELECTOR = new ReferenceBusFirstSlackSelector();
 
     @Override
-    public SelectedReferenceBuses select(LfNetwork lfNetwork) {
+    public SelectedReferenceBus select(LfNetwork lfNetwork) {
         Objects.requireNonNull(lfNetwork);
         List<LfGenerator> lfGenerators = lfNetwork.getBuses().stream()
                 .filter(bus -> !bus.isFictitious())
@@ -50,7 +48,7 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
                 ).orElse(null);
         if (referenceGenerator != null) {
             LfBus referenceBus = referenceGenerator.getaBus();
-            return new SelectedGeneratorReferenceBuses(List.of(referenceBus), METHOD_NAME, referenceGenerator);
+            return new SelectedGeneratorReferenceBus(referenceBus, METHOD_NAME, referenceGenerator);
         } else {
             // E.g. an island with only Vsc Hvdc Converter and/or only Static Var Compensator.
             // In this case the island doesn't have any reference generator, only a reference bus.

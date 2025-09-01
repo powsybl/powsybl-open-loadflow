@@ -12,7 +12,6 @@ public class ClosedBranchSide1DcCurrentEquationTerm extends AbstractClosedBranch
         super(dcLine, dcNode1, dcNode2, variableSet);
     }
 
-
     public static double i1(double v1, double v2, double r) {
         return -(v1 - v2) / r;
     }

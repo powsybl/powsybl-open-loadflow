@@ -42,7 +42,6 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
         return r;
     }
 
-
     @Override
     public PiModel getPiModel() {
         return null;

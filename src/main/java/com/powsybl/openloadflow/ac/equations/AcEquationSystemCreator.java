@@ -665,7 +665,6 @@ public class AcEquationSystemCreator {
         if (closedI1 != null) {
             equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
-
         }
         if (closedI2 != null) {
             equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
@@ -706,7 +705,6 @@ public class AcEquationSystemCreator {
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pAc);
 
-
         //We add this equation to set the DC power of the converter pConv, in function of the AC power injected pAc, including losses
         EquationTerm<AcVariableType, AcEquationType> pActoDc = new VscToAcActivePowerEquationTerm(converter, equationSystem.getVariableSet());
         EquationTerm<AcVariableType, AcEquationType> pConv;
@@ -734,15 +732,19 @@ public class AcEquationSystemCreator {
                     .addTerm(iConvR.minus());
         }
 
-
+        EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_Q_AC).createTerm();
+        //The Converter add its reactive power qAc in AC reactive power balance
+        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+                .addTerm(qAc);
         //If the Converter station control vAc instead of Q
         if (converter.isVoltageRegulatorOn()) {
-            EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_Q_AC).createTerm();
-            //The Converter add its reactive power qAc in AC reactive power balance
-            equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
-                    .addTerm(qAc);
             equationSystem.createEquation(converter, AcEquationType.BUS_TARGET_V_REF)
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+                            .createTerm());
+        }
+        else{
+            equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_Q_REF)
+                    .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_Q_AC)
                             .createTerm());
         }
     }
@@ -851,7 +853,6 @@ public class AcEquationSystemCreator {
         bus.setP(p);
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
         bus.setQ(q);
-
         if (bus.isReference()) {
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_PHI)
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_PHI)
@@ -868,7 +869,6 @@ public class AcEquationSystemCreator {
                 .addTerm(vTerm)
                 .setActive(false);
         bus.setCalculatedV(vTerm);
-
         createShuntEquations(bus, equationSystem);
         createLoadEquations(bus, equationSystem);
     }
@@ -1174,7 +1174,7 @@ public class AcEquationSystemCreator {
 
     private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         List<LfBus> slackBuses = network.getSlackBuses();
-        int networkNumber = network.getReferenceBuses().size();
+        int networkNumber = network.getAcSubNetworks().size();
         //network number is the number of Ac subNetworks in the AC DC Network
         if (slackBuses.size() > networkNumber) {
             LfBus firstSlackBus = slackBuses.get(0);

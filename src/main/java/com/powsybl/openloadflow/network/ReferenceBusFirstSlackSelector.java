@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.ac.networktest.SelectedReferenceBuses;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,13 +18,13 @@ public class ReferenceBusFirstSlackSelector implements ReferenceBusSelector {
     private static final String METHOD_NAME = "First slack";
 
     @Override
-    public SelectedReferenceBuses select(LfNetwork lfNetwork) {
+    public SelectedReferenceBus select(LfNetwork lfNetwork) {
         Objects.requireNonNull(lfNetwork);
         List<LfBus> slackBuses = lfNetwork.getSlackBuses();
         Objects.requireNonNull(slackBuses);
         if (slackBuses.isEmpty()) {
             throw new IllegalStateException("No slack bus for network " + lfNetwork);
         }
-        return new SelectedReferenceBuses(List.of(slackBuses.get(0)), METHOD_NAME);
+        return new SelectedReferenceBus(slackBuses.get(0), METHOD_NAME);
     }
 }

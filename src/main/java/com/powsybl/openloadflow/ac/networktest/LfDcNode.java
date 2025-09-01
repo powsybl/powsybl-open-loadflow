@@ -2,11 +2,9 @@ package com.powsybl.openloadflow.ac.networktest;
 
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.util.Evaluable;
-
 import java.util.List;
 
 public interface LfDcNode extends LfElement {
-
 
     void addLfDcLine(LfDcLine lfdcline);
 

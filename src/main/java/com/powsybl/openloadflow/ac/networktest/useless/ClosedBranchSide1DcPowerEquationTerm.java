@@ -12,7 +12,6 @@ public class ClosedBranchSide1DcPowerEquationTerm extends AbstractClosedBranchDc
         super(dcLine, dcNode1, dcNode2, variableSet);
     }
 
-
     public static double p1(double v1, double v2, double r) {
         return -v1 * (v1 - v2) / r;
     }

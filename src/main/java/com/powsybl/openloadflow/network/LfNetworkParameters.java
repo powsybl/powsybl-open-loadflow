@@ -700,12 +700,12 @@ public class LfNetworkParameters {
                 ')';
     }
 
-    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork){
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
         this.isAcDcNetwork = isAcDcNetwork;
         return this;
     }
 
-    public boolean isAcDcNetwork(){
+    public boolean isAcDcNetwork() {
         return isAcDcNetwork;
     }
 }
