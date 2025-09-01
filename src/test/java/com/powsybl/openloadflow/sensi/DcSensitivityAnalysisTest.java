@@ -21,8 +21,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.fastdc.AbstractComputedElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
 import com.powsybl.openloadflow.network.*;
