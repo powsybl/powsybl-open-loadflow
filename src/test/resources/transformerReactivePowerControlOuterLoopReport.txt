@@ -6,7 +6,7 @@
             Network balance: active generation=25 MW, active load=16.2 MW, reactive generation=0 MVar, reactive load=7.5 MVar
             Angle reference bus: VL_2_0
             Slack bus: VL_2_0
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.274368
@@ -67,7 +67,7 @@
          + Outer loop DistributedSlack
             + Outer loop iteration 1
                Slack bus active power (-2.888261 MW) distributed in 1 distribution iteration(s)
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 1 of type DistributedSlack
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.028883
@@ -109,7 +109,7 @@
                1 transformers reached their tap maximum position
             + Outer loop iteration 4
                1 reactive power-controlled branches are outside of their target deadbands
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 2 of type IncrementalTransformerReactivePowerControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.081872
@@ -167,7 +167,7 @@
                   Bus Id: VL_1_0 (nominalVoltage=132kV)
                   Bus V: 1.022727 pu, 0.011768 rad
                   Bus injection: 22.111739 MW, 7.318486 MVar
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 3 of type IncrementalTransformerReactivePowerControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.031683
@@ -214,7 +214,7 @@
          + Outer loop DistributedSlack
             + Outer loop iteration 4
                Slack bus active power (2.379903 MW) distributed in 1 distribution iteration(s)
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 4 of type DistributedSlack
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.023799

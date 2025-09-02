@@ -742,6 +742,7 @@ public final class Reports {
         ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
         subReportNode.newReportNode()
                 .withMessageTemplate("olf.solverOuterLoopCurrentType")
+                .withUntypedValue("solverName", solverName)
                 .withUntypedValue("outerLoopIteration", outerLoopIteration)
                 .withUntypedValue("outerLoopType", outerLoopType)
                 .withSeverity(TypedValue.INFO_SEVERITY)
