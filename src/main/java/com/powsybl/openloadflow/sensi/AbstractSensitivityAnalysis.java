@@ -926,6 +926,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (injection == null) {
                 injection = network.getVscConverterStation(injectionId);
             }
+            if (injection == null) {
+                injection = network.getBattery(injectionId);
+            }
             return injection;
         }
 
