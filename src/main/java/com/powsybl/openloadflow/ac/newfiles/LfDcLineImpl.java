@@ -1,9 +1,12 @@
-package com.powsybl.openloadflow.ac.networktest;
+package com.powsybl.openloadflow.ac.newfiles;
 
 import com.powsybl.iidm.network.DcLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.LfNetworkUpdateReport;
 import com.powsybl.openloadflow.network.impl.Ref;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 
@@ -31,5 +34,24 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     @Override
     public String getId() {
         return getDcLine().getId();
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
+        if (isDisabled()) {
+            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        } else {
+            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
+        }
+    }
+
+    @Override
+    public void updateFlows(double i1, double i2, double p1, double p2) {
+        var dcLine = getDcLine();
+
+        dcLine.getDcTerminal1().setI(i1 * PerUnit.ib(dcNode1.getNominalV()));
+        dcLine.getDcTerminal2().setI(i2 * PerUnit.ib(dcNode2.getNominalV()));
+        dcLine.getDcTerminal1().setP(p1 * PerUnit.SB);
+        dcLine.getDcTerminal2().setP(p2 * PerUnit.SB);
     }
 }

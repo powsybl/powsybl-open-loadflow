@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.util;
 import com.google.common.io.ByteStreams;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.DcNode;
+import com.powsybl.iidm.network.DcTerminal;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
 
@@ -44,11 +46,19 @@ public final class LoadFlowAssert {
         assertEquals(v, bus.getV(), DELTA_V);
     }
 
+    public static void assertVoltageEquals(double v, DcNode dcNode) {
+        assertEquals(v, dcNode.getV(), DELTA_V);
+    }
+
     public static void assertAngleEquals(double a, Bus bus) {
         assertEquals(a, bus.getAngle(), DELTA_ANGLE);
     }
 
     public static void assertActivePowerEquals(double p, Terminal terminal) {
+        assertEquals(p, terminal.getP(), DELTA_POWER);
+    }
+
+    public static void assertDcPowerEquals(double p, DcTerminal terminal) {
         assertEquals(p, terminal.getP(), DELTA_POWER);
     }
 

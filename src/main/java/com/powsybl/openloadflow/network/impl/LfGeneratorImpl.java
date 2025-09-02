@@ -241,6 +241,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         generator.getTerminal()
                 .setP(-targetP * PerUnit.SB)
                 .setQ(Double.isNaN(calculatedQ) ? -getTargetQ() * PerUnit.SB : -calculatedQ * PerUnit.SB);
+        System.out.println("##############################_____GENERATOR_____##############################");
+        System.out.println(-targetP * PerUnit.SB);
         if (parameters.isWriteReferenceTerminals() && isReference()) {
             ReferenceTerminals.addTerminal(generator.getTerminal());
         }

@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
-import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
 
 import java.util.Comparator;
 import java.util.List;
@@ -29,7 +29,6 @@ public class ConverterSlackBusSelector extends AbstractSlackBusSelector {
         return bus.getConverters().stream().mapToDouble(LfAcDcConverter::getTargetP).sum();
     }
 
-
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         List<LfBus> slackBuses = buses.stream()
@@ -42,8 +41,18 @@ public class ConverterSlackBusSelector extends AbstractSlackBusSelector {
                 .sorted(Comparator.comparingDouble(ConverterSlackBusSelector::getMaxPac).reversed())
                 .limit(limit)
                 .collect(Collectors.toList());
+
+        //if there is no converter controlling AC Voltage, take generators instead
+        if(slackBuses.isEmpty()){
+            slackBuses = buses.stream()
+                    .filter(bus -> !bus.isFictitious())
+                    .filter(this::filterByCountry)
+                    .filter(bus -> !bus.getGenerators().isEmpty())
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        }
         System.out.println("##############################_____SLACK BUSES_____##############################");
         System.out.println(slackBuses);
-        return new SelectedSlackBus(slackBuses, "Largest generator bus");
+        return new SelectedSlackBus(slackBuses, "Largest converter bus");
     }
 }

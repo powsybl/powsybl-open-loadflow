@@ -143,7 +143,7 @@ public final class AcSolverUtil {
                     break;
 
                 case CONV_Q_AC:
-                    network.getVoltageSourceConverter(v.getElementNum()).setTargetQ(stateVector.get(v.getRow()));
+                    network.getVoltageSourceConverter(v.getElementNum()).setQac(stateVector.get(v.getRow()));
                     break;
 
                 case CONV_I:

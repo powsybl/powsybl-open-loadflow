@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.ac.networktest;
+package com.powsybl.openloadflow.ac.newfiles;
 
 public interface LfVoltageSourceConverter extends LfAcDcConverter {
 

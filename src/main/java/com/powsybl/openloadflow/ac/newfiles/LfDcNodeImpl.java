@@ -1,7 +1,8 @@
-package com.powsybl.openloadflow.ac.networktest;
+package com.powsybl.openloadflow.ac.newfiles;
 import com.powsybl.iidm.network.DcNode;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.network.impl.Ref;
 
 import java.util.Objects;
@@ -44,5 +45,11 @@ public class LfDcNodeImpl extends AbstractLfDcNode {
     @Override
     public boolean isGrounded() {
         return isGrounded;
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
+        var dcNode = getDcNode();
+        dcNode.setV(v);
     }
 }

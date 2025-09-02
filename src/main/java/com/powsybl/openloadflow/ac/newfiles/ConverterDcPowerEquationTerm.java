@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.ac.networktest;
+package com.powsybl.openloadflow.ac.newfiles;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;

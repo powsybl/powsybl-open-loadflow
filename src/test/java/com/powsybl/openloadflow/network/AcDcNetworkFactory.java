@@ -5,114 +5,278 @@ import com.powsybl.openloadflow.util.PerUnit;
 
 public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
+    public static Network createBaseNetwork() {
+        Network network = Network.create("vsc", "test");
+
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(102.56)
+                .setTargetV(390)
+                .setMinP(0)
+                .setMaxP(500)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        Substation s2 = network.newSubstation()
+                .setId("S2")
+                .add();
+        VoltageLevel vl2 = s2.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        vl2.newLoad()
+                .setId("ld2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setP0(50)
+                .setQ0(10)
+                .add();
+
+        network.newDcNode().setId("dn3").setNominalV(400.).add();
+        network.newDcNode().setId("dn4").setNominalV(400.).add();
+        network.newDcNode().setId("dnDummy").setNominalV(400.).add();
+
+        Substation s5 = network.newSubstation()
+                .setId("S5")
+                .add();
+        VoltageLevel vl5 = s5.newVoltageLevel()
+                .setId("vl5")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl5.getBusBreakerView().newBus()
+                .setId("b5")
+                .add();
+        vl5.newLoad()
+                .setId("ld5")
+                .setConnectableBus("b5")
+                .setBus("b5")
+                .setP0(50)
+                .setQ0(10)
+                .add();
+
+        network.newLine()
+                .setId("l12")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        network.newLine()
+                .setId("l25")
+                .setBus1("b2")
+                .setBus2("b5")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        network.newDcLine()
+                .setId("dl34")
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setR(0.1)
+                .add();
+
+        return network;
+    }
+
+
     /**
-     * VSC test case.
+     * Bipolar test case
+     * <pre>             dn3p ------------ dl34p ---------- dn4p
+     *                   |                                   |
+     * g1       ld2  cs23p                                   cs45p ld5
+     * |         |   |   |                                   |   |  |
+     * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
+     * l12       |   |   |                 |                 |   |  |
+     *           |   cs23n              GROUND               cs45n  |
+     *           |       |                                   |      |
+     *           |       dn3n ------------ dl34n ---------- dn4n    |
+     *           |                                                  |
+     *           |------------------------l25------------------------
+     * </pre>
+     */
+    public static Network createBipolarBaseNetwork() {
+        Network network = Network.create("vsc", "test");
+
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(102.56)
+                .setTargetV(390)
+                .setMinP(0)
+                .setMaxP(500)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        Substation s2 = network.newSubstation()
+                .setId("S2")
+                .add();
+        VoltageLevel vl2 = s2.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        vl2.newLoad()
+                .setId("ld2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setP0(20)
+                .setQ0(10)
+                .add();
+
+        network.newDcNode()
+                .setId("dn3p")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn3n")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn3r")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4p")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4n")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4r")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnGr")
+                .setNominalV(400.)
+                .add();
+        network.getDcNode("dnGr").setV(0.0);
+
+        Substation s5 = network.newSubstation()
+                .setId("S5")
+                .add();
+        VoltageLevel vl5 = s5.newVoltageLevel()
+                .setId("vl5")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl5.getBusBreakerView().newBus()
+                .setId("b5")
+                .add();
+        vl5.newLoad()
+                .setId("ld5")
+                .setConnectableBus("b5")
+                .setBus("b5")
+                .setP0(50)
+                .setQ0(10)
+                .add();
+
+        network.newLine()
+                .setId("l12")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        network.newLine()
+                .setId("l25")
+                .setBus1("b2")
+                .setBus2("b5")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        network.newDcLine()
+                .setId("dl34p")
+                .setDcNode1("dn3p")
+                .setDcNode2("dn4p")
+                .setR(0.1)
+                .add();
+
+        network.newDcLine()
+                .setId("dl34n")
+                .setDcNode1("dn3n")
+                .setDcNode2("dn4n")
+                .setR(0.1)
+                .add();
+
+        network.newDcLine()
+                .setId("dl3Gr")
+                .setDcNode1("dn3r")
+                .setDcNode2("dnGr")
+                .setR(0.1)
+                .add();
+
+        network.newDcLine()
+                .setId("dlG4r")
+                .setDcNode1("dnGr")
+                .setDcNode2("dn4r")
+                .setR(0.1)
+                .add();
+
+        return network;
+    }
+
+    /**
+     * ACDC test case.
      * <pre>
-     * g1       ld2                                         ld5
-     * |         |                                          |
+     * g1       ld2                                 ld5
+     * |         |                                   |
      * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
-     * l12       |        dl34                         |
-     *           |                                         |
-     *           |                                         |
-     *           |l23---------------------------------------
+     * l12       |        dl34                       |
+     *           |                                   |
+     *           |                                   |
+     *           |l23--------------------------------
      * </pre>
      */
     public static Network createAcDcNetwork1() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3").setNominalV(400.).add();
-        network.newDcNode().setId("dn4").setNominalV(400.).add();
-        network.newDcNode().setId("dnDummy").setNominalV(400.).add();
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l25")
-                .setBus1("b2")
-                .setBus2("b5")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34")
-                .setDcNode1("dn3")
-                .setDcNode2("dn4")
-                .setR(0.1)
-                .add();
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(0.62505149 * 400)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -127,8 +291,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(0.509949196 * PerUnit.SB)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
@@ -141,114 +305,30 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+
     /**
-     * VSC test case.
+     * ACDC test case.
      * <pre>
-     * g1       ld2                                         ld5
-     * |         |                                          |
-     * b1 ------- b2-cs23-dn3-------------dn4-cs45-b5
-     * l12       |        dl34                         |
-     *           |                                         |
-     *           |                                         |
-     *           |l23---------------------------------------
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
+     * l12       |        dl34                       |
+     *           |                                   |
+     *           |                                   |
+     *           |l23--------------------------------
      * </pre>
      */
     public static Network createAcDcNetwork2() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3").setNominalV(400.).add();
-        network.newDcNode().setId("dn4").setNominalV(400.).add();
-        network.newDcNode().setId("dnDummy").setNominalV(400.).add();
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l25")
-                .setBus1("b2")
-                .setBus2("b5")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34")
-                .setDcNode1("dn3")
-                .setDcNode2("dn4")
-                .setR(0.1)
-                .add();
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(-52.)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(1.0000309358468262 * 400)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -263,8 +343,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(250.)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(0.4899642149886045 * PerUnit.SB)
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
@@ -278,15 +358,15 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
-     * VSC test case.
+     * ACDC 3 Converters Test Case
      * <pre>
-     * g1       ld2                                                           ld5
-     * |         |                                                             |
+     * g1       ld2                                               ld5
+     * |         |                                                |
      * b1 ------- b2-cs23-dn3----------dnMiddle----------dn4-cs45-b5
      * l12       |        dl3             dl5            dl4      |
-     *           |                                |                           |
-     *           |                            dn5-cs56-b6_ld6             |
-     *           |l23----------------------------------------------------------
+     *           |                         |                      |
+     *           |                        dn5-cs56-b6_ld6         |
+     *           l23-----------------------------------------------
      * </pre>
      */
     public static Network createAcDcNetworkWithThreeConverters() {
@@ -329,8 +409,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("ld2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setP0(50)
-                .setQ0(10)
+                .setP0(25)
+                .setQ0(5)
                 .add();
 
         Substation s6 = network.newSubstation()
@@ -348,15 +428,30 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("ld6")
                 .setConnectableBus("b6")
                 .setBus("b6")
-                .setP0(50)
-                .setQ0(10)
+                .setP0(25)
+                .setQ0(5)
                 .add();
 
-        network.newDcNode().setId("dn3").setNominalV(400.).add();
-        network.newDcNode().setId("dn4").setNominalV(400.).add();
-        network.newDcNode().setId("dn5").setNominalV(400.).add();
-        network.newDcNode().setId("dnMiddle").setNominalV(400.).add();
-        network.newDcNode().setId("dnDummy").setNominalV(400.).add();
+        network.newDcNode()
+                .setId("dn3")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn5")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnMiddle")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnDummy")
+                .setNominalV(400.)
+                .add();
 
         Substation s5 = network.newSubstation()
                 .setId("S5")
@@ -373,8 +468,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("ld5")
                 .setConnectableBus("b5")
                 .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
+                .setP0(25)
+                .setQ0(5)
                 .add();
 
         network.newLine()
@@ -410,15 +505,15 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcLine()
                 .setId("dl4")
-                .setDcNode1("dn4")
-                .setDcNode2("dnMiddle")
+                .setDcNode1("dnMiddle")
+                .setDcNode2("dn4")
                 .setR(0.1)
                 .add();
 
         network.newDcLine()
                 .setId("dl5")
-                .setDcNode1("dn5")
-                .setDcNode2("dnMiddle")
+                .setDcNode1("dnMiddle")
+                .setDcNode2("dn5")
                 .setR(0.1)
                 .add();
 
@@ -426,9 +521,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(52.)
-                .setTargetVdc(320.)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -443,9 +537,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetP(50.)
-                .setTargetVdc(250.)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(25.)
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
@@ -461,8 +554,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(50.)
-                .setTargetVdc(250.)
+                .setTargetP(25.)
                 .setId("conv56")
                 .setBus1("b6")
                 .setDcNode1("dn5")
@@ -476,114 +568,28 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
-     * VSC test case.
+     * ACDC test case.
      * <pre>
-     * g1       ld2                                         ld5
-     * |         |                                          |
-     * b1 ------- b2-cs23-dn3-------------dn4-cs45-b5
-     * l12       |       dl34                          |
-     *           |                                         |
-     *           |                                         |
-     *           |l23---------------------------------------
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
+     * l12       |        dl34                       |
+     *           |                                   |
+     *           |                                   |
+     *           |l23--------------------------------
      * </pre>
      */
     public static Network createAcDcNetworkWithAcVoltageControl() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(30)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3").setNominalV(400.).add();
-        network.newDcNode().setId("dn4").setNominalV(400.).add();
-        network.newDcNode().setId("dnDummy").setNominalV(400.).add();
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(30)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l25")
-                .setBus1("b2")
-                .setBus2("b5")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34")
-                .setDcNode1("dn3")
-                .setDcNode2("dn4")
-                .setR(0.1)
-                .add();
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(-200.)
-                .setTargetVdc(320.)
+                .setTargetP(-50.)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -595,10 +601,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         vl5.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
-                .setSwitchingLoss(1)
+                .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(600)
+                .setTargetVdc(400.0)
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
@@ -606,102 +612,36 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400)
+                .setVoltageSetpoint(400.0)
                 .add();
         return network;
     }
 
     /**
-     * VSC test case.
+     * ACDC test case with AC SubNetworks.
      * <pre>
-     * g1       ld2                                         ld5
-     * |         |                                          |
-     * b1 ------- b2-cs23-dn3-------dn4-cs45-b5
-     * l12               dl34
-     *
-     *
-     *
+     * g1         ld2                               ld5
+     * |           |                                 |
+     * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
+     * l12               dl34                        |
+     *                                              g5
      * </pre>
      */
     public static Network createAcDcNetworkWithAcSubNetworks() {
-        Network network = Network.create("vsc", "test");
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+        network.getLine("l25").remove();
+        vl5.newGenerator()
+                .setId("g5")
+                .setConnectableBus("b5")
+                .setBus("b5")
+                .setTargetP(50.)
                 .setTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3").setNominalV(400.).add();
-        network.newDcNode().setId("dn4").setNominalV(400.).add();
-        network.newDcNode().setId("dnDummy").setNominalV(400.).add();
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34")
-                .setDcNode1("dn3")
-                .setDcNode2("dn4")
-                .setR(0.1)
+                .setVoltageRegulatorOn(false)
+                .setTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -709,8 +649,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(52.)
-                .setTargetVdc(320.)
+                .setTargetP(50.)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -726,8 +665,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetP(50.)
-                .setTargetVdc(250.)
+                .setTargetVdc(400.)
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
@@ -756,120 +694,9 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * </pre>
      */
     public static Network createAcDcNetworkBipolarModel() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(20)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3p").setNominalV(400.).add();
-        network.newDcNode().setId("dn3n").setNominalV(400.).add();
-        network.newDcNode().setId("dn3r").setNominalV(400.).add();
-        network.newDcNode().setId("dn4p").setNominalV(400.).add();
-        network.newDcNode().setId("dn4n").setNominalV(400.).add();
-        network.newDcNode().setId("dn4r").setNominalV(400.).add();
-        network.newDcNode().setId("dnGr").setNominalV(400.).add();
-        network.getDcNode("dnGr").setV(0.0);
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l25")
-                .setBus1("b2")
-                .setBus2("b5")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34p")
-                .setDcNode1("dn3p")
-                .setDcNode2("dn4p")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34n")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn4n")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl3Gr")
-                .setDcNode1("dn3r")
-                .setDcNode2("dnGr")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlG4r")
-                .setDcNode1("dnGr")
-                .setDcNode2("dn4r")
-                .setR(0.1)
-                .add();
+        Network network = createBipolarBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
@@ -908,7 +735,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(125.)
+                .setTargetVdc(200.)
                 .setId("conv45p")
                 .setBus1("b5")
                 .setDcNode1("dn4p")
@@ -924,7 +751,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(-125.)
+                .setTargetVdc(-200.)
                 .setId("conv45n")
                 .setBus1("b5")
                 .setDcNode1("dn4n")
@@ -953,122 +780,20 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * </pre>
      */
     public static Network createAcDcNetworkBipolarModelWithAcSubNetworks() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
+        Network network = createBipolarBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+        vl5.newGenerator()
+                .setId("g5")
+                .setConnectableBus("b5")
+                .setBus("b5")
                 .setTargetP(102.56)
                 .setTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
                 .setVoltageRegulatorOn(true)
                 .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(20)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3p").setNominalV(400.).add();
-        network.newDcNode().setId("dn3n").setNominalV(400.).add();
-        network.newDcNode().setId("dn3r").setNominalV(400.).add();
-        network.newDcNode().setId("dn4p").setNominalV(400.).add();
-        network.newDcNode().setId("dn4n").setNominalV(400.).add();
-        network.newDcNode().setId("dn4r").setNominalV(400.).add();
-        network.newDcNode().setId("dnGr").setNominalV(400.).add();
-        network.getDcNode("dnGr").setV(0.0);
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-        vl5.newGenerator()
-                .setId("g5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setTargetP(300)
-                .setTargetV(450)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34p")
-                .setDcNode1("dn3p")
-                .setDcNode2("dn4p")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34n")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn4n")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl3Gr")
-                .setDcNode1("dn3r")
-                .setDcNode2("dnGr")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlG4r")
-                .setDcNode1("dnGr")
-                .setDcNode2("dn4r")
-                .setR(0.1)
-                .add();
+        network.getLine("l25").remove();
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
@@ -1107,7 +832,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(125.)
+                .setTargetVdc(200.)
                 .setId("conv45p")
                 .setBus1("b5")
                 .setDcNode1("dn4p")
@@ -1123,7 +848,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(-125.)
+                .setTargetVdc(-200.)
                 .setId("conv45n")
                 .setBus1("b5")
                 .setDcNode1("dn4n")
@@ -1152,127 +877,16 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * </pre>
      */
     public static Network createAcDcNetworkBipolarModelWithOtherControl() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(20)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3p").setNominalV(400.).add();
-        network.newDcNode().setId("dn3n").setNominalV(400.).add();
-        network.newDcNode().setId("dn3r").setNominalV(400.).add();
-        network.newDcNode().setId("dn4p").setNominalV(400.).add();
-        network.newDcNode().setId("dn4n").setNominalV(400.).add();
-        network.newDcNode().setId("dn4r").setNominalV(400.).add();
-        network.newDcNode().setId("dnGr").setNominalV(400.).add();
-        network.getDcNode("dnGr").setV(0.0);
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l25")
-                .setBus1("b2")
-                .setBus2("b5")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34p")
-                .setDcNode1("dn3p")
-                .setDcNode2("dn4p")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34n")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn4n")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl3Gr")
-                .setDcNode1("dn3r")
-                .setDcNode2("dnGr")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlG4r")
-                .setDcNode1("dnGr")
-                .setDcNode2("dn4r")
-                .setR(0.1)
-                .add();
+        Network network = createBipolarBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(125.)
+                .setTargetVdc(200.)
                 .setId("conv23p")
                 .setBus1("b2")
                 .setDcNode1("dn3p")
@@ -1288,7 +902,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(-125.)
+                .setTargetVdc(-200.)
                 .setId("conv23n")
                 .setBus1("b2")
                 .setDcNode1("dn3n")
@@ -1411,19 +1025,56 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setQ0(10)
                 .add();
 
-        network.newDcNode().setId("dn3p").setNominalV(400.).add();
-        network.newDcNode().setId("dn3n").setNominalV(400.).add();
-        network.newDcNode().setId("dn3r").setNominalV(400.).add();
-        network.newDcNode().setId("dn4p").setNominalV(400.).add();
-        network.newDcNode().setId("dn4n").setNominalV(400.).add();
-        network.newDcNode().setId("dn4r").setNominalV(400.).add();
-        network.newDcNode().setId("dn6p").setNominalV(400.).add();
-        network.newDcNode().setId("dn6n").setNominalV(400.).add();
-        network.newDcNode().setId("dn6r").setNominalV(400.).add();
-        network.newDcNode().setId("dnMp").setNominalV(400.).add();
-        network.newDcNode().setId("dnMn").setNominalV(400.).add();
-        network.newDcNode().setId("dnMr").setNominalV(400.).add();
-        network.getDcNode("dnMr").setV(0.0);
+        network.newDcNode()
+                .setId("dn3p")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn3n")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn3r")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4p")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4n")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4r")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn6p")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn6n")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn6r")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnMp")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnMn")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnMr")
+                .setNominalV(400.)
+                .add();
+        network.getDcNode("dnMr")
+                .setV(0.0);
 
         Substation s5 = network.newSubstation()
                 .setId("S5")
@@ -1528,7 +1179,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(125.)
+                .setTargetVdc(200.)
                 .setId("conv23p")
                 .setBus1("b2")
                 .setDcNode1("dn3p")
@@ -1544,7 +1195,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(-125.)
+                .setTargetVdc(-200.)
                 .setId("conv23n")
                 .setBus1("b2")
                 .setDcNode1("dn3n")
@@ -1560,7 +1211,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(12)
+                .setTargetP(12.5)
                 .setId("conv45p")
                 .setBus1("b5")
                 .setDcNode1("dn4p")
@@ -1576,7 +1227,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(12)
+                .setTargetP(12.5)
                 .setId("conv45n")
                 .setBus1("b5")
                 .setDcNode1("dn4n")
@@ -1592,7 +1243,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(12)
+                .setTargetP(12.5)
                 .setId("conv6p")
                 .setBus1("b6")
                 .setDcNode1("dn6p")
@@ -1608,7 +1259,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(12)
+                .setTargetP(12.5)
                 .setId("conv6n")
                 .setBus1("b6")
                 .setDcNode1("dn6n")
@@ -1637,120 +1288,9 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * </pre>
      */
     public static Network createAcDcNetworkBipolarModelWithAcVoltageControl() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(20)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3p").setNominalV(400.).add();
-        network.newDcNode().setId("dn3n").setNominalV(400.).add();
-        network.newDcNode().setId("dn3r").setNominalV(400.).add();
-        network.newDcNode().setId("dn4p").setNominalV(400.).add();
-        network.newDcNode().setId("dn4n").setNominalV(400.).add();
-        network.newDcNode().setId("dn4r").setNominalV(400.).add();
-        network.newDcNode().setId("dnGr").setNominalV(400.).add();
-        network.getDcNode("dnGr").setV(0.0);
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l25")
-                .setBus1("b2")
-                .setBus2("b5")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34p")
-                .setDcNode1("dn3p")
-                .setDcNode2("dn4p")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34n")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn4n")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl3Gr")
-                .setDcNode1("dn3r")
-                .setDcNode2("dnGr")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlG4r")
-                .setDcNode1("dnGr")
-                .setDcNode2("dn4r")
-                .setR(0.1)
-                .add();
+        Network network = createBipolarBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
@@ -1834,112 +1374,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * </pre>
      */
     public static Network createAcDcNetworkBipolarModelWithAcSubNetworksAndVoltageControl() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(20)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().setId("dn3p").setNominalV(400.).add();
-        network.newDcNode().setId("dn3n").setNominalV(400.).add();
-        network.newDcNode().setId("dn3r").setNominalV(400.).add();
-        network.newDcNode().setId("dn4p").setNominalV(400.).add();
-        network.newDcNode().setId("dn4n").setNominalV(400.).add();
-        network.newDcNode().setId("dn4r").setNominalV(400.).add();
-        network.newDcNode().setId("dnGr").setNominalV(400.).add();
-        network.getDcNode("dnGr").setV(0.0);
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34p")
-                .setDcNode1("dn3p")
-                .setDcNode2("dn4p")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl34n")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn4n")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dl3Gr")
-                .setDcNode1("dn3r")
-                .setDcNode2("dnGr")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlG4r")
-                .setDcNode1("dnGr")
-                .setDcNode2("dn4r")
-                .setR(0.1)
-                .add();
+        Network network = createBipolarBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+        network.getLine("l25").remove();
 
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)

@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.openloadflow.ac.networktest.*;
+import com.powsybl.openloadflow.ac.newfiles.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
@@ -659,16 +659,33 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected static void createDcLineEquations(LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    protected static void createDcLineEquations(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                 EquationTerm<AcVariableType, AcEquationType> closedI1,
-                                                EquationTerm<AcVariableType, AcEquationType> closedI2) {
+                                                EquationTerm<AcVariableType, AcEquationType> closedI2,
+                                                EquationTerm<AcVariableType, AcEquationType> closedP1,
+                                                EquationTerm<AcVariableType, AcEquationType> closedP2,
+                                                Evaluable i1, Evaluable i2, Evaluable p1, Evaluable p2) {
         if (closedI1 != null) {
             equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
         }
+        if(i1 != null){
+            dcLine.setI1(i1);
+        }
+        if(p1 != null){
+            equationSystem.attach(closedP1);
+            dcLine.setP1(p1);
+        }
         if (closedI2 != null) {
             equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
                     .addTerm(closedI2);
+        }
+        if(i2 != null){
+            dcLine.setI2(i2);
+        }
+        if(p2 != null){
+            equationSystem.attach(closedP2);
+            dcLine.setP2(p2);
         }
     }
 
@@ -1066,14 +1083,22 @@ public class AcEquationSystemCreator {
     protected void createDcLine(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> closedI1 = null;
         EquationTerm<AcVariableType, AcEquationType> closedI2 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedP1 = null;
+        EquationTerm<AcVariableType, AcEquationType> closedP2 = null;
         if (!dcNode1.isGrounded()) {
             closedI1 = new ClosedBranchSide1DcCurrentEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+            closedP1 = new ClosedBranchSide1DcPowerEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
         }
         if (!dcNode2.isGrounded()) {
             closedI2 = new ClosedBranchSide2DcCurrentEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+            closedP2 = new ClosedBranchSide2DcPowerEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
         }
+        Evaluable i1 = closedI1;
+        Evaluable i2 = closedI2;
+        Evaluable p1 = closedP1;
+        Evaluable p2 = closedP2;
 
-        createDcLineEquations(dcNode1, dcNode2, equationSystem, closedI1, closedI2);
+        createDcLineEquations(dcLine, dcNode1, dcNode2, equationSystem, closedI1, closedI2, closedP1, closedP2, i1, i2, p1, p2);
     }
 
     private void createImpedantBranchEquations(LfBranch branch,

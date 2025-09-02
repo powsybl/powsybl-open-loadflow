@@ -8,9 +8,9 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
-import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.networktest.LfDcNode;
-import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
+import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;

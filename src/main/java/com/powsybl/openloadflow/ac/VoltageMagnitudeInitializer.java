@@ -11,9 +11,9 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
 
-import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.networktest.LfDcNode;
-import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
+import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -232,17 +232,17 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     @Override
     public double getReactivePower(LfVoltageSourceConverter converter) {
-        return 1;
+        return converter.getQac();
     }
 
     @Override
     public double getActivePower(LfAcDcConverter converter) {
-        return 1;
+        return converter.getPac();
     }
 
     @Override
     public double getMagnitude(LfDcNode dcNode) {
-        return 1;
+        return dcNode.getV();
     }
 
     @Override
@@ -257,6 +257,6 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     @Override
     public double getCurrent(LfAcDcConverter converter) {
-        return 1;
+        return converter.getIConv();
     }
 }

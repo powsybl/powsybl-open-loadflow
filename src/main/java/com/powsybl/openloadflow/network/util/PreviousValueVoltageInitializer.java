@@ -8,9 +8,9 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.ac.networktest.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.networktest.LfDcNode;
-import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
+import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -64,7 +64,7 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public double getReactivePower(LfVoltageSourceConverter converter) {
-        double q = converter.getTargetQ();
+        double q = converter.getQac();
         if (Double.isNaN(q)) {
             if (defaultToUniformValue) {
                 return defaultVoltageInitializer.getReactivePower(converter);

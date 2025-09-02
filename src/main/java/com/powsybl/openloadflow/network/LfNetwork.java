@@ -12,9 +12,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.ac.networktest.LfDcLine;
-import com.powsybl.openloadflow.ac.networktest.LfDcNode;
-import com.powsybl.openloadflow.ac.networktest.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.ac.newfiles.LfDcLine;
+import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
+import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -59,10 +59,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
-    //TODO : find a better way to implement multiple reference buses in AcDc Networks
     private LfBus referenceBus;
 
-    private final List<LfBus> referenceBuses = new ArrayList<>();
+    private final List<LfBus> acDcReferenceBuses = new ArrayList<>();
 
     private List<LfBus> slackBuses = new ArrayList<>();
 
@@ -248,13 +247,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     }
                 }
                 LfBus referenceBus = this.getBusById(subNetwork.referenceBus.getId());
-                if (!referenceBuses.contains(referenceBus)) {
+                if (!acDcReferenceBuses.contains(referenceBus)) {
                    referenceBus.setReference(true);
-                   this.referenceBuses.add(referenceBus);
+                   this.acDcReferenceBuses.add(referenceBus);
                 }
             }
         }
-        LOGGER.info("Network {}, reference buses are {}", this, referenceBuses);
+        LOGGER.info("Network {}, reference buses are {}", this, acDcReferenceBuses);
         LOGGER.info("Network {}, slack buses are {}", this, slackBuses);
     }
 
@@ -374,10 +373,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return referenceBus;
     }
 
-    public List<LfBus> getReferenceBuses() {
-        return referenceBuses;
-    }
-
     public LfBus getSlackBus() {
         return getSlackBuses().get(0);
     }
@@ -493,7 +488,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
+
+        for (LfDcNode dcNode : dcNodesById.values()) {
+            dcNode.updateState(parameters);
+        }
+
         branches.forEach(branch -> branch.updateState(parameters, updateReport));
+        dcLines.forEach(dcLine -> dcLine.updateState(parameters, updateReport));
         hvdcs.forEach(LfHvdc::updateState);
 
         if (updateReport.closedSwitchCount + updateReport.openedSwitchCount > 0) {

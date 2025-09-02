@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.ac.networktest;
+package com.powsybl.openloadflow.ac.newfiles;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.network.AbstractElement;
 import com.powsybl.openloadflow.network.ElementType;
@@ -12,7 +12,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetP;
 
-    protected double pdc;
+    protected double pAc;
+
+    protected double qAc;
 
     protected double targetVac;
 
@@ -91,12 +93,12 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     @Override
     public double getPac() {
-        return pdc;
+        return pAc;
     }
 
     @Override
-    public void setPac(double pdc) {
-        this.pdc = pdc;
+    public void setPac(double pac) {
+        this.pAc = pac;
     }
 
     @Override
@@ -132,5 +134,15 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public boolean isBipolar() {
         return isBipolar;
+    }
+
+    @Override
+    public void setQac(double qac) {
+        this.qAc = qac;
+    }
+
+    @Override
+    public double getQac() {
+        return qAc;
     }
 }

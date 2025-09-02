@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.ac.networktest;
+package com.powsybl.openloadflow.ac.newfiles;
 
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.network.LfBus;
@@ -29,7 +29,11 @@ public interface LfAcDcConverter extends LfElement {
 
     double getPac();
 
-    void setPac(double pdc);
+    void setPac(double pac);
+
+    double getQac();
+
+    void setQac(double qac);
 
     double getIConv();
 

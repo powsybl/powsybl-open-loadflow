@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.ac.networktest;
+package com.powsybl.openloadflow.ac.newfiles;
 
 import com.powsybl.openloadflow.network.AbstractElement;
 import com.powsybl.openloadflow.network.ElementType;
@@ -64,7 +64,7 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
 
     @Override
     public void setV(double v) {
-        this.v = v;
+        this.v = v * nominalV;
     }
 
     @Override
