@@ -570,6 +570,18 @@ The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the abo
  
 The default mode is `FORCED`.
 
+**generatorsWithZeroMwTargetAreNotStarted**  
+Defines if a generator must be considered as not started when its `targetP` is zero.
+
+When set to `true` (default):
+- If the absolute value of `targetP` is zero, the generator is excluded from slack distribution.
+- If the absolute value of `targetP` is zero and `minP` is above zero, voltage control is disabled.
+
+When set to `false`:
+- Even if `targetP` is zero, the generator may participate in slack distribution.
+- Even if `targetP` is zero and `minP` is above zero, voltage control may happen (unless option `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled).
+
+The default value is `true`.
 
 **startWithFrozenACEmulation**
 

@@ -1590,6 +1590,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
                     config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
                     config.getOptionalBooleanProperty(FIX_REMOTE_VOLTAGE_TARGET_PARAM_NAME).ifPresent(this::setFixRemoteVoltageTarget);
+                    config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
                 });
         return this;
     }
