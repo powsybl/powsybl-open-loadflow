@@ -4607,7 +4607,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .getNodeBreakerView()
                 .getBusbarSectionStream()
                 .map(bbs -> Contingency.busbarSection(bbs.getId())).toList();
-        
+
         runSecurityAnalysis(network, contingencies);
     }
 }
