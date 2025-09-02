@@ -1116,6 +1116,21 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testBatterySensi() {
+        Network network = DistributedSlackNetworkFactory.createWithBattery();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l14", "bat1"), createBranchFlowPerInjectionIncrease("l14", "b1"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        // The battery should be found and return the same sensitivity than to an injection at its bus
+        assertEquals(result.getBranchFlow1SensitivityValue("bat1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                result.getBranchFlow1SensitivityValue("b1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER));
+
+    }
+
+    @Test
     void testWithHvdcAcEmulation() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
