@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -25,12 +24,12 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private final EquationSystem<V, E> equationSystem;
 
-    private final Set<ScalarEquation<V, E>> equationsToSolve = new HashSet<>();
+    private final Set<ScalarEquation<V, E>> sortedSetEquationsToSolve = new TreeSet<>();
 
     private int columnCount = 0;
 
     // variable reference counting in equation terms
-    private final Map<Variable<V>, MutableInt> variablesToFindRefCount = new HashMap<>();
+    private final Map<Variable<V>, MutableInt> sortedMapVariablesToFindRefCount = new TreeMap<>();
 
     private int rowCount = 0;
 
@@ -79,7 +78,6 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void update() {
         if (!equationsIndexValid) {
-            sortedEquationsToSolve = equationsToSolve.stream().sorted().collect(Collectors.toList());
             columnCount = 0;
             for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
                 equation.setColumn(columnCount++);
@@ -96,7 +94,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
 
         if (!variablesIndexValid) {
-            sortedVariablesToFind = variablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList());
+            sortedVariablesToFind = sortedMapVariablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList());
             rowCount = 0;
             for (Variable<V> variable : sortedVariablesToFind) {
                 variable.setRow(rowCount++);
@@ -113,10 +111,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void addVariables(List<Variable<V>> variables) {
         for (Variable<V> variable : variables) {
-            MutableInt variableRefCount = variablesToFindRefCount.get(variable);
+            MutableInt variableRefCount = sortedMapVariablesToFindRefCount.get(variable);
             if (variableRefCount == null) {
                 variableRefCount = new MutableInt(1);
-                variablesToFindRefCount.put(variable, variableRefCount);
+                sortedMapVariablesToFindRefCount.put(variable, variableRefCount);
                 variablesIndexValid = false;
                 notifyVariableChange(variable, EquationSystemIndexListener.ChangeType.ADDED);
             } else {
@@ -126,7 +124,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void addEquation(ScalarEquation<V, E> equation) {
-        equationsToSolve.add(equation);
+        sortedEquationsToSolve.add(equation);
         equationsIndexValid = false;
         for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
@@ -143,12 +141,12 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void removeVariables(List<Variable<V>> variables) {
         for (Variable<V> variable : variables) {
-            MutableInt variableRefCount = variablesToFindRefCount.get(variable);
+            MutableInt variableRefCount = sortedMapVariablesToFindRefCount.get(variable);
             if (variableRefCount != null) {
                 variableRefCount.decrement();
                 if (variableRefCount.intValue() == 0) {
                     variable.setRow(-1);
-                    variablesToFindRefCount.remove(variable);
+                    sortedMapVariablesToFindRefCount.remove(variable);
                     variablesIndexValid = false;
                     notifyVariableChange(variable, EquationSystemIndexListener.ChangeType.REMOVED);
                 }
@@ -158,7 +156,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void removeEquation(ScalarEquation<V, E> equation) {
         equation.setColumn(-1);
-        equationsToSolve.remove(equation);
+        sortedSetEquationsToSolve.remove(equation);
         equationsIndexValid = false;
         for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
