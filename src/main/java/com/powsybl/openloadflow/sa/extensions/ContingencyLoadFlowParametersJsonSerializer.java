@@ -52,6 +52,7 @@ public class ContingencyLoadFlowParametersJsonSerializer implements ExtensionJso
         Optional<List<String>> outerLoopNames = extension.getOuterLoopNames();
 
         jsonGenerator.writeStartObject();
+        jsonGenerator.writeStringField("scope", extension.getScope().name());
         if (distributedSlack.isPresent()) {
             jsonGenerator.writeBooleanField("distributedSlack", distributedSlack.get());
         }
@@ -75,7 +76,11 @@ public class ContingencyLoadFlowParametersJsonSerializer implements ExtensionJso
     public ContingencyLoadFlowParameters deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         ContingencyLoadFlowParameters contingencyLoadFlowParameters = new ContingencyLoadFlowParameters();
         while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
-            if (jsonParser.currentName().equals("distributedSlack")) {
+            if (jsonParser.currentName().equals("scope")) {
+                jsonParser.nextToken();
+                ContingencyLoadFlowParameters.Scope scope = ContingencyLoadFlowParameters.Scope.valueOf(jsonParser.readValueAs(String.class));
+                contingencyLoadFlowParameters.setScope(scope);
+            } else if (jsonParser.currentName().equals("distributedSlack")) {
                 jsonParser.nextToken();
                 boolean distributedSlack = jsonParser.readValueAs(Boolean.class);
                 contingencyLoadFlowParameters.setDistributedSlack(distributedSlack);

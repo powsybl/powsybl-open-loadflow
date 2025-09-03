@@ -183,6 +183,38 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testGlskWithBranchCurrentFunction() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        Network network = FourBusNetworkFactory.create();
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("g1", 0.25f),
+                new WeightedSensitivityVariable("g4", 0.25f),
+                new WeightedSensitivityVariable("d2", 0.5f));
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = network.getBranchStream()
+                .map(branch -> new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1,
+                        branch.getId(),
+                        SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                        "glsk",
+                        true,
+                        ContingencyContext.none()))
+                .toList();
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+
+        assertEquals(5, result.getValues().size());
+
+        assertEquals(-25.36d, result.getBranchCurrent1SensitivityValue("glsk", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(-39.919d, result.getBranchCurrent1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(17.942d, result.getBranchCurrent1SensitivityValue("glsk", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(3.515d, result.getBranchCurrent1SensitivityValue("glsk", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(-21.609d, result.getBranchCurrent1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+    }
+
+    @Test
     void test4busesWithTransfoInjection() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
@@ -1081,6 +1113,21 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         network.getDanglingLine("dl1").getTerminal().disconnect();
         result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testBatterySensi() {
+        Network network = DistributedSlackNetworkFactory.createWithBattery();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l14", "bat1"), createBranchFlowPerInjectionIncrease("l14", "b1"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        // The battery should be found and return the same sensitivity than to an injection at its bus
+        assertEquals(result.getBranchFlow1SensitivityValue("bat1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                result.getBranchFlow1SensitivityValue("b1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER));
+
     }
 
     @Test
