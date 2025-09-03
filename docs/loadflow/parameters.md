@@ -524,7 +524,7 @@ and the algorithm tries to maintain the initial difference between rhos. If the 
 target voltage at initial step of the outer loop, the algorithm blocks transformers at their initial tap positions.
 The default value of this parameter is `false`.
 
-**generatorVoltageControlMinNominalVoltage**
+**generatorVoltageControlMinNominalVoltage**  
 This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
 In this mode, at the first step of the outer loop, the transformers that controlled voltage are disabled, only generators
 are participating to voltage control. At second step, generators controlling voltage at a controlled bus above
@@ -547,6 +547,7 @@ The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the abo
  
 The default mode is `FORCED`.
 
+
 **startWithFrozenACEmulation**
 
 If `true`, simulation starts with HVDC links configured in AC emulation frozen at their previous active set point
@@ -558,6 +559,20 @@ If `false`, simulation allows HVDC lines to immediately adapt to the new angles.
 The value 'true' is typically used to use a loadFlow to simulate an N-K contingency after a loadflow has previously been run.
 
 The default value is `false`. This parameter can be overridden by the security analysis parameter with same name.
+
+**generatorsWithZeroMwTargetAreNotStarted**  
+Defines if a generator must be considered as not started when its `targetP` is zero.
+
+When set to `true` (default):
+- If the absolute value of `targetP` is zero, the generator is excluded from slack distribution.
+- If the absolute value of `targetP` is zero and `minP` is above zero, voltage control is disabled.
+
+When set to `false`:
+- Even if `targetP` is zero, the generator may participate in slack distribution.
+- Even if `targetP` is zero and `minP` is above zero, voltage control may happen (unless option `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled).
+
+The default value is `true`.
+
 
 ## Configuration file example
 See below an extract of a config file that could help:

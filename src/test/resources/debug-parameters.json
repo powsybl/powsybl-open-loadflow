@@ -96,7 +96,8 @@
         "forceTargetQInReactiveLimits" : false,
         "disableInconsistentVoltageControls" : false,
         "extrapolateReactiveLimits" : false,
-        "startWithFrozenACEmulation" : false
+        "startWithFrozenACEmulation" : false,
+        "generatorsWithZeroMwTargetAreNotStarted" : true
       }
     }
   },
