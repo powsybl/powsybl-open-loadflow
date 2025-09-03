@@ -29,7 +29,7 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
     private final EquationSystemIndexListener<V, E> equationSystemIndexListener = new EquationSystemIndexListener<>() {
 
         @Override
-        public void onEquationChange(Equation<V, E> equation, ChangeType changeType) {
+        public void onEquationChange(ScalarEquation<V, E> equation, ChangeType changeType) {
             invalidateVector();
         }
 
@@ -39,7 +39,17 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         }
 
         @Override
-        public void onEquationTermChange(EquationTerm<V, E> term) {
+        public void onEquationTermChange(ScalarEquationTerm<V, E> term) {
+            // nothing to do
+        }
+
+        @Override
+        public void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType) {
+            invalidateVector();
+        }
+
+        @Override
+        public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType) {
             // nothing to do
         }
     };
