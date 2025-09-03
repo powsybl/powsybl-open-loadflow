@@ -69,6 +69,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
                 .setMatrixFactory(matrixFactory)
                 .setDistributedSlack(lfParameters.isDistributedSlack())
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS)
                 .setBalanceType(lfParameters.getBalanceType())
                 .setSetVToNan(true)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations());
