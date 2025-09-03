@@ -34,6 +34,8 @@ public class ScalarEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
      */
     private boolean active = true;
 
+    private boolean hasRhs = false;
+
     private final List<ScalarEquationTerm<V, E>> terms = new ArrayList<>();
 
     private final Map<Variable<V>, List<ScalarEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
@@ -116,6 +118,9 @@ public class ScalarEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         termImpl.setEquation(this);
         equationSystem.addEquationTerm(termImpl);
         equationSystem.notifyEquationTermChange(termImpl, EquationTermEventType.EQUATION_TERM_ADDED);
+        if (termImpl.hasRhs()) {
+            hasRhs = true;
+        }
         return this;
     }
 
@@ -209,6 +214,9 @@ public class ScalarEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public double rhs() {
+        if (!hasRhs) {
+            return 0;
+        }
         double rhs = 0;
         for (var term : terms) {
             if (term.isActive() && term.hasRhs()) {

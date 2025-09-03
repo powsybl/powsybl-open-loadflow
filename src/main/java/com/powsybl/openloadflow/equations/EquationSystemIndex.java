@@ -26,16 +26,16 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private final Set<ScalarEquation<V, E>> sortedSetEquationsToSolve = new TreeSet<>();
 
-    private int columnCount = 0;
-
     // variable reference counting in equation terms
     private final Map<Variable<V>, MutableInt> sortedMapVariablesToFindRefCount = new TreeMap<>();
-
-    private int rowCount = 0;
 
     private List<ScalarEquation<V, E>> sortedEquationsToSolve = Collections.emptyList();
 
     private List<Variable<V>> sortedVariablesToFind = Collections.emptyList();
+
+    private int columnCount = 0;
+
+    private int rowCount = 0;
 
     private boolean equationsIndexValid = false;
 
@@ -79,6 +79,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     private void update() {
         if (!equationsIndexValid) {
             columnCount = 0;
+            sortedEquationsToSolve = sortedSetEquationsToSolve.stream().toList();
             for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
                 equation.setColumn(columnCount++);
             }
@@ -94,7 +95,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
 
         if (!variablesIndexValid) {
-            sortedVariablesToFind = sortedMapVariablesToFindRefCount.keySet().stream().sorted().collect(Collectors.toList());
+            sortedVariablesToFind = sortedMapVariablesToFindRefCount.keySet().stream().toList();
             rowCount = 0;
             for (Variable<V> variable : sortedVariablesToFind) {
                 variable.setRow(rowCount++);
@@ -124,7 +125,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void addEquation(ScalarEquation<V, E> equation) {
-        sortedEquationsToSolve.add(equation);
+        sortedSetEquationsToSolve.add(equation);
         equationsIndexValid = false;
         for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
