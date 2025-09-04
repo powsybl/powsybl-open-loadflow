@@ -23,6 +23,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -882,11 +884,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(loadFlowDiff.get("l23"), result.getBranchCurrent1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
     }
 
-    @Test
-    void testHvdcSensiAcEmulationNotSupported() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testHvdcSensiAcEmulationNotSupported(boolean acEmulationParameter) {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
         sensiParameters.getLoadFlowParameters()
-                .setHvdcAcEmulation(true);
+                .setHvdcAcEmulation(acEmulationParameter);
 
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
@@ -899,8 +902,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
                 false, ContingencyContext.all());
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
-        assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
+        if (acEmulationParameter) {
+            CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+            assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
+        } else {
+            // If parameter hvdcAcEmulation is false, no problem
+            SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+            assertEquals(3git sta, result.getValues().size());
+        }
     }
 
     @Test
