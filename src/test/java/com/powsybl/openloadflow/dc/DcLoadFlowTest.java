@@ -269,14 +269,15 @@ class DcLoadFlowTest {
     @Test
     void multiCcTest() {
         Network network = IeeeCdfNetworkFactory.create14();
+        // Add a generator on the networ component that will be created by line disconnection
         network.getVoltageLevel("VL12").newGenerator()
                 .setId("gvl12")
                 .setBus("B12")
                 .setConnectableBus("B12")
                 .setEnergySource(EnergySource.THERMAL)
                 .setMinP(0)
-                .setMaxP(1)
-                .setTargetP(0)
+                .setMaxP(20)
+                .setTargetP(1)
                 .setTargetQ(0)
                 .setVoltageRegulatorOn(false)
                 .add();
@@ -286,6 +287,7 @@ class DcLoadFlowTest {
             l.getTerminal1().disconnect();
             l.getTerminal2().disconnect();
         }
+
         // bus 12 and 13 are out of main connected component
         parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
         loadFlowRunner.run(network, parameters);
@@ -563,6 +565,9 @@ class DcLoadFlowTest {
     @Test
     void testDcResidualMismatchRemaining() {
         Network network = IeeeCdfNetworkFactory.create9();
+        // The purpose of this test is to verify the report when slack distribution mismatch is left on lack bus.
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setPlausibleActivePowerLimit(5000); // remove large groups from slack distribution to cause slack distribution failure
         network.getGenerator("B1-G").setTargetP(67.99); // Setting target P to have an initially almost balanced network
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         System.out.println(network.getGenerator("B1-G").getId() + " has P = " + network.getGenerator("B1-G").getTargetP());
@@ -576,6 +581,9 @@ class DcLoadFlowTest {
         Network network = IeeeCdfNetworkFactory.create57();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         Generator referenceGenerator = network.getGenerator("B1-G");
+
+        // Remove large groups from slack distribution to cause a slack distribution failure
+        parametersExt.setPlausibleActivePowerLimit(5000);
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();

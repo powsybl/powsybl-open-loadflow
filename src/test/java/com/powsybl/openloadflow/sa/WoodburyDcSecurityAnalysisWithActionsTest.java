@@ -46,6 +46,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
     private LoadFlowParameters parameters;
     private SecurityAnalysisParameters securityAnalysisParameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     public void setUpWoodburyDcSa() {
@@ -53,6 +54,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         // configure sa to use Woodbury dc sa
         parameters = new LoadFlowParameters();
         parameters.setDc(true);
+        parametersExt = OpenLoadFlowParameters.create(parameters);
         securityAnalysisParameters.setLoadFlowParameters(parameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
         openSecurityAnalysisParameters.setDcFastMode(true);
@@ -614,6 +616,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
         securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
                 .setDcFastMode(dcFastMode);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);

@@ -191,6 +191,10 @@ class SecondaryVoltageControlTest {
         g6.setTargetV(11.8);
         g8.setTargetV(19.5);
 
+        // This scenario works if the slack distribution fails and an injection is added at the slack bus
+        parametersExt.setPlausibleActivePowerLimit(5000); // Remove large groups from slack distribution
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+
         parametersExt.setSecondaryVoltageControl(true);
 
         ReportNode node = ReportNode.newRootReportNode()
@@ -282,7 +286,7 @@ class SecondaryVoltageControlTest {
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
         var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(10, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(11, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(15, b10);
         assertVoltageEquals(14.604, b6);
@@ -290,7 +294,6 @@ class SecondaryVoltageControlTest {
         assertReactivePowerEquals(-24, g6.getTerminal()); // [-6, 24] => qmax
         assertReactivePowerEquals(-200, g8.getTerminal()); // [-6, 200] => qmax
 
-        // Note that slack distribution fails in this test that runs with the LEAVE_ON_SLACK_BUS slack failure behaviour
         String expected = """
                 + test
                    + Load flow on network 'ieee14cdf'
@@ -317,11 +320,18 @@ class SecondaryVoltageControlTest {
                                   Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
                          + Outer loop DistributedSlack
                             + Outer loop iteration 5
-                               Failed to distribute slack bus active power mismatch, 3.013536 MW remains
+                               Slack bus active power (3.013536 MW) distributed in 1 distribution iteration(s)
                          Outer loop SecondaryVoltageControl
                          Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
-                            + Outer loop iteration 5
+                            + Outer loop iteration 6
+                               + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)
+                                  Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
+                         Outer loop DistributedSlack
+                         Outer loop SecondaryVoltageControl
+                         Outer loop VoltageMonitoring
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 6
                                + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)
                                   Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
@@ -352,7 +362,7 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(142, b4);
         assertVoltageEquals(14.5, b10);
     }
@@ -376,7 +386,7 @@ class SecondaryVoltageControlTest {
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14.4, b10);
         assertVoltageEquals(14.151, b6);
         assertVoltageEquals(28.913, b8);
@@ -523,12 +533,12 @@ class SecondaryVoltageControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(9, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(13, b10);
         assertVoltageEquals(12.682, b6);
         assertVoltageEquals(25.311, b8);
-        assertReactivePowerEquals(82.904, g5.getTerminal());
+        assertReactivePowerEquals(82.910, g5.getTerminal());
         assertReactivePowerEquals(-97, g8.getTerminal());
     }
 
@@ -642,8 +652,8 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(12.5, b10);
         assertVoltageEquals(5.548, b991);
         assertVoltageEquals(4.93, b992);
-        assertReactivePowerEquals(-9.172, g991.getTerminal());
-        assertReactivePowerEquals(4.742, g992.getTerminal());
+        assertReactivePowerEquals(-8.976, g991.getTerminal());
+        assertReactivePowerEquals(4.919, g992.getTerminal());
 
         // With secondary voltage set to false, check that the remote control remains active
         parametersExt.setSecondaryVoltageControl(false);

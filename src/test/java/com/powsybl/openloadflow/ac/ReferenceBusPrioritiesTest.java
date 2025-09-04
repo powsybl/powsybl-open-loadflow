@@ -158,7 +158,8 @@ class ReferenceBusPrioritiesTest {
 
     @Test
     void shouldNotSelectVscHvdcConverterTest() {
-        network = HvdcNetworkFactory.createVsc();
+        network = HvdcNetworkFactory.createVsc(false);
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setSlackBusPMaxMismatch(0.1);
         ReferencePriorities.delete(network);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

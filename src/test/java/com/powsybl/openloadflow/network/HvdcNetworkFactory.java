@@ -20,13 +20,28 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1       ld2               ld3
      * |         |                 |
-     * b1 ------- b2-cs2--------cs3-b3
+     * b1 ------- b2-cs2--------cs3-b3--g3 (small group for slack distribution)
+     * l12          hvdc23
+     * </pre>
+     *
+     * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+     */
+    public static Network createVsc() {
+        return createVsc(true);
+    }
+
+    /**
+     * VSC test case.
+     * <pre>
+     * g1       ld2               ld3
+     * |         |                 |
+     * b1 ------- b2-cs2--------cs3-b3-(optional g3 for fix setPoint)
      * l12          hvdc23
      * </pre>
      *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
      */
-    public static Network createVsc() {
+    public static Network createVsc(boolean withGeneratorOnB3) {
         Network network = Network.create("vsc", "test");
 
         Substation s1 = network.newSubstation()
@@ -97,6 +112,19 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setP0(50)
            .setQ0(10)
             .add();
+        if (withGeneratorOnB3) {
+            // A small geerator to comensate the loss in the line and HVDC
+            vl3.newGenerator()
+                    .setId("g3")
+                    .setConnectableBus("b3")
+                    .setBus("b3")
+                    .setTargetP(0.3)
+                    .setMinP(0)
+                    .setMaxP(1)
+                    .setTargetQ(0)
+                    .setVoltageRegulatorOn(false)
+                    .add();
+        }
         vl3.newVscConverterStation()
            .setId("cs3")
            .setConnectableBus("b3")
