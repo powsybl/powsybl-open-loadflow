@@ -908,7 +908,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         } else {
             // If parameter hvdcAcEmulation is false, no problem
             SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-            assertEquals(3git sta, result.getValues().size());
+            assertEquals(3, result.getValues().size());
         }
     }
 
