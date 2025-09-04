@@ -104,6 +104,47 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void test4busesSlackDistributionFails() {
+        Network network = FourBusNetworkFactory.create();
+
+        // More load than production
+        network.getLoad("d2").setP0(10);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
+        sensiParameters.getLoadFlowParameters().setDistributedSlack(true);
+        // fails with default parameters
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                        .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        assertThrows(PowsyblException.class, () -> runLf(network, sensiParameters.getLoadFlowParameters()));
+
+        // Run with LEAVE_ON_SLACK_BUS to get a reference result
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        assertDoesNotThrow(() -> runLf(network, sensiParameters.getLoadFlowParameters()));
+
+        Map<String, Double> functionReferenceByLine = new HashMap<>();
+        for (Line line : network.getLines()) {
+            functionReferenceByLine.put(line.getId(), line.getTerminal1().getP());
+        }
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()), TwoSides.ONE);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(15, result.getValues().size());
+
+        for (Line line : network.getLines()) {
+            assertEquals(functionReferenceByLine.get(line.getId()), result.getBranchFlow1FunctionReferenceValue(line.getId()), LoadFlowAssert.DELTA_POWER);
+        }
+
+        // Note that slack distribution failure behaviour parameter is ignored
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        assertDoesNotThrow(() -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+    }
+
+    @Test
     void test4busesSide2() {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
@@ -1092,6 +1133,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testThreeWindingsTransformerAsFunction() {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
 
         SensitivityFactor factorActivePower1Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.ONE);
