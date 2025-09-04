@@ -883,6 +883,27 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testHvdcSensiAcEmulationNotSupported() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters()
+                .setHvdcAcEmulation(true);
+
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_CURRENT_1, List.of("l12", "l13", "l23"),
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                false, ContingencyContext.all());
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
+   }
+
+    @Test
     void testHvdcSensiWithLCCs() {
         // test active power setpoint increase on a HVDC line
         // FIXME

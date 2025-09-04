@@ -1055,12 +1055,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
                     if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
                         if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled() && parameters.getLoadFlowParameters().isHvdcAcEmulation()) {
-                            LOGGER.warn("HVDC line {} has AC emulation enabled, using it as HVDC_LINE_ACTIVE_POWER variable may be wrong because its set point cannot be controlled",
-                                    variableId);
+                            throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
                         }
                     }
 
-                    // corresponds to an augmentation of +1 on the active power setpoint (TODO : currently it corresponds to an augmentation of +1 of active power transit, not setpoint (corner case of AC emulation))
+                    // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                     // on each side on the HVDC line
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
