@@ -901,7 +901,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
         assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
-   }
+    }
 
     @Test
     void testHvdcSensiWithLCCs() {
