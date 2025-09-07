@@ -1310,7 +1310,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(), new LoadFlowParameters());
         assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(435.083, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0).getValue(), LoadFlowAssert.DELTA_I);
+        LimitViolation expected = new LimitViolation("3wt", null, LimitViolationType.CURRENT, "permanent",
+                60, 400., 1.0F, 435.0831773201809, TwoSides.TWO);
+        int compare = LimitViolations.comparator().compare(expected,
+                result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare);
     }
 
     @Test
