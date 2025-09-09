@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.*;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
@@ -39,6 +39,7 @@ import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
@@ -92,7 +93,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         saParameters.setLoadFlowParameters(lfParameters);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testSaReport")
                 .build();
         runSecurityAnalysis(network, contingencies, Collections.emptyList(),
@@ -138,7 +139,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisParameters.setLoadFlowParameters(parameters);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testSaReportWithOperatorStrategies")
                 .build();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
@@ -373,7 +374,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(639.268, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
         loadFlowRunner.run(network, parameters);
@@ -871,7 +872,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getLine("l24").newActivePowerLimits1().setPermanentLimit(150).add();
+        network.getLine("l24").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(150).add();
         double initialL4 = network.getLoad("l4").getP0();
 
         List<Contingency> contingencies = Stream.of("l2")
@@ -1548,7 +1549,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // hvdc flow power from generator to load
         network.getHvdcLine("hvdc23").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
         network.getLine("l12").getTerminals().forEach(Terminal::disconnect);
-        network.getLine("l14").newCurrentLimits1()
+        network.getLine("l14").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                 .setPermanentLimit(290)
                 .add();
         network.newLine()
@@ -1760,7 +1761,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 ContingencyContext.specificContingency("NHV1_NHV2_2"), new TrueCondition(), List.of("open NGEN_NHV1")));
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testSaReport")
                 .build();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), operatorStrategies, actions, reportNode);
@@ -1844,15 +1845,21 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(-15.0, result.getOperatorStrategyResults().get(1).getNetworkResult().getBranchResult("l23_A2").getP2(), areaInterchangePMaxMismatch);
     }
 
-    @ParameterizedTest(name = "DC = {0}")
-    @ValueSource(booleans = {false, true})
-    void testContingencyParameters(boolean isDc) {
+    @ParameterizedTest(name = "DC = {0}, scope = {1}")
+    @CsvSource({
+        "false, CONTINGENCY_ONLY",
+        "true,  CONTINGENCY_ONLY",
+        "false, CONTINGENCY_AND_OPERATOR_STRATEGY",
+        "true,  CONTINGENCY_AND_OPERATOR_STRATEGY",
+    })
+    void testContingencyParameters(boolean isDc, ContingencyLoadFlowParameters.Scope scope) {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
 
         // create a contingency with ContingencyLoadFlowParameters extension
         Contingency contingency1 = new Contingency("load3", new LoadContingency("load3"));
 
         ContingencyLoadFlowParameters contingencyParameters1 = new ContingencyLoadFlowParameters()
+                .setScope(scope)
                 .setDistributedSlack(false)
                 .setAreaInterchangeControl(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -1880,14 +1887,21 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(25, preContingencyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(30, preContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        // Post-contingency results : AIC on loads
+        // Post-contingency results: AIC on loads
         PostContingencyResult postContingencyResult = getPostContingencyResult(resultAc, "load3");
         assertEquals(50, postContingencyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(75, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        // Operator strategy results : AIC on loads
+        // Operator strategy results
         OperatorStrategyResult acStrategyResult = getOperatorStrategyResult(resultAc, "strategy1");
-        assertEquals(50, acStrategyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(95, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        if (scope == ContingencyLoadFlowParameters.Scope.CONTINGENCY_AND_OPERATOR_STRATEGY) {
+            // AIC on loads
+            assertEquals(50, acStrategyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(95, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        } else {
+            // slack distribution on generators
+            assertEquals(40, acStrategyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(75, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        }
     }
 }

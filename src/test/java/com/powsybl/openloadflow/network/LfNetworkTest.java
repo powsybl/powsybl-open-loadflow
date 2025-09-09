@@ -397,7 +397,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertEquals(1., reductions[2], 0.001); // TATL 60s
 
         // No reductions because only current limits are supported
-        branch.newActivePowerLimits1().setPermanentLimit(100.).add();
+        branch.getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(100.).add();
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
                 new LimitReductionManager.TerminalLimitReduction(Range.of(0., Double.MAX_VALUE), true, null, 0.5);
         LimitReductionManager limitReductionManager1 = new LimitReductionManager();

@@ -19,11 +19,11 @@ public class MetrixTutorialSixBusesSecurityAnalysisFactory extends AbstractLoadF
         for (Line line : network.getLines()) {
             line.setR(0.2);
             if (lowLimitLines.contains(line.getId())) {
-                line.newCurrentLimits1().setPermanentLimit(350.0).add();
-                line.newCurrentLimits2().setPermanentLimit(350.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(350.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(350.0).add();
             } else {
-                line.newCurrentLimits1().setPermanentLimit(400.0).add();
-                line.newCurrentLimits2().setPermanentLimit(400.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(400.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(400.0).add();
             }
         }
 
@@ -51,12 +51,12 @@ public class MetrixTutorialSixBusesSecurityAnalysisFactory extends AbstractLoadF
         for (Line line : network.getLines()) {
             if (specialLimitLines.contains(line.getId())) {
                 line.setR(90.0);
-                line.newCurrentLimits1().setPermanentLimit(2000.0).add();
-                line.newCurrentLimits2().setPermanentLimit(2000.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(2000.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(2000.0).add();
             } else {
                 line.setR(0.2);
-                line.newCurrentLimits1().setPermanentLimit(1000.0).add();
-                line.newCurrentLimits2().setPermanentLimit(1000.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(1000.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(1000.0).add();
             }
         }
 
@@ -74,11 +74,11 @@ public class MetrixTutorialSixBusesSecurityAnalysisFactory extends AbstractLoadF
         for (Line line : network.getLines()) {
             line.setR(0.2);
             if (lowLimitLines.contains(line.getId())) {
-                line.newActivePowerLimits1().setPermanentLimit(250.0).add();
-                line.newActivePowerLimits2().setPermanentLimit(250.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(250.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newActivePowerLimits().setPermanentLimit(250.0).add();
             } else {
-                line.newActivePowerLimits1().setPermanentLimit(300.0).add();
-                line.newActivePowerLimits2().setPermanentLimit(300.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(300.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newActivePowerLimits().setPermanentLimit(300.0).add();
             }
         }
         network.getTwoWindingsTransformer("NE_NO_1")
@@ -97,11 +97,11 @@ public class MetrixTutorialSixBusesSecurityAnalysisFactory extends AbstractLoadF
         for (Line line : network.getLines()) {
             line.setR(0.2);
             if (lowLimitLines.contains(line.getId())) {
-                line.newApparentPowerLimits1().setPermanentLimit(250.0).add();
-                line.newApparentPowerLimits2().setPermanentLimit(250.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(250.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newApparentPowerLimits().setPermanentLimit(250.0).add();
             } else {
-                line.newApparentPowerLimits1().setPermanentLimit(300.0).add();
-                line.newApparentPowerLimits2().setPermanentLimit(300.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(300.0).add();
+                line.getOrCreateSelectedOperationalLimitsGroup2().newApparentPowerLimits().setPermanentLimit(300.0).add();
             }
         }
         network.getTwoWindingsTransformer("NE_NO_1")

@@ -51,7 +51,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
     @Override
     public String getName() {
-        return "Newton Raphson";
+        return "Newton-Raphson";
     }
 
     public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {

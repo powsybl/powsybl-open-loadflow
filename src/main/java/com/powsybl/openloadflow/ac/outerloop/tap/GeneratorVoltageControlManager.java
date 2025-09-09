@@ -68,8 +68,8 @@ public class GeneratorVoltageControlManager {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                 for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
                     if (controllerBus.isGeneratorVoltageControlEnabled() && !hasStepUpTransformers(controllerBus, minNominalVoltageLimit)) {
-                        controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                         controllerBus.setGeneratorVoltageControlEnabled(false);
+                        controllerBus.freezeGenerationTargetQ(controllerBus.getQ().eval());
                         disabledControllerBuses.add(controllerBus);
                     }
                 }
@@ -82,8 +82,8 @@ public class GeneratorVoltageControlManager {
      */
     public void enableGeneratorVoltageControlsUnderMaxControlledNominalVoltage() {
         for (LfBus controllerBus : disabledControllerBuses) {
-            controllerBus.setGenerationTargetQ(0);
             controllerBus.setGeneratorVoltageControlEnabled(true);
+            controllerBus.invalidateGenerationTargetQ();
         }
     }
 

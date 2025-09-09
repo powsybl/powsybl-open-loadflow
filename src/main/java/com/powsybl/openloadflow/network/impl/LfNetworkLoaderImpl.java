@@ -181,10 +181,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 .stream()
                 .filter(lfGenerator -> lfGenerator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
                 .forEach(lfGenerator -> lfGenerator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
-        controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream()
-                .mapToDouble(LfGenerator::getTargetQ)
-                .filter(d -> !Double.isNaN(d))
-                .sum());
+        controllerBus.invalidateGenerationTargetQ();
     }
 
     private static void checkGeneratorsWithSlope(GeneratorVoltageControl voltageControl) {
@@ -717,7 +714,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId,
                                            LfNetworkParameters parameters) {
-        if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+        if (ptc != null && ptc.isRegulating()) {
             String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
             if (ptc.getRegulationTerminal().getConnectable() instanceof ThreeWindingsTransformer twt) {
                 controlledBranchId = LfLegBranch.getId(twt.getSide(ptc.getRegulationTerminal()), controlledBranchId);

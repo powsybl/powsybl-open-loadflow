@@ -96,7 +96,8 @@
         "fixRemoteVoltageTarget" : false,
         "forceTargetQInReactiveLimits" : false,
         "disableInconsistentVoltageControls" : false,
-        "extrapolateReactiveLimits" : false
+        "extrapolateReactiveLimits" : false,
+        "generatorsWithZeroMwTargetAreNotStarted" : true
       }
     }
   },

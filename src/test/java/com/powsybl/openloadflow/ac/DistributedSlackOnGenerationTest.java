@@ -396,6 +396,34 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void generatorZeroTargetPConsideredNotStartedTest() {
+        g1.setMinP(0.);
+        g1.setTargetP(0.);
+        assertTrue(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0., g1.getTerminal()); // not participating slack distribution
+        assertActivePowerEquals(-300.0, g2.getTerminal());
+        assertActivePowerEquals(-150.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(220., result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void generatorZeroTargetPConsideredStartedTest() {
+        g1.setMinP(0.);
+        g1.setTargetP(0.);
+        parametersExt.setGeneratorsWithZeroMwTargetAreNotStarted(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-32.0, g1.getTerminal()); // participating (prop to Pmax)
+        assertActivePowerEquals(-296.0, g2.getTerminal());
+        assertActivePowerEquals(-122.0, g3.getTerminal());
+        assertActivePowerEquals(-150.0, g4.getTerminal());
+        assertEquals(220., result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void zeroParticipatingGeneratorsThrowTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);

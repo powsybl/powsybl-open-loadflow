@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.test.PowsyblCoreTestReportResourceBundle;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -38,7 +38,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     void testEsgTuto() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testEsgTutoReport")
                 .build();
         runAcLf(network, reportNode);
@@ -57,7 +57,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     void testEsgTutoDetailedNrLogsSensi() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblCoreTestReportResourceBundle.TEST_BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testEsgTutoReport")
                 .build();
 
