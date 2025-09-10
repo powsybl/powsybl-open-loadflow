@@ -927,6 +927,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (injection == null) {
                 injection = network.getVscConverterStation(injectionId);
             }
+            if (injection == null) {
+                injection = network.getBattery(injectionId);
+            }
             return injection;
         }
 
@@ -1002,7 +1005,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 functionId = updatedFunction.getRight();
             }
             if (variableSet) {
-                if (isActivePowerFunctionType(functionType)) {
+                if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
