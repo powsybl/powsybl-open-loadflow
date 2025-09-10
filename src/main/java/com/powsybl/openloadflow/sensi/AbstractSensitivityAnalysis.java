@@ -1060,7 +1060,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     }
 
                     // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
-                    // on each side on the HVDC line
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
                     Set<String> originalVariableSetIds = new HashSet<>(2);

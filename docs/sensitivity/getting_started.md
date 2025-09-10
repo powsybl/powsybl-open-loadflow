@@ -42,7 +42,7 @@ Here is a table to summarize supported use cases:
 
 </div>
 
-*HVDC_LINE_ACTIVE_POWER is used to compute the sensitivity according to the active power set point of the HVDC. This is not applicable for HVDCs that are in AC emulation mode.
+*HVDC_LINE_ACTIVE_POWER is used to compute the sensitivity according to the active power set point of the HVDC. That is why it is not supported for HVDCs that are in AC emulation mode: an exception is thrown if the user asks a sensitivity according to an HVDC link with AC emulation (and if hvdcAcEmulation parameter is enabled).
 
 ## Input function types
 
