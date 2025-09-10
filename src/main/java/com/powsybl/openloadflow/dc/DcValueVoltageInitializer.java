@@ -110,7 +110,12 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public double getMagnitude(LfDcNode dcNode) {
-        return 1;
+        if(dcNode.isNeutralPole()){
+            return 0.0;
+        }
+        else{
+            return 1;
+        }
     }
 
     @Override

@@ -1,4 +1,4 @@
-The Equations of the DC Multi-Node Representation are the following:
+The Equations of the DC Bipolar Representation are the following:
 
 # Converters
 

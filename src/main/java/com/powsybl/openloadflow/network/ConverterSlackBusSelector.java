@@ -51,8 +51,6 @@ public class ConverterSlackBusSelector extends AbstractSlackBusSelector {
                     .limit(limit)
                     .collect(Collectors.toList());
         }
-        System.out.println("##############################_____SLACK BUSES_____##############################");
-        System.out.println(slackBuses);
         return new SelectedSlackBus(slackBuses, "Largest converter bus");
     }
 }

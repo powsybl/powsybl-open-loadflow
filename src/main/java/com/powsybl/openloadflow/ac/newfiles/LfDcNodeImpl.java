@@ -16,9 +16,6 @@ public class LfDcNodeImpl extends AbstractLfDcNode {
     public LfDcNodeImpl(DcNode dcNode, LfNetwork network, double nominalV, LfNetworkParameters parameters) {
         super(network, nominalV, dcNode.getV());
         this.dcNodeRef = Ref.create(dcNode, parameters.isCacheEnabled());
-        if (dcNode.getV() == 0.0) {
-            isGrounded = true;
-        }
     }
 
     public static LfDcNodeImpl create(DcNode dcNode, LfNetwork network, LfNetworkParameters parameters) {
@@ -45,6 +42,11 @@ public class LfDcNodeImpl extends AbstractLfDcNode {
     @Override
     public boolean isGrounded() {
         return isGrounded;
+    }
+
+    @Override
+    public void setGround(boolean isGrounded) {
+        this.isGrounded = isGrounded;
     }
 
     @Override

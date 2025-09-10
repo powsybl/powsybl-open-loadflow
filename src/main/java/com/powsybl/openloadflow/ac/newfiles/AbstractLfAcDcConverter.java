@@ -40,6 +40,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         super(network);
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;
+        if(dcNode2 != null) {
+            dcNode2.setNeutralPole(true);
+        }
         this.bus1 = bus1;
         this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();

@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -88,10 +89,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createDcNodes(List<DcNode> dcNodes, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfDcNode> lfDcNodes) {
-        for (DcNode bus : dcNodes) {
-            LfDcNodeImpl lfDcNode = createDcNode(bus, parameters, lfNetwork);
+        for (DcNode dcNode : dcNodes) {
+            LfDcNodeImpl lfDcNode = createDcNode(dcNode, parameters, lfNetwork);
             lfNetwork.addDcNode(lfDcNode);
             lfDcNodes.add(lfDcNode);
+        }
+    }
+
+    private static void createDcGrounds(LfNetwork lfNetwork, List<DcGround> dcGrounds){
+        for(DcGround dcGround : dcGrounds){
+            Objects.requireNonNull(getLfDcNode(dcGround.getDcTerminal(), lfNetwork)).setGround(true);
         }
     }
 
@@ -997,9 +1004,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
+
         List<DcNode> dcNodes = new ArrayList<>();
         List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
         List<LfDcNode> lfDcNodes = new ArrayList<>();
+        List<DcGround> dcGrounds = StreamSupport.stream(network.getDcGrounds().spliterator(), false).toList();
 
         if (parameters.isAcDcNetwork()) {
             network.getDcNodes().forEach(dcNodes::add);
@@ -1028,6 +1037,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
         createAreas(lfNetwork, loadingContext, postProcessors, parameters);
         createDcNodes(dcNodes, parameters, lfNetwork, lfDcNodes);
+        createDcGrounds(lfNetwork, dcGrounds);
         createDcLines(lfNetwork, network, parameters);
         createAcDcConverters(acDcConverters, lfNetwork, parameters);
 
@@ -1400,6 +1410,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!parameters.isAcDcNetwork()) {
             return lfNetworks;
         } else {
+            //If we want to launch a loadflow on an AcDcNetwork, there is only one synchronous component, so we create a unique network
+            //And we add all the Ac Subnetworks, for reference buses definition
             List<Bus> busesList = new ArrayList<>();
             network.getBusView().getBuses().forEach(busesList::add);
             List<Switch> switchesList = new ArrayList<>();

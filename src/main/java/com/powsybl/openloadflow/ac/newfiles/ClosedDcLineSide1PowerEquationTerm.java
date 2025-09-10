@@ -6,9 +6,9 @@ import com.powsybl.openloadflow.equations.VariableSet;
 
 import java.util.Objects;
 
-public class ClosedBranchSide1DcPowerEquationTerm extends AbstractClosedBranchDcFlowEquationTerm {
+public class ClosedDcLineSide1PowerEquationTerm extends AbstractClosedDcLineFlowEquationTerm {
 
-    public ClosedBranchSide1DcPowerEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
+    public ClosedDcLineSide1PowerEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
         super(dcLine, dcNode1, dcNode2, variableSet);
     }
 

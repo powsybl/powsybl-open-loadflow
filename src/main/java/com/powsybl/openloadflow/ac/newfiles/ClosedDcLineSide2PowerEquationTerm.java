@@ -6,36 +6,36 @@ import com.powsybl.openloadflow.equations.VariableSet;
 
 import java.util.Objects;
 
-public class ClosedBranchSide1DcCurrentEquationTerm extends AbstractClosedBranchDcFlowEquationTerm {
+public class ClosedDcLineSide2PowerEquationTerm extends AbstractClosedDcLineFlowEquationTerm {
 
-    public ClosedBranchSide1DcCurrentEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
+    public ClosedDcLineSide2PowerEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
         super(dcLine, dcNode1, dcNode2, variableSet);
     }
 
-    public static double i1(double v1, double v2, double r) {
-        return -(v1 - v2) / r;
+    public static double p2(double v1, double v2, double r) {
+        return v2 * (v1 - v2) / r;
     }
 
-    public static double di1dv1(double r) {
-        return -1 / r;
+    public static double dp2dv1(double v2, double r) {
+        return v2 / r;
     }
 
-    public static double di1dv2(double r) {
-        return 1 / r;
+    public static double dp2dv2(double v1, double v2, double r) {
+        return (-2 * v2 + v1) / r;
     }
 
     @Override
     public double eval() {
-        return i1(v1(), v2(), r);
+        return p2(v1(), v2(), r);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return di1dv1(r);
+            return dp2dv1(v2(), r);
         } else if (variable.equals(v2Var)) {
-            return di1dv2(r);
+            return dp2dv2(v1(), v2(), r);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -43,6 +43,7 @@ public class ClosedBranchSide1DcCurrentEquationTerm extends AbstractClosedBranch
 
     @Override
     protected String getName() {
-        return "ac_i_closed_1";
+        return "ac_p_closed_2";
     }
 }
+

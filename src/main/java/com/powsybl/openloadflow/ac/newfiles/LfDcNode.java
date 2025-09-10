@@ -25,7 +25,13 @@ public interface LfDcNode extends LfElement {
         return false;
     }
 
-    List<LfAcDcConverter> getVscConverterStations();
+    List<LfAcDcConverter> getConverters();
+
+    void addConverter(LfAcDcConverter converter);
+
+    void setNeutralPole(boolean isNeutralPole);
+
+    boolean isNeutralPole();
 
     double getTargetV();
 
@@ -36,6 +42,8 @@ public interface LfDcNode extends LfElement {
     double getNominalV();
 
     boolean isGrounded();
+
+    void setGround(boolean isGrounded);
 
     List<LfDcLine> getDcLines();
 

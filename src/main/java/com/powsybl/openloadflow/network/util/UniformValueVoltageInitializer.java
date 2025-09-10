@@ -35,6 +35,9 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public double getMagnitude(LfDcNode dcNode) {
+        if(dcNode.isNeutralPole()) {
+            return 0.0;
+        }
         return 1.0;
     }
 

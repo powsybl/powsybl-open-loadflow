@@ -14,7 +14,7 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
 
     protected final List<LfDcLine> lfDcLines = new ArrayList<>();
 
-    protected final List<LfAcDcConverter> vscConverterStations = new ArrayList<>();
+    protected final List<LfAcDcConverter> converters = new ArrayList<>();
 
     protected Evaluable calculatedV;
 
@@ -26,8 +26,9 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
 
     protected double nominalV;
 
-    protected AbstractLfDcNode(LfNetwork network, double nominalV, double v) {
+    protected boolean isNeutralPole = false;
 
+    protected AbstractLfDcNode(LfNetwork network, double nominalV, double v) {
         super(network);
         this.nominalV = nominalV;
         this.v = v;
@@ -43,8 +44,13 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
         lfDcLines.add(Objects.requireNonNull(lfdcline));
     }
 
-    public List<LfAcDcConverter> getVscConverterStations() {
-        return vscConverterStations;
+    public List<LfAcDcConverter> getConverters() {
+        return converters;
+    }
+
+    @Override
+    public void addConverter(LfAcDcConverter converter) {
+        converters.add(converter);
     }
 
     @Override
@@ -100,5 +106,15 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     @Override
     public List<LfDcLine> getDcLines() {
         return lfDcLines;
+    }
+
+    @Override
+    public boolean isNeutralPole() {
+        return isNeutralPole;
+    }
+
+    @Override
+    public void setNeutralPole(boolean isNeutralPole) {
+        this.isNeutralPole = isNeutralPole;
     }
 }

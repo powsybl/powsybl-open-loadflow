@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractElementEquationTerm<LfDcLine, AcVariableType, AcEquationType> {
+public abstract class AbstractClosedDcLineFlowEquationTerm extends AbstractElementEquationTerm<LfDcLine, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> v1Var;
 
@@ -21,7 +21,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
 
     protected final double r;
 
-    protected AbstractClosedBranchDcFlowEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
+    protected AbstractClosedDcLineFlowEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
         super(dcLine);
         Objects.requireNonNull(variableSet);
         AcVariableType vType = AcVariableType.DC_NODE_V;

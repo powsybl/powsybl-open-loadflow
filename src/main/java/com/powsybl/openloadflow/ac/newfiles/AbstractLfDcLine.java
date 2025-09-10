@@ -1,9 +1,6 @@
 package com.powsybl.openloadflow.ac.newfiles;
 
-import com.powsybl.openloadflow.network.AbstractElement;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
@@ -18,13 +15,21 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     private double r = Double.NaN;
 
+    protected Evaluable p1 = NAN;
+
     protected Evaluable i1 = NAN;
+
+    protected Evaluable p2 = NAN;
 
     protected Evaluable i2 = NAN;
 
-    protected Evaluable p1 = NAN;
+    protected Evaluable closedP1 = NAN;
 
-    protected Evaluable p2 = NAN;
+    protected Evaluable closedI1 = NAN;
+
+    protected Evaluable closedP2 = NAN;
+
+    protected Evaluable closedI2 = NAN;
 
     protected AbstractLfDcLine(LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, double r) {
         super(network);
@@ -56,9 +61,23 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public PiModel getPiModel() {
-        //TODO : find a better way to avoid PiModel in DcLine Equation Terms
-        return null;
+    public void setP1(Evaluable p1) {
+        this.p1 = Objects.requireNonNull(p1);
+    }
+
+    @Override
+    public Evaluable getP1() {
+        return p1;
+    }
+
+    @Override
+    public void setP2(Evaluable p2) {
+        this.p2 = Objects.requireNonNull(p2);
+    }
+
+    @Override
+    public Evaluable getP2() {
+        return p2;
     }
 
     @Override
@@ -82,22 +101,43 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public void setP1(Evaluable p1) {
-        this.p1 = Objects.requireNonNull(p1);
+    public Evaluable getClosedP1() {
+        return closedP1;
     }
 
     @Override
-    public Evaluable getP1() {
-        return p1;
+    public void setClosedP1(Evaluable closedP1) {
+        this.closedP1 = Objects.requireNonNull(closedP1);
     }
 
     @Override
-    public void setP2(Evaluable p2) {
-        this.p2 = Objects.requireNonNull(p2);
+    public Evaluable getClosedI1() {
+        return closedI1;
     }
 
     @Override
-    public Evaluable getP2() {
-        return p2;
+    public void setClosedI1(Evaluable closedI1) {
+        this.closedI1 = Objects.requireNonNull(closedI1);
     }
+
+    @Override
+    public Evaluable getClosedP2() {
+        return closedP2;
+    }
+
+    @Override
+    public void setClosedP2(Evaluable closedP2) {
+        this.closedP2 = Objects.requireNonNull(closedP2);
+    }
+
+    @Override
+    public Evaluable getClosedI2() {
+        return closedI2;
+    }
+
+    @Override
+    public void setClosedI2(Evaluable closedI2) {
+        this.closedI2 = Objects.requireNonNull(closedI2);
+    }
+
 }

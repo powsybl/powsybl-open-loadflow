@@ -19,6 +19,7 @@ public class AcDcLoadFlowTest {
 
     @Test
     void testAcDcExample() {
+        //2 converters, 1 AC Network, the first converter controls Pac, and the second one Vdc
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -28,6 +29,7 @@ public class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
+        //TODO : compare with testAcDcExampleIthOtherControl
         Bus b1 = network.getBusBreakerView().getBus("b1");
         assertVoltageEquals(390.000000, b1);
         assertAngleEquals(-0.000000, b1);
@@ -69,6 +71,7 @@ public class AcDcLoadFlowTest {
 
     @Test
     void testAcDcExampleWithOtherControl() {
+        //2 converters, 1 AC Network, the first converter controls Vdc, and the second one Pac
         Network network = AcDcNetworkFactory.createAcDcNetwork2();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -81,15 +84,15 @@ public class AcDcLoadFlowTest {
 
         Bus b1 = network.getBusBreakerView().getBus("b1");
         assertVoltageEquals(390.000000, b1);
-        assertAngleEquals(0.000000, b1);
+        assertAngleEquals(-0.000000, b1);
 
         Bus b2 = network.getBusBreakerView().getBus("b2");
-        assertVoltageEquals(389.589562, b2);
-        assertAngleEquals(-0.104451, b2);
+        assertVoltageEquals(389.589559, b2);
+        assertAngleEquals(-0.104453, b2);
 
         Bus b5 = network.getBusBreakerView().getBus("b5");
-        assertVoltageEquals(389.257473, b5);
-        assertAngleEquals(-0.212880, b5);
+        assertVoltageEquals(389.257471, b5);
+        assertAngleEquals(-0.212881, b5);
 
         DcNode dn3 = network.getDcNode("dn3");
         assertVoltageEquals(400.012374, dn3);
@@ -98,13 +101,13 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(400.000000, dn4);
 
         Generator g1 = network.getGenerator("g1");
-        assertActivePowerEquals(-99.153637, g1.getTerminal());
-        assertReactivePowerEquals(-20.398043, g1.getTerminal());
+        assertActivePowerEquals(-99.153669, g1.getTerminal());
+        assertReactivePowerEquals(-20.398047, g1.getTerminal());
 
         Line l12 = network.getLine("l12");
-        assertActivePowerEquals(99.129174, l12.getTerminal1());
-        assertReactivePowerEquals(20.398043, l12.getTerminal1());
-        assertActivePowerEquals(-99.061833, l12.getTerminal2());
+        assertActivePowerEquals(99.130174, l12.getTerminal1());
+        assertReactivePowerEquals(20.398047, l12.getTerminal1());
+        assertActivePowerEquals(-99.062831, l12.getTerminal2());
         assertReactivePowerEquals(-20.196018, l12.getTerminal2());
 
         Line l25 = network.getLine("l25");
@@ -114,12 +117,13 @@ public class AcDcLoadFlowTest {
         assertReactivePowerEquals(-10.000000, l25.getTerminal2());
 
         DcLine dl34 = network.getDcLine("dl34");
-        assertDcPowerEquals(-49.499008, dl34.getDcTerminal1());
-        assertDcPowerEquals(49.497477, dl34.getDcTerminal2());
+        assertDcPowerEquals(-49.499024, dl34.getDcTerminal1());
+        assertDcPowerEquals(49.497492, dl34.getDcTerminal2());
     }
 
     @Test
     void testAcDcExampleGridForming() {
+        //2 converters, 1 AC Network, the converter cs45 which controls Vac and Vdc is slack and reference bus for AC Network.
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -171,6 +175,7 @@ public class AcDcLoadFlowTest {
 
     @Test
     void testThreeConverters() {
+        //3 converters, 1 AC Network, cs23 controls Vdc, cs45 and cs56 control Pac
         Network network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -246,6 +251,7 @@ public class AcDcLoadFlowTest {
 
     @Test
     void testAcVoltageControl() {
+        //2 converters, 1 AC Network, cs23 controls Pac, cs45 controls Vdc and Vac, but is not a slack
         Network network = AcDcNetworkFactory.createAcDcNetworkWithAcVoltageControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -262,11 +268,11 @@ public class AcDcLoadFlowTest {
 
         Bus b2 = network.getBusBreakerView().getBus("b2");
         assertVoltageEquals(394.953936, b2);
-        assertAngleEquals(-0.369425, b2);
+        assertAngleEquals(-0.369419, b2);
 
         Bus b5 = network.getBusBreakerView().getBus("b5");
         assertVoltageEquals(400.000000, b5);
-        assertAngleEquals(-0.733242, b5);
+        assertAngleEquals(-0.733230, b5);
 
         DcNode dn3 = network.getDcNode("dn3");
         assertVoltageEquals(400.012374, dn3);
@@ -275,28 +281,29 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(400.000000, dn4);
 
         Generator g1 = network.getGenerator("g1");
-        assertActivePowerEquals(-105.093822, g1.getTerminal());
-        assertReactivePowerEquals(677.964339, g1.getTerminal());
+        assertActivePowerEquals(-105.093825, g1.getTerminal());
+        assertReactivePowerEquals(677.962724, g1.getTerminal());
 
         Line l12 = network.getLine("l12");
-        assertActivePowerEquals(105.059892, l12.getTerminal1());
-        assertReactivePowerEquals(-677.964339, l12.getTerminal1());
-        assertActivePowerEquals(-101.965393, l12.getTerminal2());
-        assertReactivePowerEquals(687.247834, l12.getTerminal2());
+        assertActivePowerEquals(105.054833, l12.getTerminal1());
+        assertReactivePowerEquals(-677.962724, l12.getTerminal1());
+        assertActivePowerEquals(-101.960356, l12.getTerminal2());
+        assertReactivePowerEquals(687.246155, l12.getTerminal2());
 
         Line l25 = network.getLine("l25");
-        assertActivePowerEquals(101.965393, l25.getTerminal1());
-        assertReactivePowerEquals(-697.247834, l25.getTerminal1());
-        assertActivePowerEquals(-98.782138, l25.getTerminal2());
-        assertReactivePowerEquals(706.797598, l25.getTerminal2());
+        assertActivePowerEquals(101.960356, l25.getTerminal1());
+        assertReactivePowerEquals(-697.246155, l25.getTerminal1());
+        assertActivePowerEquals(-98.777123, l25.getTerminal2());
+        assertReactivePowerEquals(706.795855, l25.getTerminal2());
 
         DcLine dl34 = network.getDcLine("dl34");
-        assertDcPowerEquals(-49.498901, dl34.getDcTerminal1());
-        assertDcPowerEquals(49.497370, dl34.getDcTerminal2());
+        assertDcPowerEquals(-49.498886, dl34.getDcTerminal1());
+        assertDcPowerEquals(49.497355, dl34.getDcTerminal2());
     }
 
     @Test
     void testAcSubNetworks() {
+        //2 converters, 2 AC Networks, cs23 controls Pac and Vac, cs45 controls Vdc and Vac, the converters set the slack and reference buses
         Network network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -346,6 +353,8 @@ public class AcDcLoadFlowTest {
 
     @Test
     void testDcSubNetworks() {
+        //2 converters, 3 AC Network, 2 DC Networks, the converters set Vac and set slack and reference buses
+
         Network network = AcDcNetworkFactory.createAcDcNetworkDcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
