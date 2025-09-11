@@ -8,7 +8,7 @@
             Network balance: active generation=25 MW, active load=16.2 MW, reactive generation=0 MVar, reactive load=7.5 MVar
             Angle reference bus: VL_2_0
             Slack bus: VL_2_0
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.295587
@@ -69,7 +69,7 @@
          + Outer loop DistributedSlack
             + Outer loop iteration 1
                Slack bus active power (2.073438 MW) distributed in 1 distribution iteration(s)
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 1 of type DistributedSlack
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.020734
@@ -105,7 +105,7 @@
             + Outer loop iteration 2
                1 voltage-controlled buses are outside of their target deadbands
                1 transformers changed tap position
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 2 of type IncrementalTransformerVoltageControl
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.141543
@@ -166,7 +166,7 @@
          + Outer loop DistributedSlack
             + Outer loop iteration 3
                Slack bus active power (3.15211 MW) distributed in 1 distribution iteration(s)
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 3 of type DistributedSlack
             + Initial mismatch
                Newton-Raphson norm |f(x)|=0.031521

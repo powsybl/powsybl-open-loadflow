@@ -23,6 +23,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -884,6 +886,64 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l23"), result.getBranchFlow1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensiCurrent() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+
+        // test active power setpoint increase on an HVDC line
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        Network network1 = HvdcNetworkFactory.createNetworkWithGenerators2();
+        network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
+
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
+                .collect(Collectors.toMap(
+                        lineId -> lineId,
+                        line -> (network1.getLine(line).getTerminal1().getI() - network.getLine(line).getTerminal1().getI()) / SENSI_CHANGE
+                ));
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_CURRENT_1, List.of("l12", "l13", "l23"),
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                false, ContingencyContext.all());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(loadFlowDiff.get("l12"), result.getBranchCurrent1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(loadFlowDiff.get("l13"), result.getBranchCurrent1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+        assertEquals(loadFlowDiff.get("l23"), result.getBranchCurrent1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testHvdcSensiAcEmulationNotSupported(boolean acEmulationParameter) {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters()
+                .setHvdcAcEmulation(acEmulationParameter);
+
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_CURRENT_1, List.of("l12", "l13", "l23"),
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                false, ContingencyContext.all());
+
+        if (acEmulationParameter) {
+            CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+            assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
+        } else {
+            // If parameter hvdcAcEmulation is false, no problem
+            SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+            assertEquals(3, result.getValues().size());
+        }
     }
 
     @Test
