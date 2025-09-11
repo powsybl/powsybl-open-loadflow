@@ -41,7 +41,7 @@ public class NewtonKrylov extends AbstractAcSolver {
 
     @Override
     public String getName() {
-        return "Newton Krylov";
+        return "Newton-Krylov";
     }
 
     private AcSolverStatus getStatus(KinsolStatus status) {
