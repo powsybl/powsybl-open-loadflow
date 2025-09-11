@@ -192,7 +192,7 @@ class SecondaryVoltageControlTest {
         g8.setTargetV(19.5);
 
         // This scenario works if the slack distribution fails and an injection is added at the slack bus
-        parametersExt.setPlausibleActivePowerLimit(5000); // Remove large groups from slack distribution
+        parametersExt.setPlausibleActivePowerLimit(5000); // Remove large generators from slack distribution
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
 
         parametersExt.setSecondaryVoltageControl(true);

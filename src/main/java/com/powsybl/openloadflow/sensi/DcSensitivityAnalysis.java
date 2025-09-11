@@ -77,7 +77,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
                 .setMatrixFactory(matrixFactory)
                 .setDistributedSlack(lfParameters.isDistributedSlack())
-                // Currently the DC sensitiviy analysis dpes not check slack distribution success or failure and runs always in
+                // Currently the DC sensitivity analysis does not check slack distribution success or failure and runs always in
                 // mode LEAVE_ON_SLACK_BUS
                 .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS)
                 .setBalanceType(lfParameters.getBalanceType())

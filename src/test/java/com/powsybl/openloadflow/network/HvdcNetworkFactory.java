@@ -20,7 +20,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1       ld2               ld3
      * |         |                 |
-     * b1 ------- b2-cs2--------cs3-b3--g3 (small group for slack distribution)
+     * b1 ------- b2-cs2--------cs3-b3--g3 (small generator for slack distribution)
      * l12          hvdc23
      * </pre>
      *
@@ -113,7 +113,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setQ0(10)
             .add();
         if (withGeneratorOnB3) {
-            // A small geerator to comensate the loss in the line and HVDC
+            // A small generator to compensate the losses in the line and HVDC
             vl3.newGenerator()
                     .setId("g3")
                     .setConnectableBus("b3")

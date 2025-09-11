@@ -3600,7 +3600,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     private void testWithFictitiousLoad(LoadFlowParameters.BalanceType balanceType) {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
 
-        // Add a variable capacity to each load
+        // Add a variable part to each load
         network.getLoadStream().filter(l -> l.getExtension(LoadDetail.class) == null)
                 .forEach(l ->
                 l.newExtension(LoadDetailAdder.class)
@@ -3673,7 +3673,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     private void testWithFictitiousLoad2(LoadFlowParameters.BalanceType balanceType) {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
 
-        // Add a variable capacity to each load
+        // Add a variable part to each load
         network.getLoadStream().filter(l -> l.getExtension(LoadDetail.class) == null)
                 .forEach(l ->
                         l.newExtension(LoadDetailAdder.class)

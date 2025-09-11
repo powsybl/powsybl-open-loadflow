@@ -565,9 +565,9 @@ class DcLoadFlowTest {
     @Test
     void testDcResidualMismatchRemaining() {
         Network network = IeeeCdfNetworkFactory.create9();
-        // The purpose of this test is to verify the report when slack distribution mismatch is left on lack bus.
+        // The purpose of this test is to verify the report when slack distribution mismatch is left on slack bus.
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
-        parametersExt.setPlausibleActivePowerLimit(5000); // remove large groups from slack distribution to cause slack distribution failure
+        parametersExt.setPlausibleActivePowerLimit(5000); // remove large generators from slack distribution to cause slack distribution failure
         network.getGenerator("B1-G").setTargetP(67.99); // Setting target P to have an initially almost balanced network
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         System.out.println(network.getGenerator("B1-G").getId() + " has P = " + network.getGenerator("B1-G").getTargetP());
@@ -582,7 +582,7 @@ class DcLoadFlowTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         Generator referenceGenerator = network.getGenerator("B1-G");
 
-        // Remove large groups from slack distribution to cause a slack distribution failure
+        // Remove large generators from slack distribution to cause a slack distribution failure
         parametersExt.setPlausibleActivePowerLimit(5000);
 
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
