@@ -1,9 +1,19 @@
+/**
+ * Copyright (c) 2025, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
+ */
 public final class DoubleBusNetworkFactory {
 
     private DoubleBusNetworkFactory() {
@@ -13,8 +23,8 @@ public final class DoubleBusNetworkFactory {
      * vl1 : 400 kv Double bus Voltage Level
      * vlgens : 20 kv Two separated bus with a generator each and a tranformer connected to VL1
      *          One of the generators is connected also to a dangling transformer and
-     *          monnitors voltage on the dangling terminal
-     * vlload : 63 kV. A load connected by a transforer to vl1
+     *          monitors voltage on the dangling terminal
+     * vlload : 63 kV. A load connected by a transformer to vl1
      * @return
      */
     public static Network create() {
@@ -73,9 +83,9 @@ public final class DoubleBusNetworkFactory {
                 .setId("vlgen")
                 .add();
 
-        createGroup(node, "1", substation, vlGens, vl, bbs1, bbs2, false);
-        // Invert bbs to exchange remoe regulated terminal
-        createGroup(node, "2", substation, vlGens, vl, bbs2, bbs1, true);
+        createGenerator(node, "1", substation, vlGens, vl, bbs1, bbs2, false);
+        // Invert bbs to exchange remote regulated terminal
+        createGenerator(node, "2", substation, vlGens, vl, bbs2, bbs1, true);
 
         VoltageLevel vlLoads = substation.newVoltageLevel()
                 .setNominalV(63)
@@ -87,8 +97,8 @@ public final class DoubleBusNetworkFactory {
         return network;
     }
 
-    private static void createGroup(AtomicInteger node, String suffix, Substation substation, VoltageLevel vlGens,
-                                    VoltageLevel vl, BusbarSection bbs1, BusbarSection bbs2, boolean withDandlingControlTerminal) {
+    private static void createGenerator(AtomicInteger node, String suffix, Substation substation, VoltageLevel vlGens,
+                                        VoltageLevel vl, BusbarSection bbs1, BusbarSection bbs2, boolean withDanglingControlTerminal) {
 
         BusbarSection bbsgen = vlGens.getNodeBreakerView()
                 .newBusbarSection()
@@ -102,7 +112,7 @@ public final class DoubleBusNetworkFactory {
                 .setMaxP(100)
                 .setMinP(10)
                 .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(bbs1.getTerminal()) // Will be changed after tranformer is created
+                .setRegulatingTerminal(bbs1.getTerminal()) // Will be changed after transformer is created
                 .setTargetV(400)
                 .setNode(node.incrementAndGet())
                 .add();
@@ -132,7 +142,7 @@ public final class DoubleBusNetworkFactory {
                 .setNode2(bbsgen.getTerminal().getNodeBreakerView().getNode())
                 .add();
 
-        if (withDandlingControlTerminal) {
+        if (withDanglingControlTerminal) {
             TwoWindingsTransformer twDangling = substation.newTwoWindingsTransformer()
                     .setVoltageLevel1(vl.getId())
                     .setNode1(node.incrementAndGet())

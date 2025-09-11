@@ -4633,6 +4633,5 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                     DELTA_POWER);
         });
 
-
     }
 }
