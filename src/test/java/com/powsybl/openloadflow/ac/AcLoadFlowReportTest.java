@@ -298,14 +298,14 @@ class AcLoadFlowReportTest {
                                     Slack bus: VLHV1_0
                                  + Outer loop DistributedSlack
                                     + Outer loop iteration 1
-                                       Failed to distribute slack bus active power mismatch, -1.440405 MW remains
+                                       Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
                                  Outer loop VoltageMonitoring
                                  Outer loop ReactiveLimits
                                  + 4 buses have a voltage magnitude out of the configured realistic range [0.99, 1.01] p.u.
                                     Bus VLGEN_0 has an unrealistic voltage magnitude: 1.020833 p.u.
-                                    Bus VLHV1_0 has an unrealistic voltage magnitude: 1.058264 p.u.
-                                    Bus VLHV2_0 has an unrealistic voltage magnitude: 1.026184 p.u.
-                                    Bus VLLOAD_0 has an unrealistic voltage magnitude: 0.98385 p.u.
+                                    Bus VLHV1_0 has an unrealistic voltage magnitude: 1.058271 p.u.
+                                    Bus VLHV2_0 has an unrealistic voltage magnitude: 1.026191 p.u.
+                                    Bus VLLOAD_0 has an unrealistic voltage magnitude: 0.983857 p.u.
                                  AC load flow completed with error (solverStatus=UNREALISTIC_STATE, outerloopStatus=STABLE)
                         """, reportNode);
 

@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
@@ -69,6 +70,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
                 .setDistributedSlack(distributedSlack)
                 .setBalanceType(balanceType)
                 .setSetVToNan(false)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS)
                 .setMaxOuterLoopIterations(maxOuterLoopIterations);
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
