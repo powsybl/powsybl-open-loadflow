@@ -52,7 +52,7 @@ import static com.powsybl.openloadflow.network.util.ParticipatingElement.normali
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
-    private static Logger LOGGER = LoggerFactory.getLogger(DcSensitivityAnalysis.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcSensitivityAnalysis.class);
 
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
 
