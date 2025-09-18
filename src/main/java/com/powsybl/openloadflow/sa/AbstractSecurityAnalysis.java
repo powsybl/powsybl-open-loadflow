@@ -36,10 +36,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
+import com.powsybl.security.condition.*;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
@@ -509,7 +506,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return operatorStrategiesByContingencyId;
     }
 
-    private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds) {
+    private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds, LfNetwork lfNetwork, Network network) {
         switch (conditionalActions.getCondition().getType()) {
             case TrueCondition.NAME:
                 return true;
@@ -531,18 +528,23 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         .collect(Collectors.toSet());
                 return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
             }
+            case ThresholdCondition.NAME: {
+                return new ThresholdConditionEvaluator(network, lfNetwork,
+                    (ThresholdCondition) conditionalActions.getCondition())
+                    .evaluate();
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported condition type: " + conditionalActions.getCondition().getType());
         }
     }
 
-    protected List<String> checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
+    protected List<String> checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult, LfNetwork postContingencyState) {
         Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
                 .map(LimitViolation::getSubjectId)
                 .collect(Collectors.toSet());
         List<String> actionsIds = new ArrayList<>();
         for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            if (checkCondition(conditionalActions, limitViolationEquipmentIds)) {
+            if (checkCondition(conditionalActions, limitViolationEquipmentIds, postContingencyState, network)) {
                 actionsIds.addAll(conditionalActions.getActionIds());
             }
         }
@@ -844,7 +846,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                                  List<LimitReduction> limitReductions) {
         OperatorStrategyResult operatorStrategyResult = null;
 
-        List<String> actionIds = checkCondition(operatorStrategy, postContingencyLimitViolations);
+        List<String> actionIds = checkCondition(operatorStrategy, postContingencyLimitViolations, network);
         if (!actionIds.isEmpty()) {
             operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, actionIds, preContingencyLimitViolationManager,
                     securityAnalysisParameters, lfActionById, createResultExtension, contingency, networkParameters, limitReductions);

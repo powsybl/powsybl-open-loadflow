@@ -27,10 +27,7 @@ import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
+import com.powsybl.security.condition.*;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -100,6 +97,30 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 saParameters, Collections.emptyList(), Collections.emptyList(), reportNode);
 
         assertReportEquals("/detailedNrReportSecurityAnalysis.txt", reportNode);
+    }
+
+    @Test
+    void testThresholdAction() throws IOException {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getSwitch("C2").setOpen(true);
+        List<Contingency> contingencies = List.of(new Contingency("L3", new BranchContingency("L3")));
+        List<Action> actions = List.of(new SwitchAction("action1", "C1", false));
+
+        ThresholdCondition condition = new ThresholdCondition(600.0, ThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, "L1", ThreeSides.ONE, ThresholdCondition.Variable.CURRENT);
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), condition, List.of("action1")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        // L1 current 578.740 -> > 600
+        // active power -> > 400
+        // reactive power -> > 120
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
     }
 
     @Test
