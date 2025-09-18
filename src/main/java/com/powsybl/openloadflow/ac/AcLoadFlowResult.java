@@ -80,7 +80,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     @Override
     public String toString() {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
-                + ", newtonRaphsonIterations=" + solverIterations
+                + ", solverIterations=" + solverIterations
                 + ", solverStatus=" + solverStatus
                 + ", outerLoopStatus=" + outerLoopResult.status()
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
