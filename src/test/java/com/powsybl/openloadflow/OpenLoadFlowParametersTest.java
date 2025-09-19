@@ -354,6 +354,20 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void providerPrametersRoundTrip() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters());
+
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
+
+        //Get extension parameters into a map
+        var map = provider.createMapFromSpecificParameters(parameters.getExtension(OpenLoadFlowParameters.class));
+
+        //try reupdating parameters with map
+        provider.updateSpecificParameters(parameters.getExtension(OpenLoadFlowParameters.class), map);
+    }
+
+    @Test
     void testCompareParameters() {
         assertTrue(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters()));
         assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters().setDc(true)));
