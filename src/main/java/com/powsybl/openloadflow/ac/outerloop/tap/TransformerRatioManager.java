@@ -128,7 +128,6 @@ public class TransformerRatioManager {
             double minR1 = sharedControl.minR1();
             double maxR1 = sharedControl.maxR1();
             if (r1 < minR1 || r1 > maxR1) {
-                LOGGER.info("Transformer {} with voltage control frozen: rounded at extreme tap position", branch.getId());
                 piModel.setR1(r1 > maxR1 ? maxR1 : minR1);
                 piModel.roundR1ToClosestTap();
                 branch.setVoltageControlEnabled(false);
