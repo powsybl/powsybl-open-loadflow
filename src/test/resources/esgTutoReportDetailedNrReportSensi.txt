@@ -30,7 +30,7 @@
                   Bus injection: 663.542419 MW, 43.176854 MVar
                + Largest Q mismatch: 90.767811 MVar
                   Bus Id: VLHV1_0 (nominalVoltage=380kV)
-                  Bus V: 1.071381 pu, -0 rad
+                  Bus V: 1.071381 pu, 0 rad
                   Bus injection: 12.229716 MW, 90.767811 MVar
                + Largest V mismatch: 0 p.u.
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)

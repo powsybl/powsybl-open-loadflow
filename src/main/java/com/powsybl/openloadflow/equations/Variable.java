@@ -20,7 +20,7 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
 
     private final V type;
 
-    private int row = -1;
+    private final int[] row = new int[] {-1};
 
     Variable(int elementNum, V type) {
         this.elementNum = elementNum;
@@ -36,11 +36,15 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
     }
 
     public int getRow() {
+        return row[0];
+    }
+
+    public int[] getRowRef() {
         return row;
     }
 
     public void setRow(int row) {
-        this.row = row;
+        this.row[0] = row;
     }
 
     @Override
@@ -76,12 +80,12 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
         writer.write(Integer.toString(elementNum));
     }
 
-    public <E extends Enum<E> & Quantity> EquationTerm<V, E> createTerm() {
+    public <E extends Enum<E> & Quantity> ScalarEquationTerm<V, E> createTerm() {
         return new VariableEquationTerm<>(this);
     }
 
     @Override
     public String toString() {
-        return "Variable(elementNum=" + elementNum + ", type=" + type + ", row=" + row + ")";
+        return "Variable(elementNum=" + elementNum + ", type=" + type + ", row=" + row[0] + ")";
     }
 }
