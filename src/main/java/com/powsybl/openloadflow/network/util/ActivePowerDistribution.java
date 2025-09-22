@@ -132,15 +132,15 @@ public final class ActivePowerDistribution {
     public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant, boolean useActiveLimits) {
         return switch (balanceType) {
             case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD ->
-                    new LoadActivePowerDistributionStep(loadPowerFactorConstant);
+                new LoadActivePowerDistributionStep(loadPowerFactorConstant);
             case PROPORTIONAL_TO_GENERATION_P_MAX ->
-                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX, useActiveLimits);
+                new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX, useActiveLimits);
             case PROPORTIONAL_TO_GENERATION_P ->
-                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET, useActiveLimits);
+                new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET, useActiveLimits);
             case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR ->
-                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR, useActiveLimits);
+                new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR, useActiveLimits);
             case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN ->
-                    new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN, useActiveLimits);
+                new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN, useActiveLimits);
         };
     }
 

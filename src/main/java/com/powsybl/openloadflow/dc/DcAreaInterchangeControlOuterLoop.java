@@ -42,7 +42,7 @@ public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeCo
      * In DC mode, the slack distribution is handled directly by the load flow engine, without any outer loop.
      * This class will be used as fallback outerloop in case the network has no area, and has no need to do anything.
      */
-    private static class DcNoAreaOuterLoop implements DcOuterLoop {
+    private static final class DcNoAreaOuterLoop implements DcOuterLoop {
         @Override
         public String getName() {
             return "DcNoAreaOuterLoop";

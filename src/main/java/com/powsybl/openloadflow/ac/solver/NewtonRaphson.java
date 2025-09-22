@@ -50,7 +50,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
     @Override
     public String getName() {
-        return "Newton Raphson";
+        return "Newton-Raphson";
     }
 
     private static List<Triple<Integer, AcEquationType, Double>> getMismatchInfos(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {

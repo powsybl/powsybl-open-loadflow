@@ -7,7 +7,7 @@
             Angle reference bus: VL1_0
             Slack bus: VL1_0
          + Pre-contingency simulation
-            + Newton Raphson on Network CC0 SC0
+            + Newton-Raphson on Network CC0 SC0
                No outer loops have been launched
                + Initial mismatch
                   Newton-Raphson norm |f(x)|=6.157195
@@ -70,7 +70,7 @@
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L2'
-            + Newton Raphson on Network CC0 SC0
+            + Newton-Raphson on Network CC0 SC0
                No outer loops have been launched
                + Initial mismatch
                   Newton-Raphson norm |f(x)|=3.162278
@@ -131,7 +131,7 @@
             + Outer loop DistributedSlack
                + Outer loop iteration 1
                   Slack bus active power (4.564672 MW) distributed in 1 distribution iteration(s)
-            + Newton Raphson on Network CC0 SC0
+            + Newton-Raphson on Network CC0 SC0
                Newton-Raphson of outer loop iteration 1 of type DistributedSlack
                + Initial mismatch
                   Newton-Raphson norm |f(x)|=0
