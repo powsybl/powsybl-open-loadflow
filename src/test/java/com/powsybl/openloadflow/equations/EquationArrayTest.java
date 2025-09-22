@@ -116,7 +116,7 @@ class EquationArrayTest {
         assertEquals(derValues, derValues2);
 
         try (EquationVector<AcVariableType, AcEquationType> equationVector = new EquationVector<>(equationSystem);
-             EquationVector<AcVariableType, AcEquationType> equationVector2 = new EquationVector<>(equationSystem)) {
+             EquationVector<AcVariableType, AcEquationType> equationVector2 = new EquationVector<>(equationSystem2)) {
             assertArrayEquals(equationVector.getArray(), equationVector2.getArray());
         }
 
