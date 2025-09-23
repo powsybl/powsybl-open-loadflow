@@ -45,7 +45,8 @@ This option defines the behavior in case the slack distribution fails. Available
 - `DISTRIBUTE_ON_REFERENCE_GENERATOR` if you want to put the slack on the reference generator, disregarding active power limits.
   There must be a reference generator defined, i.e. `referenceBusSelectionMode` must be `GENERATOR_REFERENCE_PRIORITY` - otherwise this mode falls back to `FAIL` mode automatically.
 
-The default value is `LEAVE_ON_SLACK_BUS`.
+The default value is `FAIL`  
+**Note**: In version 1.16 and before, the default value was LEAVE_ON_SLACK_BUS.
 
 **slackBusSelectionMode**  
 The `slackBusSelectionMode` property is an optional property that defines how to select the slack bus. The three options are available through the configuration file:
@@ -209,11 +210,18 @@ The default value is `CONTINUOUS_WITH_DISCRETISATION`.
 
 **transformerVoltageControlMode**  
 This parameter defines which kind of outer loops is used for transformer voltage controls. We have three kinds of outer loops:
-- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control. The final transformer $\rho$ is obtained by rounding to the closest tap position. The control deadband is not taken into account.
-- `AFTER_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed after the generator voltage control. The final transformer $\rho$ is obtained by rounding to the closest tap position. The control deadband is taken into account.
-- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. $\rho$ always corresponds to a tap position. Tap changes using sensitivity computations. The control deadband is taken into account.
+- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the first generator voltage control outerloop. 
+                                   The final transformer $\rho$ is obtained by rounding to the closest tap position and is frozen for all future outerloops. 
+                                   The control deadband is not taken into account.
+- `AFTER_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed after each generator voltage control outerloop. The final transformer $\rho$ is 
+                                    obtained by rounding to the closest tap position. The control deadband is taken into account. This mode can be further
+                                    configured with parameters **transformerVoltageControlUseInitialTapPosition** and **generatorVoltageControlMinNominalVoltage**
+- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. $\rho$ always corresponds to a tap position. Tap changes using sensitivity 
+                                    computations. The control deadband is taken into account. This mode can be further configured with parameter 
+                                    **incrementalTransformerRatioTapControlOuterLoopMaxTapShift**
 
-The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
+The default value is `INCREMENTAL_VOLTAGE_CONTROL`.   
+**Note**: for OpenLoadFlow 1.16.0 and before, the default value was `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
 **transformerReactivePowerControl**  
 This parameter enables the reactive power control of transformer through a dedicated incremental reactive power control outer loop. The default value is `false`.
@@ -310,7 +318,8 @@ The `plausibleActivePowerLimit` property is an optional property that defines a 
 - slack distribution (if `balanceType` equals to any of the `PROPORTIONAL_TO_GENERATION_<any>` types)
 - slack selection (if `slackBusSelectionMode` equals to `LARGEST_GENERATOR`)
 
-The default value is $5000 MW$.
+The default value is $10000 MW$.   
+**Note**: In version 1.16.0 and before the default value was $5000 MW$.
 
 **minPlausibleTargetVoltage** and **maxPlausibleTargetVoltage**  
 Equipments with voltage regulation target voltage outside these per-unit thresholds
@@ -524,7 +533,7 @@ and the algorithm tries to maintain the initial difference between rhos. If the 
 target voltage at initial step of the outer loop, the algorithm blocks transformers at their initial tap positions.
 The default value of this parameter is `false`.
 
-**generatorVoltageControlMinNominalVoltage**
+**generatorVoltageControlMinNominalVoltage**  
 This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
 In this mode, at the first step of the outer loop, the transformers that controlled voltage are disabled, only generators
 are participating to voltage control. At second step, generators controlling voltage at a controlled bus above
@@ -547,6 +556,18 @@ The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the abo
  
 The default mode is `FORCED`.
 
+**generatorsWithZeroMwTargetAreNotStarted**  
+Defines if a generator must be considered as not started when its `targetP` is zero.
+
+When set to `true` (default):
+- If the absolute value of `targetP` is zero, the generator is excluded from slack distribution.
+- If the absolute value of `targetP` is zero and `minP` is above zero, voltage control is disabled.
+
+When set to `false`:
+- Even if `targetP` is zero, the generator may participate in slack distribution.
+- Even if `targetP` is zero and `minP` is above zero, voltage control may happen (unless option `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled).
+
+The default value is `true`.
 
 ## Configuration file example
 See below an extract of a config file that could help:
@@ -554,7 +575,7 @@ See below an extract of a config file that could help:
 ```yaml
 open-loadflow-default-parameters:
   lowImpedanceBranchMode: REPLACE_BY_ZERO_IMPEDANCE_LINE
-  slackDistributionFailureBehavior: LEAVE_ON_SLACK_BUS
+  slackDistributionFailureBehavior: FAIL
   voltageRemoteControl: false
   slackBusSelectionMode: NAME
   slackBusesIds: Bus3_0,Bus5_0

@@ -115,7 +115,11 @@ The behaviour is as follows:
 - When the extension is added: The specified parameters override the corresponding SA input parameters.
 - When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
 
-Note that if the operator strategies are defined for the contingency, the overridden load flow parameters will apply to
-the operator strategies actions simulation too.
+When operator strategies are defined for a contingency, the `scope` attribute of `ContingencyLoadFlowParameters`
+defines whether the overridden parameters also apply to the operator strategy simulations:
+- `CONTINGENCY_AND_OPERATOR_STRATEGY` (default): The overridden load flow parameters are applied to
+both the contingency itself and any operator associated with it.
+- `CONTINGENCY_ONLY`: The overridden load flow parameters are applied only to the contingency
+and not to the associated operator strategies.
 
 This extension does not override any parameter in case of a sensitivity analysis.

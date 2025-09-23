@@ -44,7 +44,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static final double TARGET_Q_EPSILON = 1e-2;
 
-    private static class LoadingContext {
+    private static final class LoadingContext {
 
         private final Set<Branch<?>> branchSet = new LinkedHashSet<>();
 
@@ -181,10 +181,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 .stream()
                 .filter(lfGenerator -> lfGenerator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
                 .forEach(lfGenerator -> lfGenerator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
-        controllerBus.setGenerationTargetQ(controllerBus.getGenerators().stream()
-                .mapToDouble(LfGenerator::getTargetQ)
-                .filter(d -> !Double.isNaN(d))
-                .sum());
+        controllerBus.invalidateGenerationTargetQ();
     }
 
     private static void checkGeneratorsWithSlope(GeneratorVoltageControl voltageControl) {

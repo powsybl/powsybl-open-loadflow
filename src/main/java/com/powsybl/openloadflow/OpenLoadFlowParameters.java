@@ -73,7 +73,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         DISTRIBUTE_ON_REFERENCE_GENERATOR
     }
 
-    public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
+    public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.FAIL;
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
@@ -113,7 +113,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final VoltageInitModeOverride VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE = VoltageInitModeOverride.NONE;
 
-    public static final TransformerVoltageControlMode TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
+    public static final TransformerVoltageControlMode TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL;
 
     public static final ShuntVoltageControlMode SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
@@ -300,6 +300,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME = "extrapolateReactiveLimits";
 
+    public static final String GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME = "generatorsWithZeroMwTargetAreNotStarted";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -432,8 +434,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class), ParameterScope.FUNCTIONAL, DC_CATEGORY_KEY),
         new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, AUTOMATION_CATEGORY_KEY),
         new Parameter(AC_SOLVER_TYPE_PARAM_NAME, ParameterType.STRING, "AC solver type", NewtonRaphsonFactory.NAME, getAcSolverTypePossibleValues(), ParameterScope.FUNCTIONAL, SOLVER_CATEGORY_KEY),
-        new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
-        new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
+        new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton-Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
+        new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton-Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
         new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class), ParameterScope.FUNCTIONAL, REFERENCE_BUS_CATEGORY_KEY),
         new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REFERENCE_BUS_CATEGORY_KEY),
         new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class), ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
@@ -446,7 +448,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control robust mode", VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Force targetQ in the reactive limit diagram", FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY)
+        new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -639,6 +642,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean disableInconsistentVoltageControls = LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
 
     private boolean extrapolateReactiveLimits = LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1410,6 +1415,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isGeneratorsWithZeroMwTargetAreNotStarted() {
+        return generatorsWithZeroMwTargetAreNotStarted;
+    }
+
+    public OpenLoadFlowParameters setGeneratorsWithZeroMwTargetAreNotStarted(boolean generatorsWithZeroMwTargetAreNotStarted) {
+        this.generatorsWithZeroMwTargetAreNotStarted = generatorsWithZeroMwTargetAreNotStarted;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1534,6 +1548,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                             .ifPresent(this::setFictitiousGeneratorVoltageControlCheckMode);
                     config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME).ifPresent(this::setVoltageRemoteControlRobustMode);
                     config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
+                    config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
                 });
         return this;
     }
@@ -1694,11 +1709,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setDisableInconsistentVoltageControls(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME))
                 .ifPresent(prop -> this.setExtrapolateReactiveLimits(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME))
+                .ifPresent(prop -> this.setGeneratorsWithZeroMwTargetAreNotStarted(Boolean.parseBoolean(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(71);
+        Map<String, Object> map = new LinkedHashMap<>(72);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1775,6 +1792,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, forceTargetQInReactiveLimits);
         map.put(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, disableInconsistentVoltageControls);
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
+        map.put(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, generatorsWithZeroMwTargetAreNotStarted);
         return map;
     }
 
@@ -1934,7 +1952,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
-                .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits());
+                .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
+                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2193,7 +2212,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isForceTargetQInReactiveLimits() == extension2.isForceTargetQInReactiveLimits() &&
                 extension1.isDisableInconsistentVoltageControls() == extension2.isDisableInconsistentVoltageControls() &&
                 extension1.getMinNominalVoltageRealisticVoltageCheck() == extension2.getMinNominalVoltageRealisticVoltageCheck() &&
-                extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits();
+                extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
+                extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2294,7 +2314,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setVoltageRemoteControlRobustMode(extension.isVoltageRemoteControlRobustMode())
                     .setForceTargetQInReactiveLimits(extension.isForceTargetQInReactiveLimits())
                     .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls())
-                    .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits());
+                    .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
+                    .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted());
 
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

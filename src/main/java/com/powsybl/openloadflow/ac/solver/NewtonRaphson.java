@@ -44,7 +44,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
     @Override
     public String getName() {
-        return "Newton Raphson";
+        return "Newton-Raphson";
     }
 
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
