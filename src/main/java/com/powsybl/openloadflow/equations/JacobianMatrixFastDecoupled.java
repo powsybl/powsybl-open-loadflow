@@ -29,15 +29,15 @@ public class JacobianMatrixFastDecoupled
 
     private final int rangeIndex;
 
-    private final boolean isPhySystem;
+    private final boolean isPhiSystem;
 
     public JacobianMatrixFastDecoupled(EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                        MatrixFactory matrixFactory,
                                        int rangeIndex,
-                                       boolean isPhySystem) {
+                                       boolean isPhiSystem) {
         super(equationSystem, matrixFactory);
         this.rangeIndex = rangeIndex;
-        this.isPhySystem = isPhySystem;
+        this.isPhiSystem = isPhiSystem;
     }
 
     @Override
@@ -133,13 +133,13 @@ public class JacobianMatrixFastDecoupled
         handler.onDer(variable, value, -1);
     }
 
-    public void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhySystem) {
+    public void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
         Objects.requireNonNull(handler);
         for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
             Variable<AcVariableType> variable = e.getKey();
             int row = variable.getRow();
             if (row != -1) {
-                if (isPhySystem) {
+                if (isPhiSystem) {
                     // for Phi equations, we only consider the (rangeIndex-1) first variables
                     if (row < rangeIndex) {
                         computeDerivative(e, variable, handler);
@@ -157,7 +157,7 @@ public class JacobianMatrixFastDecoupled
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        List<Equation<AcVariableType, AcEquationType>> subsetEquationsToSolve = isPhySystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
+        List<Equation<AcVariableType, AcEquationType>> subsetEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
                 : equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
 
         int rowColumnCount = subsetEquationsToSolve.size();
@@ -167,7 +167,7 @@ public class JacobianMatrixFastDecoupled
 
         for (Equation<AcVariableType, AcEquationType> eq : subsetEquationsToSolve) {
             int column = eq.getColumn();
-            if (isPhySystem) {
+            if (isPhiSystem) {
                 derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
                     int row = variable.getRow();
                     return matrix.addAndGetIndex(row, column, value);
@@ -180,11 +180,16 @@ public class JacobianMatrixFastDecoupled
             }
         }
 
-        if (isPhySystem) {
+        if (isPhiSystem) {
             LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Phi system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         } else {
             LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled V system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
+    }
+
+    @Override
+    protected void updateDer() {
+        throw new IllegalStateException("Fast Decoupled solver does not need to update its Jacobian matrices during a load flow calculation");
     }
 
 }
