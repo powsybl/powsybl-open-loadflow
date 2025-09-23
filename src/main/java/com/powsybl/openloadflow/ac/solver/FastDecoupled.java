@@ -62,6 +62,16 @@ public class FastDecoupled extends AbstractAcSolver {
         return "Fast Decoupled";
     }
 
+    private JacobianMatrixFastDecoupled initPhiJacobianMatrix(int rangeIndex) {
+        jPhi = new JacobianMatrixFastDecoupled(equationSystem, j.getMatrixFactory(), rangeIndex, true);
+        return jPhi;
+    }
+
+    private JacobianMatrixFastDecoupled initVJacobianMatrix(int rangeIndex) {
+        jV = new JacobianMatrixFastDecoupled(equationSystem, j.getMatrixFactory(), rangeIndex, false);
+        return jV;
+    }
+
     private PhiVEquationType getPhiVEquationType(AcEquationType acEquationType) {
         return switch (acEquationType) {
             case BUS_TARGET_P,
@@ -309,46 +319,44 @@ public class FastDecoupled extends AbstractAcSolver {
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
         int rangeIndex = getRangeForPhiSystemPart();
-
-        jPhi = new JacobianMatrixFastDecoupled(equationSystem, j.getMatrixFactory(), rangeIndex, true);
-        jV = new JacobianMatrixFastDecoupled(equationSystem, j.getMatrixFactory(), rangeIndex, false);
-
-        // initialize state vector
-        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
-
-        Vectors.minus(equationVector.getArray(), targetVector.getArray());
-
-        NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
-
-        LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
-
-        ReportNode initialReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, 0) : null;
-        if (detailedReport) {
-            Reports.reportFastDecoupledNorm(initialReportNode, initialTestResult.getNorm());
-        }
-        if (detailedReport || LOGGER.isTraceEnabled()) {
-            reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);
-        }
-
-        // start iterations
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
-        // prepare half-sized equation vector
-        double[] phiEquationVector = new double[rangeIndex];
-        double[] vEquationVector = new double[equationSystem.getIndex().getSortedEquationsToSolve().size() - rangeIndex];
 
-        while (iterations.getValue() <= parameters.getMaxIterations()) {
-            AcSolverStatus newStatus = runIteration(iterations, reportNode, phiEquationVector, vEquationVector, rangeIndex);
-            if (newStatus != null) {
-                status = newStatus;
-                break;
+        try (
+            JacobianMatrixFastDecoupled jPhiRes = initPhiJacobianMatrix(rangeIndex);
+            JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
+        ) {
+            // initialize state vector
+            AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
+
+            Vectors.minus(equationVector.getArray(), targetVector.getArray());
+
+            NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
+
+            LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
+
+            ReportNode initialReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, 0) : null;
+            if (detailedReport) {
+                Reports.reportFastDecoupledNorm(initialReportNode, initialTestResult.getNorm());
+            }
+            if (detailedReport || LOGGER.isTraceEnabled()) {
+                reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);
+            }
+
+            // prepare half-sized equation vector
+            double[] phiEquationVector = new double[rangeIndex];
+            double[] vEquationVector = new double[equationSystem.getIndex().getSortedEquationsToSolve().size() - rangeIndex];
+
+            while (iterations.intValue() <= parameters.getMaxIterations()) {
+                AcSolverStatus newStatus = runIteration(iterations, reportNode, phiEquationVector, vEquationVector, rangeIndex);
+                if (newStatus != null) {
+                    status = newStatus;
+                    break;
+                }
             }
         }
 
-        jPhi.close();
-        jV.close();
-
-        if (iterations.getValue() >= parameters.getMaxIterations()) {
+        if (iterations.intValue() >= parameters.getMaxIterations()) {
             status = AcSolverStatus.MAX_ITERATION_REACHED;
         }
 
@@ -357,6 +365,6 @@ public class FastDecoupled extends AbstractAcSolver {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
+        return new AcSolverResult(status, iterations.intValue(), slackBusActivePowerMismatch);
     }
 }
