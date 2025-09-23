@@ -244,7 +244,8 @@ The default value is `true`.
 **acSolverType**  
 AC load flow solver engine. Currently, it can be one of:
 - `NEWTON_RAPHSON` is the standard Newton-Raphson algorithm for load flow. Solves linear systems via Sparse LU decomposition (by [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html));
-- `NEWTON_KRYLOV` is also the standard Newton-Raphson algorithm for load flow. Solves linear systems via Krylov subspace methods for indefinite non-symmetric matrices (by [Kinsol](https://computing.llnl.gov/projects/sundials/kinsol)).
+- `NEWTON_KRYLOV` is also the standard Newton-Raphson algorithm for load flow. Solves linear systems via Krylov subspace methods for indefinite non-symmetric matrices (by [Kinsol](https://computing.llnl.gov/projects/sundials/kinsol));
+- `FAST_DECOUPLED` solves the load flow equation system decoupling angles from magnitudes and active from reactive power. Two smaller linear systems are solved at each iteration using the same LU technique as the classic Newton-Raphson.
 
 The default value is `NEWTON_RAPHSON`.
 
