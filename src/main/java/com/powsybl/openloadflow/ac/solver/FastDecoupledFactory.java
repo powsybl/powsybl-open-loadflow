@@ -53,13 +53,11 @@ public class FastDecoupledFactory implements AcSolverFactory {
 
     private static NewtonRaphsonStoppingCriteria createNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt) {
         return switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
-            case UNIFORM_CRITERIA ->
-                    new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
-            case PER_EQUATION_TYPE_CRITERIA ->
-                    new PerEquationTypeStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq(), parametersExt.getMaxActivePowerMismatch(),
-                            parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch(),
-                            parametersExt.getMaxAngleMismatch(), parametersExt.getMaxRatioMismatch(),
-                            parametersExt.getMaxSusceptanceMismatch());
+            case UNIFORM_CRITERIA -> new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
+            case PER_EQUATION_TYPE_CRITERIA -> new PerEquationTypeStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq(), parametersExt.getMaxActivePowerMismatch(),
+                    parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch(),
+                    parametersExt.getMaxAngleMismatch(), parametersExt.getMaxRatioMismatch(),
+                    parametersExt.getMaxSusceptanceMismatch());
         };
     }
 }

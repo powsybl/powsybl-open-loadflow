@@ -102,6 +102,9 @@ class FastDecoupledTest {
     @Test
     void testIEEE300() {
         Network network = IeeeCdfNetworkFactory.create300();
+        // For this one we need better precision parameters to reach the criteria
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setNewtonRaphsonConvEpsPerEq(1e-5);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setNewtonRaphsonConvEpsPerEq(1e-5);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
@@ -291,85 +294,85 @@ class FastDecoupledTest {
 
         // Test the report
         String expected = """
-                   + test
-                      + Load flow on network 'ieee9cdf'
-                         + Network CC0 SC0
-                            + Network info
-                               Network has 9 buses and 9 branches
-                               Network balance: active generation=319.64102 MW, active load=315 MW, reactive generation=0 MVar, reactive load=115 MVar
-                               Angle reference bus: VL1_0
-                               Slack bus: VL1_0
-                            Failed to distribute slack bus active power mismatch, -4.64102 MW remains
-                            DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
-                            + Fast Decoupled on Network CC0 SC0
-                               No outer loops have been launched
-                               + Initial mismatch
-                                  Fast-Decoupled norm |f(x)|=0.89847
-                                  + Largest P mismatch: 8.320043 MW
-                                     Bus Id: VL2_0 (nominalVoltage=100kV)
-                                     Bus V: 1.025 pu, 0.170973 rad
-                                     Bus injection: 171.320043 MW, 5.152636 MVar
-                                  + Largest Q mismatch: 53.356923 MVar
-                                     Bus Id: VL5_0 (nominalVoltage=100kV)
-                                     Bus V: 1.032939 pu, -0.07092 rad
-                                     Bus injection: -127.026622 MW, 3.356923 MVar
-                                  + Largest V mismatch: 0 p.u.
-                                     Bus Id: VL1_0 (nominalVoltage=100kV)
-                                     Bus V: 1.04 pu, -0 rad
-                                     Bus injection: 72.168981 MW, 8.655959 MVar
-                               + Iteration 1 mismatch
-                                  Step size: 1 (line search)
-                                  Step size: 1 (line search)
-                                  Fast-Decoupled norm |f(x)|=0.080732
-                                  + Largest P mismatch: 3.999275 MW
-                                     Bus Id: VL3_1 (nominalVoltage=100kV)
-                                     Bus V: 1.032591 pu, 0.036852 rad
-                                     Bus injection: 3.999275 MW, 0.40719 MVar
-                                  + Largest Q mismatch: 0.829315 MVar
-                                     Bus Id: VL5_0 (nominalVoltage=100kV)
-                                     Bus V: 0.995869 pu, -0.070865 rad
-                                     Bus injection: -127.984785 MW, -49.170685 MVar
-                                  + Largest V mismatch: 0 p.u.
-                                     Bus Id: VL1_0 (nominalVoltage=100kV)
-                                     Bus V: 1.04 pu, -0 rad
-                                     Bus injection: 71.154018 MW, 26.903194 MVar
-                               + Iteration 2 mismatch
-                                  Step size: 1 (line search)
-                                  Step size: 1 (line search)
-                                  Fast-Decoupled norm |f(x)|=0.003519
-                                  + Largest P mismatch: 0.213498 MW
-                                     Bus Id: VL6_0 (nominalVoltage=100kV)
-                                     Bus V: 1.012699 pu, -0.0643 rad
-                                     Bus injection: -89.786502 MW, -30.005697 MVar
-                                  + Largest Q mismatch: -0.011585 MVar
-                                     Bus Id: VL3_1 (nominalVoltage=100kV)
-                                     Bus V: 1.032355 pu, 0.034168 rad
-                                     Bus injection: -0.177879 MW, -0.011585 MVar
-                                  + Largest V mismatch: 0 p.u.
-                                     Bus Id: VL1_0 (nominalVoltage=100kV)
-                                     Bus V: 1.04 pu, 0 rad
-                                     Bus injection: 71.679148 MW, 27.019924 MVar
-                               + Iteration 3 mismatch
-                                  Step size: 1 (line search)
-                                  Step size: 1 (line search)
-                                  Fast-Decoupled norm |f(x)|=0.000163
-                                  + Largest P mismatch: -0.00953 MW
-                                     Bus Id: VL6_0 (nominalVoltage=100kV)
-                                     Bus V: 1.012653 pu, -0.064356 rad
-                                     Bus injection: -90.00953 MW, -29.99995 MVar
-                                  + Largest Q mismatch: 0.000455 MVar
-                                     Bus Id: VL3_1 (nominalVoltage=100kV)
-                                     Bus V: 1.032353 pu, 0.034336 rad
-                                     Bus injection: 0.009068 MW, 0.000455 MVar
-                                  + Largest V mismatch: 0 p.u.
-                                     Bus Id: VL1_0 (nominalVoltage=100kV)
-                                     Bus V: 1.04 pu, 0 rad
-                                     Bus injection: 71.633769 MW, 27.046122 MVar
-                            Outer loop DistributedSlack
-                            Outer loop VoltageMonitoring
-                            Outer loop ReactiveLimits
-                            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
-                   """;
+                + test
+                   + Load flow on network 'ieee9cdf'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 9 buses and 9 branches
+                            Network balance: active generation=319.64102 MW, active load=315 MW, reactive generation=0 MVar, reactive load=115 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Slack bus active power (-4.64102 MW) distributed in 1 distribution iteration(s)
+                         DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
+                         + Fast Decoupled on Network CC0 SC0
+                            No outer loops have been launched
+                            + Initial mismatch
+                               Fast-Decoupled norm |f(x)|=0.894758
+                               + Largest P mismatch: 6.699622 MW
+                                  Bus Id: VL2_0 (nominalVoltage=100kV)
+                                  Bus V: 1.025 pu, 0.164329 rad
+                                  Bus injection: 169.699622 MW, 4.987774 MVar
+                               + Largest Q mismatch: 53.066932 MVar
+                                  Bus Id: VL5_0 (nominalVoltage=100kV)
+                                  Bus V: 1.032939 pu, -0.074048 rad
+                                  Bus injection: -127.134274 MW, 3.066932 MVar
+                               + Largest V mismatch: 0 p.u.
+                                  Bus Id: VL1_0 (nominalVoltage=100kV)
+                                  Bus V: 1.04 pu, -0 rad
+                                  Bus injection: 75.499923 MW, 8.787543 MVar
+                            + Iteration 1 mismatch
+                               Step size: 1 (line search)
+                               Step size: 1 (line search)
+                               Fast-Decoupled norm |f(x)|=0.080661
+                               + Largest P mismatch: 4.041306 MW
+                                  Bus Id: VL3_1 (nominalVoltage=100kV)
+                                  Bus V: 1.032593 pu, 0.037275 rad
+                                  Bus injection: 4.041306 MW, 0.407507 MVar
+                               + Largest Q mismatch: 0.829685 MVar
+                                  Bus Id: VL5_0 (nominalVoltage=100kV)
+                                  Bus V: 0.995859 pu, -0.070577 rad
+                                  Bus injection: -127.914637 MW, -49.170315 MVar
+                               + Largest V mismatch: 0 p.u.
+                                  Bus Id: VL1_0 (nominalVoltage=100kV)
+                                  Bus V: 1.04 pu, -0 rad
+                                  Bus injection: 70.853089 MW, 26.910067 MVar
+                            + Iteration 2 mismatch
+                               Step size: 1 (line search)
+                               Step size: 1 (line search)
+                               Fast-Decoupled norm |f(x)|=0.003538
+                               + Largest P mismatch: 0.210333 MW
+                                  Bus Id: VL6_0 (nominalVoltage=100kV)
+                                  Bus V: 1.012699 pu, -0.064317 rad
+                                  Bus injection: -89.789667 MW, -30.00569 MVar
+                               + Largest Q mismatch: -0.011693 MVar
+                                  Bus Id: VL3_1 (nominalVoltage=100kV)
+                                  Bus V: 1.032355 pu, 0.034146 rad
+                                  Bus injection: -0.180282 MW, -0.011693 MVar
+                               + Largest V mismatch: 0 p.u.
+                                  Bus Id: VL1_0 (nominalVoltage=100kV)
+                                  Bus V: 1.04 pu, -0 rad
+                                  Bus injection: 71.700448 MW, 27.020721 MVar
+                            + Iteration 3 mismatch
+                               Step size: 1 (line search)
+                               Step size: 1 (line search)
+                               Fast-Decoupled norm |f(x)|=0.000166
+                               + Largest P mismatch: -0.009396 MW
+                                  Bus Id: VL6_0 (nominalVoltage=100kV)
+                                  Bus V: 1.012653 pu, -0.064356 rad
+                                  Bus injection: -90.009396 MW, -29.999946 MVar
+                               + Largest Q mismatch: 0.000459 MVar
+                                  Bus Id: VL3_1 (nominalVoltage=100kV)
+                                  Bus V: 1.032353 pu, 0.034337 rad
+                                  Bus injection: 0.009166 MW, 0.000459 MVar
+                               + Largest V mismatch: 0 p.u.
+                                  Bus Id: VL1_0 (nominalVoltage=100kV)
+                                  Bus V: 1.04 pu, -0 rad
+                                  Bus injection: 71.632631 MW, 27.046074 MVar
+                         Outer loop DistributedSlack
+                         Outer loop VoltageMonitoring
+                         Outer loop ReactiveLimits
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """;
 
         assertReportEquals(new ByteArrayInputStream(expected.getBytes()), reporter);
     }
