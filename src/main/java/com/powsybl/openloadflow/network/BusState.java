@@ -30,7 +30,7 @@ public class BusState extends BusDcState {
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
     private final LfBus.QLimitType qLimitType;
 
-    private static class LoadState extends LoadDcState {
+    private static final class LoadState extends LoadDcState {
 
         private double loadTargetQ;
 

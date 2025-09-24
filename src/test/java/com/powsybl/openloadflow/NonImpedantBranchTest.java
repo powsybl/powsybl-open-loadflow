@@ -348,6 +348,9 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         Bus b9 = createBus(network, "b9");
         createGenerator(b1, "g1", 2);
         createGenerator(b9, "g9", 1);
+        // Make sure every generator can supply the loads on if let alone
+        network.getGenerator("g1").setMaxP(6);
+        network.getGenerator("g9").setMaxP(6);
         createLoad(b2, "d2", 1);
         createLoad(b7, "d7", 4);
         createLine(network, b0, b1, "l01", 0.0);
@@ -405,6 +408,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 .setComputationManager(LocalComputationManager.getDefault())
                 .setSecurityAnalysisParameters(securityAnalysisParameters)
                 .setMonitors(monitors);
+        OpenLoadFlowParameters.create(runParameters.getSecurityAnalysisParameters().getLoadFlowParameters())
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
         SecurityAnalysisResult result = provider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
                         n -> contingencies,

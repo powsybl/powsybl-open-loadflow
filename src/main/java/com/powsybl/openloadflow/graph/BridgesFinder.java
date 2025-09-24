@@ -19,9 +19,9 @@ import java.util.function.ToIntFunction;
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-class BridgesFinder<V> {
+final class BridgesFinder<V> {
 
-    private static class NeighbourList extends ArrayList<Integer> {
+    private static final class NeighbourList extends ArrayList<Integer> {
     }
 
     private final int nbVertices;
@@ -97,7 +97,6 @@ class BridgesFinder<V> {
     private boolean doubledEdge(int u, int v) {
         return graph.getAllEdges(u, v).size() > 1;
     }
-
 
     /**
      * DFS based function to find all bridges

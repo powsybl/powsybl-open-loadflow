@@ -48,7 +48,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         this.context = Objects.requireNonNull(context);
     }
 
-    private static class RunningContext {
+    private static final class RunningContext {
 
         private boolean lastSolverSuccess;
 

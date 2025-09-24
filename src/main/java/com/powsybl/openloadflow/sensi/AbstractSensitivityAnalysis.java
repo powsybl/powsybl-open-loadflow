@@ -12,6 +12,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
@@ -1044,7 +1045,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     throw createFunctionTypeNotSupportedException(functionType);
                 }
             } else {
-                if (isActivePowerFunctionType(functionType) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                if ((isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
 
@@ -1054,6 +1055,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     }
                     Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
                     Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
+
+                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
+                        if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled() && parameters.getLoadFlowParameters().isHvdcAcEmulation()) {
+                            throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
+                        }
+                    }
 
                     // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                     // => we create a multi (bi) variables factor

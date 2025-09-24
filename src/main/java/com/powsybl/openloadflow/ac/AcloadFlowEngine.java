@@ -51,7 +51,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         return context;
     }
 
-    private static class RunningContext {
+    private static final class RunningContext {
 
         private AcSolverResult lastSolverResult;
 

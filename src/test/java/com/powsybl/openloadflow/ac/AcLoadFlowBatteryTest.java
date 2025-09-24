@@ -45,7 +45,7 @@ class AcLoadFlowBatteryTest {
         battery1 = network.getBattery("BAT");
         battery1.setMinP(-1000).setMaxP(1000).setTargetQ(0).setTargetP(0);
         battery2 = network.getBattery("BAT2");
-        battery2.setTargetP(-1000).setMaxP(1000);
+        battery2.setMinP(-1000).setTargetP(-1000).setMaxP(1000);
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(true)
@@ -64,7 +64,7 @@ class AcLoadFlowBatteryTest {
         assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(401, genBus);
-        LoadFlowAssert.assertAngleEquals(5.916573, genBus);
+        LoadFlowAssert.assertAngleEquals(5.916586, genBus);
         assertVoltageEquals(397.660, batBus);
         LoadFlowAssert.assertAngleEquals(0.0, batBus);
     }
@@ -80,10 +80,10 @@ class AcLoadFlowBatteryTest {
         assertTrue(result.isFullyConverged());
 
         assertVoltageEquals(417.328, genBus);
-        LoadFlowAssert.assertAngleEquals(5.468356, genBus);
+        LoadFlowAssert.assertAngleEquals(5.468361, genBus);
         assertVoltageEquals(401.0, batBus);
         LoadFlowAssert.assertAngleEquals(0.0, batBus);
-        assertActivePowerEquals(1000.0, battery2.getTerminal());
-        assertReactivePowerEquals(122.716, battery2.getTerminal());
+        assertActivePowerEquals(390.22, battery2.getTerminal());
+        assertReactivePowerEquals(122.711, battery2.getTerminal());
     }
 }

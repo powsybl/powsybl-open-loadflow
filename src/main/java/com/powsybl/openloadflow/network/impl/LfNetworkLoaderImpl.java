@@ -44,7 +44,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static final double TARGET_Q_EPSILON = 1e-2;
 
-    private static class LoadingContext {
+    private static final class LoadingContext {
 
         private final Set<Branch<?>> branchSet = new LinkedHashSet<>();
 
