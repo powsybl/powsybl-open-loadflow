@@ -18,6 +18,8 @@ import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -26,10 +28,24 @@ import com.powsybl.openloadflow.network.LfNetwork;
 public class FastDecoupledFactory implements AcSolverFactory {
 
     public static final String NAME = "FAST_DECOUPLED";
+    private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupledFactory.class);
 
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    public AcSolverFactory checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isAsymmetrical()) {
+            LOGGER.warn("Fast-Decoupled solver is incompatible with asymmetrical load flow, Newton-Raphson is used instead");
+            return AcSolverFactory.find(NewtonRaphsonFactory.NAME);
+        }
+        if (parameters.isHvdcAcEmulation()) {
+            LOGGER.warn("Fast-Decoupled solver is incompatible with AcEmulation, Newton-Raphson is used instead");
+            return AcSolverFactory.find(NewtonRaphsonFactory.NAME);
+        }
+        return this;
     }
 
     @Override

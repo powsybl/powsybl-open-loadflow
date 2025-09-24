@@ -33,6 +33,12 @@ public class NewtonKrylovFactory implements AcSolverFactory {
     }
 
     @Override
+    public AcSolverFactory checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        // no current incompatibilities between Newton-Krylov and parameters
+        return this;
+    }
+
+    @Override
     public AcSolverParameters createParameters(LoadFlowParameters parameters) {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         return new NewtonKrylovParameters()
