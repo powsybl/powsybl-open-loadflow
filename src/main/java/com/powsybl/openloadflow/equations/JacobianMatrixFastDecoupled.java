@@ -45,7 +45,7 @@ public class JacobianMatrixFastDecoupled
         // Nothing to do
     }
 
-    // List of Equation that require a dedicated derivative for Fast Decoupled
+    // List of Equation that require a dedicated derivative for Fast-Decoupled
     private static final Set<AcEquationType> EQUATIONS_WITH_DEDICATED_DERIVATE = Set.of(
             BUS_TARGET_P,
             BUS_TARGET_Q,
@@ -55,12 +55,12 @@ public class JacobianMatrixFastDecoupled
             BUS_DISTR_SLACK_P
     );
 
-    // Checks if equation has a dedicated derivative for Fast Decoupled
+    // Checks if equation has a dedicated derivative for Fast-Decoupled
     public static boolean equationHasDedicatedDerivative(Equation<AcVariableType, AcEquationType> equation) {
         return EQUATIONS_WITH_DEDICATED_DERIVATE.contains(equation.getType());
     }
 
-    // List of EquationTerms that require a dedicated derivative for Fast Decoupled
+    // List of EquationTerms that require a dedicated derivative for Fast-Decoupled
     private static final Set<String> TERMS_WITH_DEDICATED_DERIVATIVE = Set.of(
             ClosedBranchSide1ActiveFlowEquationTerm.class.getName(),
             ClosedBranchSide1ReactiveFlowEquationTerm.class.getName(),
@@ -103,7 +103,7 @@ public class JacobianMatrixFastDecoupled
         }
     }
 
-    // Build fast decoupled version of a term, if it has dedicated derivative
+    // Build Fast-Decoupled version of a term, if it has dedicated derivative
     private double computeDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term, Variable<AcVariableType> variable) {
         if (term instanceof EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
             AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(multiplyByTerm.getTerm());
@@ -181,15 +181,15 @@ public class JacobianMatrixFastDecoupled
         }
 
         if (isPhiSystem) {
-            LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled Phi system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+            LOGGER.debug(PERFORMANCE_MARKER, "Fast-Decoupled Phi system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         } else {
-            LOGGER.debug(PERFORMANCE_MARKER, "Fast Decoupled V system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+            LOGGER.debug(PERFORMANCE_MARKER, "Fast-Decoupled V system Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
     }
 
     @Override
     protected void updateDer() {
-        throw new IllegalStateException("Fast Decoupled solver does not need to update its Jacobian matrices during a load flow calculation");
+        throw new IllegalStateException("Fast-Decoupled solver does not need to update its Jacobian matrices during a load flow calculation");
     }
 
 }

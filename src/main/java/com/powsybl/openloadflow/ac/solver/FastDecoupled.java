@@ -59,7 +59,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
     @Override
     public String getName() {
-        return "Fast Decoupled";
+        return "Fast-Decoupled";
     }
 
     private JacobianMatrixFastDecoupled initPhiJacobianMatrix(int rangeIndex) {
@@ -300,7 +300,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
             if (detailedReport) {
-                Reports.reportFastDecoupledNorm(iterationReportNode, testResult.getNorm());
+                Reports.reportSolverNorm(iterationReportNode, getName(), testResult.getNorm());
             }
             if (detailedReport || LOGGER.isTraceEnabled()) {
                 reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), LOGGER);
@@ -337,7 +337,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
             ReportNode initialReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, 0) : null;
             if (detailedReport) {
-                Reports.reportFastDecoupledNorm(initialReportNode, initialTestResult.getNorm());
+                Reports.reportSolverNorm(initialReportNode, getName(), initialTestResult.getNorm());
             }
             if (detailedReport || LOGGER.isTraceEnabled()) {
                 reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);

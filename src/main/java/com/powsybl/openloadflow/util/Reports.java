@@ -780,17 +780,10 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNewtonRaphsonNorm(ReportNode reportNode, double norm) {
+    public static void reportSolverNorm(ReportNode reportNode, String solverName, double norm) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.NRNorm")
-                .withUntypedValue("norm", norm)
-                .withSeverity(TypedValue.TRACE_SEVERITY)
-                .add();
-    }
-
-    public static void reportFastDecoupledNorm(ReportNode reportNode, double norm) {
-        reportNode.newReportNode()
-                .withMessageTemplate("olf.FDNorm")
+                .withMessageTemplate("olf.solverNorm")
+                .withUntypedValue("solverName", solverName)
                 .withUntypedValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();

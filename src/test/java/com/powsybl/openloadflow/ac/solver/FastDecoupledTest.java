@@ -304,7 +304,7 @@ class FastDecoupledTest {
                             Slack bus: VL1_0
                          Slack bus active power (-4.64102 MW) distributed in 1 distribution iteration(s)
                          DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
-                         + Fast Decoupled on Network CC0 SC0
+                         + Fast-Decoupled on Network CC0 SC0
                             No outer loops have been launched
                             + Initial mismatch
                                Fast-Decoupled norm |f(x)|=0.894758
