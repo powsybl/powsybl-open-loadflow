@@ -82,7 +82,8 @@ public class AdmittanceMatrix implements AutoCloseable {
         Complex z11 = new Complex(z11x, z11y);
         Complex z22 = new Complex(z22x, z22y);
         // z = (z11 * z22 - z12 * z21) / z12
-        return (z11.multiply(z22).subtract(z12.multiply(z21))).divide(z12);
+        // Divide before substract to reduce numerical errors
+        return z11.multiply(z22.divide(z12)).subtract(z12.multiply(z21).divide(z12));
     }
 
     @Override
