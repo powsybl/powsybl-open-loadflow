@@ -137,7 +137,7 @@ public class FastDecoupled extends AbstractAcSolver {
                 break;
             }
         }
-        return index.getValue();
+        return index.intValue();
     }
 
     private void reportMaxVoltageUpdates(boolean isPhiType, double stepSize, int cutCount, ReportNode reportNode) {
@@ -211,7 +211,7 @@ public class FastDecoupled extends AbstractAcSolver {
             if (equation.getTerms().size() != 1) {
                 throw new IllegalStateException("Equation: " + equation + " is expected to have only one term not " + equation.getTerms().size());
             }
-            EquationTerm<AcVariableType, AcEquationType> term = equation.getTerms().get(0);
+            EquationTerm<AcVariableType, AcEquationType> term = equation.getTerms().getFirst();
             if (term.getClass().equals(ClosedBranchSide1ActiveFlowEquationTerm.class)) {
                 return ((ClosedBranchSide1ActiveFlowEquationTerm) term).getV1Var().getElementNum();
             }
@@ -271,7 +271,7 @@ public class FastDecoupled extends AbstractAcSolver {
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
-            ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.getValue() + 1) : null;
+            ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.intValue() + 1) : null;
 
             try {
                 // Solution on PHI
