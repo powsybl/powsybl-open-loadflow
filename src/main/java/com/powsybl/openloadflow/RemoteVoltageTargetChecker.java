@@ -140,6 +140,8 @@ public class RemoteVoltageTargetChecker {
                         double z = y.getZ(controlledBus, neighborControlledBus).abs();
                         double dv = Math.abs(controlledBus.getHighestPriorityTargetV().orElseThrow() - neighborControlledBus.getHighestPriorityTargetV().orElseThrow());
                         double targetVoltagePlausibilityIndicator = dv / z;
+                        // TODO - remove traces for debugging Mac OS build
+                        LOGGER.info("Indicator: " + controlledBus.getId() + "/" + neighborControlledBus.getId() + " dv = " + dv + " dz = " + z + " indicator = " + targetVoltagePlausibilityIndicator);
                         if (targetVoltagePlausibilityIndicator > parameters.getTargetVoltagePlausibilityIndicatorThreshold()) {
                             result.lfIncompatibleTarget().add(new RemoteVoltageTarget.LfIncompatibleTarget(controlledBus, neighborControlledBus, targetVoltagePlausibilityIndicator));
                         }
