@@ -608,6 +608,21 @@ When set to `false`:
 
 The default value is `true`.
 
+**fixRemoteVoltageTarget**
+If true, runs a preprocessing algorithm to identify remote voltage settings that may cause convergence issues and 
+removes them automatically from voltage control.
+
+Two categories of problematic settings are identified:
+  - incompatible voltage targets, when two electrically closed controlled bus, separated by smal impedances, have different voltage targets.
+    in some situtations, this could lead to a failure in the Newton-Rapshon convergence.
+  - unrealistic voltage targets that may cause a strong drop of the generators local voltage when trying to maintain their remote target voltage.
+    These situations are usually correctly handled however if the **voltageRemoteControlRobustMode** is set to true.
+
+**Note** : A preferred solution is to identify problematic voltage settings using the RemoteVoltageTargetChecker.findElementsToDiscardFromVoltageControl
+that can be run on a Network. This java method returns the problematic voltage settings and the reason. Users can then use this result
+to fix the network data.
+
+The default value is 'false'
 
 ## Configuration file example
 See below an extract of a config file that could help:
