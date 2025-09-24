@@ -241,6 +241,8 @@ public class NewtonRaphson extends AbstractAcSolver {
             if (newStatus != null) {
                 status = newStatus;
             }
+            double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
+            return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
         }
         while (iterations.getValue() < parameters.getMaxIterations()) {
             AcSolverStatus newStatus = runIteration(svScaling, iterations, reportNode);

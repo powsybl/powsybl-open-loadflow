@@ -211,9 +211,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         double minQ = controllerBus.getMinQ();
         double maxQ = controllerBus.getMaxQ();
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
-        if (q < minQ) {
+        if (q < minQ - 1E-3) {
             buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
-        } else if (q > maxQ) {
+        } else if (q > maxQ + 1E-3) {
             buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, ReactiveLimitDirection.MAX));
         } else {
             remainingUnchangedBusCount.increment();
