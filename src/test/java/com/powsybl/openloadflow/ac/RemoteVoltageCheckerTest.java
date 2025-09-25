@@ -123,11 +123,14 @@ public class RemoteVoltageCheckerTest {
         // For high values, indicator values is hardware sensitive (based on small differences between large numbers)
         // So we remove them from the tests
         String reportString = TestUtil.normalizeLineSeparator(LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)"));
+        // Also strongest incompatibility with vl4_0 can be vl4_2 or vl5_0 dependinng on incompatibility factor cnumerical errors
+        reportString = reportString.replaceAll("and 'vl4_2' have incompatible", "and '***' have incompatible");
+        reportString = reportString.replaceAll("and 'vl5_0' have incompatible", "and '***' have incompatible");
 
         // Even the display order (sorted in plausibility indicator) is different between architectures ! SO lets check expected sentenences alone
         assertTrue(reportString.contains("         + Checking remote voltage targets"));
-        assertTrue(reportString.contains("           Controlled buses 'vl4_0' and 'vl4_2' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl1_0]"));
-        assertTrue(reportString.contains("           Controlled buses 'vl4_2' and 'vl5_0' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl3_0]"));
+        assertTrue(reportString.contains("           Controlled buses 'vl4_0' and '***' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl1_0]"));
+        assertTrue(reportString.contains("           Controlled buses 'vl4_2' and '***' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl3_0]"));
         assertTrue(reportString.contains("           Controlled bus 'vl4_1' has an unrealistic target voltage 403 Kv, causing a severe controller bus 'vl4_1' voltage drop (estimated at 27.392811 pu): disabling controller bus"));
     }
 }
