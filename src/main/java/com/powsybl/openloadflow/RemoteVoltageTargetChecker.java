@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -30,6 +31,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -257,16 +259,23 @@ public class RemoteVoltageTargetChecker {
     }
 
     public void fix(RemoteVoltageTargetCheckerParameters parameters) {
+        ReportNode fixRemoteTargetVoltageReport = Reports.reportFixRemoteTargetVoltage(network.getReportNode());
         RemoteVoltageTarget.LfResult result = check(parameters);
 
         List<RemoteVoltageTarget.LfIncompatibleTargetResolution> incompatibleTargetResolutions = resolveIncompatbleTargets(result.lfIncompatibleTarget());
         for (RemoteVoltageTarget.LfIncompatibleTargetResolution incompatibleTargetResolution : incompatibleTargetResolutions) {
+            LfBus otherBus = incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1() == incompatibleTargetResolution.controlledBusToFix() ?
+                    incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus2()
+                    :
+                    incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1();
             for (VoltageControl<? extends LfElement> voltageControl : incompatibleTargetResolution.controlledBusToFix().getVoltageControls()) {
-                LOGGER.warn("Controlled buses '{}' and '{}' have incompatible target voltages (plausibility indicator: {}): disable controller elements {}",
-                        incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1().getId(),
-                        incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus2().getId(),
+                ReportNode incompatibleTargetNode = Reports.reportIncompatibleVoltageTarget(fixRemoteTargetVoltageReport,
+                        incompatibleTargetResolution.controlledBusToFix().getId(),
+                        otherBus.getId(),
                         incompatibleTargetResolution.largestLfIncompatibleTarget().targetVoltagePlausibilityIndicator(),
-                        voltageControl.getControllerElements().stream().map(LfElement::getId).toList());
+                        voltageControl.getControllerElements().stream().map(LfElement::getId).toList().toString());
+                // The rport is garanteed to not be a NO_OP as OLF creates a root for each the CC
+                LOGGER.warn(incompatibleTargetNode.getMessage());
                 for (var controllerElement : voltageControl.getControllerElements()) {
                     controllerElement.setVoltageControlEnabled(false);
                 }
@@ -277,12 +286,15 @@ public class RemoteVoltageTargetChecker {
                 .filter(LfBus::isGeneratorVoltageControlEnabled).count();
 
         for (RemoteVoltageTarget.LfUnrealisticTarget lfUnrealisticTarget : result.lfUnrealisticTargets()) {
-            if (remainingPV > 1) {
+            if (remainingPV > 1 && lfUnrealisticTarget.controllerBus().isGeneratorVoltageControlEnabled()) {
                 LfBus controllerBus = lfUnrealisticTarget.controllerBus();
                 LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
-                LOGGER.warn("Controlled bus '{}' has an unrealistic target voltage {} Kv, causing a severe controller bus '{}' voltage drop (estimated at {} pu): disable controller bus",
-                        controlledBus.getId(), controlledBus.getHighestPriorityTargetV().orElseThrow() * controlledBus.getNominalV(),
-                        controllerBus.getId(), lfUnrealisticTarget.estimatedDvController());
+                ReportNode unrealisticTargetNode = Reports.reportUnrealisticTargetVoltage(fixRemoteTargetVoltageReport,
+                        controlledBus.getId(),
+                        controlledBus.getHighestPriorityTargetV().orElseThrow() * controlledBus.getNominalV(),
+                        controllerBus.getId(),
+                        lfUnrealisticTarget.estimatedDvController());
+                LOGGER.warn(unrealisticTargetNode.getMessage());
                 controllerBus.setGeneratorVoltageControlEnabled(false);
                 remainingPV -= 1;
             }

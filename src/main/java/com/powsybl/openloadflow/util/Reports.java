@@ -959,4 +959,31 @@ public final class Reports {
                 .build();
     }
 
+    public static ReportNode reportFixRemoteTargetVoltage(ReportNode reportNode) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.fixRemoteTargetVoltage")
+                .add();
+    }
+
+    public static ReportNode reportIncompatibleVoltageTarget(ReportNode reportNode, String idBus1, String idBus2, double indicator, String deactivatedElements) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.incompatibleVoltageTarget")
+                .withUntypedValue("bus1", idBus1)
+                .withUntypedValue("bus2", idBus2)
+                .withUntypedValue("indicator", indicator)
+                .withUntypedValue("elements", deactivatedElements)
+                .add();
+    }
+
+    public static ReportNode reportUnrealisticTargetVoltage(ReportNode reportNode, String controlledBusId, double targetV,
+                        String controllerBusId, double estimatedDrop) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.reportUnrealisticRemoteTargetVoltage")
+                .withUntypedValue("controlledBus", controlledBusId)
+                .withUntypedValue("targetV", targetV)
+                .withUntypedValue("controllerBus", controllerBusId)
+                .withUntypedValue("drop", estimatedDrop)
+                .add();
+    }
+
 }
