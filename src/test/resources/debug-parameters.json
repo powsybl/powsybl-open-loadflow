@@ -93,6 +93,7 @@
         "areaInterchangeControl" : false,
         "areaInterchangeControlAreaType" : "ControlArea",
         "areaInterchangePMaxMismatch" : 2.0,
+        "fixRemoteVoltageTarget" : false,
         "forceTargetQInReactiveLimits" : false,
         "disableInconsistentVoltageControls" : false,
         "extrapolateReactiveLimits" : false,
