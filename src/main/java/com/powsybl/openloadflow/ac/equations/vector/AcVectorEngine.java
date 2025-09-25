@@ -51,8 +51,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     // branch computed values
     private final double[] a1Evaluated;
     private final double[] r1Evaluated;
-    private final double[] sinKsi;
-    private final double[] cosKsi;
+    public final double[] sinKsi;
+    public final double[] cosKsi;
     private final double[] theta2;
     private final double[] sinTheta2;
     private final double[] cosTheta2;
@@ -251,13 +251,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             ph1[i] = ph1Var[i] != null && ph1Var[i].getRow() >= 0 ? stateVector.get(ph1Var[i].getRow()) : Double.NaN;
             ph2[i] = ph2Var[i] != null && ph2Var[i].getRow() >= 0 ? stateVector.get(ph2Var[i].getRow()) : Double.NaN;
         }
+        updateBranches();
     }
 
     private void updateBranches() {
         DoubleWrapper wrapper = new DoubleWrapper();
-        for (int branchNum = 0; branchNum < sinKsi.length; branchNum++) {
-            sinKsi[branchNum] = FastMath.sin(ksi[branchNum]);
-            cosKsi[branchNum] = FastMath.cos(ksi[branchNum]);
+        for (int branchNum = 0; branchNum < theta1.length; branchNum++) {
             a1Evaluated[branchNum] = a1TermSupplier[branchNum] == null ? a1[branchNum] : a1TermSupplier[branchNum].getAsDouble();
             r1Evaluated[branchNum] = r1TermSupplier[branchNum] == null ? r1[branchNum] : r1TermSupplier[branchNum].getAsDouble();
             theta2[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
@@ -426,7 +425,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             termByEvalResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
         }
-
+        updateBranches();
         equationDataValid = true;
     }
 
@@ -456,8 +455,9 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         // Although in normal call scenarios variables are up to date
         // the der can be triggered by unusual scenario (any event that updates
         // the Jacobian Matrix). To be sure to get the correct value for the derivation
-        // computation we force an update here
-        updateVariables();
+        // computation we force an update here <==== COMMENT TO THE COMMENT : ARE WE SURE THIS IS NOT TOO CONSUMING ?
+
+        //updateVariables();
 
         derSortedTerms();
 
@@ -488,7 +488,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     private void evalSortedTermsVec() {
-        updateBranches();
         int branchNum = -1;
         for (int termIndex = 0; termIndex < sortedTermsForEval.length; termIndex++) {
             if (equationActiveStatus[termEquationActiveStatusIndexForEval[termIndex]] &&
@@ -524,7 +523,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     private void derSortedTermsVec() {
-        updateBranches();
         int branchNum = -1;
         for (int termIndex = 0; termIndex < sortedTermsForDer.length; termIndex++) {
             if (equationActiveStatus[termEquationActiveStatusIndexForDer[termIndex]] &&
