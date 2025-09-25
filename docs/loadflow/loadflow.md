@@ -283,3 +283,29 @@ Currently, computations involving zero-impedance branches used as boundary branc
 However, it is still possible to submit network models that include zero-impedance boundary branches.  
 If a terminal of a zero-impedance branch is designated as a boundary, Open LoadFlow will internally assign the branch
 an impedance value equal to the [`lowImpedanceThreshold`](parameters.md) parameter.
+
+## Fast-Decoupled Algorithm
+Fast-Decoupled is an algorithm to solve the inner-loop of the load flow problem, like the Newton-Raphson one.
+It is implemented as an extension of the class `AbstractAcSolver`.
+The solved equation system is the same as the one solved by Newton-Raphson method.
+However, the Jacobian matrix used is decomposed into two smaller matrices, decoupling the active power balance equations from voltage magnitudes variations and reactive power balance equations from voltage phases variations.
+
+### Method
+The Fast-Decoupled method is composed of two parts, one relative to the decoupling, another relative to the speeding of the calculations.
+
+The decoupling is obtained by dividing the Jacobian matrix into two matrices, one relative to voltage phases variables and active power equations, the other relative to voltage magnitudes variables and reactive power equations.
+Combining those two smaller matrices, one can obtain an approximation of the real Jacobian, where some terms have been discarded.
+
+The fastness is obtained by approximating more terms on top of the Jacobian structure simplification.
+This allows to have Jacobian matrices that are constant, with respect to the multiplication by a diagonal matrix, during computations.
+Thus, the LU decomposition of the two Jacobian matrices is done only once, at the start of the first Fast-Decoupled iteration.
+
+Regarding state vector scaling, the Fast-Decoupled uses both personalized max voltage change and line-search routines.
+Without these routines, the algorithm struggles to converge on realistic large networks, as it has a simplified vision of the impact of the system variables.
+
+### Limitations
+The current implemented version cannot compute when one of the following parameter is activated:
+- [parameter `areaInterchangePMaxMismatch`](parameters.md) #TODO #placeholder
+- [parameter `areaInterchangePMaxMismatch`](parameters.md) #TODO #placeholder
+
+In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, a warning is triggered and the AC solver is switched to the default Newton-Raphson.
