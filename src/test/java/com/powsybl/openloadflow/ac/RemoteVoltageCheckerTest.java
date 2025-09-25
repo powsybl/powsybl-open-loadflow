@@ -120,34 +120,14 @@ public class RemoteVoltageCheckerTest {
         result = runner.run(network, LocalComputationManager.getDefault(), network.getVariantManager().getWorkingVariantId(), params, testReport).join();
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
 
-        String expected = """
-                + test
-                   + Load flow on network 'generator-remote-control-test'
-                      + Network CC0 SC0
-                         + Network info
-                            Network has 7 buses and 6 branches
-                            Network balance: active generation=301 MW, active load=299.6 MW, reactive generation=0 MVar, reactive load=200 MVar
-                            Angle reference bus: vl5_0
-                            Slack bus: vl5_0
-                         + Checking remote voltage targets
-                            Controlled buses 'vl4_0' and 'vl4_2' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl1_0]
-                            Controlled buses 'vl4_2' and 'vl5_0' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl3_0]
-                            Controlled bus 'vl4_1' has an unrealistic target voltage 403 Kv, causing a severe controller bus 'vl4_1' voltage drop (estimated at 27.392811 pu): disabling controller bus
-                         + Outer loop DistributedSlack
-                            + Outer loop iteration 1
-                               Slack bus active power (-1.152153 MW) distributed in 1 distribution iteration(s)
-                         Outer loop VoltageMonitoring
-                         Outer loop ReactiveLimits
-                         Outer loop DistributedSlack
-                         Outer loop VoltageMonitoring
-                         Outer loop ReactiveLimits
-                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
-                """;
-
         // For high values, indicator values is hardware sensitive (based on small differences between large numbers)
         // So we remove them from the tests
-        String reportString = LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)");
+        String reportString = TestUtil.normalizeLineSeparator(LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)"));
 
-        assertEquals(TestUtil.normalizeLineSeparator(expected), TestUtil.normalizeLineSeparator(reportString));
+        // Even the display order (sorted in plausibility indicator) is different between architectures ! SO lets check expected sentenences alone
+        assertTrue(reportString.contains("         + Checking remote voltage targets"));
+        assertTrue(reportString.contains("           Controlled buses 'vl4_0' and 'vl4_2' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl1_0]"));
+        assertTrue(reportString.contains("           Controlled buses 'vl4_2' and 'vl5_0' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl3_0]"));
+        assertTrue(reportString.contains("           Controlled bus 'vl4_1' has an unrealistic target voltage 403 Kv, causing a severe controller bus 'vl4_1' voltage drop (estimated at 27.392811 pu): disabling controller bus"));
     }
 }
