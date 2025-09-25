@@ -53,7 +53,7 @@ public class NewtonRaphson extends AbstractAcSolver {
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
-            ReportNode iterationReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, iterations.getValue() + 1) : null;
+            ReportNode iterationReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
 
             // solve f(x) = j * dx
             try {
