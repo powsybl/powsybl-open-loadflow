@@ -53,14 +53,14 @@ public class NewtonRaphson extends AbstractAcSolver {
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
-            ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.getValue() + 1) : null;
+            ReportNode iterationReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, iterations.getValue() + 1) : null;
 
             // solve f(x) = j * dx
             try {
                 j.solveTransposed(equationVector.getArray());
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
-                Reports.reportNewtonRaphsonError(reportNode, e.toString());
+                Reports.reportAcSolverError(reportNode, getName(), e.toString());
                 return AcSolverStatus.SOLVER_FAILED;
             }
             // f(x) now contains dx
@@ -90,18 +90,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                                               parameters.getStoppingCriteria(), testResult,
                                               iterationReportNode);
 
-            LOGGER.debug("|f(x)|={}", testResult.getNorm());
-            if (detailedReport) {
-                Reports.reportSolverNorm(iterationReportNode, getName(), testResult.getNorm());
-            }
-            if (detailedReport || LOGGER.isTraceEnabled()) {
-                reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), LOGGER);
-            }
-            if (testResult.isStop()) {
-                return AcSolverStatus.CONVERGED;
-            }
-
-            return null;
+            return reportAndReturnStatus(LOGGER, testResult, iterationReportNode);
         } finally {
             iterations.increment();
         }
@@ -119,7 +108,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-        ReportNode initialReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, 0) : null;
+        ReportNode initialReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, 0) : null;
         if (detailedReport) {
             Reports.reportSolverNorm(initialReportNode, getName(), initialTestResult.getNorm());
         }

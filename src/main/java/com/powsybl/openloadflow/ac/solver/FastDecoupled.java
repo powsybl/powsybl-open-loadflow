@@ -271,7 +271,7 @@ public class FastDecoupled extends AbstractAcSolver {
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
-            ReportNode iterationReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, iterations.intValue() + 1) : null;
+            ReportNode iterationReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
 
             try {
                 // Solution on PHI
@@ -282,7 +282,7 @@ public class FastDecoupled extends AbstractAcSolver {
                 runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
-                Reports.reportNewtonRaphsonError(reportNode, e.toString());
+                Reports.reportAcSolverError(reportNode, getName(), e.toString());
                 return AcSolverStatus.SOLVER_FAILED;
             }
 
@@ -298,18 +298,7 @@ public class FastDecoupled extends AbstractAcSolver {
             // test stopping criteria
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
 
-            LOGGER.debug("|f(x)|={}", testResult.getNorm());
-            if (detailedReport) {
-                Reports.reportSolverNorm(iterationReportNode, getName(), testResult.getNorm());
-            }
-            if (detailedReport || LOGGER.isTraceEnabled()) {
-                reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), LOGGER);
-            }
-            if (testResult.isStop()) {
-                return AcSolverStatus.CONVERGED;
-            }
-
-            return null;
+            return reportAndReturnStatus(LOGGER, testResult, iterationReportNode);
         } finally {
             iterations.increment();
         }
@@ -335,7 +324,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
             LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-            ReportNode initialReportNode = detailedReport ? Reports.createNewtonRaphsonMismatchReporter(reportNode, 0) : null;
+            ReportNode initialReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, 0) : null;
             if (detailedReport) {
                 Reports.reportSolverNorm(initialReportNode, getName(), initialTestResult.getNorm());
             }
