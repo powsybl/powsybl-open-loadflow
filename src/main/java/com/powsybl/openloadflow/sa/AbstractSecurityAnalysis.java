@@ -723,6 +723,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract LoadFlowEngine<V, E, P, R> createLoadFlowEngine(C context);
 
+    protected abstract void updateContext(R result, C context);
+
     protected void afterPreContingencySimulation(P acParameters) {
     }
 
@@ -763,6 +765,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             // only run post-contingency simulations if pre-contingency simulation is ok
             if (preContingencyComputationOk) {
+                updateContext(preContingencyLoadFlowResult, context);
                 afterPreContingencySimulation(acParameters);
 
                 // update network result

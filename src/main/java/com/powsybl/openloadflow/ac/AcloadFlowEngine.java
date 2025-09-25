@@ -195,7 +195,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
             Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN);
-            return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
+            return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower, Collections.EMPTY_LIST);
         }
 
         AcSolver solver = solverFactory.create(context.getNetwork(),
@@ -207,7 +207,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
-                .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
+                .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork(), context.getOuterLoopInitData(outerLoop.getClass()))))
                 .toList();
 
         // outer loops initialization
@@ -300,17 +300,25 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
         }
 
-        return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower);
+        return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower, outerLoopsAndContexts);
     }
 
-    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, double distributedActivePower) {
+    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext,
+                                                   OuterLoopResult outerLoopFinalResult,
+                                                   double distributedActivePower,
+                                                   List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts) {
+
+        Map<Class<? extends AcOuterLoop>, Object> outerLoopInitData = new HashMap<>();
+        outerLoopsAndContexts.forEach(p -> p.getLeft().getInitData(p.getRight()).ifPresent(d -> outerLoopInitData.put(p.getLeft().getClass(), d)));
+
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.outerLoopTotalIterations,
                                                        runningContext.nrTotalIterations.getValue(),
                                                        runningContext.lastSolverResult.getStatus(),
                                                        outerLoopFinalResult,
                                                        runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
-                                                       distributedActivePower
+                                                       distributedActivePower,
+                                                       outerLoopInitData
                                                        );
 
         LOGGER.info("AC loadflow complete on network {} (result={})", context.getNetwork(), result);
