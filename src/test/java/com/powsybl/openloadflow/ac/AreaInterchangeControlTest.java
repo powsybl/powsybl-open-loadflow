@@ -62,7 +62,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
         double interchangeTarget2 = 40;
-        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 4);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
         parameters.setDc(true);
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
     }
