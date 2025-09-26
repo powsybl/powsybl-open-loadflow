@@ -35,9 +35,4 @@ public interface LfElement extends PropertyBag {
     LfNetwork getNetwork();
 
     void removeEvaluable(Evaluable evaluable);
-
-    default PiModel getPiModel() {
-        return null;
-    }
-
 }

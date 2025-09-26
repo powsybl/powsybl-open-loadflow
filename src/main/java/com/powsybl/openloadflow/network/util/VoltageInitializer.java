@@ -7,9 +7,9 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
-import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.network.LfAcDcConverter;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface VoltageInitializer {
-//TODO : Implement clean Voltage Initializer for Dc Elements
+
     void prepare(LfNetwork network);
 
     double getMagnitude(LfBus bus);
@@ -25,8 +25,6 @@ public interface VoltageInitializer {
     double getReactivePower(LfVoltageSourceConverter converter);
 
     double getActivePower(LfAcDcConverter converter);
-
-    double getCurrent(LfAcDcConverter converter);
 
     double getMagnitude(LfDcNode dcNode);
 

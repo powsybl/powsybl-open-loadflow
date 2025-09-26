@@ -248,9 +248,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
         // and reuse the array to fill with the solution
         // so we need to copy to later the target as it is and reusable for next run
-        var targetVectorArray = targetVector.getArray().clone(); // First linear system solution
-        runningContext.lastSolverSuccess = solve(targetVectorArray, context.getJacobianMatrix(), reportNode);
+        var targetVectorArray = targetVector.getArray().clone();
 
+        // First linear system solution
+        runningContext.lastSolverSuccess = solve(targetVectorArray, context.getJacobianMatrix(), reportNode);
         equationSystem.getStateVector().set(targetVectorArray);
         updateNetwork(network, equationSystem, targetVectorArray);
 
@@ -324,7 +325,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reportNode)
                 .stream()
                 .map(n -> {
-                    if (n.getValidity() == com.powsybl.openloadflow.network.LfNetwork.Validity.VALID) {
+                    if (n.getValidity() == LfNetwork.Validity.VALID) {
                         try (DcLoadFlowContext context = new DcLoadFlowContext(n, parameters)) {
                             return new DcLoadFlowEngine(context)
                                     .run();

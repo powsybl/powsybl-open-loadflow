@@ -1,11 +1,23 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.AcDcConverter;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 
 public interface LfAcDcConverter extends LfElement {
+
+    Evaluable getCalculatedPac();
+
+    void setCalculatedPac(Evaluable p);
+
+    Evaluable getCalculatedIconv();
+
+    void setCalculatedIconv(Evaluable iconv);
+
+    Evaluable getCalculatedQac();
+
+    void setCalculatedQac(Evaluable q);
 
     LfBus getBus1();
 
@@ -14,8 +26,6 @@ public interface LfAcDcConverter extends LfElement {
     LfDcNode getDcNode2();
 
     double getTargetP();
-
-    void setTargetP(double p);
 
     double getTargetVdc();
 
@@ -35,9 +45,7 @@ public interface LfAcDcConverter extends LfElement {
 
     void setQac(double qac);
 
-    double getIConv();
+    void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
-    void setIConv(double iConv);
-
-
+    void updateFlows(double iConv, double pAc, double qAc);
 }

@@ -1,16 +1,20 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.AcDcConverter;
-import com.powsybl.openloadflow.network.AbstractElement;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.List;
 
 public abstract class AbstractLfAcDcConverter extends AbstractElement implements LfAcDcConverter {
 
-    protected double targetP;
+    protected Evaluable calculatedPac;
+
+    protected Evaluable calculatedQac;
+
+    protected Evaluable calculatedIconv;
+
+    protected final double targetP;
 
     protected double pAc;
 
@@ -18,38 +22,34 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetVac;
 
-    protected List<Double> lossFactors;
-
-    protected double iConv;
+    protected final List<Double> lossFactors;
 
     protected double targetVdc;
 
-    protected AcDcConverter.ControlMode controlMode;
+    protected final AcDcConverter.ControlMode controlMode;
 
-    protected boolean isVoltageRegulatorOn = false;
+    protected final boolean isBipolar;
 
-    protected boolean isBipolar;
+    protected final LfDcNode dcNode1;
 
-    LfDcNode dcNode1;
+    protected final LfDcNode dcNode2;
 
-    LfDcNode dcNode2;
-
-    LfBus bus1;
+    protected final LfBus bus1;
 
     public AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1) {
         super(network);
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;
-        if(dcNode2 != null) {
+        dcNode1.addConverter(this);
+        if (dcNode2 != null) {
             dcNode2.setNeutralPole(true);
+            dcNode2.addConverter(this);
         }
         this.bus1 = bus1;
         this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        if (controlMode == AcDcConverter.ControlMode.V_DC) {
-            targetVdc = converter.getTargetVdc() / dcNode1.getNominalV();
-        }
+        targetVdc = converter.getTargetVdc() / dcNode1.getNominalV();
         isBipolar = converter.getDcTerminal2().isConnected();
     }
 
@@ -57,7 +57,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     public LfBus getBus1() {
         return bus1;
     }
-
 
     @Override
     public LfDcNode getDcNode1() {
@@ -72,11 +71,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public double getTargetP() {
         return targetP;
-    }
-
-    @Override
-    public void setTargetP(double p) {
-        targetP = p;
     }
 
     @Override
@@ -105,26 +99,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
-    public double getIConv() {
-        return iConv;
-    }
-
-    @Override
-    public void setIConv(double iConv) {
-        this.iConv = iConv;
-    }
-
-    @Override
-    public int getNum() {
-        return num;
-    }
-
-    @Override
-    public void setNum(int num) {
-        this.num = num;
-    }
-
-    @Override
     public AcDcConverter.ControlMode getControlMode() {
         return controlMode;
     }
@@ -140,12 +114,42 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
+    public double getQac() {
+        return qAc;
+    }
+
+    @Override
     public void setQac(double qac) {
         this.qAc = qac;
     }
 
     @Override
-    public double getQac() {
-        return qAc;
+    public Evaluable getCalculatedIconv() {
+        return calculatedIconv;
+    }
+
+    @Override
+    public void setCalculatedIconv(Evaluable iconv) {
+        calculatedIconv = iconv;
+    }
+
+    @Override
+    public Evaluable getCalculatedPac() {
+        return calculatedPac;
+    }
+
+    @Override
+    public void setCalculatedPac(Evaluable p) {
+        calculatedPac = p;
+    }
+
+    @Override
+    public Evaluable getCalculatedQac() {
+        return calculatedQac;
+    }
+
+    @Override
+    public void setCalculatedQac(Evaluable q) {
+        calculatedQac = q;
     }
 }

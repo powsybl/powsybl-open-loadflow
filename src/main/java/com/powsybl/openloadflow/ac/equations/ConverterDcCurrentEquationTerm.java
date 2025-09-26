@@ -1,16 +1,37 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 
-public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm {
+public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEquationTerm {
 
-    public VscToAcActivePowerEquationTerm(LfVoltageSourceConverter converter, VariableSet<AcVariableType> variableSet) {
-        super(converter, variableSet);
+    public ConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
+        super(converter, dcNode1, dcNode2, variableSet);
+    }
+
+    public static double iConv(double pAc, double qAc, double v1, double vR) {
+        return pDc(pAc, qAc) / (v1 - vR);
+    }
+
+    public static double diConvdv1(double pAc, double qAc, double v1, double vR) {
+        return -pDc(pAc, qAc) / ((v1 - vR) * (v1 - vR));
+    }
+
+    public static double diConvdvR(double pAc, double qAc, double v1, double vR) {
+        return pDc(pAc, qAc) / ((v1 - vR) * (v1 - vR));
+    }
+
+    public static double diConvdpAc(double pAc, double qAc, double v1, double vR) {
+        return dpDcdpAc(pAc, qAc) / (v1 - vR);
+    }
+
+    public static double diConvdqAc(double pAc, double qAc, double v1, double vR) {
+        return dpDcdqAc(pAc, qAc) / (v1 - vR);
     }
 
     public static double iAcPerUnit(double pAcPerUnit, double qAcPerUnit) {
@@ -50,16 +71,20 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
 
     @Override
     public double eval() {
-        return pDc(pAc(), qAc());
+        return iConv(pAc(), qAc(), v1(), vR());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(pAcVar)) {
-            return dpDcdpAc(pAc(), qAc());
+            return diConvdpAc(pAc(), qAc(), v1(), vR());
         } else if (variable.equals(qAcVar)) {
-            return dpDcdqAc(pAc(), qAc());
+            return diConvdqAc(pAc(), qAc(), v1(), vR());
+        } else if (variable.equals(v1Var)) {
+            return diConvdv1(pAc(), qAc(), v1(), vR());
+        } else if (variable.equals(vRVar)) {
+            return diConvdvR(pAc(), qAc(), v1(), vR());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -67,6 +92,6 @@ public class VscToAcActivePowerEquationTerm extends AbstractVscToAcEquationTerm 
 
     @Override
     protected String getName() {
-        return "ac_p";
+        return "conv_current";
     }
 }

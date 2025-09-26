@@ -235,6 +235,7 @@ public final class Networks {
             retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
             List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
+
             if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
                 Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream()
                         .filter(Objects::nonNull)
@@ -257,12 +258,12 @@ public final class Networks {
 
     public static Iterable<Bus> getBuses(Network network, boolean breaker) {
         return breaker ? network.getBusBreakerView().getBuses()
-                : network.getBusView().getBuses();
+                       : network.getBusView().getBuses();
     }
 
     public static Bus getBus(Terminal terminal, boolean breakers) {
         return breakers ? terminal.getBusBreakerView().getBus()
-                : terminal.getBusView().getBus();
+                        : terminal.getBusView().getBus();
     }
 
     public static DcNode getDcNode(DcTerminal terminal) {
@@ -315,10 +316,9 @@ public final class Networks {
             case GENERATOR -> Optional.of(((Generator) identifiable).getRegulatingTerminal());
             case SHUNT_COMPENSATOR -> Optional.of(((ShuntCompensator) identifiable).getRegulatingTerminal());
             case STATIC_VAR_COMPENSATOR -> Optional.of(((StaticVarCompensator) identifiable).getRegulatingTerminal());
-            case HVDC_CONVERTER_STATION ->
-                    ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC
-                            ? Optional.of(((VscConverterStation) identifiable).getTerminal()) // local regulation only
-                            : Optional.empty();
+            case HVDC_CONVERTER_STATION -> ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC
+                    ? Optional.of(((VscConverterStation) identifiable).getTerminal()) // local regulation only
+                    : Optional.empty();
             default -> Optional.empty();
         };
     }

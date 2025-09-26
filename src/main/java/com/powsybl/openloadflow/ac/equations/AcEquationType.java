@@ -35,14 +35,13 @@ public enum AcEquationType implements Quantity {
     BUS_TARGET_IY_ZERO("bus_target_iy_zero", ElementType.BUS), // bus imaginary part current target for zero sequence
     BUS_TARGET_IX_NEGATIVE("bus_target_ix_negative", ElementType.BUS), // bus real part current target for negative sequence
     BUS_TARGET_IY_NEGATIVE("bus_target_iy_negative", ElementType.BUS), // bus imaginary part current target for negative sequence
-    DC_NODE_TARGET_P("dc_node_target_p", ElementType.DC_NODE),
-    DC_NODE_TARGET_I("dc_node_target_i", ElementType.DC_NODE),
-    AC_CONV_TARGET_P_REF("bus_target_p_ref", ElementType.CONVERTER),
-    AC_CONV_TARGET_Q_REF("bus_target_q_ref", ElementType.CONVERTER),
-    DC_NODE_TARGET_V_REF("dc_node_target_v_ref", ElementType.CONVERTER),
-    DC_NODE_GROUND("dc_node_ground", ElementType.DC_NODE),
-    CONV_TARGET_P("conv_target_p", ElementType.CONVERTER),
-    BUS_TARGET_V_REF("bus_target_v_ref", ElementType.CONVERTER);
+    DC_NODE_TARGET_P("dc_node_target_p", ElementType.DC_NODE), // dcNode power target
+    DC_NODE_TARGET_I("dc_node_target_i", ElementType.DC_NODE), // dcNode current target
+    DC_NODE_GROUND("dc_node_ground", ElementType.DC_NODE), // magnitude control for grounded nodes
+    AC_CONV_TARGET_P_REF("bus_target_p_ref", ElementType.CONVERTER), // AC active power control
+    AC_CONV_TARGET_Q_REF("bus_target_q_ref", ElementType.CONVERTER), // AC reactive power control
+    DC_NODE_TARGET_V_REF("dc_node_target_v_ref", ElementType.CONVERTER), // DC magnitude control
+    BUS_TARGET_V_REF("bus_target_v_ref", ElementType.CONVERTER); // AC bus magnitude control
 
     private final String symbol;
 

@@ -45,7 +45,7 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     String getOriginalId();
 
-    LfBus getaBus();
+    LfBus getBus();
 
     void setBus(LfBus bus);
 

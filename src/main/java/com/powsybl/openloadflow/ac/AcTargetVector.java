@@ -15,8 +15,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -119,10 +118,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
-            case DC_NODE_TARGET_P:
-                targets[equation.getColumn()] = 0.0;
-                break;
-
             case AC_CONV_TARGET_P_REF:
                 targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetP();
                 break;
@@ -135,20 +130,8 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetVdc();
                 break;
 
-            case DC_NODE_GROUND:
-                targets[equation.getColumn()] = 0.0;
-                break;
-
             case BUS_TARGET_V_REF:
                 targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetVac();
-                break;
-
-            case CONV_TARGET_P:
-                targets[equation.getColumn()] = 0.0;
-                break;
-
-            case DC_NODE_TARGET_I:
-                targets[equation.getColumn()] = 0.0;
                 break;
 
             case DISTR_RHO,
@@ -158,7 +141,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                  BUS_TARGET_IX_ZERO,
                  BUS_TARGET_IY_ZERO,
                  BUS_TARGET_IX_NEGATIVE,
-                 BUS_TARGET_IY_NEGATIVE:
+                 BUS_TARGET_IY_NEGATIVE,
+                 DC_NODE_TARGET_I,
+                 DC_NODE_TARGET_P,
+                 DC_NODE_GROUND:
                 targets[equation.getColumn()] = 0;
                 break;
 

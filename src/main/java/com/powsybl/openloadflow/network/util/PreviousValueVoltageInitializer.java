@@ -8,9 +8,9 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
-import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.network.LfAcDcConverter;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -82,7 +82,7 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
             if (defaultToUniformValue) {
                 return defaultVoltageInitializer.getActivePower(converter);
             } else {
-                throw new PowsyblException("Power is undefined for converter '" + converter.getId() + "'");
+                throw new PowsyblException("Active Power is undefined for converter '" + converter.getId() + "'");
             }
         }
         return p;
@@ -99,18 +99,5 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
             }
         }
         return v;
-    }
-
-    @Override
-    public double getCurrent(LfAcDcConverter converter) {
-        double i = converter.getIConv();
-        if (Double.isNaN(i)) {
-            if (defaultToUniformValue) {
-                return defaultVoltageInitializer.getCurrent(converter);
-            } else {
-                throw new PowsyblException("Power is undefined for converter '" + converter.getId() + "'");
-            }
-        }
-        return i;
     }
 }

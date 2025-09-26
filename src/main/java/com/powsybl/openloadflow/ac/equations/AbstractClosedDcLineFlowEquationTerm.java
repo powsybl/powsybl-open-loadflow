@@ -1,10 +1,10 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfDcLine;
+import com.powsybl.openloadflow.network.LfDcNode;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;

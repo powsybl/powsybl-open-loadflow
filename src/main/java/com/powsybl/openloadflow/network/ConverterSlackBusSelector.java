@@ -8,8 +8,6 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
-import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
 
 import java.util.Comparator;
 import java.util.List;
@@ -43,7 +41,7 @@ public class ConverterSlackBusSelector extends AbstractSlackBusSelector {
                 .collect(Collectors.toList());
 
         //if there is no converter controlling AC Voltage, take generators instead
-        if(slackBuses.isEmpty()){
+        if (slackBuses.isEmpty()) {
             slackBuses = buses.stream()
                     .filter(bus -> !bus.isFictitious())
                     .filter(this::filterByCountry)

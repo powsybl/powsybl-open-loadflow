@@ -3,6 +3,8 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.nio.file.Path;
+
 public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     public static Network createBaseNetwork() {
@@ -107,16 +109,15 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-
     /**
      * Bipolar test case
      * <pre>             dn3p ------------ dl34p ---------- dn4p
      *                   |                                   |
-     * g1       ld2  cs23p                                   cs45p ld5
+     * g1       ld2 conv23p                                  conv45p ld5
      * |         |   |   |                                   |   |  |
      * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
      * l12       |   |   |                 |                 |   |  |
-     *           |   cs23n              GROUND               cs45n  |
+     *           |  conv23n              GROUND              conv45n|
      *           |       |                                   |      |
      *           |       dn3n ------------ dl34n ---------- dn4n    |
      *           |                                                  |
@@ -271,7 +272,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1       ld2                                 ld5
      * |         |                                   |
-     * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
+     * b1 -------b2conv23-dn3--------------dn4conv45-b5
      * l12       |        dl34                       |
      *           |                                   |
      *           |                                   |
@@ -314,16 +315,17 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(false)
                 .setReactivePowerSetpoint(0.0)
                 .add();
+
+        network.write("XIIDM", null, Path.of("C:\\Users\\d.bonnand\\Documents") );
         return network;
     }
-
 
     /**
      * ACDC test case.
      * <pre>
      * g1       ld2                                 ld5
      * |         |                                   |
-     * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
+     * b1 -------b2conv23-dn3--------------dn4conv45-b5
      * l12       |        dl34                       |
      *           |                                   |
      *           |                                   |
@@ -372,13 +374,13 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * ACDC 3 Converters Test Case
      * <pre>
-     * g1       ld2                                               ld5
-     * |         |                                                |
-     * b1 ------- b2-cs23-dn3----------dnMiddle----------dn4-cs45-b5
-     * l12       |        dl3             dl5            dl4      |
-     *           |                         |                      |
-     *           |                        dn5-cs56-b6_ld6         |
-     *           l23-----------------------------------------------
+     * g1       ld2                                                ld5
+     * |         |                                                  |
+     * b1 ------b2conv23-dn3----------dnMiddle-----------dn4-conv45-b5
+     * l12       |        dl3             dl5            dl4        |
+     *           |                         |                        |
+     *           |                        dn5conv56-b6_ld6          |
+     *           l23-------------------------------------------------
      * </pre>
      */
     public static Network createAcDcNetworkWithThreeConverters() {
@@ -582,13 +584,13 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * ACDC test case.
      * <pre>
-     * g1       ld2                                 ld5
-     * |         |                                   |
-     * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
-     * l12       |        dl34                       |
-     *           |                                   |
-     *           |                                   |
-     *           |l23--------------------------------
+     * g1       ld2                                   ld5
+     * |         |                                     |
+     * b1 -------b2-conv23-dn3--------------dn4-conv45-b5
+     * l12       |        dl34                         |
+     *           |                                     |
+     *           |                                     |
+     *           |l23----------------------------------|
      * </pre>
      */
     public static Network createAcDcNetworkWithAcVoltageControl() {
@@ -632,11 +634,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * ACDC test case with AC SubNetworks.
      * <pre>
-     * g1         ld2                               ld5
-     * |           |                                 |
-     * b1 ------- b2-cs23-dn3--------------dn4-cs45-b5
-     * l12               dl34                        |
-     *                                              g5
+     * g1         ld2                                  ld5
+     * |           |                                     |
+     * b1 ------- b2-conv23-dn3--------------dn4-conv45-b5
+     * l12                  dl34                         |
+     *                                                  g5
      * </pre>
      */
     public static Network createAcDcNetworkWithAcSubNetworks() {
@@ -695,11 +697,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      *                  dn3p ------------ dl34p ---------- dn4p
      *                   |                                   |
-     * g1       ld2  cs23p                                   cs45p ld5
+     * g1       ld2 conv23p                                  conv45p ld5
      * |         |   |   |                                   |   |  |
      * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
      * l12       |   |   |                 |                 |   |  |
-     *           |   cs23n              GROUND               cs45n  |
+     *           |  conv23n              GROUND              conv45n|
      *           |       |                                   |      |
      *           |       dn3n ------------ dl34n ---------- dn4n    |
      *           |                                                  |
@@ -782,11 +784,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      *                  dn3p ------------ dl34p ---------- dn4p
      *                   |                                   |
-     * g1       ld2  cs23p                                   cs45p ld5
+     * g1       ld2 conv23p                                  conv45p ld5
      * |         |   |   |                                   |   |  |
      * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
      * l12       |   |   |                 |                 |   |  |
-     *           |   cs23n              GROUND               cs45n  |
+     *           |  conv23n              GROUND              conv45n|
      *           |       |                                   |      |
      *           |       dn3n ------------ dl34n ---------- dn4n    |
      *           |                                                  |
@@ -869,11 +871,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      *                   dn3p ------------ dl34p ---------- dn4p
      *                   |                                   |
-     * g1       ld2  cs23p                                   cs45p ld5
-     * |         |   |   |                                   |   |  |
-     * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
-     * l12           |   |                 |                 |   |  |
-     *               cs23n              GROUND               cs45n g5
+     * g1       ld2 conv23p                                  conv45p ld5
+     * |         |   |   |                                   |   |    |
+     * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |----b5
+     * l12           |   |                 |                 |   |    |
+     *              conv23n              GROUND              conv45n g5
      *                   |                                   |
      *                   dn3n ------------ dl34n ---------- dn4n
      *
@@ -967,11 +969,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      *                  dn3p ------------ dl34p ---------- dn4p
      *                   |                                   |
-     * g1       ld2  cs23p                                   cs45p ld5
+     * g1       ld2 conv23p                                  conv45p ld5
      * |         |   |   |                                   |   |  |
      * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
      * l12       |   |   |                 |                 |   |  |
-     *           |   cs23n              GROUND               cs45n  |
+     *           |  conv23n              GROUND              conv45n|
      *           |       |                                   |      |
      *           |       dn3n ------------ dl34n ---------- dn4n    |
      *           |                                                  |
@@ -1054,21 +1056,22 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      *                  dn3p -- dl3Mp -- dnMp ---------------------- dlM4p -- dn4p
      *                   |                 |                                   |
-     * g1       ld2   cs2p                 |       GROUND                      cs5p  ld5
+     * g1       ld2  conv2p                |       GROUND                     conv5p  ld5
      * |         |   |   |                 |         |                         |   |  |
      * b1 ------- b2-|  dn3r -- dl3Mr ------------ dnMr ------------ dlM4r -- dn4r |-b5
      * l12       |   |   |                 |         |                         |   |  |
-     *           |    cs2n                 |         |                         cs5n   |
+     *           |   conv2n                |         |                        conv5n  |
      *           |       |                 |         |                         |      |
      *           |      dn3n -- dl3Mn ---------------------- dnMn -- dlM4n -- dn4n    |
      *           |                         |         |         |                      |
      *           |                         |         |         |                      |
      *           |                       dlM6p     dlM6r     dlM6n                    |
-     *           |                         |         |         |                      |
-     *           |                      dn6p--cs6p-dn6r-cs6n--dn6n                    |
+     *           |                        |          |          |                     |
+     *           |                     dn6p-conv6p-dn6r-conv6n-dn6n                   |
      *           |                             |         |                            |
-     *           |-----------------------------|--- b6 --|----------------------------|
-     *                                              ld6
+     *           |-------------l26-------------|--- b6 --|                            |
+     *           |                                 ld6                                |
+     *           |-------------l25----------------------------------------------------|
      * </pre>
      */
     public static Network createAcDcNetworkBipolarModelWithThreeConverters() {
@@ -1130,7 +1133,26 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("ld6")
                 .setConnectableBus("b6")
                 .setBus("b6")
-                .setP0(50)
+                .setP0(25)
+                .setQ0(10)
+                .add();
+
+        Substation s5 = network.newSubstation()
+                .setId("S5")
+                .add();
+        VoltageLevel vl5 = s5.newVoltageLevel()
+                .setId("vl5")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl5.getBusBreakerView().newBus()
+                .setId("b5")
+                .add();
+        vl5.newLoad()
+                .setId("ld5")
+                .setConnectableBus("b5")
+                .setBus("b5")
+                .setP0(25)
                 .setQ0(10)
                 .add();
 
@@ -1185,25 +1207,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.newDcGround()
                 .setId("Ground")
                 .setDcNode("dnMr")
-                .add();
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
                 .add();
 
         network.newLine()
@@ -1289,8 +1292,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(200.)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-25)
                 .setId("conv23p")
                 .setBus1("b2")
                 .setDcNode1("dn3p")
@@ -1305,8 +1308,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(-200.)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-25)
                 .setId("conv23n")
                 .setBus1("b2")
                 .setDcNode1("dn3n")
@@ -1321,16 +1324,16 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(12.5)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(200)
                 .setId("conv45p")
                 .setBus1("b5")
                 .setDcNode1("dn4p")
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(400)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1369,29 +1372,30 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
                 .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(12.5)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(-200)
                 .setId("conv6n")
                 .setBus1("b6")
                 .setDcNode1("dn6n")
                 .setDcNode2("dn6r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setVoltageRegulatorOn(true)
+                .setVoltageSetpoint(400)
                 .add();
         return network;
     }
 
     /**
      * Bipolar test case
-     * <pre>             dn3p ------------ dl34p ---------- dn4p
+     * <pre>
+     *                  dn3p ------------ dl34p ---------- dn4p
      *                   |                                   |
-     * g1       ld2  cs23p                                   cs45p ld5
+     * g1       ld2 conv23p                                  conv45p ld5
      * |         |   |   |                                   |   |  |
      * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
      * l12       |   |   |                 |                 |   |  |
-     *           |   cs23n              GROUND               cs45n  |
+     *           |  conv23n              GROUND              conv45n|
      *           |       |                                   |      |
      *           |       dn3n ------------ dl34n ---------- dn4n    |
      *           |                                                  |
@@ -1474,11 +1478,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      *                  dn3p ------------ dl34p ---------- dn4p
      *                   |                                   |
-     * g1       ld2  cs23p                                   cs45p ld5
+     * g1       ld2 conv23p                                  conv45p ld5
      * |         |   |   |                                   |   |  |
      * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
      * l12           |   |                 |                 |   |
-     *               cs23n              GROUND               cs45n
+     *              conv23n              GROUND              conv45n
      *                   |                                   |
      *                   dn3n ------------ dl34n ---------- dn4n
      *
@@ -1520,7 +1524,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcConnected1(true)
                 .setDcConnected2(true)
                 .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400)
+                .setVoltageSetpoint(389.7)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1557,14 +1561,13 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-
     /**
      * VSC test case.
      * <pre>
-     * ld1                                                   g5                                              ld9
-     * |                                                     |                                               |
-     * b1 ------- cs12 - dn2 ------- dn3 - cs34 - b4 ------- b5 ------- b6 - cs67 - dn7 ------- dn8 - cs89 - b9
-     *                   dl23                     l45        l56                    dl78
+     * ld1                                            g5                                     ld9
+     * |                                              |                                       |
+     * b1-------conv12-dn2-------dn3-conv34-b4-------b5-------b6-conv67-dn7-------dn8-conv89-b9
+     *                 dl23                 l45      l56                dl78
      *
      * </pre>
      */
@@ -1957,172 +1960,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(false)
                 .setReactivePowerSetpoint(0.0)
                 .add();
-        return network;
-    }
-
-    public static Network createMultiNodeNetwork() {
-        Network network = Network.create("vsc", "test");
-
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(102.56)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        network.newDcNode().
-                setId("dn3").
-                setNominalV(400.).
-                add();
-        network.newDcNode().
-                setId("dn4").
-                setNominalV(400.).
-                add();
-        network.newDcNode().
-                setId("dnM").
-                setNominalV(400.).
-                add();
-        network.newDcNode().
-                setId("dnDummy").
-                setNominalV(400.).
-                add();
-
-        Substation s5 = network.newSubstation()
-                .setId("S5")
-                .add();
-        VoltageLevel vl5 = s5.newVoltageLevel()
-                .setId("vl5")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl5.getBusBreakerView().newBus()
-                .setId("b5")
-                .add();
-        vl5.newLoad()
-                .setId("ld5")
-                .setConnectableBus("b5")
-                .setBus("b5")
-                .setP0(50)
-                .setQ0(10)
-                .add();
-
-        Substation s6 = network.newSubstation()
-                .setId("S6")
-                .add();
-        VoltageLevel vl6 = s6.newVoltageLevel()
-                .setId("vl6")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl6.getBusBreakerView().newBus()
-                .setId("b6")
-                .add();
-
-
-        network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l25")
-                .setBus1("b2")
-                .setBus2("b5")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
-                .setId("l56")
-                .setBus1("b5")
-                .setBus2("b6")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newDcLine()
-                .setId("dl3M")
-                .setDcNode1("dn3")
-                .setDcNode2("dnM")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlM4")
-                .setDcNode1("dnM")
-                .setDcNode2("dn4")
-                .setR(0.1)
-                .add();
-
-        vl2.newVoltageSourceConverter()
-                .setIdleLoss(0.5)
-                .setSwitchingLoss(1.0)
-                .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(-50.)
-                .setId("conv23")
-                .setBus1("b2")
-                .setDcNode1("dn3")
-                .setDcNode2("dnDummy")
-                .setDcConnected1(true)
-                .setDcConnected2(false)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
-                .add();
-
-        vl5.newVoltageSourceConverter()
-                .setIdleLoss(0.5)
-                .setSwitchingLoss(1.0)
-                .setResistiveLoss(0.2)
-                .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(400.)
-                .setId("conv45")
-                .setBus1("b5")
-                .setDcNode1("dn4")
-                .setDcNode2("dnDummy")
-                .setDcConnected1(true)
-                .setDcConnected2(false)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
-                .add();
-
         return network;
     }
 }

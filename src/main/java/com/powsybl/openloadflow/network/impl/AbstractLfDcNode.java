@@ -1,10 +1,6 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.openloadflow.network.AbstractElement;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.network.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,15 +12,9 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
 
     protected final List<LfAcDcConverter> converters = new ArrayList<>();
 
-    protected Evaluable calculatedV;
-
     protected double v;
 
-    protected double p;
-
-    protected Evaluable calculatedP;
-
-    protected double nominalV;
+    protected final double nominalV;
 
     protected boolean isNeutralPole = false;
 
@@ -44,28 +34,14 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
         lfDcLines.add(Objects.requireNonNull(lfdcline));
     }
 
-    public List<LfAcDcConverter> getConverters() {
-        return converters;
-    }
-
     @Override
     public void addConverter(LfAcDcConverter converter) {
         converters.add(converter);
     }
 
     @Override
-    public double getTargetP() {
-        return p / PerUnit.SB;
-    }
-
-    @Override
     public double getV() {
-        return v;
-    }
-
-    @Override
-    public void setV(Evaluable calculatedV) {
-        this.calculatedV = calculatedV;
+        return v / nominalV;
     }
 
     @Override
@@ -74,38 +50,8 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     }
 
     @Override
-    public double getTargetV() {
-        return v;
-    }
-
-    @Override
-    public void setTargetV(double vdc) {
-        this.v = vdc;
-    }
-
-    @Override
     public double getNominalV() {
         return nominalV;
-    }
-
-    @Override
-    public double getP() {
-        return p;
-    }
-
-    @Override
-    public void setP(double p) {
-        this.p = p;
-    }
-
-    @Override
-    public void setP(Evaluable calculatedP) {
-        this.calculatedP = calculatedP;
-    }
-
-    @Override
-    public List<LfDcLine> getDcLines() {
-        return lfDcLines;
     }
 
     @Override

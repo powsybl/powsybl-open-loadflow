@@ -652,6 +652,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
+        this.isAcDcNetwork = isAcDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return isAcDcNetwork;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -698,14 +707,5 @@ public class LfNetworkParameters {
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
                 ')';
-    }
-
-    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
-        this.isAcDcNetwork = isAcDcNetwork;
-        return this;
-    }
-
-    public boolean isAcDcNetwork() {
-        return isAcDcNetwork;
     }
 }

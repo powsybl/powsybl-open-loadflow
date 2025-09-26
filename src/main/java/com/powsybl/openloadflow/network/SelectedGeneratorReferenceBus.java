@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-
 import java.util.Objects;
 
 /**

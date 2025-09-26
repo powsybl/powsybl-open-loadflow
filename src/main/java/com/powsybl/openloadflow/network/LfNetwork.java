@@ -12,9 +12,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.ac.newfiles.LfDcLine;
-import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
-import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -95,7 +92,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final Map<String, LfDcNode> dcNodesById = new LinkedHashMap<>();
 
-    private final List<LfDcLine> dcLines = new ArrayList<>();
+    private final List<LfDcLine> dcLinesByIndex = new ArrayList<>();
 
     private final List<LfVoltageSourceConverter> voltageSourceConvertersByIndex = new ArrayList<>();
 
@@ -212,7 +209,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
             case DC_NODE -> getDcNode(num);
-            case DC_LINE -> getHvdc(num);
+            case DC_LINE -> getDcLine(num);
             case CONVERTER -> getVoltageSourceConverter(num);
         };
     }
@@ -236,10 +233,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void updateSlackBusesAndReferenceBus() {
         updateSubNetworksSlackBusesAndReferenceBus();
-        if(!acSubNetworks.isEmpty()){
-            for(LfNetwork subNetwork : acSubNetworks) {
+        if (!acSubNetworks.isEmpty()) {
+            for (LfNetwork subNetwork : acSubNetworks) {
                 subNetwork.updateSubNetworksSlackBusesAndReferenceBus();
-                for (LfBus bus: subNetwork.slackBuses) {
+                for (LfBus bus : subNetwork.slackBuses) {
                     LfBus slackBus = this.getBusById(bus.getId());
                     if (!slackBuses.contains(slackBus)) {
                         slackBus.setSlack(true);
@@ -248,13 +245,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 }
                 LfBus referenceBus = this.getBusById(subNetwork.referenceBus.getId());
                 if (!acDcReferenceBuses.contains(referenceBus)) {
-                   referenceBus.setReference(true);
-                   this.acDcReferenceBuses.add(referenceBus);
+                    referenceBus.setReference(true);
+                    this.acDcReferenceBuses.add(referenceBus);
                 }
             }
         }
-        LOGGER.info("Network {}, reference buses are {}", this, acDcReferenceBuses);
-        LOGGER.info("Network {}, slack buses are {}", this, slackBuses);
     }
 
     public void updateSubNetworksSlackBusesAndReferenceBus() {
@@ -263,7 +258,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     excludedSlackBuses.isEmpty() ? busesByIndex :
                             busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
-
             slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
                 selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBuses, maxSlackBusCount);
@@ -494,7 +488,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
 
         branches.forEach(branch -> branch.updateState(parameters, updateReport));
-        dcLines.forEach(dcLine -> dcLine.updateState(parameters, updateReport));
+        dcLinesByIndex.forEach(dcLine -> dcLine.updateState(parameters, updateReport));
+        voltageSourceConvertersByIndex.forEach(converter -> converter.updateState(parameters, updateReport));
         hvdcs.forEach(LfHvdc::updateState);
 
         if (updateReport.closedSwitchCount + updateReport.openedSwitchCount > 0) {
@@ -684,9 +679,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void reportSize(ReportNode reportNode) {
-        Reports.reportNetworkSize(reportNode, busesById.size(), branches.size());
+        Reports.reportNetworkSize(reportNode, busesById.values().size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
-                this, busesById.size(), branches.size());
+            this, busesById.values().size(), branches.size());
     }
 
     public void reportBalance(ReportNode reportNode) {
@@ -703,7 +698,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
         Reports.reportNetworkBalance(reportNode, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
-                this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+            this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
     public void fix(boolean minImpedance, double lowImpedanceThreshold) {
@@ -885,8 +880,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 continue;
             }
             boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
-                    k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
-                            .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
+                k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
+                        .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
             if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
@@ -1013,12 +1008,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public void addDcLine(LfDcLine dcLine) {
-        dcLine.setNum(dcLines.size());
-        dcLines.add(dcLine);
+        dcLine.setNum(dcLinesByIndex.size());
+        dcLinesByIndex.add(dcLine);
     }
 
     public List<LfDcLine> getDcLines() {
-        return dcLines;
+        return dcLinesByIndex;
+    }
+
+    public LfDcLine getDcLine(int num) {
+        return dcLinesByIndex.get(num);
     }
 
     public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {

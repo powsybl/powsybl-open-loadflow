@@ -1,10 +1,8 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.network;
 
 public interface LfVoltageSourceConverter extends LfAcDcConverter {
 
     boolean isVoltageRegulatorOn();
 
     double getTargetQ();
-
-    void setTargetQ(double q);
 }

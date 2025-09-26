@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -61,7 +61,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
-    protected final List<LfVoltageSourceConverter> converters= new ArrayList<>();
+    protected final List<LfVoltageSourceConverter> converters = new ArrayList<>();
 
     protected LfShunt shunt;
 
@@ -289,15 +289,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (loadModel.getType() == LoadModelType.ZIP) {
             ZipLoadModel zipLoadModel = (ZipLoadModel) loadModel;
             return new LfLoadModel(List.of(new LfLoadModel.ExpTerm(zipLoadModel.getC0p(), 0),
-                    new LfLoadModel.ExpTerm(zipLoadModel.getC1p(), 1),
-                    new LfLoadModel.ExpTerm(zipLoadModel.getC2p(), 2)),
-                    List.of(new LfLoadModel.ExpTerm(zipLoadModel.getC0q(), 0),
-                            new LfLoadModel.ExpTerm(zipLoadModel.getC1q(), 1),
-                            new LfLoadModel.ExpTerm(zipLoadModel.getC2q(), 2)));
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC1p(), 1),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC2p(), 2)),
+                                   List.of(new LfLoadModel.ExpTerm(zipLoadModel.getC0q(), 0),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC1q(), 1),
+                                           new LfLoadModel.ExpTerm(zipLoadModel.getC2q(), 2)));
         } else if (loadModel.getType() == LoadModelType.EXPONENTIAL) {
             ExponentialLoadModel expoLoadModel = (ExponentialLoadModel) loadModel;
             return new LfLoadModel(List.of(new LfLoadModel.ExpTerm(1, expoLoadModel.getNp())),
-                    List.of(new LfLoadModel.ExpTerm(1, expoLoadModel.getNq())));
+                                   List.of(new LfLoadModel.ExpTerm(1, expoLoadModel.getNq())));
         } else {
             throw new PowsyblException("Unsupported load model: " + loadModel.getType());
         }
@@ -348,7 +348,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    public void addAcDcVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
     }
 

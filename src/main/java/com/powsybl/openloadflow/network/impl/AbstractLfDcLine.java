@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -13,8 +13,6 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     protected final LfDcNode dcNode2;
 
-    private double r = Double.NaN;
-
     protected Evaluable p1 = NAN;
 
     protected Evaluable i1 = NAN;
@@ -23,13 +21,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     protected Evaluable i2 = NAN;
 
-    protected Evaluable closedP1 = NAN;
-
-    protected Evaluable closedI1 = NAN;
-
-    protected Evaluable closedP2 = NAN;
-
-    protected Evaluable closedI2 = NAN;
+    private double r = Double.NaN;
 
     protected AbstractLfDcLine(LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, double r) {
         super(network);
@@ -61,18 +53,13 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public void setP1(Evaluable p1) {
-        this.p1 = Objects.requireNonNull(p1);
-    }
-
-    @Override
     public Evaluable getP1() {
         return p1;
     }
 
     @Override
-    public void setP2(Evaluable p2) {
-        this.p2 = Objects.requireNonNull(p2);
+    public void setP1(Evaluable p1) {
+        this.p1 = Objects.requireNonNull(p1);
     }
 
     @Override
@@ -81,8 +68,8 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public void setI1(Evaluable i1) {
-        this.i1 = Objects.requireNonNull(i1);
+    public void setP2(Evaluable p2) {
+        this.p2 = Objects.requireNonNull(p2);
     }
 
     @Override
@@ -91,8 +78,8 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public void setI2(Evaluable i2) {
-        this.i2 = Objects.requireNonNull(i2);
+    public void setI1(Evaluable i1) {
+        this.i1 = Objects.requireNonNull(i1);
     }
 
     @Override
@@ -101,43 +88,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public Evaluable getClosedP1() {
-        return closedP1;
+    public void setI2(Evaluable i2) {
+        this.i2 = Objects.requireNonNull(i2);
     }
-
-    @Override
-    public void setClosedP1(Evaluable closedP1) {
-        this.closedP1 = Objects.requireNonNull(closedP1);
-    }
-
-    @Override
-    public Evaluable getClosedI1() {
-        return closedI1;
-    }
-
-    @Override
-    public void setClosedI1(Evaluable closedI1) {
-        this.closedI1 = Objects.requireNonNull(closedI1);
-    }
-
-    @Override
-    public Evaluable getClosedP2() {
-        return closedP2;
-    }
-
-    @Override
-    public void setClosedP2(Evaluable closedP2) {
-        this.closedP2 = Objects.requireNonNull(closedP2);
-    }
-
-    @Override
-    public Evaluable getClosedI2() {
-        return closedI2;
-    }
-
-    @Override
-    public void setClosedI2(Evaluable closedI2) {
-        this.closedI2 = Objects.requireNonNull(closedI2);
-    }
-
 }

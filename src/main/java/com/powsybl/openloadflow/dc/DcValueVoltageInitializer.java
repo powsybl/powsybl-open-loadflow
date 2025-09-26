@@ -11,9 +11,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
-import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.network.LfAcDcConverter;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
@@ -110,16 +110,10 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public double getMagnitude(LfDcNode dcNode) {
-        if(dcNode.isNeutralPole()){
+        if (dcNode.isNeutralPole()) {
             return 0.0;
-        }
-        else{
+        } else {
             return 1;
         }
-    }
-
-    @Override
-    public double getCurrent(LfAcDcConverter converter) {
-        return 1;
     }
 }

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;

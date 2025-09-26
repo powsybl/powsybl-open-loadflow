@@ -11,7 +11,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
@@ -50,6 +49,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
     private AcSolverStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, ReportNode reportNode) {
         LOGGER.debug("Start iteration {}", iterations);
+
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
@@ -64,6 +64,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                 return AcSolverStatus.SOLVER_FAILED;
             }
             // f(x) now contains dx
+
             svScaling.apply(equationVector.getArray(), equationSystem, iterationReportNode);
 
             // update x and f(x) will be automatically updated
@@ -98,7 +99,6 @@ public class NewtonRaphson extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
-
         AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
@@ -133,40 +133,8 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         if (status == AcSolverStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             AcSolverUtil.updateNetwork(network, equationSystem);
-
-//            System.out.println("##############################_____Equation Terms_____##############################");
-//            for(Equation<AcVariableType, AcEquationType> equation : equationSystem.getEquations()){
-//                System.out.println("Equation " + equation.getType() + equation.getElementNum());
-//                for(EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()){
-//                    System.out.println("        Type " + term.getElementType() + term.getElementNum() + " = " + term.eval());
-//                }
-//            }
-//            System.out.println("\n");
-
-//            for (LfBus bus : network.getBuses()) {
-//                System.out.println("Bus " + bus.getId() + ":");
-//                System.out.println("  P = " + bus.getP().eval());
-//                System.out.println("  Q = " + bus.getQ().eval());
-//                System.out.println("  v = " + bus.getV());
-//                System.out.println("  Angle = " + bus.getAngle());
-//            }
-//            for (LfBranch branch : network.getBranches()){
-//                System.out.println("Branch" + branch.getId() + ":");
-//                double P = branch.getP2().eval() - branch.getP1().eval();
-//                System.out.println("P = " + P);
-//            }
         }
 
-        System.out.println("##############################_____Variables Values_____##############################");
-        StateVector stateVector = equationSystem.getStateVector();
-
-        for (Variable<AcVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
-            int row = variable.getRow();
-            double value = stateVector.get(row);
-
-            System.out.println(variable.getType().getSymbol() + " " + network.getElement(variable.getType().getElementType(), variable.getElementNum()) + " = " + value);
-        }
-        System.out.println("\n");
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }

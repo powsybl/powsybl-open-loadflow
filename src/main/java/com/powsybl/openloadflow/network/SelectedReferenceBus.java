@@ -28,4 +28,5 @@ public class SelectedReferenceBus {
     public String getSelectionMethod() {
         return selectionMethod;
     }
+
 }

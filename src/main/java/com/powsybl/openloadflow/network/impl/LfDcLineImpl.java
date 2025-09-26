@@ -1,11 +1,7 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DcLine;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.LfNetworkUpdateReport;
-import com.powsybl.openloadflow.network.impl.Ref;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;

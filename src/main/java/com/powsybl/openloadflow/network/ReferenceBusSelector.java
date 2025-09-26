@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
+
 import java.util.Objects;
 
 /**

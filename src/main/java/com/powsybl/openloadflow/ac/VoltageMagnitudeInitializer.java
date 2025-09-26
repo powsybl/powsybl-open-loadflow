@@ -10,10 +10,9 @@ package com.powsybl.openloadflow.ac;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
-
-import com.powsybl.openloadflow.ac.newfiles.LfAcDcConverter;
-import com.powsybl.openloadflow.ac.newfiles.LfDcNode;
-import com.powsybl.openloadflow.ac.newfiles.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.network.LfAcDcConverter;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -253,10 +252,5 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     @Override
     public double getAngle(LfBus bus) {
         return 0;
-    }
-
-    @Override
-    public double getCurrent(LfAcDcConverter converter) {
-        return converter.getIConv();
     }
 }

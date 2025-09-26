@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.network;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
                 .min(Comparator.comparingDouble(LfGenerator::getMaxTargetP).reversed().thenComparing(LfGenerator::getId)
                 ).orElse(null);
         if (referenceGenerator != null) {
-            LfBus referenceBus = referenceGenerator.getaBus();
+            LfBus referenceBus = referenceGenerator.getBus();
             return new SelectedGeneratorReferenceBus(referenceBus, METHOD_NAME, referenceGenerator);
         } else {
             // E.g. an island with only Vsc Hvdc Converter and/or only Static Var Compensator.

@@ -28,11 +28,16 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
     private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsByElement = new HashMap<>();
-    private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
-    private final VariableSet<V> variableSet;
-    private final StateVector stateVector = new StateVector();
-    private final EquationSystemIndex<V, E> index;
+
     private Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement;
+
+    private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
+
+    private final VariableSet<V> variableSet;
+
+    private final StateVector stateVector = new StateVector();
+
+    private final EquationSystemIndex<V, E> index;
 
     public EquationSystem() {
         this(new VariableSet<>());

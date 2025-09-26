@@ -9,13 +9,12 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.PiModel;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfElement, AcVariableType, AcEquationType> {
+abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
     protected final double b1;
     protected final double b2;

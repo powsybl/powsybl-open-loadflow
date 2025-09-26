@@ -60,7 +60,7 @@ public class ParticipatingElement {
 
     public LfBus getLfBus() {
         if (element instanceof LfGenerator generator) {
-            return generator.getaBus();
+            return generator.getBus();
         } else if (element instanceof LfLoad load) {
             return load.getBus();
         } else {

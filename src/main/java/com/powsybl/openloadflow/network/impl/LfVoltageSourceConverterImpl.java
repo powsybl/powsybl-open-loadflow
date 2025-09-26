@@ -1,10 +1,7 @@
-package com.powsybl.openloadflow.ac.newfiles;
+package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.VoltageSourceConverter;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.impl.Ref;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -13,11 +10,9 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
     private final Ref<VoltageSourceConverter> converterRef;
 
-    protected boolean isVoltageRegulatorOn;
+    protected final boolean isVoltageRegulatorOn;
 
     protected double targetQ;
-
-    int num = -1;
 
     public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1,
                                         LfNetworkParameters parameters) {
@@ -57,22 +52,33 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     }
 
     @Override
-    public void setTargetQ(double q) {
-        targetQ = q;
-    }
-
-    @Override
     public String getId() {
         return getConverter().getId();
     }
 
     @Override
-    public int getNum() {
-        return num;
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
+        if (isDisabled()) {
+            updateFlows(Double.NaN, Double.NaN, Double.NaN);
+        } else {
+            updateFlows(calculatedIconv.eval(), calculatedPac.eval(), calculatedQac.eval());
+        }
     }
 
     @Override
-    public void setNum(int num) {
-        this.num = num;
+    public void updateFlows(double iConv, double pAc, double qAc) {
+        var converter = getConverter();
+        double v1 = converter.getDcTerminal1().getDcNode().getV() / dcNode1.getNominalV();
+        double v2 = dcNode2 != null
+                ? converter.getDcTerminal2().getDcNode().getV() / dcNode2.getNominalV()
+                : 0.0;
+        converter.getDcTerminal1().setI(iConv * PerUnit.ib(dcNode1.getNominalV()));
+        converter.getDcTerminal2().setI(dcNode2 != null
+                ? -iConv * PerUnit.ib(dcNode2.getNominalV())
+                : 0.0);
+        converter.getDcTerminal1().setP(iConv * v1 * PerUnit.SB);
+        converter.getDcTerminal2().setP(-iConv * v2 * PerUnit.SB);
+        converter.getTerminal1().setP(pAc * PerUnit.SB);
+        converter.getTerminal1().setQ(qAc * PerUnit.SB);
     }
 }
