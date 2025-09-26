@@ -42,7 +42,7 @@ public class LfNetworkParameters {
 
     public static final int DEFAULT_MAX_SLACK_BUS_COUNT = 1;
 
-    public static final String DEBUG_DIR_DEFAULT_VALUE = null;
+    public static final String DEBUG_DIR_DEFAULT_VALUE = "";
 
     public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
 
