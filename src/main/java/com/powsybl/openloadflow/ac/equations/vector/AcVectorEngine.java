@@ -32,7 +32,7 @@ import java.util.stream.IntStream;
  * efficiently to avoid memory cache misses
  * foccusses on P and Q derived by V and Phi. Other combinations are not vectorized.
  */
-public class AcVectorEngine implements StateVectorListener, EquationSystemListener, VectorEngine<AcVariableType> {
+public class AcVectorEngine implements StateVectorListener, EquationSystemListener, EquationSystemIndexListener, VectorEngine<AcVariableType> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcVectorEngine.class);
 
@@ -77,10 +77,13 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     // indexes to compute derivatives
     private boolean equationDataValid;
     private boolean equationOrderValid;
+    private boolean variableValuesValid;
+    private boolean variableRowDataValid;
     private int[] sortedEquationIndexArray;
     private int[] variableCountPerEquation;
     private int[] variablePerEquationIndex;
     private Variable<AcVariableType>[] variablesPerEquation;
+    private int[] variableRowPerEquation;
     private double[] deriveResultPerVariableAndEquation;
     private int[] matrixIndexPerVariableAndEquation;
     private EquationTerm<AcVariableType, AcEquationType>[] termsByVariableAndEquation;
@@ -117,12 +120,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // sorted term data per equation and variable (for der)
     private EquationTerm<AcVariableType, AcEquationType>[] sortedTermsForDer;
-    private int[] termDataIndexForDer;
-    private int[] termEquationActiveStatusIndexForDer;
+    private int[] termVectorIndexForDer;
+    private int[] termEquationVectorIndexForDer;
     private Variable<AcVariableType>[] termVariable;
     private int[] termByVariableDeriveResultIndex;
     private int[] termByVariableBranchNumForDer;
-    private VecToVal[] sortedTermsVecToValForDer;
+    private VecToVal[] termVecToValForDer;
 
     private Map<Integer, String> branchNameByBranchNum = new HashMap<>();
 
@@ -183,13 +186,35 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         if (equationSystem != null) {
             equationSystem.getStateVector().addListener(this);
             equationSystem.addListener(this);
+            equationSystem.getIndex().addListener(this);
         }
     }
 
+    // Events related to StateVector listeners
+
     @Override
     public void onStateUpdate() {
-        updateVariables();
+        variableValuesValid = false;
     }
+
+    // Events related to EquationSystemIndex listeners
+
+    @Override
+    public void onVariableChange(Variable variable, ChangeType changeType) {
+        variableRowDataValid = false;
+    }
+
+    @Override
+    public void onEquationChange(Equation equation, ChangeType changeType) {
+        // Already managed by EquationSystemListener
+    }
+
+    @Override
+    public void onEquationTermChange(EquationTerm term) {
+        // Already managed by EquationSystemListener
+    }
+
+    // Events related to EquationSystem listeners
 
     @Override
     public void onEquationChange(Equation equation, EquationEventType eventType) {
@@ -229,6 +254,10 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             initEquationData();
         }
 
+        if (!variableValuesValid) {
+            updateVariables();
+        }
+
         evalSortedTerms();
 
         for (int eqIndex = 0; eqIndex < equationActiveStatus.length; eqIndex++) {
@@ -248,6 +277,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             ph2[i] = ph2Var[i] != null && ph2Var[i].getRow() >= 0 ? stateVector.get(ph2Var[i].getRow()) : Double.NaN;
         }
         updateBranchesAngles();
+        variableValuesValid = true;
     }
 
     private void updateBranchesAngles() {
@@ -264,6 +294,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         }
     }
 
+    private void updateVariableRows() {
+        for (int i = 0; i < variablesPerEquation.length; i++) {
+            variableRowPerEquation[i] = variablesPerEquation[i].getRow();
+        }
+    }
+
     private void initEquationData() {
         // reset all term vector index
         if (termsByVariableAndEquation != null) {
@@ -272,6 +308,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         Collection<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getEquations()
                 .stream().sorted(Comparator.comparingInt(Equation::getElementNum)).toList();
+        //Collection<Equation<AcVariableType, AcEquationType>> equationList = equationSystem.getIndex().getSortedEquationsToSolve();
         int equationCount = equationList.size();
         sortedEquationIndexArray = new int[equationCount];
         variableCountPerEquation = new int[equationCount];
@@ -294,6 +331,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         termActiveStatus = new boolean[termCount];
         variablePerEquationIndex = new int[equationCount];
         variablesPerEquation = new Variable[variableIndexSize];
+        variableRowPerEquation = new int[variableIndexSize];
         matrixIndexPerVariableAndEquation = new int[variableIndexSize];
         deriveResultPerVariableAndEquation = new double[variableIndexSize];
         List<EquationTerm<AcVariableType, AcEquationType>> termsByVariableAndEquationList = new ArrayList<>();
@@ -326,6 +364,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             variablePerEquationIndex[indexEq] = indexVar;
             for (Variable<AcVariableType> v : e.getVariables()) {
                 variablesPerEquation[indexVar] = v;
+                variableRowPerEquation[indexVar] = v.getRow();
                 for (EquationTerm<AcVariableType, AcEquationType> t : e.getTerms(v)) {
                     termsByVariableAndEquationList.add(t);
                     termDataListForDer.add(new TermData(t,
@@ -369,20 +408,20 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         int termByVariableCount = termDataListForDer.size();
         sortedTermsForDer = new EquationTerm[termByVariableCount];
-        termDataIndexForDer = new int[termByVariableCount];
-        termEquationActiveStatusIndexForDer = new int[termByVariableCount];
+        termVectorIndexForDer = new int[termByVariableCount];
+        termEquationVectorIndexForDer = new int[termByVariableCount];
         termVariable = new Variable[termByVariableCount];
         termByVariableDeriveResultIndex = new int[termByVariableCount];
         termByVariableBranchNumForDer = new int[termByVariableCount];
-        sortedTermsVecToValForDer = new VecToVal[termByVariableCount];
+        termVecToValForDer = new VecToVal[termByVariableCount];
         int sortedTermIndex = 0;
         for (TermData termData : termDataListForDer) {
             sortedTermsForDer[sortedTermIndex] = termData.term;
-            termDataIndexForDer[sortedTermIndex] = termData.term.getVectorIndex();
-            termEquationActiveStatusIndexForDer[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
+            termVectorIndexForDer[sortedTermIndex] = termData.term.getVectorIndex();
+            termEquationVectorIndexForDer[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
             termVariable[sortedTermIndex] = termData.v;
             termByVariableBranchNumForDer[sortedTermIndex] = termData.getBranchNum();
-            sortedTermsVecToValForDer[sortedTermIndex] = termData.term.getVecToVal(termData.v);
+            termVecToValForDer[sortedTermIndex] = termData.term.getVecToVal(termData.v);
             termByVariableDeriveResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
         }
@@ -420,7 +459,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             termByEvalResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
         }
-        updateBranchesAngles();
+        updateVariables();
+        variableValuesValid = true;
         equationDataValid = true;
     }
 
@@ -447,28 +487,28 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             sortEquations();
         }
 
-        // Although in normal call scenarios variables are up to date
-        // the der can be triggered by unusual scenario (any event that updates
-        // the Jacobian Matrix). To be sure to get the correct value for the derivation
-        // computation we force an update here <==== COMMENT TO THE COMMENT : ARE WE SURE THIS IS NOT TOO CONSUMING ?
+        if (!variableRowDataValid) {
+            updateVariableRows();
+        }
 
-        //updateVariables();
+        if (!variableValuesValid) {
+            updateVariables();
+        }
 
         derSortedTerms();
 
         for (int sortedEqIndex = 0; sortedEqIndex < equationActiveStatus.length; sortedEqIndex++) {
             int eqIndex = sortedEquationIndexArray[sortedEqIndex];
+        //for (int eqIndex = 0; eqIndex < equationActiveStatus.length; eqIndex++) {
             if (equationActiveStatus[eqIndex]) {
                 int col = equationColumn[eqIndex];
                 int varEnd = variablePerEquationIndex[eqIndex] + variableCountPerEquation[eqIndex];
                 for (int varIndex = variablePerEquationIndex[eqIndex]; varIndex < varEnd; varIndex++) {
-                    Variable<AcVariableType> v = variablesPerEquation[varIndex];
-                    int row = v.getRow();
-                    if (row >= 0) {
+                    if (variableRowPerEquation[varIndex] >= 0) {
                         if (update) {
                             matrix.addAtIndex(matrixIndexPerVariableAndEquation[varIndex], deriveResultPerVariableAndEquation[varIndex]);
                         } else {
-                            matrixIndexPerVariableAndEquation[varIndex] = matrix.addAndGetIndex(row, col, deriveResultPerVariableAndEquation[varIndex]);
+                            matrixIndexPerVariableAndEquation[varIndex] = matrix.addAndGetIndex(variableRowPerEquation[varIndex], col, deriveResultPerVariableAndEquation[varIndex]);
                         }
                     }
                 }
@@ -520,12 +560,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     private void derSortedTermsVec() {
         int branchNum = -1;
         for (int termIndex = 0; termIndex < sortedTermsForDer.length; termIndex++) {
-            if (equationActiveStatus[termEquationActiveStatusIndexForDer[termIndex]] &&
-                    termActiveStatus[termDataIndexForDer[termIndex]]) {
+            if (equationActiveStatus[termEquationVectorIndexForDer[termIndex]] &&
+                    termActiveStatus[termVectorIndexForDer[termIndex]]) {
                 branchNum = termByVariableBranchNumForDer[termIndex];
-                if (sortedTermsVecToValForDer[termIndex] != null) {
+                if (termVecToValForDer[termIndex] != null) {
                     deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] +=
-                            sortedTermsVecToValForDer[termIndex].value(v1[branchNum], v2[branchNum], sinKsi[branchNum], cosKsi[branchNum], sinTheta2[branchNum], cosTheta2[branchNum], sinTheta1[branchNum], cosTheta1[branchNum],
+                            termVecToValForDer[termIndex].value(v1[branchNum], v2[branchNum], sinKsi[branchNum], cosKsi[branchNum], sinTheta2[branchNum], cosTheta2[branchNum], sinTheta1[branchNum], cosTheta1[branchNum],
                                     b1[branchNum], b2[branchNum],
                                     g1[branchNum], g2[branchNum], y[branchNum], g12[branchNum], b12[branchNum], a1Evaluated[branchNum], r1Evaluated[branchNum],
                                     branchNum, branchNameByBranchNum);
@@ -536,9 +576,9 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     private void derSortedTermsObj() {
         for (int termIndex = 0; termIndex < sortedTermsForDer.length; termIndex++) {
-            if (equationActiveStatus[termEquationActiveStatusIndexForDer[termIndex]] &&
-                    termActiveStatus[termDataIndexForDer[termIndex]]) {
-                if (sortedTermsVecToValForDer[termIndex] == null) {
+            if (equationActiveStatus[termEquationVectorIndexForDer[termIndex]] &&
+                    termActiveStatus[termVectorIndexForDer[termIndex]]) {
+                if (termVecToValForDer[termIndex] == null) {
                     deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] += sortedTermsForDer[termIndex].der(termVariable[termIndex]);
                 }
 
