@@ -335,7 +335,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     public Map<String, String> createMapFromSpecificParameters(Extension<LoadFlowParameters> extension) {
         return ((OpenLoadFlowParameters) extension).toMap().entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> Objects.toString(e.getValue(), "")));
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> {
+                    if (e.getValue() instanceof List || e.getValue() instanceof Set) {
+                        return String.join(",", ((Collection<?>) e.getValue()).stream().map(Object::toString).toList());
+                    } else {
+                        return Objects.toString(e.getValue(), "");
+                    }
+                }));
     }
 
     @Override
