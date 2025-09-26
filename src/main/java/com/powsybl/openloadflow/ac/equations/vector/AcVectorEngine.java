@@ -75,7 +75,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     private final double[] ph2;
 
     // indexes to compute derivatives
-    private boolean equatioginDataValid;
+    private boolean equationDataValid;
     private boolean equationOrderValid;
     private int[] sortedEquationIndexArray;
     private int[] variableCountPerEquation;
