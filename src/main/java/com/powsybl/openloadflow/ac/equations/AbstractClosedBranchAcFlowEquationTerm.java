@@ -110,9 +110,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     @Override
     public void setEquation(Equation<AcVariableType, AcEquationType> equation) {
         super.setEquation(equation);
-        if (equation != null) {
-            acVectorEngine.addSupplyingTerm(this);
-        }
     }
 
     public DoubleSupplier getR1Supplier() {
