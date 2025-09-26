@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -37,6 +38,8 @@ public interface AcSolverFactory {
         return findAll().stream().filter(asf -> name.equals(asf.getName()))
                 .findFirst().orElseThrow(() -> new PowsyblException("AC Solver '" + name + "' not found"));
     }
+
+    AcSolverFactory checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
 
     String getName();
 

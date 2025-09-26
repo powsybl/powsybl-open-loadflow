@@ -89,6 +89,11 @@ class AcSolverFactoryTest {
         }
 
         @Override
+        public AcSolverFactory checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+            return this;
+        }
+
+        @Override
         public AcSolverParameters createParameters(LoadFlowParameters parameters) {
             return new AcSolverMockParameters(12);
         }
@@ -104,7 +109,7 @@ class AcSolverFactoryTest {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         Parameter acSolverType = provider.getSpecificParameters().stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.AC_SOLVER_TYPE_PARAM_NAME)).findFirst().orElseThrow();
         assertEquals("NEWTON_RAPHSON", acSolverType.getDefaultValue());
-        assertEquals(List.of("AC_SOLVER_MOCK", "NEWTON_KRYLOV", "NEWTON_RAPHSON"), acSolverType.getPossibleValues());
+        assertEquals(List.of("AC_SOLVER_MOCK", "FAST_DECOUPLED", "NEWTON_KRYLOV", "NEWTON_RAPHSON"), acSolverType.getPossibleValues());
     }
 
     @Test

@@ -14,6 +14,8 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -29,9 +31,7 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -117,5 +117,18 @@ class OpenLoadFlowProviderTest {
     @Test
     void testSpecificParametersClass() {
         assertSame(OpenLoadFlowParameters.class, new OpenLoadFlowProvider(new DenseMatrixFactory()).getSpecificParametersClass().orElseThrow());
+    }
+
+    @Test
+    void testIncompatibilityFastDecoupledAndAcEmulation() {
+        Network network = Mockito.mock(Network.class);
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setReadSlackBus(true);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        loadFlowParameters.setHvdcAcEmulation(true);
+        openLoadFlowParameters.setAcSolverType(FastDecoupledFactory.NAME);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, loadFlowParameters,
+                openLoadFlowParameters, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false);
+        assertTrue(loadFlowParameters.isHvdcAcEmulation() &&
+                Objects.equals(acParameters.getSolverFactory().getName(), NewtonRaphsonFactory.NAME));
     }
 }
