@@ -556,6 +556,19 @@ The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the abo
  
 The default mode is `FORCED`.
 
+
+**startWithFrozenACEmulation**
+
+If `true`, simulation starts with HVDC links configured in AC emulation frozen at their previous active set point
+defined by the angles at the HVDC extremities, if defined in the input network. If a solution is found then the simulator
+continues with the HVDC set to AC emulation mode. Otherwise, the simulation fails. 
+
+If `false`, simulation allows HVDC lines to immediately adapt to the new angles.
+
+The value 'true' is typically used to use a loadFlow to simulate an N-K contingency after a loadflow has previously been run.
+
+The default value is `false`. This parameter can be overridden by the security analysis parameter with same name.
+
 **generatorsWithZeroMwTargetAreNotStarted**  
 Defines if a generator must be considered as not started when its `targetP` is zero.
 
@@ -568,6 +581,7 @@ When set to `false`:
 - Even if `targetP` is zero and `minP` is above zero, voltage control may happen (unless option `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled).
 
 The default value is `true`.
+
 
 ## Configuration file example
 See below an extract of a config file that could help:
