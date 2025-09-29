@@ -107,14 +107,9 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
     }
 
-    @Override
-    public void setEquation(Equation<AcVariableType, AcEquationType> equation) {
-        super.setEquation(equation);
-    }
-
     public DoubleSupplier getR1Supplier() {
         if (r1Var != null || isArrayPiModel) {
-            return () -> r1();
+            return this::r1;
         } else {
             return null;
         }
@@ -122,7 +117,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     public DoubleSupplier getA1Supplier() {
         if (a1Var != null || isArrayPiModel) {
-            return () -> a1();
+            return this::a1;
         } else {
             return null;
         }

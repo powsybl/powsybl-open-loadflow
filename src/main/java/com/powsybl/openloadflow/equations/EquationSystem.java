@@ -39,7 +39,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final EquationSystemIndex<V, E> index;
 
-    private VectorEngine vectorEngine;
+    private VectorEngine<V> vectorEngine;
 
     public EquationSystem() {
         this(new VariableSet<>());
@@ -236,7 +236,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return vectorEngine;
     }
 
-    public void setVectorEngine(VectorEngine vectorEngine) {
+    public void setVectorEngine(VectorEngine<V> vectorEngine) {
         this.vectorEngine = vectorEngine;
     }
 
