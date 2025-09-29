@@ -90,7 +90,7 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
 
         assertFalse(contingencyLoadFlowParameters.isAreaInterchangeControl(openLoadFlowParameters));
         assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN, contingencyLoadFlowParameters.getBalanceType(loadFlowParameters));
-        assertNull(contingencyLoadFlowParameters.getOuterLoopNames(openLoadFlowParameters));
+        assertTrue(contingencyLoadFlowParameters.getOuterLoopNames(openLoadFlowParameters).isEmpty());
     }
 
     @Test
