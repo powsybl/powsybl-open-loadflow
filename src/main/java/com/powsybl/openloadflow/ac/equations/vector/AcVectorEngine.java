@@ -159,7 +159,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         a1 = new double[branchCount];
         r1 = new double[branchCount];
-
         a1TermSupplier = new DoubleSupplier[branchCount];
         r1TermSupplier = new DoubleSupplier[branchCount];
         a1Evaluated = new double[branchCount];
@@ -273,19 +272,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     private void updateVariables() {
         StateVector stateVector = equationSystem.getStateVector();
-        for (int i = 0; i < v1Var.length; i++) {
-            v1[i] = v1Var[i] != null && v1Var[i].getRow() >= 0 ? stateVector.get(v1Var[i].getRow()) : Double.NaN;
-            v2[i] = v2Var[i] != null && v2Var[i].getRow() >= 0 ? stateVector.get(v2Var[i].getRow()) : Double.NaN;
-            ph1[i] = ph1Var[i] != null && ph1Var[i].getRow() >= 0 ? stateVector.get(ph1Var[i].getRow()) : Double.NaN;
-            ph2[i] = ph2Var[i] != null && ph2Var[i].getRow() >= 0 ? stateVector.get(ph2Var[i].getRow()) : Double.NaN;
-        }
-        updateBranchesAngles();
-        variableValuesValid = true;
-    }
-
-    private void updateBranchesAngles() {
         DoubleWrapper wrapper = new DoubleWrapper();
-        for (int branchNum = 0; branchNum < theta1.length; branchNum++) {
+        for (int branchNum = 0; branchNum < v1Var.length; branchNum++) {
+            v1[branchNum] = v1Var[branchNum] != null && v1Var[branchNum].getRow() >= 0 ? stateVector.get(v1Var[branchNum].getRow()) : Double.NaN;
+            v2[branchNum] = v2Var[branchNum] != null && v2Var[branchNum].getRow() >= 0 ? stateVector.get(v2Var[branchNum].getRow()) : Double.NaN;
+            ph1[branchNum] = ph1Var[branchNum] != null && ph1Var[branchNum].getRow() >= 0 ? stateVector.get(ph1Var[branchNum].getRow()) : Double.NaN;
+            ph2[branchNum] = ph2Var[branchNum] != null && ph2Var[branchNum].getRow() >= 0 ? stateVector.get(ph2Var[branchNum].getRow()) : Double.NaN;
             a1Evaluated[branchNum] = a1TermSupplier[branchNum] == null ? a1[branchNum] : a1TermSupplier[branchNum].getAsDouble();
             r1Evaluated[branchNum] = r1TermSupplier[branchNum] == null ? r1[branchNum] : r1TermSupplier[branchNum].getAsDouble();
             theta2[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
@@ -295,12 +287,14 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             sinTheta1[branchNum] = FastMath.sinAndCos(theta1[branchNum], wrapper);
             cosTheta1[branchNum] = wrapper.value;
         }
+        variableValuesValid = true;
     }
 
     private void updateVariableRows() {
         for (int i = 0; i < variablesPerEquation.length; i++) {
             variableRowPerEquation[i] = variablesPerEquation[i].getRow();
         }
+        variableRowDataValid = true;
     }
 
     private void updateActiveStatus() {
@@ -477,9 +471,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             termByEvalResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
         }
+        equationDataValid = true;
+
+        // variable values and active statuses will be filled when needed
+        equationOrderValid = false;
         variableValuesValid = false;
         activeStatusesValid = false;
-        equationDataValid = true;
     }
 
     private void sortEquations() {
@@ -498,7 +495,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         if (!equationDataValid) {
             initEquationData();
-            equationOrderValid = false;
         }
 
         if (!equationOrderValid) {
