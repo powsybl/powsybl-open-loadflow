@@ -104,8 +104,8 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // term replicated data for quick access
     private boolean[] termActiveStatus;
-    public DoubleSupplier[] a1TermSupplier;
-    public DoubleSupplier[] r1TermSupplier;
+    private final DoubleSupplier[] a1TermSupplier;
+    private final DoubleSupplier[] r1TermSupplier;
 
     // sorted term data per equation (for eval)
     private EquationTerm<AcVariableType, AcEquationType>[] sortedTermsForEval;
