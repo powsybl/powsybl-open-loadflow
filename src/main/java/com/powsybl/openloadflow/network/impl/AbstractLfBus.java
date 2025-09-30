@@ -27,7 +27,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBus.class);
 
-    private static final double Q_DISPATCH_EPSILON = 1e-3;
+    /**
+     * Reactive power residue epsilon: 10^-5 in p.u => 10^-3 in MVar
+     */
+    private static final double Q_DISPATCH_EPSILON = 1e-5;
 
     private static final double PLAUSIBLE_REACTIVE_LIMITS = 1000 / PerUnit.SB;
 
