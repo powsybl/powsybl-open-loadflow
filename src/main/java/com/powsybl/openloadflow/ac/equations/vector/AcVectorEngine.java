@@ -62,12 +62,16 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // variables
     public final Variable<AcVariableType>[] v1Var;
+    private int[] v1VarRow;
     private final double[] v1;
     public final Variable<AcVariableType>[] v2Var;
+    private int[] v2VarRow;
     private final double[] v2;
     public final Variable<AcVariableType>[] ph1Var;
+    private int[] ph1VarRow;
     private final double[] ph1;
     public final Variable<AcVariableType>[] ph2Var;
+    private int[] ph2VarRow;
     private final double[] ph2;
 
     // indexes to compute derivatives
@@ -173,12 +177,16 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         cosTheta1 = new double[branchCount];
 
         v1Var = new Variable[branchCount];
+        v1VarRow = new int[branchCount];
         v1 = new double[branchCount];
         v2Var = new Variable[branchCount];
+        v2VarRow = new int[branchCount];
         v2 = new double[branchCount];
         ph1Var = new Variable[branchCount];
+        ph1VarRow = new int[branchCount];
         ph1 = new double[branchCount];
         ph2Var = new Variable[branchCount];
+        ph2VarRow = new int[branchCount];
         ph2 = new double[branchCount];
 
         if (equationSystem != null) {
@@ -256,6 +264,10 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             updateActiveStatus();
         }
 
+        if (!variableRowDataValid) {
+            updateVariableRows();
+        }
+
         if (!variableValuesValid) {
             updateVariables();
         }
@@ -274,10 +286,10 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         StateVector stateVector = equationSystem.getStateVector();
         DoubleWrapper wrapper = new DoubleWrapper();
         for (int branchNum = 0; branchNum < v1Var.length; branchNum++) {
-            v1[branchNum] = v1Var[branchNum] != null && v1Var[branchNum].getRow() >= 0 ? stateVector.get(v1Var[branchNum].getRow()) : Double.NaN;
-            v2[branchNum] = v2Var[branchNum] != null && v2Var[branchNum].getRow() >= 0 ? stateVector.get(v2Var[branchNum].getRow()) : Double.NaN;
-            ph1[branchNum] = ph1Var[branchNum] != null && ph1Var[branchNum].getRow() >= 0 ? stateVector.get(ph1Var[branchNum].getRow()) : Double.NaN;
-            ph2[branchNum] = ph2Var[branchNum] != null && ph2Var[branchNum].getRow() >= 0 ? stateVector.get(ph2Var[branchNum].getRow()) : Double.NaN;
+            v1[branchNum] = v1VarRow[branchNum] >= 0 ? stateVector.get(v1VarRow[branchNum]) : Double.NaN;
+            v2[branchNum] = v2VarRow[branchNum] >= 0 ? stateVector.get(v2VarRow[branchNum]) : Double.NaN;
+            ph1[branchNum] = ph1VarRow[branchNum] >= 0 ? stateVector.get(ph1VarRow[branchNum]) : Double.NaN;
+            ph2[branchNum] = ph2VarRow[branchNum] >= 0 ? stateVector.get(ph2VarRow[branchNum]) : Double.NaN;
             a1Evaluated[branchNum] = a1TermSupplier[branchNum] == null ? a1[branchNum] : a1TermSupplier[branchNum].getAsDouble();
             r1Evaluated[branchNum] = r1TermSupplier[branchNum] == null ? r1[branchNum] : r1TermSupplier[branchNum].getAsDouble();
             theta2[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
@@ -291,6 +303,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     private void updateVariableRows() {
+        for (int branchNum = 0; branchNum < v1Var.length; branchNum++) {
+            v1VarRow[branchNum] = v1Var[branchNum] != null ? v1Var[branchNum].getRow() : -1;
+            v2VarRow[branchNum] = v2Var[branchNum] != null ? v2Var[branchNum].getRow() : -1;
+            ph1VarRow[branchNum] = ph1Var[branchNum] != null ? ph1Var[branchNum].getRow() : -1;
+            ph2VarRow[branchNum] = ph2Var[branchNum] != null ? ph2Var[branchNum].getRow() : -1;
+        }
         for (int i = 0; i < variablesPerEquation.length; i++) {
             variableRowPerEquation[i] = variablesPerEquation[i].getRow();
         }
