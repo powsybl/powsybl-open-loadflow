@@ -224,6 +224,6 @@ class AcloadFlowReactiveLimitsTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(0.05, ngen2Nhv1.getTerminal1());
-        assertReactivePowerEquals(-0.05, gen2.getTerminal()); // FIXME getting 0 MVAr, bus balance not honoring 0.01 MVAr threshold
+        assertReactivePowerEquals(-0.05, gen2.getTerminal());
     }
 }
