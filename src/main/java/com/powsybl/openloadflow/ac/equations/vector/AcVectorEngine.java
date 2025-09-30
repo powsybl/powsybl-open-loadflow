@@ -264,10 +264,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             updateActiveStatus();
         }
 
-        if (!variableRowDataValid) {
-            updateVariableRows();
-        }
-
         if (!variableValuesValid) {
             updateVariables();
         }
@@ -283,21 +279,24 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     private void updateVariables() {
+        if (!variableRowDataValid) {
+            updateVariableRows();
+        }
         StateVector stateVector = equationSystem.getStateVector();
         DoubleWrapper wrapper = new DoubleWrapper();
-        for (int branchNum = 0; branchNum < v1Var.length; branchNum++) {
+        for (int branchNum = 0; branchNum < v1VarRow.length; branchNum++) {
             v1[branchNum] = v1VarRow[branchNum] >= 0 ? stateVector.get(v1VarRow[branchNum]) : Double.NaN;
             v2[branchNum] = v2VarRow[branchNum] >= 0 ? stateVector.get(v2VarRow[branchNum]) : Double.NaN;
             ph1[branchNum] = ph1VarRow[branchNum] >= 0 ? stateVector.get(ph1VarRow[branchNum]) : Double.NaN;
             ph2[branchNum] = ph2VarRow[branchNum] >= 0 ? stateVector.get(ph2VarRow[branchNum]) : Double.NaN;
             a1Evaluated[branchNum] = a1TermSupplier[branchNum] == null ? a1[branchNum] : a1TermSupplier[branchNum].getAsDouble();
             r1Evaluated[branchNum] = r1TermSupplier[branchNum] == null ? r1[branchNum] : r1TermSupplier[branchNum].getAsDouble();
-            theta2[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
-            sinTheta2[branchNum] = FastMath.sinAndCos(theta2[branchNum], wrapper);
-            cosTheta2[branchNum] = wrapper.value;
             theta1[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta1(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
             sinTheta1[branchNum] = FastMath.sinAndCos(theta1[branchNum], wrapper);
             cosTheta1[branchNum] = wrapper.value;
+            theta2[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
+            sinTheta2[branchNum] = FastMath.sinAndCos(theta2[branchNum], wrapper);
+            cosTheta2[branchNum] = wrapper.value;
         }
         variableValuesValid = true;
     }
@@ -493,6 +492,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         // variable values and active statuses will be filled when needed
         equationOrderValid = false;
+        variableRowDataValid = false;
         variableValuesValid = false;
         activeStatusesValid = false;
     }
@@ -521,10 +521,6 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         if (!activeStatusesValid) {
             updateActiveStatus();
-        }
-
-        if (!variableRowDataValid) {
-            updateVariableRows();
         }
 
         if (!variableValuesValid) {
