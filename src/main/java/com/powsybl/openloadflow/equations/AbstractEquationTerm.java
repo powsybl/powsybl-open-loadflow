@@ -62,10 +62,6 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
             this.active = active;
             equation.getEquationSystem().notifyEquationTermChange(self, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
                                                                                : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
-            // TODO: Remove the trace
-            if (getVectorIndex() == 0) {
-                System.out.println(Thread.currentThread().getName() + " Active Status " + getClass().getSimpleName() + " " + getVectorIndex() + " " + active);
-            }
         }
     }
 

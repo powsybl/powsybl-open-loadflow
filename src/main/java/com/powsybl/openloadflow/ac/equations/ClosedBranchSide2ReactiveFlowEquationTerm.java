@@ -51,8 +51,6 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
             return ClosedBranchSide2ReactiveFlowEquationTerm::vec2q2;
         }
         return null;
-        // TODO return for eval
-        // acVectorEngine.vecToP2[element.getNum()] = ClosedBranchSide2ActiveFlowEquationTerm::vec2p2;}
     }
 
     public static double calculateSensi(double y, double ksi, double b2,

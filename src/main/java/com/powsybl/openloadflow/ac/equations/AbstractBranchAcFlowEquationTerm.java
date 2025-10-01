@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.equations.vector.AcVectorEngine;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
+import net.jafama.FastMath;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -35,6 +36,8 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
             acVectorEngine.g2[branchNum] = piModel.getG2();
             acVectorEngine.y[branchNum] = piModel.getY();
             acVectorEngine.ksi[branchNum] = piModel.getKsi();
+            acVectorEngine.sinKsi[branchNum] = FastMath.sin(piModel.getKsi());
+            acVectorEngine.cosKsi[branchNum] = FastMath.cos(piModel.getKsi());
             // y12 = g12+j.b12 = 1/(r+j.x)
             acVectorEngine.g12[branchNum] = piModel.getR() * y() * y();
             acVectorEngine.b12[branchNum] = -piModel.getX() * y() * y();
