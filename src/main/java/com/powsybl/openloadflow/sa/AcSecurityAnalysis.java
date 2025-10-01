@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2021-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -117,21 +117,35 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void beforeActionLoadFlowRun(AcLoadFlowContext context) {
-        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
-    }
-
-    @Override
     protected Consumer<AcLoadFlowParameters> createParametersResetter(AcLoadFlowParameters parameters) {
         List<AcOuterLoop> oldOuterLoops = List.copyOf(parameters.getOuterLoops());
         return p -> p.setOuterLoops(oldOuterLoops);
     }
 
     @Override
-    protected void applyContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+    protected void applySpecificContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
                         : new DefaultAcOuterLoopConfig());
         parameters.setOuterLoops(outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters));
+    }
+
+    @Override
+    protected OpenLoadFlowParameters applyGenericContingencyParameters(AcLoadFlowParameters parameters, LoadFlowParameters loadFlowParameters,
+                                                     OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+        List<AcOuterLoop> outerLoops = parameters.getOuterLoops();
+
+        // By defaut, no override
+        OpenLoadFlowParameters genericContingencyOpenLoadFlowParameters = openLoadFlowParameters;
+
+        if (openSecurityAnalysisParameters.isStartWithFrozenACEmulation()) {
+            // in this case overrides the loadflow startWithFrowenAcEmulation setting
+            genericContingencyOpenLoadFlowParameters = OpenLoadFlowParameters.clone(openLoadFlowParameters);
+            genericContingencyOpenLoadFlowParameters.setStartWithFrozenACEmulation(true);
+            outerLoops = OpenLoadFlowParameters.createAcOuterLoops(loadFlowParameters, genericContingencyOpenLoadFlowParameters);
+        }
+        parameters.setOuterLoops(outerLoops);
+        parameters.setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+        return genericContingencyOpenLoadFlowParameters;
     }
 }

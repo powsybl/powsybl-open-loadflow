@@ -207,7 +207,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             }
-            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig);
+            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig, sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
         }, computationManager.getExecutor());
     }
 

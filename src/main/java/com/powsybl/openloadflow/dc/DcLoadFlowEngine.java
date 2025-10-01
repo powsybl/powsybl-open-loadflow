@@ -48,7 +48,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         this.context = Objects.requireNonNull(context);
     }
 
-    private static class RunningContext {
+    private static final class RunningContext {
 
         private boolean lastSolverSuccess;
 
@@ -185,7 +185,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         DcLoadFlowParameters parameters = context.getParameters();
         TargetVector<DcVariableType, DcEquationType> targetVector = context.getTargetVector();
         RunningContext runningContext = new RunningContext();
-        List<DcOuterLoop> outerLoops = parameters.getOuterLoops();
+        List<DcOuterLoop> outerLoops = parameters.getOuterLoops().stream().filter(o -> o.isNeeded(context)).toList();
 
         List<Pair<DcOuterLoop, DcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
                 .map(outerLoop -> Pair.of(outerLoop, new DcOuterLoopContext(network)))

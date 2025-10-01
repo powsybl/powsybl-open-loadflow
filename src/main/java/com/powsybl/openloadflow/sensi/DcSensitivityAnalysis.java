@@ -36,6 +36,8 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +52,8 @@ import static com.powsybl.openloadflow.network.util.ParticipatingElement.normali
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcSensitivityAnalysis.class);
+
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
 
     public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
@@ -64,11 +68,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setUseTransformerRatio(lfParameters.isDcUseTransformerRatio())
                 .setDcApproximationType(parametersExt.getDcApproximationType());
 
+        if (parametersExt.getSlackDistributionFailureBehavior() != OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS) {
+            LOGGER.warn("Slack distribution failure mode {} ignored. Using LEAVE_ON_SLACK_BUS for DC sensitivity analysis", parametersExt.getSlackDistributionFailureBehavior());
+        }
+
         return new DcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
                 .setMatrixFactory(matrixFactory)
                 .setDistributedSlack(lfParameters.isDistributedSlack())
+                // Currently the DC sensitivity analysis does not check slack distribution success or failure and runs always in
+                // mode LEAVE_ON_SLACK_BUS
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS)
                 .setBalanceType(lfParameters.getBalanceType())
                 .setSetVToNan(true)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations());
@@ -344,7 +355,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
-                        LfTopoConfig topoConfig) {
+                        LfTopoConfig topoConfig, boolean startWithFrozenACEmulation) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
