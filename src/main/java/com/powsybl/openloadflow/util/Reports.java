@@ -903,6 +903,26 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String stationId, double setPoint, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.freezeHvdc")
+                .withUntypedValue("hvdcId", hvdcId)
+                .withUntypedValue("stationId", stationId)
+                .withUntypedValue("setPoint", setPoint)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportUnfreezeHvdc(ReportNode reportNode, String hvdcID, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.unfreezeHvdc")
+                .withUntypedValue("ID", hvdcID)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
     public static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
         node.newReportNode()
                 .withMessageTemplate("olf.LfActionUtils")
@@ -918,4 +938,5 @@ public final class Reports {
                 .withMessageTemplate("olf.threadRoot")
                 .build();
     }
+
 }

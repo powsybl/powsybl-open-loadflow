@@ -260,6 +260,7 @@ class EquationsTest {
         Mockito.doReturn(0d).when(hvdc).getR();
         Mockito.doReturn(Double.MAX_VALUE).when(hvdc).getPMaxFromCS1toCS2();
         Mockito.doReturn(Double.MAX_VALUE).when(hvdc).getPMaxFromCS2toCS1();
+        Mockito.doReturn(false).when(hvdc).isAcEmulationFrozen();
         LfVscConverterStationImpl station1 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
         LfVscConverterStationImpl station2 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(station1).when(hvdc).getConverterStation1();
