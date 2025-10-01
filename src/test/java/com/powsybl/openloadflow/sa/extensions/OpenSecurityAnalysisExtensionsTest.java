@@ -29,9 +29,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
@@ -89,7 +87,7 @@ class OpenSecurityAnalysisExtensionsTest extends AbstractSerDeTest {
 
         assertFalse(contingencyLoadFlowParameters.isAreaInterchangeControl(openLoadFlowParameters));
         assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN, contingencyLoadFlowParameters.getBalanceType(loadFlowParameters));
-        assertTrue(contingencyLoadFlowParameters.getOuterLoopNames(openLoadFlowParameters).isEmpty());
+        assertNull(contingencyLoadFlowParameters.getOuterLoopNames(openLoadFlowParameters));
     }
 
     @Test

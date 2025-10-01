@@ -127,7 +127,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final ReactivePowerDispatchMode REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE = ReactivePowerDispatchMode.Q_EQUAL_PROPORTION;
 
-    protected static final List<String> OUTER_LOOP_NAMES_DEFAULT_VALUE = Collections.emptyList();
+    protected static final List<String> OUTER_LOOP_NAMES_DEFAULT_VALUE = null;
 
     protected static final int INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_DEFAULT_VALUE = 3;
 
@@ -1995,15 +1995,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static List<AcOuterLoop> createAcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
-                .orElseGet(() -> parametersExt.getOuterLoopNames() == null || parametersExt.getOuterLoopNames().isEmpty()
-                    ? new DefaultAcOuterLoopConfig() : new ExplicitAcOuterLoopConfig());
+                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig() : new DefaultAcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
     }
 
     static List<DcOuterLoop> createDcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         DcOuterLoopConfig outerLoopConfig = AbstractDcOuterLoopConfig.getOuterLoopConfig()
-                .orElseGet(() -> parametersExt.getOuterLoopNames() == null || parametersExt.getOuterLoopNames().isEmpty() ?
-                    new DefaultDcOuterLoopConfig() : new ExplicitDcOuterLoopConfig());
+                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitDcOuterLoopConfig() : new DefaultDcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
     }
 

@@ -1068,7 +1068,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.shuntsWithInconsistentTargetVoltage);
         }
 
-        if (parameters.getDebugDir() != null && !parameters.getDebugDir().isEmpty()) {
+        if (parameters.getDebugDir() != null) {
             Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
             String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
             lfNetwork.writeJson(debugDir.resolve("lfnetwork-" + dateStr + ".json"));
