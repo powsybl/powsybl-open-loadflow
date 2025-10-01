@@ -164,10 +164,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             LfTopoConfig topoConfig = new LfTopoConfig();
             LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
-                    .setContingencyPropagation(false)
-                    .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
-                    .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                    .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+                .setContingencyPropagation(false)
+                .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+                .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
@@ -180,7 +180,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 NetworkSerDe.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
 
                 ObjectWriter objectWriter = createObjectMapper()
-                        .writerWithDefaultPrettyPrinter();
+                    .writerWithDefaultPrettyPrinter();
                 try {
                     try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                         ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
