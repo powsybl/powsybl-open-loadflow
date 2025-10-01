@@ -73,7 +73,7 @@ public class JacobianMatrixFastDecoupled
     );
 
     // Checks if the term provided has a dedicated derivative
-    public static boolean termHasDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term) {
+    private static boolean termHasDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term) {
         if (term instanceof EquationTerm.MultiplyByScalarEquationTerm) {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getTerm().getClass().getName());
         } else {
@@ -133,7 +133,7 @@ public class JacobianMatrixFastDecoupled
         handler.onDer(variable, value, -1);
     }
 
-    public void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
+    private void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
         Objects.requireNonNull(handler);
         for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
             Variable<AcVariableType> variable = e.getKey();

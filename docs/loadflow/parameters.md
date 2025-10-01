@@ -203,7 +203,7 @@ capability curve limits (if it is below lowest P value or above highest P value)
 The default value is `false`.
 
 **phaseShifterControlMode**  
-- `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
+- `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the AC solver inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
 
 The default value is `CONTINUOUS_WITH_DISCRETISATION`.
@@ -245,16 +245,16 @@ The default value is `true`.
 AC load flow solver engine. Currently, it can be one of:
 - `NEWTON_RAPHSON` is the standard Newton-Raphson algorithm for load flow. Solves linear systems via Sparse LU decomposition (by [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html));
 - `NEWTON_KRYLOV` is also the standard Newton-Raphson algorithm for load flow. Solves linear systems via Krylov subspace methods for indefinite non-symmetric matrices (by [Kinsol](https://computing.llnl.gov/projects/sundials/kinsol));
-- `FAST_DECOUPLED` solves the load flow equation system decoupling angles from magnitudes and active from reactive power. Two smaller linear systems are solved at each iteration using the same LU technique as the classic Newton-Raphson.
+- `FAST_DECOUPLED` solves the load flow equation system decoupling angles from magnitudes and active from reactive power. For more information see [`Fast-Decoupled Algorithm`](loadflow.md/#fast-decoupled-algorithm).
 
 The default value is `NEWTON_RAPHSON`.
 
 **maxOuterLoopIterations**  
-Maximum number of iterations for Newton-Raphson outer loop.  
+Maximum number of iterations for the AC solver outer loop.  
 The default value is `20` and it must be greater or equal to `1`.
 
 **newtonRaphsonStoppingCriteriaType**  
-Stopping criteria for Newton-Raphson algorithm.
+Stopping criteria used for Newton-Raphson and Fast-Decoupled algorithms.
 - `UNIFORM_CRITERIA`: stop when quadratic norm of all mismatches vector is below quadratic norm of mismatches of value `newtonRaphsonConvEpsPerEq`. This criteria is defined by the following formula (for $n$ equations):
 
 $$\sqrt {mismatch_1^2 + mismatch_2^2 + ... + mismatch_n^2} < \sqrt{n * newtonRaphsonConvEpsPerEq^2}$$
@@ -271,7 +271,7 @@ $$\sqrt {mismatch_1^2 + mismatch_2^2 + ... + mismatch_n^2} < \sqrt{n * newtonRap
 The default value is `UNIFORM_CRITERIA`.
 
 **maxNewtonRaphsonIterations**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON`.
+Only applies if **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
 Maximum number of iterations for Newton-Raphson inner loop.  
 The default value is `15` and it must be greater or equal to `1`.
 
@@ -281,8 +281,8 @@ Maximum number of iterations for Newton-Raphson inner loop.
 The default value is `100` and it must be greater or equal to `1`.
 
 **stateVectorScalingMode**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON`.
-This parameter 'slows down' the Newton-Raphson by scaling the state vector between iterations. Can help convergence in some cases.
+Only applies if **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
+This parameter 'slows down' the solver by scaling the state vector between iterations. Can help convergence in some cases.
 - `NONE`: no scaling is made
 - `LINE_SEARCH`: applies a line search strategy
 - `MAX_VOLTAGE_CHANGE`: scale by limiting voltage updates to a maximum amplitude p.u. and a maximum angle.
@@ -375,16 +375,17 @@ meaning the reactive power range is too small, then the voltage control is disab
 The default value is `MAX`.
 
 **reportedFeatures**  
+This parameter is used when **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
 This parameter allows to define a set of features which should generate additional reports (as an array, or as a comma or semicolon separated string).
-In current version this parameter can be used to request Newton-Raphson iterations report:
-- `NEWTON_RAPHSON_LOAD_FLOW`: report Newton-Raphson iteration log for load flow calculations.
-- `NEWTON_RAPHSON_SECURITY_ANALYSIS`: report Newton-Raphson iteration log for security analysis calculations.
-- `NEWTON_RAPHSON_SENSITIVITY_ANALYSIS`: report Newton-Raphson iteration log for sensitivity analysis calculations.
+In current version this parameter can be used to request AC solver iterations report:
+- `NEWTON_RAPHSON_LOAD_FLOW`: report AC solver iteration log for load flow calculations.
+- `NEWTON_RAPHSON_SECURITY_ANALYSIS`: report AC solver iteration log for security analysis calculations.
+- `NEWTON_RAPHSON_SENSITIVITY_ANALYSIS`: report AC solver iteration log for sensitivity analysis calculations.
 
-Newton-Raphson iterations report consist in reporting:
+AC solver iterations report consist in reporting:
 - the involved synchronous component
-- the involved Newton-Raphson outer loop iteration
-- for each Newton-Raphson inner loop iteration:
+- the involved AC solver outer loop iteration
+- for each AC solver inner loop iteration:
     - maximum active power mismatch, the related bus Id with current solved voltage magnitude and angle.
     - maximum reactive power mismatch, the related bus Id with current solved voltage magnitude and angle.
     - maximum voltage control mismatch, the related bus Id with current solved voltage magnitude and angle.

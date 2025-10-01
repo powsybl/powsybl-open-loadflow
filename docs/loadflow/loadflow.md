@@ -286,9 +286,11 @@ an impedance value equal to the [`lowImpedanceThreshold`](parameters.md) paramet
 
 ## Fast-Decoupled Algorithm
 Fast-Decoupled is an algorithm to solve the inner-loop of the load flow problem, like the Newton-Raphson one.
-It is implemented as an extension of the class `AbstractAcSolver`.
+It is activated giving the `FAST_DECOUPLED` value to the [`acSolverType`](parameters.md) parameter.
 The solved equation system is the same as the one solved by Newton-Raphson method.
 However, the Jacobian matrix used is decomposed into two smaller matrices, decoupling the active power balance equations from voltage magnitudes variations and reactive power balance equations from voltage phases variations.
+
+Note that "Fast-Decoupled" is the academic name for this algorithm and not a statement about its performances versus the Newton-Raphson algorithm.
 
 ### Method
 The Fast-Decoupled method is composed of two parts, one relative to the decoupling, another relative to the speeding of the calculations.
@@ -296,8 +298,8 @@ The Fast-Decoupled method is composed of two parts, one relative to the decoupli
 The decoupling is obtained by dividing the Jacobian matrix into two matrices, one relative to voltage phases variables and active power equations, the other relative to voltage magnitudes variables and reactive power equations.
 Combining those two smaller matrices, one can obtain an approximation of the real Jacobian, where some terms have been discarded.
 
-The fastness is obtained by approximating more terms on top of the Jacobian structure simplification.
-This allows to have Jacobian matrices that are constant, with respect to the multiplication by a diagonal matrix, during computations.
+By approximating more terms on top of the Jacobian structure simplification,
+the algorithm provides two Jacobian matrices that are constant, with respect to the multiplication by a diagonal matrix.
 Thus, the LU decomposition of the two Jacobian matrices is done only once, at the start of the first Fast-Decoupled iteration.
 
 Regarding state vector scaling, the Fast-Decoupled uses both personalized max voltage change and line-search routines.
@@ -305,7 +307,7 @@ Without these routines, the algorithm struggles to converge on realistic large n
 
 ### Limitations
 The current implemented version cannot compute when one of the following parameter is activated:
-- [parameter `areaInterchangePMaxMismatch`](parameters.md) #TODO #placeholder
-- [parameter `areaInterchangePMaxMismatch`](parameters.md) #TODO #placeholder
+- [`asymmetrical`](parameters.md),
+- [`hvdcAcEmulation`](inv:powsyblcore:*:*#simulation/loadflow/configuration)
 
 In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, a warning is triggered and the AC solver is switched to the default Newton-Raphson.
