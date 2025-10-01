@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS;
 
