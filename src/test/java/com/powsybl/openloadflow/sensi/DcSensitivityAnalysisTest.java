@@ -1274,6 +1274,6 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         Thread.currentThread().interrupt();
-        assertThrows(RuntimeException.class, () -> analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
     }
 }

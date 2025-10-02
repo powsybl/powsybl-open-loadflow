@@ -307,7 +307,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 for (PropagatedContingency contingency : contingencies) {
                     if (Thread.currentThread().isInterrupted()) {
-                        throw new RuntimeException("Interrupted");
+                        throw new PowsyblException("Computation was interrupted");
                     }
                     LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
                     contingency.toLfContingency(lfNetwork)
