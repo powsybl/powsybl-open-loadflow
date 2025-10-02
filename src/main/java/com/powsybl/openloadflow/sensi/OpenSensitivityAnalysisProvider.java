@@ -135,7 +135,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 .registerModule(new SensitivityJsonModule());
     }
 
-    private Void runSync(Network network,
+    Void runSync(Network network,
                         String workingVariantId,
                         SensitivityFactorReader factorReader,
                         SensitivityResultWriter resultWriter,

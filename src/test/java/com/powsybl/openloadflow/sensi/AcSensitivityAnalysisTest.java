@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1854,5 +1855,13 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         Thread.currentThread().interrupt();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
+    }
+
+    @Test
+    void testRunSyncIsCallable() {
+        OpenSensitivityAnalysisProvider p = new OpenSensitivityAnalysisProvider(new SparseMatrixFactory());
+        // Make sur that runSync is a Callable. Only CompletableFutureTask.runAsync(Callable) handles correctly thread cancel. Not CompletableFutureTask.runAsync(Runnable)
+        Callable t = () -> p.runSync(null, null, null, null, null, null, null, null);
+        assertFalse(t instanceof Runnable);
     }
 }
