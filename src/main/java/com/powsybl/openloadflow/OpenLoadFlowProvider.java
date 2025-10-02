@@ -341,8 +341,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 } else {
                     resMap.put(key, Objects.toString(value));
                 }
-            } else {
-                resMap.put(key, null);
             }
         });
         return resMap;

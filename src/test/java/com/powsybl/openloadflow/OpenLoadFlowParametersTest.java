@@ -371,9 +371,8 @@ class OpenLoadFlowParametersTest {
         assertTrue(OpenLoadFlowParameters.equals(parameters, parameters2));
 
         // Specific outerLoopCase to check empty list is correctly handled
+        provider.updateSpecificParameters(parameters2.getExtension(OpenLoadFlowParameters.class), Map.of(OUTER_LOOP_NAMES_PARAM_NAME, ""));
         parameters.getExtension(OpenLoadFlowParameters.class).setOuterLoopNames(Collections.emptyList());
-        map.put(OUTER_LOOP_NAMES_PARAM_NAME, "");
-        provider.updateSpecificParameters(parameters2.getExtension(OpenLoadFlowParameters.class), map);
         assertTrue(OpenLoadFlowParameters.equals(parameters, parameters2));
     }
 
