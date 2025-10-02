@@ -50,7 +50,7 @@ $$ Q_i^{in} = \sum_{j \in \delta(i)} q_{i,j}$$
 
 where $\delta(i)$ is the set of buses linked to $i$ in the network graph.
 
-The resulting non-linear system of equations is solved via the Newton-Raphson algorithm.
+The resulting non-linear system of equations is solved by default via the Newton-Raphson algorithm.
 The underlying principle of the algorithm is the following:
 - It starts at a certain point $x_0 = (v_0, \phi_0)$ as an approximate solution to the system of equations;
 - Then, in an iterative fashion, it generates a series $x_1, x_2,.., x_k$ of better approximate solutions to the system of equations;
