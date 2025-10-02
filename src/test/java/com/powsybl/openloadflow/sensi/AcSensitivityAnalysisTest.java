@@ -36,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1854,7 +1853,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         Thread.currentThread().interrupt();
-        analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false);
-        assertTrue(resultWriter.getContingencyStatuses().stream().allMatch(Objects::isNull));
+        assertThrows(RuntimeException.class, () -> analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
     }
 }

@@ -485,32 +485,32 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with no connectivity break
                 for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
-                    if (!Thread.currentThread().isInterrupted()) {
-                        workingFlowStates.copyValuesFrom(baseFlowStates);
-                        workingFactorStates.copyValuesFrom(baseFactorStates);
-
-                        calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
-                            workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, contingency,
-                            connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, reportNode, Collections.emptySet(), false);
-                    } else {
-                        break;
+                    if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
+                        throw new RuntimeException("Interrupted");
                     }
+                    workingFlowStates.copyValuesFrom(baseFlowStates);
+                    workingFactorStates.copyValuesFrom(baseFactorStates);
+
+                    calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
+                        workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, contingency,
+                        connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, reportNode, Collections.emptySet(), false);
                 }
 
                 LOGGER.info("Processing contingencies with connectivity break");
 
                 // process contingencies with connectivity break
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
-                    if (!Thread.currentThread().isInterrupted()) {
-                        workingFlowStates.copyValuesFrom(baseFlowStates);
-                        workingFactorStates.copyValuesFrom(baseFactorStates);
-
-                        processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                            validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
-                            workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
-                    } else {
-                        break;
+                    if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
+                        throw new RuntimeException("Interrupted");
                     }
+                    workingFlowStates.copyValuesFrom(baseFlowStates);
+                    workingFactorStates.copyValuesFrom(baseFactorStates);
+
+                    processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
+                        validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                        workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
                 }
             }
 
