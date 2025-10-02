@@ -13,6 +13,7 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.DanglingLineContingency;
+import com.powsybl.contingency.GeneratorContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -1273,7 +1274,14 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
+        // with connectivity break
         Thread.currentThread().interrupt();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
+
+        // without connectivity break
+        List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
+        List<PropagatedContingency> propagatedContingencies2 = PropagatedContingency.createList(network, contingencies2, topoConfig, creationParameters);
+        Thread.currentThread().interrupt();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, propagatedContingencies2, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
     }
 }
