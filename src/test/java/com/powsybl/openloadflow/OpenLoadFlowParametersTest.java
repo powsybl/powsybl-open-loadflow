@@ -36,10 +36,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -455,6 +452,60 @@ class OpenLoadFlowParametersTest {
             // should not equal
             assertFalse(OpenLoadFlowParameters.equals(lfu1, lfu2), "Parameter is not handled in update(platformConfig): " + sp.getName());
 
+        });
+    }
+
+    @Test
+    void testSerializationRoundTrip() {
+        Set<String> nullableParams = Set.of("debugDir", "outerLoopNames");
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
+        provider.getSpecificParameters().forEach(sp -> {
+            LoadFlowParameters p1 = new LoadFlowParameters();
+            OpenLoadFlowParameters e1 = OpenLoadFlowParameters.create(p1);
+            List<String> vals;
+            if (sp.getType() == ParameterType.BOOLEAN) {
+                vals = List.of("true", "false");
+            } else if (sp.getType() == ParameterType.INTEGER || sp.getType() == ParameterType.DOUBLE) {
+                vals = List.of("3", "4");
+            } else if (sp.getType() == ParameterType.STRING) {
+                if (sp.getPossibleValues() == null) {
+                    // e.g. debugDir
+                    vals = List.of("foo", "");
+                } else {
+                    vals = List.of(sp.getPossibleValues().get(0).toString(), sp.getPossibleValues().get(1).toString());
+                }
+            } else if (sp.getType() == ParameterType.STRING_LIST) {
+                if (sp.getPossibleValues() == null) {
+                    // e.g. slackBusesIds
+                    vals = List.of("Foo", "Foo,Bar", "");
+                } else {
+                    // e.g. slackBusCountryFilter
+                    vals = List.of(sp.getPossibleValues().get(0).toString(), sp.getPossibleValues().get(0).toString() + "," + sp.getPossibleValues().get(1).toString(), "");
+                }
+            } else {
+                throw new IllegalStateException("Unexpected ParameterType");
+            }
+
+            for (String val : vals) {
+                e1.update(Map.of(sp.getName(), val));
+                var map = provider.createMapFromSpecificParameters(e1);
+                LoadFlowParameters p2 = new LoadFlowParameters();
+                OpenLoadFlowParameters e2 = OpenLoadFlowParameters.create(p2);
+                provider.updateSpecificParameters(e2, map);
+                assertTrue(OpenLoadFlowParameters.equals(p1, p2));
+            }
+            if (nullableParams.contains(sp.getName())) {
+                Map<String, String> p = new HashMap<>();
+                p.put(sp.getName(), null);
+                e1.update(p);
+                var map = provider.createMapFromSpecificParameters(e1);
+                // Null values are not exported by the provider
+                assertFalse(map.containsKey(sp.getName()));
+                LoadFlowParameters p2 = new LoadFlowParameters();
+                OpenLoadFlowParameters e2 = OpenLoadFlowParameters.create(p2);
+                provider.updateSpecificParameters(e2, map);
+                assertTrue(OpenLoadFlowParameters.equals(p1, p2));
+            }
         });
     }
 
