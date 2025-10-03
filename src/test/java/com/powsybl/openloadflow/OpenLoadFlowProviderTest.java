@@ -114,7 +114,7 @@ class OpenLoadFlowProviderTest {
         // Null values are not serialized by the provider
         long nullValueCOunt = parametersExt.toMap().values().stream().filter(Objects::isNull).count();
         assertEquals(78, map.size() + nullValueCOunt);
-        assertEquals(2, nullValueCOunt); // debugDir and outerLoppNames are nullable
+        assertEquals(2, nullValueCOunt); // debugDir and outerLoopNames are nullable
         assertEquals(provider.getSpecificParameters().size(), map.size() + nullValueCOunt);
     }
 
