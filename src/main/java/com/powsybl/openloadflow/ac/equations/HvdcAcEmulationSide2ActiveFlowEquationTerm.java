@@ -53,8 +53,8 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
 
     @Override
     public double eval() {
-        return element.isAcEmulationFrozen() ? p2(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, r, ph1(), ph2())
-                                             : p2(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, r, element.getAngleDifferenceToFreeze(), 0);
+        return element.isAcEmulationFrozen() ? p2(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, r, element.getAngleDifferenceToFreeze(), 0)
+                                             : p2(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, r, ph1(), ph2());
     }
 
     @Override

@@ -38,6 +38,10 @@ public class AcHvdcVector {
 
     final double[] pMaxFromCS2toCS1;
 
+    final boolean[] acEmulationFrozen;
+
+    final double[] angleDifferenceToFreeze;
+
     final double[] p1;
     final double[] p2;
 
@@ -66,6 +70,8 @@ public class AcHvdcVector {
         lossFactor2 = new double[size];
         pMaxFromCS1toCS2 = new double[size];
         pMaxFromCS2toCS1 = new double[size];
+        acEmulationFrozen = new boolean[size];
+        angleDifferenceToFreeze = new double[size];
 
         dp1dph1 = new double[size];
         dp1dph2 = new double[size];
@@ -87,6 +93,9 @@ public class AcHvdcVector {
             lossFactor2[i] = hvdc.getConverterStation2().getLossFactor() / 100;
             pMaxFromCS1toCS2[i] = hvdc.getPMaxFromCS1toCS2();
             pMaxFromCS2toCS1[i] = hvdc.getPMaxFromCS2toCS1();
+
+            acEmulationFrozen[i] = hvdc.isAcEmulationFrozen();
+            angleDifferenceToFreeze[i] = hvdc.getAngleDifferenceToFreeze();
         }
     }
 

@@ -277,10 +277,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             hvdcVector.lossFactor1[hvdcNum],
                             hvdcVector.lossFactor2[hvdcNum],
                             hvdcVector.r[hvdcNum],
-                            ph1,
-                            ph2);
+                            hvdcVector.acEmulationFrozen[hvdcNum] ? hvdcVector.angleDifferenceToFreeze[hvdcNum] : ph1,
+                            hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : ph2);
 
-                    hvdcVector.dp1dph1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph1(hvdcVector.p0[hvdcNum],
+                    hvdcVector.dp1dph1[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph1(hvdcVector.p0[hvdcNum],
                             hvdcVector.k[hvdcNum],
                             hvdcVector.pMaxFromCS1toCS2[hvdcNum],
                             hvdcVector.pMaxFromCS2toCS1[hvdcNum],
@@ -289,7 +289,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             ph1,
                             ph2);
 
-                    hvdcVector.dp1dph2[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph2(hvdcVector.p0[hvdcNum],
+                    hvdcVector.dp1dph2[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph2(hvdcVector.p0[hvdcNum],
                             hvdcVector.k[hvdcNum],
                             hvdcVector.pMaxFromCS1toCS2[hvdcNum],
                             hvdcVector.pMaxFromCS2toCS1[hvdcNum],
@@ -306,10 +306,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             hvdcVector.lossFactor1[hvdcNum],
                             hvdcVector.lossFactor2[hvdcNum],
                             hvdcVector.r[hvdcNum],
-                            ph1,
-                            ph2);
+                            hvdcVector.acEmulationFrozen[hvdcNum] ? hvdcVector.angleDifferenceToFreeze[hvdcNum] : ph1,
+                            hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : ph2);
 
-                    hvdcVector.dp2dph1[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph1(hvdcVector.p0[hvdcNum],
+                    hvdcVector.dp2dph1[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph1(hvdcVector.p0[hvdcNum],
                             hvdcVector.k[hvdcNum],
                             hvdcVector.pMaxFromCS1toCS2[hvdcNum],
                             hvdcVector.pMaxFromCS2toCS1[hvdcNum],
@@ -318,7 +318,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             ph1,
                             ph2);
 
-                    hvdcVector.dp2dph2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph2(hvdcVector.p0[hvdcNum],
+                    hvdcVector.dp2dph2[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph2(hvdcVector.p0[hvdcNum],
                             hvdcVector.k[hvdcNum],
                             hvdcVector.pMaxFromCS1toCS2[hvdcNum],
                             hvdcVector.pMaxFromCS2toCS1[hvdcNum],
@@ -752,6 +752,38 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     @Override
     public void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ) {
         loadVector.targetQ[load.getNum()] = newTargetQ;
+    }
+
+    @Override
+    public void onHvdcAcEmulationFroze(LfHvdc hvdc, boolean frozen) {
+        hvdcVector.acEmulationFrozen[hvdc.getNum()] = frozen;
+        // p1 and p2 need to be updated because depend on frozen state
+        if (frozen) {
+            int hvdcNum = hvdc.getNum();
+            hvdcVector.p1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.p1(hvdcVector.p0[hvdcNum],
+                                                                                   hvdcVector.k[hvdcNum],
+                                                                                   hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                                                                                   hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                                                                                   hvdcVector.lossFactor1[hvdcNum],
+                                                                                   hvdcVector.lossFactor2[hvdcNum],
+                                                                                   hvdcVector.r[hvdcNum],
+                                                                                   hvdcVector.angleDifferenceToFreeze[hvdcNum],
+                                                                                   0);
+            hvdcVector.p2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.p2(hvdcVector.p0[hvdcNum],
+                                                                                   hvdcVector.k[hvdcNum],
+                                                                                   hvdcVector.pMaxFromCS1toCS2[hvdcNum],
+                                                                                   hvdcVector.pMaxFromCS2toCS1[hvdcNum],
+                                                                                   hvdcVector.lossFactor1[hvdcNum],
+                                                                                   hvdcVector.lossFactor2[hvdcNum],
+                                                                                   hvdcVector.r[hvdcNum],
+                                                                                   hvdcVector.angleDifferenceToFreeze[hvdcNum],
+                                                                                   0);
+        }
+    }
+
+    @Override
+    public void onHvdcAngleDifferenceToFreeze(LfHvdc hvdc, double angleDifferenceToFreeze) {
+        hvdcVector.angleDifferenceToFreeze[hvdc.getNum()] = angleDifferenceToFreeze;
     }
 
     @Override
