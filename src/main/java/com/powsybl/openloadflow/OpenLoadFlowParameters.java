@@ -1455,6 +1455,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new OpenLoadFlowParameters().update(properties);
     }
 
+    private static List<String> parseNullableStringListProp(String prop) {
+        if (prop == null) {
+            return null;
+        } else {
+            return parseStringListProp(prop);
+        }
+    }
+
     private static List<String> parseStringListProp(String prop) {
         if (prop.trim().isEmpty()) {
             return Collections.emptyList();
@@ -1642,8 +1650,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setStateVectorScalingMode(StateVectorScalingMode.valueOf(prop)));
         Optional.ofNullable(properties.get(MAX_SLACK_BUS_COUNT_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxSlackBusCount(Integer.parseInt(prop)));
-        Optional.ofNullable(properties.get(DEBUG_DIR_PARAM_NAME))
-                .ifPresent(this::setDebugDir);
+        // debug dir is nullable
+        if (properties.containsKey(DEBUG_DIR_PARAM_NAME)) {
+            setDebugDir(properties.get(DEBUG_DIR_PARAM_NAME));
+        }
         Optional.ofNullable(properties.get(INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME))
                 .ifPresent(prop -> this.setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME))
@@ -1673,6 +1683,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinNominalVoltageTargetVoltageCheck(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setReactivePowerDispatchMode(ReactivePowerDispatchMode.valueOf(prop)));
+        // OuterLoopNames is nullable
+        if (properties.containsKey(OUTER_LOOP_NAMES_PARAM_NAME)) {
+            setOuterLoopNames(parseNullableStringListProp(properties.get(OUTER_LOOP_NAMES_PARAM_NAME)));
+        }
         Optional.ofNullable(properties.get(OUTER_LOOP_NAMES_PARAM_NAME))
                 .ifPresent(prop -> this.setOuterLoopNames(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(USE_ACTIVE_LIMITS_PARAM_NAME))
@@ -1995,15 +2009,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static List<AcOuterLoop> createAcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
-                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig()
-                                                                           : new DefaultAcOuterLoopConfig());
+                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitAcOuterLoopConfig() : new DefaultAcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
     }
 
     static List<DcOuterLoop> createDcOuterLoops(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         DcOuterLoopConfig outerLoopConfig = AbstractDcOuterLoopConfig.getOuterLoopConfig()
-                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitDcOuterLoopConfig()
-                                                                           : new DefaultDcOuterLoopConfig());
+                .orElseGet(() -> parametersExt.getOuterLoopNames() != null ? new ExplicitDcOuterLoopConfig() : new DefaultDcOuterLoopConfig());
         return outerLoopConfig.configure(parameters, parametersExt);
     }
 
