@@ -278,7 +278,7 @@ public class FastDecoupled extends AbstractAcSolver {
                 LOGGER.debug("Resolution of Phi system:");
                 runSingleSystemSolution(jPhi, phiEquationVector, rangeIndex, true, iterationReportNode);
                 // Solution on V
-                LOGGER.debug("Resolution of V system :");
+                LOGGER.debug("Resolution of V system:");
                 runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
