@@ -44,9 +44,9 @@ class FastDecoupledTest {
 
     private LoadFlow.Runner loadFlowRunner;
 
-    private static final Double DEFAULT_ERROR_TOLERANCE_VOLTAGES = Math.pow(10, -3);
+    private static final double DEFAULT_ERROR_TOLERANCE_VOLTAGES = Math.pow(10, -3);
 
-    private static final Double DEFAULT_ERROR_TOLERANCE_ANGLES = Math.pow(10, -2);
+    private static final double DEFAULT_ERROR_TOLERANCE_ANGLES = Math.pow(10, -2);
 
     @BeforeEach
     void setUp() {
