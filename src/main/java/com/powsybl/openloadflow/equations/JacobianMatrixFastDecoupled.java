@@ -76,32 +76,31 @@ public class JacobianMatrixFastDecoupled
     private static boolean termHasDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term) {
         if (term instanceof EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(multiplyByTerm.getTerm().getClass().getName());
-            return TERMS_WITH_DEDICATED_DERIVATIVE.contains(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getTerm().getClass().getName());
         } else {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(term.getClass().getName());
         }
     }
 
     private AbstractFastDecoupledEquationTerm buildFastDecoupledTerm(EquationTerm<AcVariableType, AcEquationType> term) {
-        if (term instanceof ClosedBranchSide1ActiveFlowEquationTerm typedTerm) {
-            return new ClosedBranchSide1ActiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof ClosedBranchSide2ActiveFlowEquationTerm typedTerm) {
-            return new ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof ClosedBranchSide1ReactiveFlowEquationTerm typedTerm) {
-            return new ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof ClosedBranchSide2ReactiveFlowEquationTerm typedTerm) {
-            return new ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof OpenBranchSide1ReactiveFlowEquationTerm typedTerm) {
-            return new OpenBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof OpenBranchSide2ReactiveFlowEquationTerm typedTerm) {
-            return new OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof ShuntCompensatorReactiveFlowEquationTerm typedTerm) {
-            return new ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else if (term instanceof LoadModelReactiveFlowEquationTerm typedTerm) {
-            return new LoadModelReactiveFlowFastDecoupledEquationTerm(typedTerm);
-        } else {
-            throw new IllegalStateException("Unexpected term class: " + term.getClass());
-        }
+        return switch (term) {
+            case ClosedBranchSide1ActiveFlowEquationTerm typedTerm ->
+                new ClosedBranchSide1ActiveFlowFastDecoupledEquationTerm(typedTerm);
+            case ClosedBranchSide2ActiveFlowEquationTerm typedTerm ->
+                new ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm(typedTerm);
+            case ClosedBranchSide1ReactiveFlowEquationTerm typedTerm ->
+                new ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
+            case ClosedBranchSide2ReactiveFlowEquationTerm typedTerm ->
+                new ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
+            case OpenBranchSide1ReactiveFlowEquationTerm typedTerm ->
+                new OpenBranchSide1ReactiveFlowFastDecoupledEquationTerm(typedTerm);
+            case OpenBranchSide2ReactiveFlowEquationTerm typedTerm ->
+                new OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm(typedTerm);
+            case ShuntCompensatorReactiveFlowEquationTerm typedTerm ->
+                new ShuntCompensatorReactiveFlowFastDecoupledEquationTerm(typedTerm);
+            case LoadModelReactiveFlowEquationTerm typedTerm ->
+                new LoadModelReactiveFlowFastDecoupledEquationTerm(typedTerm);
+            case null, default -> throw new IllegalStateException("Unexpected term class: " + term.getClass());
+        };
     }
 
     // Build Fast-Decoupled version of a term, if it has dedicated derivative
