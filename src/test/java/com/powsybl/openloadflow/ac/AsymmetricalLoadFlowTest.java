@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
 import com.powsybl.iidm.network.extensions.LineFortescue;
@@ -363,13 +364,10 @@ public class AsymmetricalLoadFlowTest {
         Network n = TwoBusNetworkFactory.create();
         parametersExt.setAcSolverType(FastDecoupledFactory.NAME);
         parametersExt.setAsymmetrical(true);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(n, parameters, parametersExt, new DenseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false);
-        LoadFlowResult result = loadFlowRunner.run(n, parameters);
-        assertTrue(result.isFullyConverged());
-        assertTrue(parametersExt.isAsymmetrical()
-                && Objects.equals(acParameters.getSolverFactory().getName(), NewtonRaphsonFactory.NAME));
 
+        PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, parameters,
+                parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false));
+        assertEquals("Fast-Decoupled solver is incompatible with asymmetrical load flow: asymmetrical OpenLoadFLowParameter should be switched to false", e.getMessage());
     }
 
     /**

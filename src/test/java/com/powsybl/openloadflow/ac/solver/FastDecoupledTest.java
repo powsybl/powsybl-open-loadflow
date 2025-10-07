@@ -34,6 +34,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
+ */
 class FastDecoupledTest {
     private LoadFlowParameters parametersFastDecoupled;
 

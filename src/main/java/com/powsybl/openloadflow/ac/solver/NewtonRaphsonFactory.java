@@ -33,9 +33,8 @@ public class NewtonRaphsonFactory implements AcSolverFactory {
     }
 
     @Override
-    public AcSolverFactory checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    public void checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         // no current incompatibilities between Newton-Raphson and parameters
-        return this;
     }
 
     @Override

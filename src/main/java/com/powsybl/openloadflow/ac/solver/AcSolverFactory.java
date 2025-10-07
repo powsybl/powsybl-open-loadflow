@@ -39,7 +39,7 @@ public interface AcSolverFactory {
                 .findFirst().orElseThrow(() -> new PowsyblException("AC Solver '" + name + "' not found"));
     }
 
-    AcSolverFactory checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
+    void checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
 
     String getName();
 

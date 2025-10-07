@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -126,9 +127,8 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         loadFlowParameters.setHvdcAcEmulation(true);
         openLoadFlowParameters.setAcSolverType(FastDecoupledFactory.NAME);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, loadFlowParameters,
-                openLoadFlowParameters, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false);
-        assertTrue(loadFlowParameters.isHvdcAcEmulation() &&
-                Objects.equals(acParameters.getSolverFactory().getName(), NewtonRaphsonFactory.NAME));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, loadFlowParameters,
+                openLoadFlowParameters, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false));
+        assertEquals("Fast-Decoupled solver is incompatible with AcEmulation: hvdcAcEmulation LoadFlowParameter should be switched to false", e.getMessage());
     }
 }

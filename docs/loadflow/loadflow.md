@@ -310,4 +310,4 @@ The current implemented version cannot compute when one of the following paramet
 - [`asymmetrical`](parameters.md),
 - [`hvdcAcEmulation`](inv:powsyblcore:*:*#simulation/loadflow/configuration)
 
-In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, a warning is triggered and the AC solver is switched to the default Newton-Raphson.
+In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, an exception is triggered.

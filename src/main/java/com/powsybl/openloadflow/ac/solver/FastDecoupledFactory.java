@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.solver;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -25,7 +26,7 @@ import org.slf4j.LoggerFactory;
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
  */
 @AutoService(AcSolverFactory.class)
-public class FastDecoupledFactory implements AcSolverFactory {
+public class FastDecoupledFactory extends NewtonRaphsonFactory {
 
     public static final String NAME = "FAST_DECOUPLED";
     private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupledFactory.class);
@@ -36,28 +37,13 @@ public class FastDecoupledFactory implements AcSolverFactory {
     }
 
     @Override
-    public AcSolverFactory checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    public void checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (parametersExt.isAsymmetrical()) {
-            LOGGER.warn("Fast-Decoupled solver is incompatible with asymmetrical load flow, Newton-Raphson is used instead");
-            return AcSolverFactory.find(NewtonRaphsonFactory.NAME);
+            throw new PowsyblException("Fast-Decoupled solver is incompatible with asymmetrical load flow: asymmetrical OpenLoadFLowParameter should be switched to false");
         }
         if (parameters.isHvdcAcEmulation()) {
-            LOGGER.warn("Fast-Decoupled solver is incompatible with AcEmulation, Newton-Raphson is used instead");
-            return AcSolverFactory.find(NewtonRaphsonFactory.NAME);
+            throw new PowsyblException("Fast-Decoupled solver is incompatible with AcEmulation: hvdcAcEmulation LoadFlowParameter should be switched to false");
         }
-        return this;
-    }
-
-    @Override
-    public AcSolverParameters createParameters(LoadFlowParameters parameters) {
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        return new NewtonRaphsonParameters()
-                .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
-                .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations())
-                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode()) //
-                .setMaxVoltageChangeStateVectorScalingMaxDv(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDv())
-                .setMaxVoltageChangeStateVectorScalingMaxDphi(parametersExt.getMaxVoltageChangeStateVectorScalingMaxDphi())
-                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
     }
 
     @Override
@@ -65,15 +51,5 @@ public class FastDecoupledFactory implements AcSolverFactory {
                            JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                            EquationVector<AcVariableType, AcEquationType> equationVector) {
         return new FastDecoupled(network, (NewtonRaphsonParameters) parameters.getAcSolverParameters(), equationSystem, j, targetVector, equationVector, parameters.isDetailedReport());
-    }
-
-    private static NewtonRaphsonStoppingCriteria createNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt) {
-        return switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
-            case UNIFORM_CRITERIA -> new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
-            case PER_EQUATION_TYPE_CRITERIA -> new PerEquationTypeStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq(), parametersExt.getMaxActivePowerMismatch(),
-                    parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch(),
-                    parametersExt.getMaxAngleMismatch(), parametersExt.getMaxRatioMismatch(),
-                    parametersExt.getMaxSusceptanceMismatch());
-        };
     }
 }
