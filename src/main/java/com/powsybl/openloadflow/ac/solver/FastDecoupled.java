@@ -318,7 +318,7 @@ public class FastDecoupled extends AbstractAcSolver {
             // initialize state vector
             AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
 
-            Vectors.minus(equationVector.getArray(), targetVector.getArray());
+            equationVector.minus(targetVector);
 
             NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
 
