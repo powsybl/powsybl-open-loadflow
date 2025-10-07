@@ -173,7 +173,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
             // debugging
-            if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
+            if (sensitivityAnalysisParametersExt.getDebugDir() != null && !sensitivityAnalysisParametersExt.getDebugDir().isEmpty()) {
                 Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
                 String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
 

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.*;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -111,8 +112,11 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
-        assertEquals(78, map.size());
-        assertEquals(provider.getSpecificParameters().size(), map.size());
+        // Null values are not serialized by the provider
+        long nullValueCOunt = parametersExt.toMap().values().stream().filter(Objects::isNull).count();
+        assertEquals(78, map.size() + nullValueCOunt);
+        assertEquals(2, nullValueCOunt); // debugDir and outerLoopNames are nullable
+        assertEquals(provider.getSpecificParameters().size(), map.size() + nullValueCOunt);
     }
 
     @Test
