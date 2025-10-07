@@ -408,7 +408,7 @@ class FastDecoupledTest {
                 .collect(Collectors.toList());
     }
 
-    private void compareResults(List<Double> expected, List<Double> actual, Double errorTolerance) {
+    private void compareResults(List<Double> expected, List<Double> actual, double errorTolerance) {
         assertEquals(expected.size(), actual.size(), "Different lists sizes");
         for (int i = 0; i < expected.size(); i++) {
             assertEquals(expected.get(i), actual.get(i), errorTolerance, "Error for bus " + i);
