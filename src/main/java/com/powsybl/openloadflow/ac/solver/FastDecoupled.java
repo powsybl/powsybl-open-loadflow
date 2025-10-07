@@ -32,10 +32,10 @@ public class FastDecoupled extends AbstractAcSolver {
 
     protected final NewtonRaphsonParameters parameters;
 
-    private static final double MAX_VOLTAGE_ANGLE_MOVE = Math.toRadians(10);
-    private static final double MAX_VOLTAGE_MAGNITUDE_MOVE = 0.1;
-    private static final int LINE_SEARCH_MAX_IT = 4;
-    private static final double LINE_SEARCH_STEP_UPDATE = 0.5;
+    private final double maxDv;
+    private final double maxDphi;
+    private final int lineSearchMaxIt;
+    private final double stepFold;
 
     private JacobianMatrixFastDecoupled jPhi;
     private JacobianMatrixFastDecoupled jV;
@@ -55,6 +55,10 @@ public class FastDecoupled extends AbstractAcSolver {
                          EquationVector<AcVariableType, AcEquationType> equationVector, boolean detailedReport) {
         super(network, equationSystem, j, targetVector, equationVector, detailedReport);
         this.parameters = Objects.requireNonNull(parameters);
+        this.maxDv = parameters.getMaxVoltageChangeStateVectorScalingMaxDv();
+        this.maxDphi = parameters.getMaxVoltageChangeStateVectorScalingMaxDphi();
+        this.lineSearchMaxIt = parameters.getLineSearchStateVectorScalingMaxIteration();
+        this.stepFold = parameters.getLineSearchStateVectorScalingStepFold();
     }
 
     @Override
@@ -154,7 +158,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
     private void applyMaxVoltageUpdates(double[] dx, ReportNode reportNode, boolean isPhiType, int rangeIndex) {
         int begin = isPhiType ? 0 : rangeIndex;
-        double maxDelta = isPhiType ? MAX_VOLTAGE_ANGLE_MOVE : MAX_VOLTAGE_MAGNITUDE_MOVE;
+        double maxDelta = isPhiType ? maxDphi : maxDv;
         AcVariableType correctType = isPhiType ? AcVariableType.BUS_PHI : AcVariableType.BUS_V;
         int cutCount = 0;
         double stepSize = 1.0;
@@ -182,11 +186,11 @@ public class FastDecoupled extends AbstractAcSolver {
         double stepSize = 1;
         int iteration = 1;
 
-        while (currentNorm > initialNorm && iteration <= LINE_SEARCH_MAX_IT) {
+        while (currentNorm > initialNorm && iteration <= lineSearchMaxIt) {
             // Restore x
             equationSystem.getStateVector().set(initialStateVector.clone());
 
-            Vectors.mult(partialEquationVector, LINE_SEARCH_STEP_UPDATE);
+            Vectors.mult(partialEquationVector, 1 / stepFold);
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minusWithRange(partialEquationVector, systemFirstIndex);
             // subtract targets from f(x) for next iteration
@@ -196,7 +200,7 @@ public class FastDecoupled extends AbstractAcSolver {
             currentNorm = Vectors.norm2(equationVector.getArray());
 
             iteration++;
-            stepSize *= LINE_SEARCH_STEP_UPDATE;
+            stepSize /= stepFold;
         }
 
         LOGGER.debug("Step size: {}", stepSize);

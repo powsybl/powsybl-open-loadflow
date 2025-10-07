@@ -281,7 +281,7 @@ Maximum number of iterations for Newton-Raphson inner loop.
 The default value is `100` and it must be greater or equal to `1`.
 
 **stateVectorScalingMode**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
+Only applies if **acSolverType** is `NEWTON_RAPHSON`.
 This parameter 'slows down' the solver by scaling the state vector between iterations. Can help convergence in some cases.
 - `NONE`: no scaling is made
 - `LINE_SEARCH`: applies a line search strategy

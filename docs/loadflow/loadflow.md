@@ -304,6 +304,7 @@ Thus, the LU decomposition of the two Jacobian matrices is done only once, at th
 
 Regarding state vector scaling, the Fast-Decoupled uses both personalized max voltage change and line-search routines.
 Without these routines, the algorithm struggles to converge on realistic large networks, as it has a simplified vision of the impact of the system variables.
+Note that [`stateVectorScalingMode`](parameters.md) is not taken into account.
 
 ### Limitations
 The current implemented version cannot compute when one of the following parameter is activated:
