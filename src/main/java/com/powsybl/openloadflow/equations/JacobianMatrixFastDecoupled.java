@@ -74,7 +74,8 @@ public class JacobianMatrixFastDecoupled
 
     // Checks if the term provided has a dedicated derivative
     private static boolean termHasDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term) {
-        if (term instanceof EquationTerm.MultiplyByScalarEquationTerm) {
+        if (term instanceof EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
+            return TERMS_WITH_DEDICATED_DERIVATIVE.contains(multiplyByTerm.getTerm().getClass().getName());
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(((EquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType>) term).getTerm().getClass().getName());
         } else {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(term.getClass().getName());
