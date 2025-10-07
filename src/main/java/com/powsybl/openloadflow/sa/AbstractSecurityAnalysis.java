@@ -33,6 +33,7 @@ import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.openloadflow.util.mt.LfNetworkLoadMT;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -50,8 +51,6 @@ import org.slf4j.event.Level;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -185,82 +184,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             // we pre-allocate the results so that threads can set result in a stable order (using the partition number)
             // so that we always get results in the same order whatever threads completion order is.
             List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), createNoResult()))); // init to no result in case of cancel
-            List<LfNetworkList> lfNetworksList = new ArrayList<>();
-            List<ReportNode> reportNodes = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), ReportNode.NO_OP)));
 
-            boolean oldAllowVariantMultiThreadAccess = network.getVariantManager().isVariantMultiThreadAccessAllowed();
-            network.getVariantManager().allowVariantMultiThreadAccess(true);
-            try {
-                Lock networkLock = new ReentrantLock();
-                List<CompletableFuture<Void>> futures = new ArrayList<>();
-                for (int i = 0; i < contingenciesPartitions.size(); i++) {
-                    final int partitionNum = i;
-                    var contingenciesPartition = contingenciesPartitions.get(i);
-                    futures.add(CompletableFutureTask.runAsync(() -> {
-
-                        var partitionTopoConfig = new LfTopoConfig(topoConfig);
-
-                        //  we have to pay attention with IIDM network multi threading even when allowVariantMultiThreadAccess is set:
-                        //    - variant cloning and removal is not thread safe
-                        //    - we cannot read or write on an exising variant while another thread clone or remove a variant
-                        //    - be aware that even after LF network loading, though LF network we get access to original IIDM
-                        //      variant (for instance to get reactive capability curve), so allowVariantMultiThreadAccess mode
-                        //      is absolutely required
-                        //  so in order to be thread safe, we need to:
-                        //    - lock LF network creation (which create a working variant, see {@code LfNetworkList})
-                        //    - delay {@code LfNetworkList} closing (which remove a working variant) out of worker thread
-                        LfNetworkList lfNetworks;
-                        List<PropagatedContingency> propagatedContingencies;
-                        P parameters;
-                        networkLock.lock();
-                        try {
-                            network.getVariantManager().setWorkingVariant(workingVariantId);
-
-                            propagatedContingencies = PropagatedContingency.createList(network, contingenciesPartition, partitionTopoConfig, creationParameters);
-
-                            parameters = createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
-
-                            ReportNode threadRootNode = partitionNum == 0 ? saReportNode : Reports.createRootThreadReport(saReportNode);
-                            reportNodes.set(partitionNum, threadRootNode);
-
-                            // create networks including all necessary switches
-                            lfNetworks = Networks.load(network, parameters.getNetworkParameters(), partitionTopoConfig, threadRootNode);
-                            lfNetworksList.add(0, lfNetworks); // FIXME to workaround variant removal bug, to fix in core
-                        } finally {
-                            networkLock.unlock();
-                        }
-
-                        // run simulation on largest network
-                        partitionResults.set(partitionNum, runSimulationsOnAllComponents(
-                                lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies,
-                                actions, limitReductions, lfParameters));
-
-                        return null;
-                    }, executor));
-                }
-
-                try {
-                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                            .get(); // we need to use get instead of join to get an interruption exception
-                } catch (InterruptedException e) {
-                    // also interrupt worker threads
-                    for (var future : futures) {
-                        future.cancel(true);
-                    }
-                    Thread.currentThread().interrupt();
-                }
-            } finally {
-                network.getVariantManager().allowVariantMultiThreadAccess(oldAllowVariantMultiThreadAccess);
-            }
-
-            int networkRank = 0;
-            for (var lfNetworks : lfNetworksList) {
-                if (networkRank != 0) {
-                    mergeReportThreadResults(saReportNode, reportNodes.get(networkRank));
-                }
-                lfNetworks.close();
-                networkRank += 1;
-            }
+            LfNetworkLoadMT.ParameterProvider<P> parameterProvider = partitionTopoConfig -> createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
+            LfNetworkLoadMT.ContingencyRunner<P> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, parameters) ->
+                    partitionResults.set(partitionNum, runSimulationsOnAllComponents(
+                            lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies,
+                            actions, limitReductions, lfParameters));
+            LfNetworkLoadMT.ReportMerger reportMerger = (rootReport, threadReport) -> mergeReportThreadResults(rootReport, threadReport);
+            LfNetworkLoadMT.createLFNetworksPerContingencyPartition(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
+                    parameterProvider, contingencyRunner, saReportNode, reportMerger, executor);
 
             // we just need to merge post contingency and operator strategy results, all pre contingency are the same
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();

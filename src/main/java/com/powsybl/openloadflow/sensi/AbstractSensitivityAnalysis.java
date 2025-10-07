@@ -1200,7 +1200,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         throw new IllegalArgumentException("Illegal function type side switching");
     }
 
-    protected Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+    protected record VariablesTargetVoltageInfo(boolean hasBusTargetVoltage, boolean hasTransformerTargetVoltage) {
+    };
+
+    protected VariablesTargetVoltageInfo getVariableTargetVoltageInfo(SensitivityFactorReader factorReader, Network network) {
         // Left value if we find a BUS_TARGET_VOLTAGE factor and right value if it is linked to a transformer.
         AtomicBoolean hasBusTargetVoltage = new AtomicBoolean(false);
         AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean(false);
@@ -1213,7 +1216,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 }
             }
         });
-        return Pair.of(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
+        return new VariablesTargetVoltageInfo(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
     }
 
     protected static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
@@ -1290,7 +1293,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig, boolean startWithFrozenACEmulation);
+                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig,
+                                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -56,6 +56,32 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                                                              network.getLineStream().collect(Collectors.toList()));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(2, result.getValues().size());
+        assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testEsgTutoMT() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
+
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters)
+                .setThreadCount(2);
+        sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class, openSensitivityAnalysisParameters);
+
+        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getLineStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        // TODO - check with many contingences that only one thread writes
+        // check that all resuts are obtained
 
         assertEquals(2, result.getValues().size());
         assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);

@@ -355,7 +355,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
-                        LfTopoConfig topoConfig, boolean startWithFrozenACEmulation) {
+                        LfTopoConfig topoConfig, OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);

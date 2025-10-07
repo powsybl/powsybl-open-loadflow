@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -119,14 +119,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return OpenSensitivityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES;
     }
 
-    private static OpenSensitivityAnalysisParameters getSensitivityAnalysisParametersExtension(SensitivityAnalysisParameters sensitivityAnalysisParameters) {
-        OpenSensitivityAnalysisParameters sensiParametersExt = sensitivityAnalysisParameters.getExtension(OpenSensitivityAnalysisParameters.class);
-        if (sensiParametersExt == null) {
-            sensiParametersExt = new OpenSensitivityAnalysisParameters();
-        }
-        return sensiParametersExt;
-    }
-
     private static ObjectMapper createObjectMapper() {
         return new ObjectMapper()
                 .registerModule(new ContingencyJsonModule())
@@ -156,7 +148,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             network.getVariantManager().setWorkingVariant(workingVariantId);
             ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
 
-            OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+            OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt =
+                OpenSensitivityAnalysisParameters.getOrDefault(sensitivityAnalysisParameters);
 
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
@@ -207,7 +200,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             }
-            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig, sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
+            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig, sensitivityAnalysisParametersExt);
         }, computationManager.getExecutor());
     }
 

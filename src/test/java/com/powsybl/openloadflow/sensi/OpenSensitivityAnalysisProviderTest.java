@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,6 +18,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -35,7 +36,7 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
     @Test
     void specificParametersTest() {
         var provider = new OpenSensitivityAnalysisProvider();
-        assertEquals(1, provider.getSpecificParametersNames().size());
+        assertEquals(3, provider.getSpecificParametersNames().size());
         SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
@@ -45,5 +46,9 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
         provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.DEBUG_DIR_PARAM_NAME, ""))
                 .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
         assertEquals("", parameters.getExtension(OpenSensitivityAnalysisParameters.class).getDebugDir());
+
+        provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, "false"))
+                .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
+        assertFalse(parameters.getExtension(OpenSensitivityAnalysisParameters.class).isStartWithFrozenACEmulation());
     }
 }
