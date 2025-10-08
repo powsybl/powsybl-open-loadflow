@@ -16,9 +16,8 @@ import com.powsybl.openloadflow.network.AbstractLfNetworkListener;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
+import net.jafama.DoubleWrapper;
 import net.jafama.FastMath;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.DoubleSupplier;
@@ -31,9 +30,7 @@ import java.util.stream.IntStream;
  * efficiently to avoid memory cache misses
  * foccusses on P and Q derived by V and Phi. Other combinations are not vectorized.
  */
-public class AcVectorEngine implements StateVectorListener, EquationSystemListener, VectorEngine<AcVariableType> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AcVectorEngine.class);
+public class AcVectorEngine implements StateVectorListener, EquationSystemListener<AcVariableType, AcEquationType>, EquationSystemIndexListener<AcVariableType, AcEquationType>, VectorEngine<AcVariableType> {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
@@ -47,28 +44,47 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     public final double[] g12;
     public final double[] b12;
 
+    // branch computed values
+    private final double[] a1Evaluated;
+    private final double[] r1Evaluated;
+    public final double[] sinKsi;
+    public final double[] cosKsi;
+    private final double[] theta2;
+    private final double[] sinTheta2;
+    private final double[] cosTheta2;
+    private final double[] theta1;
+    private final double[] sinTheta1;
+    private final double[] cosTheta1;
+
     // possibly computed input values
-    private final ArrayList<AbstractClosedBranchAcFlowEquationTerm> supplyingTerms = new ArrayList<>();
     public final double[] a1;
     public final double[] r1;
 
     // variables
     public final Variable<AcVariableType>[] v1Var;
+    private int[] v1VarRow;
     private final double[] v1;
     public final Variable<AcVariableType>[] v2Var;
+    private int[] v2VarRow;
     private final double[] v2;
     public final Variable<AcVariableType>[] ph1Var;
+    private int[] ph1VarRow;
     private final double[] ph1;
     public final Variable<AcVariableType>[] ph2Var;
+    private int[] ph2VarRow;
     private final double[] ph2;
 
     // indexes to compute derivatives
     private boolean equationDataValid;
     private boolean equationOrderValid;
+    private boolean variableValuesValid;
+    private boolean variableRowDataValid;
+    private boolean activeStatusesValid;
     private int[] sortedEquationIndexArray;
     private int[] variableCountPerEquation;
     private int[] variablePerEquationIndex;
     private Variable<AcVariableType>[] variablesPerEquation;
+    private int[] variableRowPerEquation;
     private double[] deriveResultPerVariableAndEquation;
     private int[] matrixIndexPerVariableAndEquation;
     private EquationTerm<AcVariableType, AcEquationType>[] termsByVariableAndEquation;
@@ -92,25 +108,27 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     // term replicated data for quick access
     private boolean[] termActiveStatus;
-    public DoubleSupplier[] a1TermSupplier;
-    public DoubleSupplier[] r1TermSupplier;
+    private final DoubleSupplier[] a1TermSupplier;
+    private final DoubleSupplier[] r1TermSupplier;
 
     // sorted term data per equation (for eval)
     private EquationTerm<AcVariableType, AcEquationType>[] sortedTermsForEval;
-    private int[] termDataIndexForEval;
-    private int[] termEquationActiveStatusIndexForEval;
+    private boolean[] termToEval;
+    private int[] termVectorIndexForEval;
+    private int[] termEquationVectorIndexForEval;
     private int[] termByEvalResultIndex;
     private int[] termByEquationBranchNumForEval;
-    private VecToVal[] sortedTermsVecToValForEval;
+    private VecToVal[] termVecToValForEval;
 
     // sorted term data per equation and variable (for der)
     private EquationTerm<AcVariableType, AcEquationType>[] sortedTermsForDer;
-    private int[] termDataIndexForDer;
-    private int[] termEquationActiveStatusIndexForDer;
+    private boolean[] termToDer;
+    private int[] termVectorIndexForDer;
+    private int[] termEquationVectorIndexForDer;
     private Variable<AcVariableType>[] termVariable;
     private int[] termByVariableDeriveResultIndex;
     private int[] termByVariableBranchNumForDer;
-    private VecToVal[] sortedTermsVecToValForDer;
+    private VecToVal[] termVecToValForDer;
 
     private Map<Integer, String> branchNameByBranchNum = new HashMap<>();
 
@@ -144,40 +162,76 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         networkDataInitialized = new boolean[branchCount];
 
         a1 = new double[branchCount];
-
         r1 = new double[branchCount];
+        a1TermSupplier = new DoubleSupplier[branchCount];
+        r1TermSupplier = new DoubleSupplier[branchCount];
+        a1Evaluated = new double[branchCount];
+        r1Evaluated = new double[branchCount];
+        sinKsi = new double[branchCount];
+        cosKsi = new double[branchCount];
+        theta2 = new double[branchCount];
+        sinTheta2 = new double[branchCount];
+        cosTheta2 = new double[branchCount];
+        theta1 = new double[branchCount];
+        sinTheta1 = new double[branchCount];
+        cosTheta1 = new double[branchCount];
 
         v1Var = new Variable[branchCount];
+        v1VarRow = new int[branchCount];
         v1 = new double[branchCount];
         v2Var = new Variable[branchCount];
+        v2VarRow = new int[branchCount];
         v2 = new double[branchCount];
         ph1Var = new Variable[branchCount];
+        ph1VarRow = new int[branchCount];
         ph1 = new double[branchCount];
         ph2Var = new Variable[branchCount];
+        ph2VarRow = new int[branchCount];
         ph2 = new double[branchCount];
 
         if (equationSystem != null) {
             equationSystem.getStateVector().addListener(this);
             equationSystem.addListener(this);
+            equationSystem.getIndex().addListener(this);
         }
     }
 
+    // Events related to StateVector listeners
+
     @Override
     public void onStateUpdate() {
-        updateVariables();
+        variableValuesValid = false;
+    }
+
+    // Events related to EquationSystemIndex listeners
+
+    @Override
+    public void onVariableChange(Variable<AcVariableType> variable, ChangeType changeType) {
+        variableRowDataValid = false;
     }
 
     @Override
-    public void onEquationChange(Equation equation, EquationEventType eventType) {
+    public void onEquationChange(Equation<AcVariableType, AcEquationType> equation, ChangeType changeType) {
+        // Already managed by EquationSystemListener
+    }
+
+    @Override
+    public void onEquationTermChange(EquationTerm<AcVariableType, AcEquationType> term) {
+        // Already managed by EquationSystemListener
+    }
+
+    // Events related to EquationSystem listeners
+
+    @Override
+    public void onEquationChange(Equation<AcVariableType, AcEquationType> equation, EquationEventType eventType) {
         switch (eventType) {
-            case EQUATION_CREATED:
-            case EQUATION_REMOVED:
+            case EQUATION_CREATED, EQUATION_REMOVED:
                 equationDataValid = false;
                 break;
-            case EQUATION_ACTIVATED:
-            case EQUATION_DEACTIVATED:
+            case EQUATION_ACTIVATED, EQUATION_DEACTIVATED:
                 if (equation.getVectorIndex() >= 0) {
                     equationActiveStatus[equation.getVectorIndex()] = equation.isActive();
+                    activeStatusesValid = false;
                 }
             case EQUATION_COLUMN_CHANGED:
                 if (equation.getVectorIndex() >= 0) {
@@ -189,11 +243,14 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+    public void onEquationTermChange(EquationTerm<AcVariableType, AcEquationType> term, EquationTermEventType eventType) {
         if (eventType == EquationTermEventType.EQUATION_TERM_ACTIVATED || eventType == EquationTermEventType.EQUATION_TERM_DEACTIVATED) {
             if (term.getVectorIndex() >= 0) {
                 termActiveStatus[term.getVectorIndex()] = term.isActive();
+                activeStatusesValid = false;
             }
+        } else if (eventType == EquationTermEventType.EQUATION_TERM_ADDED) {
+            equationDataValid = false;
         }
     }
 
@@ -201,6 +258,14 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
     public void evalLhs(double[] array) {
         if (!equationDataValid) {
             initEquationData();
+        }
+
+        if (!activeStatusesValid) {
+            updateActiveStatus();
+        }
+
+        if (!variableValuesValid) {
+            updateVariables();
         }
 
         evalSortedTerms();
@@ -213,19 +278,52 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         }
     }
 
-    public void addSupplyingTerm(AbstractClosedBranchAcFlowEquationTerm t) {
-        supplyingTerms.add(t);
-        equationDataValid = false;
+    private void updateVariables() {
+        if (!variableRowDataValid) {
+            updateVariableRows();
+        }
+        StateVector stateVector = equationSystem.getStateVector();
+        DoubleWrapper wrapper = new DoubleWrapper();
+        for (int branchNum = 0; branchNum < v1VarRow.length; branchNum++) {
+            v1[branchNum] = v1VarRow[branchNum] >= 0 ? stateVector.get(v1VarRow[branchNum]) : Double.NaN;
+            v2[branchNum] = v2VarRow[branchNum] >= 0 ? stateVector.get(v2VarRow[branchNum]) : Double.NaN;
+            ph1[branchNum] = ph1VarRow[branchNum] >= 0 ? stateVector.get(ph1VarRow[branchNum]) : Double.NaN;
+            ph2[branchNum] = ph2VarRow[branchNum] >= 0 ? stateVector.get(ph2VarRow[branchNum]) : Double.NaN;
+            a1Evaluated[branchNum] = a1TermSupplier[branchNum] == null ? a1[branchNum] : a1TermSupplier[branchNum].getAsDouble();
+            r1Evaluated[branchNum] = r1TermSupplier[branchNum] == null ? r1[branchNum] : r1TermSupplier[branchNum].getAsDouble();
+            theta1[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta1(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
+            sinTheta1[branchNum] = FastMath.sinAndCos(theta1[branchNum], wrapper);
+            cosTheta1[branchNum] = wrapper.value;
+            theta2[branchNum] = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated[branchNum], ph2[branchNum]);
+            sinTheta2[branchNum] = FastMath.sinAndCos(theta2[branchNum], wrapper);
+            cosTheta2[branchNum] = wrapper.value;
+        }
+        variableValuesValid = true;
     }
 
-    private void updateVariables() {
-        StateVector stateVector = equationSystem.getStateVector();
-        for (int i = 0; i < v1Var.length; i++) {
-            v1[i] = v1Var[i] != null && v1Var[i].getRow() >= 0 ? stateVector.get(v1Var[i].getRow()) : Double.NaN;
-            v2[i] = v2Var[i] != null && v2Var[i].getRow() >= 0 ? stateVector.get(v2Var[i].getRow()) : Double.NaN;
-            ph1[i] = ph1Var[i] != null && ph1Var[i].getRow() >= 0 ? stateVector.get(ph1Var[i].getRow()) : Double.NaN;
-            ph2[i] = ph2Var[i] != null && ph2Var[i].getRow() >= 0 ? stateVector.get(ph2Var[i].getRow()) : Double.NaN;
+    private void updateVariableRows() {
+        for (int branchNum = 0; branchNum < v1Var.length; branchNum++) {
+            v1VarRow[branchNum] = v1Var[branchNum] != null ? v1Var[branchNum].getRow() : -1;
+            v2VarRow[branchNum] = v2Var[branchNum] != null ? v2Var[branchNum].getRow() : -1;
+            ph1VarRow[branchNum] = ph1Var[branchNum] != null ? ph1Var[branchNum].getRow() : -1;
+            ph2VarRow[branchNum] = ph2Var[branchNum] != null ? ph2Var[branchNum].getRow() : -1;
         }
+        for (int i = 0; i < variablesPerEquation.length; i++) {
+            variableRowPerEquation[i] = variablesPerEquation[i].getRow();
+        }
+        variableRowDataValid = true;
+    }
+
+    private void updateActiveStatus() {
+        for (int i = 0; i < sortedTermsForEval.length; i++) {
+            termToEval[i] = equationActiveStatus[termEquationVectorIndexForEval[i]] &&
+                    termActiveStatus[termVectorIndexForEval[i]];
+        }
+        for (int i = 0; i < sortedTermsForDer.length; i++) {
+            termToDer[i] = equationActiveStatus[termEquationVectorIndexForDer[i]] &&
+                    termActiveStatus[termVectorIndexForDer[i]];
+        }
+        activeStatusesValid = true;
     }
 
     private void initEquationData() {
@@ -256,10 +354,9 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             index += 1;
         }
         termActiveStatus = new boolean[termCount];
-        a1TermSupplier = new DoubleSupplier[termCount];
-        r1TermSupplier = new DoubleSupplier[termCount];
         variablePerEquationIndex = new int[equationCount];
         variablesPerEquation = new Variable[variableIndexSize];
+        variableRowPerEquation = new int[variableIndexSize];
         matrixIndexPerVariableAndEquation = new int[variableIndexSize];
         deriveResultPerVariableAndEquation = new double[variableIndexSize];
         List<EquationTerm<AcVariableType, AcEquationType>> termsByVariableAndEquationList = new ArrayList<>();
@@ -269,13 +366,12 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
         int indexEq = 0;
         int indexForTermData = 0;
         for (Equation<AcVariableType, AcEquationType> e : equationList) {
-            boolean hasBranchTerm = false;
             for (EquationTerm<AcVariableType, AcEquationType> t : e.getTerms()) {
                 t.setVectorIndex(indexForTermData);
                 termActiveStatus[indexForTermData] = t.isActive();
                 if (t instanceof AbstractClosedBranchAcFlowEquationTerm brTerm) {
-                    a1TermSupplier[indexForTermData] = brTerm.getA1Supplier();
-                    r1TermSupplier[indexForTermData] = brTerm.getR1Supplier();
+                    a1TermSupplier[brTerm.getElementNum()] = brTerm.getA1Supplier();
+                    r1TermSupplier[brTerm.getElementNum()] = brTerm.getR1Supplier();
                     r1[brTerm.getElementNum()] = brTerm.r1();
                     a1[brTerm.getElementNum()] = brTerm.a1();
                 }
@@ -293,6 +389,7 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
             variablePerEquationIndex[indexEq] = indexVar;
             for (Variable<AcVariableType> v : e.getVariables()) {
                 variablesPerEquation[indexVar] = v;
+                variableRowPerEquation[indexVar] = v.getRow();
                 for (EquationTerm<AcVariableType, AcEquationType> t : e.getTerms(v)) {
                     termsByVariableAndEquationList.add(t);
                     termDataListForDer.add(new TermData(t,
@@ -336,20 +433,22 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         int termByVariableCount = termDataListForDer.size();
         sortedTermsForDer = new EquationTerm[termByVariableCount];
-        termDataIndexForDer = new int[termByVariableCount];
-        termEquationActiveStatusIndexForDer = new int[termByVariableCount];
+        termToDer = new boolean[termByVariableCount];
+        termVectorIndexForDer = new int[termByVariableCount];
+        termEquationVectorIndexForDer = new int[termByVariableCount];
         termVariable = new Variable[termByVariableCount];
         termByVariableDeriveResultIndex = new int[termByVariableCount];
         termByVariableBranchNumForDer = new int[termByVariableCount];
-        sortedTermsVecToValForDer = new VecToVal[termByVariableCount];
+        termVecToValForDer = new VecToVal[termByVariableCount];
         int sortedTermIndex = 0;
         for (TermData termData : termDataListForDer) {
             sortedTermsForDer[sortedTermIndex] = termData.term;
-            termDataIndexForDer[sortedTermIndex] = termData.term.getVectorIndex();
-            termEquationActiveStatusIndexForDer[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
+            termToDer[sortedTermIndex] = termData.term.isActive() && termData.term.getEquation().isActive();
+            termVectorIndexForDer[sortedTermIndex] = termData.term.getVectorIndex();
+            termEquationVectorIndexForDer[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
             termVariable[sortedTermIndex] = termData.v;
             termByVariableBranchNumForDer[sortedTermIndex] = termData.getBranchNum();
-            sortedTermsVecToValForDer[sortedTermIndex] = termData.term.getVecToVal(termData.v);
+            termVecToValForDer[sortedTermIndex] = termData.term.getVecToVal(termData.v);
             termByVariableDeriveResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
         }
@@ -372,23 +471,30 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         int termByEquationCount = termDataListForEval.size();
         sortedTermsForEval = new EquationTerm[termByEquationCount];
-        termDataIndexForEval = new int[termByEquationCount];
-        termEquationActiveStatusIndexForEval = new int[termByEquationCount];
+        termToEval = new boolean[termByEquationCount];
+        termVectorIndexForEval = new int[termByEquationCount];
+        termEquationVectorIndexForEval = new int[termByEquationCount];
         termByEvalResultIndex = new int[termByEquationCount];
         termByEquationBranchNumForEval = new int[termByEquationCount];
-        sortedTermsVecToValForEval = new VecToVal[termByEquationCount];
+        termVecToValForEval = new VecToVal[termByEquationCount];
         sortedTermIndex = 0;
         for (TermData termData : termDataListForEval) {
             sortedTermsForEval[sortedTermIndex] = termData.term;
-            termDataIndexForEval[sortedTermIndex] = termData.term.getVectorIndex();
-            termEquationActiveStatusIndexForEval[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
+            termToEval[sortedTermIndex] = termData.term.isActive() && termData.term.getEquation().isActive();
+            termVectorIndexForEval[sortedTermIndex] = termData.term.getVectorIndex();
+            termEquationVectorIndexForEval[sortedTermIndex] = termData.term.getEquation().getVectorIndex();
             termByEquationBranchNumForEval[sortedTermIndex] = termData.term instanceof AbstractClosedBranchAcFlowEquationTerm ? termData.termElementNum : -1;
-            sortedTermsVecToValForEval[sortedTermIndex] = termData.term.getVecToVal(null);
+            termVecToValForEval[sortedTermIndex] = termData.term.getVecToVal(null);
             termByEvalResultIndex[sortedTermIndex] = termData.indexForResult;
             sortedTermIndex += 1;
         }
-
         equationDataValid = true;
+
+        // variable values and active statuses will be filled when needed
+        equationOrderValid = false;
+        variableRowDataValid = false;
+        variableValuesValid = false;
+        activeStatusesValid = false;
     }
 
     private void sortEquations() {
@@ -407,18 +513,19 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
         if (!equationDataValid) {
             initEquationData();
-            equationOrderValid = false;
         }
 
         if (!equationOrderValid) {
             sortEquations();
         }
 
-        // Although in normal call scenarios variables are up to date
-        // the der can be triggered by unusual scenario (any event that updates
-        // the Jacobian Matrix). To be sure to get the correct value for the derivation
-        // computation we force an update here
-        updateVariables();
+        if (!activeStatusesValid) {
+            updateActiveStatus();
+        }
+
+        if (!variableValuesValid) {
+            updateVariables();
+        }
 
         derSortedTerms();
 
@@ -428,13 +535,11 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
                 int col = equationColumn[eqIndex];
                 int varEnd = variablePerEquationIndex[eqIndex] + variableCountPerEquation[eqIndex];
                 for (int varIndex = variablePerEquationIndex[eqIndex]; varIndex < varEnd; varIndex++) {
-                    Variable<AcVariableType> v = variablesPerEquation[varIndex];
-                    int row = v.getRow();
-                    if (row >= 0) {
+                    if (variableRowPerEquation[varIndex] >= 0) {
                         if (update) {
                             matrix.addAtIndex(matrixIndexPerVariableAndEquation[varIndex], deriveResultPerVariableAndEquation[varIndex]);
                         } else {
-                            matrixIndexPerVariableAndEquation[varIndex] = matrix.addAndGetIndex(row, col, deriveResultPerVariableAndEquation[varIndex]);
+                            matrixIndexPerVariableAndEquation[varIndex] = matrix.addAndGetIndex(variableRowPerEquation[varIndex], col, deriveResultPerVariableAndEquation[varIndex]);
                         }
                     }
                 }
@@ -450,52 +555,37 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     private void evalSortedTermsVec() {
         int branchNum = -1;
-        double a1Evaluated = Double.NaN;
-        double r1Evaluated = Double.NaN;
-        double sinKsi = Double.NaN;
-        double cosKsi = Double.NaN;
-        double theta2 = Double.NaN;
-        double sinTheta2 = Double.NaN;
-        double cosTheta2 = Double.NaN;
-        double theta1 = Double.NaN;
-        double sinTheta1 = Double.NaN;
-        double cosTheta1 = Double.NaN;
         for (int termIndex = 0; termIndex < sortedTermsForEval.length; termIndex++) {
-            if (equationActiveStatus[termEquationActiveStatusIndexForEval[termIndex]] &&
-                    termActiveStatus[termDataIndexForEval[termIndex]]) {
-                int termStatusIndex = termDataIndexForEval[termIndex];
-                if (termByEquationBranchNumForEval[termIndex] != branchNum && termByEquationBranchNumForEval[termIndex] != -1) {
-                    branchNum = termByEquationBranchNumForEval[termIndex];
-                    sinKsi = FastMath.sin(ksi[branchNum]);
-                    cosKsi = FastMath.cos(ksi[branchNum]);
-                    a1Evaluated = a1TermSupplier[termStatusIndex] == null ? a1[branchNum] : a1TermSupplier[termStatusIndex].getAsDouble();
-                    r1Evaluated = r1TermSupplier[termStatusIndex] == null ? r1[branchNum] : r1TermSupplier[termStatusIndex].getAsDouble();
-                    theta2 = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated, ph2[branchNum]);
-                    sinTheta2 = FastMath.sin(theta2);
-                    cosTheta2 = FastMath.cos(theta2);
-                    theta1 = AbstractClosedBranchAcFlowEquationTerm.theta1(ksi[branchNum], ph1[branchNum], a1Evaluated, ph2[branchNum]);
-                    sinTheta1 = FastMath.sin(theta1);
-                    cosTheta1 = FastMath.cos(theta1);
-                }
-                if (sortedTermsVecToValForEval[termIndex] != null) {
-                    evalResultPerEquation[termByEvalResultIndex[termIndex]] +=
-                        sortedTermsVecToValForEval[termIndex].value(v1[branchNum], v2[branchNum], sinKsi, cosKsi, sinTheta2, cosTheta2, sinTheta1, cosTheta1,
-                                b1[branchNum], b2[branchNum],
-                                g1[branchNum], g2[branchNum], y[branchNum], g12[branchNum], b12[branchNum], a1Evaluated, r1Evaluated,
-                                branchNum, branchNameByBranchNum);
-                }
+            if (termToEval[termIndex] && termVecToValForEval[termIndex] != null) {
+                branchNum = termByEquationBranchNumForEval[termIndex];
+                evalResultPerEquation[termByEvalResultIndex[termIndex]] +=
+                    termVecToValForEval[termIndex].value(v1[branchNum],
+                            v2[branchNum],
+                            sinKsi[branchNum],
+                            cosKsi[branchNum],
+                            sinTheta2[branchNum],
+                            cosTheta2[branchNum],
+                            sinTheta1[branchNum],
+                            cosTheta1[branchNum],
+                            b1[branchNum],
+                            b2[branchNum],
+                            g1[branchNum],
+                            g2[branchNum],
+                            y[branchNum],
+                            g12[branchNum],
+                            b12[branchNum],
+                            a1Evaluated[branchNum],
+                            r1Evaluated[branchNum],
+                            branchNum,
+                            branchNameByBranchNum);
             }
         }
     }
 
     private void evalSortedTermsObj() {
         for (int termIndex = 0; termIndex < sortedTermsForEval.length; termIndex++) {
-            if (equationActiveStatus[termEquationActiveStatusIndexForEval[termIndex]] &&
-                    termActiveStatus[termDataIndexForEval[termIndex]]) {
-                if (sortedTermsVecToValForEval[termIndex] == null) {
-                    evalResultPerEquation[termByEvalResultIndex[termIndex]] += sortedTermsForEval[termIndex].evalLhs();
-                }
-
+            if (termToEval[termIndex] && termVecToValForEval[termIndex] == null) {
+                evalResultPerEquation[termByEvalResultIndex[termIndex]] += sortedTermsForEval[termIndex].evalLhs();
             }
         }
     }
@@ -508,52 +598,36 @@ public class AcVectorEngine implements StateVectorListener, EquationSystemListen
 
     private void derSortedTermsVec() {
         int branchNum = -1;
-        double a1Evaluated = Double.NaN;
-        double r1Evaluated = Double.NaN;
-        double sinKsi = Double.NaN;
-        double cosKsi = Double.NaN;
-        double theta2 = Double.NaN;
-        double sinTheta2 = Double.NaN;
-        double cosTheta2 = Double.NaN;
-        double theta1 = Double.NaN;
-        double sinTheta1 = Double.NaN;
-        double cosTheta1 = Double.NaN;
         for (int termIndex = 0; termIndex < sortedTermsForDer.length; termIndex++) {
-            if (equationActiveStatus[termEquationActiveStatusIndexForDer[termIndex]] &&
-                    termActiveStatus[termDataIndexForDer[termIndex]]) {
-                int termStatusIndex = termDataIndexForDer[termIndex];
-                if (termByVariableBranchNumForDer[termIndex] != branchNum && termByVariableBranchNumForDer[termIndex] != -1) {
-                    branchNum = termByVariableBranchNumForDer[termIndex];
-                    sinKsi = FastMath.sin(ksi[branchNum]);
-                    cosKsi = FastMath.cos(ksi[branchNum]);
-                    a1Evaluated = a1TermSupplier[termStatusIndex] == null ? a1[branchNum] : a1TermSupplier[termStatusIndex].getAsDouble();
-                    r1Evaluated = r1TermSupplier[termStatusIndex] == null ? r1[branchNum] : r1TermSupplier[termStatusIndex].getAsDouble();
-                    theta2 = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi[branchNum], ph1[branchNum], a1Evaluated, ph2[branchNum]);
-                    sinTheta2 = FastMath.sin(theta2);
-                    cosTheta2 = FastMath.cos(theta2);
-                    theta1 = AbstractClosedBranchAcFlowEquationTerm.theta1(ksi[branchNum], ph1[branchNum], a1Evaluated, ph2[branchNum]);
-                    sinTheta1 = FastMath.sin(theta1);
-                    cosTheta1 = FastMath.cos(theta1);
-                }
-                if (sortedTermsVecToValForDer[termIndex] != null) {
-                    deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] +=
-                            sortedTermsVecToValForDer[termIndex].value(v1[branchNum], v2[branchNum], sinKsi, cosKsi, sinTheta2, cosTheta2, sinTheta1, cosTheta1,
-                                    b1[branchNum], b2[branchNum],
-                                    g1[branchNum], g2[branchNum], y[branchNum], g12[branchNum], b12[branchNum], a1Evaluated, r1Evaluated,
-                                    branchNum, branchNameByBranchNum);
-                }
+            if (termToDer[termIndex] && termVecToValForDer[termIndex] != null) {
+                branchNum = termByVariableBranchNumForDer[termIndex];
+                deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] +=
+                        termVecToValForDer[termIndex].value(v1[branchNum],
+                                v2[branchNum],
+                                sinKsi[branchNum],
+                                cosKsi[branchNum],
+                                sinTheta2[branchNum],
+                                cosTheta2[branchNum],
+                                sinTheta1[branchNum],
+                                cosTheta1[branchNum],
+                                b1[branchNum],
+                                b2[branchNum],
+                                g1[branchNum],
+                                g2[branchNum],
+                                y[branchNum],
+                                g12[branchNum],
+                                b12[branchNum],
+                                a1Evaluated[branchNum],
+                                r1Evaluated[branchNum],
+                                branchNum, branchNameByBranchNum);
             }
         }
     }
 
     private void derSortedTermsObj() {
         for (int termIndex = 0; termIndex < sortedTermsForDer.length; termIndex++) {
-            if (equationActiveStatus[termEquationActiveStatusIndexForDer[termIndex]] &&
-                    termActiveStatus[termDataIndexForDer[termIndex]]) {
-                if (sortedTermsVecToValForDer[termIndex] == null) {
-                    deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] += sortedTermsForDer[termIndex].der(termVariable[termIndex]);
-                }
-
+            if (termToDer[termIndex] && termVecToValForDer[termIndex] == null) {
+                deriveResultPerVariableAndEquation[termByVariableDeriveResultIndex[termIndex]] += sortedTermsForDer[termIndex].der(termVariable[termIndex]);
             }
         }
     }
