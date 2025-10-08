@@ -17,6 +17,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -292,8 +293,7 @@ class FastDecoupledTest {
                 .withMessageTemplate("test")
                 .build();
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
-        loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(),
-                LocalComputationManager.getDefault(), parametersFastDecoupled, reporter);
+        loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parametersFastDecoupled).setReportNode(reporter));
 
         // Test the report
         String expected = """
