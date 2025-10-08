@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
@@ -39,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -757,11 +760,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return validFactorHolder;
     }
 
-    protected void checkContingencies(List<PropagatedContingency> contingencies) {
+    protected void checkContingencies(List<Contingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
-        for (PropagatedContingency contingency : contingencies) {
+        for (Contingency contingency : contingencies) {
             // check ID are unique because, later contingency are indexed by their IDs
-            String contingencyId = contingency.getContingency().getId();
+            String contingencyId = contingency.getId();
             if (contingenciesIds.contains(contingencyId)) {
                 throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
             }
@@ -1292,9 +1295,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
     }
 
-    public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig,
-                                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt);
+    public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, PropagatedContingencyCreationParameters creationParameters,
+                                 List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
+                                 SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
+                                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
+                                 Executor executor) throws ExecutionException;
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

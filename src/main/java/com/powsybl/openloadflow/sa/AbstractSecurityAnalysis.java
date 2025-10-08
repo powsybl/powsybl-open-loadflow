@@ -211,22 +211,19 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return new SecurityAnalysisReport(finalResult);
     }
 
-    private record LfNetworkId(Object numCC, Object numSC) {
-    }
-
     private void mergeReportThreadResults(ReportNode mainReport, ReportNode toMerge) {
 
-        Map<LfNetworkId, ReportNode> mainNodes = mainReport.getChildren().stream()
+        Map<LfNetworkLoadMT.LfNetworkId, ReportNode> mainNodes = mainReport.getChildren().stream()
                 .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
                 .collect(Collectors.toMap(
-                        n -> new LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
+                        n -> new LfNetworkLoadMT.LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
                                                        n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
                                   n -> n));
 
-        Map<LfNetworkId, ReportNode> toMergeNodes = toMerge.getChildren().stream()
+        Map<LfNetworkLoadMT.LfNetworkId, ReportNode> toMergeNodes = toMerge.getChildren().stream()
                 .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
                 .collect(Collectors.toMap(
-                        n -> new LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
+                        n -> new LfNetworkLoadMT.LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
                                 n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
                         n -> n));
 
@@ -234,7 +231,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // So the merge is just about appending relevant data to lfNetwork nodes of the
         // main thread
 
-        for (Map.Entry<LfNetworkId, ReportNode> entry : mainNodes.entrySet()) {
+        for (Map.Entry<LfNetworkLoadMT.LfNetworkId, ReportNode> entry : mainNodes.entrySet()) {
             // Both should exist
             ReportNode mainReportNode = entry.getValue();
             ReportNode toMergeNode = toMergeNodes.get(entry.getKey());

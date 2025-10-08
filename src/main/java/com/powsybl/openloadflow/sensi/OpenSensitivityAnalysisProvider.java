@@ -15,6 +15,7 @@ import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
@@ -32,8 +33,6 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfTopoConfig;
-import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.ProviderConstants;
@@ -144,8 +143,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(computationManager);
         Objects.requireNonNull(reportNode);
 
-        return CompletableFuture.runAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingVariantId);
+        return CompletableFutureTask.runAsync(() -> {
             ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
 
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt =
@@ -154,14 +152,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
-            LfTopoConfig topoConfig = new LfTopoConfig();
             LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
                     .setContingencyPropagation(false)
                     .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
                     .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                     .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -169,7 +165,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             if (sensitivityAnalysisParametersExt.getDebugDir() != null && !sensitivityAnalysisParametersExt.getDebugDir().isEmpty()) {
                 Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
                 String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
-
+                network.getVariantManager().setWorkingVariant(workingVariantId);
                 NetworkSerDe.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
 
                 ObjectWriter objectWriter = createObjectMapper()
@@ -200,7 +196,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             } else {
                 analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             }
-            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig, sensitivityAnalysisParametersExt);
+            analysis.analyse(network, workingVariantId, contingencies, creationParameters, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, sensitivityAnalysisParametersExt, computationManager.getExecutor());
+            return null; // Make this a Callable
         }, computationManager.getExecutor());
     }
 

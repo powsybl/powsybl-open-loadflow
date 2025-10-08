@@ -12,6 +12,8 @@ import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityResultWriter;
 
 import java.io.Closeable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +26,7 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
 
     private final SensitivityResultWriter sensitivityResultWriter;
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
+    private final Map<Integer, Integer> baseCaseSensitivityValueWritten = new ConcurrentHashMap<>();
 
     public SequentialSensitivityResultWriter(SensitivityResultWriter sensitivityResultWriter) {
         this.sensitivityResultWriter = sensitivityResultWriter;
@@ -31,11 +34,20 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
 
     @Override
     public void writeSensitivityValue(int factorIndex, int contingencyIndex, double value, double functionReference) {
-        executor.execute(() -> sensitivityResultWriter.writeSensitivityValue(factorIndex, contingencyIndex, value, functionReference));
+        if (contingencyIndex == -1) {
+            // Write the base case only once
+            baseCaseSensitivityValueWritten.computeIfAbsent(factorIndex, i -> {
+                executor.execute(() -> sensitivityResultWriter.writeSensitivityValue(factorIndex, contingencyIndex, value, functionReference));
+                return i;
+            });
+        } else {
+            executor.execute(() -> sensitivityResultWriter.writeSensitivityValue(factorIndex, contingencyIndex, value, functionReference));
+        }
     }
 
     @Override
     public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
+        // Not called for the base case. No need to manage duplicate calls.
         executor.execute(() -> sensitivityResultWriter.writeContingencyStatus(contingencyIndex, status));
     }
 

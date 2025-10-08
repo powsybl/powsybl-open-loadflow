@@ -29,6 +29,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+// TODO: Rename the class
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Didier Vidal {@literal <didier.vidal-ext at rte-france.com>}
@@ -68,9 +69,15 @@ public final class LfNetworkLoadMT {
         try {
             Lock networkLock = new ReentrantLock();
             List<CompletableFuture<Void>> futures = new ArrayList<>();
+            int startIndexMutable = 0;
             for (int i = 0; i < contingenciesPartitions.size(); i++) {
                 final int partitionNum = i;
                 var contingenciesPartition = contingenciesPartitions.get(i);
+                if (partitionNum > 0 && contingenciesPartition.isEmpty()) {
+                    continue;
+                }
+                // store startIndex for completableFuture launched in this loop
+                final int startIndex = startIndexMutable;
                 futures.add(CompletableFutureTask.runAsync(() -> {
 
                     var partitionTopoConfig = new LfTopoConfig(topoConfig);
@@ -91,7 +98,7 @@ public final class LfNetworkLoadMT {
                     try {
                         network.getVariantManager().setWorkingVariant(workingVariantId);
 
-                        propagatedContingencies = PropagatedContingency.createList(network, contingenciesPartition, partitionTopoConfig, creationParameters);
+                        propagatedContingencies = PropagatedContingency.createList(network, contingenciesPartition, partitionTopoConfig, creationParameters, startIndex);
 
                         parameters = parameterProvider.createParameters(partitionTopoConfig);
 
@@ -109,6 +116,7 @@ public final class LfNetworkLoadMT {
                     contingencyRunner.run(partitionNum, lfNetworks, propagatedContingencies, parameters);
                     return null;
                 }, executor));
+                startIndexMutable += contingenciesPartition.size();
             }
 
             try {
@@ -133,5 +141,8 @@ public final class LfNetworkLoadMT {
             lfNetworks.close();
             networkRank += 1;
         }
+    }
+
+    public record LfNetworkId(Object numCC, Object numSC) {
     }
 }
