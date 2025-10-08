@@ -186,11 +186,26 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaNoInterchangeControl(ReportNode reportNode, String area, String reason) {
+    public static void reportAreaNoInterchangeControlNoBoundary(ReportNode reportNode, String area) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.areaNoInterchangeControl")
+                .withMessageTemplate("olf.areaNoInterchangeControlNoBoundary")
                 .withUntypedValue("area", area)
-                .withUntypedValue("reason", reason)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControlNoInterchangeTarget(ReportNode reportNode, String area) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaNoInterchangeControlNoInterchangeTarget")
+                .withUntypedValue("area", area)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControlMissingBuses(ReportNode reportNode, String area) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaNoInterchangeControlMissingBuses")
+                .withUntypedValue("area", area)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
@@ -628,15 +643,21 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAcLfComplete(ReportNode reportNode, boolean success, String solverStatus, String outerloopStatus) {
-        TypedValue severity = success ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
-        String successText = success ? "successfully" : "with error";
+    public static void reportAcLfCompleteWithSuccess(ReportNode reportNode, String solverStatus, String outerloopStatus) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.acLfComplete")
-                .withUntypedValue("successText", successText)
+                .withMessageTemplate("olf.acLfCompleteWithSuccess")
                 .withUntypedValue("solverStatus", solverStatus)
                 .withUntypedValue("outerloopStatus", outerloopStatus)
-                .withSeverity(severity)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportAcLfCompleteWithError(ReportNode reportNode, String solverStatus, String outerloopStatus) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.acLfCompleteWithError")
+                .withUntypedValue("solverStatus", solverStatus)
+                .withUntypedValue("outerloopStatus", outerloopStatus)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
