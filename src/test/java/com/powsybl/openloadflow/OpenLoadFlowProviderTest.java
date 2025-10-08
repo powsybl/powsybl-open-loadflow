@@ -19,10 +19,7 @@ import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -130,8 +127,11 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         loadFlowParameters.setHvdcAcEmulation(true);
         openLoadFlowParameters.setAcSolverType(FastDecoupledFactory.NAME);
+        DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
+        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, loadFlowParameters,
-                openLoadFlowParameters, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false));
+                openLoadFlowParameters, matrixFactory, connectivityFactory, false, false));
         assertEquals("Fast-Decoupled solver is incompatible with AcEmulation: hvdcAcEmulation LoadFlowParameter should be switched to false", e.getMessage());
     }
 }

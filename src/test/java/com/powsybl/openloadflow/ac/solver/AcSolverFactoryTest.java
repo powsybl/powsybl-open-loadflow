@@ -90,6 +90,7 @@ class AcSolverFactoryTest {
 
         @Override
         public void checkSolverAndParameterConsistency(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+            // Nothing to check here
         }
 
         @Override

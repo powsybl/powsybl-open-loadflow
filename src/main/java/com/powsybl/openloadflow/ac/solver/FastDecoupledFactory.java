@@ -19,8 +19,6 @@ import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -29,7 +27,6 @@ import org.slf4j.LoggerFactory;
 public class FastDecoupledFactory extends NewtonRaphsonFactory {
 
     public static final String NAME = "FAST_DECOUPLED";
-    private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupledFactory.class);
 
     @Override
     public String getName() {

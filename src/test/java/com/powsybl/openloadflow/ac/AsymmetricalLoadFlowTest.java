@@ -359,12 +359,13 @@ public class AsymmetricalLoadFlowTest {
 
     @Test
     void incompatibilityWithFastDecoupledTest() {
-        Network n = TwoBusNetworkFactory.create();
         parametersExt.setAcSolverType(FastDecoupledFactory.NAME);
         parametersExt.setAsymmetrical(true);
+        DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
+        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, parameters,
-                parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false));
+                parametersExt, matrixFactory, connectivityFactory, false, false));
         assertEquals("Fast-Decoupled solver is incompatible with asymmetrical load flow: asymmetrical OpenLoadFLowParameter should be switched to false", e.getMessage());
     }
 
