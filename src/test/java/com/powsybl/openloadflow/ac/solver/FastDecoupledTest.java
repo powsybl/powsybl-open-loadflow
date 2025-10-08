@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac.solver;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
