@@ -6,7 +6,7 @@
             Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
             Angle reference bus: VLHV1_0
             Slack bus: VLHV1_0
-         + Newton Raphson on Network CC0 SC0
+         + Newton-Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
                Newton-Raphson norm |f(x)|=11.37683

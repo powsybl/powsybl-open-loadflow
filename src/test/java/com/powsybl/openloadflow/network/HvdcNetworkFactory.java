@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2021-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -20,13 +20,28 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1       ld2               ld3
      * |         |                 |
-     * b1 ------- b2-cs2--------cs3-b3
+     * b1 ------- b2-cs2--------cs3-b3--g3 (small generator for slack distribution)
+     * l12          hvdc23
+     * </pre>
+     *
+     * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+     */
+    public static Network createVsc() {
+        return createVsc(true);
+    }
+
+    /**
+     * VSC test case.
+     * <pre>
+     * g1       ld2               ld3
+     * |         |                 |
+     * b1 ------- b2-cs2--------cs3-b3-(optional g3 for fix setPoint)
      * l12          hvdc23
      * </pre>
      *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
      */
-    public static Network createVsc() {
+    public static Network createVsc(boolean withGeneratorOnB3) {
         Network network = Network.create("vsc", "test");
 
         Substation s1 = network.newSubstation()
@@ -97,6 +112,19 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setP0(50)
            .setQ0(10)
             .add();
+        if (withGeneratorOnB3) {
+            // A small generator to compensate the losses in the line and HVDC
+            vl3.newGenerator()
+                    .setId("g3")
+                    .setConnectableBus("b3")
+                    .setBus("b3")
+                    .setTargetP(0.3)
+                    .setMinP(0)
+                    .setMaxP(1)
+                    .setTargetQ(0)
+                    .setVoltageRegulatorOn(false)
+                    .add();
+        }
         vl3.newVscConverterStation()
            .setId("cs3")
            .setConnectableBus("b3")
@@ -643,6 +671,49 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b3, b4, "l34", 0.1f);
         createLine(network, b1, b4, "l14", 0.1f);
         createLoad(b4, "l4", 300, 0);
+        return network;
+    }
+
+    /**
+     * <pre>
+     *            (low imp)
+     *          ----l12big-----
+     *          |             |
+     *     g1 - b1 -- l12 -- b2 -- hvdc23 -- b3 -- l34 -- b4 - l4
+     *          | (high imp)  |                           |
+     *          |             |                           |
+     *          |             l2                          |
+     *          |                                         |
+     *          |                                         |
+     *          |                                         |
+     *          ---------------------l14-------------------
+     *                             (normal impedance)
+     * </pre>
+     * @return
+     */
+    public static Network createHvdcACEmulationWithHighImpedanceLines() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1", 400);
+        Bus b2 = createBus(network, "b2", 400);
+        Bus b3 = createBus(network, "b3", 400);
+        Bus b4 = createBus(network, "b4", 400);
+        createGenerator(b1, "g1", 800, 400);
+        createLine(network, b1, b2, "l12", 500f);
+        createLine(network, b1, b2, "l12big", 0.01f);
+
+        VscConverterStation cs2 = createVsc(b2, "cs2", 400, 0);
+        VscConverterStation cs3 = createVsc(b3, "cs3", 400, 0);
+
+        createHvdcLine(network, "hvdc23", cs2, cs3, 400, 0.1, 500)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0)
+                .withEnabled(true)
+                .add();
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b1, b4, "l14", 50f);
+        createLoad(b4, "l4", 800, 0);
+        createLoad(b2, "l1", 8, 0);
         return network;
     }
 

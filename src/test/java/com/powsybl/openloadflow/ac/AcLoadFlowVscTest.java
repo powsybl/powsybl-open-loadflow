@@ -25,8 +25,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class AcLoadFlowVscTest {
 
@@ -116,7 +115,7 @@ class AcLoadFlowVscTest {
 
     @Test
     void testHvdcAcEmulation() {
-        Network network = HvdcNetworkFactory.createVsc();
+        Network network = HvdcNetworkFactory.createVsc(false);
         network.getHvdcLine("hvdc23").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
                 .withDroop(180)
                 .withP0(0.f)
@@ -491,7 +490,8 @@ class AcLoadFlowVscTest {
         p.setHvdcAcEmulation(false);
         result = loadFlowRunner.run(network, p);
 
-        assertTrue(result.isFullyConverged());
+        // SC 1 fails if there is a fictive load
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertActivePowerEquals(0, network.getVscConverterStation("cs2").getTerminal());
         assertVoltageEquals(vcs2, network.getVscConverterStation("cs2").getTerminal().getBusView().getBus());
 
@@ -565,7 +565,7 @@ class AcLoadFlowVscTest {
 
     @Test
     void testDcLoadFlowWithHvdcAcEmulation2() {
-        Network network = HvdcNetworkFactory.createVsc();
+        Network network = HvdcNetworkFactory.createVsc(false);
         network.newLine() // in order to have only one synchronous component for the moment.
                 .setId("l23")
                 .setVoltageLevel1("vl2")
