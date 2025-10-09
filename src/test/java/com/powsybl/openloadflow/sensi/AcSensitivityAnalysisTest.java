@@ -32,8 +32,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -95,9 +93,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
-        // TODO - check with many contingences that only one thread writes
-        // check that all resuts are obtained
-
         assertEquals(402, result.getValues().size()); // (Base case + 200 contingencies) * 2 factors = 402 values
         assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -116,7 +111,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                     result.getBranchFlow1SensitivityValue("NHV1_NHV2_2-" + i, "GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER),
                     LoadFlowAssert.DELTA_POWER);
         }
-
 
         // Test number of calls to the writer
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
@@ -142,9 +136,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 sensiParameters,
                 LocalComputationManager.getDefault(),
                 ReportNode.NO_OP);
-
-
-        // TODO: Look at the report when contingencies have no impact
 
         assertEquals(0, statusCallCount.get()); // Not called for the case case
         assertEquals(factors.size(), valueCallCount.get());
