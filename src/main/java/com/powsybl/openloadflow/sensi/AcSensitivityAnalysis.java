@@ -36,7 +36,8 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.sensi.mt.BufferedFactorReader;
 import com.powsybl.openloadflow.sensi.mt.SequentialSensitivityResultWriter;
 import com.powsybl.openloadflow.util.Lists2;
-import com.powsybl.openloadflow.util.mt.LfNetworkLoadMT;
+import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.sensitivity.*;
 
 import java.util.*;
@@ -226,16 +227,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 BufferedFactorReader bufferedFactorReader = new BufferedFactorReader(factorReader);
                 // TODO: Vérifications de la taille des partitions
                 var contingenciesPartitions = Lists2.partition(contingencies, sensitivityAnalysisParametersExt.getThreadCount());
-                LfNetworkLoadMT.ParameterProvider<AcLoadFlowParameters> parameterProvider = topoConfig -> makeAcLoadFlowPaameters(network, slackBusSelector, lfParameters, lfParametersExt, topoConfig.isBreaker());
-                LfNetworkLoadMT.ContingencyRunner<AcLoadFlowParameters> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, acParameters) ->
+                ContingencyMultiThreadHelper.ParameterProvider<AcLoadFlowParameters> parameterProvider = topoConfig -> makeAcLoadFlowPaameters(network, slackBusSelector, lfParameters, lfParametersExt, topoConfig.isBreaker());
+                ContingencyMultiThreadHelper.ContingencyRunner<AcLoadFlowParameters> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, acParameters) ->
                         analyzeContingencySet(network, lfNetworks, propagatedContingencies, acParameters, lfParameters, lfParametersExt, variableSets, bufferedFactorReader,
                                 acParameters.getNetworkParameters().isBreakers(), sequentialSensitivityResultWriter, variablesTargetVoltageInfo, sensitivityAnalysisParametersExt);
-                LfNetworkLoadMT.ReportMerger reportMerger = (ReportNode rootReportNode, ReportNode threadReportNode) -> {
-                    /* do nothing - ony lfnetwork extraction is reported currently*/
-                    return;
-                };
+                ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
 
-                LfNetworkLoadMT.createLFNetworksPerContingencyPartition(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
+                ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartition(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
                         parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
                 /*
                 try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {
@@ -312,8 +310,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         // create networks including all necessary switches
-
         LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
+
+        ReportNode networkReportNode = lfNetwork.getReportNode();
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
         SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
@@ -381,6 +380,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
                 contingency.toLfContingency(lfNetwork)
                         .ifPresentOrElse(lfContingency -> {
+
+                            ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
+                            lfNetwork.setReportNode(postContSimReportNode);
+
                             List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
                             contingencyFactors.forEach(lfFactor -> {
                                 lfFactor.setSensitivityValuePredefinedResult(null);

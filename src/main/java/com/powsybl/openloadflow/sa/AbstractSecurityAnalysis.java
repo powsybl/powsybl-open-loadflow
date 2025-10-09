@@ -33,7 +33,7 @@ import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
-import com.powsybl.openloadflow.util.mt.LfNetworkLoadMT;
+import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -185,13 +185,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             // so that we always get results in the same order whatever threads completion order is.
             List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), createNoResult()))); // init to no result in case of cancel
 
-            LfNetworkLoadMT.ParameterProvider<P> parameterProvider = partitionTopoConfig -> createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
-            LfNetworkLoadMT.ContingencyRunner<P> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, parameters) ->
+            ContingencyMultiThreadHelper.ParameterProvider<P> parameterProvider = partitionTopoConfig -> createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
+            ContingencyMultiThreadHelper.ContingencyRunner<P> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, parameters) ->
                     partitionResults.set(partitionNum, runSimulationsOnAllComponents(
                             lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies,
                             actions, limitReductions, lfParameters));
-            LfNetworkLoadMT.ReportMerger reportMerger = (rootReport, threadReport) -> mergeReportThreadResults(rootReport, threadReport);
-            LfNetworkLoadMT.createLFNetworksPerContingencyPartition(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
+            ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
+            ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartition(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
                     parameterProvider, contingencyRunner, saReportNode, reportMerger, executor);
 
             // we just need to merge post contingency and operator strategy results, all pre contingency are the same
@@ -209,36 +209,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new SecurityAnalysisReport(finalResult);
-    }
-
-    private void mergeReportThreadResults(ReportNode mainReport, ReportNode toMerge) {
-
-        Map<LfNetworkLoadMT.LfNetworkId, ReportNode> mainNodes = mainReport.getChildren().stream()
-                .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
-                .collect(Collectors.toMap(
-                        n -> new LfNetworkLoadMT.LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
-                                                       n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
-                                  n -> n));
-
-        Map<LfNetworkLoadMT.LfNetworkId, ReportNode> toMergeNodes = toMerge.getChildren().stream()
-                .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
-                .collect(Collectors.toMap(
-                        n -> new LfNetworkLoadMT.LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
-                                n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
-                        n -> n));
-
-        // By construction all threads should have the same lfNetwork List
-        // So the merge is just about appending relevant data to lfNetwork nodes of the
-        // main thread
-
-        for (Map.Entry<LfNetworkLoadMT.LfNetworkId, ReportNode> entry : mainNodes.entrySet()) {
-            // Both should exist
-            ReportNode mainReportNode = entry.getValue();
-            ReportNode toMergeNode = toMergeNodes.get(entry.getKey());
-            toMergeNode.getChildren().stream()
-                    .filter(n -> n.getMessageKey().equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
-                    .forEach(mainReportNode::addCopy);
-        }
     }
 
     SecurityAnalysisResult runSimulationsOnAllComponents(LfNetworkList networks, List<PropagatedContingency> propagatedContingencies, P parameters,

@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
@@ -43,8 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -71,7 +71,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testEsgTutoMT() {
+    void testEsgTutoMT() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
@@ -154,7 +154,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         valueCallCount.set(0);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
 
@@ -170,13 +170,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(200, statusCallCount.get()); // 200 contingencies
         assertEquals(402, valueCallCount.get()); // (base case + 200 contingences) * 2 factors = 402
 
-        try {
-            StringWriter writer = new StringWriter();
-            reportNode.print(new PrintWriter(writer));
-            System.out.println(writer);
-        } catch (IOException ex) {
-            // on s'en fout
-        }
+        assertReportEquals("/sensiMtReport.txt", reportNode);
+
     }
 
     @Test

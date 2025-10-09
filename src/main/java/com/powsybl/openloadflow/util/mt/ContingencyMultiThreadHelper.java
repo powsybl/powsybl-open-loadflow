@@ -23,20 +23,52 @@ import com.powsybl.openloadflow.util.Reports;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 // TODO: Rename the class
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Didier Vidal {@literal <didier.vidal-ext at rte-france.com>}
  */
-public final class LfNetworkLoadMT {
+public final class ContingencyMultiThreadHelper {
 
-    private LfNetworkLoadMT() {
+    private ContingencyMultiThreadHelper() {
+    }
+
+    public static void mergeReportThreadResults(ReportNode mainReport, ReportNode toMerge) {
+
+        Map<LfNetworkId, ReportNode> mainNodes = mainReport.getChildren().stream()
+                .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
+                .collect(Collectors.toMap(
+                        n -> new LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
+                                                       n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
+                                  n -> n));
+
+        Map<LfNetworkId, ReportNode> toMergeNodes = toMerge.getChildren().stream()
+                .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
+                .collect(Collectors.toMap(
+                        n -> new LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
+                                n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
+                        n -> n));
+
+        // By construction all threads should have the same lfNetwork List
+        // So the merge is just about appending relevant data to lfNetwork nodes of the
+        // main thread
+
+        for (Map.Entry<LfNetworkId, ReportNode> entry : mainNodes.entrySet()) {
+            // Both should exist
+            ReportNode mainReportNode = entry.getValue();
+            ReportNode toMergeNode = toMergeNodes.get(entry.getKey());
+            toMergeNode.getChildren().stream()
+                    .filter(n -> n.getMessageKey().equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
+                    .forEach(mainReportNode::addCopy);
+        }
     }
 
     public interface ParameterProvider<P extends AbstractLoadFlowParameters<P>> {
