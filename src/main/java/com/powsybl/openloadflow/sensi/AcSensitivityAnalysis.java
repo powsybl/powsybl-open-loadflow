@@ -202,14 +202,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
         SlackBusSelector slackBusSelector = makeSlackBusSelector(network, lfParameters, lfParametersExt);
 
-        // TODO
-        //    Remove from methods what can be shared
-        //    For MT
-        //      Faire un writer qui envoie dans une liste
-        //      Extract Networks before (like in AC) - understand this variant ID thing
-        //      Create a bufferedFactorReader
-        //      Check that the reader and writers are MT
-
         checkContingencies(contingencies);
         checkLoadFlowParameters(lfParameters);
 
@@ -225,7 +217,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         } else {
             try (SequentialSensitivityResultWriter sequentialSensitivityResultWriter = new SequentialSensitivityResultWriter(resultWriter)) {
                 BufferedFactorReader bufferedFactorReader = new BufferedFactorReader(factorReader);
-                // TODO: Vérifications de la taille des partitions
                 var contingenciesPartitions = Lists2.partition(contingencies, sensitivityAnalysisParametersExt.getThreadCount());
                 ContingencyMultiThreadHelper.ParameterProvider<AcLoadFlowParameters> parameterProvider = topoConfig -> makeAcLoadFlowPaameters(network, slackBusSelector, lfParameters, lfParametersExt, topoConfig.isBreaker());
                 ContingencyMultiThreadHelper.ContingencyRunner<AcLoadFlowParameters> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, acParameters) ->
