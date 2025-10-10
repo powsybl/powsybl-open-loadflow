@@ -106,7 +106,7 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         assertTrue(parametersExt.isDcFastMode());
         assertFalse(parametersExt.isStartWithFrozenACEmulation());
         assertEquals(3, parametersExt.getThreadCount());
-        // check test copletion
+        // check test completeness
         assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), moduleConfig.getPropertyNames().size());
     }
 
