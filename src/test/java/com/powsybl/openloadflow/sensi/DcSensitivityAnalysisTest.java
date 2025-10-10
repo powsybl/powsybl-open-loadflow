@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,15 +8,19 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.DanglingLineContingency;
+import com.powsybl.contingency.GeneratorContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -25,6 +29,7 @@ import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
@@ -1241,5 +1246,45 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
         assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
+    }
+
+    @Test
+    void testComputationInterrupted() {
+        Network network = BoundaryFactory.createWithLoad();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"),
+            createBranchFlowPerInjectionIncrease("dl1", "load3"));
+
+        List<Contingency> contingencies = List.of(new Contingency("c", new DanglingLineContingency("dl1")));
+        DcSensitivityAnalysis analysis = new DcSensitivityAnalysis(new SparseMatrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+            sensiParameters);
+        SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
+        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
+
+        LfTopoConfig topoConfig = new LfTopoConfig();
+
+        LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+            .setContingencyPropagation(false)
+            .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+            .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+            .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+
+        // with connectivity break
+        Thread.currentThread().interrupt();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, network.getVariantManager().getWorkingVariantId(), contingencies,
+                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters),
+                LocalComputationManager.getDefault().getExecutor()));
+
+        // without connectivity break
+        List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
+        Thread.currentThread().interrupt();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, network.getVariantManager().getWorkingVariantId(), contingencies2,
+                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters),
+                LocalComputationManager.getDefault().getExecutor()));
     }
 }

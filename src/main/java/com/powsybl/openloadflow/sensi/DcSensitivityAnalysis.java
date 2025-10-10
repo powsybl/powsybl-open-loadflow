@@ -497,6 +497,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with no connectivity break
                 for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
+                        throw new PowsyblException("Computation was interrupted");
+                    }
                     workingFlowStates.copyValuesFrom(baseFlowStates);
                     workingFactorStates.copyValuesFrom(baseFactorStates);
 
@@ -509,6 +513,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with connectivity break
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
+                        throw new PowsyblException("Computation was interrupted");
+                    }
                     workingFlowStates.copyValuesFrom(baseFlowStates);
                     workingFactorStates.copyValuesFrom(baseFactorStates);
 
