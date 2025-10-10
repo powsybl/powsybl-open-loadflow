@@ -95,7 +95,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(402, result.getValues().size()); // (Base case + 200 contingencies) * 2 factors = 402 values
         assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -132,14 +136,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             }
         };
 
+        runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
         sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(),
                 factorReader,
                 resultWriter,
-                Collections.emptyList(),
-                Collections.emptyList(),
-                sensiParameters,
-                LocalComputationManager.getDefault(),
-                ReportNode.NO_OP);
+                runParameters);
 
         assertEquals(0, statusCallCount.get()); // Not called for the case case
         assertEquals(factors.size(), valueCallCount.get());
@@ -153,14 +155,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .withMessageTemplate("test")
                 .build();
 
+        runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setReportNode(reportNode);
         sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(),
                 factorReader,
                 resultWriter,
-                contingencies,
-                Collections.emptyList(),
-                sensiParameters,
-                LocalComputationManager.getDefault(),
-                reportNode);
+                runParameters);
 
         assertEquals(200, statusCallCount.get()); // 200 contingencies
         assertEquals(402, valueCallCount.get()); // (base case + 200 contingences) * 2 factors = 402

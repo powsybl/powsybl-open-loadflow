@@ -1204,7 +1204,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     protected record VariablesTargetVoltageInfo(boolean hasBusTargetVoltage, boolean hasTransformerTargetVoltage) {
-    };
+    }
 
     protected VariablesTargetVoltageInfo getVariableTargetVoltageInfo(SensitivityFactorReader factorReader, Network network) {
         // Left value if we find a BUS_TARGET_VOLTAGE factor and right value if it is linked to a transformer.

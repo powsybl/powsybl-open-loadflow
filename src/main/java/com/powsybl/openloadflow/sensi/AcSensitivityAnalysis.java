@@ -226,12 +226,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartition(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
                         parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
-                /*
-                try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, reportNode)) {
-                    analyzeContingencySet(network, lfNetworks, contingencies, lfParameters, lfParametersExt, variableSets, bufferedFactorReader,
-                            breakers, sequentialSensitivityResultWriter, variablesTargetVoltageInfo, sensitivityAnalysisParametersExt);
-                }
-                 */
             }
         }
     }
