@@ -46,7 +46,7 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
     @Test
     void specificParametersNamesTest() {
-        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount", "dcFastMode", "contingencyActivePowerLossDistribution"), provider.getSpecificParametersNames());
+        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount", "dcFastMode", "contingencyActivePowerLossDistribution", "startWithFrozenACEmulation"), provider.getSpecificParametersNames());
     }
 
     @Test
@@ -63,6 +63,9 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         assertFalse(parametersExt.isDcFastMode());
         parametersExt.setDcFastMode(true);
         assertTrue(parametersExt.isDcFastMode());
+        assertTrue(parametersExt.isStartWithFrozenACEmulation());
+        parametersExt.setStartWithFrozenACEmulation(false);
+        assertFalse(parametersExt.isStartWithFrozenACEmulation());
     }
 
     @Test
@@ -72,10 +75,12 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         moduleConfig.setStringProperty("createResultExtension", "true");
         moduleConfig.setStringProperty("contingencyPropagation", "false");
         moduleConfig.setStringProperty("dcFastMode", "true");
+        moduleConfig.setStringProperty("startWithFrozenACEmulation", "false");
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
         assertFalse(parametersExt.isContingencyPropagation());
         assertTrue(parametersExt.isDcFastMode());
+        assertFalse(parametersExt.isStartWithFrozenACEmulation());
     }
 
     @Test

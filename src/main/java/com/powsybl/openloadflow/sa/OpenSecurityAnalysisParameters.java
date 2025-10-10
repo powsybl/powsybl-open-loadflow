@@ -48,7 +48,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
             CONTINGENCY_PROPAGATION_PARAM_NAME,
             THREAD_COUNT_PARAM_NAME,
             DC_FAST_MODE_PARAM_NAME,
-            CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_PARAM_NAME);
+            CONTINGENCY_ACTIVE_POWER_LOSS_DISTRIBUTION_PARAM_NAME,
+            START_WITH_FROZEN_AC_EMULATION_PARAM_NAME);
 
     @Override
     public String getName() {
