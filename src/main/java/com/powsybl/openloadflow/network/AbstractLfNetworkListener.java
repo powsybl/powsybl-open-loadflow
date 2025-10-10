@@ -115,4 +115,14 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onReferenceBusChange(LfBus bus, boolean reference) {
         // empty
     }
+
+    @Override
+    public void onHvdcAcEmulationFroze(LfHvdc hvdc, boolean frozen) {
+        // empty
+    }
+
+    @Override
+    public void onHvdcAngleDifferenceToFreeze(LfHvdc hvdc, double angleDifferenceToFreeze) {
+        // empty
+    }
 }
