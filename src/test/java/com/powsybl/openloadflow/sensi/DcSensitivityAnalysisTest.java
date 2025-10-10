@@ -40,6 +40,7 @@ import org.mockito.Mockito;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1265,8 +1266,6 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
         SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
 
-        LfTopoConfig topoConfig = new LfTopoConfig();
-
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
             .setContingencyPropagation(false)
@@ -1276,15 +1275,18 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         // with connectivity break
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, network.getVariantManager().getWorkingVariantId(), contingencies,
-                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters),
-                LocalComputationManager.getDefault().getExecutor()));
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        Executor executor = LocalComputationManager.getDefault().getExecutor();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies,
+                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                executor));
 
         // without connectivity break
         List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, network.getVariantManager().getWorkingVariantId(), contingencies2,
-                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters),
-                LocalComputationManager.getDefault().getExecutor()));
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2,
+                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                executor));
     }
 }

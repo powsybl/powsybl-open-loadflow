@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1946,8 +1947,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
         SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
 
-        LfTopoConfig topoConfig = new LfTopoConfig();
-
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
             .setContingencyPropagation(false)
@@ -1956,9 +1955,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
 
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, network.getVariantManager().getWorkingVariantId(),
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        Executor executor = LocalComputationManager.getDefault().getExecutor();
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId,
                 contingencies, creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP,
-                OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters), LocalComputationManager.getDefault().getExecutor()));
+                openSensitivityAnalysisParameters, executor));
     }
 
     @Test
