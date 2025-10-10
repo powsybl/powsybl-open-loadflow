@@ -1957,9 +1957,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Thread.currentThread().interrupt();
         String variantId = network.getVariantManager().getWorkingVariantId();
         Executor executor = LocalComputationManager.getDefault().getExecutor();
+        List<SensitivityVariableSet> noVar = Collections.emptyList();
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId,
-                contingencies, creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP,
+                contingencies, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
                 openSensitivityAnalysisParameters, executor));
     }
 

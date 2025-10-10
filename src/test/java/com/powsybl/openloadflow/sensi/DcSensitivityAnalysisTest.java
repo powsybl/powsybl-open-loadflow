@@ -1278,15 +1278,16 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         String variantId = network.getVariantManager().getWorkingVariantId();
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
         Executor executor = LocalComputationManager.getDefault().getExecutor();
+        List<SensitivityVariableSet> noVar = Collections.emptyList();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies,
-                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
 
         // without connectivity break
         List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
         Thread.currentThread().interrupt();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2,
-                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
     }
 }
