@@ -24,12 +24,12 @@ public class LoadModelActiveFlowEquationTerm extends AbstractLoadModelEquationTe
     }
 
     @Override
-    protected Collection<LfLoadModel.ExpTerm> getExpTerms() {
+    public Collection<LfLoadModel.ExpTerm> getExpTerms() {
         return loadModel.getExpTermsP();
     }
 
     @Override
-    protected double getTarget() {
+    public double getTarget() {
         return load.getTargetP();
     }
 
