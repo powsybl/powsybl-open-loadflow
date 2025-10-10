@@ -23,6 +23,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -265,12 +266,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, ReportNode reportNode) {
+    public CompletableFuture<LoadFlowResult> run(Network network, String workingVariantId, LoadFlowRunParameters loadFlowRunParameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(computationManager);
         Objects.requireNonNull(workingVariantId);
-        Objects.requireNonNull(parameters);
-        Objects.requireNonNull(reportNode);
+        Objects.requireNonNull(loadFlowRunParameters);
+        ComputationManager computationManager = Objects.requireNonNull(loadFlowRunParameters.getComputationManager());
+        LoadFlowParameters parameters = Objects.requireNonNull(loadFlowRunParameters.getLoadFlowParameters());
+        ReportNode reportNode = Objects.requireNonNull(loadFlowRunParameters.getReportNode());
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 

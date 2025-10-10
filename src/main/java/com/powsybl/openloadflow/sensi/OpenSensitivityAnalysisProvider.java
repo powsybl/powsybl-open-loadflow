@@ -17,7 +17,6 @@ import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.contingency.list.ContingencyList;
 import com.powsybl.contingency.contingency.list.DefaultContingencyList;
@@ -205,19 +204,16 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                        String workingVariantId,
                                        SensitivityFactorReader factorReader,
                                        SensitivityResultWriter resultWriter,
-                                       List<Contingency> contingencies,
-                                       List<SensitivityVariableSet> variableSets,
-                                       SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                                       ComputationManager computationManager,
-                                       ReportNode reportNode) {
+                                       SensitivityAnalysisRunParameters runParameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(contingencies);
-        Objects.requireNonNull(variableSets);
-        Objects.requireNonNull(sensitivityAnalysisParameters);
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(resultWriter);
-        Objects.requireNonNull(computationManager);
-        Objects.requireNonNull(reportNode);
+        Objects.requireNonNull(runParameters);
+        List<Contingency> contingencies = Objects.requireNonNull(runParameters.getContingencies());
+        List<SensitivityVariableSet> variableSets = Objects.requireNonNull(runParameters.getVariableSets());
+        SensitivityAnalysisParameters sensitivityAnalysisParameters = Objects.requireNonNull(runParameters.getSensitivityAnalysisParameters());
+        ComputationManager computationManager = Objects.requireNonNull(runParameters.getComputationManager());
+        ReportNode reportNode = Objects.requireNonNull(runParameters.getReportNode());
 
         return CompletableFutureTask.runAsync(() -> runSync(network,
             workingVariantId,
@@ -277,7 +273,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies));
 
         run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), resultWriter,
-                contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reportNode)
+                new SensitivityAnalysisRunParameters()
+                        .setContingencies(contingencies)
+                        .setVariableSets(variableSets)
+                        .setParameters(sensitivityAnalysisParameters)
+                        .setReportNode(reportNode))
                 .join();
 
         return new ReplayResult<>(resultWriter, factors, contingencies);
