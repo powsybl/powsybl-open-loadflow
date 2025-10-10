@@ -43,8 +43,8 @@ public class ClosedDcLineSide2PowerEquationTerm extends AbstractClosedDcLineFlow
     }
 
     @Override
-    protected String getName() {
-        return "ac_p_closed_2";
+    public String getName() {
+        return "dc_p_closed_2";
     }
 }
 

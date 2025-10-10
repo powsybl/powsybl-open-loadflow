@@ -43,8 +43,8 @@ public class ClosedDcLineSide2CurrentEquationTerm extends AbstractClosedDcLineFl
     }
 
     @Override
-    protected String getName() {
-        return "ac_i_closed_2";
+    public String getName() {
+        return "dc_i_closed_2";
     }
 }
 

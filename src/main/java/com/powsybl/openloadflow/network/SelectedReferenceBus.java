@@ -25,8 +25,4 @@ public class SelectedReferenceBus {
         return lfBus;
     }
 
-    public String getSelectionMethod() {
-        return selectionMethod;
-    }
-
 }

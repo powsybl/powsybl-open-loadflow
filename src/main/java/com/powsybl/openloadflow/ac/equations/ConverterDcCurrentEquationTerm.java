@@ -91,7 +91,7 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
     }
 
     @Override
-    protected String getName() {
-        return "conv_current";
+    public String getName() {
+        return "dc_i";
     }
 }

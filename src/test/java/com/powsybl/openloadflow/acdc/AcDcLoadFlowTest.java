@@ -9,8 +9,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.util.WriteTests;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -524,10 +522,5 @@ public class AcDcLoadFlowTest {
         DcLine dl78 = network.getDcLine("dl78");
         assertDcPowerEquals(-24.499703, dl78.getDcTerminal1());
         assertDcPowerEquals(24.499328, dl78.getDcTerminal2());
-    }
-
-    @AfterEach
-    void printResults() {
-        WriteTests.printValues(network);
     }
 }

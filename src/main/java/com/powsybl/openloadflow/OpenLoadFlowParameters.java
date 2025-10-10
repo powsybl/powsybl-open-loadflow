@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.collect.ImmutableMap;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.ModuleConfig;
@@ -151,6 +150,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
     public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+
+    public static final boolean AC_DC_NETWORK_DEFAULT_VALUE = false;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -308,6 +309,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME = "generatorsWithZeroMwTargetAreNotStarted";
 
+    public static final String AC_DC_NETWORK_PARAM_NAME = "acDcNetwork";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -456,7 +459,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
-        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
+        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(AC_DC_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "AC DC simultaneous loadflow", AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -654,8 +658,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private boolean acDcNetwork = false;
+    private boolean acDcNetwork = AC_DC_NETWORK_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1427,6 +1430,24 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isAcDcNetwork() {
+        return acDcNetwork;
+    }
+
+    public OpenLoadFlowParameters setAcDcNetwork(boolean acDcNetwork) {
+        this.acDcNetwork = acDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return acDcNetwork;
+    }
+
+    public OpenLoadFlowParameters setAcDcNetwork(boolean acDcNetwork) {
+        this.acDcNetwork = acDcNetwork;
+        return this;
+    }
+
     public boolean isStartWithFrozenACEmulation() {
         return startWithFrozenACEmulation;
     }
@@ -1579,6 +1600,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
                     config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
                     config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
+                    config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
                 });
         return this;
     }
@@ -1749,6 +1771,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setStartWithFrozenACEmulation(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorsWithZeroMwTargetAreNotStarted(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(AC_DC_NETWORK_PARAM_NAME))
+                .ifPresent(prop -> this.setAcDcNetwork(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1832,6 +1856,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
         map.put(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, startWithFrozenACEmulation);
         map.put(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, generatorsWithZeroMwTargetAreNotStarted);
+        map.put(AC_DC_NETWORK_PARAM_NAME, acDcNetwork);
         return map;
     }
 
@@ -1992,8 +2017,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
-                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
-                .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
+                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
                 .setAcDcNetwork(parametersExt.isAcDcNetwork());
     }
 
@@ -2239,7 +2263,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMinNominalVoltageRealisticVoltageCheck() == extension2.getMinNominalVoltageRealisticVoltageCheck() &&
                 extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
                 extension1.isStartWithFrozenACEmulation() == extension2.isStartWithFrozenACEmulation() &&
-                extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted();
+                extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted() &&
+                extension1.isAcDcNetwork() == extension2.isAcDcNetwork();
     }
 
     public static OpenLoadFlowParameters clone(OpenLoadFlowParameters extension) {
@@ -2321,7 +2346,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted())
-                .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation());
+                .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation())
+                .setAcDcNetwork(extension.isAcDcNetwork());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -2350,13 +2376,5 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
 
         return parameters2;
-    }
-
-    public void setAcDcNetwork(boolean acDcNetwork) {
-        this.acDcNetwork = acDcNetwork;
-    }
-
-    public boolean isAcDcNetwork() {
-        return acDcNetwork;
     }
 }
