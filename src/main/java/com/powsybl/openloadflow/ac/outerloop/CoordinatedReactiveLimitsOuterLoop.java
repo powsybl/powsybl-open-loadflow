@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.google.common.base.Stopwatch;
 import com.google.ortools.Loader;
 import com.google.ortools.modelbuilder.*;
 import com.powsybl.commons.PowsyblException;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.ac.outerloop.SecondaryVoltageControlOuterLoop.buildBusIndex;
 
@@ -124,8 +126,10 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
             var modelBuilder = createModelBuilder(controllerBusesToAdjust, controlledBusesToAdjust, sensitivityContext, dvs);
 
             ModelSolver solver = new ModelSolver("highs");
+            Stopwatch stopwatch = Stopwatch.createStarted();
             SolveStatus solverStatus = solver.solve(modelBuilder);
-            LOGGER.debug("Solver status: {}", solverStatus);
+            stopwatch.stop();
+            LOGGER.debug("Model solved with status {} in {} ms", solverStatus, stopwatch.elapsed(TimeUnit.MILLISECONDS));
             if (solverStatus != SolveStatus.OPTIMAL) {
                 throw new PowsyblException("Solver failed: " + solverStatus);
             }
