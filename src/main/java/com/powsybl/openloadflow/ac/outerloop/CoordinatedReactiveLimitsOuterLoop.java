@@ -55,20 +55,27 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
         ModelBuilder modelBuilder = new ModelBuilder();
 
         for (int i = 0; i < controlledBusesToAdjust.size(); i++) {
-            LfBus controlledBus = controlledBusesToAdjust.get(i);
-            Variable dv = modelBuilder.newNumVar(-DV_MAX, DV_MAX, "dv_" + i);
-            dvs.add(dv);
-            for (ControllerBusToPqBus pq : controllerBusesToAdjust) {
-                LfBus controllerBus = pq.getControllerBus();
+            dvs.add(modelBuilder.newNumVar(-DV_MAX, DV_MAX, "dv_" + i));
+        }
+
+        // for each controller bus, add constraint to force finding a global voltage adjustment (on all controller buses)
+        // that allows to go inside the reactive limits of the controlled buses
+        //
+        // q + dqdv1 * dv1 + dqdv2 * dv2 + ... + dqdvn * dvn <= qlimit + epsilon
+        //
+        for (ControllerBusToPqBus pq : controllerBusesToAdjust) {
+            LfBus controllerBus = pq.getControllerBus();
+            var exprBuilder = LinearExpr.newBuilder();
+            for (int i = 0; i < controlledBusesToAdjust.size(); i++) {
+                LfBus controlledBus = controlledBusesToAdjust.get(i);
+                Variable dv = dvs.get(i);
                 double dqDv = sensitivityContext.calculateSensiQ(controllerBus, controlledBus);
-                var expr = LinearExpr.newBuilder()
-                        .addTerm(dv, dqDv)
-                        .build();
-                if (pq.getLimitType() == LfBus.QLimitType.MIN_Q) {
-                    modelBuilder.addLessOrEqual(expr, pq.getqLimit() - pq.getQ() + Q_LIMIT_EPSILON);
-                } else {
-                    modelBuilder.addGreaterOrEqual(expr, pq.getqLimit() - pq.getQ() - Q_LIMIT_EPSILON);
-                }
+                exprBuilder.addTerm(dv, dqDv);
+            }
+            if (pq.getLimitType() == LfBus.QLimitType.MIN_Q) {
+                modelBuilder.addLessOrEqual(exprBuilder.build(), pq.getqLimit() - pq.getQ() + Q_LIMIT_EPSILON);
+            } else {
+                modelBuilder.addGreaterOrEqual(exprBuilder.build(), pq.getqLimit() - pq.getQ() - Q_LIMIT_EPSILON);
             }
         }
 
