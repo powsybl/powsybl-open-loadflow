@@ -52,6 +52,7 @@
         <jafama.version>2.3.2</jafama.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
+        <ortools.version>9.11.4210</ortools.version>
 
         <powsybl-core.version>7.0.0-RC1</powsybl-core.version>
 
@@ -141,6 +142,16 @@
         <dependency>
             <groupId>org.anarres.graphviz</groupId>
             <artifactId>graphviz-builder</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.ortools</groupId>
+            <artifactId>ortools-java</artifactId>
+            <version>${ortools.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.ortools</groupId>
+            <artifactId>ortools-darwin-aarch64</artifactId>
+            <version>${ortools.version}</version>
         </dependency>
 
         <dependency>

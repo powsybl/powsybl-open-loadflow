@@ -138,6 +138,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     // False for loadflow by default. True for security analysis by default.
     public static final boolean START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE = false;
 
+    public static final boolean COORDINATED_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+
     public enum FictitiousGeneratorVoltageControlCheckMode {
         FORCED,
         NORMAL
@@ -652,6 +654,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean startWithFrozenACEmulation = START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE;
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
+
+    private boolean coordinatedReactiveLimits = COORDINATED_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1438,6 +1442,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setGeneratorsWithZeroMwTargetAreNotStarted(boolean generatorsWithZeroMwTargetAreNotStarted) {
         this.generatorsWithZeroMwTargetAreNotStarted = generatorsWithZeroMwTargetAreNotStarted;
+        return this;
+    }
+
+    public boolean isCoordinatedReactiveLimits() {
+        return coordinatedReactiveLimits;
+    }
+
+    public OpenLoadFlowParameters setCoordinatedReactiveLimits(boolean coordinatedReactiveLimits) {
+        this.coordinatedReactiveLimits = coordinatedReactiveLimits;
         return this;
     }
 
@@ -2232,7 +2245,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMinNominalVoltageRealisticVoltageCheck() == extension2.getMinNominalVoltageRealisticVoltageCheck() &&
                 extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
                 extension1.isStartWithFrozenACEmulation() == extension2.isStartWithFrozenACEmulation() &&
-                extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted();
+                extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted() &&
+                extension1.isCoordinatedReactiveLimits() == extension2.isCoordinatedReactiveLimits();
     }
 
     public static OpenLoadFlowParameters clone(OpenLoadFlowParameters extension) {
@@ -2314,7 +2328,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted())
-                .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation());
+                .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation())
+                .setCoordinatedReactiveLimits(extension.isCoordinatedReactiveLimits());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {

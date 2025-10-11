@@ -144,6 +144,18 @@ class AcloadFlowReactiveLimitsTest {
     }
 
     @Test
+    void testCoordinatedReactiveLimitOuterLoop() {
+        parameters.setUseReactiveLimits(true);
+        parametersExt.setCoordinatedReactiveLimits(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-164.315, gen.getTerminal());
+        assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
+        assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
+        assertReactivePowerEquals(-200, nhv2Nload.getTerminal2());
+    }
+
+    @Test
     void testWithMixedGenLoad() {
         // add a 20 MVar to LOAD2 connected to same bus as GEN2 and allow 20 MVar additional max reactive power
         // to GEN2 => result should be the same
