@@ -39,6 +39,7 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
 
     private static final double Q_LIMIT_EPSILON = 1E-6;
     private static final double DV_MAX = 0.2;
+    private static final double SENSI_EPS = 1e-9;
 
     @Override
     public String getName() {
@@ -63,32 +64,47 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
         // for each controller bus, add constraint to force finding a global voltage adjustment (on all controller buses)
         // that allows to go inside the reactive limits of the controlled buses
         //
-        // q + dqdv1 * dv1 + dqdv2 * dv2 + ... + dqdvn * dvn <= qlimit + epsilon
+        // q + dqdv1 * dv1 + dqdv2 * dv2 + ... + dqdvn * dvn <= qLimitMax - epsilon
+        // or
+        // q + dqdv1 * dv1 / dqdv2 * dv2 + ... + dqdvn * dvn >= qLimitMin + epsilon
         //
         for (ControllerBusToPqBus pq : controllerBusesToAdjust) {
             LfBus controllerBus = pq.getControllerBus();
             var exprBuilder = LinearExpr.newBuilder();
             for (int i = 0; i < controlledBusesToAdjust.size(); i++) {
                 LfBus controlledBus = controlledBusesToAdjust.get(i);
-                Variable dv = dvs.get(i);
                 double dqDv = sensitivityContext.calculateSensiQ(controllerBus, controlledBus);
-                exprBuilder.addTerm(dv, dqDv);
+                if (Math.abs(dqDv) > SENSI_EPS) {
+                    Variable dv = dvs.get(i);
+                    exprBuilder.addTerm(dv, dqDv);
+                }
             }
             if (pq.getLimitType() == LfBus.QLimitType.MIN_Q) {
-                modelBuilder.addLessOrEqual(exprBuilder.build(), pq.getqLimit() - pq.getQ() + Q_LIMIT_EPSILON);
+                modelBuilder.addGreaterOrEqual(exprBuilder.build(), pq.getqLimit() + Q_LIMIT_EPSILON - pq.getQ());
             } else {
-                modelBuilder.addGreaterOrEqual(exprBuilder.build(), pq.getqLimit() - pq.getQ() - Q_LIMIT_EPSILON);
+                modelBuilder.addLessOrEqual(exprBuilder.build(), pq.getqLimit() - Q_LIMIT_EPSILON - pq.getQ());
             }
         }
 
         LOGGER.debug("Model built with {} variables", dvs.size());
 
         // minimize the voltage adjustments
+        //
+        // abs(dv1) + abs(dv2) + ... + abs(dvn)
+        // equivalent to abs_dv1 + abs_dv2 + ... + abs_dvn
+        // with abs_dvn >= dvn and abs_dvn >= -dvn
+        //
         var objectiveBuilder = LinearExpr.newBuilder();
-        for (var dv : dvs) {
-            objectiveBuilder.addTerm(dv, 1.0);
+        for (int i = 0; i < dvs.size(); i++) {
+            var dv = dvs.get(i);
+            var absDv = modelBuilder.newNumVar(0, Double.POSITIVE_INFINITY, "abs_dv_" + i);
+            modelBuilder.addGreaterOrEqual(absDv, dv); // abs_dv >= dv
+            modelBuilder.addLessOrEqual(LinearExpr.newBuilder().addTerm(dv, -1.0).build(), absDv); // abs_dv >= -dv
+            objectiveBuilder.addTerm(absDv, 1.0);
         }
         modelBuilder.minimize(objectiveBuilder.build());
+
+//        System.out.println(modelBuilder.exportToLpString(false));
 
         return modelBuilder;
     }
@@ -108,7 +124,8 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
                 }
             }
         });
-        LOGGER.debug("{} controller buses to adjust", controllerBusesToAdjust.size());
+        double adjustSumQ = controllerBusesToAdjust.stream().mapToDouble(value -> Math.abs(value.getQ() - value.getqLimit())).sum();
+        LOGGER.debug("{} controller buses to adjust {} MVar", controllerBusesToAdjust.size(), adjustSumQ);
 
         var outerLoopStatus = OuterLoopStatus.STABLE;
         if (!controllerBusesToAdjust.isEmpty()) {
@@ -139,7 +156,7 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
                 double dv = solver.getValue(dvs.get(i));
                 var vc = controlledBus.getGeneratorVoltageControl().orElseThrow();
                 var newTargetValue = vc.getTargetValue() + dv;
-                LOGGER.debug("Adjust target voltage of controlled bus '{}': {} -> {}",
+                LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
                         controlledBus.getId(), vc.getTargetValue() * controlledBus.getNominalV(),
                         newTargetValue * controlledBus.getNominalV());
                 vc.setTargetValue(newTargetValue);
