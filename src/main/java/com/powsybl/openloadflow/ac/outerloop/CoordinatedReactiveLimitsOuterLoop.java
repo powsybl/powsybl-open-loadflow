@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,11 +41,11 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "CoordinatedReactiveLimits";
 
-    private static final double Q_LIMIT_EPSILON = 1E-6;
+    private static final double Q_LIMIT_EPSILON = 1E-6; // 10-3 MVar in PU
     private static final double DV_MAX = 0.2;
     private static final double SENSI_EPS = 1e-9;
-    private static final double Q_ADJUST_EPS = 1e-3;
-    private static final int MAX_CONTROLLED_BUSES = 20;
+    private static final double Q_ADJUST_EPS = 1e-3; // 1 MVar in PU
+    private static final int MAX_CONTROLLED_BUSES = 10;
     private static final double L1_WEIGHT = 0.1; // weight for L1 term
     private static final double T_MAX_WEIGHT = 1; // weight for max term (higher = more spreading)
 
@@ -168,7 +169,7 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
         if (!controllerBusesToAdjust.isEmpty()) {
             double adjustSumQ = controllerBusesToAdjust.stream().mapToDouble(value -> Math.abs(value.getQ() - value.getqLimit())).sum();
             if (Math.abs(adjustSumQ) > Q_ADJUST_EPS) {
-                LOGGER.debug("{} controller buses to adjust {} MVar", controllerBusesToAdjust.size(), adjustSumQ);
+                LOGGER.debug("{} controller buses to adjust {} MVar", controllerBusesToAdjust.size(), adjustSumQ * PerUnit.SB);
 
                 List<LfBus> allControlledBuses = allControllerBuses.stream()
                         .map(b -> b.getGeneratorVoltageControl().orElseThrow().getControlledBus())
@@ -215,5 +216,10 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
         }
 
         return new OuterLoopResult(NAME, outerLoopStatus);
+    }
+
+    @Override
+    public boolean canFixUnrealisticState() {
+        return true;
     }
 }
