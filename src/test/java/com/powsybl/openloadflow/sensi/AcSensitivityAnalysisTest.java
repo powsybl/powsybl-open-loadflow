@@ -1864,4 +1864,79 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Callable t = () -> p.runSync(null, null, null, null, null, null, null, null);
         assertFalse(t instanceof Runnable);
     }
+
+    @Test
+    void testDqDvOnEsg() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var load = network.getLoad("LOAD");
+        var gen = network.getGenerator("GEN");
+        var ngennhv1 = network.getTwoWindingsTransformer("NGEN_NHV1");
+        Substation p1 = network.getSubstation("P1");
+
+        // create a new generator GEN2
+        var vlgen2 = p1.newVoltageLevel()
+                .setId("VLGEN2")
+                .setNominalV(24.0)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vlgen2.getBusBreakerView().newBus()
+                .setId("NGEN2")
+                .add();
+        var gen2 = vlgen2.newGenerator()
+                .setId("GEN2")
+                .setBus("NGEN2")
+                .setConnectableBus("NGEN2")
+                .setMinP(-9999.99)
+                .setMaxP(9999.99)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(24.5)
+                .setTargetP(100)
+                .add();
+        int zb380 = 380 * 380 / 100;
+        p1.newTwoWindingsTransformer()
+                .setId("NGEN2_NHV1")
+                .setBus1("NGEN2")
+                .setConnectableBus1("NGEN2")
+                .setRatedU1(24.0)
+                .setBus2("NHV1")
+                .setConnectableBus2("NHV1")
+                .setRatedU2(400.0)
+                .setR(0.24 / 1800 * zb380)
+                .setX(Math.sqrt(10 * 10 - 0.24 * 0.24) / 1800 * zb380)
+                .add();
+
+        // fix active power balance
+        load.setP0(699.838);
+
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NLOAD");
+        sensiParameters.getLoadFlowParameters().setUseReactiveLimits(false);
+
+        List<SensitivityFactor> factors = List.of(
+                createBranchReactivePowerPerTargetV("NGEN_NHV1", "GEN", TwoSides.ONE),
+                createBranchReactivePowerPerTargetV("NGEN_NHV1", "GEN2", TwoSides.ONE)
+        );
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters().setParameters(sensiParameters));
+        assertEquals(2, result.getValues().size());
+        assertEquals(352.0154, result.getSensitivityValue("GEN", "NGEN_NHV1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-365.34, result.getSensitivityValue("GEN2", "NGEN_NHV1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+
+        // check sensi values looks consistent with 2 LF diff
+        double q1Before = ngennhv1.getTerminal1().getQ();
+
+        double dv = 0.01;
+        double oldGenTargetV = gen.getTargetV();
+        gen.setTargetV(oldGenTargetV + dv);
+        runAcLf(network);
+
+        assertEquals(352.1606, (ngennhv1.getTerminal1().getQ() - q1Before) / dv, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        gen.setTargetV(oldGenTargetV);
+
+        gen2.setTargetV(gen2.getTargetV() + dv);
+        runAcLf(network);
+
+        assertEquals(-365.3357, (ngennhv1.getTerminal1().getQ() - q1Before) / dv, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+    }
 }
