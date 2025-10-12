@@ -159,8 +159,10 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
             double maxQ = bus.getMaxQ();
             double q = bus.getQ().eval() + bus.getLoadTargetQ();
             if (q < minQ) {
+                LOGGER.debug("Need to adjust controller bus '{}' from {} to min limit {}", bus.getId(), q, minQ);
                 controllerBusesToAdjust.add(new ControllerBusToPqBus(bus, q, minQ, LfBus.QLimitType.MIN_Q));
             } else if (q > maxQ) {
+                LOGGER.debug("Need to adjust controller bus '{}' from {} to max limit {}", bus.getId(), q, maxQ);
                 controllerBusesToAdjust.add(new ControllerBusToPqBus(bus, q, maxQ, LfBus.QLimitType.MAX_Q));
             }
         });
