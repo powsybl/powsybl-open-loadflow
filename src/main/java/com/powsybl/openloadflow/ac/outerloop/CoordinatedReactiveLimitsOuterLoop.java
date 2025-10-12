@@ -45,6 +45,8 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
     private static final double SENSI_EPS = 1e-9;
     private static final double Q_ADJUST_EPS = 1e-3;
     private static final int MAX_CONTROLLED_BUSES = 20;
+    private static final double L1_WEIGHT = 0.1; // weight for L1 term
+    private static final double T_MAX_WEIGHT = 1; // weight for max term (higher = more spreading)
 
     @Override
     public String getName() {
@@ -118,6 +120,9 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
 
         LOGGER.debug("Model built with {} variables", dvVars.size());
 
+        // max deviation variable to force spreading voltage deviation over all controlled buses
+        Variable tMax = modelBuilder.newNumVar(0, DV_MAX, "t_max");
+
         // minimize the voltage adjustments
         //
         // abs(dv1) + abs(dv2) + ... + abs(dvn)
@@ -130,8 +135,10 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
             var absDv = modelBuilder.newNumVar(0, Double.POSITIVE_INFINITY, "abs_dv_" + i);
             modelBuilder.addGreaterOrEqual(absDv, dv); // abs_dv >= dv
             modelBuilder.addLessOrEqual(LinearExpr.newBuilder().addTerm(dv, -1.0).build(), absDv); // abs_dv >= -dv
-            objectiveBuilder.addTerm(absDv, 1.0);
+            modelBuilder.addLessOrEqual(absDv, tMax);
+            objectiveBuilder.addTerm(absDv, L1_WEIGHT);
         }
+        objectiveBuilder.addTerm(tMax, T_MAX_WEIGHT); // minimize also the max deviation variable
         modelBuilder.minimize(objectiveBuilder.build());
 
 //        System.out.println(modelBuilder.exportToLpString(false));
