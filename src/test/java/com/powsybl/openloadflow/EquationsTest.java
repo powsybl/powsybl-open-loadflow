@@ -324,7 +324,6 @@ class EquationsTest {
 
         var sv = new StateVector(new double[]{V_1, V_2, 0});
 
-
         // closed dcLine equations
         assertEquals("dc_i_closed_1", new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcNode1, dcNode2, variableSet).getName());
         assertEquals("dc_i_closed_2", new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcNode1, dcNode2, variableSet).getName());
@@ -346,7 +345,7 @@ class EquationsTest {
         var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(converter).getNum();
         Mockito.doReturn(false).when(converter).isDisabled();
-        Mockito.doReturn(List.of(1.0,0.5,0.1)).when(converter).getLossFactors();
+        Mockito.doReturn(List.of(1.0, 0.5, 0.1)).when(converter).getLossFactors();
         Mockito.doReturn(false).when(converter).isBipolar();
         Mockito.doReturn(0.5).when(converter).getTargetP();
         Mockito.doReturn(bus1).when(converter).getBus1();

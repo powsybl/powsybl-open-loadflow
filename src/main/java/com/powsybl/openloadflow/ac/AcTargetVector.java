@@ -143,7 +143,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                  BUS_TARGET_IX_NEGATIVE,
                  BUS_TARGET_IY_NEGATIVE,
                  DC_NODE_TARGET_I,
-                 DC_NODE_TARGET_P,
                  DC_NODE_GROUND:
                 targets[equation.getColumn()] = 0;
                 break;

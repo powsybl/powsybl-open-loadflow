@@ -3,8 +3,6 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.nio.file.Path;
-
 public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     public static Network createBaseNetwork() {
@@ -109,21 +107,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-    /**
-     * Bipolar test case
-     * <pre>             dn3p ------------ dl34p ---------- dn4p
-     *                   |                                   |
-     * g1       ld2 conv23p                                  conv45p ld5
-     * |         |   |   |                                   |   |  |
-     * b1 ------- b2-|   dn3r -- dl3Gr -- dcGr -- dlG4r -- dn4r  |-b5
-     * l12       |   |   |                 |                 |   |  |
-     *           |  conv23n              GROUND              conv45n|
-     *           |       |                                   |      |
-     *           |       dn3n ------------ dl34n ---------- dn4n    |
-     *           |                                                  |
-     *           |------------------------l25------------------------
-     * </pre>
-     */
     public static Network createBipolarBaseNetwork() {
         Network network = Network.create("vsc", "test");
 
@@ -315,8 +298,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(false)
                 .setReactivePowerSetpoint(0.0)
                 .add();
-
-        network.write("XIIDM", null, Path.of("C:\\Users\\d.bonnand\\Documents") );
         return network;
     }
 

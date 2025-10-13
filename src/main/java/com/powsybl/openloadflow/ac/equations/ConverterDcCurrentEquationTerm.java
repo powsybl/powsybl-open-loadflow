@@ -34,14 +34,12 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
         return dpDcdqAc(pAc, qAc) / (v1 - vR);
     }
 
-    public static double iAcPerUnit(double pAcPerUnit, double qAcPerUnit) {
-        double pAc = pAcPerUnit * PerUnit.SB;
-        double qAc = qAcPerUnit * PerUnit.SB;
-        return Math.sqrt(pAc * pAc + qAc * qAc) / (Math.sqrt(3) * nominalV * PerUnit.ib(nominalV));
+    public static double iAc(double pAc, double qAc) {
+        return Math.sqrt(pAc * pAc + qAc * qAc) / 1000.0;
     }
 
-    public static double pLoss(double iAcPerUnit) {
-        return lossA() + lossB() * iAcPerUnit + lossC() * iAcPerUnit * iAcPerUnit;
+    public static double pLoss(double iAc) {
+        return lossA() + lossB() * iAc + lossC() * iAc * iAc;
     }
 
     public static double lossA() {
@@ -56,17 +54,17 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
         return lossFactors.get(2) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
     }
 
-    public static double dpDcdqAc(double pAc, double qAc) { //pAc and qAc are perUnit
-        return -qAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (Math.sqrt(pAc * pAc + qAc * qAc));
+    public static double dpDcdqAc(double pAc, double qAc) { //pAc, qAc, iAc and loss factors are per unitized
+        return -qAc * (lossB() + 2 * lossC() * iAc(pAc, qAc)) / (Math.sqrt(pAc * pAc + qAc * qAc));
     }
 
-    public static double pDc(double pAcPerUnit, double qAcPerUnit) {
-        double iAcPerUnit = iAcPerUnit(pAcPerUnit, qAcPerUnit);
-        return -pAcPerUnit - pLoss(iAcPerUnit);
+    public static double pDc(double pAc, double qAc) {
+        double iAc = iAc(pAc, qAc);
+        return -pAc - pLoss(iAc);
     }
 
     public static double dpDcdpAc(double pAc, double qAc) {
-        return -1 - pAc * (lossB() + 2 * lossC() * iAcPerUnit(pAc, qAc)) / (Math.sqrt(pAc * pAc + qAc * qAc));
+        return -1 - pAc * (lossB() + 2 * lossC() * iAc(pAc, qAc)) / (Math.sqrt(pAc * pAc + qAc * qAc));
     }
 
     @Override
