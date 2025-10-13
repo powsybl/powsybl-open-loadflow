@@ -50,6 +50,11 @@ class AreaInterchangeControlTest {
     }
 
     @Test
+    void invalidAreaInterchangePMaxMismatch() {
+        assertThrows(IllegalArgumentException.class, () -> parametersExt.setAreaInterchangePMaxMismatch(-1.0));
+    }
+
+    @Test
     void twoAreasWithXnodeTest() {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
         runLfTwoAreas(network, -40, 40, -30, 2);

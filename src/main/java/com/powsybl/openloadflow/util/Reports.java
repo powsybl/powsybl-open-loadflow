@@ -185,11 +185,26 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaNoInterchangeControl(ReportNode reportNode, String area, String reason) {
+    public static void reportAreaNoInterchangeControlNoBoundary(ReportNode reportNode, String area) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.areaNoInterchangeControl")
+                .withMessageTemplate("olf.areaNoInterchangeControlNoBoundary")
                 .withUntypedValue("area", area)
-                .withUntypedValue("reason", reason)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControlNoInterchangeTarget(ReportNode reportNode, String area) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaNoInterchangeControlNoInterchangeTarget")
+                .withUntypedValue("area", area)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControlMissingBuses(ReportNode reportNode, String area) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaNoInterchangeControlMissingBuses")
+                .withUntypedValue("area", area)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
@@ -627,15 +642,21 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAcLfComplete(ReportNode reportNode, boolean success, String solverStatus, String outerloopStatus) {
-        TypedValue severity = success ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
-        String successText = success ? "successfully" : "with error";
+    public static void reportAcLfCompleteWithSuccess(ReportNode reportNode, String solverStatus, String outerloopStatus) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.acLfComplete")
-                .withUntypedValue("successText", successText)
+                .withMessageTemplate("olf.acLfCompleteWithSuccess")
                 .withUntypedValue("solverStatus", solverStatus)
                 .withUntypedValue("outerloopStatus", outerloopStatus)
-                .withSeverity(severity)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportAcLfCompleteWithError(ReportNode reportNode, String solverStatus, String outerloopStatus) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.acLfCompleteWithError")
+                .withUntypedValue("solverStatus", solverStatus)
+                .withUntypedValue("outerloopStatus", outerloopStatus)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
@@ -900,6 +921,26 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String stationId, double setPoint, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.freezeHvdc")
+                .withUntypedValue("hvdcId", hvdcId)
+                .withUntypedValue("stationId", stationId)
+                .withUntypedValue("setPoint", setPoint)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportUnfreezeHvdc(ReportNode reportNode, String hvdcID, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.unfreezeHvdc")
+                .withUntypedValue("ID", hvdcID)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
     public static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
         node.newReportNode()
                 .withMessageTemplate("olf.LfActionUtils")
@@ -935,7 +976,7 @@ public final class Reports {
     public static ReportNode reportUnrealisticTargetVoltage(ReportNode reportNode, String controlledBusId, double targetV,
                         String controllerBusId, double estimatedDrop) {
         return reportNode.newReportNode()
-                .withMessageTemplate("olf.reportUnrealisticRemoteTargetVoltage")
+                .withMessageTemplate("olf.unrealisticRemoteTargetVoltage")
                 .withUntypedValue("controlledBus", controlledBusId)
                 .withUntypedValue("targetV", targetV)
                 .withUntypedValue("controllerBus", controllerBusId)

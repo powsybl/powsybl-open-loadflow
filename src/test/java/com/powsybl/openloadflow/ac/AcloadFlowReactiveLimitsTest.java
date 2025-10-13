@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
@@ -202,5 +203,27 @@ class AcloadFlowReactiveLimitsTest {
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-100.0, gen2.getTerminal());
         assertReactivePowerEquals(extrapolate ? -200.0 : -300, gen2.getTerminal()); // reaching gen2 minQ
+    }
+
+    @Test
+    void testQDispatchEpsilon() {
+        // gen2 on voltage control, small reactive range at targetP = 100 MW
+        gen2.newReactiveCapabilityCurve()
+            .beginPoint().setP(0).setMinQ(-0.05).setMaxQ(+0.05).endPoint()
+            .beginPoint().setP(200).setMinQ(-0.05).setMaxQ(+0.05).endPoint()
+            .beginPoint().setP(300).setMinQ(-100).setMaxQ(+100).endPoint()
+            .add();
+
+        // Set reactive range check mode so that gen2 is not excluded from V control
+        // Set reactive power tolerance smaller than the small gen2 reactive power capability.
+        parametersExt
+            .setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX)
+            .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+            .setMaxReactivePowerMismatch(0.01);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(0.05, ngen2Nhv1.getTerminal1());
+        assertReactivePowerEquals(-0.05, gen2.getTerminal());
     }
 }
