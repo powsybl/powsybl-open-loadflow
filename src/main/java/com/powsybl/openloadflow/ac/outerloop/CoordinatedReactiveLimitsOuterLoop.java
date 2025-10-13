@@ -13,7 +13,6 @@ import com.google.ortools.modelbuilder.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop.ControllerBusToPqBus;
 import com.powsybl.openloadflow.ac.outerloop.SecondaryVoltageControlOuterLoop.SensitivityContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -45,9 +44,16 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
     private static final double DV_MAX = 0.2;
     private static final double SENSI_EPS = 1e-9;
     private static final double Q_ADJUST_EPS = 1e-3; // 1 MVar in PU
-    private static final int MAX_CONTROLLED_BUSES = 10;
+    private static final int MAX_CONTROLLED_BUSES = 5;
     private static final double L1_WEIGHT = 0.1; // weight for L1 term
-    private static final double T_MAX_WEIGHT = 1; // weight for max term (higher = more spreading)
+    private static final double DV_MAX_WEIGHT = 1; // weight for max term (higher = more spreading)
+
+    public record ControllerBusToLimit(LfBus controllerBus, double q, double minQ, double maxQ, LfBus.QLimitType limitType) {
+
+        double getLimit() {
+            return this.limitType == LfBus.QLimitType.MIN_Q ? minQ : maxQ;
+        }
+    }
 
     @Override
     public String getName() {
@@ -59,7 +65,7 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
         Loader.loadNativeLibraries();
     }
 
-    private static ModelBuilder createModelBuilder(List<ControllerBusToPqBus> controllerBusesToAdjust,
+    private static ModelBuilder createModelBuilder(List<ControllerBusToLimit> controllerBusesToAdjust,
                                                    List<LfBus> allControlledBuses,
                                                    SensitivityContext sensitivityContext,
                                                    List<Variable> dvVars,
@@ -68,8 +74,8 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
 
         // find for each controller buses most influential controlled buses
         List<List<Pair<LfBus, Double>>> mostInfluentialControlledBuses = new ArrayList<>();
-        for (ControllerBusToPqBus pq : controllerBusesToAdjust) {
-            LfBus controllerBus = pq.getControllerBus();
+        for (ControllerBusToLimit toLimit : controllerBusesToAdjust) {
+            LfBus controllerBus = toLimit.controllerBus();
             List<Pair<LfBus, Double>> controlledBusesWithSensi = new ArrayList<>();
             for (LfBus controlledBus : allControlledBuses) {
                 double dqDv = sensitivityContext.calculateSensiQ(controllerBus, controlledBus);
@@ -100,7 +106,7 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
         // q + dqdv1 * dv1 / dqdv2 * dv2 + ... + dqdvn * dvn >= qLimitMin + epsilon
         //
         for (int iController = 0; iController < controllerBusesToAdjust.size(); iController++) {
-            ControllerBusToPqBus pq = controllerBusesToAdjust.get(iController);
+            ControllerBusToLimit toLimit = controllerBusesToAdjust.get(iController);
             var exprBuilder = LinearExpr.newBuilder();
             // only add in the equation already selected most influential controlled buses
             for (var p : mostInfluentialControlledBuses.get(iController)) {
@@ -112,17 +118,14 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
                     exprBuilder.addTerm(dvVar, dqDv);
                 }
             }
-            if (pq.getLimitType() == LfBus.QLimitType.MIN_Q) {
-                modelBuilder.addGreaterOrEqual(exprBuilder.build(), pq.getqLimit() + Q_LIMIT_EPSILON - pq.getQ());
-            } else {
-                modelBuilder.addLessOrEqual(exprBuilder.build(), pq.getqLimit() - Q_LIMIT_EPSILON - pq.getQ());
-            }
+            modelBuilder.addGreaterOrEqual(exprBuilder.build(), toLimit.minQ() + Q_LIMIT_EPSILON - toLimit.q());
+            modelBuilder.addLessOrEqual(exprBuilder.build(), toLimit.maxQ() - Q_LIMIT_EPSILON - toLimit.q());
         }
 
         LOGGER.debug("Model built with {} variables", dvVars.size());
 
         // max deviation variable to force spreading voltage deviation over all controlled buses
-        Variable tMax = modelBuilder.newNumVar(0, DV_MAX, "t_max");
+        Variable dvMax = modelBuilder.newNumVar(0, DV_MAX, "dv_max");
 
         // minimize the voltage adjustments
         //
@@ -136,10 +139,10 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
             var absDv = modelBuilder.newNumVar(0, Double.POSITIVE_INFINITY, "abs_dv_" + i);
             modelBuilder.addGreaterOrEqual(absDv, dv); // abs_dv >= dv
             modelBuilder.addLessOrEqual(LinearExpr.newBuilder().addTerm(dv, -1.0).build(), absDv); // abs_dv >= -dv
-            modelBuilder.addLessOrEqual(absDv, tMax);
+            modelBuilder.addLessOrEqual(absDv, dvMax);
             objectiveBuilder.addTerm(absDv, L1_WEIGHT);
         }
-        objectiveBuilder.addTerm(tMax, T_MAX_WEIGHT); // minimize also the max deviation variable
+        objectiveBuilder.addTerm(dvMax, DV_MAX_WEIGHT); // minimize also the max deviation variable
         modelBuilder.minimize(objectiveBuilder.build());
 
 //        System.out.println(modelBuilder.exportToLpString(false));
@@ -153,23 +156,23 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
                 .stream()
                 .filter(LfBus::isGeneratorVoltageControlEnabled)
                 .toList();
-        List<ControllerBusToPqBus> controllerBusesToAdjust = new ArrayList<>();
+        List<ControllerBusToLimit> controllerBusesToAdjust = new ArrayList<>();
         allControllerBuses.forEach(bus -> {
             double minQ = bus.getMinQ();
             double maxQ = bus.getMaxQ();
             double q = bus.getQ().eval() + bus.getLoadTargetQ();
             if (q < minQ) {
-                LOGGER.debug("Need to adjust controller bus '{}' from {} to min limit {}", bus.getId(), q, minQ);
-                controllerBusesToAdjust.add(new ControllerBusToPqBus(bus, q, minQ, LfBus.QLimitType.MIN_Q));
+                LOGGER.debug("Need to adjust controller bus '{}' from {} to min limit {}", bus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
+                controllerBusesToAdjust.add(new ControllerBusToLimit(bus, q, minQ, maxQ, LfBus.QLimitType.MIN_Q));
             } else if (q > maxQ) {
-                LOGGER.debug("Need to adjust controller bus '{}' from {} to max limit {}", bus.getId(), q, maxQ);
-                controllerBusesToAdjust.add(new ControllerBusToPqBus(bus, q, maxQ, LfBus.QLimitType.MAX_Q));
+                LOGGER.debug("Need to adjust controller bus '{}' from {} to max limit {}", bus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
+                controllerBusesToAdjust.add(new ControllerBusToLimit(bus, q, minQ, maxQ, LfBus.QLimitType.MAX_Q));
             }
         });
 
         var outerLoopStatus = OuterLoopStatus.STABLE;
         if (!controllerBusesToAdjust.isEmpty()) {
-            double adjustSumQ = controllerBusesToAdjust.stream().mapToDouble(value -> Math.abs(value.getQ() - value.getqLimit())).sum();
+            double adjustSumQ = controllerBusesToAdjust.stream().mapToDouble(value -> Math.abs(value.q() - value.getLimit())).sum();
             if (Math.abs(adjustSumQ) > Q_ADJUST_EPS) {
                 LOGGER.debug("{} controller buses to adjust {} MVar", controllerBusesToAdjust.size(), adjustSumQ * PerUnit.SB);
 

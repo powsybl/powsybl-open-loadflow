@@ -81,7 +81,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         return NAME;
     }
 
-    public static final class ControllerBusToPqBus {
+    private static final class ControllerBusToPqBus {
 
         private final LfBus controllerBus;
 
@@ -91,37 +91,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         private final LfBus.QLimitType limitType;
 
-        public ControllerBusToPqBus(LfBus controllerBus, double q, double qLimit, LfBus.QLimitType limitType) {
+        private ControllerBusToPqBus(LfBus controllerBus, double q, double qLimit, LfBus.QLimitType limitType) {
             this.controllerBus = controllerBus;
             this.q = q;
             this.qLimit = qLimit;
             this.limitType = limitType;
-        }
-
-        public LfBus getControllerBus() {
-            return controllerBus;
-        }
-
-        public double getQ() {
-            return q;
-        }
-
-        public double getqLimit() {
-            return qLimit;
-        }
-
-        public LfBus.QLimitType getLimitType() {
-            return limitType;
-        }
-
-        @Override
-        public String toString() {
-            return "ControllerBusToPqBus{" +
-                    "controllerBus=" + controllerBus +
-                    ", q=" + q +
-                    ", qLimit=" + qLimit +
-                    ", limitType=" + limitType +
-                    '}';
         }
     }
 
