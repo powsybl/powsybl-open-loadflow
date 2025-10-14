@@ -40,7 +40,11 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         return variables;
     }
 
-    private double b() {
+    public Variable<AcVariableType> getbVar() {
+        return bVar;
+    }
+
+    public double b() {
         return bVar != null ? sv.get(bVar.getRow()) : element.getB();
     }
 

@@ -8,6 +8,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
 import com.powsybl.iidm.network.extensions.LineFortescue;
@@ -22,8 +23,10 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.asym.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
+import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -352,6 +355,18 @@ public class AsymmetricalLoadFlowTest {
         assertVoltageEquals(99.78067026758131, bus2); // balanced = 99.79736062173895
         assertVoltageEquals(99.5142639108648, bus3); // balanced = 99.54462759204546
         assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
+    }
+
+    @Test
+    void incompatibilityWithFastDecoupledTest() {
+        parametersExt.setAcSolverType(FastDecoupledFactory.NAME);
+        parametersExt.setAsymmetrical(true);
+        DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
+        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, parameters,
+                parametersExt, matrixFactory, connectivityFactory, false, false));
+        assertEquals("Fast-Decoupled solver is incompatible with asymmetrical load flow: asymmetrical OpenLoadFLowParameter should be switched to false", e.getMessage());
     }
 
     /**
