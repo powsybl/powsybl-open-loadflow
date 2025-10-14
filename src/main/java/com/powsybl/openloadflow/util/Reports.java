@@ -803,10 +803,9 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportSolverNorm(ReportNode reportNode, String solverName, double norm) {
+    public static void reportSolverNorm(ReportNode reportNode, double norm) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.solverNorm")
-                .withUntypedValue(SOLVER_NAME, solverName)
                 .withUntypedValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();

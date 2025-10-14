@@ -312,3 +312,9 @@ The current implemented version cannot compute when one of the following paramet
 - [`hvdcAcEmulation`](inv:powsyblcore:*:*#simulation/loadflow/configuration)
 
 In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, an exception is triggered.
+
+Users should notice that default parameters are optimized for the Newton-Raphson algorithm, as it is the default one.
+When the Fast-Decoupled algorithm is used, we recommend these values for some convergence parameters:
+- [`maxNewtonRaphsonIterations`](parameters.md): 75,
+- [`lineSearchStateVectorScalingMaxIteration`](parameters.md): 4,
+- [`lineSearchStateVectorScalingStepFold`](parameters.md): `3/2 = 1.5`.

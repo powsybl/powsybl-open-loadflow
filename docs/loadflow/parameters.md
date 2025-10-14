@@ -272,7 +272,7 @@ The default value is `UNIFORM_CRITERIA`.
 
 **maxNewtonRaphsonIterations**  
 Only applies if **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
-Maximum number of iterations for Newton-Raphson inner loop.  
+Maximum number of iterations for solver inner loop.  
 The default value is `15` and it must be greater or equal to `1`.
 
 **maxNewtonKrylovIterations**  
@@ -282,7 +282,7 @@ The default value is `100` and it must be greater or equal to `1`.
 
 **stateVectorScalingMode**  
 Only applies if **acSolverType** is `NEWTON_RAPHSON`.
-This parameter 'slows down' the solver by scaling the state vector between iterations. Can help convergence in some cases.
+This parameter 'slows down' the Newton-Raphson by scaling the state vector between iterations. Can help convergence in some cases.
 - `NONE`: no scaling is made
 - `LINE_SEARCH`: applies a line search strategy
 - `MAX_VOLTAGE_CHANGE`: scale by limiting voltage updates to a maximum amplitude p.u. and a maximum angle.
@@ -290,22 +290,34 @@ This parameter 'slows down' the solver by scaling the state vector between itera
 The default value is `NONE`.
 
 **lineSearchStateVectorScalingMaxIteration**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`.  
+Only applies: 
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 Maximum iterations for a vector scaling when applying a line search strategy.  
 The default value is `10` and it must be greater or equal to `1`.
 
 **lineSearchStateVectorScalingStepFold**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`.  
+Only applies:
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 At the iteration $i$ of vector scaling with the line search strategy, with this parameter having the value $s$ , the step size will be $ \mu  = \frac{1}{s^i}$ .   
 The default value is `4/3 = 1.333` and it must be greater than `1`.
 
 **maxVoltageChangeStateVectorScalingMaxDv**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`.  
+Only applies:
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 Maximum amplitude p.u. for a voltage change.  
 The default value is `0.1 p.u.` and it must be greater than `0`.
 
 **maxVoltageChangeStateVectorScalingMaxDphi**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`.  
+Only applies:
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 Maximum angle for a voltage change.  
 The default value is `0.174533 radians` (`10°`) and it must be greater than `0`.
 

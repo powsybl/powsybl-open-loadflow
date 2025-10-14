@@ -110,7 +110,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         ReportNode initialReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, 0) : null;
         if (detailedReport) {
-            Reports.reportSolverNorm(initialReportNode, getName(), initialTestResult.getNorm());
+            Reports.reportSolverNorm(initialReportNode, initialTestResult.getNorm());
         }
         if (detailedReport || LOGGER.isTraceEnabled()) {
             reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);

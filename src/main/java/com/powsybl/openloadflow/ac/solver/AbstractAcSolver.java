@@ -118,7 +118,7 @@ public abstract class AbstractAcSolver implements AcSolver {
     protected AcSolverStatus reportAndReturnStatus(Logger logger, NewtonRaphsonStoppingCriteria.TestResult testResult, ReportNode iterationReportNode) {
         logger.debug("|f(x)|={}", testResult.getNorm());
         if (detailedReport) {
-            Reports.reportSolverNorm(iterationReportNode, getName(), testResult.getNorm());
+            Reports.reportSolverNorm(iterationReportNode, testResult.getNorm());
         }
         if (detailedReport || logger.isTraceEnabled()) {
             reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), logger);
