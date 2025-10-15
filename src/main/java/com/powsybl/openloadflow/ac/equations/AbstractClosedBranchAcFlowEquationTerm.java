@@ -81,15 +81,35 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
     }
 
+    public Variable<AcVariableType> getV1Var() {
+        return v1Var;
+    }
+
+    public Variable<AcVariableType> getV2Var() {
+        return v2Var;
+    }
+
+    public Variable<AcVariableType> getPhi1Var() {
+        return ph1Var;
+    }
+
+    public Variable<AcVariableType> getPhi2Var() {
+        return ph2Var;
+    }
+
     public Variable<AcVariableType> getA1Var() {
         return a1Var;
     }
 
-    protected double v1() {
+    public Variable<AcVariableType> getR1Var() {
+        return r1Var;
+    }
+
+    public double v1() {
         return sv.get(v1Var.getRow());
     }
 
-    protected double v2() {
+    public double v2() {
         return sv.get(v2Var.getRow());
     }
 
@@ -101,11 +121,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return sv.get(ph2Var.getRow());
     }
 
-    protected double r1() {
+    public double r1() {
         return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
-    protected double a1() {
+    public double a1() {
         return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
