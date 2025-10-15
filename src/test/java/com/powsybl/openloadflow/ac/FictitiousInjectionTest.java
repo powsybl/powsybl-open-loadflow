@@ -28,7 +28,7 @@ import java.io.IOException;
 public class FictitiousInjectionTest {
 
     @Test
-    void testFictiveInjection() throws IOException  {
+    void testFictiveInjection() throws IOException {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getBusBreakerView().getBus("b3").setFictitiousP0(29);
         network.getBusBreakerView().getBus("b2").setFictitiousP0(1);
@@ -45,7 +45,7 @@ public class FictitiousInjectionTest {
         assertEquals(-30, result.getComponentResults().getFirst().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
         LoadFlowAssert.assertReactivePowerEquals(-(network.getGenerator("g1").getTerminal().getQ() + 50 + 30),
                 network.getLine("l14").getTerminal1()); // generator targetQ + fictitious injection ° Q(l1)
-        LoadFlowAssert.assertReactivePowerEquals(-155, network.getGenerator("g1").getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(-155.088, network.getGenerator("g1").getTerminal());
 
         String expected = """
                 + test
@@ -53,10 +53,10 @@ public class FictitiousInjectionTest {
                       + Network CC0 SC0
                          + Network info
                             Network has 4 buses and 3 branches
-                            Network balance: active generation=300 MW, active load=240 MW, reactive generation=300 MVar, reactive load=405 MVar
+                            Network balance: active generation=300 MW, active load=270 MW, reactive generation=300 MVar, reactive load=455 MVar
                             Angle reference bus: b4_vl_0
                             Slack bus: b4_vl_0
-                            Network has a cumulated sum of 30Mw and 50MVar fictitious injection distributed on 3 buses
+                            Network has a cumulated sum of 30 MW and 50 MVar fictitious injection distributed on 3 buses
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-30 MW) distributed in 1 distribution iteration(s)
@@ -72,7 +72,7 @@ public class FictitiousInjectionTest {
     }
 
     @Test
-    void testNoFictiveInjection() throws IOException  {
+    void testNoFictiveInjection() throws IOException {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         LoadFlow.Runner runner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowRunParameters parameters = new LoadFlowRunParameters();

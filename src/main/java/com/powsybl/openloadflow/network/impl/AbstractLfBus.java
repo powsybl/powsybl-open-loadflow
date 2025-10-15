@@ -149,12 +149,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public double getTargetP() {
-        return getGenerationTargetP() - getLoadTargetP() - getFictitiousInjectionTargetP();
+        return getGenerationTargetP() - getLoadTargetP();
     }
 
     @Override
     public double getTargetQ() {
-        return getGenerationTargetQ() - getLoadTargetQ() - getFictitiousInjectionTargetQ();
+        return getGenerationTargetQ() - getLoadTargetQ();
     }
 
     @Override
@@ -472,7 +472,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
             }
         }
-        return loadTargetP;
+        return loadTargetP + getFictitiousInjectionTargetP();
     }
 
     @Override
@@ -496,7 +496,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             }
             loadTargetQ = sum;
         }
-        return loadTargetQ;
+        return loadTargetQ + getFictitiousInjectionTargetQ();
     }
 
     @Override
@@ -775,7 +775,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ() + getFictitiousInjectionTargetQ()) : getGenerationTargetQ(),
+        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : getGenerationTargetQ(),
                 parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
