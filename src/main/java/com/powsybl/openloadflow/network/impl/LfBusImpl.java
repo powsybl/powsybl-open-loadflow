@@ -59,8 +59,8 @@ public class LfBusImpl extends AbstractLfBus {
         this.participating = participating;
         this.breakers = parameters.isBreakers();
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
-        fictitiousInjectionTargetP = bus.getFictitiousP0();
-        fictitiousInjectionTargetQ = bus.getFictitiousQ0();
+        fictitiousInjectionTargetP = bus.getFictitiousP0() / PerUnit.SB;
+        fictitiousInjectionTargetQ = bus.getFictitiousQ0() / PerUnit.SB;
         if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
             bbsIds = bus.getConnectedTerminalStream()
                     .map(Terminal::getConnectable)

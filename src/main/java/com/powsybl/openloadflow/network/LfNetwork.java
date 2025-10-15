@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -637,6 +637,26 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             this, busesById.values().size(), branches.size());
     }
 
+    /**
+     * Reports the fictitious injection total if not null
+     */
+    public void reportFictitiousInjectionTotal(ReportNode reportNode) {
+        double fictitiousTargetPNormInf = getBuses().stream().mapToDouble(LfBus::getFictitiousInjectionTargetP)
+                .map(Math::abs)
+                .sum();
+        double fictitiousTargetQNormInf = getBuses().stream().mapToDouble(LfBus::getFictitiousInjectionTargetQ)
+                .map(Math::abs)
+                .sum();
+        long busCount = getBuses().stream().filter(b -> b.getFictitiousInjectionTargetP() != 0 || b.getFictitiousInjectionTargetQ() != 0).count();
+        if (fictitiousTargetPNormInf + fictitiousTargetQNormInf > 0) {
+            Reports.reportFicitiousInjectionTotal(reportNode,
+                    fictitiousTargetPNormInf * PerUnit.SB,
+                    fictitiousTargetQNormInf * PerUnit.SB,
+                    busCount,
+                    LOGGER);
+        }
+    }
+
     public void reportBalance(ReportNode reportNode) {
         double activeGeneration = 0;
         double reactiveGeneration = 0;
@@ -740,6 +760,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
                     Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
+                    lfNetwork.reportFictitiousInjectionTotal(networkReport);
                     lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR_VOLTAGE_CONTROL -> {
