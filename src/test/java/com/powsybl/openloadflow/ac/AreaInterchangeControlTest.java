@@ -271,6 +271,15 @@ class AreaInterchangeControlTest {
         assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
     }
 
+    @Test
+    void remainingSlackDistribution() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNodeHighZ();
+        parametersExt.setAreaInterchangePMaxMismatch(0.5);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+    }
+
     private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {
         Area area1 = network.getArea("a1");
         Area area2 = network.getArea("a2");
