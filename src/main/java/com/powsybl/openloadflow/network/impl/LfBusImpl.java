@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,12 +13,12 @@ import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.security.BusBreakerViolationLocation;
+import com.powsybl.security.NodeBreakerViolationLocation;
+import com.powsybl.security.ViolationLocation;
 import com.powsybl.security.results.BusResult;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -46,9 +46,12 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double fictitiousInjectionTargetQ;
 
+    // Lazy initialiation
+    private ViolationLocation violationLocation = null;
+
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
-        super(network, v, angle, parameters.isDistributedOnConformLoad());
+        super(network, v, angle, parameters);
         this.busRef = Ref.create(bus, parameters.isCacheEnabled());
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
@@ -63,10 +66,11 @@ public class LfBusImpl extends AbstractLfBus {
                     .map(Terminal::getConnectable)
                     .filter(BusbarSection.class::isInstance)
                     .map(Connectable::getId)
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             bbsIds = Collections.emptyList();
         }
+
     }
 
     private static void createAsym(Bus bus, LfBusImpl lfBus) {
@@ -205,5 +209,32 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getFictitiousInjectionTargetQ() {
         return fictitiousInjectionTargetQ;
+    }
+
+    public ViolationLocation getViolationLocation() {
+        TopologyKind topologyKind = getBus().getVoltageLevel().getTopologyKind();
+        if (violationLocation == null) {
+            violationLocation = switch (topologyKind) {
+                case NODE_BREAKER -> {
+                    List<Integer> nodes = getBus().getConnectedTerminalStream().map(t -> t.getNodeBreakerView().getNode()).toList();
+                    yield nodes.isEmpty() ? null : new NodeBreakerViolationLocation(getVoltageLevelId(), nodes);
+                }
+                case BUS_BREAKER -> {
+                    // are we in breaker mode ?
+                    var busBreakerView = getBus().getVoltageLevel().getBusBreakerView();
+                    if (getBus() == busBreakerView.getBus(getBus().getId())) {
+                        yield new BusBreakerViolationLocation(List.of(getBus().getId()));
+                    } else {
+                        // Bus is a merged bus from thebus view
+                        List<String> busIds = busBreakerView
+                                .getBusStreamFromBusViewBusId(getBus().getId())
+                                .map(Identifiable::getId)
+                                .sorted().toList();
+                        yield busIds.isEmpty() ? null : new BusBreakerViolationLocation(busIds);
+                    }
+                }
+            };
+        }
+        return violationLocation;
     }
 }

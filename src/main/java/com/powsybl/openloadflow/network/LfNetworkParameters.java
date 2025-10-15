@@ -21,7 +21,7 @@ import java.util.*;
  */
 public class LfNetworkParameters {
 
-    public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
+    public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 10000;
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;
 
@@ -67,6 +67,12 @@ public class LfNetworkParameters {
     public static final List<String> VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE = VoltageControl.VOLTAGE_CONTROL_PRIORITIES;
 
     public static final boolean TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE = false;
+
+    public static final boolean DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE = false;
+
+    public static final boolean EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+
+    public static final boolean GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE = true;
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -148,6 +154,14 @@ public class LfNetworkParameters {
 
     private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
+    private boolean forceTargetQInReactiveLimits = OpenLoadFlowParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean disableInconsistentVoltageControls = DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
+
+    private boolean extrapolateReactiveLimits = EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -194,6 +208,8 @@ public class LfNetworkParameters {
         this.fictitiousGeneratorVoltageControlCheckMode = other.fictitiousGeneratorVoltageControlCheckMode;
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+        this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -597,6 +613,42 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isForceTargetQInReactiveLimits() {
+        return forceTargetQInReactiveLimits;
+    }
+
+    public LfNetworkParameters setForceTargetQInReactiveLimits(boolean forceTargetQInReactiveLimits) {
+        this.forceTargetQInReactiveLimits = forceTargetQInReactiveLimits;
+        return this;
+    }
+
+    public boolean isDisableInconsistentVoltageControls() {
+        return disableInconsistentVoltageControls;
+    }
+
+    public LfNetworkParameters setDisableInconsistentVoltageControls(boolean disableInconsistentVoltageControls) {
+        this.disableInconsistentVoltageControls = disableInconsistentVoltageControls;
+        return this;
+    }
+
+    public boolean isExtrapolateReactiveLimits() {
+        return extrapolateReactiveLimits;
+    }
+
+    public LfNetworkParameters setExtrapolateReactiveLimits(boolean extrapolateReactiveLimits) {
+        this.extrapolateReactiveLimits = extrapolateReactiveLimits;
+        return this;
+    }
+
+    public boolean isGeneratorsWithZeroMwTargetAreNotStarted() {
+        return generatorsWithZeroMwTargetAreNotStarted;
+    }
+
+    public LfNetworkParameters setGeneratorsWithZeroMwTargetAreNotStarted(boolean generatorsWithZeroMwTargetAreNotStarted) {
+        this.generatorsWithZeroMwTargetAreNotStarted = generatorsWithZeroMwTargetAreNotStarted;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -638,6 +690,10 @@ public class LfNetworkParameters {
                 ", fictitiousGeneratorVoltageControlCheckMode=" + fictitiousGeneratorVoltageControlCheckMode +
                 ", areaInterchangeControl=" + areaInterchangeControl +
                 ", areaInterchangeControlAreaType=" + areaInterchangeControlAreaType +
+                ", forceTargetQInReactiveLimits=" + forceTargetQInReactiveLimits +
+                ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
+                ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
+                ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
                 ')';
     }
 }

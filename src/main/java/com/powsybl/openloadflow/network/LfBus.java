@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.ViolationLocation;
 import com.powsybl.security.results.BusResult;
 
 import java.util.*;
@@ -20,7 +21,19 @@ public interface LfBus extends LfElement {
 
     enum QLimitType {
         MIN_Q,
-        MAX_Q
+        MAX_Q,
+        // Remote voltage control bus that have not reached a Q Limit but a realistic V limit
+        MIN_REALISTIC_V,
+        MAX_REALISTIC_V;
+
+        public boolean isMinLimit() {
+            return this == MIN_Q || this == MIN_REALISTIC_V;
+        }
+
+        public boolean isMaxLimit() {
+            return this == MAX_Q || this == MAX_REALISTIC_V;
+        }
+
     }
 
     String getVoltageLevelId();
@@ -93,11 +106,19 @@ public interface LfBus extends LfElement {
 
     double getFictitiousInjectionTargetQ();
 
+    void invalidateLoadTargetP();
+
     double getLoadTargetP();
+
+    double getNonFictitiousLoadTargetP();
+
+    void invalidateLoadTargetQ();
 
     double getLoadTargetQ();
 
     void invalidateGenerationTargetP();
+
+    void invalidateGenerationTargetQ();
 
     double getGenerationTargetP();
 
@@ -105,7 +126,9 @@ public interface LfBus extends LfElement {
 
     double getGenerationTargetQ();
 
-    void setGenerationTargetQ(double generationTargetQ);
+    void freezeGenerationTargetQ(double generationTargetQ);
+
+    boolean isGenerationTargetQFrozen();
 
     double getMinQ();
 
@@ -223,4 +246,6 @@ public interface LfBus extends LfElement {
     Optional<LfArea> getArea();
 
     void setArea(LfArea area);
+
+    ViolationLocation getViolationLocation();
 }

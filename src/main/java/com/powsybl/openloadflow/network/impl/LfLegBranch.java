@@ -57,9 +57,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         double zb = PerUnit.zb(twt.getRatedU0());
         double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
-        if (ptc != null
-                && (ptc.isRegulating()
-                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retainPtc)) {
+        if (ptc != null && (ptc.isRegulating() || retainPtc)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
@@ -147,14 +145,13 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
-        var leg = getLeg();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, leg.getActivePowerLimits().orElse(null), limitReductionManager);
+                return getLimits1(type, () -> getLeg().getActivePowerLimits(), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, leg.getApparentPowerLimits().orElse(null), limitReductionManager);
+                return getLimits1(type, () -> getLeg().getApparentPowerLimits(), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, leg.getCurrentLimits().orElse(null), limitReductionManager);
+                return getLimits1(type, () -> getLeg().getCurrentLimits(), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -173,18 +170,27 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
         updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
 
-        if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
-            // it means there is a regulating phase tap changer located on that leg
-            updateTapPosition(leg.getPhaseTapChanger());
+        if (leg.hasPhaseTapChanger()) {
+            PhaseTapChanger ptc = leg.getPhaseTapChanger();
+            if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
+                // it means there is a regulating phase tap changer located on that leg
+                updateSolvedTapPosition(leg.getPhaseTapChanger());
+            } else {
+                ptc.setSolvedTapPosition(ptc.getTapPosition());
+            }
         }
 
-        if (parameters.isTransformerVoltageControlOn() && isVoltageController()
-                || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
+        if (leg.hasRatioTapChanger()) {
             RatioTapChanger rtc = leg.getRatioTapChanger();
-            double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
-            double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
-            double ptcRho = leg.getPhaseTapChanger() != null ? leg.getPhaseTapChanger().getCurrentStep().getRho() : 1;
-            updateTapPosition(rtc, ptcRho, rho);
+            if (parameters.isTransformerVoltageControlOn() && isVoltageController()
+                    || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
+                double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
+                double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
+                double ptcRho = leg.getPhaseTapChanger() != null ? leg.getPhaseTapChanger().getCurrentStep().getRho() : 1;
+                updateSolvedTapPosition(rtc, ptcRho, rho);
+            } else {
+                rtc.setSolvedTapPosition(rtc.getTapPosition());
+            }
         }
     }
 

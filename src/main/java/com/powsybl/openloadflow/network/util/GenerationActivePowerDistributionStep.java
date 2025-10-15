@@ -8,16 +8,14 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -50,12 +48,34 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
-        return buses.stream()
-                .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
+    public ActivePowerDistribution.PreviousStateInfo resetToInitialState(Collection<LfBus> participatingBuses, LfGenerator referenceGenerator) {
+        ActivePowerDistribution.PreviousStateInfo previousStateInfo = ActivePowerDistribution.Step.super.resetToInitialState(participatingBuses, referenceGenerator);
+        double previousMismatch = 0;
+        for (LfBus bus : participatingBuses) {
+            for (LfGenerator generator : bus.getGenerators()) {
+                if (generator.isParticipating()) {
+                    previousMismatch -= generator.getInitialTargetP() - generator.getTargetP();
+                    // putIfAbsent because the generator might be the reference generator (in which case it was already reinitialized)
+                    previousStateInfo.previousTargetP().putIfAbsent(generator, generator.getTargetP());
+                    generator.setTargetP(generator.getInitialTargetP());
+                }
+            }
+        }
+        return new ActivePowerDistribution.PreviousStateInfo(previousMismatch + previousStateInfo.previousMismatch(), previousStateInfo.previousTargetP());
+    }
+
+    @Override
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> participatingBuses, double mismatch) {
+        return participatingBuses.stream()
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator) != 0)
-                .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
+                .map(gen -> {
+                    double factor = getParticipationFactor(gen, mismatch);
+                    if (isParticipating(gen) && factor != 0) {
+                        return new ParticipatingElement(gen, factor);
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedList::new));
     }
 
@@ -66,16 +86,6 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
 
         double done = 0d;
-        double mismatch = remainingMismatch;
-        if (iteration == 0) {
-            // "undo" everything from targetP to go back to initialP
-            for (ParticipatingElement participatingGenerator : participatingElements) {
-                LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
-                done += generator.getInitialTargetP() - generator.getTargetP();
-                mismatch -= generator.getInitialTargetP() - generator.getTargetP();
-                generator.setTargetP(generator.getInitialTargetP());
-            }
-        }
 
         int modifiedBuses = 0;
         int generatorsAtMax = 0;
@@ -97,12 +107,12 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 minTargetP = Math.max(minTargetP, 0);
             }
 
-            double newTargetP = targetP + mismatch * factor;
-            if (mismatch > 0 && newTargetP > maxTargetP) {
+            double newTargetP = targetP + remainingMismatch * factor;
+            if (remainingMismatch > 0 && newTargetP > maxTargetP) {
                 newTargetP = maxTargetP;
                 generatorsAtMax++;
                 it.remove();
-            } else if (mismatch < 0 && newTargetP < minTargetP) {
+            } else if (remainingMismatch < 0 && newTargetP < minTargetP) {
                 newTargetP = minTargetP;
                 generatorsAtMin++;
                 it.remove();
@@ -118,18 +128,34 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} generators ({} at max power, {} at min power)",
-                done * PerUnit.SB, mismatch * PerUnit.SB, iteration, modifiedBuses,
+                done * PerUnit.SB, remainingMismatch * PerUnit.SB, iteration, modifiedBuses,
                 generatorsAtMax, generatorsAtMin);
 
         return done;
     }
 
-    private double getParticipationFactor(LfGenerator generator) {
+    private double getParticipationFactor(LfGenerator generator, double mismatch) {
         return switch (participationType) {
-            case MAX -> generator.getMaxTargetP() / generator.getDroop();
+            case MAX -> generator.getMaxP() / generator.getDroop();
             case TARGET -> Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR -> generator.getParticipationFactor();
-            case REMAINING_MARGIN -> Math.max(0.0, generator.getMaxTargetP() - generator.getTargetP());
+            case REMAINING_MARGIN -> {
+                if (Double.isNaN(mismatch)) {
+                    throw new PowsyblException("The sign of the active power mismatch is unknown, it is mandatory for REMAINING_MARGIN participation type");
+                }
+                // Distribution does not change sign of targetP, we take this into account in remaining margin calculation.
+                // All participating generators should hit their limit together, depending on the direction and initial targetP,
+                // their limit may be not only minP/maxP, but also the forbidden zero crossing.
+                double targetP = generator.getTargetP();
+                double minP = generator.getMinP();
+                double maxP = generator.getMaxP();
+                if (targetP < 0) {
+                    maxP = Math.min(maxP, 0);
+                } else {
+                    minP = Math.max(minP, 0);
+                }
+                yield mismatch > 0. ? Math.max(0.0, maxP - targetP) : Math.max(0.0, targetP - minP);
+            }
         };
     }
 

@@ -130,6 +130,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         if (targetP != this.targetP) {
             double oldTargetP = this.targetP;
             this.targetP = targetP;
+            bus.invalidateLoadTargetP();
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
                 listener.onLoadActivePowerTargetChange(this, oldTargetP, targetP);
             }
@@ -146,6 +147,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         if (targetQ != this.targetQ) {
             double oldTargetQ = this.targetQ;
             this.targetQ = targetQ;
+            bus.invalidateLoadTargetQ();
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
                 listener.onLoadReactivePowerTargetChange(this, oldTargetQ, targetQ);
             }
@@ -272,7 +274,25 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
      */
     public static boolean isLoadNotParticipating(Load load) {
         // Fictitious loads that do not participate to slack distribution.
+        return isLoadFictitious(load);
+    }
+
+    /**
+     * Returns whether the load is tagged fictitious in the grid model
+     */
+    public static boolean isLoadFictitious(Load load) {
+        // Fictitious loads that do not participate to slack distribution.
         return load.isFictitious() || LoadType.FICTITIOUS.equals(load.getLoadType());
+    }
+
+    @Override
+    public double getNonFictitiousLoadTargetP() {
+        return loadsRefs.values().stream()
+                .map(Ref::get)
+                .filter(Objects::nonNull)
+                .filter(l -> !isLoadFictitious(l))
+                .mapToDouble(Load::getP0)
+                .sum();
     }
 
     @Override

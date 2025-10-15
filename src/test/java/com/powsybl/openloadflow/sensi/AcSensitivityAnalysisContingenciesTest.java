@@ -1173,6 +1173,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testPredefinedResults3() {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
+        // Make sure g3 has enough capacity to supply the loads alone
+        network.getGenerator("g3").setMaxP(6);
+
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<Contingency> contingencies = List.of(new Contingency("g2", new GeneratorContingency("g2")));
@@ -1244,7 +1247,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testStaticVarCompensatorContingency() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
-        network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).setRegulating(true);
         List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")));
         SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
         List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b2", "g1"), createBusVoltagePerTargetV("b2", "g1", "svc1"));
@@ -1271,7 +1274,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testStaticVarCompensatorContingency2() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
-        svc1.setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).setRegulating(true);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(400)
                 .withLowVoltageThreshold(380)
@@ -1305,6 +1308,8 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .add();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "NGEN", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        // The slack distribution will fail for the NGEN contingency. But we want a result to ensure the slack has been relocated
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"),
                                                   createBranchFlowPerInjectionIncrease("NHV1_NHV2_2", "LOAD"),
                                                   createBranchFlowPerInjectionIncrease("NHV2_NLOAD", "LOAD"),

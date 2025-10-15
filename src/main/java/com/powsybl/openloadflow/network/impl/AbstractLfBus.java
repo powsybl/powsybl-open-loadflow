@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -27,7 +27,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBus.class);
 
-    private static final double Q_DISPATCH_EPSILON = 1e-3;
+    /**
+     * Reactive power residue epsilon: 10^-5 in p.u => 10^-3 in MVar
+     */
+    private static final double Q_DISPATCH_EPSILON = 1e-5;
 
     private static final double PLAUSIBLE_REACTIVE_LIMITS = 1000 / PerUnit.SB;
 
@@ -49,7 +52,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Double generationTargetP;
 
-    protected double generationTargetQ = 0;
+    private double generationTargetQ = Double.NaN;
+
+    private boolean invalidatedGenerationTargetQ = true;
 
     protected QLimitType qLimitType;
 
@@ -64,6 +69,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected boolean distributedOnConformLoad;
 
     protected final List<LfLoad> loads = new ArrayList<>();
+
+    protected Double loadTargetP;
+
+    protected Double loadTargetQ;
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
@@ -89,11 +98,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private LfArea area = null;
 
-    protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
+    private boolean isGenerationTargetQFrozen = false;
+
+    protected boolean forceTargetQInReactiveLimits;
+
+    protected AbstractLfBus(LfNetwork network, double v, double angle, LfNetworkParameters parameters) {
         super(network);
         this.v = v;
         this.angle = angle;
-        this.distributedOnConformLoad = distributedOnConformLoad;
+        this.distributedOnConformLoad = parameters.isDistributedOnConformLoad();
+        this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
     }
 
     @Override
@@ -183,11 +197,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl) {
-        this.generatorVoltageControl = Objects.requireNonNull(generatorVoltageControl);
-        if (hasGeneratorVoltageControllerCapability()) {
-            this.generatorVoltageControlEnabled = true;
-        } else if (!isGeneratorVoltageControlled()) {
-            throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
+        this.generatorVoltageControl = generatorVoltageControl;
+        if (generatorVoltageControl != null) {
+            if (hasGeneratorVoltageControllerCapability()) {
+                this.generatorVoltageControlEnabled = true;
+            } else if (!isGeneratorVoltageControlled()) {
+                throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
+            }
+        } else {
+            this.generatorVoltageControlEnabled = false;
         }
     }
 
@@ -297,7 +315,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
-        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs, parameters)) {
+        if (!HvdcConverterStations.isHvdcDanglingInIidm(lccCs)) {
             // Note: Load is determined statically - contingencies or actions that change an LCC Station connectivity
             // will continue to give incorrect result
             getOrCreateLfLoad(null, parameters).add(lccCs, parameters);
@@ -307,9 +325,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
-        if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
-            generationTargetQ += generator.getTargetQ();
-        }
+        invalidateGenerationTargetQ();
     }
 
     void addGenerator(Generator generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -379,44 +395,108 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
+        if (forceTargetQInReactiveLimits && !isGenerationTargetQFrozen) {
+            invalidateGenerationTargetQ();
+        }
+    }
+
+    public void invalidateGenerationTargetQ() {
+        // If generationTargetQ was frozen, it is now freed. generationTargetQ is computed according to its definition in getGenerationTargetQ()
+        invalidatedGenerationTargetQ = true;
+        isGenerationTargetQFrozen = false;
     }
 
     @Override
     public double getGenerationTargetP() {
         if (generationTargetP == null) {
-            generationTargetP = generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
+            generationTargetP = 0.0;
+            for (LfGenerator generator : generators) {
+                generationTargetP += generator.getTargetP();
+            }
         }
         return generationTargetP;
     }
 
+    private void updateGenerationTargetQ(double newGenerationTargetQ, double oldGenerationTargetQ) {
+        if (Double.isNaN(newGenerationTargetQ)) {
+            throw new PowsyblException("Cannot set generationTargetQ with NaN value");
+        }
+        if (!Double.isNaN(oldGenerationTargetQ) && newGenerationTargetQ != oldGenerationTargetQ) { // Call listeners if updating an old value
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, newGenerationTargetQ);
+            }
+        }
+        this.generationTargetQ = newGenerationTargetQ;
+        invalidatedGenerationTargetQ = false;
+    }
+
     @Override
     public double getGenerationTargetQ() {
+        if (invalidatedGenerationTargetQ) {
+            updateGenerationTargetQ(getGenerators().stream()
+                        .filter(g -> g.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !g.isDisabled())
+                        .mapToDouble(LfGenerator::getTargetQ)
+                        .filter(d -> !Double.isNaN(d))
+                        .sum(),
+                    this.generationTargetQ);
+        }
         return generationTargetQ;
     }
 
     @Override
-    public void setGenerationTargetQ(double generationTargetQ) {
-        if (generationTargetQ != this.generationTargetQ) {
-            double oldGenerationTargetQ = this.generationTargetQ;
-            this.generationTargetQ = generationTargetQ;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, generationTargetQ);
-            }
+    public void freezeGenerationTargetQ(double generationTargetQ) {
+        // This is only used in case of PV bus switched to PQ bus (Reactive limit outerloop) or in the transformer voltage control algorithm
+        if (!isGeneratorVoltageControlEnabled()) {
+            updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
+            isGenerationTargetQFrozen = true;
+        } else {
+            throw new PowsyblException("Generation targetQ cannot be frozen if generatorVoltageControl is enabled");
         }
     }
 
     @Override
+    public boolean isGenerationTargetQFrozen() {
+        return isGenerationTargetQFrozen;
+    }
+
+    @Override
+    public void invalidateLoadTargetP() {
+        loadTargetP = null;
+    }
+
+    @Override
     public double getLoadTargetP() {
+        if (loadTargetP == null) {
+            loadTargetP = 0.0;
+            for (LfLoad load : loads) {
+                loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
+            }
+        }
+        return loadTargetP;
+    }
+
+    @Override
+    public double getNonFictitiousLoadTargetP() {
         return loads.stream()
-                .mapToDouble(load -> load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
+                .mapToDouble(load -> load.getNonFictitiousLoadTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
                 .sum();
     }
 
     @Override
+    public void invalidateLoadTargetQ() {
+        loadTargetQ = null;
+    }
+
+    @Override
     public double getLoadTargetQ() {
-        return loads.stream()
-                .mapToDouble(load -> load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d))
-                .sum();
+        if (loadTargetQ == null) {
+            double sum = 0.0;
+            for (LfLoad load : loads) {
+                sum += load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
+            }
+            loadTargetQ = sum;
+        }
+        return loadTargetQ;
     }
 
     @Override
@@ -426,6 +506,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
         return generators.stream()
+                .filter(g -> !g.isDisabled())
                 .mapToDouble(generator -> (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
                         generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) ?
                         limitQ.applyAsDouble(generator) : generator.getTargetQ()).sum();
@@ -694,7 +775,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : generationTargetQ,
+        updateGeneratorsState(generatorVoltageControlEnabled || generatorReactivePowerControlEnabled ? (q.eval() + getLoadTargetQ()) : getGenerationTargetQ(),
                 parameters.isReactiveLimits(), parameters.getReactivePowerDispatchMode());
 
         // update load power
@@ -842,4 +923,5 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public double getFictitiousInjectionTargetQ() {
         return 0;
     }
+
 }

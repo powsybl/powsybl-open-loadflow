@@ -38,9 +38,12 @@ public class DcEquationSystemCreator {
         for (LfBus bus : network.getBuses()) {
             var p = equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_P);
             bus.setP(p);
-            if (bus.isSlack()) {
+            if (bus.isReference()) {
                 equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_PHI)
                         .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI).createTerm());
+            }
+            // The P balance equation is only disabled for the first slack bus. In cas of multi-slack, target vector will be updated for the other slack buses
+            if (bus == network.getSlackBus()) {
                 p.setActive(false);
             }
         }
@@ -77,7 +80,7 @@ public class DcEquationSystemCreator {
                         .addTerm(dummyP.createTerm())
                         .setActive(branch.isDisabled() || !spanningTree); // inverted logic
             } else {
-                throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
+                throw new IllegalStateException("Cannot happen because there is only one reference bus per model");
             }
         }
     }

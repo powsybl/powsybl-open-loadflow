@@ -125,9 +125,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         double zb = PerUnit.zb(nominalV2);
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
-        if (ptc != null
-                && (ptc.isRegulating()
-                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP || retainPtc)) {
+        if (ptc != null && (ptc.isRegulating() || retainPtc)) {
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
@@ -234,14 +232,13 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
-        var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, branch.getActivePowerLimits1().orElse(null), limitReductionManager);
+                return getLimits1(type, () -> getBranch().getActivePowerLimits1(), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null), limitReductionManager);
+                return getLimits1(type, () -> getBranch().getApparentPowerLimits1(), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, branch.getCurrentLimits1().orElse(null), limitReductionManager);
+                return getLimits1(type, () -> getBranch().getCurrentLimits1(), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -250,14 +247,13 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
-        var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, branch.getActivePowerLimits2().orElse(null), limitReductionManager);
+                return getLimits2(type, () -> getBranch().getActivePowerLimits2(), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null), limitReductionManager);
+                return getLimits2(type, () -> getBranch().getApparentPowerLimits2(), limitReductionManager);
             case CURRENT:
-                return getLimits2(type, branch.getCurrentLimits2().orElse(null), limitReductionManager);
+                return getLimits2(type, () -> getBranch().getCurrentLimits2(), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -346,19 +342,33 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             }
         }
 
-        if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
-            // it means there is a regulating phase tap changer located on that branch
-            updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
-        }
+        if (branch instanceof TwoWindingsTransformer twt) {
+            if (twt.hasPhaseTapChanger()) {
+                PhaseTapChanger ptc = twt.getPhaseTapChanger();
+                if (isDisabled()) {
+                    ptc.unsetSolvedTapPosition();
+                } else if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
+                    // it means there is a regulating phase tap changer located on that branch
+                    updateSolvedTapPosition(ptc);
+                } else {
+                    ptc.setSolvedTapPosition(ptc.getTapPosition());
+                }
+            }
 
-        if (parameters.isTransformerVoltageControlOn() && isVoltageController()
-                || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
-            TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            RatioTapChanger rtc = twt.getRatioTapChanger();
-            double baseRatio = Transformers.getRatioPerUnitBase(twt);
-            double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
-            double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
-            updateTapPosition(rtc, ptcRho, rho);
+            if (twt.hasRatioTapChanger()) {
+                RatioTapChanger rtc = twt.getRatioTapChanger();
+                if (isDisabled()) {
+                    rtc.unsetSolvedTapPosition();
+                } else if (parameters.isTransformerVoltageControlOn() && isVoltageController()
+                        || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
+                    double baseRatio = Transformers.getRatioPerUnitBase(twt);
+                    double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
+                    double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
+                    updateSolvedTapPosition(rtc, ptcRho, rho);
+                } else {
+                    rtc.setSolvedTapPosition(rtc.getTapPosition());
+                }
+            }
         }
     }
 

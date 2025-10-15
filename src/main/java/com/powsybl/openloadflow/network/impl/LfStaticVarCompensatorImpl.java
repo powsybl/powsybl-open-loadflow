@@ -46,7 +46,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
                                        LfNetworkLoadingReport report) {
-        super(network, 0);
+        super(network, 0, parameters);
         this.svcRef = Ref.create(svc, parameters.isCacheEnabled());
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
         this.reactiveLimits = new MinMaxReactiveLimits() {
@@ -79,10 +79,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
             }
         };
 
-        switch (svc.getRegulationMode()) {
-            case VOLTAGE -> setupVoltageControl(svc, parameters, report);
-            case REACTIVE_POWER -> targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
-            case OFF -> targetQ = 0;
+        if (svc.isRegulating()) {
+            switch (svc.getRegulationMode()) {
+                case VOLTAGE -> setupVoltageControl(svc, parameters, report);
+                case REACTIVE_POWER -> targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
+            }
+        } else {
+            targetQ = 0;
         }
     }
 

@@ -8,6 +8,10 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
@@ -262,9 +266,9 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      *   g1 100 MW                                       gen3 40MW
      *      |                                                |
-     *      b1 ---(l12)--- b2 ---(dlA1)----< >----(dlA2)--- b3
+     *      b1 ---(l12)--- b2 ---(dlA1)----< >----(dlA2)--- b3 ---(l34)--- b4 --- load4 30MW
      *      |                                                |
-     *    load1 60MW                                     load3 50MW
+     *    load1 60MW                                     load3 20MW
      *    <------------------------------->   <--------------------->
      *                Area 1                            Area 2
      */
@@ -312,17 +316,22 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setBoundary(dl2.getBoundary())
                 .setAc(true)
                 .add();
+        Bus b4 = createBus(network, "b4", 400);
+        network.getArea("a2").addVoltageLevel(b4.getVoltageLevel());
+        network.getLoad("load3").setP0(20);
+        createLoad(b4, "load4", 30);
+        createLine(network, network.getBusBreakerView().getBus("b3"), b4, "l34", 0.2);
         return network;
     }
 
     /**
      *   g1 100 MW                                       gen3 40MW
      *      |                                                |
-     *      b1 ---(l12)--- b2 ---(dlA1)----< >----(dlA2)--- b3
+     *      b1 ---(l12)--- b2 ---(dlA1)----< >----(dlA2)--- b3 ---(l34)--- b4 --- load4 30MW
      *      |              |                                |
-     *    load1 60MW       |                           load3 50MW
+     *    load1 60MW       |                           load3 20MW
      *                     |
-     *                     + ---(dlA1_1)---< >---(dlA1_2)--- b4 -- gen4 5 MW
+     *                     + ---(dlA1_1)---< >---(dlA1_2)--- b5 -- gen5 5 MW
      *    <------------------------------->   <--------------------->
      *                Area 1                            Area 2
      *  The second tie line is not considered in Areas' boundaries.
@@ -342,21 +351,12 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setQ0(0)
                 .setPairingKey("tlA1A2_2")
                 .add();
-        Substation s4 = network.newSubstation()
-                .setId("S4")
-                .add();
-        VoltageLevel vl4 = s4.newVoltageLevel()
-                .setId("vl4")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl4.getBusBreakerView().newBus()
-                .setId("b4")
-                .add();
-        vl4.newGenerator()
-                .setId("gen4")
-                .setConnectableBus("b4")
-                .setBus("b4")
+        Bus b5 = createBus(network, "S5", "b5", 400);
+        VoltageLevel vl5 = b5.getVoltageLevel();
+        vl5.newGenerator()
+                .setId("gen5")
+                .setConnectableBus("b5")
+                .setBus("b5")
                 .setTargetP(5)
                 .setTargetQ(0)
                 .setTargetV(400)
@@ -364,10 +364,10 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setMaxP(30)
                 .setVoltageRegulatorOn(true)
                 .add();
-        vl4.newDanglingLine()
+        vl5.newDanglingLine()
                 .setId("dlA1_2")
-                .setConnectableBus("b4")
-                .setBus("b4")
+                .setConnectableBus("b5")
+                .setBus("b5")
                 .setR(0)
                 .setX(1)
                 .setG(0)
@@ -383,21 +383,13 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDanglingLine2("dlA1_2")
                 .add();
         network.getArea("a2")
-                        .addVoltageLevel(vl4);
-        network.newLine()
-                .setId("l24")
-                .setBus1("b2")
-                .setBus2("b4")
-                .setR(0)
-                .setX(1)
-                .add();
+                        .addVoltageLevel(vl5);
         return network;
     }
 
     /**
      * same as createTwoAreasWithTieLine but with a small dummy island and a2 has a boundary in it.
      */
-
     public static Network createAreaTwoComponents() {
         Network network = createTwoAreasWithTieLine();
         // create dummy bus in another island
@@ -449,6 +441,103 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setAreaType("ControlArea")
                 .addAreaBoundary(network.getLine("l34").getTerminal2(), true)
                 .add();
+        return network;
+    }
+
+    public static Network createTwoAreasWithPhaseShifter() {
+        Network network = PhaseShifterTestCaseFactory.create();
+
+        VoltageLevel vl1 = network.getVoltageLevel("VL1");
+        VoltageLevel vl2 = network.getVoltageLevel("VL2");
+        Line l2 = network.getLine("L2");
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+
+        ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
+        ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
+        ps1.getPhaseTapChanger().setTargetDeadband(10);
+        ps1.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL);
+        ps1.getPhaseTapChanger().setRegulating(true);
+        ps1.getPhaseTapChanger().setRegulationValue(-80);
+
+        vl2.newGenerator()
+                .setId("G2")
+                .setBus("B2")
+                .setTargetP(40)
+                .setTargetQ(0)
+                .setTargetV(400)
+                .setMinP(0)
+                .setMaxP(150)
+                .setVoltageRegulatorOn(false)
+                .add();
+
+        vl1.newLoad()
+                .setId("LD1")
+                .setBus("B1")
+                .setP0(40.0)
+                .setQ0(5.0)
+                .add();
+
+        network.newArea()
+                .setId("A1")
+                .setName("Area 1")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(-81.5)
+                .addVoltageLevel(vl1)
+                .addAreaBoundary(ps1.getTerminal2(), true)
+                .add();
+
+        network.newArea()
+                .setId("A2")
+                .setName("Area 2")
+                .setAreaType("ControlArea")
+                .setInterchangeTarget(81.5)
+                .addVoltageLevel(vl2)
+                .addAreaBoundary(l2.getTerminal1(), true)
+                .add();
+
+        return network;
+    }
+
+    public static Network createTenAreas() {
+        Network network = Network.create("tenAreas", "test");
+
+        for (int i = 0; i < 10; i++) {
+            Bus b = createBus(network, "b" + i);
+
+            DanglingLine dl0 = createDanglingLine(b, "dlb" + i + "_0", 0.1, 0, 0);
+            DanglingLine dl1 = createDanglingLine(b, "dlb" + i + "_1", 0.1, 0, 0);
+            dl0.setPairingKey("key_" + i);
+            int key1 = i == 9 ? 0 : i + 1;
+            dl1.setPairingKey("key_" + key1);
+
+            double interchangeTarget;
+            if (List.of(1, 3, 4, 8, 9).contains(i)) {
+                interchangeTarget = -2;
+            } else {
+                interchangeTarget = 2;
+            }
+            createGenerator(b, "g" + i, 5);
+            createLoad(b, "l" + i, 5 + interchangeTarget + 0.05); // add 0.05 to have no interchange mismatch but still some slack bus mismatch
+
+            network.newArea()
+                    .setId("A" + i)
+                    .setName("Area " + i)
+                    .setAreaType("ControlArea")
+                    .setInterchangeTarget(interchangeTarget)
+                    .addVoltageLevel(b.getVoltageLevel())
+                    .addAreaBoundary(dl0.getBoundary(), true)
+                    .addAreaBoundary(dl1.getBoundary(), true)
+                    .add();
+        }
+
+        network.getDanglingLineStream()
+                .collect(Collectors.groupingBy(DanglingLine::getPairingKey))
+                .forEach((key, value) -> network.newTieLine()
+                        .setId(key).setName(key)
+                        .setDanglingLine1(value.get(0).getId())
+                        .setDanglingLine2(value.get(1).getId())
+                        .add());
+
         return network;
     }
 

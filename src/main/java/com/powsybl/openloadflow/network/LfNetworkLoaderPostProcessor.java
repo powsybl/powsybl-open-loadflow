@@ -37,4 +37,6 @@ public interface LfNetworkLoaderPostProcessor {
     void onInjectionAdded(Object element, LfBus lfBus);
 
     void onAreaAdded(Object element, LfArea lfArea);
+
+    void onLfNetworkLoaded(Object element, LfNetwork lfNetwork);
 }

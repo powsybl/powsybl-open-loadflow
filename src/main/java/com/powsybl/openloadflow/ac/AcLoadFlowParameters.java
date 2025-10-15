@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,11 +7,11 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
-import com.powsybl.openloadflow.ac.solver.NewtonKrylovParameters;
+import com.powsybl.openloadflow.ac.solver.AcSolverParameters;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonFactory;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
@@ -28,11 +28,13 @@ import java.util.Objects;
  */
 public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowParameters> {
 
+    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
+    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 2;
+    public static final double DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK = 0;
+
     private AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters();
 
-    private NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
-
-    private NewtonKrylovParameters newtonKrylovParameters = new NewtonKrylovParameters();
+    private AcSolverParameters acSolverParameters = new NewtonRaphsonParameters();
 
     private List<AcOuterLoop> outerLoops = Collections.emptyList();
 
@@ -42,11 +44,17 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
-    private OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
-
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
     private boolean detailedReport = false;
+
+    private boolean voltageRemoteControlRobustMode = true;
+
+    private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
+
+    private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    private double minNominalVoltageRealisticVoltageCheck = DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK;
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
@@ -57,22 +65,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
-    public NewtonRaphsonParameters getNewtonRaphsonParameters() {
-        return newtonRaphsonParameters;
-    }
-
-    public AcLoadFlowParameters setNewtonRaphsonParameters(NewtonRaphsonParameters newtonRaphsonParameters) {
-        this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
-        return this;
-    }
-
-    public NewtonKrylovParameters getNewtonKrylovParameters() {
-        return newtonKrylovParameters;
-    }
-
-    public AcLoadFlowParameters setNewtonKrylovParameters(NewtonKrylovParameters newtonKrylovParameters) {
-        this.newtonKrylovParameters = Objects.requireNonNull(newtonKrylovParameters);
-        return this;
+    public AcSolverParameters getAcSolverParameters() {
+        return acSolverParameters;
     }
 
     public List<AcOuterLoop> getOuterLoops() {
@@ -111,21 +105,13 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
-    public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
-        return slackDistributionFailureBehavior;
-    }
-
-    public AcLoadFlowParameters setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
-        this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
-        return this;
-    }
-
     public AcSolverFactory getSolverFactory() {
         return solverFactory;
     }
 
-    public AcLoadFlowParameters setSolverFactory(AcSolverFactory solverFactory) {
+    public AcLoadFlowParameters setSolverFactory(AcSolverFactory solverFactory, LoadFlowParameters parameters) {
         this.solverFactory = Objects.requireNonNull(solverFactory);
+        this.acSolverParameters = solverFactory.createParameters(parameters);
         return this;
     }
 
@@ -138,13 +124,48 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isVoltageRemoteControlRobustMode() {
+        return voltageRemoteControlRobustMode;
+    }
+
+    public AcLoadFlowParameters setVoltageRemoteControlRobustMode(boolean voltageRemoteControlRobustMode) {
+        this.voltageRemoteControlRobustMode = voltageRemoteControlRobustMode;
+        return this;
+    }
+
+    public double getMinRealisticVoltage() {
+        return minRealisticVoltage;
+    }
+
+    public AcLoadFlowParameters setMinRealisticVoltage(double minRealisticVoltage) {
+        this.minRealisticVoltage = minRealisticVoltage;
+        return this;
+    }
+
+    public double getMaxRealisticVoltage() {
+        return maxRealisticVoltage;
+    }
+
+    public AcLoadFlowParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
+        this.maxRealisticVoltage = maxRealisticVoltage;
+        return this;
+    }
+
+    public double getMinNominalVoltageRealisticVoltageCheck() {
+        return minNominalVoltageRealisticVoltageCheck;
+    }
+
+    public AcLoadFlowParameters setMinNominalVoltageRealisticVoltageCheck(double minNominalVoltageRealisticVoltageCheck) {
+        this.minNominalVoltageRealisticVoltageCheck = minNominalVoltageRealisticVoltageCheck;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
                 "networkParameters=" + networkParameters +
                 ", equationSystemCreationParameters=" + equationSystemCreationParameters +
-                ", newtonRaphsonParameters=" + newtonRaphsonParameters +
-                ", newtonKrylovParameters=" + newtonKrylovParameters +
+                ", acSolverParameters=" + acSolverParameters +
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).toList() +
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
@@ -153,6 +174,10 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", slackDistributionFailureBehavior=" + slackDistributionFailureBehavior.name() +
                 ", solverFactory=" + solverFactory.getClass().getSimpleName() +
                 ", detailedReport=" + detailedReport +
+                ", voltageRemoteControlRobustMode=" + voltageRemoteControlRobustMode +
+                ", minRealisticVoltage=" + minRealisticVoltage +
+                ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
                 ')';
     }
 }

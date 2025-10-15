@@ -53,6 +53,10 @@ public class PiModelArray implements PiModel {
         return models.get(tapPositionIndex);
     }
 
+    public PiModel getModel(int tapPositionIndex) {
+        return models.get(tapPositionIndex);
+    }
+
     @Override
     public double getR() {
         return getModel().getR();

@@ -16,11 +16,16 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -45,9 +50,16 @@ class AreaInterchangeControlTest {
     }
 
     @Test
+    void invalidAreaInterchangePMaxMismatch() {
+        assertThrows(IllegalArgumentException.class, () -> parametersExt.setAreaInterchangePMaxMismatch(-1.0));
+    }
+
+    @Test
     void twoAreasWithXnodeTest() {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
         runLfTwoAreas(network, -40, 40, -30, 2);
+        parameters.setDc(true);
+        runLfTwoAreas(network, -40, 40, -30, 0);
     }
 
     @Test
@@ -55,13 +67,51 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
         double interchangeTarget2 = 40;
-        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 4);
+        parameters.setDc(true);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
+    }
+
+    @Test
+    void zeroImpedanceBoundaryBranchesNetworkConversion() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        network.getLine("l23_A1").setX(0);          // boundary
+        network.getDanglingLine("dl1").setX(0);     // boundary
+        network.getLine("l12").setX(0);             // not boundary
+
+        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setAreaInterchangeControl(false)).get(0);
+        assertTrue(lfNetwork.getBranchById("dl1").isZeroImpedance(LoadFlowModel.AC));
+        assertTrue(lfNetwork.getBranchById("l23_A1").isZeroImpedance(LoadFlowModel.AC));
+        assertTrue(lfNetwork.getBranchById("l12").isZeroImpedance(LoadFlowModel.AC));
+
+        lfNetwork = Networks.load(network, new LfNetworkParameters().setAreaInterchangeControl(true)).get(0);
+        assertFalse(lfNetwork.getBranchById("dl1").isZeroImpedance(LoadFlowModel.AC));
+        assertEquals(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, lfNetwork.getBranchById("dl1").getPiModel().getX());
+        assertFalse(lfNetwork.getBranchById("l23_A1").isZeroImpedance(LoadFlowModel.AC));
+        assertEquals(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, lfNetwork.getBranchById("l23_A1").getPiModel().getX());
+        assertTrue(lfNetwork.getBranchById("l12").isZeroImpedance(LoadFlowModel.AC));
+
+    }
+
+    @Test
+    void twoAreasWithZeroImpedanceBoundaryBranches() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        double interchangeTarget1 = -40;
+        double interchangeTarget2 = 20;
+        network.getLine("l23_A1").setX(0);
+        network.getDanglingLine("dl1").setX(0);
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 2);
+        parameters.setDc(true);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
     }
 
     @Test
     void twoAreasWithTieLineTest() {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithTieLine();
         runLfTwoAreas(network, -40, 40, -30, 2);
+        parameters.setDc(true);
+        runLfTwoAreas(network, -40, 40, -30, 0);
     }
 
     @Test
@@ -69,55 +119,40 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithUnconsideredTieLine();
         int expectedIterationCount = 3;
         runLfTwoAreas(network, -40, 40, -35, expectedIterationCount);
+        parameters.setDc(true);
+        runLfTwoAreas(network, -40, 40, -35, 0);
     }
 
-    @Test
-    void remainingMismatchLeaveOneSlackBus() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
-        Network network = MultiAreaNetworkFactory.createOneAreaBase();
-        network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        var result = loadFlowRunner.run(network, parameters);
-        var mainComponentResult = result.getComponentResults().get(0);
-
-        assertEquals(-90, network.getGenerator("g1").getTerminal().getP(), 1e-3);
-        assertEquals(-10, mainComponentResult.getDistributedActivePower(), 1e-3);
-        assertEquals(-20, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    static Stream<Arguments> allSlackDistributionFailureBehaviors() {
+        return Stream.of(Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, -90, -20, -10),
+                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL, Double.NaN, -30, 0),
+                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR, Double.NaN, -30, 0),
+                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW, Double.NaN, Double.NaN, Double.NaN));
     }
 
-    @Test
-    void remainingMismatchFail() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
-        Network network = MultiAreaNetworkFactory.createOneAreaBase();
-        network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        var result = loadFlowRunner.run(network, parameters);
-        var mainComponentResult = result.getComponentResults().get(0);
-
-        assertEquals(Double.NaN, network.getGenerator("g1").getTerminal().getP(), 1e-3);
-        assertEquals(0, mainComponentResult.getDistributedActivePower(), 1e-3);
-        assertEquals(-30, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("allSlackDistributionFailureBehaviors")
+    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+        runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
+        parameters.setDc(true);
+        runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
     }
 
-    @Test
-    void remainingMismatchDistributeOnReferenceGenerator() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+        parametersExt.setSlackDistributionFailureBehavior(slackDistributionFailureBehavior);
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        var result = loadFlowRunner.run(network, parameters);
-        var mainComponentResult = result.getComponentResults().get(0);
 
-        // falls back to FAIL
-        assertEquals(Double.NaN, network.getGenerator("g1").getTerminal().getP(), 1e-3);
-        assertEquals(0, mainComponentResult.getDistributedActivePower(), 1e-3);
-        assertEquals(-30, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
-    }
-
-    @Test
-    void remainingMismatchThrow() {
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
-        Network network = MultiAreaNetworkFactory.createOneAreaBase();
-        network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
-        CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("Failed to distribute interchange active power mismatch", thrown.getCause().getMessage());
+        if (slackDistributionFailureBehavior != OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW) {
+            var result = loadFlowRunner.run(network, parameters);
+            var mainComponentResult = result.getComponentResults().get(0);
+            assertEquals(expectedGen1P, network.getGenerator("g1").getTerminal().getP(), 1e-3);
+            assertEquals(expectedMismatch, mainComponentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+            assertEquals(expectedDistributedP, mainComponentResult.getDistributedActivePower(), 1e-3);
+        } else {
+            CompletionException thrown = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+            assertEquals("Failed to distribute interchange active power mismatch", thrown.getCause().getMessage());
+        }
     }
 
     @Test
@@ -128,6 +163,12 @@ class AreaInterchangeControlTest {
                 .setSlackBusId("bx1_vl_0");
         var result = runLfTwoAreas(network, -15, 15, -30, 6);
         List<LoadFlowResult.SlackBusResult> slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
+        assertEquals(1, slackBusResults.size());
+        assertEquals("bx1_vl_0", slackBusResults.get(0).getId());
+
+        parameters.setDc(true);
+        result = runLfTwoAreas(network, -15, 15, -30, 0);
+        slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
         assertEquals(1, slackBusResults.size());
         assertEquals("bx1_vl_0", slackBusResults.get(0).getId());
     }
@@ -142,6 +183,12 @@ class AreaInterchangeControlTest {
         List<LoadFlowResult.SlackBusResult> slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
         assertEquals(1, slackBusResults.size());
         assertEquals("bx2_vl_0", slackBusResults.get(0).getId());
+
+        parameters.setDc(true);
+        result = runLfTwoAreas(network, -15, 15, -30, 0);
+        slackBusResults = result.getComponentResults().get(0).getSlackBusResults();
+        assertEquals(1, slackBusResults.size());
+        assertEquals("bx2_vl_0", slackBusResults.get(0).getId());
     }
 
     @Test
@@ -152,6 +199,11 @@ class AreaInterchangeControlTest {
         var result = loadFlowRunner.run(network, parameters);
         var componentResult = result.getComponentResults().get(0);
         assertEquals(1.998, componentResult.getDistributedActivePower(), 1e-3);
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+
+        parameters.setDc(true);
+        result = loadFlowRunner.run(network, parameters);
+        componentResult = result.getComponentResults().get(0);
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
@@ -168,6 +220,14 @@ class AreaInterchangeControlTest {
         assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(3, componentResult.getIterationCount());
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+
+        parameters.setDc(true);
+        result = loadFlowRunner.run(network, parameters);
+        componentResult = result.getComponentResults().get(0);
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+        assertEquals(0, componentResult.getIterationCount());
+        assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+
     }
 
     @Test
@@ -207,6 +267,15 @@ class AreaInterchangeControlTest {
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
     }
 
+    @Test
+    void tenAreasSlackDistribution() {
+        Network network = MultiAreaNetworkFactory.createTenAreas();
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+    }
+
     private LoadFlowResult runLfTwoAreas(Network network, double interchangeTarget1, double interchangeTarget2, double expectedDistributedP, int expectedIterationCount) {
         Area area1 = network.getArea("a1");
         Area area2 = network.getArea("a2");
@@ -219,9 +288,9 @@ class AreaInterchangeControlTest {
         var componentResult = result.getComponentResults().get(0);
         assertEquals(interchangeTarget1, area1.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
         assertEquals(interchangeTarget2, area2.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
-        assertEquals(expectedDistributedP, componentResult.getDistributedActivePower(), 1e-3);
-        assertEquals(expectedIterationCount, componentResult.getIterationCount());
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+        assertEquals(expectedDistributedP, componentResult.getDistributedActivePower(), parametersExt.getSlackBusPMaxMismatch());
+        assertEquals(expectedIterationCount, componentResult.getIterationCount());
         return result;
     }
 

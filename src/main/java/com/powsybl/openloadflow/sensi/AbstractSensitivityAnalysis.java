@@ -12,6 +12,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
@@ -626,7 +627,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
+        var participatingBuses = ActivePowerDistribution.filterParticipatingBuses(buses);
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(participatingBuses, Double.NaN); // The value of the mismatch cannot be known here. It is not needed for the distribution types supported in sensitivity analysis and checked in #checkLoadFlowParameters
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
         return participatingElements;
     }
@@ -775,6 +777,24 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
+    private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeDanglingLine(Network network, SensitivityFunctionType functionType, String functionId) {
+        if (isFlowFunction(functionType) || isReactivePowerFunctionType(functionType)) {
+            DanglingLine danglingLine = network.getDanglingLine(functionId);
+            if (danglingLine != null && danglingLine.isPaired()) {
+                if (functionType.getSide().orElseThrow() != 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
+                    throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
+                }
+                TieLine tieLine = danglingLine.getTieLine().orElseThrow();
+                TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
+                }
+                return Pair.of(updateFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
+            }
+        }
+        return Pair.of(functionType, functionId); // Returning input as it is
+    }
+
     private static LfBranch checkAndGetBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
         Branch<?> branch = network.getBranch(branchId);
         if (branch != null) {
@@ -907,6 +927,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (injection == null) {
                 injection = network.getVscConverterStation(injectionId);
             }
+            if (injection == null) {
+                injection = network.getBattery(injectionId);
+            }
             return injection;
         }
 
@@ -972,9 +995,17 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         final Map<String, Bus> busCache = new HashMap<>();
         InjectionVariableIdToBusIdCache injectionVariableIdToBusIdCache = new InjectionVariableIdToBusIdCache();
         int[] factorIndex = new int[1];
-        factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+        factorReader.read((functionTypeToCheck, functionIdToCheck, variableType, variableId, variableSet, contingencyContext) -> {
+            SensitivityFunctionType functionType = functionTypeToCheck;
+            String functionId = functionIdToCheck;
+            if (network.getDanglingLine(functionIdToCheck) != null && network.getDanglingLine(functionIdToCheck).isPaired()) {
+                //In case of dangling line associated to a tie line, we have to update the sensitivity function
+                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeDanglingLine(network, functionTypeToCheck, functionIdToCheck);
+                functionType = updatedFunction.getLeft();
+                functionId = updatedFunction.getRight();
+            }
             if (variableSet) {
-                if (isActivePowerFunctionType(functionType)) {
+                if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -1014,7 +1045,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     throw createFunctionTypeNotSupportedException(functionType);
                 }
             } else {
-                if (isActivePowerFunctionType(functionType) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                if ((isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
 
@@ -1024,6 +1055,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     }
                     Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
                     Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
+
+                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
+                        if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled() && parameters.getLoadFlowParameters().isHvdcAcEmulation()) {
+                            throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
+                        }
+                    }
 
                     // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                     // => we create a multi (bi) variables factor
@@ -1053,7 +1090,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
-                            case INJECTION_ACTIVE_POWER:
+                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
@@ -1090,19 +1127,28 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     } else if (isReactivePowerFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                        } else {
-                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        switch (variableType) {
+                            case BUS_TARGET_VOLTAGE :
+                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                                break;
+                            case INJECTION_REACTIVE_POWER:
+                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                                variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                                break;
+                            default:
+                                throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER) {
-                        String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
-                        functionElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
-                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                        } else {
-                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
-                        }
+                        String functionInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
+                        functionElement = functionInjectionBusId != null ? lfNetwork.getBusById(functionInjectionBusId) : null;
+                        variableElement = switch (variableType) {
+                            case BUS_TARGET_VOLTAGE -> findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                            case INJECTION_REACTIVE_POWER -> {
+                                String variableInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                                yield variableInjectionBusId != null ? lfNetwork.getBusById(variableInjectionBusId) : null;
+                            }
+                            default -> throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        };
                     } else {
                         throw createFunctionTypeNotSupportedException(functionType);
                     }
@@ -1139,6 +1185,19 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return functionType == SensitivityFunctionType.BRANCH_CURRENT_1
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
                 || functionType == SensitivityFunctionType.BRANCH_CURRENT_3;
+    }
+
+    private static SensitivityFunctionType updateFunctionTypeSide(SensitivityFunctionType functionType, TwoSides side) {
+        if (side != null) {
+            if (isActivePowerFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+            } else if (isReactivePowerFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_REACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_REACTIVE_POWER_2;
+            } else if (isCurrentFunctionType(functionType)) {
+                return side == TwoSides.ONE ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+            }
+        }
+        throw new IllegalArgumentException("Illegal function type side switching");
     }
 
     protected Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
@@ -1231,7 +1290,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig);
+                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig, boolean startWithFrozenACEmulation);
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

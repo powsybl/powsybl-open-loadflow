@@ -42,10 +42,10 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return array;
     }
 
-    private void eval(double[] array, List<Equation<V, E>> equations) {
+    private void evalLhs(double[] array, List<Equation<V, E>> equations) {
         Arrays.fill(array, 0); // necessary?
         for (Equation<V, E> equation : equations) {
-            array[equation.getColumn()] = equation.eval();
+            array[equation.getColumn()] = equation.evalLhs();
         }
     }
 
@@ -59,7 +59,7 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             throw new IllegalArgumentException("Bad equation vector length: " + array.length);
         }
 
-        eval(array, equations);
+        evalLhs(array, equations);
 
         LOGGER.debug(PERFORMANCE_MARKER, "Equation vector updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }

@@ -36,8 +36,8 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     private final boolean hvdcDandlingInIidm;
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB);
-        this.hvdcDandlingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station, parameters);
+        super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB, parameters);
+        this.hvdcDandlingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 

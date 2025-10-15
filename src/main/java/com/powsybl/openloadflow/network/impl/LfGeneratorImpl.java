@@ -12,11 +12,9 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.LfAsymGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,14 +41,18 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private Double qPercent;
 
+    private boolean isTargetQForcedInReactiveLimits = false;
+
     private final boolean forceVoltageControl;
 
     private final double maxTargetP;
 
     private final double minTargetP;
 
+    private final boolean forceTargetQInReactiveLimits;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, generator.getTargetP() / PerUnit.SB);
+        super(network, generator.getTargetP() / PerUnit.SB, parameters);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
         forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
@@ -62,10 +64,12 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         minTargetP = apcHelper.minTargetP();
         maxTargetP = apcHelper.maxTargetP();
 
+        forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
+
         setReferencePriority(ReferencePriority.get(generator));
 
         if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters, report)) {
             participating = false;
         }
 
@@ -95,7 +99,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         participating = initialParticipating;
         var generator = getGenerator();
         if (!checkActivePowerControl(generator.getId(), targetP * PerUnit.SB, generator.getMaxP(), minTargetP, maxTargetP,
-                parameters.getPlausibleActivePowerLimit(), parameters.isUseActiveLimits(), report)) {
+                parameters, report)) {
             participating = false;
         }
     }
@@ -166,7 +170,24 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        double targetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        if (forceTargetQInReactiveLimits) {
+            double computedTargetQ = targetQ;
+            double minQ = getMinQ();
+            double maxQ = getMaxQ();
+            if (computedTargetQ < minQ) {
+                computedTargetQ = minQ;
+            } else if (computedTargetQ > maxQ) {
+                computedTargetQ = maxQ;
+            }
+            if (!isTargetQForcedInReactiveLimits && targetQ != computedTargetQ) { // Logging and reporting only on first update to avoid too much messages
+                String message = Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
+                LOGGER.info(message);
+                isTargetQForcedInReactiveLimits = true;
+            }
+            targetQ = computedTargetQ;
+        }
+        return targetQ;
     }
 
     @Override
@@ -226,8 +247,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
-        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(report);
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        return forceVoltageControl || super.checkIfGeneratorStartedForVoltageControl(parameters, report);
     }
 
     @Override

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.RatioTapChanger;
@@ -25,12 +26,14 @@ import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -41,7 +44,8 @@ class AcLoadFlowReportTest {
     void testEsgTutoDetailedNrLogsLf() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testEsgTutoReport", "Test ESG tutorial report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testEsgTutoReport")
                 .build();
         var lfParameters = new LoadFlowParameters()
                 .setTransformerVoltageControlOn(true);
@@ -64,7 +68,8 @@ class AcLoadFlowReportTest {
     void testShuntVoltageControlOuterLoopReport() throws IOException {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         var lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
@@ -93,7 +98,8 @@ class AcLoadFlowReportTest {
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-0.55);
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         var lfParameters = new LoadFlowParameters();
         var olfParameters = OpenLoadFlowParameters.create(lfParameters);
@@ -126,13 +132,14 @@ class AcLoadFlowReportTest {
 
         // test in AC
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals("Converged", result.getComponentResults().get(0).getStatusText());
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(1).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(1).getStatus());
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL.toString(), result.getComponentResults().get(1).getStatusText());
         assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
@@ -142,7 +149,8 @@ class AcLoadFlowReportTest {
         // test in DC
         lfParameters.setDc(true);
         reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
 
@@ -162,7 +170,8 @@ class AcLoadFlowReportTest {
         network.getGenerator("g2").setTargetV(10); // not plausible targetV, will be discarded and reported
 
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         var lfParameters = new LoadFlowParameters();
         lfParameters.setTransformerVoltageControlOn(true);
@@ -188,7 +197,8 @@ class AcLoadFlowReportTest {
                 .setRegulationMode(RatioTapChanger.RegulationMode.VOLTAGE)
                 .setTargetV(100); // not plausible, will be discarded and reported
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         var lfParameters = new LoadFlowParameters();
         lfParameters.setTransformerVoltageControlOn(true);
@@ -206,7 +216,8 @@ class AcLoadFlowReportTest {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
         network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         var lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
@@ -224,7 +235,8 @@ class AcLoadFlowReportTest {
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
         network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger().setTargetV(34.5).setTargetDeadband(3.0);
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         var lfParameters = new LoadFlowParameters();
         lfParameters.setTransformerVoltageControlOn(true);
@@ -243,7 +255,8 @@ class AcLoadFlowReportTest {
     void areaInterchangeControl() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
         ReportNode reportNode = ReportNode.newRootReportNode()
-                .withMessageTemplate("testReport", "Test Report")
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
                 .build();
         var lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(lfParameters)
@@ -254,6 +267,47 @@ class AcLoadFlowReportTest {
         LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterloop.txt", reportNode);
+        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterLoop.txt", reportNode);
+    }
+
+    @Test
+    void busesOutOfRealisticVoltageRangeTest() throws IOException {
+        Network network = EurostagTutorialExample1Factory.create();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setMinRealisticVoltage(0.99)
+                .setMaxRealisticVoltage(1.01);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reportNode);
+
+        assertTrue(result.isFailed());
+        LoadFlowAssert.assertTxtReportEquals("""
+                        + Test Report
+                           + Load flow on network 'sim1'
+                              + Network CC0 SC0
+                                 + Network info
+                                    Network has 4 buses and 4 branches
+                                    Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
+                                    Angle reference bus: VLHV1_0
+                                    Slack bus: VLHV1_0
+                                 + Outer loop DistributedSlack
+                                    + Outer loop iteration 1
+                                       Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
+                                 Outer loop VoltageMonitoring
+                                 Outer loop ReactiveLimits
+                                 + 4 buses have a voltage magnitude out of the configured realistic range [0.99, 1.01] p.u.
+                                    Bus VLGEN_0 has an unrealistic voltage magnitude: 1.020833 p.u.
+                                    Bus VLHV1_0 has an unrealistic voltage magnitude: 1.058271 p.u.
+                                    Bus VLHV2_0 has an unrealistic voltage magnitude: 1.026191 p.u.
+                                    Bus VLLOAD_0 has an unrealistic voltage magnitude: 0.983857 p.u.
+                                 AC load flow completed with error (solverStatus=UNREALISTIC_STATE, outerloopStatus=STABLE)
+                        """, reportNode);
+
     }
 }

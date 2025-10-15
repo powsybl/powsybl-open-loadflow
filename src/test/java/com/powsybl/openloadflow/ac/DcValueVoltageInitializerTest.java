@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -64,6 +65,25 @@ class DcValueVoltageInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", -0.025);
         assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.15);
         assertBusVoltage(lfNetwork, initializer, "b4_vl_0", -0.025);
+    }
+
+    @Test
+    void testFourBusNetworkReferencePriority() {
+        ReferencePriority.set(network.getGenerator("g4"), 1);
+        lfNetworkParameters.setReferenceBusSelector(new ReferenceBusGeneratorPrioritySelector());
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfNetworkParameters).get(0);
+        VoltageInitializer initializer = new DcValueVoltageInitializer(lfNetworkParameters,
+                false,
+                LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
+                true,
+                DcApproximationType.IGNORE_R,
+                matrixFactory,
+                1);
+        initializer.prepare(lfNetwork);
+        assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.025);
+        assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
+        assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.125);
+        assertBusVoltage(lfNetwork, initializer, "b4_vl_0", 0.0);
     }
 
     @Test

@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2021-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,15 +18,22 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -54,7 +61,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
+    protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
         if (acParameters.getNetworkParameters().getMaxSlackBusCount() > 1) {
             LOGGER.warn("Multiple slack buses in a security analysis is not supported, force to 1");
@@ -62,7 +69,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         acParameters.getNetworkParameters()
                 .setCacheEnabled(false) // force not caching as not supported in secu analysis
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
-                .setMaxSlackBusCount(1);
+                .setMaxSlackBusCount(1)
+                .setAreaInterchangeControl(areas);
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
         return acParameters;
     }
@@ -109,7 +117,35 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void beforeActionLoadFlowRun(AcLoadFlowContext context) {
-        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+    protected Consumer<AcLoadFlowParameters> createParametersResetter(AcLoadFlowParameters parameters) {
+        List<AcOuterLoop> oldOuterLoops = List.copyOf(parameters.getOuterLoops());
+        return p -> p.setOuterLoops(oldOuterLoops);
+    }
+
+    @Override
+    protected void applySpecificContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+        AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
+                .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
+                        : new DefaultAcOuterLoopConfig());
+        parameters.setOuterLoops(outerLoopConfig.configure(loadFlowParameters, openLoadFlowParameters, contingencyParameters));
+    }
+
+    @Override
+    protected OpenLoadFlowParameters applyGenericContingencyParameters(AcLoadFlowParameters parameters, LoadFlowParameters loadFlowParameters,
+                                                     OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+        List<AcOuterLoop> outerLoops = parameters.getOuterLoops();
+
+        // By defaut, no override
+        OpenLoadFlowParameters genericContingencyOpenLoadFlowParameters = openLoadFlowParameters;
+
+        if (openSecurityAnalysisParameters.isStartWithFrozenACEmulation()) {
+            // in this case overrides the loadflow startWithFrowenAcEmulation setting
+            genericContingencyOpenLoadFlowParameters = OpenLoadFlowParameters.clone(openLoadFlowParameters);
+            genericContingencyOpenLoadFlowParameters.setStartWithFrozenACEmulation(true);
+            outerLoops = OpenLoadFlowParameters.createAcOuterLoops(loadFlowParameters, genericContingencyOpenLoadFlowParameters);
+        }
+        parameters.setOuterLoops(outerLoops);
+        parameters.setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+        return genericContingencyOpenLoadFlowParameters;
     }
 }

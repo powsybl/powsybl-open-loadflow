@@ -57,9 +57,12 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected boolean reference;
 
-    protected AbstractLfGenerator(LfNetwork network, double targetP) {
+    private final boolean extrapolateReactiveLimits;
+
+    protected AbstractLfGenerator(LfNetwork network, double targetP, LfNetworkParameters parameters) {
         super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
+        this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
     }
 
     protected record ActivePowerControlHelper(boolean participating, double participationFactor, double droop, double minTargetP, double maxTargetP) {
@@ -152,16 +155,28 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     @Override
     public double getMinQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(-Double.MAX_VALUE);
+        if (getReactiveLimits().isEmpty()) {
+            return -Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else {
+            return reactiveLimits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB;
+        }
     }
 
     @Override
     public double getMaxQ() {
-        return getReactiveLimits()
-                .map(limits -> limits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB)
-                .orElse(Double.MAX_VALUE);
+        if (getReactiveLimits().isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else {
+            return reactiveLimits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB;
+        }
     }
 
     @Override
@@ -223,7 +238,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             return;
         }
         Bus controlledBus = parameters.isBreakers() ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
-        if (controlledBus == null) {
+        if (controlledBus == null || controlledBus.getSynchronousComponent() == null) {
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
             return;
         }
@@ -244,7 +259,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected boolean checkVoltageControlConsistency(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         return checkIfReactiveRangesAreLargeEnoughForVoltageControl(parameters, report) &&
-                checkIfGeneratorStartedForVoltageControl(report) &&
+                checkIfGeneratorStartedForVoltageControl(parameters, report) &&
                 checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
     }
 
@@ -288,8 +303,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return consistency;
     }
 
-    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkLoadingReport report) {
-        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
+    protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        if (parameters.isGeneratorsWithZeroMwTargetAreNotStarted() && Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
             return false;
@@ -311,17 +326,17 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     public static boolean checkTargetV(String generatorId, double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (!VoltageControl.checkTargetV(targetV, nominalV, parameters)) {
-            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu: generator voltage control discarded",
+            LOGGER.trace("Generator '{}' has an implausible target voltage: {} pu: generator voltage control discarded",
                 generatorId, targetV);
             if (report != null) {
-                report.generatorsWithInconsistentTargetVoltage++;
+                report.generatorsWithImplausibleTargetVoltage++;
             }
             return false;
         }
         return true;
     }
 
-    protected void setRemoteReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+    protected void setRemoteReactivePowerControl(Terminal regulatingTerminal, double remoteTargetQ) {
         Connectable<?> connectable = regulatingTerminal.getConnectable();
         if (connectable instanceof Branch<?> branch) {
             this.controlledBranchSide = branch.getSide(regulatingTerminal);
@@ -335,7 +350,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             return;
         }
         this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
-        this.remoteTargetQ = targetQ / PerUnit.SB;
+        this.remoteTargetQ = remoteTargetQ / PerUnit.SB;
     }
 
     @Override
@@ -359,29 +374,30 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     public static boolean checkActivePowerControl(String generatorId, double targetP, double maxP,
-                                                  double minTargetP, double maxTargetP, double plausibleActivePowerLimit,
-                                                  boolean useActiveLimits, LfNetworkLoadingReport report) {
-        boolean participating = true;
-        if (Math.abs(targetP) < POWER_EPSILON_SI) {
+                                                  double minTargetP, double maxTargetP, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        if (parameters.isGeneratorsWithZeroMwTargetAreNotStarted() && Math.abs(targetP) < POWER_EPSILON_SI) {
+            // if generator is not started, it is not participating, and we can skip the rest of the checks
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) equals 0",
                     generatorId, targetP);
             if (report != null) {
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
             }
-            participating = false;
+            return false;
         }
-        if (maxP > plausibleActivePowerLimit) {
+
+        boolean participating = true;
+        if (maxP > parameters.getPlausibleActivePowerLimit()) {
             // note that we still want this check applied even if active power limits are not to be enforced,
             // e.g. in case of distribution modes proportional to maxP or remaining margin, we don't want to introduce crazy high participation
             // factors for fictitious elements.
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) > plausibleLimit ({} MW)",
-                    generatorId, maxP, plausibleActivePowerLimit);
+                    generatorId, maxP, parameters.getPlausibleActivePowerLimit());
             if (report != null) {
                 report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             }
             participating = false;
         }
-        if (!useActiveLimits) {
+        if (!parameters.isUseActiveLimits()) {
             // if active power limits are not to be enforced, we can skip the rest of the checks
             return participating;
         }

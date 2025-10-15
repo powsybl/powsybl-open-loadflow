@@ -26,29 +26,16 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), Double.NaN, Double.NaN);
     }
 
-    private final int outerLoopIterations;
-
     private final int solverIterations;
 
     private final AcSolverStatus solverStatus;
 
-    private final OuterLoopResult outerLoopResult;
-
-    private final double distributedActivePower;
-
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
                             AcSolverStatus solverStatus, OuterLoopResult outerLoopResult,
                             double slackBusActivePowerMismatch, double distributedActivePower) {
-        super(network, slackBusActivePowerMismatch);
-        this.outerLoopIterations = outerLoopIterations;
+        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
-        this.outerLoopResult = Objects.requireNonNull(outerLoopResult);
-        this.distributedActivePower = distributedActivePower;
-    }
-
-    public int getOuterLoopIterations() {
-        return outerLoopIterations;
     }
 
     public int getSolverIterations() {
@@ -59,17 +46,9 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return solverStatus;
     }
 
-    public OuterLoopResult getOuterLoopResult() {
-        return outerLoopResult;
-    }
-
-    public double getDistributedActivePower() {
-        return distributedActivePower;
-    }
-
     @Override
     public boolean isSuccess() {
-        return solverStatus == AcSolverStatus.CONVERGED && outerLoopResult.status() == OuterLoopStatus.STABLE;
+        return solverStatus == AcSolverStatus.CONVERGED && getOuterLoopResult().status() == OuterLoopStatus.STABLE;
     }
 
     public boolean isWithNetworkUpdate() {
@@ -80,10 +59,8 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public Status toComponentResultStatus() {
-        if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR) {
+        if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR || network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL) {
             return new Status(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, network.getValidity().toString());
-        } else if (network.getValidity() == LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL) {
-            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, network.getValidity().toString());
         }
         if (getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
             return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit. Last outer loop name: " + getOuterLoopResult().outerLoopName());
@@ -103,7 +80,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     @Override
     public String toString() {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
-                + ", newtonRaphsonIterations=" + solverIterations
+                + ", solverIterations=" + solverIterations
                 + ", solverStatus=" + solverStatus
                 + ", outerLoopStatus=" + outerLoopResult.status()
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB

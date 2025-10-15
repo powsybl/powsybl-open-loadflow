@@ -1,0 +1,32 @@
+{
+  "type" : "default",
+  "version" : "1.0",
+  "name" : "",
+  "contingencies" : [ {
+    "id" : "L2",
+    "elements" : [ {
+      "id" : "L2",
+      "type" : "BRANCH"
+    } ],
+    "extensions" : {
+      "contingency-load-flow-parameters" : {
+        "scope" : "CONTINGENCY_AND_OPERATOR_STRATEGY",
+        "distributedSlack" : false,
+        "areaInterchangeControl" : true,
+        "balanceType" : "PROPORTIONAL_TO_LOAD",
+        "outerLoopNames" : [ "DistributedSlack", "SecondaryVoltageControl", "ReactiveLimits" ]
+      }
+    }
+  }, {
+    "id" : "L5",
+    "elements" : [ {
+      "id" : "L5",
+      "type" : "BRANCH"
+    } ],
+    "extensions" : {
+      "contingency-load-flow-parameters" : {
+        "scope" : "CONTINGENCY_ONLY"
+      }
+    }
+  } ]
+}

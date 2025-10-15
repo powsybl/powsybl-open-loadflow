@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
@@ -55,11 +56,22 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void generatorZeroActivePowerTargetTest() {
-        // targetP == 0, generator is discarded from active power control
+        // targetP == 0, generator is discarded from active power control (generatorsWithZeroMwTargetAreNotStarted default value is true)
         g.setTargetP(0);
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
+    }
+
+    @Test
+    void generatorZeroActivePowerTargetTest2() {
+        // targetP == 0, generator is not discarded from active power control if generatorsWithZeroMwTargetAreNotStarted set to false
+        g.setTargetP(0);
+        SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setSlackBusSelector(slackBusSelector).setGeneratorsWithZeroMwTargetAreNotStarted(false);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfNetworkParameters, ReportNode.NO_OP);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertTrue(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
     @Test
@@ -95,12 +107,26 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void generatorNotStartedTest() {
-        // targetP is zero and minP > 0, meansn generator is not started and cannot control voltage
+        // targetP is zero and minP > 0, means generator is not started and cannot control voltage
+        // (generatorsWithZeroMwTargetAreNotStarted default value is true)
         g.setTargetP(0);
         g.setMinP(1);
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).isGeneratorVoltageControlEnabled());
+    }
+
+    @Test
+    void generatorNotStartedTest2() {
+        // targetP is zero and minP > 0,
+        // generator is not discarded from voltage control if generatorsWithZeroMwTargetAreNotStarted set to false
+        g.setTargetP(0);
+        g.setMinP(1);
+        SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setSlackBusSelector(slackBusSelector).setGeneratorsWithZeroMwTargetAreNotStarted(false);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfNetworkParameters, ReportNode.NO_OP);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertTrue(lfNetwork.getBus(0).isGeneratorVoltageControlEnabled());
     }
 
     @Test
@@ -113,6 +139,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
         assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
         assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
+        assertNull(lfDanglingLineBus.getViolationLocation());
     }
 
     @Test
@@ -134,15 +161,17 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // The area is not of 'ControlArea' type, so it is not created
         assertNull(mainNetwork.getAreaById("Region_AB"));
         assertEquals(-602.6 / PerUnit.SB, lfArea.getInterchangeTarget());
+        assertEquals(ElementType.AREA, lfArea.getType());
+        assertEquals(lfArea.getId(), mainNetwork.getArea(lfArea.getNum()).getId());
+        assertEquals(lfArea.getId(), mainNetwork.getElement(ElementType.AREA, lfArea.getNum()).getId());
     }
 
     @Test
     void networkInvalidAreasTest() {
         // The areas have no boundaries, so they are not created
         network = MultiAreaNetworkFactory.createWithAreaWithoutBoundariesOrTarget();
-        LfNetworkParameters parameters = new LfNetworkParameters();
-        parameters.setAreaInterchangeControl(true);
-
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setAreaInterchangeControl(true);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         assertEquals(1, lfNetworks.size());
         assertEquals(4, lfNetworks.get(0).getBuses().size());
@@ -156,8 +185,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void networkWithInvalidAreasTest2() {
         network = MultiAreaNetworkFactory.createAreaTwoComponentsWithBoundaries();
-        LfNetworkParameters parameters = new LfNetworkParameters();
-        parameters.setAreaInterchangeControl(true);
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setAreaInterchangeControl(true);
 
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         assertEquals(1, lfNetworks.size());
@@ -182,6 +211,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
         assertTrue(lfStarBus.getCountry().isEmpty());
+        assertNull(lfStarBus.getViolationLocation());
     }
 
     @Test

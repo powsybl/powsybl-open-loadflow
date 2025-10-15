@@ -105,11 +105,11 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, getHalf1().getActivePowerLimits().orElse(null), limitReductionManager);
+                return getLimits1(type, getHalf1()::getActivePowerLimits, limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, getHalf1().getApparentPowerLimits().orElse(null), limitReductionManager);
+                return getLimits1(type, getHalf1()::getApparentPowerLimits, limitReductionManager);
             case CURRENT:
-                return getLimits1(type, getHalf1().getCurrentLimits().orElse(null), limitReductionManager);
+                return getLimits1(type, getHalf1()::getCurrentLimits, limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -120,11 +120,11 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, getHalf2().getActivePowerLimits().orElse(null), limitReductionManager);
+                return getLimits2(type, getHalf2()::getActivePowerLimits, limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, getHalf2().getApparentPowerLimits().orElse(null), limitReductionManager);
+                return getLimits2(type, getHalf2()::getApparentPowerLimits, limitReductionManager);
             case CURRENT:
-                return getLimits2(type, getHalf2().getCurrentLimits().orElse(null), limitReductionManager);
+                return getLimits2(type, getHalf2()::getCurrentLimits, limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));

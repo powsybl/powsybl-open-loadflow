@@ -94,7 +94,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -114,7 +115,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -138,6 +140,7 @@ class AcLoadFlowTransformerVoltageControlTest {
 
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -158,7 +161,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.003, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -184,8 +188,10 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
 
         // Now test in stable mode with AfterVoltageControl
         // dealign transformers
@@ -208,8 +214,47 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.267, bus2);
         assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+
+        // Same as above with exchange positions
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(3)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+        stableParams = parameters.copy();
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlUseInitialTapPosition(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+        // Now set solvedTapPosition swapped values
+        t2wt.getRatioTapChanger().setSolvedTapPosition(3);
+        t2wt2.getRatioTapChanger().setSolvedTapPosition(1);
+        // Re-run to prove that solvedTapPotistions do not influence the result
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
 
         // still stable mode but with movement needed
         t2wt.getRatioTapChanger()
@@ -229,8 +274,10 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.267, bus2);
         assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
 
         // stable mode but transfo removed fromtuning because of tht limit
         t2wt.getRatioTapChanger()
@@ -251,7 +298,9 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.223, bus2);
         assertVoltageEquals(32.228, t2wt.getTerminal2().getBusView().getBus());  // no voltage control
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition()); // No change expected
         assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition()); // No change expected
 
         // generator now included in tht limit
@@ -273,8 +322,10 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.267, bus2);
         assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
 
     }
 
@@ -306,7 +357,9 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.283, bus2);
         assertVoltageEquals(28.71, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
@@ -327,6 +380,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(30.766, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -353,8 +407,10 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(32.242, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -374,7 +430,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(34.43, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(4, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(4, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -394,6 +451,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertFalse(t2wt.getRatioTapChanger().isRegulating());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(7, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
 
         t2wt.getRatioTapChanger()
@@ -406,12 +464,15 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(7, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
     void remoteVoltageControlT2wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
 
         Substation substation = network.newSubstation()
                 .setId("SUBSTATION4")
@@ -453,6 +514,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertVoltageEquals(32.872, bus4);
         assertTrue(result.isFullyConverged());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
 
         parameters.setTransformerVoltageControlOn(true);
@@ -466,7 +528,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         result = loadFlowRunner.run(network, parameters);
         assertVoltageEquals(32.874, bus4); //FIXME: should be 32.872
         assertTrue(result.isFullyConverged());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -516,7 +579,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertVoltageEquals(32.891, bus4);
         assertTrue(result.isFullyConverged());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -577,6 +641,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(33, bus4);
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
         assertReactivePowerEquals(-7.110, g4.getTerminal());
 
@@ -586,6 +651,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertVoltageEquals(31.032, bus4);
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
         assertReactivePowerEquals(-3.5, g4.getTerminal());
 
@@ -594,7 +660,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isFullyConverged());
         assertVoltageEquals(33, bus4);
-        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
         assertReactivePowerEquals(-1.172, g4.getTerminal());
     }
 
@@ -640,8 +707,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.279, bus2);
         assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -649,6 +716,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         selectNetwork(createNetworkWithSharedControl());
 
         parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -666,8 +734,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.279, bus2);
         assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -675,6 +743,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         selectNetwork(createNetworkWithSharedControl());
 
         parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
         t2wt.getRatioTapChanger()
             .setTargetDeadband(0)
             .setRegulating(true)
@@ -692,8 +761,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.279, bus2);
         assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -727,8 +796,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(136.605, bus2);
         assertVoltageEquals(34.0, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
     }
 
     @Test
@@ -745,6 +813,7 @@ class AcLoadFlowTransformerVoltageControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -763,24 +832,7 @@ class AcLoadFlowTransformerVoltageControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-    }
-
-    @Test
-    void t2wtWithoutLoadTapChangingCapabilitiesTest() {
-        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
-
-        t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
-                .setTapPosition(2)
-                .setRegulationTerminal(network.getGenerator("GEN_1").getTerminal())
-                .setTargetV(33.0)
-                .setLoadTapChangingCapabilities(false);
-        t2wt.getTerminal2().disconnect();
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -827,7 +879,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(28.147, bus3);
-        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -846,6 +899,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(28.147, bus3);
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
         assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
     }
 
@@ -1084,6 +1138,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(27.00, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
@@ -1098,13 +1153,19 @@ class AcLoadFlowTransformerVoltageControlTest {
         Bus b4 = network1.getBusBreakerView().getBus("b4");
         Bus b6 = network1.getBusBreakerView().getBus("b6");
         // automatic detection of min nominal voltage for generator voltage controls: 90 kV
+        assertNull(twt1.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertNull(twt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertNull(twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
         LoadFlowResult result = loadFlowRunner.run(network1, parameters);
-        assertEquals(1, twt1.getRatioTapChanger().getTapPosition());
-        assertEquals(1, twt2.getRatioTapChanger().getTapPosition());
-        assertEquals(1, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
         assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);
@@ -1116,8 +1177,11 @@ class AcLoadFlowTransformerVoltageControlTest {
         twt2.getRatioTapChanger().setTapPosition(0);
         twt3.getRatioTapChanger().setTapPosition(0);
         LoadFlowResult result2 = loadFlowRunner.run(network1, parameters);
+        assertEquals(0, twt1.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
         assertEquals(6, result2.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(276.072, b4);
@@ -1129,9 +1193,12 @@ class AcLoadFlowTransformerVoltageControlTest {
         twt2.getRatioTapChanger().setTapPosition(0);
         twt3.getRatioTapChanger().setTapPosition(0);
         LoadFlowResult result3 = loadFlowRunner.run(network1, parameters);
-        assertEquals(1, twt1.getRatioTapChanger().getTapPosition());
-        assertEquals(1, twt2.getRatioTapChanger().getTapPosition());
-        assertEquals(1, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
         assertEquals(8, result3.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);

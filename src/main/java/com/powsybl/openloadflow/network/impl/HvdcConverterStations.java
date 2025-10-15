@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.HvdcUtils;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -45,27 +44,31 @@ public final class HvdcConverterStations {
                 && ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
     }
 
-    public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station, LfNetworkParameters parameters) {
+    public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station) {
 
-        if (isIsolated(station.getTerminal(), parameters)) {
+        if (isIsolated(station.getTerminal())) {
             return true;
         } else {
             return station.getOtherConverterStation().map(otherConverterStation -> {
                 Terminal otherTerminal = otherConverterStation.getTerminal();
-                return isIsolated(otherTerminal, parameters);
+                return isIsolated(otherTerminal);
             }).orElse(true); // it means there is no HVDC line connected to station
         }
     }
 
-    private static boolean isIsolated(Terminal terminal, LfNetworkParameters parameters) {
-        Bus bus = parameters.isBreakers() ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+    private static boolean isIsolated(Terminal terminal) {
+        Bus bus = terminal.getBusView().getBus();
         if (bus == null) {
             return true;
         }
 
-        // The criteria should as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station
+        // The criteria should be as close as possible to Networks.isIsolatedBusForHvdc - only connected to the station or a fictitious load
         return bus.getConnectedTerminalStream()
                 .map(Terminal::getConnectable)
-                .noneMatch(c -> !(c instanceof HvdcConverterStation<?> || c instanceof BusbarSection));
+                .noneMatch(c -> !(c instanceof HvdcConverterStation<?> || c instanceof BusbarSection || isFictitiousLoad(c)));
+    }
+
+    private static boolean isFictitiousLoad(Connectable<?> c) {
+        return c instanceof Load load && LfLoadImpl.isLoadFictitious(load);
     }
 }

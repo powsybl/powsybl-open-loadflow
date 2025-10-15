@@ -13,7 +13,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
@@ -22,6 +21,9 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
+import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
+import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -34,13 +36,14 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.dc.DcLoadFlowEngine.run;
 import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanContingencies;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
@@ -49,6 +52,8 @@ import static com.powsybl.openloadflow.network.util.ParticipatingElement.normali
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
 public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcSensitivityAnalysis.class);
+
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
 
     public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
@@ -63,11 +68,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setUseTransformerRatio(lfParameters.isDcUseTransformerRatio())
                 .setDcApproximationType(parametersExt.getDcApproximationType());
 
+        if (parametersExt.getSlackDistributionFailureBehavior() != OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS) {
+            LOGGER.warn("Slack distribution failure mode {} ignored. Using LEAVE_ON_SLACK_BUS for DC sensitivity analysis", parametersExt.getSlackDistributionFailureBehavior());
+        }
+
         return new DcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
                 .setEquationSystemCreationParameters(equationSystemCreationParameters)
                 .setMatrixFactory(matrixFactory)
                 .setDistributedSlack(lfParameters.isDistributedSlack())
+                // Currently the DC sensitivity analysis does not check slack distribution success or failure and runs always in
+                // mode LEAVE_ON_SLACK_BUS
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS)
                 .setBalanceType(lfParameters.getBalanceType())
                 .setSetVToNan(true)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations());
@@ -87,7 +99,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .collect(Collectors.toSet()), BusState::save);
         }
 
-        double[] dx = run(loadFlowContext, disabledNetwork, reportNode);
+        double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode);
 
         if (parameters.isDistributedSlack()) {
             ElementState.restore(busStates);
@@ -189,6 +201,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      * if the factorsStates should be overridden or not in this method.
      * If connectivity, a generator, a load or a phase tap changer is lost due to the contingency,
      * the flowStates are overridden.
+     * The matrices factorStates and flowStates are modified by this method.
      */
     private void calculateSensitivityValuesForAContingency(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder,
                                                            SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates, DenseMatrix flowStates,
@@ -229,9 +242,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, reportNode);
             }
 
-            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
-            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
-            calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
+            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyStates(newFactorStates);
+            calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
             // write contingency status
             if (contingency.hasNoImpact()) {
                 resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
@@ -280,9 +293,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             DenseMatrix newFlowStates = calculateFlowStates(loadFlowContext, newParticipatingElements, disabledNetwork, reportNode);
 
-            DenseMatrix postContingencyFlowStates = engine.run(newFlowStates);
-            DenseMatrix postContingencyFactorStates = engine.run(newFactorStates);
-            calculateSensitivityValues(factors, postContingencyFactorStates, postContingencyFlowStates, contingency, resultWriter, disabledNetwork);
+            engine.toPostContingencyStates(newFlowStates);
+            engine.toPostContingencyStates(newFactorStates);
+            calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
 
             networkState.restore();
         }
@@ -342,7 +355,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode reportNode,
-                        LfTopoConfig topoConfig) {
+                        LfTopoConfig topoConfig, boolean startWithFrozenACEmulation) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
@@ -402,12 +415,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             allLfFactors.stream()
                     .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                                 && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                                && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
                             || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
                                 && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_1
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_2
+                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_3
                                 && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
                     .findFirst()
                     .ifPresent(ignored -> {
-                        throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1 and BRANCH_ACTIVE_POWER_2 are yet supported in DC");
+                        throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
                     });
 
             LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());
@@ -439,13 +456,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // run DC load on pre-contingency network
                 DenseMatrix baseFlowStates = calculateFlowStates(loadFlowContext, participatingElements, new DisabledNetwork(), reportNode);
-                DenseMatrix flowStates = (DenseMatrix) baseFlowStates.copy(new DenseMatrixFactory());
+                // create workingFlowStates matrix that will be a working copy of baseFlowStates
+                DenseMatrix workingFlowStates = new DenseMatrix(baseFlowStates.getRowCount(), baseFlowStates.getColumnCount());
+
                 // compute the pre-contingency factor states
                 DenseMatrix baseFactorStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
-                DenseMatrix factorStates = (DenseMatrix) baseFactorStates.copy(new DenseMatrixFactory());
+                // create workingFactorStates matrix that will be a working copy of baseFactorStates
+                DenseMatrix workingFactorStates = new DenseMatrix(baseFactorStates.getRowCount(), baseFactorStates.getColumnCount());
 
                 // calculate sensitivity values for pre-contingency network
-                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorStates, flowStates, null, resultWriter, new DisabledNetwork());
+                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), baseFactorStates, baseFlowStates, null, resultWriter, new DisabledNetwork());
 
                 // filter contingencies without factors
                 List<PropagatedContingency> contingenciesWithFactors = new ArrayList<>();
@@ -465,44 +485,37 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process contingencies with no connectivity break
                 for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
-                    matrixShallowCopy(baseFlowStates, flowStates);
-                    matrixShallowCopy(baseFactorStates, factorStates);
+                    if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
+                        throw new PowsyblException("Computation was interrupted");
+                    }
+                    workingFlowStates.copyValuesFrom(baseFlowStates);
+                    workingFactorStates.copyValuesFrom(baseFactorStates);
 
                     calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
-                            factorStates, connectivityBreakAnalysisResults.contingenciesStates(), flowStates, contingency,
-                            connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, reportNode, Collections.emptySet(), false);
+                        workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, contingency,
+                        connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, reportNode, Collections.emptySet(), false);
                 }
 
                 LOGGER.info("Processing contingencies with connectivity break");
 
                 // process contingencies with connectivity break
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
-                    matrixShallowCopy(baseFlowStates, flowStates);
-                    matrixShallowCopy(baseFactorStates, factorStates);
+                    if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
+                        throw new PowsyblException("Computation was interrupted");
+                    }
+                    workingFlowStates.copyValuesFrom(baseFlowStates);
+                    workingFactorStates.copyValuesFrom(baseFactorStates);
 
                     processContingenciesBreakingConnectivity(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                            validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
-                            flowStates, factorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
+                        validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                        workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, reportNode);
                 }
             }
 
             stopwatch.stop();
             LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        }
-    }
-
-    /**
-     * Copy all the values that are in an originalMatrix and paste it in the copyMatrix (without allocating new memory spaces)
-     * The dimensions of both matrices must be the same
-     */
-    // TODO : implement this method for DenseMatrix in powsybl-core ?
-    private static void matrixShallowCopy(DenseMatrix originalMatrix, DenseMatrix copyMatrix) {
-        if (originalMatrix.getRowCount() == copyMatrix.getRowCount() && originalMatrix.getColumnCount() == copyMatrix.getColumnCount()) {
-            for (int columnIndex = 0; columnIndex < originalMatrix.getColumnCount(); columnIndex++) {
-                for (int rowIndex = 0; rowIndex < originalMatrix.getRowCount(); rowIndex++) {
-                    copyMatrix.set(rowIndex, columnIndex, originalMatrix.get(rowIndex, columnIndex));
-                }
-            }
         }
     }
 
