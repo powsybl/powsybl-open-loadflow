@@ -67,7 +67,7 @@ class AreaInterchangeControlTest {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
         double interchangeTarget2 = 40;
-        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 4);
+        runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
         parameters.setDc(true);
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 0);
     }
@@ -271,6 +271,15 @@ class AreaInterchangeControlTest {
     void tenAreasSlackDistribution() {
         Network network = MultiAreaNetworkFactory.createTenAreas();
         parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+    }
+
+    @Test
+    void remainingSlackDistribution() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNodeHighZ();
+        parametersExt.setAreaInterchangePMaxMismatch(0.5);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
         assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
