@@ -945,7 +945,7 @@ public final class Reports {
 
     public static void reportFictitiousInjectionTotal(ReportNode reportNode, double totalP, double totalQ, long busCount, Logger logger) {
         ReportNode node = reportNode.newReportNode()
-                .withMessageTemplate("olf.fictiousInjectionTotal")
+                .withMessageTemplate("olf.fictitiousInjectionTotal")
                 .withUntypedValue("totalP", totalP)
                 .withUntypedValue("totalQ", totalQ)
                 .withUntypedValue("busCount", busCount)
