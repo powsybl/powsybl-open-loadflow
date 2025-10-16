@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.test.AbstractSerDeTest;
@@ -54,18 +55,39 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         InMemoryPlatformConfig platformConfig = new InMemoryPlatformConfig(fileSystem);
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
         assertEquals("open-security-analysis-parameters", parametersExt.getName());
+        int testCount = 0;
+
         assertFalse(parametersExt.isCreateResultExtension());
         parametersExt.setCreateResultExtension(true);
         assertTrue(parametersExt.isCreateResultExtension());
+        testCount++;
+
         assertTrue(parametersExt.isContingencyPropagation());
         parametersExt.setContingencyPropagation(false);
         assertFalse(parametersExt.isContingencyPropagation());
+        testCount++;
+
         assertFalse(parametersExt.isDcFastMode());
         parametersExt.setDcFastMode(true);
         assertTrue(parametersExt.isDcFastMode());
+        testCount++;
+
         assertTrue(parametersExt.isStartWithFrozenACEmulation());
         parametersExt.setStartWithFrozenACEmulation(false);
         assertFalse(parametersExt.isStartWithFrozenACEmulation());
+        testCount++;
+
+        assertEquals(1, parametersExt.getThreadCount());
+        parametersExt.setThreadCount(3);
+        assertEquals(3, parametersExt.getThreadCount());
+        testCount++;
+
+        assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
+        assertThrows(PowsyblException.class, () -> parametersExt.setContingencyActivePowerLossDistribution("Unknown"));
+        assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
+        testCount++;
+
+        assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), testCount);
     }
 
     @Test
@@ -76,11 +98,19 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         moduleConfig.setStringProperty("contingencyPropagation", "false");
         moduleConfig.setStringProperty("dcFastMode", "true");
         moduleConfig.setStringProperty("startWithFrozenACEmulation", "false");
+        moduleConfig.setStringProperty("threadCount", "3");
+        moduleConfig.setStringProperty("contingencyActivePowerLossDistribution", "Default");
+
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
         assertFalse(parametersExt.isContingencyPropagation());
         assertTrue(parametersExt.isDcFastMode());
         assertFalse(parametersExt.isStartWithFrozenACEmulation());
+        assertEquals(3, parametersExt.getThreadCount());
+        // check test completeness
+
+        assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), moduleConfig.getPropertyNames().size());
+
     }
 
     @Test
@@ -93,11 +123,22 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
     @Test
     void specificParametersFromPropertiesTest() {
-        Map<String, String> properties = Map.of("createResultExtension", "true", "contingencyPropagation", "false", "dcFastMode", "true");
+        Map<String, String> properties = Map.of("createResultExtension", "true",
+                "contingencyPropagation", "false",
+                "dcFastMode", "true",
+                "threadCount", "3",
+                "startWithFrozenACEmulation", "false",
+                "contingencyActivePowerLossDistribution", "Default");
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(properties).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
         assertFalse(parametersExt.isContingencyPropagation());
         assertTrue(parametersExt.isDcFastMode());
+        assertEquals(3, parametersExt.getThreadCount());
+        assertFalse(parametersExt.isStartWithFrozenACEmulation());
+        assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
+
+        // check test completeness
+        assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), properties.size());
     }
 
     @Test
@@ -106,7 +147,9 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         OpenSecurityAnalysisParameters parametersExt = new OpenSecurityAnalysisParameters()
                 .setCreateResultExtension(true)
                 .setContingencyPropagation(false)
-                .setDcFastMode(true);
+                .setDcFastMode(true)
+                .setThreadCount(3)
+                .setStartWithFrozenACEmulation(false);
         parameters.addExtension(OpenSecurityAnalysisParameters.class, parametersExt);
         roundTripTest(parameters, JsonSecurityAnalysisParameters::write, JsonSecurityAnalysisParameters::read, "/sa-params.json");
     }

@@ -48,6 +48,10 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
             term.setSelf(this);
         }
 
+        public EquationTerm<V, E> getTerm() {
+            return term;
+        }
+
         public double getScalar() {
             return this.scalarSupplier.getAsDouble();
         }
