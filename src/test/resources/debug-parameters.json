@@ -108,7 +108,8 @@
   "extensions" : {
     "open-sensitivity-parameters" : {
       "debugDir" : "/work",
-      "startWithFrozenACEmulation" : true
+      "startWithFrozenACEmulation" : true,
+      "threadCount" : 1
     }
   }
 }
