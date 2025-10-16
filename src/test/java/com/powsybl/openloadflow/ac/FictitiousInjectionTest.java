@@ -54,9 +54,9 @@ public class FictitiousInjectionTest {
                          + Network info
                             Network has 4 buses and 3 branches
                             Network balance: active generation=300 MW, active load=270 MW, reactive generation=300 MVar, reactive load=455 MVar
+                            Network has a cumulated sum of 30 MW and 50 MVar fictitious injection distributed on 3 buses
                             Angle reference bus: b4_vl_0
                             Slack bus: b4_vl_0
-                            Network has a cumulated sum of 30 MW and 50 MVar fictitious injection distributed on 3 buses
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-30 MW) distributed in 1 distribution iteration(s)

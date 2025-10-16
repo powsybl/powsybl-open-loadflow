@@ -641,15 +641,18 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
      * Reports the fictitious injection total if not null
      */
     public void reportFictitiousInjectionTotal(ReportNode reportNode) {
-        double fictitiousTargetPNormInf = getBuses().stream().mapToDouble(LfBus::getFictitiousInjectionTargetP)
-                .map(Math::abs)
-                .sum();
-        double fictitiousTargetQNormInf = getBuses().stream().mapToDouble(LfBus::getFictitiousInjectionTargetQ)
-                .map(Math::abs)
-                .sum();
-        long busCount = getBuses().stream().filter(b -> b.getFictitiousInjectionTargetP() != 0 || b.getFictitiousInjectionTargetQ() != 0).count();
+        double fictitiousTargetPNormInf = 0;
+        double fictitiousTargetQNormInf = 0;
+        long busCount = 0;
+        for (LfBus bus : getBuses()) {
+            fictitiousTargetPNormInf += Math.abs(bus.getFictitiousInjectionTargetP());
+            fictitiousTargetQNormInf += Math.abs(bus.getFictitiousInjectionTargetQ());
+            if (fictitiousTargetPNormInf + fictitiousTargetPNormInf > 0) {
+                busCount += 1;
+            }
+        }
         if (fictitiousTargetPNormInf + fictitiousTargetQNormInf > 0) {
-            Reports.reportFicitiousInjectionTotal(reportNode,
+            Reports.reportFictitiousInjectionTotal(reportNode,
                     fictitiousTargetPNormInf * PerUnit.SB,
                     fictitiousTargetQNormInf * PerUnit.SB,
                     busCount,
@@ -759,8 +762,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 case VALID -> {
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
-                    Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
                     lfNetwork.reportFictitiousInjectionTotal(networkReport);
+                    Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
                     lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR_VOLTAGE_CONTROL -> {
