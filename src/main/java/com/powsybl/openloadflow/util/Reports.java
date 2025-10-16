@@ -943,7 +943,7 @@ public final class Reports {
         logger.info(node.getMessage());
     }
 
-    public static void reportFicitiousInjectionTotal(ReportNode reportNode, double totalP, double totalQ, long busCount, Logger logger) {
+    public static void reportFictitiousInjectionTotal(ReportNode reportNode, double totalP, double totalQ, long busCount, Logger logger) {
         ReportNode node = reportNode.newReportNode()
                 .withMessageTemplate("olf.fictiousInjectionTotal")
                 .withUntypedValue("totalP", totalP)
