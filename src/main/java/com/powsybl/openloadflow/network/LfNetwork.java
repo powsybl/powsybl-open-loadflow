@@ -647,7 +647,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfBus bus : getBuses()) {
             fictitiousTargetPNormInf += Math.abs(bus.getFictitiousInjectionTargetP());
             fictitiousTargetQNormInf += Math.abs(bus.getFictitiousInjectionTargetQ());
-            if (fictitiousTargetPNormInf + fictitiousTargetPNormInf > 0) {
+            if (Math.abs(bus.getFictitiousInjectionTargetP()) + Math.abs(bus.getFictitiousInjectionTargetQ()) > 0) {
                 busCount += 1;
             }
         }
