@@ -4151,9 +4151,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testComponentSelectionOneCCtwoSC() {
         // Network has one CC with two SC
         Network network = HvdcNetworkFactory.createVsc();
-        LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComputeMainConnectedComponentOnly(false)));
+        LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)));
         assertEquals(2, networks.getList().size());
-
         assertEquals(0, networks.getList().get(0).getNumCC());
         assertEquals(0, networks.getList().get(0).getNumSC());
         assertEquals(0, networks.getList().get(1).getNumCC());
@@ -4178,7 +4177,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testComponentSelectionTwoCC() {
         Network network = FourBusNetworkFactory.createWithTwoScs();
-        LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComputeMainConnectedComponentOnly(false)));
+        LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)));
         assertEquals(2, networks.getList().size());
 
         assertEquals(0, networks.getList().get(0).getNumCC());

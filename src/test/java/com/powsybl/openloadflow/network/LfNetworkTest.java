@@ -194,6 +194,29 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertEquals(2, result.getComponentResults().size());
     }
 
+    @Test
+    void testMultipleConnectedComponentsMainSynchronousMode() {
+        // Network with one connected component and two synchronous component
+        Network network = HvdcNetworkFactory.createVsc();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, result.getComponentResults().size());
+
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, result.getComponentResults().size());
+
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
+    }
+
     private static void testGraphViz(Network network, boolean breakers, String ref) throws IOException {
         LfNetworkParameters parameters = new LfNetworkParameters().setBreakers(breakers);
         LfNetwork lfNetwork = Networks.load(network, parameters).get(0);
