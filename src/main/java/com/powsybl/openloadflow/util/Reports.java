@@ -217,7 +217,7 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaInterchangeControlAreaMismatch(ReportNode reportNode, String area, double mismatch) {
+    public static void reportAicAreaInterchangeDistributionMismatch(ReportNode reportNode, String area, double mismatch) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.areaInterchangeControlAreaMismatch")
                 .withUntypedValue("area", area)
@@ -226,9 +226,28 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaInterchangeControlAreaDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount) {
+    public static void reportAicAreaSlackDistributionMismatch(ReportNode reportNode, String area, double mismatch) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaInterchangeControlAreaSlackMismatch")
+                .withUntypedValue("area", area)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportAicAreaInterchangeDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.areaInterchangeControlAreaDistributionSuccess")
+                .withUntypedValue("area", area)
+                .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withUntypedValue(ITERATION_COUNT, iterationCount)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportAicAreaSlackDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaInterchangeControlSlackDistributionSuccess")
                 .withUntypedValue("area", area)
                 .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withUntypedValue(ITERATION_COUNT, iterationCount)
