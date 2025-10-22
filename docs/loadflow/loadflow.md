@@ -278,14 +278,15 @@ Indeed, in this case the slack injection can be seen as an interchange to 'the v
         - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
 
 ### Remaining slack bus mismatch distribution
-In the case where the "total mismatch" of all areas is in [-[`areaInterchangePMaxMismatch`](parameters.md);[`areaInterchangePMaxMismatch`](parameters.md)], but some slack bus active power mismatch remains (even after trying to distribute on buses with no area),  
-this active power mismatch will be distributed by all areas, each one will get a share of this mismatch to distribute.
+This section covers the case where the "total mismatch" of all areas is in [-[`areaInterchangePMaxMismatch`](parameters.md);[`areaInterchangePMaxMismatch`](parameters.md)], but some slack bus active power mismatch remains (even after trying to distribute on buses with no area).
+This remaining slack bus active power mismatch will be distributed by all areas, each one will get a share of this mismatch to distribute.
 
 This distribution will affect each area's interchange and will not necessarily make it closer to its target.
-The distribution factor of each area will be computed in a way that minimises chances of having areas increase their interchange mismatch up to more than [`areaInterchangePMaxMismatch`] in absolute value.
+The distribution factor of each area will be computed in a way that minimises chances of having the area increase its interchange mismatch up to more than `areaInterchangePMaxMismatch` in absolute value.  
 So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.  
+
 It is computed like this:  
-$factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $  
+$Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $  
 Then factors are normalized to have sum of factors equal to 1.
 
 ### Zero impedance boundary branches
