@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -27,7 +27,7 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
     public static final String DEBUG_DIR_DEFAULT_VALUE = "";
     public static final String START_WITH_FROZEN_AC_EMULATION_PARAM_NAME = "startWithFrozenACEmulation";
     public static final boolean START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE = true;
-    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(DEBUG_DIR_PARAM_NAME);
+    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(DEBUG_DIR_PARAM_NAME, START_WITH_FROZEN_AC_EMULATION_PARAM_NAME);
 
     @Override
     public String getName() {
