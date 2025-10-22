@@ -283,9 +283,9 @@ this active power mismatch will be distributed by all areas, each one will get a
 
 This distribution will affect each area's interchange and will not necessarily make it closer to its target.
 The distribution factor of each area will be computed in a way that minimises chances of having areas increase their interchange mismatch up to more than [`areaInterchangePMaxMismatch`] in absolute value.
-So the factor is proportional to the "margin" that the area can distribute while keeping $-areaInterchangePMaxMismatch < area_total_mismatch < areaInterchangePMaxMismatch$.  
+So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.  
 It is computed like this:  
-$factor = sign(slack_bus_mismatch) * area_total_mismatch + areaInterchangePMaxMismatch $  
+$factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $  
 Then factors are normalized to have sum of factors equal to 1.
 
 ### Zero impedance boundary branches
