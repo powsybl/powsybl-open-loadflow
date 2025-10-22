@@ -282,7 +282,7 @@ This section covers the case where the "total mismatch" of all areas is in [-[`a
 This remaining slack bus active power mismatch will be distributed by all areas, each one will get a share of this mismatch to distribute.
 
 This distribution will affect each area's interchange and will not necessarily make it closer to its target.
-The distribution factor of each area will be computed in a way that minimises chances of having the area increase its interchange mismatch up to more than `areaInterchangePMaxMismatch` in absolute value.  
+The distribution factor of each area will be computed in a way that minimises chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](parameters.md) in absolute value.  
 So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.  
 
 It is computed like this:  
