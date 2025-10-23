@@ -370,6 +370,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         if (LoadFlowParameters.ComponentMode.MAIN_CONNECTED.equals(mode)) {
             return networks.getList().stream()
                 .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        } else if (LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS.equals(mode)) {
+            List<LfNetwork> networksToSimulate = networks.getList().stream()
+                    .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+            if (networksToSimulate.getFirst().getBuses().isEmpty()) throw new PowsyblException("No main synchronous component SC0 found"); // TODO : How to handle
+            return networksToSimulate;
         } else if (LoadFlowParameters.ComponentMode.ALL_CONNECTED.equals(mode)) {
             return networks.getList().stream()
                 .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();

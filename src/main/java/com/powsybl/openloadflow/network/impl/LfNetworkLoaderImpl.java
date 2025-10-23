@@ -1298,9 +1298,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByComponentStream = switch (parameters.getComponentMode()) {
-            case MAIN_CONNECTED -> busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM);
-            case MAIN_SYNCHRONOUS -> busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM).filter(e -> e.getKey().getRight() == ComponentConstants.MAIN_NUM);
-            case ALL_CONNECTED -> busesByCc.entrySet().stream();
+            case MAIN_CONNECTED : yield busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM);
+            case MAIN_SYNCHRONOUS :
+            {
+                Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredStream = busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM).filter(e -> e.getKey().getRight() == ComponentConstants.MAIN_NUM);
+                if (filteredStream.findAny().isEmpty()) throw new PowsyblException("No synchronous component SC0 found, no network can be computed with componentMode=MAIN_SYNCHRONOUS"); //TODO : Other ways to handle ?
+                yield filteredStream;
+            }
+            case ALL_CONNECTED : yield busesByCc.entrySet().stream();
         };
 
         List<LfNetwork> lfNetworks = filteredBusesByComponentStream

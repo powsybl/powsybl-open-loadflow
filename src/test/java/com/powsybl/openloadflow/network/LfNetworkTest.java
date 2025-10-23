@@ -196,7 +196,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
     @Test
     void testMultipleConnectedComponentsMainSynchronousMode() {
-        // Network with one connected component and two synchronous component
+        // Network with one connected component and two synchronous components
         Network network = HvdcNetworkFactory.createVsc();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();

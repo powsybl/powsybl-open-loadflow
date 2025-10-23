@@ -4159,12 +4159,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, networks.getList().get(1).getNumSC());
 
         // Main connected component mode and all connected component mode should yield same result
-        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
-        assertEquals(2, componentMain.size());
-        assertEquals(0, componentMain.get(0).getNumCC());
-        assertEquals(0, componentMain.get(0).getNumSC());
-        assertEquals(0, componentMain.get(1).getNumCC());
-        assertEquals(1, componentMain.get(1).getNumSC());
+        List<LfNetwork> componentMainConnected = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
+        assertEquals(2, componentMainConnected.size());
+        assertEquals(0, componentMainConnected.get(0).getNumCC());
+        assertEquals(0, componentMainConnected.get(0).getNumSC());
+        assertEquals(0, componentMainConnected.get(1).getNumCC());
+        assertEquals(1, componentMainConnected.get(1).getNumSC());
 
         List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         assertEquals(2, componentAll.size());
@@ -4172,6 +4172,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0, componentAll.get(0).getNumSC());
         assertEquals(0, componentAll.get(1).getNumCC());
         assertEquals(1, componentAll.get(1).getNumSC());
+
+        // Main synchronous component mode should return only one component
+        List<LfNetwork> componentMainSynchronous = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
+        assertEquals(1, componentMainSynchronous.size());
+        assertEquals(0, componentMainSynchronous.get(0).getNumCC());
+        assertEquals(0, componentMainSynchronous.get(0).getNumSC());
     }
 
     @Test
@@ -4186,10 +4192,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, networks.getList().get(1).getNumSC());
 
         // Main connected component mode should only select component associated to main CC
-        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
-        assertEquals(1, componentMain.size());
-        assertEquals(0, componentMain.get(0).getNumCC());
-        assertEquals(0, componentMain.get(0).getNumSC());
+        List<LfNetwork> componentMainConnected = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
+        assertEquals(1, componentMainConnected.size());
+        assertEquals(0, componentMainConnected.get(0).getNumCC());
+        assertEquals(0, componentMainConnected.get(0).getNumSC());
+
+        // Main synchronous component mode returns the same because the main CC has one single SC
+        List<LfNetwork> componentMainSynchronous = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
+        assertEquals(1, componentMainSynchronous.size());
+        assertEquals(0, componentMainSynchronous.get(0).getNumCC());
+        assertEquals(0, componentMainSynchronous.get(0).getNumSC());
 
         // All connected component mode should select all component
         List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.ALL_CONNECTED);
@@ -4212,18 +4224,20 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("CC1 SC0", compByBus.get("b11"));
         assertEquals("CC1 SC0", compByBus.get("b12"));
         LoadFlowParameters lfParametersAll = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
-        LoadFlowParameters lfParametersMain = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
+        LoadFlowParameters lfParametersMainConnected = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
+        LoadFlowParameters lfParametersMainSynchronous = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
         var lfResultAll = LoadFlow.run(network, lfParametersAll);
         assertTrue(lfResultAll.isFullyConverged());
-        var lfResultMain = LoadFlow.run(network, lfParametersMain);
-        assertTrue(lfResultAll.isFullyConverged());
-        assertEquals(5, lfResultAll.getComponentResults().size()); // 5 SCs
-        assertTrue(lfResultMain.isFullyConverged());
-        assertEquals(4, lfResultMain.getComponentResults().size()); // 4 SCs
+        var lfResultMainConnected = LoadFlow.run(network, lfParametersMainConnected);
+        assertTrue(lfResultMainConnected.isFullyConverged());
+        assertThrows(CompletionException.class, () -> LoadFlow.run(network, lfParametersMainSynchronous)); // No SC0 found
 
-        var saResultMain = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersMain);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultMain.getPreContingencyResult().getStatus());
-        assertEquals(4, saResultMain.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 4 buses in CC0
+        assertEquals(5, lfResultAll.getComponentResults().size()); // 5 SCs
+        assertEquals(4, lfResultMainConnected.getComponentResults().size()); // 4 SCs
+
+        var saResultMainConnected = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersMainConnected);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultMainConnected.getPreContingencyResult().getStatus());
+        assertEquals(4, saResultMainConnected.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 4 buses in CC0
         var saResultAll = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersAll);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultAll.getPreContingencyResult().getStatus());
         assertEquals(6, saResultAll.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 6 buses in total
