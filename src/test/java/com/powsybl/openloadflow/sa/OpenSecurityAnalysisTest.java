@@ -4230,11 +4230,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertTrue(lfResultAll.isFullyConverged());
         var lfResultMainConnected = LoadFlow.run(network, lfParametersMainConnected);
         assertTrue(lfResultMainConnected.isFullyConverged());
-        assertThrows(CompletionException.class, () -> LoadFlow.run(network, lfParametersMainSynchronous)); // No SC0 found
+        var lfResultMainSynchronous = LoadFlow.run(network, lfParametersMainSynchronous);
+        assertTrue(lfResultMainSynchronous.isFullyConverged());
 
         assertEquals(5, lfResultAll.getComponentResults().size()); // 5 SCs
         assertEquals(4, lfResultMainConnected.getComponentResults().size()); // 4 SCs
+        assertEquals(1, lfResultMainSynchronous.getComponentResults().size()); // 1 SC
 
+        var saResultMainSynchronous = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersMainConnected);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultMainSynchronous.getPreContingencyResult().getStatus());
+        assertEquals(4, saResultMainSynchronous.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 4 buses in SC0 (that are in CC1)
         var saResultMainConnected = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersMainConnected);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultMainConnected.getPreContingencyResult().getStatus());
         assertEquals(4, saResultMainConnected.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 4 buses in CC0

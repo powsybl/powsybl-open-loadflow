@@ -366,21 +366,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ComponentMode mode) {
-
-        if (LoadFlowParameters.ComponentMode.MAIN_CONNECTED.equals(mode)) {
-            return networks.getList().stream()
-                .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-        } else if (LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS.equals(mode)) {
-            List<LfNetwork> networksToSimulate = networks.getList().stream()
-                    .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-            if (networksToSimulate.getFirst().getBuses().isEmpty()) throw new PowsyblException("No main synchronous component SC0 found"); // TODO : How to handle
-            return networksToSimulate;
-        } else if (LoadFlowParameters.ComponentMode.ALL_CONNECTED.equals(mode)) {
-            return networks.getList().stream()
-                .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-        } else {
-            throw new PowsyblException("Unsupported ConnectedComponentMode " + mode);
-        }
+        return switch(mode){
+            case MAIN_CONNECTED -> networks.getList().stream()
+                    .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+            case MAIN_SYNCHRONOUS -> networks.getList().stream()
+                    .filter(n -> n.getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+            case ALL_CONNECTED -> networks.getList().stream()
+                    .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        };
     }
 
     void mergeSecurityAnalysisResult(SecurityAnalysisResult resultToMerge, Map<String, PostContingencyResult> postContingencyResults,
