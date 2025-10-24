@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -129,6 +129,36 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     @Override
     public double getTargetV() {
         return targetV;
+    }
+
+    @Override
+    public String getId() {
+        return "";
+    }
+
+    @Override
+    public double getLocalTargetV() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getTargetQ() {
+        return 0;
+    }
+
+    @Override
+    public double getMinP() {
+        return 0;
+    }
+
+    @Override
+    public double getMaxP() {
+        return 0;
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
+
     }
 
     @Override
