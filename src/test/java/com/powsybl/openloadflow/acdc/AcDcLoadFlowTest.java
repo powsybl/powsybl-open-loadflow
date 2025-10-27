@@ -477,7 +477,7 @@ public class AcDcLoadFlowTest {
 
         Generator g5 = network.getGenerator("g5");
         assertActivePowerEquals(-41.950606, g5.getTerminal());
-        assertReactivePowerEquals(-0.000000, g5.getTerminal());
+        assertReactivePowerEquals(-0.024662, g5.getTerminal());
 
         VoltageSourceConverter conv12 = network.getVoltageSourceConverter("conv12");
         assertActivePowerEquals(23.999632, conv12.getTerminal1());

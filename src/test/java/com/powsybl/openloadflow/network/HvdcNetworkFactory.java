@@ -24,7 +24,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * l12          hvdc23
      * </pre>
      *
- * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+     * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
      */
     public static Network createVsc() {
         return createVsc(true);

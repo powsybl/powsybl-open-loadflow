@@ -1430,24 +1430,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isAcDcNetwork() {
-        return acDcNetwork;
-    }
-
-    public OpenLoadFlowParameters setAcDcNetwork(boolean acDcNetwork) {
-        this.acDcNetwork = acDcNetwork;
-        return this;
-    }
-
-    public boolean isAcDcNetwork() {
-        return acDcNetwork;
-    }
-
-    public OpenLoadFlowParameters setAcDcNetwork(boolean acDcNetwork) {
-        this.acDcNetwork = acDcNetwork;
-        return this;
-    }
-
     public boolean isStartWithFrozenACEmulation() {
         return startWithFrozenACEmulation;
     }
@@ -1463,6 +1445,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setGeneratorsWithZeroMwTargetAreNotStarted(boolean generatorsWithZeroMwTargetAreNotStarted) {
         this.generatorsWithZeroMwTargetAreNotStarted = generatorsWithZeroMwTargetAreNotStarted;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return acDcNetwork;
+    }
+
+    public OpenLoadFlowParameters setAcDcNetwork(boolean acDcNetwork) {
+        this.acDcNetwork = acDcNetwork;
         return this;
     }
 
