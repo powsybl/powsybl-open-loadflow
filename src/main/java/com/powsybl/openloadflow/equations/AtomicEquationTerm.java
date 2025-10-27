@@ -22,19 +22,19 @@ import java.util.function.DoubleSupplier;
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface ScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends EquationTerm<V, E> {
+public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends EquationTerm<V, E> {
 
-    class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements ScalarEquationTerm<V, E> {
+    class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements AtomicEquationTerm<V, E> {
 
-        private final ScalarEquationTerm<V, E> term;
+        private final AtomicEquationTerm<V, E> term;
 
         private final DoubleSupplier scalarSupplier;
 
-        MultiplyByScalarEquationTerm(ScalarEquationTerm<V, E> term, double scalar) {
+        MultiplyByScalarEquationTerm(AtomicEquationTerm<V, E> term, double scalar) {
             this(term, () -> scalar);
         }
 
-        MultiplyByScalarEquationTerm(ScalarEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
+        MultiplyByScalarEquationTerm(AtomicEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
             this.term = Objects.requireNonNull(term);
             this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
             term.setSelf(this);
@@ -45,17 +45,17 @@ public interface ScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum
         }
 
         @Override
-        public List<ScalarEquationTerm<V, E>> getChildren() {
+        public List<AtomicEquationTerm<V, E>> getChildren() {
             return Collections.singletonList(term);
         }
 
         @Override
-        public ScalarEquation<V, E> getEquation() {
+        public AtomicEquation<V, E> getEquation() {
             return term.getEquation();
         }
 
         @Override
-        public void setEquation(ScalarEquation<V, E> equation) {
+        public void setEquation(AtomicEquation<V, E> equation) {
             term.setEquation(equation);
         }
 
@@ -70,7 +70,7 @@ public interface ScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum
         }
 
         @Override
-        public void setSelf(ScalarEquationTerm<V, E> self) {
+        public void setSelf(AtomicEquationTerm<V, E> self) {
             term.setSelf(self);
         }
 
@@ -127,23 +127,23 @@ public interface ScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum
         }
     }
 
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> ScalarEquationTerm<V, E> multiply(ScalarEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> AtomicEquationTerm<V, E> multiply(AtomicEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
         return new MultiplyByScalarEquationTerm<>(term, scalarSupplier);
     }
 
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> ScalarEquationTerm<V, E> multiply(ScalarEquationTerm<V, E> term, double scalar) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> AtomicEquationTerm<V, E> multiply(AtomicEquationTerm<V, E> term, double scalar) {
         return new MultiplyByScalarEquationTerm<>(term, scalar);
     }
 
-    List<ScalarEquationTerm<V, E>> getChildren();
+    List<AtomicEquationTerm<V, E>> getChildren();
 
-    ScalarEquation<V, E> getEquation();
+    AtomicEquation<V, E> getEquation();
 
-    void setEquation(ScalarEquation<V, E> equation);
+    void setEquation(AtomicEquation<V, E> equation);
 
     boolean isActive();
 
-    void setSelf(ScalarEquationTerm<V, E> self);
+    void setSelf(AtomicEquationTerm<V, E> self);
 
     ElementType getElementType();
 
@@ -192,15 +192,15 @@ public interface ScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum
 
     void write(Writer writer) throws IOException;
 
-    default ScalarEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
+    default AtomicEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
         return multiply(this, scalarSupplier);
     }
 
-    default ScalarEquationTerm<V, E> multiply(double scalar) {
+    default AtomicEquationTerm<V, E> multiply(double scalar) {
         return multiply(this, scalar);
     }
 
-    default ScalarEquationTerm<V, E> minus() {
+    default AtomicEquationTerm<V, E> minus() {
         return multiply(-1);
     }
 }

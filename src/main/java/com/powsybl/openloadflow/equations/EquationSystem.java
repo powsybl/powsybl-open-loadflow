@@ -25,11 +25,11 @@ import java.util.stream.Collectors;
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-    private final Map<Pair<Integer, E>, ScalarEquation<V, E>> equations = new HashMap<>();
+    private final Map<Pair<Integer, E>, AtomicEquation<V, E>> equations = new HashMap<>();
 
-    private final Map<Pair<ElementType, Integer>, List<ScalarEquation<V, E>>> equationsByElement = new HashMap<>();
+    private final Map<Pair<ElementType, Integer>, List<AtomicEquation<V, E>>> equationsByElement = new HashMap<>();
 
-    private Map<Pair<ElementType, Integer>, List<ScalarEquationTerm<V, E>>> equationTermsByElement;
+    private Map<Pair<ElementType, Integer>, List<AtomicEquationTerm<V, E>>> equationTermsByElement;
 
     private final Map<E, EquationArray<V, E>> equationArrays;
 
@@ -70,18 +70,18 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return index;
     }
 
-    public Collection<ScalarEquation<V, E>> getEquations() {
+    public Collection<AtomicEquation<V, E>> getEquations() {
         return equations.values();
     }
 
-    private void indexTerm(ScalarEquationTerm<V, E> equationTerm) {
+    private void indexTerm(AtomicEquationTerm<V, E> equationTerm) {
         if (equationTermsByElement != null) {
             if (equationTerm.getElementType() != null && equationTerm.getElementNum() != -1) {
                 Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
                 equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                         .add(equationTerm);
             }
-            for (ScalarEquationTerm<V, E> child : equationTerm.getChildren()) {
+            for (AtomicEquationTerm<V, E> child : equationTerm.getChildren()) {
                 indexTerm(child);
             }
         }
@@ -98,19 +98,19 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    void addEquationTerm(ScalarEquationTerm<V, E> equationTerm) {
+    void addEquationTerm(AtomicEquationTerm<V, E> equationTerm) {
         indexTerm(equationTerm);
         attach(equationTerm);
     }
 
-    public List<ScalarEquationTerm<V, E>> getEquationTerms(ElementType elementType, int elementNum) {
+    public List<AtomicEquationTerm<V, E>> getEquationTerms(ElementType elementType, int elementNum) {
         Objects.requireNonNull(elementType);
         indexAllTerms();
         Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
         return equationTermsByElement.getOrDefault(element, Collections.emptyList());
     }
 
-    public <T extends ScalarEquationTerm<V, E>> T getEquationTerm(ElementType elementType, int elementNum, Class<T> clazz) {
+    public <T extends AtomicEquationTerm<V, E>> T getEquationTerm(ElementType elementType, int elementNum, Class<T> clazz) {
         return getEquationTerms(elementType, elementNum)
                 .stream()
                 .filter(term -> clazz.isAssignableFrom(term.getClass()))
@@ -129,7 +129,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             return equationArrays.get(type).getElement(element.getNum());
         }
         Pair<Integer, E> p = Pair.of(element.getNum(), type);
-        ScalarEquation<V, E> equation = equations.get(p);
+        AtomicEquation<V, E> equation = equations.get(p);
         if (equation == null) {
             equation = addEquation(p);
             equation.setActive(!element.isDisabled());
@@ -169,26 +169,26 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equations.containsKey(p);
     }
 
-    private void deindexTerm(ScalarEquationTerm<V, E> term) {
+    private void deindexTerm(AtomicEquationTerm<V, E> term) {
         if (term.getElementType() != null && term.getElementNum() != -1) {
-            List<ScalarEquationTerm<V, E>> termsForThisElement = equationTermsByElement.get(Pair.of(term.getElementType(), term.getElementNum()));
+            List<AtomicEquationTerm<V, E>> termsForThisElement = equationTermsByElement.get(Pair.of(term.getElementType(), term.getElementNum()));
             if (termsForThisElement != null) {
                 termsForThisElement.remove(term);
             }
         }
-        for (ScalarEquationTerm<V, E> child : term.getChildren()) {
+        for (AtomicEquationTerm<V, E> child : term.getChildren()) {
             deindexTerm(child);
         }
     }
 
-    public ScalarEquation<V, E> removeEquation(int num, E type) {
+    public AtomicEquation<V, E> removeEquation(int num, E type) {
         Pair<Integer, E> p = Pair.of(num, type);
-        ScalarEquation<V, E> equation = equations.remove(p);
+        AtomicEquation<V, E> equation = equations.remove(p);
         if (equation != null) {
             Pair<ElementType, Integer> element = Pair.of(type.getElementType(), num);
             equationsByElement.get(element).remove(equation);
             if (equationTermsByElement != null) {
-                for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
+                for (AtomicEquationTerm<V, E> term : equation.getTerms()) {
                     deindexTerm(term);
                 }
             }
@@ -198,8 +198,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equation;
     }
 
-    private ScalarEquation<V, E> addEquation(Pair<Integer, E> p) {
-        ScalarEquation<V, E> equation = new ScalarEquation<>(p.getLeft(), p.getRight(), EquationSystem.this);
+    private AtomicEquation<V, E> addEquation(Pair<Integer, E> p) {
+        AtomicEquation<V, E> equation = new AtomicEquation<>(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
         Pair<ElementType, Integer> element = Pair.of(p.getRight().getElementType(), p.getLeft());
         equationsByElement.computeIfAbsent(element, k -> new ArrayList<>())
@@ -208,13 +208,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equation;
     }
 
-    public List<ScalarEquation<V, E>> getEquations(ElementType elementType, int elementNum) {
+    public List<AtomicEquation<V, E>> getEquations(ElementType elementType, int elementNum) {
         Objects.requireNonNull(elementType);
         Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
         return equationsByElement.getOrDefault(element, Collections.emptyList());
     }
 
-    public void attach(ScalarEquationTerm<V, E> term) {
+    public void attach(AtomicEquationTerm<V, E> term) {
         Objects.requireNonNull(term);
         term.setStateVector(stateVector);
     }
@@ -271,13 +271,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         listeners.remove(listener);
     }
 
-    void notifyEquationChange(ScalarEquation<V, E> equation, EquationEventType eventType) {
+    void notifyEquationChange(AtomicEquation<V, E> equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
         listeners.forEach(listener -> listener.onEquationChange(equation, eventType));
     }
 
-    void notifyEquationTermChange(ScalarEquationTerm<V, E> term, EquationTermEventType eventType) {
+    void notifyEquationTermChange(AtomicEquationTerm<V, E> term, EquationTermEventType eventType) {
         Objects.requireNonNull(term);
         Objects.requireNonNull(eventType);
         listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
@@ -297,7 +297,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public void write(Writer writer, boolean writeInactiveEquations) {
         try {
-            for (ScalarEquation<V, E> equation : equations.values().stream().sorted().collect(Collectors.toList())) {
+            for (AtomicEquation<V, E> equation : equations.values().stream().sorted().collect(Collectors.toList())) {
                 if (writeInactiveEquations || equation.isActive()) {
                     if (!equation.isActive()) {
                         writer.write("[ ");

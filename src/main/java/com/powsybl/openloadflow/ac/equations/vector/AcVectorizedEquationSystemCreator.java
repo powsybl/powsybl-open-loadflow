@@ -77,7 +77,7 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         closedQ2Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         qArray.addTermArray(closedQ2Array);
 
-        openP1Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
+        /*openP1Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(openP1Array);
         openP2Array = new EquationTermArray<>(ElementType.BRANCH, new OpenBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(openP2Array);
@@ -113,7 +113,7 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         loadModelQArray = new EquationTermArray<>(ElementType.LOAD, new LoadModelReactiveFlowEquationTermArrayEvaluator(networkVector.getLoadVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         qArray.addTermArray(loadModelQArray);
 
-        networkVector.startListening();
+        networkVector.startListening();*/
 
         super.create(equationSystem);
     }
@@ -138,7 +138,7 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         return closedQ2Array.getElement(branch.getNum());
     }
 
-    @Override
+    /*@Override
     protected EquationTerm<AcVariableType, AcEquationType> createOpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return openP1Array.getElement(branch.getNum());
     }
@@ -196,5 +196,5 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     @Override
     protected EquationTerm<AcVariableType, AcEquationType> createLoadModelQ(LfLoad load, LfLoadModel loadModel, LfBus bus, VariableSet<AcVariableType> variableSet) {
         return loadModelQArray.getElement(load.getNum());
-    }
+    }*/
 }

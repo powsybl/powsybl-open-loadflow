@@ -52,7 +52,7 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
 
         Arrays.fill(array, 0); // necessary?
-        for (ScalarEquation<V, E> equation : equations) {
+        for (AtomicEquation<V, E> equation : equations) {
             array[equation.getColumn()] = equation.evalLhs();
         }
         for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {

@@ -101,11 +101,11 @@ class DerivableTest {
     @Test
     public void testDelegateFunction() {
         EquationSystem<AcVariableType, AcVariableType> equationSystem = Mockito.mock(EquationSystem.class);
-        ScalarEquation<AcVariableType, AcVariableType> equation = new ScalarEquation<>(0, AcVariableType.BUS_V, equationSystem);
+        AtomicEquation<AcVariableType, AcVariableType> equation = new AtomicEquation<>(0, AcVariableType.BUS_V, equationSystem);
         equation.addTerm(new ToBeFilteredEquationTerm(ElementType.BUS));
         equation.addTerm(new ToBeFilteredEquationTerm(ElementType.SHUNT_COMPENSATOR));
         equation.addTerm(new ToBeFilteredEquationTerm(ElementType.HVDC));
-        ScalarEquationTerm<AcVariableType, AcVariableType> inactive = new ToBeFilteredEquationTerm(ElementType.BRANCH);
+        AtomicEquationTerm<AcVariableType, AcVariableType> inactive = new ToBeFilteredEquationTerm(ElementType.BRANCH);
         equation.addTerm(inactive);
         inactive.setActive(false);
         equation.addTerm(new MyBranchEquationTerm());
