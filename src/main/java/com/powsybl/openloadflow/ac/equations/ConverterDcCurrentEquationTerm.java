@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2025, SuperGrid Institute (http://www.supergrid-institute.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
@@ -8,6 +15,9 @@ import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 
+/**
+ * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
+ */
 public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEquationTerm {
 
     public ConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
