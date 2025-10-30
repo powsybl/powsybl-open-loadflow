@@ -37,9 +37,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
     private final AcBusVector busVector;
     private final AcBranchVector branchVector;
-    private final AcShuntVector shuntVector;
-    private final AcHvdcVector hvdcVector;
-    private final AcLoadVector loadVector;
     private boolean variablesInvalid = true;
 
     public AcNetworkVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -48,9 +45,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         this.equationSystem = Objects.requireNonNull(equationSystem);
         busVector = new AcBusVector(network.getBuses());
         branchVector = new AcBranchVector(network.getBranches(), creationParameters);
-        shuntVector = new AcShuntVector(network.getShunts());
-        hvdcVector = new AcHvdcVector(network.getHvdcs());
-        loadVector = new AcLoadVector(network.getLoads());
     }
 
     public AcBusVector getBusVector() {
@@ -59,18 +53,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     public AcBranchVector getBranchVector() {
         return branchVector;
-    }
-
-    public AcShuntVector getShuntVector() {
-        return shuntVector;
-    }
-
-    public AcHvdcVector getHvdcVector() {
-        return hvdcVector;
-    }
-
-    public AcLoadVector getLoadVector() {
-        return loadVector;
     }
 
     public void startListening() {
@@ -105,9 +87,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         Arrays.fill(branchVector.ph2Row, -1);
         Arrays.fill(branchVector.dummyPRow, -1);
         Arrays.fill(branchVector.dummyQRow, -1);
-        Arrays.fill(shuntVector.bRow, -1);
-        Arrays.fill(hvdcVector.ph1Row, -1);
-        Arrays.fill(hvdcVector.ph2Row, -1);
 
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             int num = v.getElementNum();
@@ -127,10 +106,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
                 case BRANCH_RHO1:
                     branchVector.r1Row[num] = branchVector.deriveR1[num] ? row : -1;
-                    break;
-
-                case SHUNT_B:
-                    shuntVector.bRow[num] = shuntVector.deriveB[num] ? row : -1;
                     break;
 
                 case DUMMY_P:
@@ -165,14 +140,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                 branchVector.ph2Row[branchNum] = busVector.phRow[branchVector.bus2Num[branchNum]];
             }
         }
-        for (int hvdcNum = 0; hvdcNum < hvdcVector.getSize(); hvdcNum++) {
-            if (hvdcVector.bus1Num[hvdcNum] != -1) {
-                hvdcVector.ph1Row[hvdcNum] = busVector.phRow[hvdcVector.bus1Num[hvdcNum]];
-            }
-            if (hvdcVector.bus2Num[hvdcNum] != -1) {
-                hvdcVector.ph2Row[hvdcNum] = busVector.phRow[hvdcVector.bus2Num[hvdcNum]];
-            }
-        }
     }
 
     private boolean isBranchConnectedSide1(int branchNum) {
@@ -181,14 +148,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     private boolean isBranchConnectedSide2(int branchNum) {
         return branchVector.bus2Num[branchNum] != -1 && branchVector.connected2[branchNum];
-    }
-
-    private boolean isHvdcConnectedSide1(int hvdcNum) {
-        return hvdcVector.bus1Num[hvdcNum] != -1;
-    }
-
-    private boolean isHvdcConnectedSide2(int hvdcNum) {
-        return hvdcVector.bus2Num[hvdcNum] != -1;
     }
 
     public static double theta1(double ksi, double ph1, double a1, double ph2) {
@@ -207,125 +166,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                 }
                 if (busVector.phRow[busNum] != -1) {
                     busVector.ph[busNum] = state[busVector.phRow[busNum]];
-                }
-            }
-        }
-    }
-
-    public void updateLoads(double[] state) {
-        for (int loadNum = 0; loadNum < loadVector.busNum.length; loadNum++) {
-            int busNum = loadVector.busNum[loadNum];
-            if (!busVector.disabled[busNum]) {
-                int vRow = busVector.vRow[busNum];
-                if (vRow != -1) {
-                    double v = state[vRow];
-
-                    // p
-                    List<LfLoadModel.ExpTerm> expTermsP = loadVector.expTermsP[loadNum];
-                    if (expTermsP != null) {
-                        loadVector.pLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
-                                loadVector.targetP[loadNum],
-                                expTermsP);
-                        loadVector.dpdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
-                                loadVector.targetP[loadNum],
-                                expTermsP);
-                    }
-
-                    // q
-                    List<LfLoadModel.ExpTerm> expTermsQ = loadVector.expTermsQ[loadNum];
-                    if (expTermsQ != null) {
-                        loadVector.qLoadModel[loadNum] = AbstractLoadModelEquationTerm.f(v,
-                                loadVector.targetQ[loadNum],
-                                expTermsQ);
-                        loadVector.dqdvLoadModel[loadNum] = AbstractLoadModelEquationTerm.dfdv(v,
-                                loadVector.targetQ[loadNum],
-                                expTermsQ);
-                    }
-                }
-            }
-        }
-    }
-
-    public void updateShunts(double[] state) {
-        for (int shuntNum = 0; shuntNum < shuntVector.getSize(); shuntNum++) {
-            if (!shuntVector.disabled[shuntNum]) {
-                if (shuntVector.busNum[shuntNum] != -1) {
-                    double v = state[busVector.vRow[shuntVector.busNum[shuntNum]]];
-                    double b = shuntVector.bRow[shuntNum] != -1 ? state[shuntVector.bRow[shuntNum]] : shuntVector.b[shuntNum];
-                    shuntVector.p[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.p(v, shuntVector.g[shuntNum]);
-                    shuntVector.dpdv[shuntNum] = ShuntCompensatorActiveFlowEquationTerm.dpdv(v, shuntVector.g[shuntNum]);
-                    shuntVector.q[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.q(v, b);
-                    shuntVector.dqdv[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdv(v, b);
-                    shuntVector.dqdb[shuntNum] = ShuntCompensatorReactiveFlowEquationTerm.dqdb(v);
-                }
-            }
-        }
-    }
-
-    public void updateHvdcs(double[] state) {
-        for (int hvdcNum = 0; hvdcNum < hvdcVector.getSize(); hvdcNum++) {
-            if (!hvdcVector.disabled[hvdcNum]) {
-                if (isHvdcConnectedSide1(hvdcNum) && isHvdcConnectedSide2(hvdcNum)) {
-                    double ph1 = state[hvdcVector.ph1Row[hvdcNum]];
-                    double ph2 = state[hvdcVector.ph2Row[hvdcNum]];
-
-                    // p1
-                    hvdcVector.p1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.p1(hvdcVector.p0[hvdcNum],
-                            hvdcVector.k[hvdcNum],
-                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                            hvdcVector.lossFactor1[hvdcNum],
-                            hvdcVector.lossFactor2[hvdcNum],
-                            hvdcVector.r[hvdcNum],
-                            hvdcVector.acEmulationFrozen[hvdcNum] ? hvdcVector.angleDifferenceToFreeze[hvdcNum] : ph1,
-                            hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : ph2);
-
-                    hvdcVector.dp1dph1[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph1(hvdcVector.p0[hvdcNum],
-                            hvdcVector.k[hvdcNum],
-                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                            hvdcVector.lossFactor1[hvdcNum],
-                            hvdcVector.lossFactor2[hvdcNum],
-                            ph1,
-                            ph2);
-
-                    hvdcVector.dp1dph2[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide1ActiveFlowEquationTerm.dp1dph2(hvdcVector.p0[hvdcNum],
-                            hvdcVector.k[hvdcNum],
-                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                            hvdcVector.lossFactor1[hvdcNum],
-                            hvdcVector.lossFactor2[hvdcNum],
-                            ph1,
-                            ph2);
-
-                    // p2
-                    hvdcVector.p2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.p2(hvdcVector.p0[hvdcNum],
-                            hvdcVector.k[hvdcNum],
-                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                            hvdcVector.lossFactor1[hvdcNum],
-                            hvdcVector.lossFactor2[hvdcNum],
-                            hvdcVector.r[hvdcNum],
-                            hvdcVector.acEmulationFrozen[hvdcNum] ? hvdcVector.angleDifferenceToFreeze[hvdcNum] : ph1,
-                            hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : ph2);
-
-                    hvdcVector.dp2dph1[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph1(hvdcVector.p0[hvdcNum],
-                            hvdcVector.k[hvdcNum],
-                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                            hvdcVector.lossFactor1[hvdcNum],
-                            hvdcVector.lossFactor2[hvdcNum],
-                            ph1,
-                            ph2);
-
-                    hvdcVector.dp2dph2[hvdcNum] = hvdcVector.acEmulationFrozen[hvdcNum] ? 0 : HvdcAcEmulationSide2ActiveFlowEquationTerm.dp2dph2(hvdcVector.p0[hvdcNum],
-                            hvdcVector.k[hvdcNum],
-                            hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                            hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                            hvdcVector.lossFactor1[hvdcNum],
-                            hvdcVector.lossFactor2[hvdcNum],
-                            ph1,
-                            ph2);
                 }
             }
         }
@@ -702,10 +542,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         double[] state = equationSystem.getStateVector().get();
         updateBuses(state);
         updateBranches(state);
-        updateShunts(state);
-        updateHvdcs(state);
-        updateLoads(state);
-
         stopwatch.stop();
         LOGGER.debug("AC network vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
@@ -716,11 +552,11 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             busVector.disabled[element.getNum()] = disabled;
         } else if (element.getType() == ElementType.BRANCH) {
             branchVector.disabled[element.getNum()] = disabled;
-        } else if (element.getType() == ElementType.SHUNT_COMPENSATOR) {
+        }/* else if (element.getType() == ElementType.SHUNT_COMPENSATOR) {
             shuntVector.disabled[element.getNum()] = disabled;
         } else if (element.getType() == ElementType.HVDC) {
             hvdcVector.disabled[element.getNum()] = disabled;
-        }
+        }*/
     }
 
     @Override
@@ -741,49 +577,27 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     @Override
     public void onShuntSusceptanceChange(LfShunt shunt, double b) {
-        shuntVector.b[shunt.getNum()] = b;
+        // do nothing
     }
 
     @Override
     public void onLoadActivePowerTargetChange(LfLoad load, double oldTargetP, double newTargetP) {
-        loadVector.targetP[load.getNum()] = newTargetP;
+        // do nothing
     }
 
     @Override
     public void onLoadReactivePowerTargetChange(LfLoad load, double oldTargetQ, double newTargetQ) {
-        loadVector.targetQ[load.getNum()] = newTargetQ;
+        // do nothing
     }
 
     @Override
     public void onHvdcAcEmulationFroze(LfHvdc hvdc, boolean frozen) {
-        hvdcVector.acEmulationFrozen[hvdc.getNum()] = frozen;
-        // p1 and p2 need to be updated because depend on frozen state
-        if (frozen) {
-            int hvdcNum = hvdc.getNum();
-            hvdcVector.p1[hvdcNum] = HvdcAcEmulationSide1ActiveFlowEquationTerm.p1(hvdcVector.p0[hvdcNum],
-                                                                                   hvdcVector.k[hvdcNum],
-                                                                                   hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                   hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                   hvdcVector.lossFactor1[hvdcNum],
-                                                                                   hvdcVector.lossFactor2[hvdcNum],
-                                                                                   hvdcVector.r[hvdcNum],
-                                                                                   hvdcVector.angleDifferenceToFreeze[hvdcNum],
-                                                                                   0);
-            hvdcVector.p2[hvdcNum] = HvdcAcEmulationSide2ActiveFlowEquationTerm.p2(hvdcVector.p0[hvdcNum],
-                                                                                   hvdcVector.k[hvdcNum],
-                                                                                   hvdcVector.pMaxFromCS1toCS2[hvdcNum],
-                                                                                   hvdcVector.pMaxFromCS2toCS1[hvdcNum],
-                                                                                   hvdcVector.lossFactor1[hvdcNum],
-                                                                                   hvdcVector.lossFactor2[hvdcNum],
-                                                                                   hvdcVector.r[hvdcNum],
-                                                                                   hvdcVector.angleDifferenceToFreeze[hvdcNum],
-                                                                                   0);
-        }
+        // do nothing
     }
 
     @Override
     public void onHvdcAngleDifferenceToFreeze(LfHvdc hvdc, double angleDifferenceToFreeze) {
-        hvdcVector.angleDifferenceToFreeze[hvdc.getNum()] = angleDifferenceToFreeze;
+        // do nothing
     }
 
     @Override

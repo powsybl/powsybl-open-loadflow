@@ -200,6 +200,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         final int termElementNum;
 
+        AtomicEquation<V, E> equation;
+
         public EquationTermArrayElementImpl(EquationTermArray<V, E> equationTermArray, int termElementNum) {
             this.equationTermArray = Objects.requireNonNull(equationTermArray);
             this.termElementNum = termElementNum;
@@ -252,7 +254,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         @Override
         public Equation<V, E> getEquation() {
-            throw new UnsupportedOperationException("TODO");
+            return equationTermArray.getEquationArray().getElement(termElementNum);
         }
 
         @Override

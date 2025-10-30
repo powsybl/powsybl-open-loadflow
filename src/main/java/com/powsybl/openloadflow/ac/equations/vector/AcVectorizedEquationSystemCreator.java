@@ -111,9 +111,9 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         loadModelPArray = new EquationTermArray<>(ElementType.LOAD, new LoadModelActiveFlowEquationTermArrayEvaluator(networkVector.getLoadVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(loadModelPArray);
         loadModelQArray = new EquationTermArray<>(ElementType.LOAD, new LoadModelReactiveFlowEquationTermArrayEvaluator(networkVector.getLoadVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
-        qArray.addTermArray(loadModelQArray);
+        qArray.addTermArray(loadModelQArray);*/
 
-        networkVector.startListening();*/
+        networkVector.startListening();
 
         super.create(equationSystem);
     }

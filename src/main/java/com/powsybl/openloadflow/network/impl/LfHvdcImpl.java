@@ -108,8 +108,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         super.setDisabled(disabled); // for AC emulation equations only.
         if (!acEmulation && !disabled) {
             // re-active power transmission to initial target values.
-            converterStation1.setTargetP(converterStation1.getInitialTargetP());
-            converterStation2.setTargetP(converterStation2.getInitialTargetP());
+            //converterStation1.setTargetP(converterStation1.getInitialTargetP());
+            //converterStation2.setTargetP(converterStation2.getInitialTargetP());
         }
     }
 

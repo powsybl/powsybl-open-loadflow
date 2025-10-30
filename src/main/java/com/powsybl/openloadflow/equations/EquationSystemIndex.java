@@ -226,9 +226,15 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                 for (var equationTermArray : equationArray.getTermArrays()) {
                     for (int termNum : equationTermArray.getTermNumsForEquationElementNum(elementNum).toArray()) {
                         if (equationTermArray.isTermActive(termNum)) {
-                            var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            List<Variable<V>> variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
                             removeVariables(variables);
                         }
+                    }
+                }
+                for (var atomicTerm : equationArray.getAtomicTerms(elementNum)) {
+                    if (atomicTerm.isActive()) {
+                        List<Variable<V>> variables = atomicTerm.getVariables();
+                        removeVariables(variables);
                     }
                 }
                 equationsIndexValid = false;
@@ -244,7 +250,13 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     for (int i = iStart; i < iEnd; i++) {
                         int termNum = termNums.get(i);
                         if (equationTermArray.isTermActive(termNum)) {
-                            var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            List<Variable<V>> variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            addVariables(variables);
+                        }
+                    }
+                    for (var atomicTerm : equationArray.getAtomicTerms(elementNum)) {
+                        if (atomicTerm.isActive()) {
+                            List<Variable<V>> variables = atomicTerm.getVariables();
                             addVariables(variables);
                         }
                     }

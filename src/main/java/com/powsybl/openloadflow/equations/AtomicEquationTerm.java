@@ -50,12 +50,12 @@ public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum
         }
 
         @Override
-        public AtomicEquation<V, E> getEquation() {
+        public Equation<V, E> getEquation() {
             return term.getEquation();
         }
 
         @Override
-        public void setEquation(AtomicEquation<V, E> equation) {
+        public void setEquation(Equation<V, E> equation) {
             term.setEquation(equation);
         }
 
@@ -137,9 +137,9 @@ public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum
 
     List<AtomicEquationTerm<V, E>> getChildren();
 
-    AtomicEquation<V, E> getEquation();
+    Equation<V, E> getEquation();
 
-    void setEquation(AtomicEquation<V, E> equation);
+    void setEquation(Equation<V, E> equation);
 
     boolean isActive();
 

@@ -18,7 +18,7 @@ import java.util.Objects;
  */
 public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements AtomicEquationTerm<V, E> {
 
-    private AtomicEquation<V, E> equation;
+    private Equation<V, E> equation;
 
     private boolean active;
 
@@ -45,12 +45,12 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     }
 
     @Override
-    public AtomicEquation<V, E> getEquation() {
+    public Equation<V, E> getEquation() {
         return equation;
     }
 
     @Override
-    public void setEquation(AtomicEquation<V, E> equation) {
+    public void setEquation(Equation<V, E> equation) {
         this.equation = Objects.requireNonNull(equation);
     }
 
