@@ -29,34 +29,6 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     private EquationTermArray<AcVariableType, AcEquationType> closedQ2Array;
 
-    private EquationTermArray<AcVariableType, AcEquationType> openP1Array;
-
-    private EquationTermArray<AcVariableType, AcEquationType> openP2Array;
-
-    private EquationTermArray<AcVariableType, AcEquationType> openQ1Array;
-
-    private EquationTermArray<AcVariableType, AcEquationType> openQ2Array;
-
-    private EquationTermArray<AcVariableType, AcEquationType> shuntPArray;
-
-    private EquationTermArray<AcVariableType, AcEquationType> shuntQArray;
-
-    private EquationTermArray<AcVariableType, AcEquationType> dummyPArray;
-
-    private EquationTermArray<AcVariableType, AcEquationType> minusDummyPArray;
-
-    private EquationTermArray<AcVariableType, AcEquationType> dummyQArray;
-
-    private EquationTermArray<AcVariableType, AcEquationType> minusDummyQArray;
-
-    private EquationTermArray<AcVariableType, AcEquationType> hvdcP1Array;
-
-    private EquationTermArray<AcVariableType, AcEquationType> hvdcP2Array;
-
-    private EquationTermArray<AcVariableType, AcEquationType> loadModelPArray;
-
-    private EquationTermArray<AcVariableType, AcEquationType> loadModelQArray;
-
     public AcVectorizedEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
     }

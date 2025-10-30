@@ -39,17 +39,21 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
 
+    private final Map<Integer, List<AtomicEquationTerm<V, E>>> atomicTermsByTermElementNum = new TreeMap<>();
+
     private final Map<Integer, AtomicTermsByEquation> atomicTermsByEquationElementNum = new TreeMap<>();
 
     private final int[] equationDerivativeVectorStartIndices;
     private EquationDerivativeVector equationDerivativeVector;
 
-    private class AtomicTermsByEquation {
+    private final class AtomicTermsByEquation {
         private final List<AtomicEquationTerm<V, E>> terms = new ArrayList<>();
         private final Map<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
-        void addAtomicTerm(AtomicEquationTerm<V, E> termImpl, Equation<V, E> equation){
+        void addAtomicTerm(AtomicEquationTerm<V, E> termImpl, Equation<V, E> equation) {
             terms.add(termImpl);
+            atomicTermsByTermElementNum.computeIfAbsent(termImpl.getElementNum(), k -> new ArrayList<>())
+                    .add(termImpl);
             for (Variable<V> v : termImpl.getVariables()) {
                 termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
                         .add(termImpl);
@@ -59,7 +63,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             matrixElementIndexes.reset();
             equationSystem.notifyEquationTermChange(termImpl, EquationTermEventType.EQUATION_TERM_ADDED);
             if (termImpl.hasRhs()) {
-                throw new UnsupportedOperationException("Rhs not supported yet") ;
+                throw new UnsupportedOperationException("Rhs not supported yet");
             }
         }
     }
@@ -104,7 +108,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     public List<AtomicEquationTerm<V, E>> getAtomicTerms(int elementNum) {
-        if (atomicTermsByEquationElementNum.containsKey(elementNum)){
+        if (atomicTermsByEquationElementNum.containsKey(elementNum)) {
             return atomicTermsByEquationElementNum.get(elementNum).terms;
         }
         return Collections.emptyList();
@@ -194,9 +198,11 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
             }
         }
-        for (var atomicTerm : getAtomicTerms(element.getNum())) {
-            if (atomicTerm.getElementType() == element.getType()) {
-                atomicTerm.setActive(enable);
+        if (atomicTermsByTermElementNum.containsKey(element.getNum())) {
+            for (var atomicTerm : atomicTermsByTermElementNum.get(element.getNum())) {
+                if (atomicTerm.getElementType() == element.getType()) {
+                    atomicTerm.setActive(enable);
+                }
             }
         }
     }
@@ -349,7 +355,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             if (!elementActive[atomicTermsEntry.getKey()]) {
                 continue;
             }
-            for (AtomicEquationTerm<V,E> atomicTerm : atomicTermsEntry.getValue().terms) {
+            for (AtomicEquationTerm<V, E> atomicTerm : atomicTermsEntry.getValue().terms) {
                 if (atomicTerm.isActive()) {
                     values[getElementNumToColumn(atomicTermsEntry.getKey())] += atomicTerm.eval();
                 }
@@ -443,10 +449,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (prevRow != -1 && row != prevRow) {
-                    if (atomicTermsByVariable!=null) {
+                    if (atomicTermsByVariable != null) {
                         for (Variable<V> v : atomicTermsByVariable.keySet()) {
                             if (v.getRow() == prevRow) {
-                                for (AtomicEquationTerm<V,E> term : atomicTermsByVariable.get(v)) {
+                                for (AtomicEquationTerm<V, E> term : atomicTermsByVariable.get(v)) {
                                     if (term.isActive()) {
                                         value += term.der(v);
                                     }
@@ -465,10 +471,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
             // remaining notif
             if (prevRow != -1) {
-                if (atomicTermsByVariable!=null) {
+                if (atomicTermsByVariable != null) {
                     for (Variable<V> v : atomicTermsByVariable.keySet()) {
                         if (v.getRow() == prevRow) {
-                            for (AtomicEquationTerm<V,E> term : atomicTermsByVariable.get(v)) {
+                            for (AtomicEquationTerm<V, E> term : atomicTermsByVariable.get(v)) {
                                 if (term.isActive()) {
                                     value += term.der(v);
                                 }
@@ -480,11 +486,11 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 valueIndex++;
             }
             // This piece of code is horrible, do not forget to change that...
-            if (atomicTermsByVariable!=null) {
+            if (atomicTermsByVariable != null) {
                 for (Variable<V> v : atomicTermsByVariable.keySet()) {
                     if (!visitedRows.contains(v.getRow()) && v.getRow() != -1) {
                         value = 0;
-                        for (AtomicEquationTerm<V,E> term : atomicTermsByVariable.get(v)) {
+                        for (AtomicEquationTerm<V, E> term : atomicTermsByVariable.get(v)) {
                             if (term.isActive()) {
                                 value += term.der(v);
                             }

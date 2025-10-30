@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -174,21 +173,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     /**
      * Update all power flows and their derivatives.
      */
-    public void updateBranches(double[] state) {
+    public void updateClosedBranches(double[] state) {
         var w = new DoubleWrapper();
 
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
-            // dummy P
-            branchVector.dummyP[branchNum] = branchVector.dummyPRow[branchNum] != -1 ? state[branchVector.dummyPRow[branchNum]] : 0;
-            branchVector.negDummyP[branchNum] = -branchVector.dummyP[branchNum];
-            branchVector.derDummyP[branchNum] = 1;
-            branchVector.derNegDummyP[branchNum] = -1;
-
-            // dummy Q
-            branchVector.dummyQ[branchNum] = branchVector.dummyQRow[branchNum] != -1 ? state[branchVector.dummyQRow[branchNum]] : 0;
-            branchVector.negDummyQ[branchNum] = -branchVector.dummyQ[branchNum];
-            branchVector.derDummyQ[branchNum] = 1;
-            branchVector.derNegDummyQ[branchNum] = -1;
 
             if (!branchVector.disabled[branchNum]) {
 
@@ -446,91 +434,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     // i2
 
                     branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / v2;
-                } else if (isBranchConnectedSide1(branchNum)) {
-                    double v1 = state[branchVector.v1Row[branchNum]];
-                    double r1 = branchVector.r1State[branchNum];
-
-                    branchVector.p1[branchNum] = OpenBranchSide2ActiveFlowEquationTerm.p1(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.g1[branchNum],
-                            branchVector.g2[branchNum],
-                            branchVector.b2[branchNum],
-                            v1,
-                            r1);
-
-                    branchVector.dp1dv1[branchNum] = OpenBranchSide2ActiveFlowEquationTerm.dp1dv1(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.g1[branchNum],
-                            branchVector.g2[branchNum],
-                            branchVector.b2[branchNum],
-                            v1,
-                            r1);
-
-                    branchVector.q1[branchNum] = OpenBranchSide2ReactiveFlowEquationTerm.q1(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.b1[branchNum],
-                            branchVector.g2[branchNum],
-                            branchVector.b2[branchNum],
-                            v1,
-                            r1);
-
-                    branchVector.dq1dv1[branchNum] = OpenBranchSide2ReactiveFlowEquationTerm.dq1dv1(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.b1[branchNum],
-                            branchVector.g2[branchNum],
-                            branchVector.b2[branchNum],
-                            v1,
-                            r1);
-
-                    branchVector.i1[branchNum] = FastMath.hypot(branchVector.p1[branchNum], branchVector.q1[branchNum]) / v1;
-                } else if (isBranchConnectedSide2(branchNum)) {
-                    double v2 = state[branchVector.v2Row[branchNum]];
-
-                    branchVector.p2[branchNum] = OpenBranchSide1ActiveFlowEquationTerm.p2(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.g1[branchNum],
-                            branchVector.b1[branchNum],
-                            branchVector.g2[branchNum],
-                            v2);
-
-                    branchVector.dp2dv2[branchNum] = OpenBranchSide1ActiveFlowEquationTerm.dp2dv2(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.g1[branchNum],
-                            branchVector.b1[branchNum],
-                            branchVector.g2[branchNum],
-                            v2);
-
-                    branchVector.q2[branchNum] = OpenBranchSide1ReactiveFlowEquationTerm.q2(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.g1[branchNum],
-                            branchVector.b1[branchNum],
-                            branchVector.b2[branchNum],
-                            v2);
-
-                    branchVector.dq2dv2[branchNum] = OpenBranchSide1ReactiveFlowEquationTerm.dq2dv2(
-                            branchVector.y[branchNum],
-                            branchVector.cosKsi[branchNum],
-                            branchVector.sinKsi[branchNum],
-                            branchVector.g1[branchNum],
-                            branchVector.b1[branchNum],
-                            branchVector.b2[branchNum],
-                            v2);
-
-                    branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / v2;
                 }
             }
         }
@@ -541,7 +444,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
         double[] state = equationSystem.getStateVector().get();
         updateBuses(state);
-        updateBranches(state);
+        updateClosedBranches(state);
         stopwatch.stop();
         LOGGER.debug("AC network vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
@@ -552,11 +455,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             busVector.disabled[element.getNum()] = disabled;
         } else if (element.getType() == ElementType.BRANCH) {
             branchVector.disabled[element.getNum()] = disabled;
-        }/* else if (element.getType() == ElementType.SHUNT_COMPENSATOR) {
-            shuntVector.disabled[element.getNum()] = disabled;
-        } else if (element.getType() == ElementType.HVDC) {
-            hvdcVector.disabled[element.getNum()] = disabled;
-        }*/
+        }
     }
 
     @Override
