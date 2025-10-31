@@ -200,7 +200,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         final int termElementNum;
 
-        AtomicEquation<V, E> equation;
+        int elementNum;
 
         public EquationTermArrayElementImpl(EquationTermArray<V, E> equationTermArray, int termElementNum) {
             this.equationTermArray = Objects.requireNonNull(equationTermArray);
@@ -225,6 +225,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         @Override
         public ElementType getElementType() {
             return equationTermArray.getElementType();
+        }
+
+        @Override
+        public int getElementNum() {
+            return elementNum;
         }
 
         @Override
@@ -254,7 +259,12 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         @Override
         public Equation<V, E> getEquation() {
-            return equationTermArray.getEquationArray().getElement(termElementNum);
+            return equationTermArray.getEquationArray().getElement(elementNum);
+        }
+
+        @Override
+        public void setEquation(Equation<V, E> equation) {
+            elementNum = equation.getElementNum();
         }
 
         @Override

@@ -35,9 +35,13 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     ElementType getElementType();
 
+    int getElementNum();
+
     double calculateSensi(DenseMatrix x, int column);
 
     Equation<V, E> getEquation();
+
+    void setEquation(Equation<V, E> equation);
 
     /**
      * Get the list of variable this equation term depends on.

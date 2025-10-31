@@ -40,13 +40,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
 
     private final Map<Integer, List<AtomicEquationTerm<V, E>>> atomicTermsByTermElementNum = new TreeMap<>();
-
-    private final Map<Integer, AtomicTermsByEquation> atomicTermsByEquationElementNum = new TreeMap<>();
+    private final Map<Integer, AdditionalAtomicTermsByEquation> atomicTermsByEquationElementNum = new TreeMap<>();
 
     private final int[] equationDerivativeVectorStartIndices;
     private EquationDerivativeVector equationDerivativeVector;
 
-    private final class AtomicTermsByEquation {
+    private final class AdditionalAtomicTermsByEquation {
         private final List<AtomicEquationTerm<V, E>> terms = new ArrayList<>();
         private final Map<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
@@ -247,16 +246,17 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
             @Override
             public Equation<V, E> addTerm(EquationTerm<V, E> term) {
-                // Either the term is in an EquationTermArray
+                // Either the term is in an EquationTermArray (vectorized term)
                 if (term instanceof EquationTermArray.EquationTermArrayElementImpl<V, E> termArrayElement) {
+                    termArrayElement.setEquation(this);
                     termArrayElement.equationTermArray.addTerm(elementNum, termArrayElement.termElementNum);
-                // Either it is an atomic term that is added to specific equations that do not need to be vectorized
+                // Either the term is an additional atomic term that is related to specific equations (atomic term)
                 } else if (term instanceof AtomicEquationTerm<V, E> atomicEquationTerm) {
                     if (atomicEquationTerm.getEquation() != null) {
                         throw new PowsyblException("Equation term already added to another equation: "
                                 + term.getEquation());
                     }
-                    atomicTermsByEquationElementNum.computeIfAbsent(elementNum, k -> new AtomicTermsByEquation())
+                    atomicTermsByEquationElementNum.computeIfAbsent(elementNum, k -> new AdditionalAtomicTermsByEquation())
                             .addAtomicTerm(atomicEquationTerm, this);
                 }
                 return this;
@@ -351,7 +351,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
             }
         }
-        for (Map.Entry<Integer, AtomicTermsByEquation> atomicTermsEntry : atomicTermsByEquationElementNum.entrySet()) {
+        for (Map.Entry<Integer, AdditionalAtomicTermsByEquation> atomicTermsEntry : atomicTermsByEquationElementNum.entrySet()) {
             if (!elementActive[atomicTermsEntry.getKey()]) {
                 continue;
             }
