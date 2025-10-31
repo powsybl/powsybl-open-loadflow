@@ -8,8 +8,10 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
+import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
+import gnu.trove.map.hash.TIntDoubleHashMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 
 import java.io.IOException;
@@ -37,8 +39,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private int length;
 
+    // All terms that are in a vectorized view (in EquationTermArrays)
     private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
 
+    // All additional terms that are not vectorized (AtomicEquationTerms) stored in different views
     private final Map<Integer, List<AtomicEquationTerm<V, E>>> atomicTermsByTermElementNum = new TreeMap<>();
     private final Map<Integer, AdditionalAtomicTermsByEquation> atomicTermsByEquationElementNum = new TreeMap<>();
 
@@ -47,7 +51,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final class AdditionalAtomicTermsByEquation {
         private final List<AtomicEquationTerm<V, E>> terms = new ArrayList<>();
-        private final Map<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+        private TreeMap<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
         void addAtomicTerm(AtomicEquationTerm<V, E> termImpl, Equation<V, E> equation) {
             terms.add(termImpl);
@@ -413,22 +417,16 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         Objects.requireNonNull(handler);
 
         updateEquationDerivativeVectors();
-
         equationDerivativeVector.update(this);
 
         // calculate all derivative values
         // process column by column so equation by equation of the array
         int valueIndex = 0;
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+            TIntDoubleHashMap valuesByRow = new TIntDoubleHashMap();
             // skip inactive elements
             if (!elementActive[elementNum]) {
                 continue;
-            }
-
-            HashSet<Integer> visitedRows = new HashSet<>();
-            Map<Variable<V>, List<AtomicEquationTerm<V, E>>> atomicTermsByVariable = null;
-            if (atomicTermsByEquationElementNum.containsKey(elementNum)) {
-                atomicTermsByVariable = atomicTermsByEquationElementNum.get(elementNum).termsByVariable;
             }
 
             int column = getElementNumToColumn(elementNum);
@@ -437,6 +435,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
             // process term by term
             double value = 0;
+            int row = 0;
+            AdditionalAtomicTermsByEquation additionalTerms = null;
 
             int prevRow = -1;
             int iStart = this.equationDerivativeVectorStartIndices[elementNum];
@@ -444,61 +444,43 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             for (int i = iStart; i < iEnd; i++) {
 
                 // the derivative variable row
-                int row = equationDerivativeVector.rows[i];
-                visitedRows.add(row);
+                row = equationDerivativeVector.rows[i];
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (prevRow != -1 && row != prevRow) {
-                    if (atomicTermsByVariable != null) {
-                        for (Variable<V> v : atomicTermsByVariable.keySet()) {
-                            if (v.getRow() == prevRow) {
-                                for (AtomicEquationTerm<V, E> term : atomicTermsByVariable.get(v)) {
-                                    if (term.isActive()) {
-                                        value += term.der(v);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    onDer(handler, column, prevRow, value, valueIndex);
-                    valueIndex++;
+                    valuesByRow.put(prevRow, value);
                     value = 0;
                 }
                 prevRow = row;
-
                 value += equationDerivativeVector.values[i];
             }
 
             // remaining notif
             if (prevRow != -1) {
-                if (atomicTermsByVariable != null) {
-                    for (Variable<V> v : atomicTermsByVariable.keySet()) {
-                        if (v.getRow() == prevRow) {
-                            for (AtomicEquationTerm<V, E> term : atomicTermsByVariable.get(v)) {
-                                if (term.isActive()) {
-                                    value += term.der(v);
-                                }
-                            }
-                        }
-                    }
-                }
-                onDer(handler, column, prevRow, value, valueIndex);
-                valueIndex++;
+                valuesByRow.put(prevRow, value);
             }
-            // This piece of code is horrible, do not forget to change that...
-            if (atomicTermsByVariable != null) {
-                for (Variable<V> v : atomicTermsByVariable.keySet()) {
-                    if (!visitedRows.contains(v.getRow()) && v.getRow() != -1) {
+
+            additionalTerms = atomicTermsByEquationElementNum.get(elementNum);
+            if (additionalTerms != null) {
+                for (Map.Entry<Variable<V>, List<AtomicEquationTerm<V, E>>> variableAndTerms : additionalTerms.termsByVariable.entrySet()) {
+                    row = variableAndTerms.getKey().getRow();
+                    if (row != -1) {
                         value = 0;
-                        for (AtomicEquationTerm<V, E> term : atomicTermsByVariable.get(v)) {
+                        for (AtomicEquationTerm<V, E> term : variableAndTerms.getValue()) {
                             if (term.isActive()) {
-                                value += term.der(v);
+                                value += term.der(variableAndTerms.getKey());
                             }
                         }
-                        onDer(handler, column, v.getRow(), value, valueIndex);
-                        valueIndex++;
+                        valuesByRow.adjustOrPutValue(row, value, value);
                     }
                 }
+            }
+
+            TIntDoubleIterator it = valuesByRow.iterator();
+            while (it.hasNext()) {
+                it.advance();
+                onDer(handler, column, it.key(), it.value(), valueIndex);
+                valueIndex++;
             }
         }
     }
