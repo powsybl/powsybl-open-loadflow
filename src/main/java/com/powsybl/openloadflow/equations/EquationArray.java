@@ -31,6 +31,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final boolean[] elementActive;
 
+    private final boolean[] hasAtomicTerms;
+
     private int firstColumn = -1;
 
     private int[] elementNumToColumn;
@@ -98,6 +100,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         this.equationSystem = Objects.requireNonNull(equationSystem);
         elementActive = new boolean[elementCount];
         Arrays.fill(elementActive, true);
+        hasAtomicTerms = new boolean[elementCount];
+        Arrays.fill(hasAtomicTerms, false);
         this.length = elementCount; // all activated initially
         this.equationDerivativeVectorStartIndices = new int[elementCount + 1];
     }
@@ -111,7 +115,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     public List<AtomicEquationTerm<V, E>> getAtomicTerms(int elementNum) {
-        if (atomicTermsByEquationElementNum.containsKey(elementNum)) {
+        if (hasAtomicTerms[elementNum]) {
             return atomicTermsByEquationElementNum.get(elementNum).terms;
         }
         return Collections.emptyList();
@@ -262,6 +266,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     }
                     atomicTermsByEquationElementNum.computeIfAbsent(elementNum, k -> new AdditionalAtomicTermsByEquation())
                             .addAtomicTerm(atomicEquationTerm, this);
+                    hasAtomicTerms[elementNum] = true;
                 }
                 return this;
             }
@@ -320,7 +325,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     }
                 }
 
-                if (atomicTermsByEquationElementNum.containsKey(elementNum)) {
+                if (hasAtomicTerms[elementNum]) {
                     for (AtomicEquationTerm<V, E> atomicTerm : atomicTermsByEquationElementNum.get(elementNum).terms) {
                         if (atomicTerm.isActive()) {
                             value += atomicTerm.eval();
@@ -423,7 +428,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         // process column by column so equation by equation of the array
         int valueIndex = 0;
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-            TIntDoubleHashMap valuesByRow = new TIntDoubleHashMap();
+            List<Integer> computedRows = new ArrayList<>();
             // skip inactive elements
             if (!elementActive[elementNum]) {
                 continue;
@@ -436,7 +441,11 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             // process term by term
             double value = 0;
             int row = 0;
+
             AdditionalAtomicTermsByEquation additionalTerms = null;
+            if (hasAtomicTerms[elementNum]) {
+                additionalTerms = atomicTermsByEquationElementNum.get(elementNum);
+            }
 
             int prevRow = -1;
             int iStart = this.equationDerivativeVectorStartIndices[elementNum];
@@ -448,7 +457,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
                 // if an element at (row, column) is complete (we switch to another row), notify
                 if (prevRow != -1 && row != prevRow) {
-                    valuesByRow.put(prevRow, value);
+                    if (additionalTerms != null) {
+                        computedRows.add(prevRow);
+                        for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
+                            if (v.getRow() == prevRow) {
+                                value += additionalTerms.termsByVariable.get(v).stream()
+                                        .filter(AtomicEquationTerm::isActive)
+                                        .mapToDouble(t -> t.der(v)).sum();
+                            }
+                        }
+                    }
+                    onDer(handler, column, prevRow, value, valueIndex);
+                    valueIndex++;
                     value = 0;
                 }
                 prevRow = row;
@@ -457,30 +477,30 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
             // remaining notif
             if (prevRow != -1) {
-                valuesByRow.put(prevRow, value);
-            }
-
-            additionalTerms = atomicTermsByEquationElementNum.get(elementNum);
-            if (additionalTerms != null) {
-                for (Map.Entry<Variable<V>, List<AtomicEquationTerm<V, E>>> variableAndTerms : additionalTerms.termsByVariable.entrySet()) {
-                    row = variableAndTerms.getKey().getRow();
-                    if (row != -1) {
-                        value = 0;
-                        for (AtomicEquationTerm<V, E> term : variableAndTerms.getValue()) {
-                            if (term.isActive()) {
-                                value += term.der(variableAndTerms.getKey());
-                            }
+                if (additionalTerms != null) {
+                    computedRows.add(prevRow);
+                    for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
+                        if (v.getRow() == prevRow) {
+                            value += additionalTerms.termsByVariable.get(v).stream()
+                                    .filter(AtomicEquationTerm::isActive)
+                                    .mapToDouble(t -> t.der(v)).sum();
                         }
-                        valuesByRow.adjustOrPutValue(row, value, value);
                     }
                 }
+                onDer(handler, column, prevRow, value, valueIndex);
+                valueIndex++;
             }
 
-            TIntDoubleIterator it = valuesByRow.iterator();
-            while (it.hasNext()) {
-                it.advance();
-                onDer(handler, column, it.key(), it.value(), valueIndex);
-                valueIndex++;
+            if (additionalTerms != null) {
+                for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
+                    if (v.getRow() != -1 && !computedRows.contains(v.getRow())) {
+                        value = additionalTerms.termsByVariable.get(v).stream()
+                                .filter(AtomicEquationTerm::isActive)
+                                .mapToDouble(t -> t.der(v)).sum();
+                        onDer(handler, column, v.getRow(), value, valueIndex);
+                        valueIndex++;
+                    }
+                }
             }
         }
     }
