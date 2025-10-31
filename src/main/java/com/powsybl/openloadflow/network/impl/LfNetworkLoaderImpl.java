@@ -995,29 +995,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return dcNode != null ? lfNetwork.getDcNodeById(dcNode.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
+    private LfNetwork createAc(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
-
-        List<DcNode> dcNodes = new ArrayList<>();
-        List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
-        List<LfDcNode> lfDcNodes = new ArrayList<>();
-        List<DcGround> dcGrounds = StreamSupport.stream(network.getDcGrounds().spliterator(), false).toList();
-
-        if (parameters.isAcDcNetwork()) {
-            network.getDcNodes().forEach(dcNodes::add);
-            for (AcDcConverter<?> acDcConverter : network.getDcConnectables(AcDcConverter.class)) {
-                acDcConverters.add(acDcConverter);
-                DcTerminal terminal1 = acDcConverter.getDcTerminal1();
-                DcTerminal terminal2 = acDcConverter.getDcTerminal2();
-                if (!terminal1.isConnected()) {
-                    dcNodes.remove(terminal1.getDcNode());
-                }
-                if (!terminal2.isConnected()) {
-                    dcNodes.remove(terminal2.getDcNode());
-                }
-            }
-        }
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -1026,13 +1006,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
                 .collect(Collectors.toList());
 
+        List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
+        for(AcDcConverter<?> acDcConverter : network.getVoltageSourceConverters()) {
+            if(buses.contains(parameters.isBreakers() ? acDcConverter.getTerminal1().getBusBreakerView() : acDcConverter.getTerminal1().getBusView())) {
+                acDcConverters.add(acDcConverter);
+            }
+        }
+
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
         createAreas(lfNetwork, loadingContext, postProcessors, parameters);
-        createDcNodes(dcNodes, parameters, lfNetwork, lfDcNodes);
-        createDcGrounds(lfNetwork, dcGrounds);
-        createDcLines(lfNetwork, network, parameters);
         createAcDcConverters(acDcConverters, lfNetwork, parameters);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
@@ -1163,6 +1147,64 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
         return lfNetwork;
+    }
+
+    private LfNetwork createDc(int numCC, int numSC, Network network, List<DcBus> dcBuses, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
+        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
+
+        List<DcNode> dcNodes = new ArrayList<>();
+        dcBuses.forEach(bus -> bus.getDcNodes().forEach(dcNodes::add));
+        List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
+        dcBuses.forEach(bus -> bus.getVoltageSourceConverters().forEach(acDcConverters::add));
+        List<LfDcNode> lfDcNodes = new ArrayList<>();
+        List<DcGround> dcGrounds = StreamSupport.stream(network.getDcGrounds().spliterator(), false).toList();
+            network.getDcNodes().forEach(dcNodes::add);
+
+        for (AcDcConverter<?> acDcConverter : acDcConverters) {
+            DcTerminal terminal1 = acDcConverter.getDcTerminal1();
+            DcTerminal terminal2 = acDcConverter.getDcTerminal2();
+            if (!terminal1.isConnected()) {
+                dcNodes.remove(terminal1.getDcNode());
+            }
+            if (!terminal2.isConnected()) {
+                dcNodes.remove(terminal2.getDcNode());
+            }
+        }
+
+        List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
+                .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
+                        || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
+                .collect(Collectors.toList());
+
+        createDcNodes(dcNodes, parameters, lfNetwork, lfDcNodes);
+        createDcGrounds(lfNetwork, dcGrounds);
+        createDcLines(lfNetwork, network, parameters);
+        createAcDcConverters(acDcConverters, lfNetwork, parameters);
+
+        postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
+        return lfNetwork;
+    }
+
+    private List<LfNetwork> createAcDc(List<LfNetwork> acLfNetworks, List<LfNetwork> dcLfNetworks) {
+
+        Map<Integer, List<LfNetwork>> acNetworksByCc = acLfNetworks.stream()
+                .collect(Collectors.groupingBy(LfNetwork::getNumCC));
+
+        Map<Integer, List<LfNetwork>> dcNetworksByCc = dcLfNetworks.stream()
+                .collect(Collectors.groupingBy(LfNetwork::getNumCC));
+
+        Set<Integer> allCc = new HashSet<>();
+        allCc.addAll(acNetworksByCc.keySet());
+        allCc.addAll(dcNetworksByCc.keySet());
+
+        return allCc.stream()
+                .map(numCc -> {
+                    List<LfNetwork> acPart = acNetworksByCc.getOrDefault(numCc, List.of());
+                    List<LfNetwork> dcPart = dcNetworksByCc.getOrDefault(numCc, List.of());
+                    return new LfNetwork(acPart, dcPart);
+                })
+                .toList();
     }
 
     private static void checkControlZonesAreDisjoints(LfNetwork lfNetwork) {
@@ -1366,6 +1408,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
+        Map<Pair<Integer, Integer>, List<DcBus>> dcBusesByCc = new TreeMap<>();
+        Iterable<DcBus> dcBuses = Networks.getDcBuses(network);
+        for (DcBus dcBus : dcBuses) {
+            Component cc = dcBus.getConnectedComponent();
+            Component sc = dcBus.getDcComponent();
+            if (cc != null && sc != null) {
+                dcBusesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(dcBus);
+            }
+        }
+
         Map<Pair<Integer, Integer>, List<Switch>> switchesByCc = new HashMap<>();
         if (parameters.isBreakers()) {
             for (VoltageLevel vl : network.getVoltageLevels()) {
@@ -1386,36 +1438,44 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
             : busesByCc.entrySet().stream();
 
-        List<LfNetwork> lfNetworks = filteredBusesByCcStream
+        List<LfNetwork> acLfNetworks = filteredBusesByCcStream
                 .map(e -> {
                     var networkKey = e.getKey();
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
-                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
+                    return createAc(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
                             parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
                 })
-                .collect(Collectors.toList());
+                .toList();
+
+        Stream<Map.Entry<Pair<Integer, Integer>, List<DcBus>>> filteredDcBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
+                ? dcBusesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+                : dcBusesByCc.entrySet().stream();
+
+        List<LfNetwork> dcLfNetworks = filteredDcBusesByCcStream
+                .map(e -> {
+                    var networkKey = e.getKey();
+                    int numCc = networkKey.getLeft();
+                    int numSc = networkKey.getRight();
+                    List<DcBus> lfDcBuses = e.getValue();
+                    return createDc(numCc, numSc, network, lfDcBuses, topoConfig,
+                            parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
+                })
+                .toList();
 
         stopwatch.stop();
 
         LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         if (!parameters.isAcDcNetwork()) {
-            return lfNetworks;
+            return acLfNetworks;
         } else {
-            //If we want to launch a loadflow on an AcDcNetwork, there is only one synchronous component, so we create a unique network
-            //And we add all the Ac Subnetworks, for reference buses definition
-            List<Bus> busesList = new ArrayList<>();
-            network.getBusView().getBuses().forEach(busesList::add);
-            List<Switch> switchesList = new ArrayList<>();
-            network.getSwitches().forEach(switchesList::add);
-            LfNetwork acDcNetwork = create(0, 0, network, busesList, switchesList,
-                    topoConfig, parameters, Reports.createRootLfNetworkReportNode(reportNode, 0, 0));
-            for (LfNetwork lfNetwork : lfNetworks) {
-                acDcNetwork.addAcSubNetwork(lfNetwork);
-            }
-            return List.of(acDcNetwork);
+            LfNetwork network2 = createAcDc(acLfNetworks, dcLfNetworks).getFirst();
+            System.out.println("##############################_____ACDC Network_____##############################");
+            System.out.println(network2.getDcNodes());
+            System.out.println(network2.getBuses());
+            return createAcDc(acLfNetworks, dcLfNetworks);
         }
     }
 

@@ -112,7 +112,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
 
-    private final List<LfNetwork> acSubNetworks = new ArrayList<>();
+    private List<LfNetwork> acSubNetworks = new ArrayList<>();
 
     public enum Validity {
         VALID("Valid"),
@@ -183,6 +183,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector) {
         this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
+    }
+
+    public LfNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
+        //TODO : find a better way to implement AC and DC subnetworks
+        this(acNetworks.getFirst().numCC, acNetworks.getFirst().numSC, acNetworks.getFirst().slackBusSelector, acNetworks.getFirst().maxSlackBusCount,
+                acNetworks.getFirst().connectivityFactory, acNetworks.getFirst().referenceBusSelector, ReportNode.NO_OP);
+        acSubNetworks = acNetworks;
+        System.out.println("##############################_____Network_____##############################");
+        System.out.println(acNetworks);
+        System.out.println(dcNetworks);
     }
 
     public int getNumCC() {
@@ -1027,10 +1037,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfVoltageSourceConverter> getVoltageSourceConverters() {
         return voltageSourceConvertersByIndex;
-    }
-
-    public void addAcSubNetwork(LfNetwork network) {
-        acSubNetworks.add(network);
     }
 
     public List<LfNetwork> getAcSubNetworks() {
