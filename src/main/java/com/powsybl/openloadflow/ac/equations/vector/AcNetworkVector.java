@@ -490,16 +490,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     }
 
     @Override
-    public void onHvdcAcEmulationFroze(LfHvdc hvdc, boolean frozen) {
-        // do nothing
-    }
-
-    @Override
-    public void onHvdcAngleDifferenceToFreeze(LfHvdc hvdc, double angleDifferenceToFreeze) {
-        // do nothing
-    }
-
-    @Override
     public void onVariableChange(Variable<AcVariableType> variable, ChangeType changeType) {
         variablesInvalid = true;
     }
