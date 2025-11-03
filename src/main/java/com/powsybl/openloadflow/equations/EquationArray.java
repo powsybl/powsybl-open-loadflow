@@ -518,6 +518,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {
+        // TODO modify writer with additionalAtomicEquationTerms
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
             if (writeInactiveEquations || isElementActive(elementNum)) {
                 if (!isElementActive(elementNum)) {
