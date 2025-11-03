@@ -2034,6 +2034,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         List<AcOuterLoop> outerLoops = createAcOuterLoops(parameters, parametersExt);
 
         AcSolverFactory solverFactory = AcSolverFactory.find(parametersExt.getAcSolverType());
+        solverFactory.checkSolverAndParameterConsistency(parameters, parametersExt);
 
         return new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)

@@ -27,11 +27,15 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 
+    public Variable<AcVariableType> getV1Var() {
+        return v1Var;
+    }
+
     private double v1() {
         return sv.get(v1Var.getRow());
     }
 
-    private double r1() {
+    public double r1() {
         return element.getPiModel().getR1();
     }
 

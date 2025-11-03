@@ -50,7 +50,7 @@ $$ Q_i^{in} = \sum_{j \in \delta(i)} q_{i,j}$$
 
 where $\delta(i)$ is the set of buses linked to $i$ in the network graph.
 
-The resulting non-linear system of equations is solved via the Newton-Raphson algorithm.
+The resulting non-linear system of equations is solved by default via the Newton-Raphson algorithm.
 The underlying principle of the algorithm is the following:
 - It starts at a certain point $x_0 = (v_0, \phi_0)$ as an approximate solution to the system of equations;
 - Then, in an iterative fashion, it generates a series $x_1, x_2,.., x_k$ of better approximate solutions to the system of equations;
@@ -283,3 +283,38 @@ Currently, computations involving zero-impedance branches used as boundary branc
 However, it is still possible to submit network models that include zero-impedance boundary branches.  
 If a terminal of a zero-impedance branch is designated as a boundary, Open LoadFlow will internally assign the branch
 an impedance value equal to the [`lowImpedanceThreshold`](parameters.md) parameter.
+
+## Fast-Decoupled Algorithm
+Fast-Decoupled is an algorithm to solve the inner-loop of the load flow problem, like the Newton-Raphson one.
+It is activated giving the `FAST_DECOUPLED` value to the [`acSolverType`](parameters.md) parameter.
+The solved equation system is the same as the one solved by Newton-Raphson method.
+However, the Jacobian matrix used is decomposed into two smaller matrices, decoupling the active power balance equations from voltage magnitudes variations and reactive power balance equations from voltage phases variations.
+
+Note that "Fast-Decoupled" is the academic name for this algorithm and not a statement about its performances versus the Newton-Raphson algorithm.
+
+### Method
+The Fast-Decoupled method is composed of two parts, one relative to the decoupling, another relative to the speeding of the calculations.
+
+The decoupling is obtained by dividing the Jacobian matrix into two matrices, one relative to voltage phases variables and active power equations, the other relative to voltage magnitudes variables and reactive power equations.
+Combining those two smaller matrices, one can obtain an approximation of the real Jacobian, where some terms have been discarded.
+
+By approximating more terms on top of the Jacobian structure simplification,
+the algorithm provides two Jacobian matrices that are constant, with respect to the multiplication by a diagonal matrix.
+Thus, the LU decomposition of the two Jacobian matrices is done only once, at the start of the first Fast-Decoupled iteration.
+
+Regarding state vector scaling, the Fast-Decoupled uses both personalized max voltage change and line-search routines.
+Without these routines, the algorithm struggles to converge on realistic large networks, as it has a simplified vision of the impact of the system variables.
+Note that [`stateVectorScalingMode`](parameters.md) is not taken into account.
+
+### Limitations
+The current implemented version cannot compute when one of the following parameter is activated:
+- [`asymmetrical`](parameters.md),
+- [`hvdcAcEmulation`](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+
+In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, an exception is triggered.
+
+Users should notice that default parameters are optimized for the Newton-Raphson algorithm, as it is the default one.
+When the Fast-Decoupled algorithm is used, we recommend these values for some convergence parameters:
+- [`maxNewtonRaphsonIterations`](parameters.md): 75,
+- [`lineSearchStateVectorScalingMaxIteration`](parameters.md): 4,
+- [`lineSearchStateVectorScalingStepFold`](parameters.md): `3/2 = 1.5`.
