@@ -8,10 +8,8 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
-import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
-import gnu.trove.map.hash.TIntDoubleHashMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 
 import java.io.IOException;
