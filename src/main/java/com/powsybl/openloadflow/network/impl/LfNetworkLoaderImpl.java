@@ -121,7 +121,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void checkAndCreateVoltageControl(LfBus controllerBus, List<GeneratorVoltageControl> voltageControls, List<LfGenerator> voltageControlGenerators, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    private static void checkAndCreateVoltageControl(LfBus controllerBus,
+                                                     List<GeneratorVoltageControl> voltageControls,
+                                                     List<LfGenerator> voltageControlGenerators,
+                                                     LfNetworkParameters parameters,
+                                                     LfNetworkLoadingReport report) {
         LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
         LfBus controlledBus = lfGenerator0.getControlledBus();
         double controllerTargetV = lfGenerator0.getTargetV();
@@ -147,30 +151,42 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                     vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
                     () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
-        } else {
-            double localTargetV = getLocalVoltageTarget(controllerBus, controllerTargetV, controlledBus.getNominalV());
-            // TODO handle the case where the controlledBus voltage control exists
-            controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
-                    vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
-                    () -> createGeneratorVoltageControl(controllerBus, controllerBus, localTargetV, voltageControls, parameters));
+        } else {  // !parameters.isGeneratorVoltageRemoteControl() && controlledBus != controllerBus
+            double localTargetV = getLocalVoltageTarget(controllerBus, controllerTargetV, controlledBus.getNominalV(),
+                    parameters.isDisableInconsistentVoltageControls(), report);
+            if (!Double.isNaN(localTargetV)) {
+                if (controlledBus.getGeneratorVoltageControl().isEmpty()) {
+                    createGeneratorVoltageControl(controllerBus, controllerBus, localTargetV, voltageControls, parameters);
+                }
+            }
         }
     }
 
-    private static double getLocalVoltageTarget(LfBus controllerBus, double remoteTargetV, double remoteNominal) {
+    /**
+     * Returns the local target from backup if available. Returns Double.NaN in case of inconsistent backup target for the bus.
+     */
+    private static double getLocalVoltageTarget(LfBus controllerBus,
+                                                double remoteTargetV,
+                                                double remoteNominal,
+                                                boolean disableInconsistentVoltageControls,
+                                                LfNetworkLoadingReport report) {
         double localTargetV = Double.NaN;
         for (LfGenerator generator : controllerBus.getGenerators()) {
             double genLocalTargetV = generator.getLocalTargetV();
             if (!Double.isNaN(genLocalTargetV)) {
                 if (Double.isNaN(localTargetV)) {
                     localTargetV = genLocalTargetV;
+                } else {
+                    if (disableInconsistentVoltageControls && Math.abs(localTargetV - genLocalTargetV) > TARGET_V_EPSILON) {
+                        return Double.NaN;
+                    }
+                    // else if !disableInconsistentVoltageControls keep the first voltage target found
                 }
-                // TODO - handle case where another group has an inconistent targetV
             }
         }
         if (Double.isNaN(localTargetV)) {
-            // TODO: add method argument and LOG only if requested
-            // TODO: add a report ?
-            localTargetV = remoteTargetV ;
+            report.rescaledRemoteVoltageControls += 1;
+            localTargetV = remoteTargetV;
             LOGGER.warn("Remote voltage control is not activated and no local terget is defined. The voltage target of {} with remote control is rescaled from {} to {}",
                     controllerBus.getId(), remoteTargetV * remoteNominal, localTargetV * controllerBus.getNominalV());
         }
@@ -1086,6 +1102,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             Reports.reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.shuntsWithInconsistentTargetVoltage);
             LOGGER.warn("Network {}: {} shunt voltage controls have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.shuntsWithInconsistentTargetVoltage);
+        }
+
+        if (report.rescaledRemoteVoltageControls > 0) {
+            Reports.reportRescaledRemoteVoltageControls(reportNode, report.rescaledRemoteVoltageControls);
+            LOGGER.warn("Network {}: {} remote voltage controls have no backup local targetV and have been rescaled",
+                    lfNetwork, report.rescaledRemoteVoltageControls);
         }
 
         if (parameters.getDebugDir() != null) {

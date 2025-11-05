@@ -7,17 +7,24 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -92,11 +99,19 @@ class GeneratorRemoteControlLocalRescaleTest {
     }
 
     @Test
-    void test() {
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+    void test() throws IOException {
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters rp = new LoadFlowRunParameters()
+                .setReportNode(reportNode)
+                .setParameters(parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, rp);
         assertTrue(result.isFullyConverged());
         LoadFlowAssert.assertVoltageEquals(20.67, b1); // check local targetV has been correctly rescaled 20.67=413.4/400*20
         LoadFlowAssert.assertVoltageEquals(395.927, b2);
+        LoadFlowAssert.assertReportEquals("/targetVRescaleReport.txt", reportNode);
     }
 
     @Test
@@ -114,7 +129,7 @@ class GeneratorRemoteControlLocalRescaleTest {
         network.getGenerator("g1").setTargetV(413.4, 21.5535);
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltageRemoteControl(false);
 
-       result = loadFlowRunner.run(network, parameters);
+        result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
         LoadFlowAssert.assertVoltageEquals(413.4, b2);
@@ -165,7 +180,25 @@ class GeneratorRemoteControlLocalRescaleTest {
 
         assertTrue(result.isFullyConverged());
         LoadFlowAssert.assertVoltageEquals(400.48, b2);
-        LoadFlowAssert.assertVoltageEquals(20.09, b1); // The local target V is maintained
+        LoadFlowAssert.assertVoltageEquals(20.9, b1); // The local target V of first generatour found is maintained
 
+        parameters.getExtension(OpenLoadFlowParameters.class).setDisableInconsistentVoltageControls(true);
+        network.getGenerator("g1").setTargetQ(10);
+        g2.setTargetQ(10);
+        result = loadFlowRunner.run(network, parameters);
+
+        // The groups have been disabled from voltage control
+        assertTrue(result.getComponentResults().getFirst().getStatus() == LoadFlowResult.ComponentResult.Status.NO_CALCULATION);
+        assertEquals("Network has no generator with voltage control enabled", result.getComponentResults().getFirst().getStatusText());
+
+        // set consistent targets and run with disableInconsistentVOltaeg mode
+        network.getGenerator("g1").setTargetV(413.4, 21);
+        g2.setTargetV(413.4, 21);
+
+        result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+        LoadFlowAssert.assertVoltageEquals(402.45, b2);
+        LoadFlowAssert.assertVoltageEquals(21.0, b1); // The local target V is maintained
     }
 }
