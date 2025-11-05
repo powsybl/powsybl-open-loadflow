@@ -651,6 +651,14 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportRescaledRemoteVoltageControls(ReportNode reportNode, int rescaledRemoteVoltageControls) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.rescaledRemoteVoltageControls")
+                .withUntypedValue("count", rescaledRemoteVoltageControls)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
     public static void reportAcLfCompleteWithSuccess(ReportNode reportNode, String solverStatus, String outerloopStatus) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.acLfCompleteWithSuccess")
