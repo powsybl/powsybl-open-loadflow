@@ -55,8 +55,4 @@ public interface LfNetworkListener {
     void onSlackBusChange(LfBus bus, boolean slack);
 
     void onReferenceBusChange(LfBus bus, boolean reference);
-
-    void onHvdcAcEmulationFroze(LfHvdc hvdc, boolean frozen);
-
-    void onHvdcAngleDifferenceToFreeze(LfHvdc hvdc, double angleDifferenceToFreeze);
 }

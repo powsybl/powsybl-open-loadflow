@@ -62,17 +62,9 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
                 }
             }
 
+            // update also in equation arrays
             for (var equationArray : equationSystem.getEquationArrays()) {
-                if (equationArray.getType().getElementType() == element.getType()) {
-                    equationArray.setElementActive(element.getNum(), enable);
-                }
-                for (var termArray : equationArray.getTermArrays()) {
-                    if (termArray.getElementType() == element.getType()) {
-                        if (termArray.hasTermElement(element.getNum())) {
-                            termArray.setTermElementActive(element.getNum(), enable);
-                        }
-                    }
-                }
+                equationArray.updateElementEquation(element, enable);
             }
         }
     }

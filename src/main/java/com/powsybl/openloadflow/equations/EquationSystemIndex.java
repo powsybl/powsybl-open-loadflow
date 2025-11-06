@@ -24,12 +24,12 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private final EquationSystem<V, E> equationSystem;
 
-    private final Set<ScalarEquation<V, E>> sortedSetEquationsToSolve = new TreeSet<>();
+    private final Set<AtomicEquation<V, E>> sortedSetEquationsToSolve = new TreeSet<>();
 
     // variable reference counting in equation terms
     private final Map<Variable<V>, MutableInt> sortedMapVariablesToFindRefCount = new TreeMap<>();
 
-    private List<ScalarEquation<V, E>> sortedEquationsToSolve = Collections.emptyList();
+    private List<AtomicEquation<V, E>> sortedEquationsToSolve = Collections.emptyList();
 
     private List<Variable<V>> sortedVariablesToFind = Collections.emptyList();
 
@@ -56,7 +56,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.remove(Objects.requireNonNull(listener));
     }
 
-    private void notifyEquationChange(ScalarEquation<V, E> equation, EquationSystemIndexListener.ChangeType changeType) {
+    private void notifyEquationChange(AtomicEquation<V, E> equation, EquationSystemIndexListener.ChangeType changeType) {
         listeners.forEach(listener -> listener.onEquationChange(equation, changeType));
     }
 
@@ -64,7 +64,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onVariableChange(variable, changeType));
     }
 
-    private void notifyEquationTermChange(ScalarEquationTerm<V, E> term) {
+    private void notifyEquationTermChange(AtomicEquationTerm<V, E> term) {
         listeners.forEach(listener -> listener.onEquationTermChange(term));
     }
 
@@ -76,11 +76,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onEquationTermArrayChange(equationTermArray, termNum, changeType));
     }
 
-    private void updateEquationsToSolve(Comparator<ScalarEquation<V, E>> comparator) {
+    private void updateEquationsToSolve(Comparator<AtomicEquation<V, E>> comparator) {
         sortedEquationsToSolve = comparator == null ? sortedSetEquationsToSolve.stream().toList()
                 : sortedSetEquationsToSolve.stream().sorted(comparator).toList();
         columnCount = 0;
-        for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
+        for (AtomicEquation<V, E> equation : sortedEquationsToSolve) {
             equation.setColumn(columnCount++);
         }
         int columnCountFromArrayEquations = 0;
@@ -115,14 +115,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    public void updateWithComparators(Comparator<ScalarEquation<V, E>> equationComparator, Comparator<Variable<V>> variableComparator) {
+    public void updateWithComparators(Comparator<AtomicEquation<V, E>> equationComparator, Comparator<Variable<V>> variableComparator) {
         // Sort equations to solve
         updateEquationsToSolve(equationComparator);
         // Sort variable to find
         updateVariablesToFind(variableComparator);
     }
 
-    private void addTerm(ScalarEquationTerm<V, E> term) {
+    private void addTerm(AtomicEquationTerm<V, E> term) {
         notifyEquationTermChange(term);
         addVariables(term.getVariables());
     }
@@ -141,10 +141,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void addEquation(ScalarEquation<V, E> equation) {
+    private void addEquation(AtomicEquation<V, E> equation) {
         sortedSetEquationsToSolve.add(equation);
         equationsIndexValid = false;
-        for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
+        for (AtomicEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
                 addTerm(term);
             }
@@ -152,7 +152,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         notifyEquationChange(equation, EquationSystemIndexListener.ChangeType.ADDED);
     }
 
-    private void removeTerm(ScalarEquationTerm<V, E> term) {
+    private void removeTerm(AtomicEquationTerm<V, E> term) {
         notifyEquationTermChange(term);
         removeVariables(term.getVariables());
     }
@@ -172,11 +172,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void removeEquation(ScalarEquation<V, E> equation) {
+    private void removeEquation(AtomicEquation<V, E> equation) {
         equation.setColumn(-1);
         sortedSetEquationsToSolve.remove(equation);
         equationsIndexValid = false;
-        for (ScalarEquationTerm<V, E> term : equation.getTerms()) {
+        for (AtomicEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
                 removeTerm(term);
             }
@@ -185,7 +185,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationChange(ScalarEquation<V, E> equation, EquationEventType eventType) {
+    public void onEquationChange(AtomicEquation<V, E> equation, EquationEventType eventType) {
         switch (eventType) {
             case EQUATION_REMOVED:
                 if (equation.isActive()) {
@@ -213,7 +213,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationTermChange(ScalarEquationTerm<V, E> term, EquationTermEventType eventType) {
+    public void onEquationTermChange(AtomicEquationTerm<V, E> term, EquationTermEventType eventType) {
         if (term.getEquation().isActive()) {
             switch (eventType) {
                 case EQUATION_TERM_ADDED:
@@ -243,9 +243,15 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                 for (var equationTermArray : equationArray.getTermArrays()) {
                     for (int termNum : equationTermArray.getTermNumsForEquationElementNum(elementNum).toArray()) {
                         if (equationTermArray.isTermActive(termNum)) {
-                            var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            List<Variable<V>> variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
                             removeVariables(variables);
                         }
+                    }
+                }
+                for (var atomicTerm : equationArray.getAtomicTerms(elementNum)) {
+                    if (atomicTerm.isActive()) {
+                        List<Variable<V>> variables = atomicTerm.getVariables();
+                        removeVariables(variables);
                     }
                 }
                 equationsIndexValid = false;
@@ -261,7 +267,13 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     for (int i = iStart; i < iEnd; i++) {
                         int termNum = termNums.get(i);
                         if (equationTermArray.isTermActive(termNum)) {
-                            var variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            List<Variable<V>> variables = equationTermArray.getTermDerivatives(termNum).stream().map(Derivative::getVariable).toList();
+                            addVariables(variables);
+                        }
+                    }
+                    for (var atomicTerm : equationArray.getAtomicTerms(elementNum)) {
+                        if (atomicTerm.isActive()) {
+                            List<Variable<V>> variables = atomicTerm.getVariables();
                             addVariables(variables);
                         }
                     }
@@ -304,7 +316,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    public List<ScalarEquation<V, E>> getSortedEquationsToSolve() {
+    public List<AtomicEquation<V, E>> getSortedEquationsToSolve() {
         update();
         return sortedEquationsToSolve;
     }

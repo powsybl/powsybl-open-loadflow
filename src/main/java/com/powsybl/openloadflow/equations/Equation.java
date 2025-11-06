@@ -30,4 +30,6 @@ public interface Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     int getColumn();
 
     <T extends EquationTerm<V, E>> List<T> getTerms();
+
+    EquationSystem<V, E> getEquationSystem();
 }

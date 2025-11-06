@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.ScalarEquation;
+import com.powsybl.openloadflow.equations.AtomicEquation;
 import com.powsybl.openloadflow.equations.EquationArray;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
@@ -23,7 +23,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType> {
 
-    public static void init(ScalarEquation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
+    public static void init(AtomicEquation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_P:
                 LfBus bus = network.getBus(equation.getElementNum());
@@ -57,7 +57,7 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
     public DcTargetVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         super(network, equationSystem, new Initializer<>() {
             @Override
-            public void initialize(ScalarEquation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
+            public void initialize(AtomicEquation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
                 DcTargetVector.init(equation, network, targets);
             }
 

@@ -16,15 +16,15 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements ScalarEquationTerm<V, E> {
+public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements AtomicEquationTerm<V, E> {
 
-    private ScalarEquation<V, E> equation;
+    private Equation<V, E> equation;
 
     private boolean active;
 
     protected StateVector sv;
 
-    protected ScalarEquationTerm<V, E> self = this;
+    protected AtomicEquationTerm<V, E> self = this;
 
     protected AbstractEquationTerm() {
         this(true);
@@ -40,17 +40,17 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     }
 
     @Override
-    public List<ScalarEquationTerm<V, E>> getChildren() {
+    public List<AtomicEquationTerm<V, E>> getChildren() {
         return Collections.emptyList();
     }
 
     @Override
-    public ScalarEquation<V, E> getEquation() {
+    public Equation<V, E> getEquation() {
         return equation;
     }
 
     @Override
-    public void setEquation(ScalarEquation<V, E> equation) {
+    public void setEquation(Equation<V, E> equation) {
         this.equation = Objects.requireNonNull(equation);
     }
 
@@ -69,7 +69,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     }
 
     @Override
-    public void setSelf(ScalarEquationTerm<V, E> self) {
+    public void setSelf(AtomicEquationTerm<V, E> self) {
         this.self = Objects.requireNonNull(self);
     }
 

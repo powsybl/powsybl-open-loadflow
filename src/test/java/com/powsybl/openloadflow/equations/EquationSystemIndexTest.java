@@ -87,12 +87,12 @@ class EquationSystemIndexTest {
             }
 
             @Override
-            public void onEquationChange(ScalarEquation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
+            public void onEquationChange(AtomicEquation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
                 quantityAdded.add(Pair.of(equation.getType(), changeType));
             }
 
             @Override
-            public void onEquationTermChange(ScalarEquationTerm<TestVariableType, TestEquationType> term) {
+            public void onEquationTermChange(AtomicEquationTerm<TestVariableType, TestEquationType> term) {
                 // nothing to do
             }
 
@@ -112,13 +112,13 @@ class EquationSystemIndexTest {
         var a = equationSystem.getVariableSet().getVariable(0, TestVariableType.A);
         var b = equationSystem.getVariableSet().getVariable(0, TestVariableType.B);
         var c = equationSystem.getVariableSet().getVariable(0, TestVariableType.C);
-        ScalarEquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
-        ScalarEquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
         var x = equationSystem.createEquation(0, TestEquationType.X)
                 .addTerm(aTerm)
                 .addTerm(bTerm);
-        ScalarEquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
-        ScalarEquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
         var y = equationSystem.createEquation(0, TestEquationType.Y)
                 .addTerm(aTerm2)
                 .addTerm(cTerm);

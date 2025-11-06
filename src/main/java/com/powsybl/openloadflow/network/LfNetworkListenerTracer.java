@@ -167,16 +167,4 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onReferenceBusChange(bus={}, reference={})", bus, reference);
         delegate.onReferenceBusChange(bus, reference);
     }
-
-    @Override
-    public void onHvdcAcEmulationFroze(LfHvdc hvdc, boolean frozen) {
-        LOGGER.trace("onHvdcAcEmulationFroze(hvdc={}, frozen={})", hvdc, frozen);
-        delegate.onHvdcAcEmulationFroze(hvdc, frozen);
-    }
-
-    @Override
-    public void onHvdcAngleDifferenceToFreeze(LfHvdc hvdc, double angleDifferenceToFreeze) {
-        LOGGER.trace("onHvdcAngleDifferenceToFreeze(hvdc={}, angleDifferenceToFreeze={})", hvdc, angleDifferenceToFreeze);
-        delegate.onHvdcAngleDifferenceToFreeze(hvdc, angleDifferenceToFreeze);
-    }
 }

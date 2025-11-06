@@ -200,14 +200,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     public double freezeFromCurrentAngles() {
         angleToFreeze = bus1.getAngle() - bus2.getAngle();
-        for (LfNetworkListener listener : network.getListeners()) {
-            listener.onHvdcAngleDifferenceToFreeze(this, angleToFreeze);
-        }
         if (!Double.isNaN(angleToFreeze)) {
             acEmulationFrozen = true;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onHvdcAcEmulationFroze(this, acEmulationFrozen);
-            }
             return p1.eval();
         } else {
             // Might happen if an HVDC is reconnected by an action. In this case
@@ -223,12 +217,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public void setAcEmulationFrozen(boolean frozen) {
-        if (frozen != acEmulationFrozen) {
-            this.acEmulationFrozen = frozen;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onHvdcAcEmulationFroze(this, frozen);
-            }
-        }
+        this.acEmulationFrozen = frozen;
     }
 
     @Override
@@ -238,11 +227,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public void setAngleDifferenceToFreeze(double frozenP) {
-        if (frozenP != this.angleToFreeze) {
-            this.angleToFreeze = frozenP;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onHvdcAngleDifferenceToFreeze(this, frozenP);
-            }
-        }
+        this.angleToFreeze = frozenP;
     }
 }
