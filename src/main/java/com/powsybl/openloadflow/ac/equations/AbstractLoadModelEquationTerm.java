@@ -48,9 +48,9 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
         return sv.get(vVar.getRow());
     }
 
-    protected abstract Collection<LfLoadModel.ExpTerm> getExpTerms();
+    public abstract Collection<LfLoadModel.ExpTerm> getExpTerms();
 
-    protected abstract double getTarget();
+    public abstract double getTarget();
 
     public static double f(double v, double target, Collection<LfLoadModel.ExpTerm> expTerms) {
         double value = 0;

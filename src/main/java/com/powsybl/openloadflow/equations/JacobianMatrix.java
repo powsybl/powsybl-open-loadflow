@@ -28,13 +28,13 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
         implements EquationSystemIndexListener<V, E>, StateVectorListener, AutoCloseable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
-    private final EquationSystem<V, E> equationSystem;
+    protected final EquationSystem<V, E> equationSystem;
 
-    private final MatrixFactory matrixFactory;
+    protected final MatrixFactory matrixFactory;
 
-    private Matrix matrix;
+    protected Matrix matrix;
 
     private LUDecomposition lu;
 
@@ -52,6 +52,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
+    }
+
+    public MatrixFactory getMatrixFactory() {
+        return matrixFactory;
     }
 
     protected void updateStatus(Status status) {
@@ -90,7 +94,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateStatus(Status.VALUES_INVALID);
     }
 
-    private void initDer() {
+    protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         int rowCount = equationSystem.getIndex().getRowCount();
@@ -130,7 +134,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         clearLu();
     }
 
-    private void updateDer() {
+    protected void updateDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();

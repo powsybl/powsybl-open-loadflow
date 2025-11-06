@@ -76,33 +76,50 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onEquationTermArrayChange(equationTermArray, termNum, changeType));
     }
 
+    private void updateEquationsToSolve(Comparator<ScalarEquation<V, E>> comparator) {
+        sortedEquationsToSolve = comparator == null ? sortedSetEquationsToSolve.stream().toList()
+                : sortedSetEquationsToSolve.stream().sorted(comparator).toList();
+        columnCount = 0;
+        for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
+            equation.setColumn(columnCount++);
+        }
+        int columnCountFromArrayEquations = 0;
+        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+            equationArray.setFirstColumn(columnCount);
+            columnCount += equationArray.getLength();
+            columnCountFromArrayEquations += equationArray.getLength();
+        }
+        equationsIndexValid = true;
+        LOGGER.debug("Equations index updated ({} columns including {} from array equations)",
+                columnCount, columnCountFromArrayEquations);
+    }
+
+    private void updateVariablesToFind(Comparator<Variable<V>> comparator) {
+        sortedVariablesToFind = comparator == null ? sortedMapVariablesToFindRefCount.keySet().stream().toList()
+                : sortedMapVariablesToFindRefCount.keySet().stream().sorted(comparator).toList();
+        rowCount = 0;
+        for (Variable<V> variable : sortedVariablesToFind) {
+            variable.setRow(rowCount++);
+        }
+        variablesIndexValid = true;
+        LOGGER.debug("Variables index updated ({} rows)", rowCount);
+    }
+
     private void update() {
         if (!equationsIndexValid) {
-            columnCount = 0;
-            sortedEquationsToSolve = sortedSetEquationsToSolve.stream().toList();
-            for (ScalarEquation<V, E> equation : sortedEquationsToSolve) {
-                equation.setColumn(columnCount++);
-            }
-            int columnCountFromArrayEquations = 0;
-            for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
-                equationArray.setFirstColumn(columnCount);
-                columnCount += equationArray.getLength();
-                columnCountFromArrayEquations += equationArray.getLength();
-            }
-            equationsIndexValid = true;
-            LOGGER.debug("Equations index updated ({} columns including {} from array equations)",
-                    columnCount, columnCountFromArrayEquations);
+            updateEquationsToSolve(null);
         }
 
         if (!variablesIndexValid) {
-            sortedVariablesToFind = sortedMapVariablesToFindRefCount.keySet().stream().toList();
-            rowCount = 0;
-            for (Variable<V> variable : sortedVariablesToFind) {
-                variable.setRow(rowCount++);
-            }
-            variablesIndexValid = true;
-            LOGGER.debug("Variables index updated ({} rows)", rowCount);
+            updateVariablesToFind(null);
         }
+    }
+
+    public void updateWithComparators(Comparator<ScalarEquation<V, E>> equationComparator, Comparator<Variable<V>> variableComparator) {
+        // Sort equations to solve
+        updateEquationsToSolve(equationComparator);
+        // Sort variable to find
+        updateVariablesToFind(variableComparator);
     }
 
     private void addTerm(ScalarEquationTerm<V, E> term) {

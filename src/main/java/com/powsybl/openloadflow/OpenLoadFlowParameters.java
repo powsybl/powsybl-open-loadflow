@@ -2034,6 +2034,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         List<AcOuterLoop> outerLoops = createAcOuterLoops(parameters, parametersExt);
 
         AcSolverFactory solverFactory = AcSolverFactory.find(parametersExt.getAcSolverType());
+        solverFactory.checkSolverAndParameterConsistency(parameters, parametersExt);
+
+        // Fast decoupled not supported yet in vectorized equation model
+        boolean vectorized = !parametersExt.getAcSolverType().equals(FastDecoupledFactory.NAME);
 
         return new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
@@ -2048,7 +2052,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltageRemoteControlRobustMode(parametersExt.isVoltageRemoteControlRobustMode())
                 .setMinRealisticVoltage(parametersExt.minRealisticVoltage)
                 .setMaxRealisticVoltage(parametersExt.maxRealisticVoltage)
-                .setMinNominalVoltageRealisticVoltageCheck(parametersExt.getMinNominalVoltageRealisticVoltageCheck());
+                .setMinNominalVoltageRealisticVoltageCheck(parametersExt.getMinNominalVoltageRealisticVoltageCheck())
+                .setVectorized(vectorized);
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

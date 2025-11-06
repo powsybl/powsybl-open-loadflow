@@ -44,6 +44,10 @@ public interface ScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum
             return this.scalarSupplier.getAsDouble();
         }
 
+        public EquationTerm<V, E> getTerm() {
+            return this.term;
+        }
+
         @Override
         public List<ScalarEquationTerm<V, E>> getChildren() {
             return Collections.singletonList(term);
