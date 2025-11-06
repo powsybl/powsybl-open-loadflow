@@ -74,7 +74,7 @@ public class JacobianMatrixFastDecoupled
 
     // Checks if the term provided has a dedicated derivative
     private static boolean termHasDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term) {
-        if (term instanceof ScalarEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
+        if (term instanceof AtomicEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(multiplyByTerm.getTerm().getClass().getName());
         } else {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(term.getClass().getName());
@@ -105,7 +105,7 @@ public class JacobianMatrixFastDecoupled
 
     // Build Fast-Decoupled version of a term, if it has dedicated derivative
     private double computeDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term, Variable<AcVariableType> variable) {
-        if (term instanceof ScalarEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
+        if (term instanceof AtomicEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
             AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(multiplyByTerm.getTerm());
             return new MultiplyByScalarFastDecoupledEquationTerm(multiplyByTerm.getScalar(), fastDecoupledEquationTerm)
                     .derFastDecoupled(variable);
@@ -114,8 +114,8 @@ public class JacobianMatrixFastDecoupled
         }
     }
 
-    public void computeDerivative(Map.Entry<Variable<AcVariableType>, List<ScalarEquationTerm<AcVariableType, AcEquationType>>> e,
-                                                 Variable<AcVariableType> variable, ScalarEquation.DerHandler<AcVariableType> handler) {
+    public void computeDerivative(Map.Entry<Variable<AcVariableType>, List<AtomicEquationTerm<AcVariableType, AcEquationType>>> e,
+                                                 Variable<AcVariableType> variable, AtomicEquation.DerHandler<AcVariableType> handler) {
         double value = 0;
 
         for (EquationTerm<AcVariableType, AcEquationType> term : e.getValue()) {
@@ -133,9 +133,9 @@ public class JacobianMatrixFastDecoupled
         handler.onDer(variable, value, -1);
     }
 
-    private void derFastDecoupled(ScalarEquation<AcVariableType, AcEquationType> equation, ScalarEquation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
+    private void derFastDecoupled(AtomicEquation<AcVariableType, AcEquationType> equation, AtomicEquation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
         Objects.requireNonNull(handler);
-        for (Map.Entry<Variable<AcVariableType>, List<ScalarEquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
+        for (Map.Entry<Variable<AcVariableType>, List<AtomicEquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
             Variable<AcVariableType> variable = e.getKey();
             int row = variable.getRow();
             if (row != -1) {
@@ -157,7 +157,7 @@ public class JacobianMatrixFastDecoupled
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        List<ScalarEquation<AcVariableType, AcEquationType>> subsetEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
+        List<AtomicEquation<AcVariableType, AcEquationType>> subsetEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
                 : equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
 
         int rowColumnCount = subsetEquationsToSolve.size();
@@ -165,7 +165,7 @@ public class JacobianMatrixFastDecoupled
         int estimatedNonZeroValueCount = rowColumnCount * 3;
         matrix = matrixFactory.create(rowColumnCount, rowColumnCount, estimatedNonZeroValueCount);
 
-        for (ScalarEquation<AcVariableType, AcEquationType> eq : subsetEquationsToSolve) {
+        for (AtomicEquation<AcVariableType, AcEquationType> eq : subsetEquationsToSolve) {
             int column = eq.getColumn();
             if (isPhiSystem) {
                 derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {

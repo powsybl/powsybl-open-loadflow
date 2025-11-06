@@ -111,7 +111,7 @@ public class FastDecoupled extends AbstractAcSolver {
         };
     }
 
-    Comparator<ScalarEquation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
+    Comparator<AtomicEquation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
         PhiVEquationType equationType1 = getPhiVEquationType(o1.getType());
         PhiVEquationType equationType2 = getPhiVEquationType(o2.getType());
         if (equationType1 != equationType2) {
