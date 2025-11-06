@@ -56,11 +56,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
-    private LfBus referenceBus;
+    protected LfBus referenceBus;
 
-    private final List<LfBus> acDcReferenceBuses = new ArrayList<>();
-
-    private List<LfBus> slackBuses = new ArrayList<>();
+    protected List<LfBus> slackBuses = new ArrayList<>();
 
     private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
@@ -111,8 +109,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
     private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
-
-    private List<LfNetwork> acSubNetworks = new ArrayList<>();
 
     public enum Validity {
         VALID("Valid"),
@@ -185,14 +181,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
     }
 
-    public LfNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
+    public LfNetwork(LfNetwork network) {
         //TODO : find a better way to implement AC and DC subnetworks
-        this(acNetworks.getFirst().numCC, acNetworks.getFirst().numSC, acNetworks.getFirst().slackBusSelector, acNetworks.getFirst().maxSlackBusCount,
-                acNetworks.getFirst().connectivityFactory, acNetworks.getFirst().referenceBusSelector, ReportNode.NO_OP);
-        acSubNetworks = acNetworks;
-        System.out.println("##############################_____Network_____##############################");
-        System.out.println(acNetworks);
-        System.out.println(dcNetworks);
+        this(network.numCC, network.numSC, network.slackBusSelector, network.maxSlackBusCount,
+                network.connectivityFactory, network.referenceBusSelector, ReportNode.NO_OP);
     }
 
     public int getNumCC() {
@@ -242,27 +234,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public void updateSlackBusesAndReferenceBus() {
-        updateSubNetworksSlackBusesAndReferenceBus();
-        if (!acSubNetworks.isEmpty()) {
-            for (LfNetwork subNetwork : acSubNetworks) {
-                subNetwork.updateSubNetworksSlackBusesAndReferenceBus();
-                for (LfBus bus : subNetwork.slackBuses) {
-                    LfBus slackBus = this.getBusById(bus.getId());
-                    if (!slackBuses.contains(slackBus)) {
-                        slackBus.setSlack(true);
-                        this.slackBuses.add(slackBus);
-                    }
-                }
-                LfBus referenceBus = this.getBusById(subNetwork.referenceBus.getId());
-                if (!acDcReferenceBuses.contains(referenceBus)) {
-                    referenceBus.setReference(true);
-                    this.acDcReferenceBuses.add(referenceBus);
-                }
-            }
-        }
-    }
-
-    public void updateSubNetworksSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
             List<LfBus> selectableBuses =
                     excludedSlackBuses.isEmpty() ? busesByIndex :
@@ -787,6 +758,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
         List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reportNode);
+        System.out.println("##############################_____Voltage Source Converters_____##############################");
+        System.out.println(lfNetworks.getFirst().getVoltageSourceConverters());
         int deadComponentsCount = 0;
         for (LfNetwork lfNetwork : lfNetworks) {
             ReportNode networkReport = Reports.createNetworkInfoReporter(lfNetwork.getReportNode());
@@ -1037,9 +1010,5 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfVoltageSourceConverter> getVoltageSourceConverters() {
         return voltageSourceConvertersByIndex;
-    }
-
-    public List<LfNetwork> getAcSubNetworks() {
-        return acSubNetworks;
     }
 }

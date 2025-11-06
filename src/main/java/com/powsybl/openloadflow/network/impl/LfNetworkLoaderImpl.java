@@ -1159,7 +1159,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         dcBuses.forEach(bus -> bus.getVoltageSourceConverters().forEach(acDcConverters::add));
         List<LfDcNode> lfDcNodes = new ArrayList<>();
         List<DcGround> dcGrounds = StreamSupport.stream(network.getDcGrounds().spliterator(), false).toList();
-            network.getDcNodes().forEach(dcNodes::add);
 
         for (AcDcConverter<?> acDcConverter : acDcConverters) {
             DcTerminal terminal1 = acDcConverter.getDcTerminal1();
@@ -1186,25 +1185,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return lfNetwork;
     }
 
-    private List<LfNetwork> createAcDc(List<LfNetwork> acLfNetworks, List<LfNetwork> dcLfNetworks) {
-
-        Map<Integer, List<LfNetwork>> acNetworksByCc = acLfNetworks.stream()
-                .collect(Collectors.groupingBy(LfNetwork::getNumCC));
-
-        Map<Integer, List<LfNetwork>> dcNetworksByCc = dcLfNetworks.stream()
-                .collect(Collectors.groupingBy(LfNetwork::getNumCC));
-
-        Set<Integer> allCc = new HashSet<>();
-        allCc.addAll(acNetworksByCc.keySet());
-        allCc.addAll(dcNetworksByCc.keySet());
-
-        return allCc.stream()
-                .map(numCc -> {
-                    List<LfNetwork> acPart = acNetworksByCc.getOrDefault(numCc, List.of());
-                    List<LfNetwork> dcPart = dcNetworksByCc.getOrDefault(numCc, List.of());
-                    return new LfNetwork(acPart, dcPart);
-                })
-                .toList();
+    private LfNetwork createAcDc(List<LfNetwork> acLfNetworks, List<LfNetwork> dcLfNetworks, List<AcDcConverter<?>> acDcConverters, LfNetworkParameters parameters) {
+        LfAcDcNetwork lfAcDcNetwork = new LfAcDcNetwork(acLfNetworks, dcLfNetworks);
+        createAcDcConverters(acDcConverters, lfAcDcNetwork, parameters);
+        return lfAcDcNetwork;
     }
 
     private static void checkControlZonesAreDisjoints(LfNetwork lfNetwork) {
@@ -1464,6 +1448,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 })
                 .toList();
 
+        Map<Integer, List<AcDcConverter<?>>> acDcConvertersByCc = new HashMap<>();
+        for (AcDcConverter<?> converter : network.getVoltageSourceConverters()) {
+            DcBus dcBus = converter.getDcTerminal1().getDcBus();
+            if (dcBus != null && dcBus.getConnectedComponent() != null) {
+                int ccNum = dcBus.getConnectedComponent().getNum();
+                acDcConvertersByCc.computeIfAbsent(ccNum, k -> new ArrayList<>()).add(converter);
+            }
+        }
+
         stopwatch.stop();
 
         LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -1471,11 +1464,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!parameters.isAcDcNetwork()) {
             return acLfNetworks;
         } else {
-            LfNetwork network2 = createAcDc(acLfNetworks, dcLfNetworks).getFirst();
-            System.out.println("##############################_____ACDC Network_____##############################");
-            System.out.println(network2.getDcNodes());
-            System.out.println(network2.getBuses());
-            return createAcDc(acLfNetworks, dcLfNetworks);
+            Map<Integer, List<LfNetwork>> acNetworksByCc = acLfNetworks.stream()
+                    .collect(Collectors.groupingBy(LfNetwork::getNumCC));
+
+            Map<Integer, List<LfNetwork>> dcNetworksByCc = dcLfNetworks.stream()
+                    .collect(Collectors.groupingBy(LfNetwork::getNumCC));
+
+            Set<Integer> allCc = new HashSet<>();
+            allCc.addAll(acNetworksByCc.keySet());
+            allCc.addAll(dcNetworksByCc.keySet());
+
+            return allCc.stream()
+                    .map(numCc -> {
+                        List<LfNetwork> acPart = acNetworksByCc.getOrDefault(numCc, List.of());
+                        List<LfNetwork> dcPart = dcNetworksByCc.getOrDefault(numCc, List.of());
+                        List<AcDcConverter<?>> acDcConverters = acDcConvertersByCc.getOrDefault(numCc, List.of());
+                        return createAcDc(acPart, dcPart, acDcConverters, parameters);
+                    })
+                    .toList();
         }
     }
 
