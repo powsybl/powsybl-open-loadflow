@@ -12,7 +12,6 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -112,7 +111,7 @@ public class FastDecoupled extends AbstractAcSolver {
         };
     }
 
-    Comparator<Equation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
+    Comparator<AtomicEquation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
         PhiVEquationType equationType1 = getPhiVEquationType(o1.getType());
         PhiVEquationType equationType2 = getPhiVEquationType(o2.getType());
         if (equationType1 != equationType2) {
@@ -294,8 +293,8 @@ public class FastDecoupled extends AbstractAcSolver {
                 findLargestMismatches(equationSystem, equationVector.getArray(), 5)
                         .forEach(e -> {
                             Equation<AcVariableType, AcEquationType> equation = e.getKey();
-                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
-                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
+                            LfBus bus = network.getBus(equation.getElementNum());
+                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), bus.getId());
                         });
             }
 

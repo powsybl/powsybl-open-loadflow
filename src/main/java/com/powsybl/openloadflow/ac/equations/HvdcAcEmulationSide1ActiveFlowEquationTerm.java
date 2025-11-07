@@ -17,42 +17,44 @@ import java.util.Objects;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
+@SuppressWarnings("squid:S00107")
 public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm {
 
     public HvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet);
     }
 
-    private double p1(double ph1, double ph2) {
-        double rawP = rawP(ph1, ph2);
+    public static double p1(double p0, double k, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1, double lossFactor1, double lossFactor2, double r, double ph1, double ph2) {
+        double rawP = rawP(p0, k, ph1, ph2);
         // if converterStation1 is controller, then p1 is positive, otherwise it is negative
-        return isController(rawP) ? boundedP(rawP) : -getAbsActivePowerWithLosses(boundedP(rawP), lossFactor1, lossFactor2);
+        return isController(rawP) ? boundedP(rawP, pMaxFromCS1toCS2, pMaxFromCS2toCS1) : -getAbsActivePowerWithLosses(boundedP(rawP, pMaxFromCS1toCS2, pMaxFromCS2toCS1), lossFactor1, lossFactor2, r);
     }
 
     private static boolean isController(double rawP) {
         return rawP >= 0;
     }
 
-    private boolean isInOperatingRange(double rawP) {
+    private static boolean isInOperatingRange(double rawP, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
         return rawP < pMaxFromCS1toCS2 && rawP > -pMaxFromCS2toCS1;
     }
 
-    protected double dp1dph1(double ph1, double ph2) {
-        double rawP = rawP(ph1, ph2);
-        if (isInOperatingRange(rawP)) {
-            return (isController(rawP) ? 1 : getVscLossMultiplier()) * k; // derivative of cable loss is neglected
+    public static double dp1dph1(double p0, double k, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1, double lossFactor1, double lossFactor2, double ph1, double ph2) {
+        double rawP = rawP(p0, k, ph1, ph2);
+        if (isInOperatingRange(rawP, pMaxFromCS1toCS2, pMaxFromCS2toCS1)) {
+            return (isController(rawP) ? 1 : getVscLossMultiplier(lossFactor1, lossFactor2)) * k; // derivative of cable loss is neglected
         } else {
             return 0;
         }
     }
 
-    protected double dp1dph2(double ph1, double ph2) {
-        return -dp1dph1(ph1, ph2);
+    public static double dp1dph2(double p0, double k, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1, double lossFactor1, double lossFactor2, double ph1, double ph2) {
+        return -dp1dph1(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, ph1, ph2);
     }
 
     @Override
     public double eval() {
-        return element.isAcEmulationFrozen() ? p1(element.getAngleDifferenceToFreeze(), 0) : p1(ph1(), ph2());
+        return element.isAcEmulationFrozen() ? p1(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, r, element.getAngleDifferenceToFreeze(), 0)
+                                             : p1(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, r, ph1(), ph2());
     }
 
     @Override
@@ -62,9 +64,9 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
             return 0;
         }
         if (variable.equals(ph1Var)) {
-            return dp1dph1(ph1(), ph2());
+            return dp1dph1(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, ph1(), ph2());
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2(ph1(), ph2());
+            return dp1dph2(p0, k, pMaxFromCS1toCS2, pMaxFromCS2toCS1, lossFactor1, lossFactor2, ph1(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

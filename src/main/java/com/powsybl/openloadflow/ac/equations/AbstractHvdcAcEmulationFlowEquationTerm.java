@@ -56,11 +56,11 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
     }
 
-    protected double rawP(double ph1, double ph2) {
+    protected static double rawP(double p0, double k, double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
     }
 
-    protected double boundedP(double rawP) {
+    protected static double boundedP(double rawP, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
         // If there is a maximal active power
         // it is applied at the entry of the controller VSC station
         // on the AC side of the network.
@@ -79,11 +79,11 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return sv.get(ph2Var.getRow());
     }
 
-    protected double getVscLossMultiplier() {
+    protected static double getVscLossMultiplier(double lossFactor1, double lossFactor2) {
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
-    protected double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossNonController) {
+    protected static double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossNonController, double r) {
         double lineInputPower = (1 - lossController) * Math.abs(boundedP);
         return (1 - lossNonController) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
     }

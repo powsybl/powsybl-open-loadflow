@@ -9,8 +9,10 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystemIndexListener.ChangeType;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +78,8 @@ class EquationSystemIndexTest {
 
     @Test
     void test() {
-        EquationSystem<TestVariableType, TestEquationType> equationSystem = new EquationSystem<>();
+        LfNetwork network = Mockito.mock(LfNetwork.class);
+        EquationSystem<TestVariableType, TestEquationType> equationSystem = new EquationSystem<>(TestEquationType.class, network);
         equationSystem.getIndex().addListener(new EquationSystemIndexListener<>() {
             @Override
             public void onVariableChange(Variable<TestVariableType> variable, ChangeType changeType) {
@@ -84,12 +87,22 @@ class EquationSystemIndexTest {
             }
 
             @Override
-            public void onEquationChange(Equation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
+            public void onEquationChange(AtomicEquation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
                 quantityAdded.add(Pair.of(equation.getType(), changeType));
             }
 
             @Override
-            public void onEquationTermChange(EquationTerm<TestVariableType, TestEquationType> term) {
+            public void onEquationTermChange(AtomicEquationTerm<TestVariableType, TestEquationType> term) {
+                // nothing to do
+            }
+
+            @Override
+            public void onEquationArrayChange(EquationArray<TestVariableType, TestEquationType> equationArray, ChangeType changeType) {
+                // nothing to do
+            }
+
+            @Override
+            public void onEquationTermArrayChange(EquationTermArray<TestVariableType, TestEquationType> equationTermArray, int termNum, ChangeType changeType) {
                 // nothing to do
             }
         });
@@ -99,13 +112,13 @@ class EquationSystemIndexTest {
         var a = equationSystem.getVariableSet().getVariable(0, TestVariableType.A);
         var b = equationSystem.getVariableSet().getVariable(0, TestVariableType.B);
         var c = equationSystem.getVariableSet().getVariable(0, TestVariableType.C);
-        EquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
-        EquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
         var x = equationSystem.createEquation(0, TestEquationType.X)
                 .addTerm(aTerm)
                 .addTerm(bTerm);
-        EquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
-        EquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
+        AtomicEquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
         var y = equationSystem.createEquation(0, TestEquationType.Y)
                 .addTerm(aTerm2)
                 .addTerm(cTerm);
