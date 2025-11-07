@@ -223,19 +223,22 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection) {
-        ShuntCompensator sh = bus.getVoltageLevel()
+        return createFixedShuntCompensator(bus, id, gPerSection, bPersection, 1);
+    }
+
+    protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection, int maximumSectionCount) {
+        return bus.getVoltageLevel()
             .newShuntCompensator()
             .setId(id)
             .setBus(bus.getId())
             .setConnectableBus(bus.getId())
-            .setSectionCount(1)
+            .setSectionCount(maximumSectionCount)
             .newLinearModel()
             .setGPerSection(gPerSection)
             .setBPerSection(bPersection)
-            .setMaximumSectionCount(1)
+            .setMaximumSectionCount(maximumSectionCount)
             .add()
             .add();
-        return sh;
     }
 
     protected static ShuntCompensator createShuntCompensator(Bus bus, String id, double g, double b, double v,
