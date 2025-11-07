@@ -37,6 +37,12 @@ public class LfAcDcNetwork extends LfNetwork{
     }
 
     @Override
+    protected void invalidateSlackAndReference() {
+        acSubNetworks.forEach(LfNetwork::invalidateSlackAndReference);
+        dcSubNetworks.forEach(LfNetwork::invalidateSlackAndReference);
+    }
+
+    @Override
     public void updateSlackBusesAndReferenceBus() {
         if (!acSubNetworks.isEmpty()) {
             for (LfNetwork acSubNetwork : acSubNetworks) {

@@ -216,7 +216,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         };
     }
 
-    private void invalidateSlackAndReference() {
+    protected void invalidateSlackAndReference() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
@@ -247,14 +247,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 }
                 slackBuses = selectedSlackBus.getBuses();
             }
-//            LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
+            LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
             // reference bus must be selected after slack bus, because of ReferenceBusFirstSlackSelector implementation requiring slackBuses
             SelectedReferenceBus selectedReferenceBus = referenceBusSelector.select(this);
             referenceBus = selectedReferenceBus.getLfBus();
-//            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
+            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
             referenceBus.setReference(true);
             if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
                 referenceGenerator = generatorReferenceBus.getLfGenerator();
@@ -758,8 +758,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
         List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reportNode);
-        System.out.println("##############################_____Voltage Source Converters_____##############################");
-        System.out.println(lfNetworks.getFirst().getVoltageSourceConverters());
         int deadComponentsCount = 0;
         for (LfNetwork lfNetwork : lfNetworks) {
             ReportNode networkReport = Reports.createNetworkInfoReporter(lfNetwork.getReportNode());

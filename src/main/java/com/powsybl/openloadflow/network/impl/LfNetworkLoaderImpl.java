@@ -62,6 +62,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Map<Area, Set<LfBus>> areaBusMap = new HashMap<>();
 
         private final Map<Area, Set<LfArea.Boundary>> areaBoundaries = new HashMap<>();
+
+        private final Set<DcLine> dcLineSet = new LinkedHashSet<>();
     }
 
     private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
@@ -84,9 +86,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDcNodes(List<DcNode> dcNodes, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfDcNode> lfDcNodes) {
+    private static void createDcNodes(List<DcNode> dcNodes, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfDcNode> lfDcNodes, LoadingContext loadingContext) {
         for (DcNode dcNode : dcNodes) {
-            LfDcNodeImpl lfDcNode = createDcNode(dcNode, parameters, lfNetwork);
+            LfDcNodeImpl lfDcNode = createDcNode(dcNode, parameters, lfNetwork, loadingContext);
             lfNetwork.addDcNode(lfDcNode);
             lfDcNodes.add(lfDcNode);
         }
@@ -462,8 +464,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return lfBus;
     }
 
-    private static LfDcNodeImpl createDcNode(DcNode dcNode, LfNetworkParameters parameters, LfNetwork lfNetwork) {
-        return LfDcNodeImpl.create(dcNode, lfNetwork, parameters);
+    private static LfDcNodeImpl createDcNode(DcNode dcNode, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext) {
+        LfDcNodeImpl lfDcNode = LfDcNodeImpl.create(dcNode, lfNetwork, parameters);
+        dcNode.visitConnectedEquipments(new DcTopologyVisitor() {
+            @Override
+            public void visitDcLine(DcLine dcLine, TwoSides sides) {
+                loadingContext.dcLineSet.add(dcLine);
+            }
+        });
+        return lfDcNode;
     }
 
     private static void addBranch(LfNetwork lfNetwork, LfBranch lfBranch, LfNetworkLoadingReport report) {
@@ -581,8 +590,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDcLines(LfNetwork lfNetwork, Network network, LfNetworkParameters parameters) {
-        for (DcLine dcLine : network.getDcLines()) {
+    private static void createDcLines(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
+        for (DcLine dcLine : loadingContext.dcLineSet) {
             LfDcNode lfDcNode1 = getLfDcNode(dcLine.getDcTerminal1(), lfNetwork);
             LfDcNode lfDcNode2 = getLfDcNode(dcLine.getDcTerminal2(), lfNetwork);
             LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcNode1, lfDcNode2, parameters);
@@ -1006,18 +1015,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
                 .collect(Collectors.toList());
 
-        List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
-        for(AcDcConverter<?> acDcConverter : network.getVoltageSourceConverters()) {
-            if(buses.contains(parameters.isBreakers() ? acDcConverter.getTerminal1().getBusBreakerView() : acDcConverter.getTerminal1().getBusView())) {
-                acDcConverters.add(acDcConverter);
-            }
-        }
-
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, topoConfig, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, topoConfig, loadingContext, report, parameters, postProcessors);
         createAreas(lfNetwork, loadingContext, postProcessors, parameters);
-        createAcDcConverters(acDcConverters, lfNetwork, parameters);
 
         if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters, report);
@@ -1155,6 +1156,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<DcNode> dcNodes = new ArrayList<>();
         dcBuses.forEach(bus -> bus.getDcNodes().forEach(dcNodes::add));
+        System.out.println(dcBuses);
+        System.out.println(dcNodes);
         List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
         dcBuses.forEach(bus -> bus.getVoltageSourceConverters().forEach(acDcConverters::add));
         List<LfDcNode> lfDcNodes = new ArrayList<>();
@@ -1171,15 +1174,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
+        LoadingContext loadingContext = new LoadingContext();
+        LfNetworkLoadingReport report = new LfNetworkLoadingReport();
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
                         || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
                 .collect(Collectors.toList());
 
-        createDcNodes(dcNodes, parameters, lfNetwork, lfDcNodes);
+        createDcNodes(dcNodes, parameters, lfNetwork, lfDcNodes, loadingContext);
         createDcGrounds(lfNetwork, dcGrounds);
-        createDcLines(lfNetwork, network, parameters);
-        createAcDcConverters(acDcConverters, lfNetwork, parameters);
+        createDcLines(lfNetwork, loadingContext, parameters);
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
         return lfNetwork;
