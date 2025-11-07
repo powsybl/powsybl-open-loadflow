@@ -95,7 +95,7 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
             if (defaultToUniformValue) {
                 return defaultVoltageInitializer.getMagnitude(dcNode);
             } else {
-                throw new PowsyblException("Power is undefined for dcNode '" + dcNode.getId() + "'");
+                throw new PowsyblException("Voltage is undefined for dcNode '" + dcNode.getId() + "'");
             }
         }
         return v;

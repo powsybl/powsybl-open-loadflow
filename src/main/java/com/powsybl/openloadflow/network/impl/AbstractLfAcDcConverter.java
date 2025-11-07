@@ -62,6 +62,8 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.targetP = converter.getTargetP() / PerUnit.SB;
         targetVdc = converter.getTargetVdc() / dcNode1.getNominalV();
         isBipolar = converter.getDcTerminal2().isConnected();
+        this.pAc = converter.getTerminal1().getP();
+        this.qAc = converter.getTerminal1().getQ();
     }
 
     @Override
