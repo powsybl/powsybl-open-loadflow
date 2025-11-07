@@ -734,16 +734,11 @@ class AcLoadFlowShuntTest {
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(),
                 LoadFlowRunParameters.getDefault().setParameters(parameters).setReportNode(reportNode));
         assertTrue(result.isFullyConverged());
-        // FIXME: shunts are always overshooting and reversing direction, because each shunt cannot see the contribution of the other shunt nearby
-        //    can be fixed by either increasing MAX_DIRECTION_CHANGE,
-        //    or, alternatively, limiting the number of sections a shunt may change in one outerloop
-        //    or, something else ...
-        assertEquals(4, s4.getSolvedSectionCount()); // moved
-        assertVoltageEquals(398.46277, b4); // FIXME: not at target within deadband (410 kV +/- 2 kV)
-        assertEquals(4, s5.getSolvedSectionCount()); // moved
-        assertVoltageEquals(398.46277, b5); // FIXME: not at target within deadband (410 kV +/- 2 kV)
+        assertEquals(8, s4.getSolvedSectionCount()); // moved
+        assertVoltageEquals(409.45348, b4); // at target within deadband (410 kV +/- 2 kV)
+        assertEquals(8, s5.getSolvedSectionCount()); // moved
+        assertVoltageEquals(409.45348, b5); // at target within deadband (410 kV +/- 2 kV)
 
-        // FIXME: incorrect/confusing "shunts changed section"
         LoadFlowAssert.assertTxtReportEquals("""
                 + Test Report
                    + Load flow on network 'twinShuntCompensators'
@@ -758,13 +753,9 @@ class AcLoadFlowShuntTest {
                          Outer loop ReactiveLimits
                          + Outer loop IncrementalShuntVoltageControl
                             + Outer loop iteration 1
-                               32 shunts changed section
+                               2 shunts changed section
                             + Outer loop iteration 2
-                               28 shunts changed section
-                            + Outer loop iteration 3
-                               24 shunts changed section
-                            + Outer loop iteration 4
-                               20 shunts changed section
+                               2 shunts changed section
                          Outer loop DistributedSlack
                          Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
