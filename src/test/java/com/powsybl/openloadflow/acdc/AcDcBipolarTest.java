@@ -338,6 +338,7 @@ public class AcDcBipolarTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW)
                 .setAcDcNetwork(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 

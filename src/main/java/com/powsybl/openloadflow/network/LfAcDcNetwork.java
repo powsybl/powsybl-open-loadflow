@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 public class LfAcDcNetwork extends LfNetwork{
-    private List<LfNetwork> acSubNetworks;
-    private List<LfNetwork> dcSubNetworks;
+    private List<LfNetwork> acSubNetworks = new ArrayList<>();
+    private List<LfNetwork> dcSubNetworks = new ArrayList<>();
     protected List<LfBus> slackBuses = new ArrayList<>();
     private final List<LfBus> acDcReferenceBuses = new ArrayList<>();
 
@@ -66,6 +66,8 @@ public class LfAcDcNetwork extends LfNetwork{
     @Override
     public List<LfBus> getSlackBuses() {
         updateSlackBusesAndReferenceBus();
+        System.out.println("##############################_____SLACK BUSES_____##############################");
+        System.out.println(slackBuses);
         return slackBuses;
     }
 
@@ -82,6 +84,12 @@ public class LfAcDcNetwork extends LfNetwork{
 
     public List<LfNetwork> getDcSubNetworks() {
         return dcSubNetworks;
+    }
+
+    public LfGenerator getReferenceGenerator() {
+        updateSlackBusesAndReferenceBus();
+        //FIXME: which generator do we return ?
+        return acSubNetworks.getFirst().getReferenceGenerator();
     }
 }
 
