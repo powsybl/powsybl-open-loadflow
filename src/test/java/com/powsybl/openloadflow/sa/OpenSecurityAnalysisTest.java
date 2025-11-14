@@ -65,6 +65,7 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -4749,5 +4750,73 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors));
         assertEquals(50., result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
         assertEquals(100., result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
+        lfParameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        runLoadFlow(network, lfParameters);
+        assertEquals(-0.331, network.getLine("l23").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(-1.656, network.getLine("l25").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(-1.324, network.getLine("l35").getTerminal1().getP(), DELTA_POWER);
+
+        SecurityAnalysisResult saResult = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResult.getPreContingencyResult().getStatus());
+        assertEquals(-0.331, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(-1.656, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
+        assertEquals(-1.324, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);
+        assertEquals(-0.667, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(-1.333, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
+        assertEquals(-0.667, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);
+
+        // Then test with REPLACE_BY_ZERO_IMPEDANCE_LINE
+        lfParameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        runLoadFlow(network, lfParameters);
+
+        assertEquals(1.0, network.getLine("l23").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(-3.0, network.getLine("l25").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(0.0, network.getLine("l35").getTerminal1().getP(), DELTA_POWER);
+
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result2.getPreContingencyResult().getStatus());
+    }
+
+    @Test
+    void testSaResultsWithZeroImpedanceMode() {
+        Network network = createWith3BusesNonImpedantSubNetwork();
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(Contingency.line("l34"));
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l23", "l25", "l35"), Collections.emptySet(), Collections.emptySet()));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters();
+        olfParameters.setSlackBusSelectionMode(SlackBusSelectionMode.NAME).setSlackBusId("b6_vl_0");
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+
+        // First test with REPLACE_BY_MIN_IMPEDANCE_LINE mode
+        lfParameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        runLoadFlow(network, lfParameters);
+        assertEquals(-0.331, network.getLine("l23").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(-1.656, network.getLine("l25").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(-1.324, network.getLine("l35").getTerminal1().getP(), DELTA_POWER);
+
+        SecurityAnalysisResult saResult = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResult.getPreContingencyResult().getStatus());
+        assertEquals(-0.331, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(-1.656, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
+        assertEquals(-1.324, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);
+        assertEquals(-0.667, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(-1.333, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
+        assertEquals(-0.667, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);
+
+        // Then test with REPLACE_BY_ZERO_IMPEDANCE_LINE
+        lfParameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        runLoadFlow(network, lfParameters);
+
+        assertEquals(1.0, network.getLine("l23").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(-3.0, network.getLine("l25").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(0.0, network.getLine("l35").getTerminal1().getP(), DELTA_POWER);
+
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result2.getPreContingencyResult().getStatus());
     }
 }
