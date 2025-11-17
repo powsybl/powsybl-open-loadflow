@@ -17,15 +17,11 @@ import java.util.List;
  */
 public interface LfAcDcConverter extends LfElement {
 
-    Evaluable getCalculatedPac();
+    void setCalculatedIconv1(Evaluable iconv);
+
+    void setCalculatedIconv2(Evaluable iconv);
 
     void setCalculatedPac(Evaluable p);
-
-    Evaluable getCalculatedIconv();
-
-    void setCalculatedIconv(Evaluable iconv);
-
-    Evaluable getCalculatedQac();
 
     void setCalculatedQac(Evaluable q);
 
@@ -45,8 +41,6 @@ public interface LfAcDcConverter extends LfElement {
 
     AcDcConverter.ControlMode getControlMode();
 
-    boolean isBipolar();
-
     double getPac();
 
     void setPac(double pac);
@@ -57,5 +51,5 @@ public interface LfAcDcConverter extends LfElement {
 
     void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
-    void updateFlows(double iConv, double pAc, double qAc);
+    void updateFlows(double iConv1, double iConv2, double pAc, double qAc);
 }

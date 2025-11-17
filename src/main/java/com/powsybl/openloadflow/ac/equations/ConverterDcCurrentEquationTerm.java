@@ -20,28 +20,28 @@ import java.util.Objects;
  */
 public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEquationTerm {
 
-    public ConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
-        super(converter, dcNode1, dcNode2, variableSet);
+    public ConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, double nominalV, VariableSet<AcVariableType> variableSet) {
+        super(converter, dcNode1, dcNode2, nominalV, variableSet);
     }
 
-    public static double iConv(double pAc, double qAc, double v1, double vR) {
-        return pDc(pAc, qAc) / (v1 - vR);
+    public static double iConv(double pAc, double qAc, double v1, double v2) {
+        return pDc(pAc, qAc) / (v1 - v2);
     }
 
-    public static double diConvdv1(double pAc, double qAc, double v1, double vR) {
-        return -pDc(pAc, qAc) / ((v1 - vR) * (v1 - vR));
+    public static double diConvdv1(double pAc, double qAc, double v1, double v2) {
+        return -pDc(pAc, qAc) / ((v1 - v2) * (v1 - v2));
     }
 
-    public static double diConvdvR(double pAc, double qAc, double v1, double vR) {
-        return pDc(pAc, qAc) / ((v1 - vR) * (v1 - vR));
+    public static double diConvdv2(double pAc, double qAc, double v1, double v2) {
+        return pDc(pAc, qAc) / ((v1 - v2) * (v1 - v2));
     }
 
-    public static double diConvdpAc(double pAc, double qAc, double v1, double vR) {
-        return dpDcdpAc(pAc, qAc) / (v1 - vR);
+    public static double diConvdpAc(double pAc, double qAc, double v1, double v2) {
+        return dpDcdpAc(pAc, qAc) / (v1 - v2);
     }
 
-    public static double diConvdqAc(double pAc, double qAc, double v1, double vR) {
-        return dpDcdqAc(pAc, qAc) / (v1 - vR);
+    public static double diConvdqAc(double pAc, double qAc, double v1, double v2) {
+        return dpDcdqAc(pAc, qAc) / (v1 - v2);
     }
 
     public static double iAc(double pAc, double qAc) {
@@ -57,11 +57,11 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
     }
 
     public static double lossB() {
-        return lossFactors.get(1) / (Math.sqrt(3) * nominalV);
+        return lossFactors.get(1) / (Math.sqrt(3) * acNominalV);
     }
 
     public static double lossC() {
-        return lossFactors.get(2) * PerUnit.ib(nominalV) * PerUnit.ib(nominalV) / PerUnit.SB;
+        return lossFactors.get(2) * PerUnit.ib(acNominalV) * PerUnit.ib(acNominalV) / PerUnit.SB;
     }
 
     public static double dpDcdqAc(double pAc, double qAc) { //pAc, qAc, iAc and loss factors are per unitized
@@ -79,20 +79,20 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
 
     @Override
     public double eval() {
-        return iConv(pAc(), qAc(), v1(), vR());
+        return iConv(pAc(), qAc(), v1(), v2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(pAcVar)) {
-            return diConvdpAc(pAc(), qAc(), v1(), vR());
+            return diConvdpAc(pAc(), qAc(), v1(), v2());
         } else if (variable.equals(qAcVar)) {
-            return diConvdqAc(pAc(), qAc(), v1(), vR());
+            return diConvdqAc(pAc(), qAc(), v1(), v2());
         } else if (variable.equals(v1Var)) {
-            return diConvdv1(pAc(), qAc(), v1(), vR());
-        } else if (variable.equals(vRVar)) {
-            return diConvdvR(pAc(), qAc(), v1(), vR());
+            return diConvdv1(pAc(), qAc(), v1(), v2());
+        } else if (variable.equals(v2Var)) {
+            return diConvdv2(pAc(), qAc(), v1(), v2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

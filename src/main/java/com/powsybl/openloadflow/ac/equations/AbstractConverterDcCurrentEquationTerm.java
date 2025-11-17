@@ -25,7 +25,7 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected final Variable<AcVariableType> v1Var;
 
-    protected final Variable<AcVariableType> vRVar;
+    protected final Variable<AcVariableType> v2Var;
 
     protected final Variable<AcVariableType> pAcVar;
 
@@ -33,13 +33,17 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    protected final boolean isBipolar;
-
     protected static List<Double> lossFactors = new ArrayList<>();
 
-    protected static double nominalV;
+    protected static double acNominalV;
 
-    protected AbstractConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
+    protected double dcNominalV;
+
+    protected LfDcNode dcNode1;
+
+    protected LfDcNode dcNode2;
+
+    protected AbstractConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, double nominalV, VariableSet<AcVariableType> variableSet) {
         super(converter);
         Objects.requireNonNull(converter);
         Objects.requireNonNull(variableSet);
@@ -47,25 +51,27 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
         AcVariableType pType = AcVariableType.CONV_P_AC;
         AcVariableType qType = AcVariableType.CONV_Q_AC;
         LfBus bus = converter.getBus1();
-        isBipolar = converter.isBipolar();
-        if (isBipolar) {
-            vRVar = variableSet.getVariable(dcNode2.getNum(), vType);
-            variables.add(vRVar);
-        } else {
-            vRVar = null;
-        }
         v1Var = variableSet.getVariable(dcNode1.getNum(), vType);
+        v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
         pAcVar = variableSet.getVariable(converter.getNum(), pType);
         qAcVar = variableSet.getVariable(converter.getNum(), qType);
         variables.add(v1Var);
+        variables.add(v2Var);
         variables.add(pAcVar);
         variables.add(qAcVar);
         lossFactors = converter.getLossFactors();
-        nominalV = bus.getNominalV();
+        acNominalV = bus.getNominalV();
+        dcNominalV = nominalV;
+        this.dcNode1 = dcNode1;
+        this.dcNode2 = dcNode2;
     }
 
     protected double v1() {
-        return sv.get(v1Var.getRow());
+        return sv.get(v1Var.getRow()) * dcNode1.getNominalV() / dcNominalV;
+    }
+
+    protected double v2() {
+        return sv.get(v2Var.getRow()) * dcNode2.getNominalV() / dcNominalV;
     }
 
     protected double pAc() {
@@ -74,14 +80,6 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected double qAc() {
         return sv.get(qAcVar.getRow());
-    }
-
-    protected double vR() {
-        if (isBipolar) {
-            return sv.get(vRVar.getRow());
-        } else {
-            return 0.0;
-        }
     }
 
     @Override

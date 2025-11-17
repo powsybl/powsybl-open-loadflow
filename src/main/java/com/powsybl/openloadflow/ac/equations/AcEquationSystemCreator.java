@@ -947,29 +947,21 @@ public class AcEquationSystemCreator {
     protected static void createVoltageSourceConverterEquations(LfVoltageSourceConverter converter, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBus bus = converter.getBus1();
         LfDcNode dcNode1 = converter.getDcNode1();
-        LfDcNode dcNodeR = converter.getDcNode2();
+        LfDcNode dcNode2 = converter.getDcNode2();
         if (converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
             // if a converter is in PCC Mode, we add an equation to set Pac injected by the converter
             equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
                     .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
                             .createTerm());
         } else {
-            // if a converter is in V Mode, we add an equation to set Vdc, the tension of the DcNode connected to the converter
-            if (converter.isBipolar()) {
-                //if this is bipolar model, Vpositive - Vreturn = targetV
-                EquationTerm<AcVariableType, AcEquationType> vReturn = equationSystem.getVariable(dcNodeR.getNum(), AcVariableType.DC_NODE_V)
-                        .createTerm();
-                EquationTerm<AcVariableType, AcEquationType> vLayer = equationSystem.getVariable(dcNode1.getNum(), AcVariableType.DC_NODE_V)
-                        .createTerm();
-                equationSystem.createEquation(converter, AcEquationType.DC_NODE_TARGET_V_REF)
-                        .addTerm(vLayer)
-                        .addTerm(vReturn.minus());
-            } else {
-                //if not, it is just Vdc = targetV
-                equationSystem.createEquation(converter, AcEquationType.DC_NODE_TARGET_V_REF)
-                        .addTerm(equationSystem.getVariable(dcNode1.getNum(), AcVariableType.DC_NODE_V)
-                                .createTerm());
-            }
+            // if a converter is in V Mode, we add an equation to set V = v1 - v2 the tension of the two dc nodes connected to the converter
+            EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcNode1.getNum(), AcVariableType.DC_NODE_V)
+                    .createTerm();
+            EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcNode2.getNum(), AcVariableType.DC_NODE_V)
+                    .createTerm();
+            equationSystem.createEquation(converter, AcEquationType.DC_NODE_TARGET_V_REF)
+                    .addTerm(v1)
+                    .addTerm(v2.minus());
         }
 
         //The Converter add its power pAc in AC power balance
@@ -980,18 +972,22 @@ public class AcEquationSystemCreator {
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pAc.minus());
 
-        EquationTerm<AcVariableType, AcEquationType> iConv;
-        iConv = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNodeR, equationSystem.getVariableSet());
-        converter.setCalculatedIconv(iConv);
+        EquationTerm<AcVariableType, AcEquationType> iConv1 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), equationSystem.getVariableSet());
+        EquationTerm<AcVariableType, AcEquationType> iConv2 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode2.getNominalV(), equationSystem.getVariableSet()).minus();
+        equationSystem.attach(iConv1);
+        converter.setCalculatedIconv1(iConv1);
+        equationSystem.attach(iConv2);
+        converter.setCalculatedIconv2(iConv2);
 
         //The converter is injecting current Iconv into DcNode, so we add Iconv to current balance
-        equationSystem.createEquation(dcNode1, AcEquationType.DC_NODE_TARGET_I)
-                .addTerm(iConv);
+        if (!dcNode1.isGrounded()) {
+            equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+                    .addTerm(iConv1);
+        }
 
-        if (converter.isBipolar() && !dcNodeR.isGrounded()) {
-            EquationTerm<AcVariableType, AcEquationType> iConvR = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNodeR, equationSystem.getVariableSet());
-            equationSystem.createEquation(dcNodeR, AcEquationType.DC_NODE_TARGET_I)
-                    .addTerm(iConvR.minus());
+        if (!dcNode2.isGrounded()) {
+            equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+                    .addTerm(iConv2);
         }
 
         EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_Q_AC).createTerm();

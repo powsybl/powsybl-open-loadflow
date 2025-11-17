@@ -68,7 +68,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 setNominalV(400.).
                 add();
         network.newDcNode().
-                setId("dnDummy").
+                setId("dnDummy3").
+                setNominalV(400.).
+                add();
+        network.newDcNode().
+                setId("dnDummy4").
                 setNominalV(400.).
                 add();
 
@@ -112,6 +116,16 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode1("dn3")
                 .setDcNode2("dn4")
                 .setR(0.1)
+                .add();
+
+        network.newDcGround()
+                .setId("dg3")
+                .setDcNode("dnDummy3")
+                .add();
+
+        network.newDcGround()
+                .setId("dg4")
+                .setDcNode("dnDummy4")
                 .add();
 
         return network;
@@ -286,7 +300,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
@@ -302,7 +316,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
@@ -337,7 +351,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
@@ -353,7 +367,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
@@ -370,7 +384,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * b1 ------b2conv23-dn3----------dnMiddle-----------dn4-conv45-b5
      * l12       |        dl3             dl5            dl4        |
      *           |                         |                        |
-     *           |                        dn5conv56-b6_ld6          |
+     *           |                        dn5conv56-b6-ld6          |
      *           l23-------------------------------------------------
      * </pre>
      */
@@ -454,7 +468,15 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(400.)
                 .add();
         network.newDcNode()
-                .setId("dnDummy")
+                .setId("dnDummy3")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnDummy4")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dnDummy5")
                 .setNominalV(400.)
                 .add();
 
@@ -522,6 +544,21 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setR(0.1)
                 .add();
 
+        network.newDcGround()
+                .setId("dg3")
+                .setDcNode("dnDummy3")
+                .add();
+
+        network.newDcGround()
+                .setId("dg4")
+                .setDcNode("dnDummy4")
+                .add();
+
+        network.newDcGround()
+                .setId("dg5")
+                .setDcNode("dnDummy5")
+                .add();
+
         vl2.newVoltageSourceConverter()
                 .setIdleLoss(0.5)
                 .setSwitchingLoss(1.0)
@@ -531,7 +568,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
@@ -547,7 +584,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
@@ -563,7 +600,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv56")
                 .setBus1("b6")
                 .setDcNode1("dn5")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy5")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
@@ -598,7 +635,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy3")
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(false)
                 .setReactivePowerSetpoint(0)
@@ -613,7 +650,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(true)
@@ -658,7 +695,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(true)
@@ -674,7 +711,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("conv45")
                 .setBus1("b5")
                 .setDcNode1("dn4")
-                .setDcNode2("dnDummy")
+                .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(false)
                 .setVoltageRegulatorOn(true)
@@ -1698,6 +1735,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode1("dn7")
                 .setDcNode2("dn8")
                 .setR(0.1)
+                .add();
+
+        network.newDcGround()
+                .setId("dg")
+                .setDcNode("dnDummy")
                 .add();
 
         vl1.newVoltageSourceConverter()

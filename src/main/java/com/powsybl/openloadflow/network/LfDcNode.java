@@ -12,13 +12,9 @@ package com.powsybl.openloadflow.network;
  */
 public interface LfDcNode extends LfElement {
 
-    void addLfDcLine(LfDcLine lfdcline);
-
     double getV();
 
     void setV(double v);
-
-    void addConverter(LfAcDcConverter converter);
 
     boolean isNeutralPole();
 

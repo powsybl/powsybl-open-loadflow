@@ -23,7 +23,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected Evaluable calculatedQac;
 
-    protected Evaluable calculatedIconv;
+    protected Evaluable calculatedIconv1;
+
+    protected Evaluable calculatedIconv2;
 
     protected final double targetP;
 
@@ -39,8 +41,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final AcDcConverter.ControlMode controlMode;
 
-    protected final boolean isBipolar;
-
     protected final LfDcNode dcNode1;
 
     protected final LfDcNode dcNode2;
@@ -51,17 +51,13 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         super(network);
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;
-        dcNode1.addConverter(this);
-        if (dcNode2 != null) {
-            dcNode2.setNeutralPole(true);
-            dcNode2.addConverter(this);
-        }
+        //By convention, the dcNode2 is supposed to be the neutral layer, it is just needed for voltage initialization
+        dcNode2.setNeutralPole(true);
         this.bus1 = bus1;
         this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        targetVdc = converter.getTargetVdc() / dcNode1.getNominalV();
-        isBipolar = converter.getDcTerminal2().isConnected();
+        targetVdc = dcNode1.isGrounded() ? converter.getTargetVdc() / dcNode2.getNominalV() : converter.getTargetVdc() / dcNode1.getNominalV();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -103,12 +99,12 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     @Override
     public double getPac() {
-        return pAc;
+        return pAc / PerUnit.SB;
     }
 
     @Override
     public void setPac(double pac) {
-        this.pAc = pac;
+        this.pAc = pac * PerUnit.SB;
     }
 
     @Override
@@ -122,43 +118,28 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
-    public boolean isBipolar() {
-        return isBipolar;
-    }
-
-    @Override
     public double getQac() {
-        return qAc;
+        return qAc / PerUnit.SB;
     }
 
     @Override
     public void setQac(double qac) {
-        this.qAc = qac;
+        this.qAc = qac * PerUnit.SB;
     }
 
     @Override
-    public Evaluable getCalculatedIconv() {
-        return calculatedIconv;
+    public void setCalculatedIconv1(Evaluable iconv) {
+        calculatedIconv1 = iconv;
     }
 
     @Override
-    public void setCalculatedIconv(Evaluable iconv) {
-        calculatedIconv = iconv;
-    }
-
-    @Override
-    public Evaluable getCalculatedPac() {
-        return calculatedPac;
+    public void setCalculatedIconv2(Evaluable iconv) {
+        calculatedIconv2 = iconv;
     }
 
     @Override
     public void setCalculatedPac(Evaluable p) {
         calculatedPac = p;
-    }
-
-    @Override
-    public Evaluable getCalculatedQac() {
-        return calculatedQac;
     }
 
     @Override

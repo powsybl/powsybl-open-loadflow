@@ -609,6 +609,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfVoltageSourceConverterImpl lfAcDcConverter = LfVoltageSourceConverterImpl.create((VoltageSourceConverter) acDcConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, parameters);
                     addAcDcConverter(lfNetwork, lfAcDcConverter);
                 }
+                //lcc converter not implemented yet
             }
         }
     }

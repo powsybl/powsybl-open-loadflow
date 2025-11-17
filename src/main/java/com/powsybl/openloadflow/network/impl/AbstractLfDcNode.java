@@ -9,18 +9,10 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.openloadflow.network.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNode {
-
-    protected final List<LfDcLine> lfDcLines = new ArrayList<>();
-
-    protected final List<LfAcDcConverter> converters = new ArrayList<>();
 
     protected double v;
 
@@ -37,16 +29,6 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
     @Override
     public ElementType getType() {
         return ElementType.DC_NODE;
-    }
-
-    @Override
-    public void addLfDcLine(LfDcLine lfdcline) {
-        lfDcLines.add(Objects.requireNonNull(lfdcline));
-    }
-
-    @Override
-    public void addConverter(LfAcDcConverter converter) {
-        converters.add(converter);
     }
 
     @Override

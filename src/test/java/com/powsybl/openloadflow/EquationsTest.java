@@ -346,7 +346,6 @@ class EquationsTest {
         Mockito.doReturn(0).when(converter).getNum();
         Mockito.doReturn(false).when(converter).isDisabled();
         Mockito.doReturn(List.of(1.0, 0.5, 0.1)).when(converter).getLossFactors();
-        Mockito.doReturn(false).when(converter).isBipolar();
         Mockito.doReturn(0.5).when(converter).getTargetP();
         Mockito.doReturn(bus1).when(converter).getBus1();
         Mockito.doReturn(400.0).when(bus1).getNominalV();
@@ -367,8 +366,8 @@ class EquationsTest {
         var sv = new StateVector(new double[]{V_1, V_2, P_0, Q_0, 0});
 
         // converter equations
-        assertEquals("dc_i", new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, variableSet).getName());
-        assertArrayEquals(new double[] {-1.809012255726711, 1.6883939156254721, Double.NaN, -1.008780457088633, -0.07545681028602146, Double.NaN, Double.NaN},
-                eval(new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, variableSet), variables, sv));
+        assertEquals("dc_i", new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), variableSet).getName());
+        assertArrayEquals(new double[] {4407.816327979311, 1.0023923390761068E7, -1.0023923390761068E7, 2457.9816726092145, 183.8571073153684, Double.NaN, Double.NaN},
+                eval(new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), variableSet), variables, sv));
     }
 }

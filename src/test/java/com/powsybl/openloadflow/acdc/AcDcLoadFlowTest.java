@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.acdc;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -27,6 +28,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AcDcLoadFlowTest {
 
     Network network;
+
+    @Test
+    void testNetworkFactory() {
+        network = DcDetailedNetworkFactory.createVscAsymmetricalMonopole();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setAcDcNetwork(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
 
     @Test
     void testAcDcExample() {
