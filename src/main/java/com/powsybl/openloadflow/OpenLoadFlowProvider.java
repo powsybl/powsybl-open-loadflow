@@ -313,7 +313,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public List<Parameter> getSpecificParameters() {
+    public List<Parameter> getRawSpecificParameters() {
         return OpenLoadFlowParameters.SPECIFIC_PARAMETERS;
     }
 
