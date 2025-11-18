@@ -258,6 +258,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getLocalTargetV() {
-        return generatorRef.get().getLocalTargetV() / getBus().getNominalV();
+        return generatorRef.get().getEquivalentLocalTargetV() / getBus().getNominalV();
     }
 }
