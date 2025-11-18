@@ -158,7 +158,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
@@ -185,7 +185,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

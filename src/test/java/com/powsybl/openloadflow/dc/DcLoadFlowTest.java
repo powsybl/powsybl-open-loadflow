@@ -289,7 +289,7 @@ class DcLoadFlowTest {
         }
 
         // bus 12 and 13 are out of main connected component
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         loadFlowRunner.run(network, parameters);
 
         // check angle is zero for the 2 slack buses
