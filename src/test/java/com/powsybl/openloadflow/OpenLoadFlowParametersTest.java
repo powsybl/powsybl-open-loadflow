@@ -595,7 +595,7 @@ class OpenLoadFlowParametersTest {
         assertEquals("Unknown Voltage Control Type: Foo", e.getMessage());
 
         parametersExt.setVoltageTargetPriorities(List.of("SHUNT"));
-        LfNetworkParameters lfNetworkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
+        LfNetworkParameters lfNetworkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
         assertEquals(0, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.SHUNT)); // user-provided
         assertEquals(1, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.GENERATOR)); // filled from default
         assertEquals(2, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.TRANSFORMER)); // filled from default

@@ -596,31 +596,6 @@ When set to `false`:
 
 The default value is `true`.
 
-**startWithFrozenACEmulation**
-
-If `true`, simulation starts with HVDC links configured in AC emulation frozen at their previous active set point
-defined by the angles at the HVDC extremities, if defined in the input network. If a solution is found then the simulator
-continues with the HVDC set to AC emulation mode. Otherwise, the simulation fails. 
-
-If `false`, simulation allows HVDC lines to immediately adapt to the new angles.
-
-The value 'true' is typically used to use a loadFlow to simulate an N-K contingency after a loadflow has previously been run.
-
-The default value is `false`. This parameter can be overridden by the security analysis parameter with same name.
-
-**generatorsWithZeroMwTargetAreNotStarted**  
-Defines if a generator must be considered as not started when its `targetP` is zero.
-
-When set to `true` (default):
-- If the absolute value of `targetP` is zero, the generator is excluded from slack distribution.
-- If the absolute value of `targetP` is zero and `minP` is above zero, voltage control is disabled.
-
-When set to `false`:
-- Even if `targetP` is zero, the generator may participate in slack distribution.
-- Even if `targetP` is zero and `minP` is above zero, voltage control may happen (unless option `disableVoltageControlOfGeneratorsOutsideActivePowerLimits` is enabled).
-
-The default value is `true`.
-
 **fixRemoteVoltageTarget**
 If true, runs a preprocessing algorithm to identify remote voltage settings that may cause convergence issues and 
 removes them automatically from voltage control. Two voltage targets are considered incompatible, when they are separated 

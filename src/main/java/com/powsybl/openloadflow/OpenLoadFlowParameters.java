@@ -1590,8 +1590,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
                     config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
                     config.getOptionalBooleanProperty(FIX_REMOTE_VOLTAGE_TARGET_PARAM_NAME).ifPresent(this::setFixRemoteVoltageTarget);
-                    config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
-                    config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
                 });
         return this;
     }
@@ -1962,7 +1960,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                    SlackBusSelector slackBusSelector, MatrixFactory matrixFactory,
+                                                    SlackBusSelector slackBusSelector,
                                                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                     boolean breakers) {
         return new LfNetworkParameters()
@@ -2046,7 +2044,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
                 parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), parametersExt.getSlackBusCountryFilter());
 
-        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, matrixFactory, connectivityFactory, breakers);
+        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
 
