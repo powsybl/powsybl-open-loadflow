@@ -975,15 +975,4 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode reportUnrealisticTargetVoltage(ReportNode reportNode, String controlledBusId, double targetV,
-                        String controllerBusId, double estimatedDrop) {
-        return reportNode.newReportNode()
-                .withMessageTemplate("olf.reportUnrealisticRemoteTargetVoltage")
-                .withUntypedValue("controlledBus", controlledBusId)
-                .withUntypedValue("targetV", targetV)
-                .withUntypedValue("controllerBus", controllerBusId)
-                .withUntypedValue("drop", estimatedDrop)
-                .add();
-    }
-
 }
