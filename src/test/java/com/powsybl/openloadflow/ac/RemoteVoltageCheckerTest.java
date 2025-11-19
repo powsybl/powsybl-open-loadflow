@@ -1,12 +1,20 @@
+/*
+ * Copyright (c) 2025, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.commons.test.TestUtil;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.RemoteVoltageTarget;
@@ -21,7 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class RemoteVoltageCheckerTest {
+class RemoteVoltageCheckerTest {
 
     @Test
     void testIncompatibleReport() {
@@ -53,14 +61,6 @@ public class RemoteVoltageCheckerTest {
         assertEquals("vl4_2", otherBusId);
         // For low impedance at high nominal voltage (short lines), the double precision limit is reached in the AdmittanceMatrix formula for getZ. We just get the information that z is small...
         assertTrue(incompatibleTargetResolution2.largestIncompatibleTarget().targetVoltagePlausibilityIndicator() > 400);
-
-        assertEquals(2, result.unrealisticTargets().size());
-
-        assertEquals("g2", result.unrealisticTargets().get(0).generatorIds().get(0));
-        assertEquals(18, result.unrealisticTargets().get(0).estimatedDvController(), 1);
-
-        assertEquals("g3", result.unrealisticTargets().get(1).generatorIds().get(0));
-        assertEquals(62, result.unrealisticTargets().get(1).estimatedDvController(), 1);
     }
 
     @Test
@@ -71,13 +71,15 @@ public class RemoteVoltageCheckerTest {
         network.getGenerator("g3").setTargetV(407);
 
         OpenLoadFlowProvider runner = new OpenLoadFlowProvider();
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters();
         LoadFlowParameters params = new LoadFlowParameters();
-        LoadFlowResult result = runner.run(network, LocalComputationManager.getDefault(), network.getVariantManager().getWorkingVariantId(), params, ReportNode.NO_OP).join();
+        runParameters.setParameters(params);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters).join();
         assertEquals(LoadFlowResult.Status.FAILED, result.getStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
 
         OpenLoadFlowParameters.create(params).setFixRemoteVoltageTarget(true);
-        result = runner.run(network, LocalComputationManager.getDefault(), network.getVariantManager().getWorkingVariantId(), params, ReportNode.NO_OP).join();
+        result = runner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters).join();
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
 
         // g1 and g2 have been disabled.
@@ -106,8 +108,10 @@ public class RemoteVoltageCheckerTest {
                 .add();
 
         OpenLoadFlowProvider runner = new OpenLoadFlowProvider();
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters();
         LoadFlowParameters params = new LoadFlowParameters();
-        LoadFlowResult result = runner.run(network, LocalComputationManager.getDefault(), network.getVariantManager().getWorkingVariantId(), params, ReportNode.NO_OP).join();
+        runParameters.setParameters(params);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters).join();
         assertEquals(LoadFlowResult.Status.FAILED, result.getStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
 
@@ -115,22 +119,21 @@ public class RemoteVoltageCheckerTest {
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
-
+        runParameters.setReportNode(testReport);
         OpenLoadFlowParameters.create(params).setFixRemoteVoltageTarget(true);
-        result = runner.run(network, LocalComputationManager.getDefault(), network.getVariantManager().getWorkingVariantId(), params, testReport).join();
+        result = runner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters).join();
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
 
         // For high values, indicator values is hardware sensitive (based on small differences between large numbers)
         // So we remove them from the tests
         String reportString = TestUtil.normalizeLineSeparator(LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)"));
-        // Also strongest incompatibility with vl4_0 can be vl4_2 or vl5_0 dependinng on incompatibility factor cnumerical errors
+        // Also strongest incompatibility with vl4_0 can be vl4_2 or vl5_0 depending on incompatibility factor numerical errors
         reportString = reportString.replaceAll("and 'vl4_2' have incompatible", "and '***' have incompatible");
         reportString = reportString.replaceAll("and 'vl5_0' have incompatible", "and '***' have incompatible");
 
-        // Even the display order (sorted in plausibility indicator) is different between architectures ! SO lets check expected sentenences alone
+        // Even the display order (sorted in plausibility indicator) is different between architectures ! SO lets check expected sentences alone
         assertTrue(reportString.contains("         + Checking remote voltage targets"));
         assertTrue(reportString.contains("           Controlled buses 'vl4_0' and '***' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl1_0]"));
         assertTrue(reportString.contains("           Controlled buses 'vl4_2' and '***' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl3_0]"));
-        assertTrue(reportString.contains("           Controlled bus 'vl4_1' has an unrealistic target voltage 403 Kv, causing a severe controller bus 'vl4_1' voltage drop (estimated at 27.392811 pu): disabling controller bus"));
     }
 }

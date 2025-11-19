@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2024, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2024-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -37,20 +37,6 @@ public final class RemoteVoltageTarget {
     public record IncompatibleTarget(String controlledBus1Id, String controlledBus2Id, double controlledBus1IdTargetV, double controlledBus2IdTargetV, double targetVoltagePlausibilityIndicator) {
     }
 
-    public record LfUnrealisticTarget(LfBus controllerBus, double estimatedDvController) {
-        public UnrealisticTarget toIidm() {
-            return new UnrealisticTarget(controllerBus.getId(), controllerBus().getGenerators().stream().map(LfGenerator::getOriginalId).toList(), estimatedDvController);
-        }
-    }
-
-    /**
-     * @param controllerBusId id of the busview controller bus that has an unreaslitic targt
-     * @param generatorIds ids of the generators with voltage control on this bus. If kept in remote voltage control, those bus may create convergence problems if voltageControlRobustMode is not activated.
-     * @param estimatedDvController estimated drop in voltage of the bus, in per unit
-     */
-    public record UnrealisticTarget(String controllerBusId, List<String> generatorIds, double estimatedDvController) {
-    }
-
     public record LfIncompatibleTargetResolution(LfBus controlledBusToFix, Set<? extends LfElement> elementsToDisable, LfIncompatibleTarget largestLfIncompatibleTarget) {
         public IncompatibleTargetResolution toIidm() {
             Set<String> elementsToDisableIds = new TreeSet<>();
@@ -80,13 +66,12 @@ public final class RemoteVoltageTarget {
     }
 
 
-    record LfResult(List<LfIncompatibleTarget> lfIncompatibleTarget, List<LfUnrealisticTarget> lfUnrealisticTargets) {
+    record LfResult(List<LfIncompatibleTarget> lfIncompatibleTarget) {
         public LfResult() {
-            this(new ArrayList<>(), new ArrayList<>());
+            this(new ArrayList<>());
         }
     }
 
-    public record Result(List<IncompatibleTargetResolution> incompatibleTargetResolutions, List<UnrealisticTarget> unrealisticTargets) {
-
+    public record Result(List<IncompatibleTargetResolution> incompatibleTargetResolutions) {
     }
 }

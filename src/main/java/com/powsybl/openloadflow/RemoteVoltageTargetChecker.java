@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2024, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2024-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -11,26 +11,16 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.AcJacobianMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.adm.AdmittanceEquationSystem;
 import com.powsybl.openloadflow.adm.AdmittanceMatrix;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
-import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jgrapht.Graph;
@@ -51,16 +41,8 @@ public class RemoteVoltageTargetChecker {
 
     private final LfNetwork network;
 
-    private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
-
-    private final JacobianMatrix<AcVariableType, AcEquationType> j;
-
-    public RemoteVoltageTargetChecker(LfNetwork network,
-                                      EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                      JacobianMatrix<AcVariableType, AcEquationType> j) {
+    public RemoteVoltageTargetChecker(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
-        this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.j = Objects.requireNonNull(j);
     }
 
     public static RemoteVoltageTarget.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters) {
@@ -69,27 +51,19 @@ public class RemoteVoltageTargetChecker {
 
     public static RemoteVoltageTarget.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters, MatrixFactory matrixFactory) {
         List<RemoteVoltageTarget.IncompatibleTargetResolution> incompatibleTargetResolutions = new ArrayList<>();
-        List<RemoteVoltageTarget.UnrealisticTarget> unrealisticTargets = new ArrayList<>();
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = OpenLoadFlowParameters.getConnectivityFactory(parametersExt, new EvenShiloachGraphDecrementalConnectivityFactory<>());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
         for (LfNetwork lfNetwork : LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters())) {
-            var equationSystem = new AcEquationSystemCreator(lfNetwork, acParameters.getEquationSystemCreationParameters())
-                    .create();
-            try (var j = new AcJacobianMatrix(equationSystem, matrixFactory, lfNetwork)) {
-                var result = new RemoteVoltageTargetChecker(lfNetwork, equationSystem, j)
-                        .check(new RemoteVoltageTargetCheckerParameters(acParameters.getMatrixFactory()));
-                List<RemoteVoltageTarget.LfIncompatibleTargetResolution> incomatibleTargetResolutions = resolveIncompatbleTargets(result.lfIncompatibleTarget());
-                incomatibleTargetResolutions.forEach(tr -> incompatibleTargetResolutions.add(tr.toIidm()));
-
-                result.lfUnrealisticTargets().forEach(ut -> unrealisticTargets.add(ut.toIidm()));
-            }
+            var result = new RemoteVoltageTargetChecker(lfNetwork)
+                    .check(new RemoteVoltageTargetCheckerParameters(acParameters.getMatrixFactory()));
+            List<RemoteVoltageTarget.LfIncompatibleTargetResolution> lfIncompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
+            lfIncompatibleTargetResolutions.forEach(tr -> incompatibleTargetResolutions.add(tr.toIidm()));
         }
         // Return sorted list for repeatable results
-        return new RemoteVoltageTarget.Result(incompatibleTargetResolutions.stream().sorted(Comparator.comparing(RemoteVoltageTarget.IncompatibleTargetResolution::controlledBusToFixId)).toList(),
-                unrealisticTargets.stream().sorted(Comparator.comparing(RemoteVoltageTarget.UnrealisticTarget::controllerBusId)).toList());
+        return new RemoteVoltageTarget.Result(incompatibleTargetResolutions.stream().sorted(Comparator.comparing(RemoteVoltageTarget.IncompatibleTargetResolution::controlledBusToFixId)).toList());
     }
 
     private static Graph<LfBus, LfBranch> createGraph(LfNetwork lfNetwork) {
@@ -153,51 +127,6 @@ public class RemoteVoltageTargetChecker {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private EquationTerm<AcEquationType, AcEquationType> getCalculatedV(LfBus controllerBus) {
-        return (EquationTerm<AcEquationType, AcEquationType>) controllerBus.getCalculatedV();
-    }
-
-    private void checkUnrealisticTargets(RemoteVoltageTargetCheckerParameters parameters,
-                                         List<LfBus> generatorControlledBuses,
-                                         RemoteVoltageTarget.LfResult result) {
-        AcSolverUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
-
-        // calculate target voltage to calculated voltage sensibilities
-        var busNumToSensiColumn = LfBus.buildIndex(new ArrayList<>(generatorControlledBuses));
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), generatorControlledBuses.size());
-        for (LfBus controlledBus : generatorControlledBuses) {
-            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                    .ifPresent(equation -> {
-                        if (equation.getColumn() >= 0) {
-                            rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d);
-                        }
-                    });
-        }
-
-        j.solveTransposed(rhs);
-
-        for (LfBus controlledBus : generatorControlledBuses) {
-            int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
-            GeneratorVoltageControl voltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
-            if (!voltageControl.isLocalControl()) {
-                for (LfBus controllerBus : voltageControl.getControllerElements()) {
-                    var term = getCalculatedV(controllerBus);
-                    double sensiVv = term.calculateSensi(rhs, controlledBusSensiColumn);
-                    // this is the targe voltage shift from a normal value (1 pu)
-                    double dvControlled = voltageControl.getTargetValue() - 1.0;
-                    // thanks to the sensitivity, compute the corresponding controller bus side
-                    // resulting calculated voltage
-                    double estimatedDvController = dvControlled * sensiVv;
-                    // check if not too far from 1 pu
-                    if (Math.abs(estimatedDvController) > parameters.getControllerBusAcceptableVoltageDrop()) {
-                        result.lfUnrealisticTargets().add(new RemoteVoltageTarget.LfUnrealisticTarget(controllerBus, estimatedDvController));
-                    }
-                }
-            }
-        }
-    }
-
     RemoteVoltageTarget.LfResult check(RemoteVoltageTargetCheckerParameters parameters) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -211,18 +140,12 @@ public class RemoteVoltageTargetChecker {
                 .collect(Collectors.toSet());
         checkIncompatibleTargets(parameters, controlledBuses, result);
 
-        // for this check we only keep generator voltage controls
-        List<LfBus> generatorControlledBuses = controlledBuses.stream()
-                .filter(LfBus::isGeneratorVoltageControlled)
-                .toList();
-        checkUnrealisticTargets(parameters, generatorControlledBuses, result);
-
         LOGGER.debug("Remote voltage targets checked in {} ms", stopwatch.elapsed().toMillis());
 
         return result;
     }
 
-    private static List<RemoteVoltageTarget.LfIncompatibleTargetResolution> resolveIncompatbleTargets(List<RemoteVoltageTarget.LfIncompatibleTarget> lfIncompatibleTargets) {
+    private static List<RemoteVoltageTarget.LfIncompatibleTargetResolution> resolveIncompatibleTargets(List<RemoteVoltageTarget.LfIncompatibleTarget> lfIncompatibleTargets) {
 
         List<RemoteVoltageTarget.LfIncompatibleTargetResolution> result = new ArrayList<>();
 
@@ -245,7 +168,7 @@ public class RemoteVoltageTargetChecker {
             }
             LfBus controlledBusToFix = incompatibleControlledBusRefCount.get(controlledBus1).intValue() > incompatibleControlledBusRefCount.get(controlledBus2).intValue()
                     ? controlledBus1 : controlledBus2;
-            // predicatable choice based on alphabetic id order in case of same refcount
+            // predictable choice based on alphabetic id order in case of same refcount
             if (incompatibleControlledBusRefCount.get(controlledBus1).intValue() == incompatibleControlledBusRefCount.get(controlledBus2).intValue()) {
                 controlledBusToFix = controlledBus1.getId().compareTo(controlledBus2.getId()) < 0
                         ? controlledBus1 : controlledBus2;
@@ -262,7 +185,7 @@ public class RemoteVoltageTargetChecker {
         ReportNode fixRemoteTargetVoltageReport = Reports.reportFixRemoteTargetVoltage(network.getReportNode());
         RemoteVoltageTarget.LfResult result = check(parameters);
 
-        List<RemoteVoltageTarget.LfIncompatibleTargetResolution> incompatibleTargetResolutions = resolveIncompatbleTargets(result.lfIncompatibleTarget());
+        List<RemoteVoltageTarget.LfIncompatibleTargetResolution> incompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
         for (RemoteVoltageTarget.LfIncompatibleTargetResolution incompatibleTargetResolution : incompatibleTargetResolutions) {
             LfBus otherBus = incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1() == incompatibleTargetResolution.controlledBusToFix() ?
                     incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus2()
@@ -274,32 +197,13 @@ public class RemoteVoltageTargetChecker {
                         otherBus.getId(),
                         incompatibleTargetResolution.largestLfIncompatibleTarget().targetVoltagePlausibilityIndicator(),
                         voltageControl.getControllerElements().stream().map(LfElement::getId).toList().toString());
-                // The rport is garanteed to not be a NO_OP as OLF creates a root for each the CC
+                // The report is guaranteed to not be a NO_OP as OLF creates a root for each the CC
                 LOGGER.warn(incompatibleTargetNode.getMessage());
                 for (var controllerElement : voltageControl.getControllerElements()) {
                     controllerElement.setVoltageControlEnabled(false);
                 }
             }
         }
-
-        long remainingPV = network.getControllerElements(VoltageControl.Type.GENERATOR).stream().map(elt -> (LfBus) elt)
-                .filter(LfBus::isGeneratorVoltageControlEnabled).count();
-
-        for (RemoteVoltageTarget.LfUnrealisticTarget lfUnrealisticTarget : result.lfUnrealisticTargets()) {
-            if (remainingPV > 1 && lfUnrealisticTarget.controllerBus().isGeneratorVoltageControlEnabled()) {
-                LfBus controllerBus = lfUnrealisticTarget.controllerBus();
-                LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
-                ReportNode unrealisticTargetNode = Reports.reportUnrealisticTargetVoltage(fixRemoteTargetVoltageReport,
-                        controlledBus.getId(),
-                        controlledBus.getHighestPriorityTargetV().orElseThrow() * controlledBus.getNominalV(),
-                        controllerBus.getId(),
-                        lfUnrealisticTarget.estimatedDvController());
-                LOGGER.warn(unrealisticTargetNode.getMessage());
-                controllerBus.setGeneratorVoltageControlEnabled(false);
-                remainingPV -= 1;
-            }
-        }
-
     }
 
 }

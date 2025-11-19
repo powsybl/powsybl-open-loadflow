@@ -177,9 +177,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     public void initialize(AcOuterLoopContext context) {
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         if (loadFlowContext.getParameters().isFixRemoteVoltageTarget()) {
-            new RemoteVoltageTargetChecker(context.getNetwork(),
-                    loadFlowContext.getEquationSystem(),
-                    loadFlowContext.getJacobianMatrix())
+            new RemoteVoltageTargetChecker(context.getNetwork())
                     .fix(new RemoteVoltageTargetCheckerParameters(loadFlowContext.getParameters().getMatrixFactory()));
         }
         context.setData(new ContextData());
