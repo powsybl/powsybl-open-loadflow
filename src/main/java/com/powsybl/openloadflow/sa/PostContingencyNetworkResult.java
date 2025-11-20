@@ -10,8 +10,8 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -75,8 +75,10 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         clear();
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
         if (stateMonitor != null) {
+            computeZeroImpedanceFlows(stateMonitor, network);
             addResults(stateMonitor, isBranchDisabled);
         } else {
+            computeZeroImpedanceFlows(monitorIndex.getAllStateMonitor(), network);
             addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled);
         }
     }
@@ -84,5 +86,14 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     @Override
     public List<BranchResult> getBranchResults() {
         return branchResults;
+    }
+
+    private void computeZeroImpedanceFlows(StateMonitor monitor, LfNetwork network) {
+        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(LoadFlowModel.AC)) {
+            if (zeroImpedanceNetwork.getGraph().edgeSet().stream().map(LfElement::getOriginalIds).flatMap(List::stream).anyMatch(monitor.getBranchIds()::contains)) {
+                new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), LoadFlowModel.AC)
+                        .compute(); // TODO HG: Ok for pre contingency but not for post as it is modifying the network results
+            }
+        }
     }
 }

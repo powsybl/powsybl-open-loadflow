@@ -131,7 +131,7 @@ public class ZeroImpedanceFlows {
 
             // only lines with impedance
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
-                .filter(branch -> !branch.isZeroImpedance(loadFlowModel)).collect(Collectors.toList());
+                .filter(branch -> !branch.isZeroImpedance(loadFlowModel) && !branch.isDisabled()).collect(Collectors.toList());
 
             adjacentBranchesWithImpedance.forEach(branch -> {
                 PQ branchFlow = getBranchFlow(branch, bus);

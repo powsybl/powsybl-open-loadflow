@@ -4817,12 +4817,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult saResult2 = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResult2.getPreContingencyResult().getStatus());
-        // TODO HG: Fix the asserts (currently all results are NaN)
-        /*assertEquals(1.0, saResult2.getPreContingencyResult().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(1.0, saResult2.getPreContingencyResult().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
         assertEquals(-3.0, saResult2.getPreContingencyResult().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
         assertEquals(0.0, saResult2.getPreContingencyResult().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);
         assertEquals(0.0, saResult2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
         assertEquals(-2.0, saResult2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
-        assertEquals(0.0, saResult2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);*/
+        assertEquals(0.0, saResult2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);
+        // TODO HG:  Network results are set to pre contingency ones
+        /*assertEquals(1.0, network.getLine("l23").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(-3.0, network.getLine("l25").getTerminal1().getP(), DELTA_POWER);
+        assertEquals(0.0, network.getLine("l35").getTerminal1().getP(), DELTA_POWER);*/
     }
 }

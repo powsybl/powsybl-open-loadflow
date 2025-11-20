@@ -212,14 +212,21 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         var branch = getBranch();
-        double flowTransfer = Double.NaN;
-        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
-            flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
-        }
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
-        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                                            p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
+
+        double flowP1 = isZeroImpedance(LoadFlowModel.AC) ? branch.getTerminal1().getP() : p1.eval() * PerUnit.SB;
+        double flowQ1 = isZeroImpedance(LoadFlowModel.AC) ? branch.getTerminal1().getQ() : q1.eval() * PerUnit.SB;
+        double flowP2 = isZeroImpedance(LoadFlowModel.AC) ? branch.getTerminal2().getP() : p2.eval() * PerUnit.SB;
+        double flowQ2 = isZeroImpedance(LoadFlowModel.AC) ? branch.getTerminal2().getQ() : q2.eval() * PerUnit.SB;
+        double currentI1 = isZeroImpedance(LoadFlowModel.AC) ? branch.getTerminal1().getI() : i1.eval() * currentScale1;
+        double currentI2 = isZeroImpedance(LoadFlowModel.AC) ? branch.getTerminal2().getI() : i2.eval() * currentScale2;
+
+        double flowTransfer = Double.NaN;
+        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
+            flowTransfer = (flowP1 - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+        }
+        var branchResult = new BranchResult(getId(), flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowTransfer);
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     getV1() * branch.getTerminal1().getVoltageLevel().getNominalV(),
