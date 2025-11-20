@@ -1,11 +1,5 @@
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 public class LfAcDcNetwork extends LfNetwork{
     private List<LfNetwork> acSubNetworks = new ArrayList<>();
@@ -28,12 +22,6 @@ public class LfAcDcNetwork extends LfNetwork{
         }
         acSubNetworks = acNetworks;
         dcSubNetworks = dcNetworks;
-
-        System.out.println(this.getBuses());
-        System.out.println(this.getBranches());
-        System.out.println(this.getDcNodes());
-        System.out.println(this.getDcLines());
-        System.out.println(this.getVoltageSourceConverters());
     }
 
     @Override
@@ -66,8 +54,6 @@ public class LfAcDcNetwork extends LfNetwork{
     @Override
     public List<LfBus> getSlackBuses() {
         updateSlackBusesAndReferenceBus();
-        System.out.println("##############################_____SLACK BUSES_____##############################");
-        System.out.println(slackBuses);
         return slackBuses;
     }
 
@@ -80,16 +66,6 @@ public class LfAcDcNetwork extends LfNetwork{
 
     public List<LfNetwork> getAcSubNetworks() {
         return acSubNetworks;
-    }
-
-    public List<LfNetwork> getDcSubNetworks() {
-        return dcSubNetworks;
-    }
-
-    public LfGenerator getReferenceGenerator() {
-        updateSlackBusesAndReferenceBus();
-        //FIXME: which generator do we return ?
-        return acSubNetworks.getFirst().getReferenceGenerator();
     }
 }
 
