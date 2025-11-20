@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -42,6 +42,10 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<String> bbsIds;
 
+    private final double fictitiousInjectionTargetP;
+
+    private final double fictitiousInjectionTargetQ;
+
     // Lazy initialiation
     private ViolationLocation violationLocation = null;
 
@@ -55,6 +59,8 @@ public class LfBusImpl extends AbstractLfBus {
         this.participating = participating;
         this.breakers = parameters.isBreakers();
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
+        fictitiousInjectionTargetP = bus.getFictitiousP0() / PerUnit.SB;
+        fictitiousInjectionTargetQ = bus.getFictitiousQ0() / PerUnit.SB;
         if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
             bbsIds = bus.getConnectedTerminalStream()
                     .map(Terminal::getConnectable)
@@ -193,6 +199,16 @@ public class LfBusImpl extends AbstractLfBus {
             // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return super.getTargetQ();
+    }
+
+    @Override
+    public double getFictitiousInjectionTargetP() {
+        return fictitiousInjectionTargetP;
+    }
+
+    @Override
+    public double getFictitiousInjectionTargetQ() {
+        return fictitiousInjectionTargetQ;
     }
 
     public ViolationLocation getViolationLocation() {
