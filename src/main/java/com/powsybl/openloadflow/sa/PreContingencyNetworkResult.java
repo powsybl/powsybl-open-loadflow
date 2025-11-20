@@ -9,6 +9,9 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfZeroImpedanceNetwork;
+import com.powsybl.openloadflow.network.LoadFlowModel;
+import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -47,7 +50,9 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
+        computeZeroImpedanceFlows(monitorIndex.getNoneStateMonitor(), network);
         addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled);
+        computeZeroImpedanceFlows(monitorIndex.getNoneStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled);
     }
 
@@ -59,5 +64,14 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
     @Override
     public List<BranchResult> getBranchResults() {
         return new ArrayList<>(branchResults.values());
+    }
+
+    private void computeZeroImpedanceFlows(StateMonitor monitor, LfNetwork network) {
+        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(LoadFlowModel.AC)) {
+            if (zeroImpedanceNetwork.getGraph().edgeSet().stream().map(LfBranch::getOriginalIds).flatMap(List::stream).anyMatch(monitor.getBranchIds()::contains)) {
+                new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), LoadFlowModel.AC)
+                        .compute();
+            }
+        }
     }
 }
