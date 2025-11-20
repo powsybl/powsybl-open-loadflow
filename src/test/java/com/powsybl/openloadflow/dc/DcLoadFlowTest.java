@@ -488,7 +488,7 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
 
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute interchange active power mismatch", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
