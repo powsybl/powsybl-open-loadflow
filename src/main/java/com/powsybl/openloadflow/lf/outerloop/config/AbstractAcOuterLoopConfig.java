@@ -120,11 +120,11 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode) {
+    protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode, int maxSectionShift) {
         if (parameters.isShuntCompensatorVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new ShuntVoltageControlOuterLoop();
-                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalShuntVoltageControlOuterLoop();
+                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalShuntVoltageControlOuterLoop(maxSectionShift);
             };
             return Optional.of(outerLoop);
         }
@@ -132,7 +132,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode());
+        return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode(), parametersExt.getIncrementalShuntControlOuterLoopMaxSectionShift());
     }
 
     protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.PhaseShifterControlMode controlMode) {
