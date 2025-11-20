@@ -4810,13 +4810,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // Then test with REPLACE_BY_ZERO_IMPEDANCE_LINE
         lfParameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
         runLoadFlow(network, lfParameters);
-
         assertEquals(1.0, network.getLine("l23").getTerminal1().getP(), DELTA_POWER);
         assertEquals(-3.0, network.getLine("l25").getTerminal1().getP(), DELTA_POWER);
         assertEquals(0.0, network.getLine("l35").getTerminal1().getP(), DELTA_POWER);
 
-        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+        SecurityAnalysisResult saResult2 = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
 
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result2.getPreContingencyResult().getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResult2.getPreContingencyResult().getStatus());
+        // TODO HG: Fix the asserts (currently all results are NaN)
+        /*assertEquals(1.0, saResult2.getPreContingencyResult().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(-3.0, saResult2.getPreContingencyResult().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
+        assertEquals(0.0, saResult2.getPreContingencyResult().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);
+        assertEquals(0.0, saResult2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(-2.0, saResult2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
+        assertEquals(0.0, saResult2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l35").getP1(), DELTA_POWER);*/
     }
 }
