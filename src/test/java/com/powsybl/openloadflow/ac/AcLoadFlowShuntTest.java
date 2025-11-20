@@ -697,14 +697,15 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testOvershootProblem() throws IOException {
+    void testMaxSectionShift() throws IOException {
         network = ShuntNetworkFactory.createTwinShuntCompensators();
         ShuntCompensator s4 = network.getShuntCompensator("s4");
         ShuntCompensator s5 = network.getShuntCompensator("s5");
         Bus b4 = network.getBusBreakerView().getBus("b4");
         Bus b5 = network.getBusBreakerView().getBus("b5");
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        OpenLoadFlowParameters.create(parameters)
+                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
         // no shunt on voltage control
         s4.setVoltageRegulatorOn(false);
@@ -755,6 +756,52 @@ class AcLoadFlowShuntTest {
                             + Outer loop iteration 1
                                2 shunts changed section
                             + Outer loop iteration 2
+                               2 shunts changed section
+                         Outer loop DistributedSlack
+                         Outer loop VoltageMonitoring
+                         Outer loop ReactiveLimits
+                         Outer loop IncrementalShuntVoltageControl
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+
+        // ---------------------------
+        // Test without any limitation on max section shift per outerloop
+        OpenLoadFlowParameters.get(parameters).setIncrementalShuntControlOuterLoopMaxSectionShift(50);
+        reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(),
+                LoadFlowRunParameters.getDefault().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        // Shunts are always overshooting and reversing direction,
+        // because each shunt cannot see the contribution of the other shunt nearby.
+        // until they stop due to hitting MAX_DIRECTION_CHANGE (3).
+        assertEquals(4, s4.getSolvedSectionCount()); // moved
+        assertVoltageEquals(398.46277, b4); // not at target within deadband (410 kV +/- 2 kV)
+        assertEquals(4, s5.getSolvedSectionCount()); // moved
+        assertVoltageEquals(398.46277, b5); // not at target within deadband (410 kV +/- 2 kV)
+
+        LoadFlowAssert.assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'twinShuntCompensators'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 5 buses and 4 branches
+                            Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=20 MVar
+                            Angle reference bus: b2_vl_0
+                            Slack bus: b2_vl_0
+                         Outer loop DistributedSlack
+                         Outer loop VoltageMonitoring
+                         Outer loop ReactiveLimits
+                         + Outer loop IncrementalShuntVoltageControl
+                            + Outer loop iteration 1
+                               2 shunts changed section
+                            + Outer loop iteration 2
+                               2 shunts changed section
+                            + Outer loop iteration 3
+                               2 shunts changed section
+                            + Outer loop iteration 4
                                2 shunts changed section
                          Outer loop DistributedSlack
                          Outer loop VoltageMonitoring

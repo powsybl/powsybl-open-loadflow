@@ -45,10 +45,16 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     // Maximum number of directional inversions for each controller during successive incremental outer loops
     private static final int MAX_DIRECTION_CHANGE = 3;
 
-    // Maximum section number change for each controller within a single outerloop
-    private static final int MAX_SECTION_CHANGE = 3;
+    // Maximum section number shift for each controller within a single outerloop
+    public static final int MAX_SECTION_SHIFT_DEFAULT_VALUE = 3;
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
+
+    private final int maxSectionShift;
+
+    public IncrementalShuntVoltageControlOuterLoop(int maxSectionShift) {
+        this.maxSectionShift = maxSectionShift;
+    }
 
     @Override
     public String getName() {
@@ -139,7 +145,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         // several shunts could control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
-        Map<LfShunt.Controller, Integer> sectionChangesCountPerController = new HashMap<>();
+        Map<LfShunt.Controller, Integer> sectionShiftPerController = new HashMap<>();
         while (hasChanged) {
             hasChanged = false;
             for (LfShunt controllerShunt : sortedControllerShunts) {
@@ -150,17 +156,17 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                         var controllerContext = contextData.getControllersContexts().get(controller.getId());
                         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
-                            int sectionChanges = sectionChangesCountPerController.getOrDefault(controller, 0);
-                            if (sectionChanges > MAX_SECTION_CHANGE) {
-                                // already changed by maximum allowed number of sections change in this outerloop
-                                LOGGER.debug("Controller shunt '{}' is not in its deadband but will not be adjusted further because reached max section changes in this outerloop", controllerShunt.getId());
+                            int sectionShift = sectionShiftPerController.getOrDefault(controller, 0);
+                            if (sectionShift > maxSectionShift) {
+                                // already changed by maximum allowed number of sections shift in this outerloop
+                                LOGGER.debug("Controller shunt '{}' is not in its deadband but will not be adjusted further because reached max section shift in this outerloop", controllerShunt.getId());
                                 continue;
                             }
                             double previousB = controller.getB();
                             double deltaB = remainingDiffV / sensitivity;
                             Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
                             if (direction != null) {
-                                sectionChangesCountPerController.put(controller, sectionChanges + 1);
+                                sectionShiftPerController.put(controller, sectionShift + 1);
                                 controllerContext.updateAllowedDirection(direction);
                                 remainingDiffV -= (controller.getB() - previousB) * sensitivity;
                                 hasChanged = true;
@@ -173,7 +179,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                 }
             }
         }
-        numAdjustedShunts.setValue(numAdjustedShunts.get() + sectionChangesCountPerController.size());
+        numAdjustedShunts.setValue(numAdjustedShunts.get() + sectionShiftPerController.size());
     }
 
     private static double getDiffV(ShuntVoltageControl voltageControl) {
