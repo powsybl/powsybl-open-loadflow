@@ -9,12 +9,12 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Area;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -43,12 +43,15 @@ class AreaInterchangeControlTest {
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
 
+    private LoadFlowRunParameters runParameters;
+
     private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
+        runParameters = new LoadFlowRunParameters().setParameters(parameters);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setAreaInterchangeControl(true)
                 .setSlackBusPMaxMismatch(1e-3)
@@ -290,7 +293,7 @@ class AreaInterchangeControlTest {
                 .withMessageTemplate("test")
                 .build();
         parametersExt.setAreaInterchangePMaxMismatch(0.5);
-        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
+        var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
         assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
         String expectedReport = """
@@ -339,7 +342,7 @@ class AreaInterchangeControlTest {
         network.getArea("a1").setInterchangeTarget(-10); // will have a margin of 0.9 for slack distribution  (interchange with slack =-10.4 and max acceptable interchange = -9.5)
         network.getArea("a2").setInterchangeTarget(9.51); // will have a margin of 0.01 for slack distribution (interchange with slack = 10 and max acceptable interchange = 10.01)
 
-        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
+        var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
         assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
         String expectedReport = """
