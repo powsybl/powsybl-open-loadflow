@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
 
@@ -52,6 +53,28 @@ class AdmittanceMatrixTest {
             assertEquals(87.155, 1.0 / y.getZ(nhv1, nhv2).abs(), 1e-3);
             assertEquals(55.629, 1.0 / y.getZ(nhv2, nload).abs(), 1e-3);
             assertEquals(28.582, 1.0 / y.getZ(ngen, nload).abs(), 1e-3);
+        }
+    }
+
+    @Test
+    void testWithShunt() {
+        Network network = ShuntNetworkFactory.create();
+        network.getShuntCompensator("SHUNT").setSectionCount(1);
+        for (var shunt : network.getShuntCompensators()) {
+            System.out.println(shunt.getId() + " " + shunt.getB());
+        }
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        var ySystem = AdmittanceEquationSystem.create(lfNetwork, new VariableSet<>());
+        try (var y = AdmittanceMatrix.create(ySystem, new DenseMatrixFactory())) {
+            var yRef = new DenseMatrix(6, 6, new double[]{
+                160.00000000000003, 480.0000000000001, -160.00000000000003, -480.0000000000001, 0.0, 0.0,
+                -480.0000000000001, 160.00000000000003, 480.0000000000001, -160.00000000000003, 0.0, 0.0,
+                -160.00000000000003, -480.0000000000001, 320.00000000000006, 960.0000000000002, -160.00000000000003, -480.0000000000001,
+                480.0000000000001, -160.00000000000003, -960.0000000000002, 320.00000000000006, 480.0000000000001, -160.00000000000003,
+                0.0, 0.0, -160.00000000000003, -480.0000000000001, 160.00000000000003, 478.4000000000001,
+                0.0, 0.0, 480.0000000000001, -160.00000000000003, -478.4000000000001, 160.00000000000003,
+            });
+            assertEquals(yRef, y.getMatrix());
         }
     }
 }
