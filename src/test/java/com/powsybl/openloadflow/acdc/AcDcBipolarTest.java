@@ -535,7 +535,6 @@ public class AcDcBipolarTest {
         //Bipolar Model with metallic return, with 2 AC Networks, the reference buses and slack buses are set by converters
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcSubNetworksAndVoltageControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        //TODO: adapt slack distribution for AC subnetworks
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)

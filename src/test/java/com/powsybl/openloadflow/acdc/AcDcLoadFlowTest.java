@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -30,14 +31,156 @@ public class AcDcLoadFlowTest {
     Network network;
 
     @Test
-    void testNetworkFactory() {
+    void testVscAsymmetricalMonopole() {
         network = DcDetailedNetworkFactory.createVscAsymmetricalMonopole();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
+        //TODO: adapt slack distribution for AC subnetworks
+        //for now, we just deactivate slack distribution for AC DC load flow
+        LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setAcDcNetwork(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+
+        Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
+        assertVoltageEquals(149.776011, busGb150);
+        assertAngleEquals(-2.550141, busGb150);
+
+        Bus busFr150 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-150");
+        assertVoltageEquals(149.819131, busFr150);
+        assertAngleEquals(2.543088, busFr150);
+
+        Bus busGb400 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-400");
+        assertVoltageEquals(400.155070, busGb400);
+        assertAngleEquals(-0.000000, busGb400);
+
+        Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
+        assertVoltageEquals(399.556099, busFr400);
+        assertAngleEquals(-0.000000, busFr400);
+
+        Bus busFr = network.getBusBreakerView().getBus("BUS-FR");
+        assertVoltageEquals(400.000000, busFr);
+        assertAngleEquals(0.427977, busFr);
+
+        Bus busGb = network.getBusBreakerView().getBus("BUS-GB");
+        assertVoltageEquals(400.000000, busGb);
+        assertAngleEquals(-0.431794, busGb);
+
+        DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
+        assertVoltageEquals(0.000000, dcNodeGbNeg);
+
+        DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
+        assertVoltageEquals(-501.992063, dcNodeGbPos);
+
+        DcNode dcNodeFrNeg = network.getDcNode("dcNodeFrNeg");
+        assertVoltageEquals(0.000000, dcNodeFrNeg);
+
+        DcNode dcNodeFrPos = network.getDcNode("dcNodeFrPos");
+        assertVoltageEquals(-500.000000, dcNodeFrPos);
+
+        Generator genFr = network.getGenerator("GEN-FR");
+        assertActivePowerEquals(-2000.000000, genFr.getTerminal());
+        assertReactivePowerEquals(-10.336457, genFr.getTerminal());
+
+        Generator genGb = network.getGenerator("GEN-GB");
+        assertActivePowerEquals(-2000.000000, genGb.getTerminal());
+        assertReactivePowerEquals(-10.419567, genGb.getTerminal());
+
+        VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
+        assertActivePowerEquals(199.206337, vscFr.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscFr.getTerminal1());
+        assertDcPowerEquals(-0.000000, vscFr.getDcTerminal1());
+        assertDcPowerEquals(-199.206337, vscFr.getDcTerminal2());
+
+        VoltageSourceConverter vscGb = network.getVoltageSourceConverter("VscGb");
+        assertActivePowerEquals(-200.000000, vscGb.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscGb.getTerminal1());
+        assertDcPowerEquals(0.000000, vscGb.getDcTerminal1());
+        assertDcPowerEquals(200.000000, vscGb.getDcTerminal2());
+
+        DcLine dcLinePos = network.getDcLine("dcLinePos");
+        assertDcPowerEquals(199.206337, dcLinePos.getDcTerminal1());
+        assertDcPowerEquals(-200.000000, dcLinePos.getDcTerminal2());
+    }
+
+    @Test
+    void testVscSymmetricalMonopole() {
+        network = DcDetailedNetworkFactory.createVscSymmetricalMonopole();
+        LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setAcDcNetwork(true);
+        //FIXME : loadflow on this network does not converge with DenseMatrixFactory
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged());
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider());
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
+        assertVoltageEquals(149.776011, busGb150);
+        assertAngleEquals(-2.550141, busGb150);
+
+        Bus busFr150 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-150");
+        assertVoltageEquals(149.820194, busFr150);
+        assertAngleEquals(2.533076, busFr150);
+
+        Bus busGb400 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-400");
+        assertVoltageEquals(400.155070, busGb400);
+        assertAngleEquals(0.000000, busGb400);
+
+        Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
+        assertVoltageEquals(399.557158, busFr400);
+        assertAngleEquals(0.000000, busFr400);
+
+        Bus busFr = network.getBusBreakerView().getBus("BUS-FR");
+        assertVoltageEquals(400.000000, busFr);
+        assertAngleEquals(0.427991, busFr);
+
+        Bus busGb = network.getBusBreakerView().getBus("BUS-GB");
+        assertVoltageEquals(400.000000, busGb);
+        assertAngleEquals(-0.431794, busGb);
+
+        DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
+        assertVoltageEquals(243.330843, dcNodeGbNeg);
+
+        DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
+        assertVoltageEquals(-260.637659, dcNodeGbPos);
+
+        DcNode dcNodeFrNeg = network.getDcNode("dcNodeFrNeg");
+        assertVoltageEquals(241.346592, dcNodeFrNeg);
+
+        DcNode dcNodeFrPos = network.getDcNode("dcNodeFrPos");
+        assertVoltageEquals(-258.653408, dcNodeFrPos);
+
+        Generator genFr = network.getGenerator("GEN-FR");
+        assertActivePowerEquals(-2000.000000, genFr.getTerminal());
+        assertReactivePowerEquals(-10.265940, genFr.getTerminal());
+
+        Generator genGb = network.getGenerator("GEN-GB");
+        assertActivePowerEquals(-2000.000000, genGb.getTerminal());
+        assertReactivePowerEquals(-10.419567, genGb.getTerminal());
+
+        VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
+        assertActivePowerEquals(198.425099, vscFr.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscFr.getTerminal1());
+        assertDcPowerEquals(-95.778443, vscFr.getDcTerminal1());
+        assertDcPowerEquals(-102.646656, vscFr.getDcTerminal2());
+
+        VoltageSourceConverter vscGb = network.getVoltageSourceConverter("VscGb");
+        assertActivePowerEquals(-200.000000, vscGb.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscGb.getTerminal1());
+        assertDcPowerEquals(96.565893, vscGb.getDcTerminal1());
+        assertDcPowerEquals(103.434107, vscGb.getDcTerminal2());
+
+        DcLine dcLineNeg = network.getDcLine("dcLineNeg");
+        assertDcPowerEquals(95.778443, dcLineNeg.getDcTerminal1());
+        assertDcPowerEquals(-96.565893, dcLineNeg.getDcTerminal2());
+
+        DcLine dcLinePos = network.getDcLine("dcLinePos");
+        assertDcPowerEquals(102.646656, dcLinePos.getDcTerminal1());
+        assertDcPowerEquals(-103.434107, dcLinePos.getDcTerminal2());
     }
 
     @Test

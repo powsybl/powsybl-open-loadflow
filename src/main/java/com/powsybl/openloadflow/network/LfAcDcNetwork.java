@@ -1,22 +1,34 @@
+/**
+ * Copyright (c) 2025, SuperGrid Institute (http://www.supergrid-institute.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.network;
 
-import java.util.*;
-public class LfAcDcNetwork extends LfNetwork{
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
+ */
+public class LfAcDcNetwork extends LfNetwork {
+    private final List<LfBus> acDcReferenceBuses = new ArrayList<>();
+    protected List<LfBus> slackBuses = new ArrayList<>();
     private List<LfNetwork> acSubNetworks = new ArrayList<>();
     private List<LfNetwork> dcSubNetworks = new ArrayList<>();
-    protected List<LfBus> slackBuses = new ArrayList<>();
-    private final List<LfBus> acDcReferenceBuses = new ArrayList<>();
 
     public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
         //TODO : find a better way to implement super class
         super(acNetworks.getFirst());
-        for(LfNetwork network : acNetworks) {
+        for (LfNetwork network : acNetworks) {
             network.getBuses().forEach(this::addBus);
             network.getBranches().forEach(this::addBranch);
             network.getAreas().forEach(this::addArea);
             network.getHvdcs().forEach(this::addHvdc);
         }
-        for(LfNetwork network : dcNetworks) {
+        for (LfNetwork network : dcNetworks) {
             network.getDcNodes().forEach(this::addDcNode);
             network.getDcLines().forEach(this::addDcLine);
         }

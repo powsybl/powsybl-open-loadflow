@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -1151,37 +1150,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return lfNetwork;
     }
 
-    private LfNetwork createDc(int numCC, int numSC, Network network, List<DcBus> dcBuses, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
+    private LfNetwork createDc(int numCC, int numSC, Network network, List<DcBus> dcBuses, LfNetworkParameters parameters, ReportNode reportNode) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
 
         List<DcNode> dcNodes = new ArrayList<>();
         dcBuses.forEach(bus -> bus.getDcNodes().forEach(dcNodes::add));
-        System.out.println(dcBuses);
-        System.out.println(dcNodes);
-        List<AcDcConverter<?>> acDcConverters = new ArrayList<>();
-        dcBuses.forEach(bus -> bus.getVoltageSourceConverters().forEach(acDcConverters::add));
-        List<LfDcNode> lfDcNodes = new ArrayList<>();
-        List<DcGround> dcGrounds = StreamSupport.stream(network.getDcGrounds().spliterator(), false).toList();
-
-        for (AcDcConverter<?> acDcConverter : acDcConverters) {
-            DcTerminal terminal1 = acDcConverter.getDcTerminal1();
-            DcTerminal terminal2 = acDcConverter.getDcTerminal2();
-            if (!terminal1.isConnected()) {
-                dcNodes.remove(terminal1.getDcNode());
-            }
-            if (!terminal2.isConnected()) {
-                dcNodes.remove(terminal2.getDcNode());
-            }
-        }
+        List<DcGround> dcGrounds = new ArrayList<>();
+        dcBuses.forEach(bus -> bus.getDcGrounds().forEach(dcGrounds::add));
 
         LoadingContext loadingContext = new LoadingContext();
-        LfNetworkLoadingReport report = new LfNetworkLoadingReport();
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
                         || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
                 .collect(Collectors.toList());
 
+        List<LfDcNode> lfDcNodes = new ArrayList<>();
         createDcNodes(dcNodes, parameters, lfNetwork, lfDcNodes, loadingContext);
         createDcGrounds(lfNetwork, dcGrounds);
         createDcLines(lfNetwork, loadingContext, parameters);
@@ -1448,7 +1432,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
                     List<DcBus> lfDcBuses = e.getValue();
-                    return createDc(numCc, numSc, network, lfDcBuses, topoConfig,
+                    return createDc(numCc, numSc, network, lfDcBuses,
                             parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
                 })
                 .toList();
