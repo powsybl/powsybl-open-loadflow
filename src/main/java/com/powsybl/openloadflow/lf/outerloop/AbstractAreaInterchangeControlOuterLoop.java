@@ -157,8 +157,10 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
         List<AreaActivePowerDistributionResult> resultByArea = new ArrayList<>();
 
         Map<LfArea, Double> distributionFactorByArea = getSlackDistributionFactorByArea(mismatch, network.getAreas(), areaSlackDistributionParticipationFactor);
+
+        Comparator<Map.Entry<LfArea, Double>> mismatchComparator = Comparator.comparingDouble(Map.Entry::getValue);
         Iterator<LfArea> areaIteratorSortedByFactor = distributionFactorByArea.entrySet().stream().
-                sorted(Comparator.comparingDouble((Map.Entry<LfArea, Double> e) -> e.getValue()).reversed())
+                sorted(mismatchComparator.reversed())
                 .map(Map.Entry::getKey)
                 .iterator();
 
