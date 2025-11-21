@@ -12,7 +12,6 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -112,7 +111,7 @@ public class FastDecoupled extends AbstractAcSolver {
         };
     }
 
-    Comparator<Equation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
+    Comparator<AtomicEquation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
         PhiVEquationType equationType1 = getPhiVEquationType(o1.getType());
         PhiVEquationType equationType2 = getPhiVEquationType(o2.getType());
         if (equationType1 != equationType2) {
@@ -244,9 +243,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
         // solve f(x) = j * dx
         // Divide equation vector by voltage magnitude
-        for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
-            int eqColumn = equation.getColumn();
-            if (eqColumn >= begin && eqColumn < end && JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
+        for (int eqColumn = begin; eqColumn < end; eqColumn++) {
+            var equation = equationSystem.getIndex().getEquationAtColumn(eqColumn);
+            if (JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
                 int busNum = retrieveBusNumFromEquation(equation);
                 Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
                 equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
@@ -294,8 +293,8 @@ public class FastDecoupled extends AbstractAcSolver {
                 findLargestMismatches(equationSystem, equationVector.getArray(), 5)
                         .forEach(e -> {
                             Equation<AcVariableType, AcEquationType> equation = e.getKey();
-                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
-                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
+                            LfBus bus = network.getBus(equation.getElementNum());
+                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), bus.getId());
                         });
             }
 
@@ -310,7 +309,8 @@ public class FastDecoupled extends AbstractAcSolver {
 
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
-        equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
+        equationSystem.getIndex().updateWithSeparation(eqType -> getPhiVEquationType(eqType) == PhiVEquationType.PHI_EQUATION_TYPE,
+                varType -> getPhiVVariableType(varType) == PhiVVariableType.PHI_VARIABLE_TYPE);
         int rangeIndex = getRangeForPhiSystemPart();
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
@@ -338,7 +338,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
             // prepare half-sized equation vector
             double[] phiEquationVector = new double[rangeIndex];
-            double[] vEquationVector = new double[equationSystem.getIndex().getSortedEquationsToSolve().size() - rangeIndex];
+            double[] vEquationVector = new double[equationSystem.getIndex().getColumnCount() - rangeIndex];
 
             while (iterations.intValue() <= parameters.getMaxIterations()) {
                 AcSolverStatus newStatus = runIteration(iterations, reportNode, phiEquationVector, vEquationVector, rangeIndex);

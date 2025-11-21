@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ReactiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator;
 import com.powsybl.openloadflow.equations.Variable;
 import net.jafama.FastMath;
 import java.util.Objects;
@@ -22,10 +23,36 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
 
-    private final ClosedBranchSide1ReactiveFlowEquationTerm term;
+    private final double y;
+    private final double ksi;
+    private final double b1;
+    private final double a1;
+    private final double r1;
+    private final Variable<AcVariableType> v1Var;
+    private final Variable<AcVariableType> v2Var;
+    private final Variable<AcVariableType> r1Var;
 
     public ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(ClosedBranchSide1ReactiveFlowEquationTerm closedBranchSide1ReactiveFlowEquationTerm) {
-        this.term = closedBranchSide1ReactiveFlowEquationTerm;
+        y = closedBranchSide1ReactiveFlowEquationTerm.getY();
+        ksi = closedBranchSide1ReactiveFlowEquationTerm.getKsi();
+        b1 = closedBranchSide1ReactiveFlowEquationTerm.getB1();
+        a1 = closedBranchSide1ReactiveFlowEquationTerm.a1();
+        r1 = closedBranchSide1ReactiveFlowEquationTerm.r1();
+        v1Var = closedBranchSide1ReactiveFlowEquationTerm.getV1Var();
+        v2Var = closedBranchSide1ReactiveFlowEquationTerm.getV2Var();
+        r1Var = closedBranchSide1ReactiveFlowEquationTerm.getR1Var();
+    }
+
+    public ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator closedBranchSide1ReactiveFlowEvaluator, int branchNum) {
+        // If vectorized, we use EquationTermArrayEvaluator to get the term data
+        y = closedBranchSide1ReactiveFlowEvaluator.getY(branchNum);
+        ksi = closedBranchSide1ReactiveFlowEvaluator.getKsi(branchNum);
+        b1 = closedBranchSide1ReactiveFlowEvaluator.getB1(branchNum);
+        a1 = closedBranchSide1ReactiveFlowEvaluator.getA1(branchNum);
+        r1 = closedBranchSide1ReactiveFlowEvaluator.getR1(branchNum);
+        v1Var = closedBranchSide1ReactiveFlowEvaluator.getV1Var(branchNum);
+        v2Var = closedBranchSide1ReactiveFlowEvaluator.getV2Var(branchNum);
+        r1Var = closedBranchSide1ReactiveFlowEvaluator.getR1Var(branchNum);
     }
 
     public static double dq1dv1FastDecoupled(double y, double cosKsi, double b1, double v1, double r1, double cosTheta) {
@@ -43,13 +70,13 @@ public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm implements A
 
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double theta = theta1FastDecoupled(term.getKsi(), term.a1());
-        if (variable.equals(term.getV1Var())) {
-            return dq1dv1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), 1, term.r1(), FastMath.cos(theta));
-        } else if (variable.equals(term.getV2Var())) {
-            return dq1dv2(term.getY(), 1, term.r1(), FastMath.cos(theta));
-        } else if (variable.equals(term.getR1Var())) {
-            return dq1dr1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), 1, term.r1(), FastMath.cos(theta));
+        double theta = theta1FastDecoupled(ksi, a1);
+        if (variable.equals(v1Var)) {
+            return dq1dv1FastDecoupled(y, FastMath.cos(ksi), b1, 1, r1, FastMath.cos(theta));
+        } else if (variable.equals(v2Var)) {
+            return dq1dv2(y, 1, r1, FastMath.cos(theta));
+        } else if (variable.equals(r1Var)) {
+            return dq1dr1FastDecoupled(y, FastMath.cos(ksi), b1, 1, r1, FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

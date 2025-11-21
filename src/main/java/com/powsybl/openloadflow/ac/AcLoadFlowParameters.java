@@ -56,6 +56,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private double minNominalVoltageRealisticVoltageCheck = DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK;
 
+    private boolean vectorized = true;
+
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
     }
@@ -160,6 +162,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isVectorized() {
+        return vectorized;
+    }
+
+    public AcLoadFlowParameters setVectorized(boolean vectorized) {
+        this.vectorized = vectorized;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -178,6 +189,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
+                ", vectorized=" + vectorized +
                 ')';
     }
 }

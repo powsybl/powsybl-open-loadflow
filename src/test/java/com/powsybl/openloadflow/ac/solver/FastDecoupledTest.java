@@ -320,7 +320,7 @@ class FastDecoupledTest {
                                   Bus injection: -127.134274 MW, 3.066932 MVar
                                + Largest V mismatch: 0 p.u.
                                   Bus Id: VL1_0 (nominalVoltage=100kV)
-                                  Bus V: 1.04 pu, -0 rad
+                                  Bus V: 1.04 pu, 0 rad
                                   Bus injection: 75.499923 MW, 8.787543 MVar
                             + Iteration 1 mismatch
                                Step size: 1 (line search)
@@ -336,7 +336,7 @@ class FastDecoupledTest {
                                   Bus injection: -127.914637 MW, -49.170315 MVar
                                + Largest V mismatch: 0 p.u.
                                   Bus Id: VL1_0 (nominalVoltage=100kV)
-                                  Bus V: 1.04 pu, -0 rad
+                                  Bus V: 1.04 pu, 0 rad
                                   Bus injection: 70.853089 MW, 26.910067 MVar
                             + Iteration 2 mismatch
                                Step size: 1 (line search)
@@ -352,7 +352,7 @@ class FastDecoupledTest {
                                   Bus injection: -0.180282 MW, -0.011693 MVar
                                + Largest V mismatch: 0 p.u.
                                   Bus Id: VL1_0 (nominalVoltage=100kV)
-                                  Bus V: 1.04 pu, -0 rad
+                                  Bus V: 1.04 pu, 0 rad
                                   Bus injection: 71.700448 MW, 27.020721 MVar
                             + Iteration 3 mismatch
                                Step size: 1 (line search)
@@ -368,7 +368,7 @@ class FastDecoupledTest {
                                   Bus injection: 0.009166 MW, 0.000459 MVar
                                + Largest V mismatch: 0 p.u.
                                   Bus Id: VL1_0 (nominalVoltage=100kV)
-                                  Bus V: 1.04 pu, -0 rad
+                                  Bus V: 1.04 pu, 0 rad
                                   Bus injection: 71.632631 MW, 27.046074 MVar
                          Outer loop DistributedSlack
                          Outer loop VoltageMonitoring
