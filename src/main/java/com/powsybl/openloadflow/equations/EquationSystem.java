@@ -249,7 +249,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public List<String> getColumnNames() {
         List<String> columnNames = new ArrayList<>();
-        columnNames.addAll(index.getSortedEquationsToSolve().stream()
+        columnNames.addAll(index.getSortedAtomicEquationsToSolve().stream()
                 .map(e -> network.getElement(e.getType().getElementType(), e.getElementNum()).getId() + "/" + e.getType())
                 .toList());
         for (var equationArray : equationArrays.values()) {

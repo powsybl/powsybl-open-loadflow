@@ -45,7 +45,7 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     protected void updateArray(double[] array) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        var equations = equationSystem.getIndex().getSortedEquationsToSolve();
+        var equations = equationSystem.getIndex().getSortedAtomicEquationsToSolve();
 
         if (array.length != equationSystem.getIndex().getColumnCount()) {
             throw new IllegalArgumentException("Bad equation vector length: " + array.length);

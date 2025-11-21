@@ -50,7 +50,7 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
     }
 
     private boolean computeStop(double[] fx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (var eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        for (var eq : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
             var type = eq.getType();
             var column = eq.getColumn();
             if (checkEquation(fx, type, column)) {

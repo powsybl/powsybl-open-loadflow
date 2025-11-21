@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.equations.vector;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Derivative;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 
 import java.util.ArrayList;
@@ -61,5 +62,37 @@ public abstract class AbstractClosedBranchEquationTermArrayEvaluator extends Abs
             derivatives.add(new Derivative<>(variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1), 5));
         }
         return derivatives;
+    }
+
+    public double getR1(int branchNum) {
+        return branchVector.r1State[branchNum];
+    }
+
+    public double getA1(int branchNum) {
+        return branchVector.a1State[branchNum];
+    }
+
+    public Variable<AcVariableType> getV1Var(int branchNum) {
+        return variableSet.getVariable(branchVector.bus1Num[branchNum], AcVariableType.BUS_V);
+    }
+
+    public Variable<AcVariableType> getV2Var(int branchNum) {
+        return variableSet.getVariable(branchVector.bus2Num[branchNum], AcVariableType.BUS_V);
+    }
+
+    public Variable<AcVariableType> getPhi1Var(int branchNum) {
+        return variableSet.getVariable(branchVector.bus1Num[branchNum], AcVariableType.BUS_PHI);
+    }
+
+    public Variable<AcVariableType> getPhi2Var(int branchNum) {
+        return variableSet.getVariable(branchVector.bus2Num[branchNum], AcVariableType.BUS_PHI);
+    }
+
+    public Variable<AcVariableType> getA1Var(int branchNum) {
+        return variableSet.getVariable(branchNum, AcVariableType.BRANCH_ALPHA1);
+    }
+
+    public Variable<AcVariableType> getR1Var(int branchNum) {
+        return variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1);
     }
 }

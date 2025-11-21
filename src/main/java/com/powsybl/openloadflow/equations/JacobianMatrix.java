@@ -90,13 +90,17 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
+    public void onEquationIndexOrderChanged() {
+        updateStatus(Status.STRUCTURE_INVALID);
+    }
+
+    @Override
     public void onStateUpdate() {
         updateStatus(Status.VALUES_INVALID);
     }
 
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
-
         int rowCount = equationSystem.getIndex().getRowCount();
         int columnCount = equationSystem.getIndex().getColumnCount();
         if (rowCount != columnCount) {
@@ -107,7 +111,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
-        for (AtomicEquation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        for (AtomicEquation<V, E> eq : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
             int column = eq.getColumn();
             eq.der((variable, value, matrixElementIndex) -> {
                 int row = variable.getRow();
@@ -115,8 +119,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             });
         }
         for (var eq : equationSystem.getEquationArrays()) {
-            eq.der((column, row, value, matrixElementIndex)
-                    -> matrix.addAndGetIndex(row, column, value));
+            eq.der((column, row, value, matrixElementIndex) ->
+                    matrix.addAndGetIndex(row, column, value));
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -138,7 +142,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
-        for (AtomicEquation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        for (AtomicEquation<V, E> eq : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
             eq.der((variable, value, matrixElementIndex) -> {
                 matrix.addAtIndex(matrixElementIndex, value);
                 return matrixElementIndex; // don't change element index

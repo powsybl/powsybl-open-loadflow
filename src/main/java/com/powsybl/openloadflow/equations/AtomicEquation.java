@@ -38,7 +38,7 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final List<AtomicEquationTerm<V, E>> terms = new ArrayList<>();
 
-    private final Map<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+    private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
     /**
      * Element index of a two dimensions matrix (equations * variables) indexed by variable index (order of the variable
@@ -157,7 +157,8 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    public Map<Variable<V>, List<AtomicEquationTerm<V, E>>> getTermsByVariable() {
+    @Override
+    public Map<Variable<V>, List<EquationTerm<V, E>>> getTermsByVariable() {
         return termsByVariable;
     }
 
@@ -182,22 +183,17 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return value;
     }
 
-    public interface DerHandler<V extends Enum<V> & Quantity> {
-
-        int onDer(Variable<V> variable, double value, int matrixElementIndex);
-    }
-
     public void der(DerHandler<V> handler) {
         Objects.requireNonNull(handler);
         int variableIndex = 0;
-        for (Map.Entry<Variable<V>, List<AtomicEquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+        for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
             Variable<V> variable = e.getKey();
             int row = variable.getRow();
             if (row != -1) {
                 double value = 0;
                 // create a derivative even if all terms are not active, to allow later reactivation of terms
                 // that won't create a new matrix element and a simple update of the matrix
-                for (AtomicEquationTerm<V, E> term : e.getValue()) {
+                for (EquationTerm<V, E> term : e.getValue()) {
                     if (term.isActive()) {
                         value += term.der(variable);
                     }

@@ -301,6 +301,18 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             }
 
             @Override
+            @SuppressWarnings("unchecked")
+            public <T extends EquationTerm<V, E>> Map<Variable<V>, List<T>> getTermsByVariable() {
+                Map<Variable<V>, List<T>> termsByVariable = new TreeMap<>();
+                for (EquationTerm<V, E> term : this.getTerms()) {
+                    for (Variable<V> v : term.getVariables()) {
+                        termsByVariable.computeIfAbsent(v, k -> new ArrayList<>()).add((T) term);
+                    }
+                }
+                return termsByVariable;
+            }
+
+            @Override
             public EquationSystem<V, E> getEquationSystem() {
                 return equationSystem;
             }

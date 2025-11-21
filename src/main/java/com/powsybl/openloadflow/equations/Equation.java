@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -31,5 +32,11 @@ public interface Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     <T extends EquationTerm<V, E>> List<T> getTerms();
 
+    <T extends EquationTerm<V, E>> Map<Variable<V>, List<T>> getTermsByVariable();
+
     EquationSystem<V, E> getEquationSystem();
+
+    interface DerHandler<V extends Enum<V> & Quantity> {
+        int onDer(Variable<V> variable, double value, int matrixElementIndex);
+    }
 }

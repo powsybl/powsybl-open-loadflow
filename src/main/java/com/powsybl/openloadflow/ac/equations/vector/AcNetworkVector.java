@@ -515,6 +515,11 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     }
 
     @Override
+    public void onEquationIndexOrderChanged() {
+        // nothing to do
+    }
+
+    @Override
     public void onStateUpdate() {
         updateVariables();
         updateNetworkState();

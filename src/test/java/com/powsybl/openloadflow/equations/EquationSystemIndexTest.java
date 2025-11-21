@@ -105,6 +105,11 @@ class EquationSystemIndexTest {
             public void onEquationTermArrayChange(EquationTermArray<TestVariableType, TestEquationType> equationTermArray, int termNum, ChangeType changeType) {
                 // nothing to do
             }
+
+            @Override
+            public void onEquationIndexOrderChanged() {
+                // nothing to do
+            }
         });
 
         // x = a + b
@@ -129,7 +134,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestVariableType.C, ChangeType.ADDED)),
                       quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate y
@@ -139,7 +144,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate y
@@ -150,7 +155,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate c term
@@ -160,7 +165,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate c term
@@ -170,7 +175,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate all a term
@@ -182,7 +187,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate one 'a' term
@@ -192,7 +197,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactovate other 'a' term
@@ -200,7 +205,7 @@ class EquationSystemIndexTest {
         // y = a + c
         aTerm2.setActive(true);
         assertTrue(quantityAdded.isEmpty());
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
     }
 }

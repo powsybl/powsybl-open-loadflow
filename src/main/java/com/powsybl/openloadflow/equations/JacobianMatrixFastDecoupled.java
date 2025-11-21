@@ -11,11 +11,12 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.math.matrix.*;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.fastdecoupled.*;
+import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator;
+import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator;
+import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator;
+import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.ac.equations.AcEquationType.*;
@@ -72,8 +73,19 @@ public class JacobianMatrixFastDecoupled
             LoadModelReactiveFlowEquationTerm.class.getName()
     );
 
+    // List of EquationTermArrayEvaluators that require a dedicated derivative for Fast-Decoupled
+    private static final Set<String> TERMS_ARRAY_WITH_DEDICATED_DERIVATIVE = Set.of(
+            ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator.class.getName(),
+            ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator.class.getName(),
+            ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator.class.getName(),
+            ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator.class.getName()
+    );
+
     // Checks if the term provided has a dedicated derivative
     private static boolean termHasDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term) {
+        if (term instanceof EquationTermArray.EquationTermArrayElementImpl<AcVariableType, AcEquationType> equationTermArrayElement) {
+            return TERMS_ARRAY_WITH_DEDICATED_DERIVATIVE.contains(equationTermArrayElement.getEvaluator().getClass().getName());
+        }
         if (term instanceof AtomicEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(multiplyByTerm.getTerm().getClass().getName());
         } else {
@@ -82,7 +94,18 @@ public class JacobianMatrixFastDecoupled
     }
 
     private AbstractFastDecoupledEquationTerm buildFastDecoupledTerm(EquationTerm<AcVariableType, AcEquationType> term) {
+        if (term instanceof EquationTermArray.EquationTermArrayElementImpl<AcVariableType, AcEquationType> termArrayElement) {
+            // Converting EquationTermArrayElement to corresponding fast decoupled term
+            return switch (termArrayElement.getEvaluator()) {
+                case ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator closedP1Evaluator -> new ClosedBranchSide1ActiveFlowFastDecoupledEquationTerm(closedP1Evaluator, termArrayElement.termElementNum);
+                case ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator closedP2Evaluator -> new ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm(closedP2Evaluator, termArrayElement.termElementNum);
+                case ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator closedQ1Evaluator -> new ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(closedQ1Evaluator, termArrayElement.termElementNum);
+                case ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator closedQ2Evaluator -> new ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(closedQ2Evaluator, termArrayElement.termElementNum);
+                case null, default -> throw new IllegalStateException("Unexpected term array class: " + term.getClass());
+            };
+        }
         return switch (term) {
+            // Converting AtomicEquationTerm to corresponding fast decoupled term
             case ClosedBranchSide1ActiveFlowEquationTerm typedTerm ->
                 new ClosedBranchSide1ActiveFlowFastDecoupledEquationTerm(typedTerm);
             case ClosedBranchSide2ActiveFlowEquationTerm typedTerm ->
@@ -114,11 +137,11 @@ public class JacobianMatrixFastDecoupled
         }
     }
 
-    public void computeDerivative(Map.Entry<Variable<AcVariableType>, List<AtomicEquationTerm<AcVariableType, AcEquationType>>> e,
+    public void computeDerivative(List<EquationTerm<AcVariableType, AcEquationType>> equationTerms,
                                                  Variable<AcVariableType> variable, AtomicEquation.DerHandler<AcVariableType> handler) {
         double value = 0;
 
-        for (EquationTerm<AcVariableType, AcEquationType> term : e.getValue()) {
+        for (EquationTerm<AcVariableType, AcEquationType> term : equationTerms) {
             if (term.isActive()) {
                 if (termHasDedicatedDerivative(term)) {
                     value += computeDedicatedDerivative(term, variable);
@@ -128,25 +151,25 @@ public class JacobianMatrixFastDecoupled
                 }
             }
         }
-
         // init matrix
         handler.onDer(variable, value, -1);
     }
 
-    private void derFastDecoupled(AtomicEquation<AcVariableType, AcEquationType> equation, AtomicEquation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
+    private void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
         Objects.requireNonNull(handler);
-        for (Map.Entry<Variable<AcVariableType>, List<AtomicEquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
+        var x = equation.getTermsByVariable();
+        for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e : x.entrySet()) {
             Variable<AcVariableType> variable = e.getKey();
             int row = variable.getRow();
             if (row != -1) {
                 if (isPhiSystem) {
                     // for Phi equations, we only consider the (rangeIndex-1) first variables
                     if (row < rangeIndex) {
-                        computeDerivative(e, variable, handler);
+                        computeDerivative(e.getValue(), variable, handler);
                     }
                 } else {
                     if (row >= rangeIndex) {
-                        computeDerivative(e, variable, handler);
+                        computeDerivative(e.getValue(), variable, handler);
                     }
                 }
             }
@@ -157,15 +180,19 @@ public class JacobianMatrixFastDecoupled
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        List<AtomicEquation<AcVariableType, AcEquationType>> subsetEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedEquationsToSolve().subList(0, rangeIndex)
-                : equationSystem.getIndex().getSortedEquationsToSolve().subList(rangeIndex, equationSystem.getIndex().getSortedEquationsToSolve().size());
+        int atomicRangeIndex = equationSystem.getEquationArrays().isEmpty() ? rangeIndex : equationSystem.getEquationArrays().stream().findFirst().orElseThrow().getFirstColumn();
 
-        int rowColumnCount = subsetEquationsToSolve.size();
+        List<AtomicEquation<AcVariableType, AcEquationType>> subsetAtomicEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedAtomicEquationsToSolve().subList(0, atomicRangeIndex)
+                : equationSystem.getIndex().getSortedAtomicEquationsToSolve().subList(atomicRangeIndex, equationSystem.getIndex().getSortedAtomicEquationsToSolve().size());
+        List<EquationArray<AcVariableType, AcEquationType>> subsetEquationArrays = isPhiSystem ? equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() < rangeIndex).toList()
+                : equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() > rangeIndex).toList();
+
+        int rowColumnCount = isPhiSystem ? rangeIndex : equationSystem.getIndex().getRowCount() - rangeIndex;
 
         int estimatedNonZeroValueCount = rowColumnCount * 3;
         matrix = matrixFactory.create(rowColumnCount, rowColumnCount, estimatedNonZeroValueCount);
 
-        for (AtomicEquation<AcVariableType, AcEquationType> eq : subsetEquationsToSolve) {
+        for (Equation<AcVariableType, AcEquationType> eq : subsetAtomicEquationsToSolve) {
             int column = eq.getColumn();
             if (isPhiSystem) {
                 derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
@@ -177,6 +204,27 @@ public class JacobianMatrixFastDecoupled
                     int row = variable.getRow();
                     return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
                 }, rangeIndex, false);
+            }
+        }
+
+        for (EquationArray<AcVariableType, AcEquationType> eqArray : subsetEquationArrays) {
+            for (int elementNum = 0; elementNum < eqArray.getElementCount(); elementNum++) {
+                Equation<AcVariableType, AcEquationType> eq = eqArray.getElement(elementNum);
+                if (!eq.isActive()) {
+                    continue;
+                }
+                int column = eq.getColumn();
+                if (isPhiSystem) {
+                    derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
+                        int row = variable.getRow();
+                        return matrix.addAndGetIndex(row, column, value);
+                    }, rangeIndex, true);
+                } else {
+                    derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
+                        int row = variable.getRow();
+                        return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
+                    }, rangeIndex, false);
+                }
             }
         }
 

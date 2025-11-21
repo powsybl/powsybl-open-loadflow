@@ -58,7 +58,7 @@ public abstract class AbstractAcSolver implements AcSolver {
 
     private static List<Triple<Integer, AcEquationType, Double>> getMismatchInfos(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
         List<Triple<Integer, AcEquationType, Double>> mismatches = new ArrayList<>();
-        for (var equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        for (var equation : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
             mismatches.add(Triple.of(equation.getColumn(), equation.getType(), mismatch[equation.getColumn()]));
         }
         for (var equationArray : equationSystem.getEquationArrays()) {

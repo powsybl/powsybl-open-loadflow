@@ -74,7 +74,7 @@ class EquationSystemTest {
         });
         assertTrue(equations.isEmpty());
         assertTrue(equationEventTypes.isEmpty());
-        assertTrue(equationSystem.getIndex().getSortedEquationsToSolve().isEmpty());
+        assertTrue(equationSystem.getIndex().getSortedAtomicEquationsToSolve().isEmpty());
 
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm());
         assertEquals(1, equations.size());
@@ -82,7 +82,7 @@ class EquationSystemTest {
         assertEquals(1, equationTermEventTypes.size());
         assertEquals(EquationEventType.EQUATION_CREATED, equationEventTypes.get(0));
         assertEquals(EquationTermEventType.EQUATION_TERM_ADDED, equationTermEventTypes.get(0));
-        assertEquals(1, equationSystem.getIndex().getSortedEquationsToSolve().size());
+        assertEquals(1, equationSystem.getIndex().getSortedAtomicEquationsToSolve().size());
 
         clearEvents();
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).setActive(true);
@@ -93,14 +93,14 @@ class EquationSystemTest {
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(EquationEventType.EQUATION_DEACTIVATED, equationEventTypes.get(0));
-        assertTrue(equationSystem.getIndex().getSortedEquationsToSolve().isEmpty());
+        assertTrue(equationSystem.getIndex().getSortedAtomicEquationsToSolve().isEmpty());
 
         clearEvents();
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).setActive(true);
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(EquationEventType.EQUATION_ACTIVATED, equationEventTypes.get(0));
-        assertEquals(1, equationSystem.getIndex().getSortedEquationsToSolve().size());
+        assertEquals(1, equationSystem.getIndex().getSortedAtomicEquationsToSolve().size());
 
         assertTrue(equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).isPresent());
         assertEquals(1, equationSystem.getEquations(ElementType.BUS, bus.getNum()).size());

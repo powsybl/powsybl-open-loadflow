@@ -207,6 +207,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
             this.termElementNum = termElementNum;
         }
 
+        public Evaluator<V> getEvaluator() {
+            return equationTermArray.evaluator;
+        }
+
         @Override
         public double eval() {
             return equationTermArray.eval(termElementNum);
@@ -234,7 +238,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         @Override
         public double der(Variable<V> variable) {
-            throw new UnsupportedOperationException("TODO");
+            Objects.requireNonNull(variable);
+            for (Derivative<V> derivative : equationTermArray.termDerivatives.get(equationTermArray.termNumByTermElementNum.get(termElementNum))) {
+                if (derivative.getVariable() == variable) {
+                    return equationTermArray.evaluator.evalDer()[derivative.getLocalIndex()][termElementNum];
+                }
+            }
+            throw new PowsyblException("Variable not found to calculate der");
         }
 
         @Override
@@ -269,7 +279,12 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
         @Override
         public List<Variable<V>> getVariables() {
-            throw new UnsupportedOperationException("TODO");
+            return equationTermArray.termDerivatives
+                    .get(equationTermArray.termNumByTermElementNum.get(termElementNum))
+                    .stream()
+                    .map(Derivative::getVariable)
+                    .distinct()
+                    .toList();
         }
     }
 

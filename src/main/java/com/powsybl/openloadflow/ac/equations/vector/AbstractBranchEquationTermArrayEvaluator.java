@@ -30,4 +30,28 @@ public abstract class AbstractBranchEquationTermArrayEvaluator implements Equati
     public boolean isDisabled(int branchNum) {
         return branchVector.disabled[branchNum];
     }
+
+    public double getB1(int branchNum) {
+        return branchVector.b1[branchNum];
+    }
+
+    public double getB2(int branchNum) {
+        return branchVector.b2[branchNum];
+    }
+
+    public double getG1(int branchNum) {
+        return branchVector.g1[branchNum];
+    }
+
+    public double getG2(int branchNum) {
+        return branchVector.g2[branchNum];
+    }
+
+    public double getY(int branchNum) {
+        return branchVector.y[branchNum];
+    }
+
+    public double getKsi(int branchNum) {
+        return branchVector.ksi[branchNum];
+    }
 }

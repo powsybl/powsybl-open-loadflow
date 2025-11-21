@@ -13,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -29,11 +32,15 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     // variable reference counting in equation terms
     private final Map<Variable<V>, MutableInt> sortedMapVariablesToFindRefCount = new TreeMap<>();
 
-    private List<AtomicEquation<V, E>> sortedEquationsToSolve = Collections.emptyList();
+    private List<AtomicEquation<V, E>> sortedAtomicEquationsToSolve = Collections.emptyList();
+
+    private List<EquationArray<V, E>> sortedEquationArraysToSolve = Collections.emptyList();
 
     private List<Variable<V>> sortedVariablesToFind = Collections.emptyList();
 
     private int columnCount = 0;
+
+    private int columnCountFromArrayEquations = 0;
 
     private int rowCount = 0;
 
@@ -76,30 +83,78 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onEquationTermArrayChange(equationTermArray, termNum, changeType));
     }
 
-    private void updateEquationsToSolve(Comparator<AtomicEquation<V, E>> comparator) {
-        sortedEquationsToSolve = comparator == null ? sortedSetEquationsToSolve.stream().toList()
-                : sortedSetEquationsToSolve.stream().sorted(comparator).toList();
-        columnCount = 0;
-        for (AtomicEquation<V, E> equation : sortedEquationsToSolve) {
+    private void notifyEquationIndexOrderChange() {
+        listeners.forEach(listener -> listener.onEquationIndexOrderChanged());
+    }
+
+    private void updateEquationColumns(Collection<AtomicEquation<V, E>> atomicEquations, Collection<EquationArray<V, E>> equationArrays) {
+        for (AtomicEquation<V, E> equation : atomicEquations) {
             equation.setColumn(columnCount++);
         }
-        int columnCountFromArrayEquations = 0;
-        for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+        for (EquationArray<V, E> equationArray : equationArrays) {
             equationArray.setFirstColumn(columnCount);
             columnCount += equationArray.getLength();
             columnCountFromArrayEquations += equationArray.getLength();
+            sortedEquationArraysToSolve.add(equationArray);
         }
-        equationsIndexValid = true;
-        LOGGER.debug("Equations index updated ({} columns including {} from array equations)",
-                columnCount, columnCountFromArrayEquations);
     }
 
-    private void updateVariablesToFind(Comparator<Variable<V>> comparator) {
-        sortedVariablesToFind = comparator == null ? sortedMapVariablesToFindRefCount.keySet().stream().toList()
-                : sortedMapVariablesToFindRefCount.keySet().stream().sorted(comparator).toList();
+    private void updateEquationsToSolve() {
+        updateEquationsToSolve(null);
+    }
+
+    private void updateEquationsToSolve(Predicate<E> isSeparatedInFirstPart) {
+        sortedAtomicEquationsToSolve = sortedSetEquationsToSolve.stream().toList();
+        sortedEquationArraysToSolve = new ArrayList<>();
+        columnCount = 0;
+        columnCountFromArrayEquations = 0;
+        if (isSeparatedInFirstPart == null) {
+            // If there is no need of separating, columns are arranged in this order :
+            // - Atomic equations
+            // - Equation arrays
+            updateEquationColumns(sortedAtomicEquationsToSolve, equationSystem.getEquationArrays());
+        } else {
+            // If there is a separating predicate (Used for Fast Decoupled), columns are arranged in this order :
+            // - First part of atomic equations
+            // - First part of equation arrays
+            // - Second part of atomic equations
+            // - Second part of equation arrays
+            Map<Boolean, List<AtomicEquation<V, E>>> separatedAtomicEquationsToSolve = sortedAtomicEquationsToSolve.stream()
+                    .collect(Collectors.partitioningBy(e -> isSeparatedInFirstPart.test(e.getType())));
+            Map<Boolean, List<EquationArray<V, E>>> separatedEquationArrays = equationSystem.getEquationArrays().stream()
+                    .collect(Collectors.partitioningBy(e -> isSeparatedInFirstPart.test(e.getType())));
+            updateEquationColumns(separatedAtomicEquationsToSolve.get(true), separatedEquationArrays.get(true)); // Filling first part
+            updateEquationColumns(separatedAtomicEquationsToSolve.get(false), separatedEquationArrays.get(false)); // Filling second part
+            sortedAtomicEquationsToSolve = Stream.concat(separatedAtomicEquationsToSolve.get(true).stream(), separatedAtomicEquationsToSolve.get(false).stream()).toList();
+        }
+        equationsIndexValid = true;
+        notifyEquationIndexOrderChange();
+        LOGGER.debug("Equations index updated ({} columns including {} from array equations)",
+                columnCount, columnCountFromArrayEquations);
+
+    }
+
+    private void updateVariablesToFind() {
+        updateVariablesToFind(null);
+    }
+
+    private void updateVariablesToFind(Predicate<V> isSeparatedInFirstPart) {
+        sortedVariablesToFind = sortedMapVariablesToFindRefCount.keySet().stream().sorted().toList();
         rowCount = 0;
-        for (Variable<V> variable : sortedVariablesToFind) {
-            variable.setRow(rowCount++);
+        if (isSeparatedInFirstPart == null) {
+            for (Variable<V> variable : sortedVariablesToFind) {
+                variable.setRow(rowCount++);
+            }
+        } else {
+            // If there is a separating predicate (Used for Fast Decoupled), rows are arranged in two parts :
+            Map<Boolean, List<Variable<V>>> separatedVariables = sortedVariablesToFind.stream()
+                    .collect(Collectors.partitioningBy(v -> isSeparatedInFirstPart.test(v.getType())));
+            for (boolean isFirstPart : List.of(true, false)) {
+                for (Variable<V> variable : separatedVariables.get(isFirstPart)) {
+                    variable.setRow(rowCount++);
+                }
+            }
+            sortedVariablesToFind = Stream.concat(separatedVariables.get(true).stream(), separatedVariables.get(false).stream()).toList();
         }
         variablesIndexValid = true;
         LOGGER.debug("Variables index updated ({} rows)", rowCount);
@@ -107,19 +162,19 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void update() {
         if (!equationsIndexValid) {
-            updateEquationsToSolve(null);
+            updateEquationsToSolve();
         }
 
         if (!variablesIndexValid) {
-            updateVariablesToFind(null);
+            updateVariablesToFind();
         }
     }
 
-    public void updateWithComparators(Comparator<AtomicEquation<V, E>> equationComparator, Comparator<Variable<V>> variableComparator) {
-        // Sort equations to solve
-        updateEquationsToSolve(equationComparator);
-        // Sort variable to find
-        updateVariablesToFind(variableComparator);
+    public void updateWithSeparation(Predicate<E> isEquationSeparatedInFirstPart, Predicate<V> isVariableSeparatedInFirstPart) {
+        // Sort equations to solve with a column order that separates in two parts
+        updateEquationsToSolve(isEquationSeparatedInFirstPart);
+        // Sort variables to find with a row order that separates in two parts
+        updateVariablesToFind(isVariableSeparatedInFirstPart);
     }
 
     private void addTerm(AtomicEquationTerm<V, E> term) {
@@ -316,25 +371,29 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    public List<AtomicEquation<V, E>> getSortedEquationsToSolve() {
+    public List<AtomicEquation<V, E>> getSortedAtomicEquationsToSolve() {
         update();
-        return sortedEquationsToSolve;
+        return sortedAtomicEquationsToSolve;
     }
 
     public Equation<V, E> getEquationAtColumn(int column) {
         update();
-        if (column >= 0 && column < sortedEquationsToSolve.size()) {
-            return sortedEquationsToSolve.get(column);
-        } else if (column < columnCount) {
-            for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
-                if (column >= equationArray.getFirstColumn()
-                        && column < equationArray.getFirstColumn() + equationArray.getLength()) {
-                    int elementNum = equationArray.getColumnToElementNum(column);
-                    return equationArray.getElement(elementNum);
-                }
-            }
+        if (sortedEquationArraysToSolve.isEmpty()) {
+            return sortedAtomicEquationsToSolve.get(column);
         }
-        throw new PowsyblException("Equation not found at column " + column);
+        int equationsFromArrayExplored = 0;
+        for (EquationArray<V, E> equationArray : sortedEquationArraysToSolve) {
+            if (column < equationArray.getFirstColumn()) {
+                return sortedAtomicEquationsToSolve.get(column - equationsFromArrayExplored);
+            }
+            if (column >= equationArray.getFirstColumn()
+                    && column < equationArray.getFirstColumn() + equationArray.getLength()) {
+                int elementNum = equationArray.getColumnToElementNum(column);
+                return equationArray.getElement(elementNum);
+            }
+            equationsFromArrayExplored += equationArray.getLength();
+        }
+        throw new PowsyblException("Equation of column " + column + " not found");
     }
 
     public List<Variable<V>> getSortedVariablesToFind() {

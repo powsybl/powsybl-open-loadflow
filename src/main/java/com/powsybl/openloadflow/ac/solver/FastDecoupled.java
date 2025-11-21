@@ -243,9 +243,17 @@ public class FastDecoupled extends AbstractAcSolver {
 
         // solve f(x) = j * dx
         // Divide equation vector by voltage magnitude
-        for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        /*for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
             int eqColumn = equation.getColumn();
             if (eqColumn >= begin && eqColumn < end && JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
+                int busNum = retrieveBusNumFromEquation(equation);
+                Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
+                equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
+            }
+        }*/
+        for (int eqColumn = begin; eqColumn < end; eqColumn++) {
+            var equation = equationSystem.getIndex().getEquationAtColumn(eqColumn);
+            if (JacobianMatrixFastDecoupled.equationHasDedicatedDerivative(equation)) {
                 int busNum = retrieveBusNumFromEquation(equation);
                 Variable<AcVariableType> busVar = equationSystem.getVariableSet().getVariable(busNum, AcVariableType.BUS_V);
                 equationVector.getArray()[eqColumn] /= equationSystem.getStateVector().get(busVar.getRow());
@@ -309,7 +317,8 @@ public class FastDecoupled extends AbstractAcSolver {
 
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
-        equationSystem.getIndex().updateWithComparators(phiVEquationComparator, phiVVariableComparator);
+        equationSystem.getIndex().updateWithSeparation(eqType -> getPhiVEquationType(eqType) == PhiVEquationType.PHI_EQUATION_TYPE,
+                varType -> getPhiVVariableType(varType) == PhiVVariableType.PHI_VARIABLE_TYPE);
         int rangeIndex = getRangeForPhiSystemPart();
         AcSolverStatus status = AcSolverStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
@@ -337,7 +346,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
             // prepare half-sized equation vector
             double[] phiEquationVector = new double[rangeIndex];
-            double[] vEquationVector = new double[equationSystem.getIndex().getSortedEquationsToSolve().size() - rangeIndex];
+            double[] vEquationVector = new double[equationSystem.getIndex().getColumnCount() - rangeIndex];
 
             while (iterations.intValue() <= parameters.getMaxIterations()) {
                 AcSolverStatus newStatus = runIteration(iterations, reportNode, phiEquationVector, vEquationVector, rangeIndex);

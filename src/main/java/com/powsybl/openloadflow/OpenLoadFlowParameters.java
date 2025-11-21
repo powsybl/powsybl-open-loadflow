@@ -2037,7 +2037,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         solverFactory.checkSolverAndParameterConsistency(parameters, parametersExt);
 
         // Fast decoupled not supported yet in vectorized equation model
-        boolean vectorized = !parametersExt.getAcSolverType().equals(FastDecoupledFactory.NAME);
+        boolean vectorized = true; //!parametersExt.getAcSolverType().equals(FastDecoupledFactory.NAME);
 
         return new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)

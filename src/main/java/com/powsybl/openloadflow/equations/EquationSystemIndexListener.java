@@ -35,4 +35,9 @@ public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E ext
     void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType);
 
     void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType);
+
+    /**
+     * Called when the order of variables or columns has been changed even without any change in equations (can happen when using Fast Decoupled)
+     */
+    void onEquationIndexOrderChanged();
 }

@@ -91,7 +91,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(network);
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
-        List<AtomicEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        List<AtomicEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedAtomicEquationsToSolve();
         double[] array = new double[equationSystem.getIndex().getColumnCount()];
         for (AtomicEquation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
@@ -109,7 +109,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     @Override
     protected void updateArray(double[] array) {
-        List<AtomicEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        List<AtomicEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedAtomicEquationsToSolve();
         for (AtomicEquation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
