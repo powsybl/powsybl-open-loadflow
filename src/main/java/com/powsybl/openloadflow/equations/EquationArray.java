@@ -51,7 +51,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final class AdditionalAtomicTermsByEquation {
         private final List<AtomicEquationTerm<V, E>> terms = new ArrayList<>();
-        private TreeMap<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+        private final TreeMap<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
         void addAtomicTerm(AtomicEquationTerm<V, E> termImpl, Equation<V, E> equation) {
             terms.add(termImpl);
