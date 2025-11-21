@@ -90,7 +90,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    private MatrixElementIndexes matrixElementIndexes = new MatrixElementIndexes();
+    private final MatrixElementIndexes matrixElementIndexes = new MatrixElementIndexes();
 
     public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
         this.type = Objects.requireNonNull(type);
@@ -344,6 +344,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
                 return value;
             }
+
+            @Override
+            public String toString() {
+                return "EquationFromEquationArray(elementNum=" + elementNum +
+                        ", type=" + type +
+                        ", column=" + getColumn() + ")";
+            }
         };
     }
 
@@ -528,7 +535,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {
-        // TODO modify writer with additionalAtomicEquationTerms
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
             if (writeInactiveEquations || isElementActive(elementNum)) {
                 if (!isElementActive(elementNum)) {
@@ -542,6 +548,21 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 for (EquationTermArray<V, E> termArray : termArrays) {
                     if (termArray.write(writer, writeInactiveEquations, elementNum, first)) {
                         first = false;
+                    }
+                }
+                if (hasAtomicTerms[elementNum]) {
+                    List<AtomicEquationTerm<V, E>> activeTerms = writeInactiveEquations ? getAtomicTerms(elementNum) : getAtomicTerms(elementNum).stream().filter(AtomicEquationTerm::isActive).toList();
+                    for (AtomicEquationTerm<V, E> term : activeTerms) {
+                        if (!first) {
+                            writer.append(" + ");
+                        }
+                        if (!term.isActive()) {
+                            writer.write("[ ");
+                        }
+                        term.write(writer);
+                        if (!term.isActive()) {
+                            writer.write(" ]");
+                        }
                     }
                 }
                 if (!isElementActive(elementNum)) {

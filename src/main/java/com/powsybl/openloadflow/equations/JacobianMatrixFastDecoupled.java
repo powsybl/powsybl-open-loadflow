@@ -157,8 +157,7 @@ public class JacobianMatrixFastDecoupled
 
     private void derFastDecoupled(Equation<AcVariableType, AcEquationType> equation, Equation.DerHandler<AcVariableType> handler, int rangeIndex, boolean isPhiSystem) {
         Objects.requireNonNull(handler);
-        var x = equation.getTermsByVariable();
-        for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e : x.entrySet()) {
+        for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e : equation.getTermsByVariable().entrySet()) {
             Variable<AcVariableType> variable = e.getKey();
             int row = variable.getRow();
             if (row != -1) {

@@ -29,6 +29,10 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     private EquationTermArray<AcVariableType, AcEquationType> closedQ2Array;
 
+    public AcVectorizedEquationSystemCreator(LfNetwork network) {
+        this(network, new AcEquationSystemCreationParameters());
+    }
+
     public AcVectorizedEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
     }

@@ -295,10 +295,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public boolean write(Writer writer, boolean writeInactiveTerms, int elementNum, boolean first) throws IOException {
         int iStart = termNumsConcatenatedStartIndices[elementNum];
         int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
+        boolean isFirst = first;
         for (int i = iStart; i < iEnd; i++) {
             int termNum = termNumsConcatenated.getQuick(i);
             if (writeInactiveTerms || termActive.getQuick(termNum) == 1) {
-                if (!first) {
+                if (!isFirst) {
                     writer.append(" + ");
                 }
                 if (termActive.getQuick(termNum) == 0) {
@@ -317,9 +318,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
                 if (termActive.getQuick(termNum) == 0) {
                     writer.write(" ]");
                 }
-                if (i < iEnd - 1) {
-                    writer.append(" + ");
-                }
+                isFirst = false;
             }
         }
         return iStart < iEnd;

@@ -8,13 +8,16 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.AcTargetVector;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorizedEquationSystemCreator;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphson;
 import com.powsybl.openloadflow.dc.equations.*;
@@ -146,6 +149,58 @@ class EquationSystemTest {
                 "bus_target_q2 = ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3)",
                 "bus_target_p3 = ac_p_closed_2(v2, v3, φ2, φ3)",
                 "bus_target_q3 = ac_q_closed_2(v2, v3, φ2, φ3)")
+                + System.lineSeparator();
+        assertEquals(ref, equationSystem.writeToString());
+    }
+
+    @Test
+    void writeVectorizedAcSystemTest() {
+        List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        LfNetwork network = lfNetworks.get(0);
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcVectorizedEquationSystemCreator(network).create();
+        equationSystem.compress();
+        String ref = String.join(System.lineSeparator(),
+                "bus_target_v0 = v0",
+                "bus_target_φ0 = φ0",
+                "bus_target_p[1] = ac_p_array_closed_1(v1, v2, φ1, φ2) + ac_p_array_closed_1(v1, v2, φ1, φ2) + ac_p_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_p[2] = ac_p_array_closed_1(v2, v3, φ2, φ3) + ac_p_array_closed_2(v1, v2, φ1, φ2) + ac_p_array_closed_2(v1, v2, φ1, φ2)",
+                "bus_target_p[3] = ac_p_array_closed_2(v2, v3, φ2, φ3)",
+                "bus_target_q[1] = ac_q_array_closed_1(v1, v2, φ1, φ2) + ac_q_array_closed_1(v1, v2, φ1, φ2) + ac_q_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_q[2] = ac_q_array_closed_1(v2, v3, φ2, φ3) + ac_q_array_closed_2(v1, v2, φ1, φ2) + ac_q_array_closed_2(v1, v2, φ1, φ2)",
+                "bus_target_q[3] = ac_q_array_closed_2(v2, v3, φ2, φ3)")
+                + System.lineSeparator();
+        assertEquals(ref, equationSystem.writeToString());
+    }
+
+    @Test
+    void writeVectorizedAcSystemWithAtomicTermsTest() {
+        Network hvdcNetwork = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        hvdcNetwork.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSlackBusSelector(new FirstSlackBusSelector())
+                .setHvdcAcEmulation(true);
+        List<LfNetwork> lfNetworks = Networks.load(hvdcNetwork, networkParameters, ReportNode.NO_OP);
+        LfNetwork network = lfNetworks.getFirst();
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcVectorizedEquationSystemCreator(network).create();
+        equationSystem.compress();
+        String ref = String.join(System.lineSeparator(),
+                "bus_target_v0 = v0",
+                "bus_target_φ0 = φ0",
+                "bus_target_v2 = v2",
+                "bus_target_v3 = v3",
+                "bus_target_v4 = v4",
+                "bus_target_p[1] = ac_p_array_closed_1(v1, v2, φ1, φ2) + ac_p_array_closed_1(v1, v4, φ1, φ4) + ac_p_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_p[2] = ac_p_array_closed_2(v0, v2, φ0, φ2) + ac_p_array_closed_2(v1, v2, φ1, φ2) + ac_emulation_p_1(φ2, φ3)", // AC emulation term is an additional atomic term
+                "bus_target_p[3] = ac_p_array_closed_1(v3, v4, φ3, φ4) + ac_p_array_closed_1(v3, v5, φ3, φ5) + ac_emulation_p_2(φ2, φ3)",
+                "bus_target_p[4] = ac_p_array_closed_1(v4, v5, φ4, φ5) + ac_p_array_closed_2(v1, v4, φ1, φ4) + ac_p_array_closed_2(v3, v4, φ3, φ4)",
+                "bus_target_p[5] = ac_p_array_closed_2(v3, v5, φ3, φ5) + ac_p_array_closed_2(v4, v5, φ4, φ5)",
+                "bus_target_q[1] = ac_q_array_closed_1(v1, v2, φ1, φ2) + ac_q_array_closed_1(v1, v4, φ1, φ4) + ac_q_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_q[5] = ac_q_array_closed_2(v3, v5, φ3, φ5) + ac_q_array_closed_2(v4, v5, φ4, φ5)")
                 + System.lineSeparator();
         assertEquals(ref, equationSystem.writeToString());
     }
