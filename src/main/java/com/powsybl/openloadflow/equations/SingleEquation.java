@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Equation<V, E>, Comparable<AtomicEquation<V, E>> {
+public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Equation<V, E>, Comparable<SingleEquation<V, E>> {
 
     private final int elementNum;
 
@@ -36,7 +36,7 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private boolean hasRhs = false;
 
-    private final List<AtomicEquationTerm<V, E>> terms = new ArrayList<>();
+    private final List<SingleEquationTerm<V, E>> terms = new ArrayList<>();
 
     private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
@@ -46,7 +46,7 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
      */
     private int[] matrixElementIndexes;
 
-    AtomicEquation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
+    SingleEquation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
@@ -104,7 +104,7 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
         checkNotRemoved();
-        AtomicEquationTerm<V, E> termImpl = (AtomicEquationTerm<V, E>) term;
+        SingleEquationTerm<V, E> termImpl = (SingleEquationTerm<V, E>) term;
         if (termImpl.getEquation() != null) {
             throw new PowsyblException("Equation term already added to another equation: "
                     + termImpl.getEquation());
@@ -134,19 +134,19 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public List<AtomicEquationTerm<V, E>> getTerms() {
+    public List<SingleEquationTerm<V, E>> getTerms() {
         return terms;
     }
 
-    public List<AtomicEquationTerm<V, E>> getLeafTerms() {
-        List<AtomicEquationTerm<V, E>> leafTerms = new ArrayList<>();
+    public List<SingleEquationTerm<V, E>> getLeafTerms() {
+        List<SingleEquationTerm<V, E>> leafTerms = new ArrayList<>();
         for (var term : terms) {
             addLeafTerms(term, leafTerms);
         }
         return leafTerms;
     }
 
-    private void addLeafTerms(AtomicEquationTerm<V, E> term, List<AtomicEquationTerm<V, E>> leafTerms) {
+    private void addLeafTerms(SingleEquationTerm<V, E> term, List<SingleEquationTerm<V, E>> leafTerms) {
         var children = term.getChildren();
         if (children.isEmpty()) {
             leafTerms.add(term);
@@ -165,7 +165,7 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     @Override
     public double eval() {
         double value = 0;
-        for (AtomicEquationTerm<V, E> term : terms) {
+        for (SingleEquationTerm<V, E> term : terms) {
             if (term.isActive()) {
                 value += term.eval();
             }
@@ -175,7 +175,7 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public double evalLhs() {
         double value = 0;
-        for (AtomicEquationTerm<V, E> term : terms) {
+        for (SingleEquationTerm<V, E> term : terms) {
             if (term.isActive()) {
                 value += term.evalLhs();
             }
@@ -232,14 +232,14 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         if (obj == this) {
             return true;
         }
-        if (obj instanceof AtomicEquation equation) {
+        if (obj instanceof SingleEquation equation) {
             return compareTo(equation) == 0;
         }
         return false;
     }
 
     @Override
-    public int compareTo(AtomicEquation<V, E> o) {
+    public int compareTo(SingleEquation<V, E> o) {
         if (o == this) {
             return 0;
         }
@@ -254,9 +254,9 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         writer.append(type.getSymbol())
                 .append(Integer.toString(elementNum))
                 .append(" = ");
-        List<AtomicEquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(AtomicEquationTerm::isActive).collect(Collectors.toList());
-        for (Iterator<AtomicEquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
-            AtomicEquationTerm<V, E> term = it.next();
+        List<SingleEquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(SingleEquationTerm::isActive).collect(Collectors.toList());
+        for (Iterator<SingleEquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
+            SingleEquationTerm<V, E> term = it.next();
             if (!term.isActive()) {
                 writer.write("[ ");
             }

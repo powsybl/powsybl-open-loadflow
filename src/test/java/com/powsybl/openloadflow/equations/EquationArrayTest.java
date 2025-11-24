@@ -71,7 +71,7 @@ class EquationArrayTest {
         int rowCount = equationSystem.getIndex().getRowCount();
         int columnCount = equationSystem.getIndex().getColumnCount();
         DenseMatrix m = new DenseMatrix(rowCount, columnCount);
-        for (var eq : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
+        for (var eq : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
             int column = eq.getColumn();
             eq.der((variable, value, matrixElementIndex) -> {
                 int row = variable.getRow();
@@ -96,7 +96,7 @@ class EquationArrayTest {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = createEquationSystem(lfNetwork);
         double[] values = new double[lfNetwork.getBuses().size()];
-        for (var equation : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
+        for (var equation : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
             values[equation.getColumn()] += equation.eval();
         }
 

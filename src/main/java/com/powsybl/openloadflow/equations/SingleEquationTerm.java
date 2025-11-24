@@ -22,19 +22,19 @@ import java.util.function.DoubleSupplier;
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends EquationTerm<V, E> {
+public interface SingleEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends EquationTerm<V, E> {
 
-    class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements AtomicEquationTerm<V, E> {
+    class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements SingleEquationTerm<V, E> {
 
-        private final AtomicEquationTerm<V, E> term;
+        private final SingleEquationTerm<V, E> term;
 
         private final DoubleSupplier scalarSupplier;
 
-        MultiplyByScalarEquationTerm(AtomicEquationTerm<V, E> term, double scalar) {
+        MultiplyByScalarEquationTerm(SingleEquationTerm<V, E> term, double scalar) {
             this(term, () -> scalar);
         }
 
-        MultiplyByScalarEquationTerm(AtomicEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
+        MultiplyByScalarEquationTerm(SingleEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
             this.term = Objects.requireNonNull(term);
             this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
             term.setSelf(this);
@@ -49,7 +49,7 @@ public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum
         }
 
         @Override
-        public List<AtomicEquationTerm<V, E>> getChildren() {
+        public List<SingleEquationTerm<V, E>> getChildren() {
             return Collections.singletonList(term);
         }
 
@@ -74,7 +74,7 @@ public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum
         }
 
         @Override
-        public void setSelf(AtomicEquationTerm<V, E> self) {
+        public void setSelf(SingleEquationTerm<V, E> self) {
             term.setSelf(self);
         }
 
@@ -131,15 +131,15 @@ public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum
         }
     }
 
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> AtomicEquationTerm<V, E> multiply(AtomicEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> SingleEquationTerm<V, E> multiply(SingleEquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
         return new MultiplyByScalarEquationTerm<>(term, scalarSupplier);
     }
 
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> AtomicEquationTerm<V, E> multiply(AtomicEquationTerm<V, E> term, double scalar) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> SingleEquationTerm<V, E> multiply(SingleEquationTerm<V, E> term, double scalar) {
         return new MultiplyByScalarEquationTerm<>(term, scalar);
     }
 
-    List<AtomicEquationTerm<V, E>> getChildren();
+    List<SingleEquationTerm<V, E>> getChildren();
 
     Equation<V, E> getEquation();
 
@@ -147,7 +147,7 @@ public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum
 
     boolean isActive();
 
-    void setSelf(AtomicEquationTerm<V, E> self);
+    void setSelf(SingleEquationTerm<V, E> self);
 
     ElementType getElementType();
 
@@ -196,15 +196,15 @@ public interface AtomicEquationTerm<V extends Enum<V> & Quantity, E extends Enum
 
     void write(Writer writer) throws IOException;
 
-    default AtomicEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
+    default SingleEquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
         return multiply(this, scalarSupplier);
     }
 
-    default AtomicEquationTerm<V, E> multiply(double scalar) {
+    default SingleEquationTerm<V, E> multiply(double scalar) {
         return multiply(this, scalar);
     }
 
-    default AtomicEquationTerm<V, E> minus() {
+    default SingleEquationTerm<V, E> minus() {
         return multiply(-1);
     }
 }

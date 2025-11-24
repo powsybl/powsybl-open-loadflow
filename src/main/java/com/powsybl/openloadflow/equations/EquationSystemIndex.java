@@ -27,12 +27,12 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private final EquationSystem<V, E> equationSystem;
 
-    private final Set<AtomicEquation<V, E>> sortedSetEquationsToSolve = new TreeSet<>();
+    private final Set<SingleEquation<V, E>> sortedSetEquationsToSolve = new TreeSet<>();
 
     // variable reference counting in equation terms
     private final Map<Variable<V>, MutableInt> sortedMapVariablesToFindRefCount = new TreeMap<>();
 
-    private List<AtomicEquation<V, E>> sortedAtomicEquationsToSolve = Collections.emptyList();
+    private List<SingleEquation<V, E>> sortedSingleEquationsToSolve = Collections.emptyList();
 
     private List<EquationArray<V, E>> sortedEquationArraysToSolve = Collections.emptyList();
 
@@ -63,7 +63,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.remove(Objects.requireNonNull(listener));
     }
 
-    private void notifyEquationChange(AtomicEquation<V, E> equation, EquationSystemIndexListener.ChangeType changeType) {
+    private void notifyEquationChange(SingleEquation<V, E> equation, EquationSystemIndexListener.ChangeType changeType) {
         listeners.forEach(listener -> listener.onEquationChange(equation, changeType));
     }
 
@@ -71,7 +71,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onVariableChange(variable, changeType));
     }
 
-    private void notifyEquationTermChange(AtomicEquationTerm<V, E> term) {
+    private void notifyEquationTermChange(SingleEquationTerm<V, E> term) {
         listeners.forEach(listener -> listener.onEquationTermChange(term));
     }
 
@@ -84,11 +84,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void notifyEquationIndexOrderChange() {
-        listeners.forEach(listener -> listener.onEquationIndexOrderChanged());
+        listeners.forEach(EquationSystemIndexListener::onEquationIndexOrderChanged);
     }
 
-    private void updateEquationColumns(Collection<AtomicEquation<V, E>> atomicEquations, Collection<EquationArray<V, E>> equationArrays) {
-        for (AtomicEquation<V, E> equation : atomicEquations) {
+    private void updateEquationColumns(Collection<SingleEquation<V, E>> singleEquations, Collection<EquationArray<V, E>> equationArrays) {
+        for (SingleEquation<V, E> equation : singleEquations) {
             equation.setColumn(columnCount++);
         }
         for (EquationArray<V, E> equationArray : equationArrays) {
@@ -104,28 +104,28 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void updateEquationsToSolve(Predicate<E> isSeparatedInFirstPart) {
-        sortedAtomicEquationsToSolve = sortedSetEquationsToSolve.stream().toList();
+        sortedSingleEquationsToSolve = sortedSetEquationsToSolve.stream().toList();
         sortedEquationArraysToSolve = new ArrayList<>();
         columnCount = 0;
         columnCountFromArrayEquations = 0;
         if (isSeparatedInFirstPart == null) {
             // If there is no need of separating, columns are arranged in this order :
-            // - Atomic equations
+            // - Single equations
             // - Equation arrays
-            updateEquationColumns(sortedAtomicEquationsToSolve, equationSystem.getEquationArrays());
+            updateEquationColumns(sortedSingleEquationsToSolve, equationSystem.getEquationArrays());
         } else {
             // If there is a separating predicate (Used for Fast Decoupled), columns are arranged in this order :
-            // - First part of atomic equations
+            // - First part of single equations
             // - First part of equation arrays
-            // - Second part of atomic equations
+            // - Second part of single equations
             // - Second part of equation arrays
-            Map<Boolean, List<AtomicEquation<V, E>>> separatedAtomicEquationsToSolve = sortedAtomicEquationsToSolve.stream()
+            Map<Boolean, List<SingleEquation<V, E>>> separatedSingleEquationsToSolve = sortedSingleEquationsToSolve.stream()
                     .collect(Collectors.partitioningBy(e -> isSeparatedInFirstPart.test(e.getType())));
             Map<Boolean, List<EquationArray<V, E>>> separatedEquationArrays = equationSystem.getEquationArrays().stream()
                     .collect(Collectors.partitioningBy(e -> isSeparatedInFirstPart.test(e.getType())));
-            updateEquationColumns(separatedAtomicEquationsToSolve.get(true), separatedEquationArrays.get(true)); // Filling first part
-            updateEquationColumns(separatedAtomicEquationsToSolve.get(false), separatedEquationArrays.get(false)); // Filling second part
-            sortedAtomicEquationsToSolve = Stream.concat(separatedAtomicEquationsToSolve.get(true).stream(), separatedAtomicEquationsToSolve.get(false).stream()).toList();
+            updateEquationColumns(separatedSingleEquationsToSolve.get(true), separatedEquationArrays.get(true)); // Filling first part
+            updateEquationColumns(separatedSingleEquationsToSolve.get(false), separatedEquationArrays.get(false)); // Filling second part
+            sortedSingleEquationsToSolve = Stream.concat(separatedSingleEquationsToSolve.get(true).stream(), separatedSingleEquationsToSolve.get(false).stream()).toList();
         }
         equationsIndexValid = true;
         notifyEquationIndexOrderChange();
@@ -177,7 +177,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         updateVariablesToFind(isVariableSeparatedInFirstPart);
     }
 
-    private void addTerm(AtomicEquationTerm<V, E> term) {
+    private void addTerm(SingleEquationTerm<V, E> term) {
         notifyEquationTermChange(term);
         addVariables(term.getVariables());
     }
@@ -196,10 +196,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void addEquation(AtomicEquation<V, E> equation) {
+    private void addEquation(SingleEquation<V, E> equation) {
         sortedSetEquationsToSolve.add(equation);
         equationsIndexValid = false;
-        for (AtomicEquationTerm<V, E> term : equation.getTerms()) {
+        for (SingleEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
                 addTerm(term);
             }
@@ -207,7 +207,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         notifyEquationChange(equation, EquationSystemIndexListener.ChangeType.ADDED);
     }
 
-    private void removeTerm(AtomicEquationTerm<V, E> term) {
+    private void removeTerm(SingleEquationTerm<V, E> term) {
         notifyEquationTermChange(term);
         removeVariables(term.getVariables());
     }
@@ -227,11 +227,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void removeEquation(AtomicEquation<V, E> equation) {
+    private void removeEquation(SingleEquation<V, E> equation) {
         equation.setColumn(-1);
         sortedSetEquationsToSolve.remove(equation);
         equationsIndexValid = false;
-        for (AtomicEquationTerm<V, E> term : equation.getTerms()) {
+        for (SingleEquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
                 removeTerm(term);
             }
@@ -240,7 +240,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationChange(AtomicEquation<V, E> equation, EquationEventType eventType) {
+    public void onEquationChange(SingleEquation<V, E> equation, EquationEventType eventType) {
         switch (eventType) {
             case EQUATION_REMOVED:
                 if (equation.isActive()) {
@@ -268,7 +268,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     @Override
-    public void onEquationTermChange(AtomicEquationTerm<V, E> term, EquationTermEventType eventType) {
+    public void onEquationTermChange(SingleEquationTerm<V, E> term, EquationTermEventType eventType) {
         if (term.getEquation().isActive()) {
             switch (eventType) {
                 case EQUATION_TERM_ADDED:
@@ -303,9 +303,9 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                         }
                     }
                 }
-                for (var atomicTerm : equationArray.getAtomicTerms(elementNum)) {
-                    if (atomicTerm.isActive()) {
-                        List<Variable<V>> variables = atomicTerm.getVariables();
+                for (var singleTerm : equationArray.getSingleEquationTerms(elementNum)) {
+                    if (singleTerm.isActive()) {
+                        List<Variable<V>> variables = singleTerm.getVariables();
                         removeVariables(variables);
                     }
                 }
@@ -326,9 +326,9 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                             addVariables(variables);
                         }
                     }
-                    for (var atomicTerm : equationArray.getAtomicTerms(elementNum)) {
-                        if (atomicTerm.isActive()) {
-                            List<Variable<V>> variables = atomicTerm.getVariables();
+                    for (var singleTerm : equationArray.getSingleEquationTerms(elementNum)) {
+                        if (singleTerm.isActive()) {
+                            List<Variable<V>> variables = singleTerm.getVariables();
                             addVariables(variables);
                         }
                     }
@@ -371,20 +371,20 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    public List<AtomicEquation<V, E>> getSortedAtomicEquationsToSolve() {
+    public List<SingleEquation<V, E>> getSortedSingleEquationsToSolve() {
         update();
-        return sortedAtomicEquationsToSolve;
+        return sortedSingleEquationsToSolve;
     }
 
     public Equation<V, E> getEquationAtColumn(int column) {
         update();
         if (sortedEquationArraysToSolve.isEmpty()) {
-            return sortedAtomicEquationsToSolve.get(column);
+            return sortedSingleEquationsToSolve.get(column);
         }
         int equationsFromArrayExplored = 0;
         for (EquationArray<V, E> equationArray : sortedEquationArraysToSolve) {
             if (column < equationArray.getFirstColumn()) {
-                return sortedAtomicEquationsToSolve.get(column - equationsFromArrayExplored);
+                return sortedSingleEquationsToSolve.get(column - equationsFromArrayExplored);
             }
             if (column >= equationArray.getFirstColumn()
                     && column < equationArray.getFirstColumn() + equationArray.getLength()) {

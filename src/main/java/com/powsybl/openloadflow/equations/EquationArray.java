@@ -29,7 +29,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final boolean[] elementActive;
 
-    private final boolean[] hasAtomicTerms;
+    private final boolean[] hasSingleEquationTerms;
 
     private int firstColumn = -1;
 
@@ -42,20 +42,20 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     // All terms that are in a vectorized view (in EquationTermArrays)
     private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
 
-    // All additional terms that are not vectorized (AtomicEquationTerms) stored in different views
-    private final Map<Integer, List<AtomicEquationTerm<V, E>>> atomicTermsByTermElementNum = new TreeMap<>();
-    private final Map<Integer, AdditionalAtomicTermsByEquation> atomicTermsByEquationElementNum = new TreeMap<>();
+    // All additional terms that are not vectorized (SingleEquationTerms) stored in different views
+    private final Map<Integer, List<SingleEquationTerm<V, E>>> singleTermsByTermElementNum = new TreeMap<>();
+    private final Map<Integer, AdditionalSingleTermsByEquation> singleTermsByEquationElementNum = new TreeMap<>();
 
     private final int[] equationDerivativeVectorStartIndices;
     private EquationDerivativeVector equationDerivativeVector;
 
-    private final class AdditionalAtomicTermsByEquation {
-        private final List<AtomicEquationTerm<V, E>> terms = new ArrayList<>();
-        private final TreeMap<Variable<V>, List<AtomicEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+    private final class AdditionalSingleTermsByEquation {
+        private final List<SingleEquationTerm<V, E>> terms = new ArrayList<>();
+        private final TreeMap<Variable<V>, List<SingleEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
-        void addAtomicTerm(AtomicEquationTerm<V, E> termImpl, Equation<V, E> equation) {
+        void addSingleTerm(SingleEquationTerm<V, E> termImpl, Equation<V, E> equation) {
             terms.add(termImpl);
-            atomicTermsByTermElementNum.computeIfAbsent(termImpl.getElementNum(), k -> new ArrayList<>())
+            singleTermsByTermElementNum.computeIfAbsent(termImpl.getElementNum(), k -> new ArrayList<>())
                     .add(termImpl);
             for (Variable<V> v : termImpl.getVariables()) {
                 termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
@@ -98,8 +98,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         this.equationSystem = Objects.requireNonNull(equationSystem);
         elementActive = new boolean[elementCount];
         Arrays.fill(elementActive, true);
-        hasAtomicTerms = new boolean[elementCount];
-        Arrays.fill(hasAtomicTerms, false);
+        hasSingleEquationTerms = new boolean[elementCount];
+        Arrays.fill(hasSingleEquationTerms, false);
         this.length = elementCount; // all activated initially
         this.equationDerivativeVectorStartIndices = new int[elementCount + 1];
     }
@@ -112,9 +112,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         return elementCount;
     }
 
-    public List<AtomicEquationTerm<V, E>> getAtomicTerms(int elementNum) {
-        if (hasAtomicTerms[elementNum]) {
-            return atomicTermsByEquationElementNum.get(elementNum).terms;
+    public List<SingleEquationTerm<V, E>> getSingleEquationTerms(int elementNum) {
+        if (hasSingleEquationTerms[elementNum]) {
+            return singleTermsByEquationElementNum.get(elementNum).terms;
         }
         return Collections.emptyList();
     }
@@ -201,10 +201,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 termArray.setTermElementActive(element.getNum(), enable);
             }
         }
-        if (atomicTermsByTermElementNum.containsKey(element.getNum())) {
-            for (var atomicTerm : atomicTermsByTermElementNum.get(element.getNum())) {
-                if (atomicTerm.getElementType() == element.getType()) {
-                    atomicTerm.setActive(enable);
+        if (singleTermsByTermElementNum.containsKey(element.getNum())) {
+            for (var singleTerm : singleTermsByTermElementNum.get(element.getNum())) {
+                if (singleTerm.getElementType() == element.getType()) {
+                    singleTerm.setActive(enable);
                 }
             }
         }
@@ -254,15 +254,15 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 if (term instanceof EquationTermArray.EquationTermArrayElementImpl<V, E> termArrayElement) {
                     termArrayElement.setEquation(this);
                     termArrayElement.equationTermArray.addTerm(elementNum, termArrayElement.termElementNum);
-                // Either the term is an additional atomic term that is related to specific equations (atomic term)
-                } else if (term instanceof AtomicEquationTerm<V, E> atomicEquationTerm) {
-                    if (atomicEquationTerm.getEquation() != null) {
+                // Either the term is an additional single term that is related to specific equations (single term)
+                } else if (term instanceof SingleEquationTerm<V, E> singleEquationTerm) {
+                    if (singleEquationTerm.getEquation() != null) {
                         throw new PowsyblException("Equation term already added to another equation: "
                                 + term.getEquation());
                     }
-                    atomicTermsByEquationElementNum.computeIfAbsent(elementNum, k -> new AdditionalAtomicTermsByEquation())
-                            .addAtomicTerm(atomicEquationTerm, this);
-                    hasAtomicTerms[elementNum] = true;
+                    singleTermsByEquationElementNum.computeIfAbsent(elementNum, k -> new AdditionalSingleTermsByEquation())
+                            .addSingleTerm(singleEquationTerm, this);
+                    hasSingleEquationTerms[elementNum] = true;
                 }
                 return this;
             }
@@ -290,9 +290,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         terms.add((T) new EquationTermArray.EquationTermArrayElementImpl<>(termArray, termElementNum));
                     }
                 }
-                if (atomicTermsByEquationElementNum.containsKey(elementNum)) {
-                    for (AtomicEquationTerm<V, E> atomicTerm : atomicTermsByEquationElementNum.get(elementNum).terms) {
-                        terms.add((T) atomicTerm);
+                if (singleTermsByEquationElementNum.containsKey(elementNum)) {
+                    for (SingleEquationTerm<V, E> singleTerm : singleTermsByEquationElementNum.get(elementNum).terms) {
+                        terms.add((T) singleTerm);
                     }
                 }
                 return terms;
@@ -333,10 +333,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     }
                 }
 
-                if (hasAtomicTerms[elementNum]) {
-                    for (AtomicEquationTerm<V, E> atomicTerm : atomicTermsByEquationElementNum.get(elementNum).terms) {
-                        if (atomicTerm.isActive()) {
-                            value += atomicTerm.eval();
+                if (hasSingleEquationTerms[elementNum]) {
+                    for (SingleEquationTerm<V, E> singleTerm : singleTermsByEquationElementNum.get(elementNum).terms) {
+                        if (singleTerm.isActive()) {
+                            value += singleTerm.eval();
                         }
                     }
                 }
@@ -375,13 +375,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
             }
         }
-        for (Map.Entry<Integer, AdditionalAtomicTermsByEquation> atomicTermsEntry : atomicTermsByEquationElementNum.entrySet()) {
-            if (!elementActive[atomicTermsEntry.getKey()]) {
+        for (Map.Entry<Integer, AdditionalSingleTermsByEquation> singleTermsEntry : singleTermsByEquationElementNum.entrySet()) {
+            if (!elementActive[singleTermsEntry.getKey()]) {
                 continue;
             }
-            for (AtomicEquationTerm<V, E> atomicTerm : atomicTermsEntry.getValue().terms) {
-                if (atomicTerm.isActive()) {
-                    values[getElementNumToColumn(atomicTermsEntry.getKey())] += atomicTerm.eval();
+            for (SingleEquationTerm<V, E> singleTerm : singleTermsEntry.getValue().terms) {
+                if (singleTerm.isActive()) {
+                    values[getElementNumToColumn(singleTermsEntry.getKey())] += singleTerm.eval();
                 }
             }
         }
@@ -457,9 +457,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             double value = 0;
             int row = 0;
 
-            AdditionalAtomicTermsByEquation additionalTerms = null;
-            if (hasAtomicTerms[elementNum]) {
-                additionalTerms = atomicTermsByEquationElementNum.get(elementNum);
+            AdditionalSingleTermsByEquation additionalTerms = null;
+            if (hasSingleEquationTerms[elementNum]) {
+                additionalTerms = singleTermsByEquationElementNum.get(elementNum);
             }
 
             int prevRow = -1;
@@ -548,9 +548,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         first = false;
                     }
                 }
-                if (hasAtomicTerms[elementNum]) {
-                    List<AtomicEquationTerm<V, E>> activeTerms = writeInactiveEquations ? getAtomicTerms(elementNum) : getAtomicTerms(elementNum).stream().filter(AtomicEquationTerm::isActive).toList();
-                    for (AtomicEquationTerm<V, E> term : activeTerms) {
+                if (hasSingleEquationTerms[elementNum]) {
+                    List<SingleEquationTerm<V, E>> activeTerms = writeInactiveEquations ? getSingleEquationTerms(elementNum) : getSingleEquationTerms(elementNum).stream().filter(SingleEquationTerm::isActive).toList();
+                    for (SingleEquationTerm<V, E> term : activeTerms) {
                         if (!first) {
                             writer.append(" + ");
                         }

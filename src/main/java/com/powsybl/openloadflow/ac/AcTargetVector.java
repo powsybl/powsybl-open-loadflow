@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.AtomicEquation;
+import com.powsybl.openloadflow.equations.SingleEquation;
 import com.powsybl.openloadflow.equations.EquationArray;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
@@ -65,7 +65,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for generator reactive remote control"));
     }
 
-    public static void init(AtomicEquation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
+    public static void init(SingleEquation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         init(equation.getType(), equation.getColumn(), equation.getElementNum(), network, targets);
         targets[equation.getColumn()] -= equation.rhs();
     }
@@ -152,7 +152,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
     public AcTargetVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         super(network, equationSystem, new Initializer<>() {
             @Override
-            public void initialize(AtomicEquation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
+            public void initialize(SingleEquation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
                 AcTargetVector.init(equation, network, targets);
             }
 

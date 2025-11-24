@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.AtomicEquationTerm;
+import com.powsybl.openloadflow.equations.SingleEquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -105,8 +105,8 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         EquationTerm<AcVariableType, AcEquationType> q1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
         EquationTerm<AcVariableType, AcEquationType> q2 = null;
-        AtomicEquationTerm<AcVariableType, AcEquationType> i1 = null;
-        AtomicEquationTerm<AcVariableType, AcEquationType> i2 = null;
+        SingleEquationTerm<AcVariableType, AcEquationType> i1 = null;
+        SingleEquationTerm<AcVariableType, AcEquationType> i2 = null;
 
         // zero sequence
         EquationTerm<AcVariableType, AcEquationType> ixz1 = null;

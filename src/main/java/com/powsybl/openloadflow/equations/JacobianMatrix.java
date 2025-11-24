@@ -65,7 +65,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onEquationChange(AtomicEquation<V, E> equation, ChangeType changeType) {
+    public void onEquationChange(SingleEquation<V, E> equation, ChangeType changeType) {
         updateStatus(Status.STRUCTURE_INVALID);
     }
 
@@ -75,7 +75,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onEquationTermChange(AtomicEquationTerm<V, E> term) {
+    public void onEquationTermChange(SingleEquationTerm<V, E> term) {
         updateStatus(Status.VALUES_AND_ZEROS_INVALID);
     }
 
@@ -111,7 +111,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
-        for (AtomicEquation<V, E> eq : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
+        for (SingleEquation<V, E> eq : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
             int column = eq.getColumn();
             eq.der((variable, value, matrixElementIndex) -> {
                 int row = variable.getRow();
@@ -142,7 +142,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
-        for (AtomicEquation<V, E> eq : equationSystem.getIndex().getSortedAtomicEquationsToSolve()) {
+        for (SingleEquation<V, E> eq : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
             eq.der((variable, value, matrixElementIndex) -> {
                 matrix.addAtIndex(matrixElementIndex, value);
                 return matrixElementIndex; // don't change element index

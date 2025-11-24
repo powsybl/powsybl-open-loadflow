@@ -86,7 +86,7 @@ public class JacobianMatrixFastDecoupled
         if (term instanceof EquationTermArray.EquationTermArrayElementImpl<AcVariableType, AcEquationType> equationTermArrayElement) {
             return TERMS_ARRAY_WITH_DEDICATED_DERIVATIVE.contains(equationTermArrayElement.getEvaluator().getClass().getName());
         }
-        if (term instanceof AtomicEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
+        if (term instanceof SingleEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(multiplyByTerm.getTerm().getClass().getName());
         } else {
             return TERMS_WITH_DEDICATED_DERIVATIVE.contains(term.getClass().getName());
@@ -105,7 +105,7 @@ public class JacobianMatrixFastDecoupled
             };
         }
         return switch (term) {
-            // Converting AtomicEquationTerm to corresponding fast decoupled term
+            // Converting SingleEquationTerm to corresponding fast decoupled term
             case ClosedBranchSide1ActiveFlowEquationTerm typedTerm ->
                 new ClosedBranchSide1ActiveFlowFastDecoupledEquationTerm(typedTerm);
             case ClosedBranchSide2ActiveFlowEquationTerm typedTerm ->
@@ -128,7 +128,7 @@ public class JacobianMatrixFastDecoupled
 
     // Build Fast-Decoupled version of a term, if it has dedicated derivative
     private double computeDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term, Variable<AcVariableType> variable) {
-        if (term instanceof AtomicEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
+        if (term instanceof SingleEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
             FastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(multiplyByTerm.getTerm());
             return new MultiplyByScalarFastDecoupledEquationTerm(multiplyByTerm.getScalar(), fastDecoupledEquationTerm)
                     .derFastDecoupled(variable);
@@ -194,10 +194,10 @@ public class JacobianMatrixFastDecoupled
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        int atomicRangeIndex = equationSystem.getEquationArrays().isEmpty() ? rangeIndex : equationSystem.getEquationArrays().stream().findFirst().orElseThrow().getFirstColumn();
+        int singleEquationsRangeIndex = equationSystem.getEquationArrays().isEmpty() ? rangeIndex : equationSystem.getEquationArrays().stream().findFirst().orElseThrow().getFirstColumn();
 
-        List<AtomicEquation<AcVariableType, AcEquationType>> subsetAtomicEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedAtomicEquationsToSolve().subList(0, atomicRangeIndex)
-                : equationSystem.getIndex().getSortedAtomicEquationsToSolve().subList(atomicRangeIndex, equationSystem.getIndex().getSortedAtomicEquationsToSolve().size());
+        List<SingleEquation<AcVariableType, AcEquationType>> subsetSingleEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(0, singleEquationsRangeIndex)
+                : equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(singleEquationsRangeIndex, equationSystem.getIndex().getSortedSingleEquationsToSolve().size());
         List<EquationArray<AcVariableType, AcEquationType>> subsetEquationArrays = isPhiSystem ? equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() < rangeIndex).toList()
                 : equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() > rangeIndex).toList();
 
@@ -206,7 +206,7 @@ public class JacobianMatrixFastDecoupled
         int estimatedNonZeroValueCount = rowColumnCount * 3;
         matrix = matrixFactory.create(rowColumnCount, rowColumnCount, estimatedNonZeroValueCount);
 
-        for (Equation<AcVariableType, AcEquationType> eq : subsetAtomicEquationsToSolve) {
+        for (Equation<AcVariableType, AcEquationType> eq : subsetSingleEquationsToSolve) {
             derEquationFastDecoupled(eq);
         }
 

@@ -19,7 +19,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-        void initialize(AtomicEquation<V, E> equation, LfNetwork network, double[] targets);
+        void initialize(SingleEquation<V, E> equation, LfNetwork network, double[] targets);
 
         void initialize(EquationArray<V, E> equationArray, LfNetwork network, double[] targets);
     }
@@ -91,9 +91,9 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(network);
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
-        List<AtomicEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedAtomicEquationsToSolve();
+        List<SingleEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedSingleEquationsToSolve();
         double[] array = new double[equationSystem.getIndex().getColumnCount()];
-        for (AtomicEquation<V, E> equation : sortedEquationsToSolve) {
+        for (SingleEquation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
@@ -109,8 +109,8 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     @Override
     protected void updateArray(double[] array) {
-        List<AtomicEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedAtomicEquationsToSolve();
-        for (AtomicEquation<V, E> equation : sortedEquationsToSolve) {
+        List<SingleEquation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedSingleEquationsToSolve();
+        for (SingleEquation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {

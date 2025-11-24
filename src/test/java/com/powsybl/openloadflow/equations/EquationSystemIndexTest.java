@@ -87,12 +87,12 @@ class EquationSystemIndexTest {
             }
 
             @Override
-            public void onEquationChange(AtomicEquation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
+            public void onEquationChange(SingleEquation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
                 quantityAdded.add(Pair.of(equation.getType(), changeType));
             }
 
             @Override
-            public void onEquationTermChange(AtomicEquationTerm<TestVariableType, TestEquationType> term) {
+            public void onEquationTermChange(SingleEquationTerm<TestVariableType, TestEquationType> term) {
                 // nothing to do
             }
 
@@ -117,13 +117,13 @@ class EquationSystemIndexTest {
         var a = equationSystem.getVariableSet().getVariable(0, TestVariableType.A);
         var b = equationSystem.getVariableSet().getVariable(0, TestVariableType.B);
         var c = equationSystem.getVariableSet().getVariable(0, TestVariableType.C);
-        AtomicEquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
-        AtomicEquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
         var x = equationSystem.createEquation(0, TestEquationType.X)
                 .addTerm(aTerm)
                 .addTerm(bTerm);
-        AtomicEquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
-        AtomicEquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
         var y = equationSystem.createEquation(0, TestEquationType.Y)
                 .addTerm(aTerm2)
                 .addTerm(cTerm);
@@ -134,7 +134,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestVariableType.C, ChangeType.ADDED)),
                       quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate y
@@ -144,7 +144,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate y
@@ -155,7 +155,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate c term
@@ -165,7 +165,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate c term
@@ -175,7 +175,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate all a term
@@ -187,7 +187,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate one 'a' term
@@ -197,7 +197,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactovate other 'a' term
@@ -205,7 +205,7 @@ class EquationSystemIndexTest {
         // y = a + c
         aTerm2.setActive(true);
         assertTrue(quantityAdded.isEmpty());
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedAtomicEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
     }
 }

@@ -80,7 +80,7 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
         writer.write(Integer.toString(elementNum));
     }
 
-    public <E extends Enum<E> & Quantity> AtomicEquationTerm<V, E> createTerm() {
+    public <E extends Enum<E> & Quantity> SingleEquationTerm<V, E> createTerm() {
         return new VariableEquationTerm<>(this);
     }
 

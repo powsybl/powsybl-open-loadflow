@@ -199,7 +199,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         //
         EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>(InitVmEquationType.class, network);
         for (LfBus bus : network.getBuses()) {
-            AtomicEquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
+            SingleEquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
                     .createTerm();
             if (bus.isGeneratorVoltageControlled() || transformerVoltageControlOn && bus.isTransformerVoltageControlled()) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
@@ -214,7 +214,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             double[] targets = TargetVector.createArray(network, equationSystem, new TargetVector.Initializer<InitVmVariableType, InitVmEquationType>() {
                 @Override
-                public void initialize(AtomicEquation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
+                public void initialize(SingleEquation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
                     VoltageMagnitudeInitializer.initTarget(equation, network, targets);
                 }
 
