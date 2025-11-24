@@ -63,7 +63,7 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
 
             @Override
             public void initialize(EquationArray<DcVariableType, DcEquationType> equationArray, LfNetwork network, double[] targets) {
-                throw new UnsupportedOperationException("TODO");
+                throw new UnsupportedOperationException("Equation Arrays not implemented in DC");
             }
         });
     }

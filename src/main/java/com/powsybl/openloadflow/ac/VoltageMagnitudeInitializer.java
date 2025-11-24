@@ -166,7 +166,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
-    private static void initTarget(AtomicEquation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
+    private static void initTarget(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_V:
                 LfBus bus = network.getBus(equation.getElementNum());
@@ -220,7 +220,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
                 @Override
                 public void initialize(EquationArray<InitVmVariableType, InitVmEquationType> equationArray, LfNetwork network, double[] targets) {
-                    throw new UnsupportedOperationException("TODO");
+                    throw new UnsupportedOperationException("Equation array not implemented for VoltageMagnitudeInitializer");
                 }
             });
 
