@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-public class FictitiousInjectionTest {
+class FictitiousInjectionTest {
 
     @Test
     void testFictiveInjection() throws IOException {
