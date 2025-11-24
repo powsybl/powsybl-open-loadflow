@@ -19,7 +19,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractClosedBranchEquationTermArrayEvaluator extends AbstractBranchEquationTermArrayEvaluator {
+public abstract class AbstractClosedBranchEquationTermArrayEvaluator extends AbstractBranchEquationTermArrayEvaluator implements ClosedBranchEquationTermArrayEvaluator {
 
     protected final AcBusVector busVector;
 
@@ -64,11 +64,11 @@ public abstract class AbstractClosedBranchEquationTermArrayEvaluator extends Abs
         return derivatives;
     }
 
-    public double getR1(int branchNum) {
+    public double r1(int branchNum) {
         return branchVector.r1State[branchNum];
     }
 
-    public double getA1(int branchNum) {
+    public double a1(int branchNum) {
         return branchVector.a1State[branchNum];
     }
 

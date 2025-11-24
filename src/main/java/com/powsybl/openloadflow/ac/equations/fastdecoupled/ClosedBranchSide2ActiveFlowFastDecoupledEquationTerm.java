@@ -21,35 +21,14 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
-
-    private final double y;
-    private final double ksi;
-    private final double r1;
-    private final double a1;
-    private final Variable<AcVariableType> phi1Var;
-    private final Variable<AcVariableType> phi2Var;
-    private final Variable<AcVariableType> a1Var;
+public class ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm extends AbstractClosedBranchAcFlowFastDecoupledEquationTerm<ClosedBranchSide2ActiveFlowEquationTerm, ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator> {
 
     public ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm(ClosedBranchSide2ActiveFlowEquationTerm closedBranchSide2ActiveFlowEquationTerm) {
-        y = closedBranchSide2ActiveFlowEquationTerm.getY();
-        ksi = closedBranchSide2ActiveFlowEquationTerm.getKsi();
-        r1 = closedBranchSide2ActiveFlowEquationTerm.r1();
-        a1 = closedBranchSide2ActiveFlowEquationTerm.a1();
-        phi1Var = closedBranchSide2ActiveFlowEquationTerm.getPhi1Var();
-        phi2Var = closedBranchSide2ActiveFlowEquationTerm.getPhi2Var();
-        a1Var = closedBranchSide2ActiveFlowEquationTerm.getA1Var();
+        super(closedBranchSide2ActiveFlowEquationTerm);
     }
 
     public ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm(ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator closedBranchSide2ActiveFlowEvaluator, int branchNum) {
-        // If vectorized, we use EquationTermArrayEvaluator to get the term data
-        y = closedBranchSide2ActiveFlowEvaluator.getY(branchNum);
-        ksi = closedBranchSide2ActiveFlowEvaluator.getKsi(branchNum);
-        r1 = closedBranchSide2ActiveFlowEvaluator.getR1(branchNum);
-        a1 = closedBranchSide2ActiveFlowEvaluator.getA1(branchNum);
-        phi1Var = closedBranchSide2ActiveFlowEvaluator.getPhi1Var(branchNum);
-        phi2Var = closedBranchSide2ActiveFlowEvaluator.getPhi2Var(branchNum);
-        a1Var = closedBranchSide2ActiveFlowEvaluator.getA1Var(branchNum);
+        super(closedBranchSide2ActiveFlowEvaluator, branchNum);
     }
 
     protected static double theta2FastDecoupled(double ksi, double a1) {

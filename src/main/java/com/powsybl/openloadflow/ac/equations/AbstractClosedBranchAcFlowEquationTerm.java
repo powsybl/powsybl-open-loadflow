@@ -23,7 +23,7 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
+public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm implements ClosedBranchAcFlowEquationTerm {
 
     protected final Variable<AcVariableType> v1Var;
 

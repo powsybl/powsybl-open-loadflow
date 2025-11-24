@@ -31,27 +31,27 @@ public abstract class AbstractBranchEquationTermArrayEvaluator implements Equati
         return branchVector.disabled[branchNum];
     }
 
-    public double getB1(int branchNum) {
+    public double b1(int branchNum) {
         return branchVector.b1[branchNum];
     }
 
-    public double getB2(int branchNum) {
+    public double b2(int branchNum) {
         return branchVector.b2[branchNum];
     }
 
-    public double getG1(int branchNum) {
+    public double g1(int branchNum) {
         return branchVector.g1[branchNum];
     }
 
-    public double getG2(int branchNum) {
+    public double g2(int branchNum) {
         return branchVector.g2[branchNum];
     }
 
-    public double getY(int branchNum) {
+    public double y(int branchNum) {
         return branchVector.y[branchNum];
     }
 
-    public double getKsi(int branchNum) {
+    public double ksi(int branchNum) {
         return branchVector.ksi[branchNum];
     }
 }

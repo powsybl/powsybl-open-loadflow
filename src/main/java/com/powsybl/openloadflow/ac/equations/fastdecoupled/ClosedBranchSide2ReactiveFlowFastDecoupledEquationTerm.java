@@ -23,38 +23,14 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
-
-    private final double y;
-    private final double ksi;
-    private final double b2;
-    private final double a1;
-    private final double r1;
-    private final Variable<AcVariableType> v1Var;
-    private final Variable<AcVariableType> v2Var;
-    private final Variable<AcVariableType> r1Var;
+public class ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm extends AbstractClosedBranchAcFlowFastDecoupledEquationTerm<ClosedBranchSide2ReactiveFlowEquationTerm, ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator> {
 
     public ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(ClosedBranchSide2ReactiveFlowEquationTerm closedBranchSide2ReactiveFlowEquationTerm) {
-        y = closedBranchSide2ReactiveFlowEquationTerm.getY();
-        ksi = closedBranchSide2ReactiveFlowEquationTerm.getKsi();
-        b2 = closedBranchSide2ReactiveFlowEquationTerm.getB2();
-        a1 = closedBranchSide2ReactiveFlowEquationTerm.a1();
-        r1 = closedBranchSide2ReactiveFlowEquationTerm.r1();
-        v1Var = closedBranchSide2ReactiveFlowEquationTerm.getV1Var();
-        v2Var = closedBranchSide2ReactiveFlowEquationTerm.getV2Var();
-        r1Var = closedBranchSide2ReactiveFlowEquationTerm.getR1Var();
+        super(closedBranchSide2ReactiveFlowEquationTerm);
     }
 
     public ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator closedBranchSide2ReactiveFlowEvaluator, int branchNum) {
-        // If vectorized, we use EquationTermArrayEvaluator to get the term data
-        y = closedBranchSide2ReactiveFlowEvaluator.getY(branchNum);
-        ksi = closedBranchSide2ReactiveFlowEvaluator.getKsi(branchNum);
-        b2 = closedBranchSide2ReactiveFlowEvaluator.getB2(branchNum);
-        a1 = closedBranchSide2ReactiveFlowEvaluator.getA1(branchNum);
-        r1 = closedBranchSide2ReactiveFlowEvaluator.getR1(branchNum);
-        v1Var = closedBranchSide2ReactiveFlowEvaluator.getV1Var(branchNum);
-        v2Var = closedBranchSide2ReactiveFlowEvaluator.getV2Var(branchNum);
-        r1Var = closedBranchSide2ReactiveFlowEvaluator.getR1Var(branchNum);
+        super(closedBranchSide2ReactiveFlowEvaluator, branchNum);
     }
 
     public static double dq2dv2FastDecoupled(double y, double cosKsi, double b2, double v2, double r1, double cosTheta) {

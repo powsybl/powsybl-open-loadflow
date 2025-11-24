@@ -93,7 +93,7 @@ public class JacobianMatrixFastDecoupled
         }
     }
 
-    private AbstractFastDecoupledEquationTerm buildFastDecoupledTerm(EquationTerm<AcVariableType, AcEquationType> term) {
+    private FastDecoupledEquationTerm buildFastDecoupledTerm(EquationTerm<AcVariableType, AcEquationType> term) {
         if (term instanceof EquationTermArray.EquationTermArrayElementImpl<AcVariableType, AcEquationType> termArrayElement) {
             // Converting EquationTermArrayElement to corresponding fast decoupled term
             return switch (termArrayElement.getEvaluator()) {
@@ -129,7 +129,7 @@ public class JacobianMatrixFastDecoupled
     // Build Fast-Decoupled version of a term, if it has dedicated derivative
     private double computeDedicatedDerivative(EquationTerm<AcVariableType, AcEquationType> term, Variable<AcVariableType> variable) {
         if (term instanceof AtomicEquationTerm.MultiplyByScalarEquationTerm<AcVariableType, AcEquationType> multiplyByTerm) {
-            AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(multiplyByTerm.getTerm());
+            FastDecoupledEquationTerm fastDecoupledEquationTerm = buildFastDecoupledTerm(multiplyByTerm.getTerm());
             return new MultiplyByScalarFastDecoupledEquationTerm(multiplyByTerm.getScalar(), fastDecoupledEquationTerm)
                     .derFastDecoupled(variable);
         } else {
