@@ -175,6 +175,21 @@ public class JacobianMatrixFastDecoupled
         }
     }
 
+    private void derEquationFastDecoupled(Equation<AcVariableType, AcEquationType> eq) {
+        int column = eq.getColumn();
+        if (isPhiSystem) {
+            derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
+                int row = variable.getRow();
+                return matrix.addAndGetIndex(row, column, value);
+            }, rangeIndex, true);
+        } else {
+            derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
+                int row = variable.getRow();
+                return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
+            }, rangeIndex, false);
+        }
+    }
+
     @Override
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -192,18 +207,7 @@ public class JacobianMatrixFastDecoupled
         matrix = matrixFactory.create(rowColumnCount, rowColumnCount, estimatedNonZeroValueCount);
 
         for (Equation<AcVariableType, AcEquationType> eq : subsetAtomicEquationsToSolve) {
-            int column = eq.getColumn();
-            if (isPhiSystem) {
-                derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
-                    int row = variable.getRow();
-                    return matrix.addAndGetIndex(row, column, value);
-                }, rangeIndex, true);
-            } else {
-                derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
-                    int row = variable.getRow();
-                    return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
-                }, rangeIndex, false);
-            }
+            derEquationFastDecoupled(eq);
         }
 
         for (EquationArray<AcVariableType, AcEquationType> eqArray : subsetEquationArrays) {
@@ -212,18 +216,7 @@ public class JacobianMatrixFastDecoupled
                 if (!eq.isActive()) {
                     continue;
                 }
-                int column = eq.getColumn();
-                if (isPhiSystem) {
-                    derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
-                        int row = variable.getRow();
-                        return matrix.addAndGetIndex(row, column, value);
-                    }, rangeIndex, true);
-                } else {
-                    derFastDecoupled(eq, (variable, value, matrixElementIndex) -> {
-                        int row = variable.getRow();
-                        return matrix.addAndGetIndex(row - rangeIndex, column - rangeIndex, value);
-                    }, rangeIndex, false);
-                }
+                derEquationFastDecoupled(eq);
             }
         }
 
