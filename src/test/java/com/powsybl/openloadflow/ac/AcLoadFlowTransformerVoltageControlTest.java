@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,11 +10,11 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -362,9 +362,11 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
                 .build();
-        LoadFlowResult result = loadFlowRunner.run(network,
-                network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),
-                stableParams, rootReport);
+        LoadFlowRunParameters loadFlowRunParameters = new LoadFlowRunParameters()
+                .setParameters(stableParams)
+                .setReportNode(rootReport);
+
+        LoadFlowResult result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.283, bus2);
         assertVoltageEquals(28.71, t2wt.getTerminal2().getBusView().getBus());
