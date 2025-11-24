@@ -36,10 +36,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -354,6 +351,29 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void testSerializeToMapAndReloadProviderParameters() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters());
+
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
+
+        //Get extension parameters into a map
+        var map = provider.createMapFromSpecificParameters(parameters.getExtension(OpenLoadFlowParameters.class));
+
+        LoadFlowParameters parameters2 = new LoadFlowParameters();
+        parameters2.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters());
+        //try reupdating parameters with map
+        provider.updateSpecificParameters(parameters2.getExtension(OpenLoadFlowParameters.class), map);
+
+        assertTrue(OpenLoadFlowParameters.equals(parameters, parameters2));
+
+        // Specific outerLoopCase to check empty list is correctly handled
+        provider.updateSpecificParameters(parameters2.getExtension(OpenLoadFlowParameters.class), Map.of(OUTER_LOOP_NAMES_PARAM_NAME, ""));
+        parameters.getExtension(OpenLoadFlowParameters.class).setOuterLoopNames(Collections.emptyList());
+        assertTrue(OpenLoadFlowParameters.equals(parameters, parameters2));
+    }
+
+    @Test
     void testCompareParameters() {
         assertTrue(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters()));
         assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters().setDc(true)));
@@ -436,6 +456,60 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void testSerializationRoundTrip() {
+        Set<String> nullableParams = Set.of("debugDir", "outerLoopNames");
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
+        provider.getSpecificParameters().forEach(sp -> {
+            LoadFlowParameters p1 = new LoadFlowParameters();
+            OpenLoadFlowParameters e1 = OpenLoadFlowParameters.create(p1);
+            List<String> vals;
+            if (sp.getType() == ParameterType.BOOLEAN) {
+                vals = List.of("true", "false");
+            } else if (sp.getType() == ParameterType.INTEGER || sp.getType() == ParameterType.DOUBLE) {
+                vals = List.of("3", "4");
+            } else if (sp.getType() == ParameterType.STRING) {
+                if (sp.getPossibleValues() == null) {
+                    // e.g. debugDir
+                    vals = List.of("foo", "");
+                } else {
+                    vals = List.of(sp.getPossibleValues().get(0).toString(), sp.getPossibleValues().get(1).toString());
+                }
+            } else if (sp.getType() == ParameterType.STRING_LIST) {
+                if (sp.getPossibleValues() == null) {
+                    // e.g. slackBusesIds
+                    vals = List.of("Foo", "Foo,Bar", "");
+                } else {
+                    // e.g. slackBusCountryFilter
+                    vals = List.of(sp.getPossibleValues().get(0).toString(), sp.getPossibleValues().get(0).toString() + "," + sp.getPossibleValues().get(1).toString(), "");
+                }
+            } else {
+                throw new IllegalStateException("Unexpected ParameterType");
+            }
+
+            for (String val : vals) {
+                e1.update(Map.of(sp.getName(), val));
+                var map = provider.createMapFromSpecificParameters(e1);
+                LoadFlowParameters p2 = new LoadFlowParameters();
+                OpenLoadFlowParameters e2 = OpenLoadFlowParameters.create(p2);
+                provider.updateSpecificParameters(e2, map);
+                assertTrue(OpenLoadFlowParameters.equals(p1, p2));
+            }
+            if (nullableParams.contains(sp.getName())) {
+                Map<String, String> p = new HashMap<>();
+                p.put(sp.getName(), null);
+                e1.update(p);
+                var map = provider.createMapFromSpecificParameters(e1);
+                // Null values are not exported by the provider
+                assertFalse(map.containsKey(sp.getName()));
+                LoadFlowParameters p2 = new LoadFlowParameters();
+                OpenLoadFlowParameters e2 = OpenLoadFlowParameters.create(p2);
+                provider.updateSpecificParameters(e2, map);
+                assertTrue(OpenLoadFlowParameters.equals(p1, p2));
+            }
+        });
+    }
+
+    @Test
     void testCloneParameters() {
         var p = new LoadFlowParameters();
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
@@ -449,7 +523,7 @@ class OpenLoadFlowParametersTest {
     @Test
     void testToString() {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
-        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], slackDistributionFailureBehavior=FAIL, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=10000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=INCREMENTAL_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, minNominalVoltageRealisticVoltageCheck=0.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerRatioTapControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], actionableTransformersIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, outerLoopNames=null, useActiveLimits=true, disableVoltageControlOfGeneratorsOutsideActivePowerLimits=false, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295, linePerUnitMode=IMPEDANCE, useLoadModel=false, dcApproximationType=IGNORE_R, simulateAutomationSystems=false, acSolverType=NEWTON_RAPHSON, maxNewtonKrylovIterations=100, newtonKrylovLineSearch=false, referenceBusSelectionMode=FIRST_SLACK, writeReferenceTerminals=true, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT], transformerVoltageControlUseInitialTapPosition=false, generatorVoltageControlMinNominalVoltage=-1.0, fictitiousGeneratorVoltageControlCheckMode=FORCED, areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0, voltageRemoteControlRobustMode=true, forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, generatorsWithZeroMwTargetAreNotStarted=true)",
+        assertEquals("OpenLoadFlowParameters(slackBusSelectionMode=MOST_MESHED, slackBusesIds=[], slackDistributionFailureBehavior=FAIL, voltageRemoteControl=true, lowImpedanceBranchMode=REPLACE_BY_ZERO_IMPEDANCE_LINE, loadPowerFactorConstant=false, plausibleActivePowerLimit=10000.0, newtonRaphsonStoppingCriteriaType=UNIFORM_CRITERIA, slackBusPMaxMismatch=1.0, maxActivePowerMismatch=0.01, maxReactivePowerMismatch=0.01, maxVoltageMismatch=1.0E-4, maxAngleMismatch=1.0E-5, maxRatioMismatch=1.0E-5, maxSusceptanceMismatch=1.0E-4, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, maxNewtonRaphsonIterations=15, maxOuterLoopIterations=20, newtonRaphsonConvEpsPerEq=1.0E-4, voltageInitModeOverride=NONE, transformerVoltageControlMode=INCREMENTAL_VOLTAGE_CONTROL, shuntVoltageControlMode=WITH_GENERATOR_VOLTAGE_CONTROL, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, minNominalVoltageRealisticVoltageCheck=0.0, reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8, networkCacheEnabled=false, svcVoltageMonitoring=true, stateVectorScalingMode=NONE, maxSlackBusCount=1, debugDir=null, incrementalTransformerRatioTapControlOuterLoopMaxTapShift=3, secondaryVoltageControl=false, reactiveLimitsMaxPqPvSwitch=3, phaseShifterControlMode=CONTINUOUS_WITH_DISCRETISATION, alwaysUpdateNetwork=false, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile=95.0, reportedFeatures=[], slackBusCountryFilter=[], actionableSwitchesIds=[], actionableTransformersIds=[], asymmetrical=false, minNominalVoltageTargetVoltageCheck=20.0, reactivePowerDispatchMode=Q_EQUAL_PROPORTION, outerLoopNames=null, useActiveLimits=true, disableVoltageControlOfGeneratorsOutsideActivePowerLimits=false, lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295, linePerUnitMode=IMPEDANCE, useLoadModel=false, dcApproximationType=IGNORE_R, simulateAutomationSystems=false, acSolverType=NEWTON_RAPHSON, maxNewtonKrylovIterations=100, newtonKrylovLineSearch=false, referenceBusSelectionMode=FIRST_SLACK, writeReferenceTerminals=true, voltageTargetPriorities=[GENERATOR, TRANSFORMER, SHUNT], transformerVoltageControlUseInitialTapPosition=false, generatorVoltageControlMinNominalVoltage=-1.0, fictitiousGeneratorVoltageControlCheckMode=FORCED, areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0, voltageRemoteControlRobustMode=true, forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, startWithFrozenACEmulation=false, generatorsWithZeroMwTargetAreNotStarted=true)",
                 parameters.toString());
     }
 
@@ -473,7 +547,7 @@ class OpenLoadFlowParametersTest {
         e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt));
         assertEquals("Unknown outer loop 'Foo' for AC load flow", e.getMessage());
 
-        assertEquals("Ordered explicit list of outer loop names, supported outer loops are for AC : [IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl], and for DC : [IncrementalPhaseControl, AreaInterchangeControl]",
+        assertEquals("Ordered explicit list of outer loop names, supported outer loops are for AC : [IncrementalPhaseControl, DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl, FreezingHvdcACEmulation], and for DC : [IncrementalPhaseControl, AreaInterchangeControl]",
                      OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
     }
 

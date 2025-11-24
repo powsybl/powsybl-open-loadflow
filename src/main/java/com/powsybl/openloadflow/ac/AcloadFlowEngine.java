@@ -205,7 +205,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                context.getTargetVector(),
                                                context.getEquationVector());
 
-        List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops();
+        List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops().stream().filter(o -> o.isNeeded(context)).toList();
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
                 .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
                 .toList();
@@ -315,7 +315,11 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         LOGGER.info("AC loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReportNode(), result.isSuccess(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
+        if (result.isSuccess()) {
+            Reports.reportAcLfCompleteWithSuccess(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
+        } else {
+            Reports.reportAcLfCompleteWithError(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
+        }
 
         context.setResult(result);
 

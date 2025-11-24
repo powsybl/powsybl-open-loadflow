@@ -29,6 +29,7 @@ public final class Reports {
     private static final String ITERATION_COUNT = "iterationCount";
     private static final String NETWORK_ID = "networkId";
     private static final String IMPACTED_GENERATOR_COUNT = "impactedGeneratorCount";
+    private static final String SOLVER_NAME = "solverName";
 
     private static final String IMPACTED_TRANSFORMER_COUNT = "impactedTransformerCount";
 
@@ -185,11 +186,26 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaNoInterchangeControl(ReportNode reportNode, String area, String reason) {
+    public static void reportAreaNoInterchangeControlNoBoundary(ReportNode reportNode, String area) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.areaNoInterchangeControl")
+                .withMessageTemplate("olf.areaNoInterchangeControlNoBoundary")
                 .withUntypedValue("area", area)
-                .withUntypedValue("reason", reason)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControlNoInterchangeTarget(ReportNode reportNode, String area) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaNoInterchangeControlNoInterchangeTarget")
+                .withUntypedValue("area", area)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportAreaNoInterchangeControlMissingBuses(ReportNode reportNode, String area) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaNoInterchangeControlMissingBuses")
+                .withUntypedValue("area", area)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
@@ -635,15 +651,21 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAcLfComplete(ReportNode reportNode, boolean success, String solverStatus, String outerloopStatus) {
-        TypedValue severity = success ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY;
-        String successText = success ? "successfully" : "with error";
+    public static void reportAcLfCompleteWithSuccess(ReportNode reportNode, String solverStatus, String outerloopStatus) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.acLfComplete")
-                .withUntypedValue("successText", successText)
+                .withMessageTemplate("olf.acLfCompleteWithSuccess")
                 .withUntypedValue("solverStatus", solverStatus)
                 .withUntypedValue("outerloopStatus", outerloopStatus)
-                .withSeverity(severity)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportAcLfCompleteWithError(ReportNode reportNode, String solverStatus, String outerloopStatus) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.acLfCompleteWithError")
+                .withUntypedValue("solverStatus", solverStatus)
+                .withUntypedValue("outerloopStatus", outerloopStatus)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
@@ -750,7 +772,7 @@ public final class Reports {
         ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
         subReportNode.newReportNode()
                 .withMessageTemplate("olf.solverOuterLoopCurrentType")
-                .withUntypedValue("solverName", solverName)
+                .withUntypedValue(SOLVER_NAME, solverName)
                 .withUntypedValue("outerLoopIteration", outerLoopIteration)
                 .withUntypedValue("outerLoopType", outerLoopType)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -763,11 +785,11 @@ public final class Reports {
                 .withMessageTemplate("olf.solver")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-                .withUntypedValue("solverName", solverName)
+                .withUntypedValue(SOLVER_NAME, solverName)
                 .add();
     }
 
-    public static ReportNode createNewtonRaphsonMismatchReporter(ReportNode reportNode, int iteration) {
+    public static ReportNode createAcMismatchReporter(ReportNode reportNode, int iteration) {
         if (iteration == 0) {
             return reportNode.newReportNode()
                     .withMessageTemplate("olf.mismatchInitial").
@@ -780,17 +802,18 @@ public final class Reports {
         }
     }
 
-    public static void reportNewtonRaphsonError(ReportNode reportNode, String error) {
+    public static void reportAcSolverError(ReportNode reportNode, String solverName, String error) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.NRError")
+                .withMessageTemplate("olf.solverError")
+                .withUntypedValue(SOLVER_NAME, solverName)
                 .withUntypedValue("error", error)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .add();
     }
 
-    public static void reportNewtonRaphsonNorm(ReportNode reportNode, double norm) {
+    public static void reportSolverNorm(ReportNode reportNode, double norm) {
         reportNode.newReportNode()
-                .withMessageTemplate("olf.NRNorm")
+                .withMessageTemplate("olf.solverNorm")
                 .withUntypedValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
@@ -908,6 +931,26 @@ public final class Reports {
                 .add();
     }
 
+    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String stationId, double setPoint, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.freezeHvdc")
+                .withUntypedValue("hvdcId", hvdcId)
+                .withUntypedValue("stationId", stationId)
+                .withUntypedValue("setPoint", setPoint)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportUnfreezeHvdc(ReportNode reportNode, String hvdcID, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.unfreezeHvdc")
+                .withUntypedValue("ID", hvdcID)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
     public static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
         node.newReportNode()
                 .withMessageTemplate("olf.LfActionUtils")
@@ -923,4 +966,5 @@ public final class Reports {
                 .withMessageTemplate("olf.threadRoot")
                 .build();
     }
+
 }

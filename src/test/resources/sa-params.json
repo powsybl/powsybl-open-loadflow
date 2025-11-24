@@ -31,9 +31,10 @@
     "open-security-analysis-parameters" : {
       "createResultExtension" : true,
       "contingencyPropagation" : false,
-      "threadCount" : 1,
+      "threadCount" : 3,
       "dcFastMode" : true,
-      "contingencyActivePowerLossDistribution" : "Default"
+      "contingencyActivePowerLossDistribution" : "Default",
+      "startWithFrozenACEmulation" : false
     }
   }
 }

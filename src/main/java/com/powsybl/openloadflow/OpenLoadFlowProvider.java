@@ -23,6 +23,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -48,7 +49,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS;
 
@@ -266,12 +266,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, ReportNode reportNode) {
+    public CompletableFuture<LoadFlowResult> run(Network network, String workingVariantId, LoadFlowRunParameters loadFlowRunParameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(computationManager);
         Objects.requireNonNull(workingVariantId);
-        Objects.requireNonNull(parameters);
-        Objects.requireNonNull(reportNode);
+        Objects.requireNonNull(loadFlowRunParameters);
+        ComputationManager computationManager = Objects.requireNonNull(loadFlowRunParameters.getComputationManager());
+        LoadFlowParameters parameters = Objects.requireNonNull(loadFlowRunParameters.getLoadFlowParameters());
+        ReportNode reportNode = Objects.requireNonNull(loadFlowRunParameters.getReportNode());
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
@@ -333,9 +334,18 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public Map<String, String> createMapFromSpecificParameters(Extension<LoadFlowParameters> extension) {
-        return ((OpenLoadFlowParameters) extension).toMap().entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> Objects.toString(e.getValue(), "")));
+        var parametersMap = ((OpenLoadFlowParameters) extension).toMap();
+        Map<String, String> resMap = new HashMap<>();
+        parametersMap.forEach((key, value) -> {
+            if (value != null) {
+                if (value instanceof List || value instanceof Set) {
+                    resMap.put(key, String.join(",", ((Collection<?>) value).stream().map(Object::toString).toList()));
+                } else {
+                    resMap.put(key, Objects.toString(value));
+                }
+            }
+        });
+        return resMap;
     }
 
     @Override
