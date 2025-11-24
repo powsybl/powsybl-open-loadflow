@@ -59,7 +59,7 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     double getTargetV();
 
-    double getLocalTargetV();
+    double getEquivalentLocalTargetV();
 
     OptionalDouble getRemoteControlReactiveKey();
 

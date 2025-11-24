@@ -172,7 +172,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                                                 LfNetworkLoadingReport report) {
         double localTargetV = Double.NaN;
         for (LfGenerator generator : controllerBus.getGenerators()) {
-            double genLocalTargetV = generator.getLocalTargetV();
+            double genLocalTargetV = generator.getEquivalentLocalTargetV();
             if (!Double.isNaN(genLocalTargetV)) {
                 if (Double.isNaN(localTargetV)) {
                     localTargetV = genLocalTargetV;

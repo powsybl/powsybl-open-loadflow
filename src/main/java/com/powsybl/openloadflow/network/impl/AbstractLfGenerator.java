@@ -137,7 +137,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
-    public double getLocalTargetV() {
+    public double getEquivalentLocalTargetV() {
         return Double.NaN;
     }
 
