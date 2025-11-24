@@ -138,7 +138,7 @@ public class JacobianMatrixFastDecoupled
     }
 
     public void computeDerivative(List<EquationTerm<AcVariableType, AcEquationType>> equationTerms,
-                                                 Variable<AcVariableType> variable, AtomicEquation.DerHandler<AcVariableType> handler) {
+                                                 Variable<AcVariableType> variable, Equation.DerHandler<AcVariableType> handler) {
         double value = 0;
 
         for (EquationTerm<AcVariableType, AcEquationType> term : equationTerms) {

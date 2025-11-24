@@ -197,10 +197,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             setElementActive(element.getNum(), enable);
         }
         for (var termArray : getTermArrays()) {
-            if (termArray.getElementType() == element.getType()) {
-                if (termArray.hasTermElement(element.getNum())) {
-                    termArray.setTermElementActive(element.getNum(), enable);
-                }
+            if (termArray.getElementType() == element.getType() && termArray.hasTermElement(element.getNum())) {
+                termArray.setTermElementActive(element.getNum(), enable);
             }
         }
         if (atomicTermsByTermElementNum.containsKey(element.getNum())) {
@@ -293,7 +291,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     }
                 }
                 if (atomicTermsByEquationElementNum.containsKey(elementNum)) {
-                    for (EquationTerm<V, E> atomicTerm : atomicTermsByEquationElementNum.get(elementNum).terms) {
+                    for (AtomicEquationTerm<V, E> atomicTerm : atomicTermsByEquationElementNum.get(elementNum).terms) {
                         terms.add((T) atomicTerm);
                     }
                 }

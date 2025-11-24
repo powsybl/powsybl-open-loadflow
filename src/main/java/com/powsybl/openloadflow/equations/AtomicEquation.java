@@ -283,6 +283,8 @@ public class AtomicEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             case SHUNT_COMPENSATOR:
                 element = network.getShunt(elementNum);
                 break;
+            default:
+                break;
         }
         return Optional.ofNullable(element);
     }

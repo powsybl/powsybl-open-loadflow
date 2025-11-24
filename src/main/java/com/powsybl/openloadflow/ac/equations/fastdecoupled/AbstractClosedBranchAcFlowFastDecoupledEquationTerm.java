@@ -8,7 +8,7 @@ import com.powsybl.openloadflow.equations.Variable;
 /**
  * @author Sylvestre Prabakaran {@literal <sylvestre.prabakaran at rte-france.com>}
  */
-public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<ClosedBranchTermType extends ClosedBranchAcFlowEquationTerm, ClosedBranchTermEvaluatorType extends ClosedBranchEquationTermArrayEvaluator> implements FastDecoupledEquationTerm {
+public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<T extends ClosedBranchAcFlowEquationTerm, E extends ClosedBranchEquationTermArrayEvaluator> implements FastDecoupledEquationTerm {
 
     protected final double y;
     protected final double ksi;
@@ -23,7 +23,7 @@ public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<Closed
     protected final Variable<AcVariableType> a1Var;
     protected final Variable<AcVariableType> r1Var;
 
-    protected AbstractClosedBranchAcFlowFastDecoupledEquationTerm(ClosedBranchTermType closedBranchAcFlowEquationTerm) {
+    protected AbstractClosedBranchAcFlowFastDecoupledEquationTerm(T closedBranchAcFlowEquationTerm) {
         // If single term, getting term data through ClosedBranchAcFlowEquationTerm
         y = closedBranchAcFlowEquationTerm.y();
         ksi = closedBranchAcFlowEquationTerm.ksi();
@@ -39,7 +39,7 @@ public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<Closed
         r1Var = closedBranchAcFlowEquationTerm.getR1Var();
     }
 
-    protected AbstractClosedBranchAcFlowFastDecoupledEquationTerm(ClosedBranchTermEvaluatorType closedBranchEvaluator, int branchNum) {
+    protected AbstractClosedBranchAcFlowFastDecoupledEquationTerm(E closedBranchEvaluator, int branchNum) {
         // If term array, getting term data through its evaluator
         y = closedBranchEvaluator.y(branchNum);
         ksi = closedBranchEvaluator.ksi(branchNum);

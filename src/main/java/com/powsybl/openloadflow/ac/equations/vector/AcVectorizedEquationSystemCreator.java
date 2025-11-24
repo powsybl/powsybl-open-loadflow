@@ -17,10 +17,6 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
 
     protected AcNetworkVector networkVector;
 
-    private EquationArray<AcVariableType, AcEquationType> pArray;
-
-    private EquationArray<AcVariableType, AcEquationType> qArray;
-
     private EquationTermArray<AcVariableType, AcEquationType> closedP1Array;
 
     private EquationTermArray<AcVariableType, AcEquationType> closedP2Array;
@@ -41,8 +37,8 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     protected void create(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
 
-        pArray = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
-        qArray = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_Q);
+        EquationArray<AcVariableType, AcEquationType> pArray = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
+        EquationArray<AcVariableType, AcEquationType> qArray = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_Q);
 
         closedP1Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(closedP1Array);

@@ -110,9 +110,6 @@ class EquationArrayTest {
         assertArrayEquals(values, values2);
         DenseMatrix derValues = calculateDer(equationSystem);
         DenseMatrix derValues2 = calculateDer(equationSystem2);
-//        derValues.print(System.out);
-//        System.out.println("------");
-//        derValues2.print(System.out);
         assertEquals(derValues, derValues2);
 
         try (EquationVector<AcVariableType, AcEquationType> equationVector = new EquationVector<>(equationSystem);
