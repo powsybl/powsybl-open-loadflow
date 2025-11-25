@@ -271,13 +271,10 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
 
     private void reportAndLogAreaActivePowerDistributionSuccess(List<AreaActivePowerDistributionResult> areaResults, ReportNode iterationReportNode) {
         areaResults.stream().sorted(Comparator.comparing(areaResult -> areaResult.areaId)).forEach(areaResult -> {
-            if (ActivePowerDistributionType.AREA_INTERCHANGE.equals(areaResult.type)) {
-                logger.info("Area {} interchange mismatch ({} MW) distributed in {} distribution iteration(s)", areaResult.areaId, areaResult.initialMismatch * PerUnit.SB, areaResult.distributionResult.iteration());
-                Reports.reportAicAreaInterchangeDistributionSuccess(iterationReportNode, areaResult.areaId, areaResult.initialMismatch * PerUnit.SB, areaResult.distributionResult.iteration());
-            } else {
-                logger.info("Area {} slack distribution share ({} MW) distributed in {} distribution iteration(s)", areaResult.areaId, areaResult.initialMismatch * PerUnit.SB, areaResult.distributionResult.iteration());
-                Reports.reportAicAreaSlackDistributionSuccess(iterationReportNode, areaResult.areaId, areaResult.initialMismatch * PerUnit.SB, areaResult.distributionResult.iteration());
-            }
+            boolean isInterchangeDistribution = ActivePowerDistributionType.AREA_INTERCHANGE.equals(areaResult.type);
+            String distibutionType = isInterchangeDistribution ? "interchange mismatch" : "slack distribution share";
+            logger.info("Area {} {} ({} MW) distributed in {} distribution iteration(s)", distibutionType, areaResult.areaId, areaResult.initialMismatch * PerUnit.SB, areaResult.distributionResult.iteration());
+            Reports.reportAicAreaDistributionSuccess(iterationReportNode, areaResult.areaId, areaResult.initialMismatch * PerUnit.SB, areaResult.distributionResult.iteration(), isInterchangeDistribution);
         });
     }
 
@@ -287,13 +284,11 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
         remainingMismatches.stream()
                 .sorted(Comparator.comparing(areaResult -> areaResult.areaId))
                 .forEach(areaResult -> {
-                    if (ActivePowerDistributionType.AREA_INTERCHANGE.equals(areaResult.type)) {
-                        logger.error("Remaining interchange mismatch for Area {}: {} MW", areaResult.areaId, areaResult.distributionResult.remainingMismatch() * PerUnit.SB);
-                        Reports.reportAicAreaInterchangeDistributionMismatch(failureReportNode, areaResult.areaId, areaResult.distributionResult.remainingMismatch() * PerUnit.SB);
-                    } else {
-                        logger.error("Remaining slack distribution mismatch for Area {}: {} MW", areaResult.areaId, areaResult.distributionResult.remainingMismatch() * PerUnit.SB);
-                        Reports.reportAicAreaSlackDistributionMismatch(failureReportNode, areaResult.areaId, areaResult.distributionResult.remainingMismatch() * PerUnit.SB);
-                    }
+                    boolean isInterchangeDistribution = ActivePowerDistributionType.AREA_INTERCHANGE.equals(areaResult.type);
+                    String mismatchType = isInterchangeDistribution ? "interchange" : "slack distribution";
+                    double remainingMismatch = areaResult.distributionResult.remainingMismatch() * PerUnit.SB;
+                    logger.error("Remaining {} mismatch for Area {}: {} MW", mismatchType, areaResult.areaId, remainingMismatch);
+                    Reports.reportAicAreaDistributionMismatch(failureReportNode, areaResult.areaId, remainingMismatch, isInterchangeDistribution);
                 });
     }
 
