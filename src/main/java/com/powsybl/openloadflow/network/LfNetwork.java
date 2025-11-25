@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -637,6 +637,29 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             this, busesById.values().size(), branches.size());
     }
 
+    /**
+     * Reports the fictitious injection total if not null
+     */
+    public void reportFictitiousInjectionTotal(ReportNode reportNode) {
+        double fictitiousTargetPNormInf = 0;
+        double fictitiousTargetQNormInf = 0;
+        long busCount = 0;
+        for (LfBus bus : getBuses()) {
+            fictitiousTargetPNormInf += Math.abs(bus.getFictitiousInjectionTargetP());
+            fictitiousTargetQNormInf += Math.abs(bus.getFictitiousInjectionTargetQ());
+            if (Math.abs(bus.getFictitiousInjectionTargetP()) + Math.abs(bus.getFictitiousInjectionTargetQ()) > 0) {
+                busCount += 1;
+            }
+        }
+        if (fictitiousTargetPNormInf + fictitiousTargetQNormInf > 0) {
+            Reports.reportFictitiousInjectionTotal(reportNode,
+                    fictitiousTargetPNormInf * PerUnit.SB,
+                    fictitiousTargetQNormInf * PerUnit.SB,
+                    busCount,
+                    LOGGER);
+        }
+    }
+
     public void reportBalance(ReportNode reportNode) {
         double activeGeneration = 0;
         double reactiveGeneration = 0;
@@ -739,6 +762,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 case VALID -> {
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
+                    lfNetwork.reportFictitiousInjectionTotal(networkReport);
                     Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
                     lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
