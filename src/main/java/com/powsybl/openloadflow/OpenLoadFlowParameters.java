@@ -22,6 +22,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalShuntVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
@@ -309,6 +310,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME = "generatorsWithZeroMwTargetAreNotStarted";
 
+    public static final String INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME = "incrementalShuntControlOuterLoopMaxSectionShift";
+
     public static final String AC_DC_NETWORK_PARAM_NAME = "acDcNetwork";
 
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
@@ -460,6 +463,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
         new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental shunt control maximum section shift per outer loop", IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(AC_DC_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "AC DC simultaneous loadflow", AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
@@ -657,6 +661,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean startWithFrozenACEmulation = START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE;
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
+
+    private int incrementalShuntControlOuterLoopMaxSectionShift = IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE;
 
     private boolean acDcNetwork = AC_DC_NETWORK_DEFAULT_VALUE;
 
@@ -1448,6 +1454,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public int getIncrementalShuntControlOuterLoopMaxSectionShift() {
+        return incrementalShuntControlOuterLoopMaxSectionShift;
+    }
+
+    public OpenLoadFlowParameters setIncrementalShuntControlOuterLoopMaxSectionShift(int incrementalShuntControlOuterLoopMaxSectionShift) {
+        this.incrementalShuntControlOuterLoopMaxSectionShift = checkParameterValue(incrementalShuntControlOuterLoopMaxSectionShift,
+                incrementalShuntControlOuterLoopMaxSectionShift >= 1,
+                INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME);
+        return this;
+    }
+
     public boolean isAcDcNetwork() {
         return acDcNetwork;
     }
@@ -1591,6 +1608,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
                     config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
                     config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
+                    config.getOptionalIntProperty(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME)
+                            .ifPresent(this::setIncrementalShuntControlOuterLoopMaxSectionShift);
                     config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
                 });
         return this;
@@ -1762,13 +1781,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setStartWithFrozenACEmulation(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorsWithZeroMwTargetAreNotStarted(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME))
+                .ifPresent(prop -> this.setIncrementalShuntControlOuterLoopMaxSectionShift(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(AC_DC_NETWORK_PARAM_NAME))
                 .ifPresent(prop -> this.setAcDcNetwork(Boolean.parseBoolean(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(72);
+        Map<String, Object> map = LinkedHashMap.newLinkedHashMap(79);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1847,6 +1868,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
         map.put(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, startWithFrozenACEmulation);
         map.put(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, generatorsWithZeroMwTargetAreNotStarted);
+        map.put(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, incrementalShuntControlOuterLoopMaxSectionShift);
         map.put(AC_DC_NETWORK_PARAM_NAME, acDcNetwork);
         return map;
     }
@@ -2255,6 +2277,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
                 extension1.isStartWithFrozenACEmulation() == extension2.isStartWithFrozenACEmulation() &&
                 extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted() &&
+                extension1.getIncrementalShuntControlOuterLoopMaxSectionShift() == extension2.getIncrementalShuntControlOuterLoopMaxSectionShift() &&
                 extension1.isAcDcNetwork() == extension2.isAcDcNetwork();
     }
 
@@ -2338,6 +2361,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted())
                 .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation())
+                .setIncrementalShuntControlOuterLoopMaxSectionShift(extension.getIncrementalShuntControlOuterLoopMaxSectionShift())
                 .setAcDcNetwork(extension.isAcDcNetwork());
     }
 
