@@ -951,6 +951,16 @@ public final class Reports {
         logger.info(node.getMessage());
     }
 
+    public static void reportFictitiousInjectionTotal(ReportNode reportNode, double totalP, double totalQ, long busCount, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.fictitiousInjectionTotal")
+                .withUntypedValue("totalP", totalP)
+                .withUntypedValue("totalQ", totalQ)
+                .withUntypedValue("busCount", busCount)
+                .add();
+        logger.info(node.getMessage());
+    }
+
     public static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
         node.newReportNode()
                 .withMessageTemplate("olf.LfActionUtils")
