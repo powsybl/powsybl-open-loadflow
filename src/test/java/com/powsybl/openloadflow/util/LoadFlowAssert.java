@@ -154,4 +154,13 @@ public final class LoadFlowAssert {
             return "Report does not contain '" + regex + "': \n-----\n" + txtReport;
         });
     }
+
+    public static void assertReportContainsMultiline(String extract, ReportNode reportNode) throws IOException {
+        String normalizedExtract = normalizeLineSeparator(extract);
+        String logExport = normalizeLineSeparator(reportToString(reportNode));
+        if (!logExport.contains(normalizedExtract)) {
+            // Then make an assertEquals Exception to facilitate debug
+            assertEquals(normalizedExtract, logExport, "Report extract not found");
+        }
+    }
 }

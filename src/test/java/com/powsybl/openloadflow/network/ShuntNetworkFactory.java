@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public final class ShuntNetworkFactory {
+public final class ShuntNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     private ShuntNetworkFactory() {
     }
@@ -167,6 +167,54 @@ public final class ShuntNetworkFactory {
                 .endSection()
                 .add()
                 .add();
+        return network;
+    }
+
+    /**
+     * Two shunt compensators with many sections, in same electrical vicinity and providing equivalent voltage support
+     * <pre>
+     * 400 kV nominal V
+     *
+     * 200 MW, 390 kV                 200 MW
+     * g1                             ld3
+     * |                              |
+     * b1 --- 30Ω ----- b2---- 5Ω ----b3
+     *                 /  \
+     *                5Ω   5Ω
+     *               /      \
+     *              b4      b5
+     *              |       |
+     *              s4      s5
+     *    s4 and s5 identical shunts:
+     *      initially at section 0
+     *      20 max sections (16 MVar per section at nominal V)
+     *      410 kV setpoint at own terminal bus (b4 and b5 respectively)
+     * </pre>
+     * @return network
+     */
+    public static Network createTwinShuntCompensators() {
+        Network network = Network.create("twinShuntCompensators", "code");
+        Bus b1 = createBus(network, "b1", 400.);
+        Bus b2 = createBus(network, "b2", 400.);
+        Bus b3 = createBus(network, "b3", 400.);
+        Bus b4 = createBus(network, "b4", 400.);
+        Bus b5 = createBus(network, "b5", 400.);
+        createGenerator(b1, "g1", 200., 390.);
+        createLoad(b3, "ld3", 200, 20);
+        createLine(network, b1, b2, "l12", 30.);
+        createLine(network, b2, b3, "l23", 5.);
+        createLine(network, b2, b4, "l24", 5.);
+        createLine(network, b2, b5, "l25", 5.);
+        createFixedShuntCompensator(b4, "s4", 0., 1e-4, 20)
+                .setSectionCount(0)
+                .setTargetV(410.)
+                .setTargetDeadband(2.)
+                .setVoltageRegulatorOn(true);
+        createFixedShuntCompensator(b5, "s5", 0., 1e-4, 20)
+                .setSectionCount(0)
+                .setTargetV(410.)
+                .setTargetDeadband(2.)
+                .setVoltageRegulatorOn(true);
         return network;
     }
 }

@@ -27,7 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 /**
@@ -40,10 +42,19 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
     public static final String NAME = "IncrementalShuntVoltageControl";
 
-    // Maximum number of directional inversions for each controller during incremental outer loop
+    // Maximum number of directional inversions for each controller during successive incremental outer loops
     private static final int MAX_DIRECTION_CHANGE = 3;
 
+    // Maximum section number shift for each controller within a single outerloop
+    public static final int MAX_SECTION_SHIFT_DEFAULT_VALUE = 3;
+
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
+
+    private final int maxSectionShift;
+
+    public IncrementalShuntVoltageControlOuterLoop(int maxSectionShift) {
+        this.maxSectionShift = maxSectionShift;
+    }
 
     @Override
     public String getName() {
@@ -134,6 +145,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         // several shunts could control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
+        Map<LfShunt.Controller, Integer> sectionShiftPerController = new HashMap<>();
         while (hasChanged) {
             hasChanged = false;
             for (LfShunt controllerShunt : sortedControllerShunts) {
@@ -144,14 +156,20 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                         var controllerContext = contextData.getControllersContexts().get(controller.getId());
                         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
+                            int sectionShift = sectionShiftPerController.getOrDefault(controller, 0);
+                            if (sectionShift > maxSectionShift) {
+                                // already changed by maximum allowed number of sections shift in this outerloop
+                                LOGGER.debug("Controller shunt '{}' is not in its deadband but will not be adjusted further because reached max section shift in this outerloop", controllerShunt.getId());
+                                continue;
+                            }
                             double previousB = controller.getB();
                             double deltaB = remainingDiffV / sensitivity;
                             Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
                             if (direction != null) {
+                                sectionShiftPerController.put(controller, sectionShift + 1);
                                 controllerContext.updateAllowedDirection(direction);
                                 remainingDiffV -= (controller.getB() - previousB) * sensitivity;
                                 hasChanged = true;
-                                numAdjustedShunts.setValue(numAdjustedShunts.getValue() + 1);
                             }
                         } else {
                             LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(),
@@ -161,6 +179,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                 }
             }
         }
+        numAdjustedShunts.setValue(numAdjustedShunts.get() + sectionShiftPerController.size());
     }
 
     private static double getDiffV(ShuntVoltageControl voltageControl) {
@@ -198,7 +217,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         // all shunts are within their deadbands
         if (controllerShuntsOutOfDeadband.isEmpty()) {
-            return new OuterLoopResult(this, status.getValue());
+            return new OuterLoopResult(this, status.get());
         }
 
         MutableObject<Integer> numAdjustedShunts = new MutableObject<>(0);
@@ -216,13 +235,13 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, numAdjustedShunts);
         });
 
-        if (numAdjustedShunts.getValue() != 0) {
+        if (numAdjustedShunts.get() != 0) {
             status.setValue(OuterLoopStatus.UNSTABLE);
             ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
-            Reports.reportShuntVoltageControlChangedSection(iterationReportNode, numAdjustedShunts.getValue());
+            Reports.reportShuntVoltageControlChangedSection(iterationReportNode, numAdjustedShunts.get());
         }
 
-        return new OuterLoopResult(this, status.getValue());
+        return new OuterLoopResult(this, status.get());
     }
 
     protected static double getHalfTargetDeadband(ShuntVoltageControl voltageControl) {
