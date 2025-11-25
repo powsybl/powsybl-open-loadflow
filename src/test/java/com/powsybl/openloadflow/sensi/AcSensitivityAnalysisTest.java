@@ -173,7 +173,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testEsgTutoMTWithSpecificContingencyContexts() throws IOException {
+    void testEsgTutoMTWithSpecificContingencyContexts() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         runAcLf(network);
 
