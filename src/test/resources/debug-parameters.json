@@ -97,7 +97,8 @@
         "disableInconsistentVoltageControls" : false,
         "extrapolateReactiveLimits" : false,
         "startWithFrozenACEmulation" : false,
-        "generatorsWithZeroMwTargetAreNotStarted" : true
+        "generatorsWithZeroMwTargetAreNotStarted" : true,
+        "incrementalShuntControlOuterLoopMaxSectionShift" : 3
       }
     }
   },
