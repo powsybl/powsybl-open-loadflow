@@ -182,7 +182,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfNetwork(LfNetwork network) {
-        //TODO : find a better way to implement AC and DC subnetworks
         this(network.numCC, network.numSC, network.slackBusSelector, network.maxSlackBusCount,
                 network.connectivityFactory, network.referenceBusSelector, ReportNode.NO_OP);
     }

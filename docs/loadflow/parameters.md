@@ -596,6 +596,16 @@ When set to `false`:
 
 The default value is `true`.
 
+**acDcNetwork**
+
+Defines if the loadflow uses DC detailed component and computes an AC DC loadflow 
+
+If `true`, the network supports DC detailed components, and the loadflow is computed on the whole connected network, 
+AC and DC sides in the same Jacobian matrix.
+
+If `false`, the loadflow is the classic one, without DC detailed components.
+
+The default value is `false`.
 
 ## Configuration file example
 See below an extract of a config file that could help:
