@@ -85,7 +85,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        assertEquals(79, provider.getSpecificParameters().size());
+        assertEquals(80, provider.getSpecificParameters().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
@@ -110,7 +110,7 @@ class OpenLoadFlowProviderTest {
         Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
         // Null values are not serialized by the provider
         long nullValueCOunt = parametersExt.toMap().values().stream().filter(Objects::isNull).count();
-        assertEquals(79, map.size() + nullValueCOunt);
+        assertEquals(80, map.size() + nullValueCOunt);
         assertEquals(2, nullValueCOunt); // debugDir and outerLoopNames are nullable
         assertEquals(provider.getSpecificParameters().size(), map.size() + nullValueCOunt);
     }
