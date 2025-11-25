@@ -527,11 +527,19 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlTapLimit(ReportNode reportNode, int numTransformerControlTapLimit) {
-        reportNode.newReportNode()
+    public static ReportNode reportTransformerControlTapLimit(ReportNode reportNode, int numTransformerControlTapLimit) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlTapLimit")
                 .withUntypedValue("numTransformerControlTapLimit", numTransformerControlTapLimit)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlTapLimitDetail(ReportNode reportNode, String tranformerId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.transformerControlTapLimitDetail")
+                .withUntypedValue("transformerId", tranformerId)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 

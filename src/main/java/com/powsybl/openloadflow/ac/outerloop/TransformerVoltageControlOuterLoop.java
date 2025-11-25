@@ -18,6 +18,12 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.util.Reports;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -25,6 +31,8 @@ import com.powsybl.openloadflow.network.VoltageControl;
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
     public static final String NAME = "TransformerVoltageControl";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TransformerVoltageControlOuterLoop.class);
 
     private enum Step {
         INITIAL,
@@ -75,7 +83,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
         return switch (contextData.step) {
             case INITIAL -> initStep(context.getNetwork(), contextData);
-            case CONTROL -> controlStep(context.getNetwork(), contextData);
+            case CONTROL -> controlStep(context.getNetwork(), contextData, reportNode);
             case COMPLETE -> new OuterLoopResult(this, OuterLoopStatus.STABLE);
         };
 
@@ -121,22 +129,26 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
      * During control step, transformers with ratio outside of range are rounded. We iterate until all transformers
      * with continuous ratio are within their operating range, rounded then and switch them to COMPLETE.
      */
-    private OuterLoopResult controlStep(LfNetwork network, ContextData contextData) {
-        boolean outOfBoundTap = false;
+    private OuterLoopResult controlStep(LfNetwork network, ContextData contextData, ReportNode reportNode) {
+        List<String> outOfBoundTransformerIds = new ArrayList<>();
 
         for (LfBranch controllerBranch : network.<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
             if (contextData.transformerRatioManager.roundR1ToExtremeTapPosition(controllerBranch)) {
-                outOfBoundTap = true;
+                outOfBoundTransformerIds.add(controllerBranch.getId());
             }
         }
 
-        if (!outOfBoundTap) {
+        if (outOfBoundTransformerIds.isEmpty()) {
             updateContinuousRatio(network, contextData);
 
             roundVoltageRatios(network);
             contextData.generatorVoltageControlManager.enableGeneratorVoltageControlsUnderMaxControlledNominalVoltage();
 
             contextData.step = Step.COMPLETE;
+        } else {
+            ReportNode summary = Reports.reportTransformerControlTapLimit(reportNode, outOfBoundTransformerIds.size());
+            LOGGER.info(summary.getMessage());
+            outOfBoundTransformerIds.forEach(id -> Reports.reportTransformerControlTapLimitDetail(summary, id));
         }
         // In any case, the loop must run again.
         return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);
