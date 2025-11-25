@@ -20,19 +20,11 @@ public interface LfDcLine extends LfElement {
 
     double getR();
 
-    Evaluable getI1();
-
     void setI1(Evaluable i1);
-
-    Evaluable getI2();
 
     void setI2(Evaluable i2);
 
-    Evaluable getP1();
-
     void setP1(Evaluable p1);
-
-    Evaluable getP2();
 
     void setP2(Evaluable p2);
 

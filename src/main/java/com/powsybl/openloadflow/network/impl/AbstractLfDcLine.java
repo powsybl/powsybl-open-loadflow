@@ -61,18 +61,8 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public Evaluable getP1() {
-        return p1;
-    }
-
-    @Override
     public void setP1(Evaluable p1) {
         this.p1 = Objects.requireNonNull(p1);
-    }
-
-    @Override
-    public Evaluable getP2() {
-        return p2;
     }
 
     @Override
@@ -81,18 +71,8 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public Evaluable getI1() {
-        return i1;
-    }
-
-    @Override
     public void setI1(Evaluable i1) {
         this.i1 = Objects.requireNonNull(i1);
-    }
-
-    @Override
-    public Evaluable getI2() {
-        return i2;
     }
 
     @Override
