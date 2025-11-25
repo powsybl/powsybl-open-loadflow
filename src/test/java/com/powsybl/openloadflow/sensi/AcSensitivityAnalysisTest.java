@@ -173,6 +173,46 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testEsgTutoMTWithSpecificContingencyContexts() throws IOException {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
+
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters)
+                .setThreadCount(2);
+        sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class, openSensitivityAnalysisParameters);
+
+        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        List<Contingency> contingencies = new ArrayList<>();
+        // Create a large list of contingencies
+        for (int i = 0; i < 100; i++) {
+            final String suffix = "-" + i;
+            contingencies.addAll(network.getLineStream().map(l -> new Contingency(l.getId() + suffix, new LineContingency(l.getId()))).toList());
+        }
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getLineStream().collect(Collectors.toList()), contingencies.get(0).getId(), TwoSides.ONE);
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        // IN MT mode, factors with specific contingencies are not reported as invalid for the other contingencies. They are just not written.
+        assertEquals(2, result.getValues().size()); // (1 contingency) * 2 factors = 2 values
+
+        assertEquals(0,
+                result.getBranchFlow1SensitivityValue("NHV1_NHV2_1-0", "GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.997,
+                result.getBranchFlow1SensitivityValue("NHV1_NHV2_1-0", "GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void test4buses() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);

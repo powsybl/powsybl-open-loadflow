@@ -745,7 +745,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 double value = sensitivityVariableToWrite.get();
                 if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
-                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC) {
+                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
+                        // If run in batch of contingencies, the contingency may not be part of this result
+                        contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndexById.get(factor.getContingencyContext().getContingencyId()), value, Double.NaN);
                 } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
