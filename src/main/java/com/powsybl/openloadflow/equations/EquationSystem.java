@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfElementContainer;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
-    private final LfNetwork network;
+    private final LfElementContainer elementContainer;
 
     private final VariableSet<V> variableSet;
 
@@ -43,12 +43,12 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final EquationSystemIndex<V, E> index;
 
-    public EquationSystem(Class<E> equationClass, LfNetwork network) {
-        this(equationClass, network, new VariableSet<>());
+    public EquationSystem(Class<E> equationClass, LfElementContainer elementContainer) {
+        this(equationClass, elementContainer, new VariableSet<>());
     }
 
-    public EquationSystem(Class<E> equationClass, LfNetwork network, VariableSet<V> variableSet) {
-        this.network = Objects.requireNonNull(network);
+    public EquationSystem(Class<E> equationClass, LfElementContainer elementContainer, VariableSet<V> variableSet) {
+        this.elementContainer = Objects.requireNonNull(elementContainer);
         this.variableSet = Objects.requireNonNull(variableSet);
         index = new EquationSystemIndex<>(this);
         equationArrays = new EnumMap<>(equationClass);
@@ -223,9 +223,9 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Objects.requireNonNull(type);
         EquationArray<V, E> equationArray = equationArrays.get(type);
         if (equationArray == null) {
-            equationArray = new EquationArray<>(type, network.getElementCount(type.getElementType()), this);
-            for (int elementNum = 0; elementNum < network.getElementCount(type.getElementType()); elementNum++) {
-                equationArray.setElementActive(elementNum, !network.getElement(type.getElementType(), elementNum).isDisabled());
+            equationArray = new EquationArray<>(type, elementContainer.getElementCount(type.getElementType()), this);
+            for (int elementNum = 0; elementNum < elementContainer.getElementCount(type.getElementType()); elementNum++) {
+                equationArray.setElementActive(elementNum, !elementContainer.getElement(type.getElementType(), elementNum).isDisabled());
             }
             equationArrays.put(type, equationArray);
         }
@@ -243,19 +243,19 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public List<String> getRowNames() {
         return index.getSortedVariablesToFind().stream()
-                .map(v -> network.getElement(v.getType().getElementType(), v.getElementNum()).getId() + "/" + v.getType())
+                .map(v -> elementContainer.getElement(v.getType().getElementType(), v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames() {
         List<String> columnNames = new ArrayList<>();
         columnNames.addAll(index.getSortedSingleEquationsToSolve().stream()
-                .map(e -> network.getElement(e.getType().getElementType(), e.getElementNum()).getId() + "/" + e.getType())
+                .map(e -> elementContainer.getElement(e.getType().getElementType(), e.getElementNum()).getId() + "/" + e.getType())
                 .toList());
         for (var equationArray : equationArrays.values()) {
             for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
                 if (equationArray.isElementActive(elementNum)) {
-                    columnNames.add(network.getElement(equationArray.getType().getElementType(), elementNum).getId() + "/" + equationArray.getType());
+                    columnNames.add(elementContainer.getElement(equationArray.getType().getElementType(), elementNum).getId() + "/" + equationArray.getType());
                 }
             }
         }

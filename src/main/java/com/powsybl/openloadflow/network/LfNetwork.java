@@ -36,7 +36,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
+public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfElementContainer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
@@ -189,6 +189,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.reportNode = Objects.requireNonNull(reportNode);
     }
 
+    @Override
     public LfElement getElement(ElementType elementType, int num) {
         return switch (elementType) {
             case BUS -> getBus(num);
@@ -959,20 +960,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         getBuses().stream().flatMap(b -> b.getGenerators().stream()).forEach(LfGenerator::setInitialTargetPToTargetP);
     }
 
+    @Override
     public int getElementCount(ElementType elementType) {
         Objects.requireNonNull(elementType);
-        switch (elementType) {
-            case BUS:
-                return busesByIndex.size();
-            case BRANCH:
-                return branches.size();
-            case SHUNT_COMPENSATOR:
-                return shuntsByIndex.size();
-            case HVDC:
-                return hvdcs.size();
-            default:
-                throw new IllegalArgumentException("Unknown element type: " + elementType);
-        }
+        return switch (elementType) {
+            case BUS -> busesByIndex.size();
+            case BRANCH -> branches.size();
+            case SHUNT_COMPENSATOR -> shuntsByIndex.size();
+            case HVDC -> hvdcs.size();
+            default -> throw new IllegalArgumentException("Unknown element type: " + elementType);
+        };
     }
 
     @Override
