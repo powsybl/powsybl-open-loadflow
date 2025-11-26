@@ -57,7 +57,7 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
 
     private AcEquationSystemCreator createAcEquationSystemCreator() {
         return parameters.isVectorized() ? new AcVectorizedEquationSystemCreator(network, parameters.getEquationSystemCreationParameters())
-                                        : new AcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters());
+                                         : new AcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters());
     }
 
     @Override
