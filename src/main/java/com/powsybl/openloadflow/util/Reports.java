@@ -527,11 +527,19 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlTapLimit(ReportNode reportNode, int numTransformerControlTapLimit) {
-        reportNode.newReportNode()
+    public static ReportNode reportTransformerControlTapLimit(ReportNode reportNode, int numTransformerControlTapLimit) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlTapLimit")
                 .withUntypedValue("numTransformerControlTapLimit", numTransformerControlTapLimit)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlTapLimitDetail(ReportNode reportNode, String tranformerId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.transformerControlTapLimitDetail")
+                .withUntypedValue("transformerId", tranformerId)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -943,6 +951,16 @@ public final class Reports {
         logger.info(node.getMessage());
     }
 
+    public static void reportFictitiousInjectionTotal(ReportNode reportNode, double totalP, double totalQ, long busCount, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.fictitiousInjectionTotal")
+                .withUntypedValue("totalP", totalP)
+                .withUntypedValue("totalQ", totalQ)
+                .withUntypedValue("busCount", busCount)
+                .add();
+        logger.info(node.getMessage());
+    }
+
     public static void reportActionApplicationFailure(String actionId, String contingencyId, ReportNode node) {
         node.newReportNode()
                 .withMessageTemplate("olf.LfActionUtils")
@@ -957,6 +975,22 @@ public final class Reports {
                 .withAllResourceBundlesFromClasspath()
                 .withMessageTemplate("olf.threadRoot")
                 .build();
+    }
+
+    public static ReportNode reportFixTargetVoltage(ReportNode reportNode) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.fixVoltageTargets")
+                .add();
+    }
+
+    public static ReportNode reportIncompatibleVoltageTarget(ReportNode reportNode, String idBus1, String idBus2, double indicator, String deactivatedElements) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.incompatibleVoltageTarget")
+                .withUntypedValue("bus1", idBus1)
+                .withUntypedValue("bus2", idBus2)
+                .withUntypedValue("indicator", indicator)
+                .withUntypedValue("elements", deactivatedElements)
+                .add();
     }
 
 }

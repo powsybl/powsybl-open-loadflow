@@ -232,10 +232,19 @@ Applies when `transformerVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONT
 
 **shuntVoltageControlMode**  
 This parameter defines which kind of outer loops is used for the shunt voltage control. We have two kinds of outer loops:
-- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control. Susceptance is finally rounded to the closest section for shunt that are controlling voltage. The control deadband is not taken into account.
-- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. Susceptance always corresponds to a section. Section changes using sensitivity computations. The control deadband is taken into account.
+- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control.
+Susceptance is finally rounded to the closest section for shunt that are controlling voltage.
+The control deadband is not taken into account.
+- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used.
+Susceptance always corresponds to a section. Section changes using sensitivity computations. The control deadband is taken into account.
+This mode can be further configured with parameter **incrementalShuntControlOuterLoopMaxSectionShift**
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
+
+**incrementalShuntControlOuterLoopMaxSectionShift**  
+Maximum number of section position change during a single iteration of the incremental shunt voltage control outer loop.
+Applies when `shuntVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONTROL` and when `shuntVoltageControl` is enabled (`true`).  
+The default value is `3`.
 
 **svcVoltageMonitoring**  
 Whether simulation of static VAR compensators voltage monitoring should be enabled.  
@@ -596,6 +605,22 @@ When set to `false`:
 
 The default value is `true`.
 
+**fixVoltageTargets**  
+If true, runs a preprocessing algorithm to identify voltage control settings that may cause convergence issues and 
+removes them automatically from voltage control. This incompatibility is determined by estimating an indicator dv/dz (the 
+difference of target divided by an estimation of the impedance separating the buses). In some situations, in particular when 
+remote voltage control is activated, this could lead to a failure in the Newton-Rapshon convergence.
+
+Note that for small impedances, the indicator value might be affected by the precision limit of double precision computation 
+and, while it always remains high in case of voltage target difference, its precise value may depend on the processor type 
+(for example i686 vs ARM).
+
+**Note** : In situations where the network configuration can be modified (for example when preparing a forecast network configuration) a preferred 
+solution is to identify problematic voltage settings using the VoltageTargetChecker.findElementsToDiscardFromVoltageControl
+that can be run on a Network. This java method returns the problematic voltage settings and the reason. Users can then use this result
+to fix the network data.
+
+The default value is `false`.
 
 ## Configuration file example
 See below an extract of a config file that could help:

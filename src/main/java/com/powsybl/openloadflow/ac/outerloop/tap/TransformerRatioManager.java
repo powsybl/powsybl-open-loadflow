@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2024, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2024-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,8 +13,6 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,8 +21,6 @@ import java.util.Map;
  * @author Didier Vidal {@literal <didier.vidal-ext at rte-france.com>}
  */
 public class TransformerRatioManager {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(TransformerRatioManager.class);
 
     private final boolean useInitialTapPosition;
 
@@ -128,7 +124,6 @@ public class TransformerRatioManager {
             double minR1 = sharedControl.minR1();
             double maxR1 = sharedControl.maxR1();
             if (r1 < minR1 || r1 > maxR1) {
-                LOGGER.info("Transformer {} with voltage control frozen: rounded at extreme tap position", branch.getId());
                 piModel.setR1(r1 > maxR1 ? maxR1 : minR1);
                 piModel.roundR1ToClosestTap();
                 branch.setVoltageControlEnabled(false);
