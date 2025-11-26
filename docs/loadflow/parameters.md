@@ -605,7 +605,7 @@ When set to `false`:
 
 The default value is `true`.
 
-**fixVoltageTargets**
+**fixVoltageTargets**  
 If true, runs a preprocessing algorithm to identify voltage control settings that may cause convergence issues and 
 removes them automatically from voltage control. This incompatibility is determined by estimating an indicator dv/dz (the 
 difference of target divided by an estimation of the impedance separating the buses). In some situations, in particular when 
