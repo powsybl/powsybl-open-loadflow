@@ -84,8 +84,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         Arrays.fill(branchVector.ph1Row, -1);
         Arrays.fill(branchVector.v2Row, -1);
         Arrays.fill(branchVector.ph2Row, -1);
-        Arrays.fill(branchVector.dummyPRow, -1);
-        Arrays.fill(branchVector.dummyQRow, -1);
 
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             int num = v.getElementNum();
@@ -105,14 +103,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
                 case BRANCH_RHO1:
                     branchVector.r1Row[num] = branchVector.deriveR1[num] ? row : -1;
-                    break;
-
-                case DUMMY_P:
-                    branchVector.dummyPRow[num] = row;
-                    break;
-
-                case DUMMY_Q:
-                    branchVector.dummyQRow[num] = row;
                     break;
 
                 default:

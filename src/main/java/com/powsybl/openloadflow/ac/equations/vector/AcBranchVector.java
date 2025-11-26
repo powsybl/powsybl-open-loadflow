@@ -56,9 +56,6 @@ public class AcBranchVector {
     public final int[] a1Row;
     public final int[] r1Row;
 
-    public final int[] dummyPRow;
-    public final int[] dummyQRow;
-
     final double[] r1State;
     final double[] a1State;
 
@@ -68,10 +65,6 @@ public class AcBranchVector {
     final double[] q2;
     final double[] i1;
     final double[] i2;
-    final double[] dummyP;
-    final double[] negDummyP;
-    final double[] dummyQ;
-    final double[] negDummyQ;
 
     final double[] dp1dv1;
     final double[] dp1dv2;
@@ -100,11 +93,6 @@ public class AcBranchVector {
     final double[] dq2dph2;
     final double[] dq2da1;
     final double[] dq2dr1;
-
-    final double[] derDummyP;
-    final double[] derNegDummyP;
-    final double[] derDummyQ;
-    final double[] derNegDummyQ;
 
     public AcBranchVector(List<LfBranch> branches, AcEquationSystemCreationParameters creationParameters) {
         int size = branches.size();
@@ -135,8 +123,6 @@ public class AcBranchVector {
         ph2Row = new int[size];
         a1Row = new int[size];
         r1Row = new int[size];
-        dummyPRow = new int[size];
-        dummyQRow = new int[size];
 
         r1State = new double[size];
         a1State = new double[size];
@@ -147,10 +133,6 @@ public class AcBranchVector {
         q2 = new double[size];
         i1 = new double[size];
         i2 = new double[size];
-        dummyP = new double[size];
-        negDummyP = new double[size];
-        dummyQ = new double[size];
-        negDummyQ = new double[size];
 
         dp1dv1 = new double[size];
         dp1dv2 = new double[size];
@@ -179,11 +161,6 @@ public class AcBranchVector {
         dq2dph2 = new double[size];
         dq2da1 = new double[size];
         dq2dr1 = new double[size];
-
-        derDummyP = new double[size];
-        derNegDummyP = new double[size];
-        derDummyQ = new double[size];
-        derNegDummyQ = new double[size];
 
         for (int i = 0; i < branches.size(); i++) {
             LfBranch branch = branches.get(i);
