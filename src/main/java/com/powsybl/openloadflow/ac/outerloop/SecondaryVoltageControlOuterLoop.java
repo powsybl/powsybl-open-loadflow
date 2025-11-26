@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2023-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -51,15 +51,6 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     public SecondaryVoltageControlOuterLoop(double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
-    }
-
-    private static Map<Integer, Integer> buildBusIndex(List<LfBus> buses) {
-        Map<Integer, Integer> busIndex = new LinkedHashMap<>();
-        for (int i = 0; i < buses.size(); i++) {
-            var bus = buses.get(i);
-            busIndex.put(bus.getNum(), i);
-        }
-        return busIndex;
     }
 
     static class SensitivityContext {
@@ -257,8 +248,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .distinct()
                 .toList();
 
-        var controllerBusIndex = buildBusIndex(allControllerBuses);
-        var controlledBusIndex = buildBusIndex(allControlledBuses);
+        var controllerBusIndex = LfBus.buildIndex(allControllerBuses);
+        var controlledBusIndex = LfBus.buildIndex(allControlledBuses);
 
         // compute target voltage sensitivities for all controlled buses
         SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBuses, controlledBusIndex, loadFlowContext);
