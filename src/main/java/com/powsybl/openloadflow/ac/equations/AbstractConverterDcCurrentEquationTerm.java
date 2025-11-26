@@ -43,7 +43,7 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
     protected List<Double> lossFactors;
 
     protected double dcNominalV;
-    
+
     protected LfDcNode dcNode1;
 
     protected LfDcNode dcNode2;
