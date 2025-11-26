@@ -52,6 +52,11 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         networkVector.startListening();
 
         super.create(equationSystem);
+
+        closedP1Array.compress();
+        closedP2Array.compress();
+        closedQ1Array.compress();
+        closedQ2Array.compress();
     }
 
     @Override

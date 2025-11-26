@@ -159,7 +159,6 @@ class EquationSystemTest {
         LfNetwork network = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcVectorizedEquationSystemCreator(network).create();
-        equationSystem.compress();
         String ref = String.join(System.lineSeparator(),
                 "bus_target_v0 = v0",
                 "bus_target_φ0 = φ0",
@@ -187,7 +186,6 @@ class EquationSystemTest {
         LfNetwork network = lfNetworks.getFirst();
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcVectorizedEquationSystemCreator(network).create();
-        equationSystem.compress();
         String ref = String.join(System.lineSeparator(),
                 "bus_target_v0 = v0",
                 "bus_target_φ0 = φ0",
