@@ -16,5 +16,4 @@ public enum ElementType {
     SHUNT_COMPENSATOR,
     HVDC,
     AREA,
-    LOAD,
 }

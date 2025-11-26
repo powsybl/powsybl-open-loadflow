@@ -16,7 +16,9 @@ import java.util.Optional;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public interface LfLoad extends LfElement {
+public interface LfLoad extends PropertyBag {
+
+    String getId();
 
     LfBus getBus();
 
