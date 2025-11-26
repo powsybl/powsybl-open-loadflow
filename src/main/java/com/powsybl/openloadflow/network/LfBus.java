@@ -111,6 +111,16 @@ public interface LfBus extends LfElement {
 
     double getTargetQ();
 
+    /**
+     * Returns the part of getLoadTargetP that does not come from a load but from the fictitious bus injection
+     */
+    double getFictitiousInjectionTargetP();
+
+    /**
+     * Returns the part of getLoadTargetQ that does not come from a load but from the fictitious bus injection
+     */
+    double getFictitiousInjectionTargetQ();
+
     void invalidateLoadTargetP();
 
     double getLoadTargetP();

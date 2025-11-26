@@ -527,11 +527,19 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlTapLimit(ReportNode reportNode, int numTransformerControlTapLimit) {
-        reportNode.newReportNode()
+    public static ReportNode reportTransformerControlTapLimit(ReportNode reportNode, int numTransformerControlTapLimit) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlTapLimit")
                 .withUntypedValue("numTransformerControlTapLimit", numTransformerControlTapLimit)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlTapLimitDetail(ReportNode reportNode, String tranformerId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.transformerControlTapLimitDetail")
+                .withUntypedValue("transformerId", tranformerId)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -939,6 +947,16 @@ public final class Reports {
                 .withMessageTemplate("olf.unfreezeHvdc")
                 .withUntypedValue("ID", hvdcID)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportFictitiousInjectionTotal(ReportNode reportNode, double totalP, double totalQ, long busCount, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.fictitiousInjectionTotal")
+                .withUntypedValue("totalP", totalP)
+                .withUntypedValue("totalQ", totalQ)
+                .withUntypedValue("busCount", busCount)
                 .add();
         logger.info(node.getMessage());
     }

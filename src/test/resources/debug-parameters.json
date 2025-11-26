@@ -98,6 +98,7 @@
         "extrapolateReactiveLimits" : false,
         "startWithFrozenACEmulation" : false,
         "generatorsWithZeroMwTargetAreNotStarted" : true,
+        "incrementalShuntControlOuterLoopMaxSectionShift" : 3,
         "fixVoltageTargets" : false
       }
     }
