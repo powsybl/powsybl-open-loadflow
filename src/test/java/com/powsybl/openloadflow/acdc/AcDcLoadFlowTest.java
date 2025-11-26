@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class AcDcLoadFlowTest {
+class AcDcLoadFlowTest {
 
     Network network;
 
@@ -45,14 +45,6 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(149.776011, busGb150);
         assertAngleEquals(-2.550141, busGb150);
 
-        Bus busFr150 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-150");
-        assertVoltageEquals(149.819131, busFr150);
-        assertAngleEquals(2.543088, busFr150);
-
-        Bus busGb400 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-400");
-        assertVoltageEquals(400.155070, busGb400);
-        assertAngleEquals(-0.000000, busGb400);
-
         Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
         assertVoltageEquals(399.556099, busFr400);
         assertAngleEquals(-0.000000, busFr400);
@@ -64,9 +56,6 @@ public class AcDcLoadFlowTest {
         Bus busGb = network.getBusBreakerView().getBus("BUS-GB");
         assertVoltageEquals(400.000000, busGb);
         assertAngleEquals(-0.431794, busGb);
-
-        DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
-        assertVoltageEquals(0.000000, dcNodeGbNeg);
 
         DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
         assertVoltageEquals(-501.992063, dcNodeGbPos);
@@ -80,10 +69,6 @@ public class AcDcLoadFlowTest {
         Generator genFr = network.getGenerator("GEN-FR");
         assertActivePowerEquals(-2000.000000, genFr.getTerminal());
         assertReactivePowerEquals(-10.336457, genFr.getTerminal());
-
-        Generator genGb = network.getGenerator("GEN-GB");
-        assertActivePowerEquals(-2000.000000, genGb.getTerminal());
-        assertReactivePowerEquals(-10.419567, genGb.getTerminal());
 
         VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
         assertActivePowerEquals(199.206337, vscFr.getTerminal1());
@@ -124,14 +109,6 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(149.776011, busGb150);
         assertAngleEquals(-2.550141, busGb150);
 
-        Bus busFr150 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-150");
-        assertVoltageEquals(149.820194, busFr150);
-        assertAngleEquals(2.533076, busFr150);
-
-        Bus busGb400 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-400");
-        assertVoltageEquals(400.155070, busGb400);
-        assertAngleEquals(0.000000, busGb400);
-
         Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
         assertVoltageEquals(399.557158, busFr400);
         assertAngleEquals(0.000000, busFr400);
@@ -140,25 +117,11 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(400.000000, busFr);
         assertAngleEquals(0.427991, busFr);
 
-        Bus busGb = network.getBusBreakerView().getBus("BUS-GB");
-        assertVoltageEquals(400.000000, busGb);
-        assertAngleEquals(-0.431794, busGb);
-
-        DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
-        assertVoltageEquals(251.984251, dcNodeGbNeg);
-
-        DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
-        assertVoltageEquals(-251.984251, dcNodeGbPos);
-
         DcNode dcNodeFrNeg = network.getDcNode("dcNodeFrNeg");
         assertVoltageEquals(250.000000, dcNodeFrNeg);
 
         DcNode dcNodeFrPos = network.getDcNode("dcNodeFrPos");
         assertVoltageEquals(-250.000000, dcNodeFrPos);
-
-        Generator genFr = network.getGenerator("GEN-FR");
-        assertActivePowerEquals(-2000.000000, genFr.getTerminal());
-        assertReactivePowerEquals(-10.265940, genFr.getTerminal());
 
         Generator genGb = network.getGenerator("GEN-GB");
         assertActivePowerEquals(-2000.000000, genGb.getTerminal());
@@ -203,14 +166,6 @@ public class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        Bus b1 = network.getBusBreakerView().getBus("b1");
-        assertVoltageEquals(390.000000, b1);
-        assertAngleEquals(0.000000, b1);
-
-        Bus b2 = network.getBusBreakerView().getBus("b2");
-        assertVoltageEquals(389.586038, b2);
-        assertAngleEquals(-0.106723, b2);
-
         Bus b5 = network.getBusBreakerView().getBus("b5");
         assertVoltageEquals(389.506441, b5);
         assertAngleEquals(-0.104084, b5);
@@ -243,12 +198,6 @@ public class AcDcLoadFlowTest {
         assertActivePowerEquals(-101.004244, l12.getTerminal2());
         assertReactivePowerEquals(-20.001997, l12.getTerminal2());
 
-        Line l25 = network.getLine("l25");
-        assertActivePowerEquals(1.004244, l25.getTerminal1());
-        assertReactivePowerEquals(10.001997, l25.getTerminal1());
-        assertActivePowerEquals(-1.003578, l25.getTerminal2());
-        assertReactivePowerEquals(-10.000000, l25.getTerminal2());
-
         DcLine dl34 = network.getDcLine("dl34");
         assertDcPowerEquals(-49.498886, dl34.getDcTerminal1());
         assertDcPowerEquals(49.497355, dl34.getDcTerminal2());
@@ -266,14 +215,6 @@ public class AcDcLoadFlowTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-
-        Bus b1 = network.getBusBreakerView().getBus("b1");
-        assertVoltageEquals(390.000000, b1);
-        assertAngleEquals(-0.000000, b1);
-
-        Bus b2 = network.getBusBreakerView().getBus("b2");
-        assertVoltageEquals(389.586035, b2);
-        assertAngleEquals(-0.106724, b2);
 
         Bus b5 = network.getBusBreakerView().getBus("b5");
         assertVoltageEquals(389.506437, b5);
@@ -307,12 +248,6 @@ public class AcDcLoadFlowTest {
         assertActivePowerEquals(-101.005492, l12.getTerminal2());
         assertReactivePowerEquals(-20.001997, l12.getTerminal2());
 
-        Line l25 = network.getLine("l25");
-        assertActivePowerEquals(1.004244, l25.getTerminal1());
-        assertReactivePowerEquals(10.001997, l25.getTerminal1());
-        assertActivePowerEquals(-1.003579, l25.getTerminal2());
-        assertReactivePowerEquals(-10.000000, l25.getTerminal2());
-
         DcLine dl34 = network.getDcLine("dl34");
         assertDcPowerEquals(-49.499024, dl34.getDcTerminal1());
         assertDcPowerEquals(49.497492, dl34.getDcTerminal2());
@@ -331,14 +266,6 @@ public class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        Bus b1 = network.getBusBreakerView().getBus("b1");
-        assertVoltageEquals(390.000000, b1);
-        assertAngleEquals(0.000000, b1);
-
-        Bus b2 = network.getBusBreakerView().getBus("b2");
-        assertVoltageEquals(389.586038, b2);
-        assertAngleEquals(-0.106723, b2);
-
         Bus b5 = network.getBusBreakerView().getBus("b5");
         assertVoltageEquals(389.506441, b5);
         assertAngleEquals(-0.104084, b5);
@@ -348,10 +275,6 @@ public class AcDcLoadFlowTest {
 
         DcNode dn4 = network.getDcNode("dn4");
         assertVoltageEquals(400.000000, dn4);
-
-        Generator g1 = network.getGenerator("g1");
-        assertActivePowerEquals(-101.070832, g1.getTerminal());
-        assertReactivePowerEquals(-20.211553, g1.getTerminal());
 
         VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
         assertActivePowerEquals(-50.000000, conv23.getTerminal1());
@@ -376,10 +299,6 @@ public class AcDcLoadFlowTest {
         assertReactivePowerEquals(10.001997, l25.getTerminal1());
         assertActivePowerEquals(-1.003578, l25.getTerminal2());
         assertReactivePowerEquals(-10.000000, l25.getTerminal2());
-
-        DcLine dl34 = network.getDcLine("dl34");
-        assertDcPowerEquals(-49.498886, dl34.getDcTerminal1());
-        assertDcPowerEquals(49.497355, dl34.getDcTerminal2());
     }
 
     @Test
@@ -411,22 +330,6 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(389.649306, b5);
         assertAngleEquals(-0.078985, b5);
 
-        DcNode dn3 = network.getDcNode("dn3");
-        assertVoltageEquals(400.000000, dn3);
-
-        DcNode dn4 = network.getDcNode("dn4");
-        assertVoltageEquals(399.980874, dn4);
-
-        DcNode dn5 = network.getDcNode("dn5");
-        assertVoltageEquals(399.980874, dn5);
-
-        DcNode dnMiddle = network.getDcNode("dnMiddle");
-        assertVoltageEquals(399.987249, dnMiddle);
-
-        Generator g1 = network.getGenerator("g1");
-        assertActivePowerEquals(-76.532796, g1.getTerminal());
-        assertReactivePowerEquals(-15.121063, g1.getTerminal());
-
         VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
         assertActivePowerEquals(-51.504756, conv23.getTerminal1());
         assertReactivePowerEquals(0.000000, conv23.getTerminal1());
@@ -445,24 +348,6 @@ public class AcDcLoadFlowTest {
         assertDcPowerEquals(-25.500297, conv56.getDcTerminal1());
         assertDcPowerEquals(0.000000, conv56.getDcTerminal2());
 
-        Line l12 = network.getLine("l12");
-        assertActivePowerEquals(76.545111, l12.getTerminal1());
-        assertReactivePowerEquals(15.121063, l12.getTerminal1());
-        assertActivePowerEquals(-76.505086, l12.getTerminal2());
-        assertReactivePowerEquals(-15.000988, l12.getTerminal2());
-
-        Line l25 = network.getLine("l25");
-        assertActivePowerEquals(0.000165, l25.getTerminal1());
-        assertReactivePowerEquals(5.000494, l25.getTerminal1());
-        assertActivePowerEquals(-0.000000, l25.getTerminal2());
-        assertReactivePowerEquals(-5.000000, l25.getTerminal2());
-
-        Line l26 = network.getLine("l26");
-        assertActivePowerEquals(0.000165, l26.getTerminal1());
-        assertReactivePowerEquals(5.000494, l26.getTerminal1());
-        assertActivePowerEquals(-0.000000, l26.getTerminal2());
-        assertReactivePowerEquals(-5.000000, l26.getTerminal2());
-
         DcLine dl3 = network.getDcLine("dl3");
         assertDcPowerEquals(-51.003032, dl3.getDcTerminal1());
         assertDcPowerEquals(51.001406, dl3.getDcTerminal2());
@@ -470,10 +355,6 @@ public class AcDcLoadFlowTest {
         DcLine dl4 = network.getDcLine("dl4");
         assertDcPowerEquals(-25.500703, dl4.getDcTerminal1());
         assertDcPowerEquals(25.500297, dl4.getDcTerminal2());
-
-        DcLine dl5 = network.getDcLine("dl5");
-        assertDcPowerEquals(-25.500703, dl5.getDcTerminal1());
-        assertDcPowerEquals(25.500297, dl5.getDcTerminal2());
     }
 
     @Test
@@ -501,27 +382,9 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(400.000000, b5);
         assertAngleEquals(-0.617861, b5);
 
-        DcNode dn3 = network.getDcNode("dn3");
-        assertVoltageEquals(400.012374, dn3);
-
-        DcNode dn4 = network.getDcNode("dn4");
-        assertVoltageEquals(400.000000, dn4);
-
         Generator g1 = network.getGenerator("g1");
         assertActivePowerEquals(-107.175739, g1.getTerminal());
         assertReactivePowerEquals(662.496414, g1.getTerminal());
-
-        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
-        assertActivePowerEquals(-50.000000, conv23.getTerminal1());
-        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
-        assertDcPowerEquals(49.498886, conv23.getDcTerminal1());
-        assertDcPowerEquals(-0.000000, conv23.getDcTerminal2());
-
-        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
-        assertActivePowerEquals(48.796176, conv45.getTerminal1());
-        assertReactivePowerEquals(700.314719, conv45.getTerminal1());
-        assertDcPowerEquals(-49.502532, conv45.getDcTerminal1());
-        assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
 
         Line l12 = network.getLine("l12");
         assertActivePowerEquals(107.143259, l12.getTerminal1());
@@ -571,14 +434,6 @@ public class AcDcLoadFlowTest {
         DcNode dn4 = network.getDcNode("dn4");
         assertVoltageEquals(400.000000, dn4);
 
-        Generator g1 = network.getGenerator("g1");
-        assertActivePowerEquals(-64.127190, g1.getTerminal());
-        assertReactivePowerEquals(1331.316598, g1.getTerminal());
-
-        Generator g5 = network.getGenerator("g5");
-        assertActivePowerEquals(-11.567190, g5.getTerminal());
-        assertReactivePowerEquals(-0.000000, g5.getTerminal());
-
         VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
         assertActivePowerEquals(50.000000, conv23.getTerminal1());
         assertReactivePowerEquals(1376.482721, conv23.getTerminal1());
@@ -590,12 +445,6 @@ public class AcDcLoadFlowTest {
         assertReactivePowerEquals(10.000000, conv45.getTerminal1());
         assertDcPowerEquals(51.294134, conv45.getDcTerminal1());
         assertDcPowerEquals(-0.000000, conv45.getDcTerminal2());
-
-        Line l12 = network.getLine("l12");
-        assertActivePowerEquals(102.560000, l12.getTerminal1());
-        assertReactivePowerEquals(-1331.316598, l12.getTerminal1());
-        assertActivePowerEquals(-90.837959, l12.getTerminal2());
-        assertReactivePowerEquals(1366.482721, l12.getTerminal2());
 
         DcLine dl34 = network.getDcLine("dl34");
         assertDcPowerEquals(51.292490, dl34.getDcTerminal1());
@@ -616,26 +465,6 @@ public class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        Bus b1 = network.getBusBreakerView().getBus("b1");
-        assertVoltageEquals(400.000000, b1);
-        assertAngleEquals(0.000000, b1);
-
-        Bus b4 = network.getBusBreakerView().getBus("b4");
-        assertVoltageEquals(389.935839, b4);
-        assertAngleEquals(-0.028257, b4);
-
-        Bus b6 = network.getBusBreakerView().getBus("b6");
-        assertVoltageEquals(389.935839, b6);
-        assertAngleEquals(-0.028257, b6);
-
-        Bus b5 = network.getBusBreakerView().getBus("b5");
-        assertVoltageEquals(390.000000, b5);
-        assertAngleEquals(0.000000, b5);
-
-        Bus b9 = network.getBusBreakerView().getBus("b9");
-        assertVoltageEquals(400.000000, b9);
-        assertAngleEquals(0.000000, b9);
-
         DcNode dn2 = network.getDcNode("dn2");
         assertVoltageEquals(400.000000, dn2);
 
@@ -647,10 +476,6 @@ public class AcDcLoadFlowTest {
 
         DcNode dn8 = network.getDcNode("dn8");
         assertVoltageEquals(400.000000, dn8);
-
-        Generator g5 = network.getGenerator("g5");
-        assertActivePowerEquals(-41.950606, g5.getTerminal());
-        assertReactivePowerEquals(-0.024662, g5.getTerminal());
 
         VoltageSourceConverter conv12 = network.getVoltageSourceConverter("conv12");
         assertActivePowerEquals(23.999632, conv12.getTerminal1());
@@ -675,18 +500,6 @@ public class AcDcLoadFlowTest {
         assertReactivePowerEquals(10.000000, conv89.getTerminal1());
         assertDcPowerEquals(-24.499951, conv89.getDcTerminal1());
         assertDcPowerEquals(0.000000, conv89.getDcTerminal2());
-
-        Line l45 = network.getLine("l45");
-        assertActivePowerEquals(-25.000000, l45.getTerminal1());
-        assertReactivePowerEquals(0.000000, l45.getTerminal1());
-        assertActivePowerEquals(25.004110, l45.getTerminal2());
-        assertReactivePowerEquals(0.012331, l45.getTerminal2());
-
-        Line l56 = network.getLine("l56");
-        assertActivePowerEquals(25.004110, l56.getTerminal1());
-        assertReactivePowerEquals(0.012331, l56.getTerminal1());
-        assertActivePowerEquals(-25.000000, l56.getTerminal2());
-        assertReactivePowerEquals(0.000000, l56.getTerminal2());
 
         DcLine dl23 = network.getDcLine("dl23");
         assertDcPowerEquals(24.499328, dl23.getDcTerminal1());

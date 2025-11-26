@@ -1197,7 +1197,7 @@ public class AcEquationSystemCreator {
 
     private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         List<LfBus> slackBuses = network.getSlackBuses();
-        if (network instanceof LfAcDcNetwork && slackBuses.size() > ((LfAcDcNetwork) network).getAcSubNetworks().size()) {
+        if (network instanceof LfAcDcNetwork acDcNetwork && slackBuses.size() > acDcNetwork.getAcSubNetworks().size()) {
             throw new PowsyblException("multiple slack buses equations not supported for AC DC networks yet");
         }
         if (!(network instanceof LfAcDcNetwork)) {

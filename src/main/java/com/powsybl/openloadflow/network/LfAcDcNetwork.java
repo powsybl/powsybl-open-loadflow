@@ -15,7 +15,6 @@ import java.util.List;
  */
 public class LfAcDcNetwork extends LfNetwork {
     private final List<LfBus> acDcReferenceBuses = new ArrayList<>();
-    protected List<LfBus> slackBuses = new ArrayList<>();
     private List<LfNetwork> acSubNetworks = new ArrayList<>();
     private List<LfNetwork> dcSubNetworks = new ArrayList<>();
 

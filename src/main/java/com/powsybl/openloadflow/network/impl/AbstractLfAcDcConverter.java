@@ -47,7 +47,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final LfBus bus1;
 
-    public AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1) {
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1) {
         super(network);
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;

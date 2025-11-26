@@ -7,12 +7,13 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.network.LfDcNode;
-import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,12 +34,16 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    protected static List<Double> lossFactors = new ArrayList<>();
+    protected final double idleLoss;
 
-    protected static double acNominalV;
+    protected final double switchingLoss;
+
+    protected final double resistiveLoss;
+
+    protected List<Double> lossFactors;
 
     protected double dcNominalV;
-
+    
     protected LfDcNode dcNode1;
 
     protected LfDcNode dcNode2;
@@ -60,10 +65,12 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
         variables.add(pAcVar);
         variables.add(qAcVar);
         lossFactors = converter.getLossFactors();
-        acNominalV = bus.getNominalV();
         dcNominalV = nominalV;
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;
+        this.idleLoss = lossFactors.get(0) / PerUnit.SB;
+        this.switchingLoss = lossFactors.get(1) / (Math.sqrt(3) * bus.getNominalV());
+        this.resistiveLoss = lossFactors.get(2) * PerUnit.ib(bus.getNominalV()) * PerUnit.ib(bus.getNominalV()) / PerUnit.SB;
     }
 
     protected double v1() {

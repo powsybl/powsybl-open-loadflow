@@ -497,10 +497,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void addAcDcConverter(LfNetwork lfNetwork, LfAcDcConverter acDcConverter) {
-        if (acDcConverter instanceof LfVoltageSourceConverter) {
-            lfNetwork.addVoltageSourceConverter((LfVoltageSourceConverter) acDcConverter);
-        }
+    private static void addVoltageSourceConverter(LfNetwork lfNetwork, LfVoltageSourceConverter voltageSourceConverter) {
+        lfNetwork.addVoltageSourceConverter(voltageSourceConverter);
     }
 
     private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, LfTopoConfig topoConfig, LoadingContext loadingContext,
@@ -604,9 +602,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (lfBus1 != null) {
                 LfDcNode lfDcNode1 = getLfDcNode(acDcConverter.getDcTerminal1(), lfNetwork);
                 LfDcNode lfDcNode2 = getLfDcNode(acDcConverter.getDcTerminal2(), lfNetwork);
-                if (acDcConverter instanceof VoltageSourceConverter) {
-                    LfVoltageSourceConverterImpl lfAcDcConverter = LfVoltageSourceConverterImpl.create((VoltageSourceConverter) acDcConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, parameters);
-                    addAcDcConverter(lfNetwork, lfAcDcConverter);
+                if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
+                    LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, parameters);
+                    addVoltageSourceConverter(lfNetwork, voltageSourceConverterImpl);
                 }
                 //lcc converter not implemented yet
             }
