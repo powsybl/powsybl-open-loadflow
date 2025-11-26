@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -106,16 +105,19 @@ public class AcDcLoadFlowTest {
     @Test
     void testVscSymmetricalMonopole() {
         network = DcDetailedNetworkFactory.createVscSymmetricalMonopole();
+        Network subnetwork = network.getSubnetwork("VscSymmetricalMonopole");
+        // A DcGround is needed in the network to set voltage reference
+        subnetwork.newDcNode().setId("dnGround").setNominalV(500.0).add();
+        subnetwork.newDcLine().setId("dlGroundNeg").setR(1e10).setDcNode1("dcNodeGbNeg").setDcNode2("dnGround").add();
+        subnetwork.newDcLine().setId("dlGroundPos").setR(1e10).setDcNode1("dcNodeGbPos").setDcNode2("dnGround").add();
+        subnetwork.newDcGround().setDcNode("dnGround").setId("dcGround").add();
+
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setAcDcNetwork(true);
-        //FIXME : loadflow on this network does not converge with DenseMatrixFactory
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isFullyConverged());
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider());
-        result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
         Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
@@ -142,18 +144,17 @@ public class AcDcLoadFlowTest {
         assertVoltageEquals(400.000000, busGb);
         assertAngleEquals(-0.431794, busGb);
 
-        // FIXME: on OS macos build, the voltage are different, I don't understand why
-//        DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
-//        assertVoltageEquals(243.330843, dcNodeGbNeg);
-//
-//        DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
-//        assertVoltageEquals(-260.637659, dcNodeGbPos);
-//
-//        DcNode dcNodeFrNeg = network.getDcNode("dcNodeFrNeg");
-//        assertVoltageEquals(241.346592, dcNodeFrNeg);
-//
-//        DcNode dcNodeFrPos = network.getDcNode("dcNodeFrPos");
-//        assertVoltageEquals(-258.653408, dcNodeFrPos);
+        DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
+        assertVoltageEquals(251.984251, dcNodeGbNeg);
+
+        DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
+        assertVoltageEquals(-251.984251, dcNodeGbPos);
+
+        DcNode dcNodeFrNeg = network.getDcNode("dcNodeFrNeg");
+        assertVoltageEquals(250.000000, dcNodeFrNeg);
+
+        DcNode dcNodeFrPos = network.getDcNode("dcNodeFrPos");
+        assertVoltageEquals(-250.000000, dcNodeFrPos);
 
         Generator genFr = network.getGenerator("GEN-FR");
         assertActivePowerEquals(-2000.000000, genFr.getTerminal());
@@ -164,24 +165,30 @@ public class AcDcLoadFlowTest {
         assertReactivePowerEquals(-10.419567, genGb.getTerminal());
 
         VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
-        assertActivePowerEquals(198.425099, vscFr.getTerminal1());
+        assertActivePowerEquals(198.425074, vscFr.getTerminal1());
         assertReactivePowerEquals(0.000000, vscFr.getTerminal1());
-        assertDcPowerEquals(-95.778443, vscFr.getDcTerminal1());
-        assertDcPowerEquals(-102.646656, vscFr.getDcTerminal2());
+        assertDcPowerEquals(-99.212537, vscFr.getDcTerminal1());
+        assertDcPowerEquals(-99.212537, vscFr.getDcTerminal2());
 
         VoltageSourceConverter vscGb = network.getVoltageSourceConverter("VscGb");
         assertActivePowerEquals(-200.000000, vscGb.getTerminal1());
         assertReactivePowerEquals(0.000000, vscGb.getTerminal1());
-        assertDcPowerEquals(96.565893, vscGb.getDcTerminal1());
-        assertDcPowerEquals(103.434107, vscGb.getDcTerminal2());
+        assertDcPowerEquals(100.000000, vscGb.getDcTerminal1());
+        assertDcPowerEquals(100.000000, vscGb.getDcTerminal2());
 
         DcLine dcLineNeg = network.getDcLine("dcLineNeg");
-        assertDcPowerEquals(95.778443, dcLineNeg.getDcTerminal1());
-        assertDcPowerEquals(-96.565893, dcLineNeg.getDcTerminal2());
+        assertDcPowerEquals(99.212537, dcLineNeg.getDcTerminal1());
+        assertDcPowerEquals(-99.999987, dcLineNeg.getDcTerminal2());
 
         DcLine dcLinePos = network.getDcLine("dcLinePos");
-        assertDcPowerEquals(102.646656, dcLinePos.getDcTerminal1());
-        assertDcPowerEquals(-103.434107, dcLinePos.getDcTerminal2());
+        assertDcPowerEquals(99.212537, dcLinePos.getDcTerminal1());
+        assertDcPowerEquals(-99.999987, dcLinePos.getDcTerminal2());
+
+        DcLine dlGroundNeg = network.getDcLine("dlGroundNeg");
+        assertDcPowerEquals(-0.000013, dlGroundNeg.getDcTerminal1());
+
+        DcLine dlGroundPos = network.getDcLine("dlGroundPos");
+        assertDcPowerEquals(-0.000013, dlGroundPos.getDcTerminal1());
     }
 
     @Test
