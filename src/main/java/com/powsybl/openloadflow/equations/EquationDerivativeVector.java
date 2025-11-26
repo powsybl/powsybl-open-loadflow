@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import org.apache.commons.lang3.mutable.MutableInt;
+
 import java.util.List;
 
 /**
@@ -17,7 +19,7 @@ class EquationDerivativeVector {
     private final int[] termNums;
 
     // cache
-    private final int[][] rowRefs;
+    private final MutableInt[] rowRefs;
     protected final int[] rows;
     protected final int[] termElementNum;
     protected final double[] values;
@@ -35,7 +37,7 @@ class EquationDerivativeVector {
 
         termArrayNums = new int[size];
         termNums = new int[size];
-        rowRefs = new int[size][1];
+        rowRefs = new MutableInt[size];
         rows = new int[size];
         termElementNum = new int[size];
         values = new double[size];
@@ -53,7 +55,7 @@ class EquationDerivativeVector {
         }
 
         for (int i = 0; i < termNums.length; i++) {
-            rows[i] = rowRefs[i][0];
+            rows[i] = rowRefs[i].intValue();
         }
         for (int i = 0; i < termNums.length; i++) {
             termDerValues[i] = termDerValuesByArrayIndex[termArrayNums[i]][localIndexes[i]];
@@ -77,7 +79,7 @@ class EquationDerivativeVector {
             }
         }
         for (int i = 0; i < termNums.length; i++) {
-            rows[i] = rowRefs[i][0];
+            rows[i] = rowRefs[i].intValue();
         }
     }
 }

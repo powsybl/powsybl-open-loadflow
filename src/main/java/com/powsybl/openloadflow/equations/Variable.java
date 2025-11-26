@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import org.apache.commons.lang3.mutable.MutableInt;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
@@ -20,7 +22,7 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
 
     private final V type;
 
-    private final int[] row = new int[] {-1};
+    private final MutableInt row = new MutableInt(-1);
 
     Variable(int elementNum, V type) {
         this.elementNum = elementNum;
@@ -36,15 +38,15 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
     }
 
     public int getRow() {
-        return row[0];
+        return row.intValue();
     }
 
-    public int[] getRowRef() {
+    public MutableInt getRowRef() {
         return row;
     }
 
     public void setRow(int row) {
-        this.row[0] = row;
+        this.row.setValue(row);
     }
 
     @Override
@@ -86,6 +88,6 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
 
     @Override
     public String toString() {
-        return "Variable(elementNum=" + elementNum + ", type=" + type + ", row=" + row[0] + ")";
+        return "Variable(elementNum=" + elementNum + ", type=" + type + ", row=" + row.intValue() + ")";
     }
 }
