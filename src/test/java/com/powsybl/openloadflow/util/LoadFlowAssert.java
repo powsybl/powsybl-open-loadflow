@@ -101,7 +101,7 @@ public final class LoadFlowAssert {
         assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reportNode);
     }
 
-    private static String reportToString(ReportNode reportNode) throws IOException {
+    public static String reportToString(ReportNode reportNode) throws IOException {
         StringWriter sw = new StringWriter();
         DecimalFormatSymbols symbols = new DecimalFormatSymbols();
         symbols.setDecimalSeparator('.');

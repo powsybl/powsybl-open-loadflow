@@ -44,6 +44,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
+    public static final boolean FIX_VOLTAGE_TARGETS_DEFAULT_VALUE = false;
+
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
     private boolean detailedReport = false;
@@ -55,6 +57,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
     private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     private double minNominalVoltageRealisticVoltageCheck = DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK;
+
+    private boolean fixVoltageTargets = FIX_VOLTAGE_TARGETS_DEFAULT_VALUE;
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
@@ -160,6 +164,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isFixVoltageTargets() {
+        return fixVoltageTargets;
+    }
+
+    public AcLoadFlowParameters setFixVoltageTargets(boolean fixVoltageTargets) {
+        this.fixVoltageTargets = fixVoltageTargets;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -178,6 +191,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
+                ", fixVoltageTargets=" + fixVoltageTargets +
                 ')';
     }
 }

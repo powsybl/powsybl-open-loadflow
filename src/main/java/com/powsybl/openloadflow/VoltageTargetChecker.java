@@ -1,0 +1,209 @@
+/*
+ * Copyright (c) 2024-2025, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow;
+
+import com.google.common.base.Stopwatch;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.adm.AdmittanceEquationSystem;
+import com.powsybl.openloadflow.adm.AdmittanceMatrix;
+import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.util.Reports;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.jgrapht.Graph;
+import org.jgrapht.graph.Pseudograph;
+import org.jgrapht.traverse.BreadthFirstIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+public class VoltageTargetChecker {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(VoltageTargetChecker.class);
+
+    private final LfNetwork network;
+
+    public VoltageTargetChecker(LfNetwork network) {
+        this.network = Objects.requireNonNull(network);
+    }
+
+    public static VoltageTargetCheck.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters) {
+        return findElementsToDiscardFromVoltageControl(network, parameters, new SparseMatrixFactory());
+    }
+
+    public static VoltageTargetCheck.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters, MatrixFactory matrixFactory) {
+        List<VoltageTargetCheck.IncompatibleTargetResolution> incompatibleTargetResolutions = new ArrayList<>();
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
+        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = OpenLoadFlowParameters.getConnectivityFactory(parametersExt, new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
+        for (LfNetwork lfNetwork : LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters())) {
+            var result = new VoltageTargetChecker(lfNetwork)
+                    .check(new VoltageTargetCheckerParameters(acParameters.getMatrixFactory()));
+            List<VoltageTargetCheck.LfIncompatibleTargetResolution> lfIncompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
+            lfIncompatibleTargetResolutions.forEach(tr -> incompatibleTargetResolutions.add(tr.toIidm()));
+        }
+        // Return sorted list for repeatable results
+        return new VoltageTargetCheck.Result(incompatibleTargetResolutions.stream().sorted(Comparator.comparing(VoltageTargetCheck.IncompatibleTargetResolution::controlledBusToFixId)).toList());
+    }
+
+    private static Graph<LfBus, LfBranch> createGraph(LfNetwork lfNetwork) {
+        Graph<LfBus, LfBranch> graph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null && !branch.isDisabled()) {
+                if (!graph.containsVertex(bus1)) {
+                    graph.addVertex(bus1);
+                }
+                if (!graph.containsVertex(bus2)) {
+                    graph.addVertex(bus2);
+                }
+                graph.addEdge(bus1, bus2, branch);
+            }
+        }
+        return graph;
+    }
+
+    private static Set<LfBus> exploreNeighbors(Graph<LfBus, LfBranch> graph, LfBus bus, int maxDepth) {
+        var it = new BreadthFirstIterator<>(graph, bus);
+        Set<LfBus> neighbors = new HashSet<>();
+        while (it.hasNext()) {
+            LfBus b = it.next();
+            int currentDepth = it.getDepth(b);
+            if (currentDepth > maxDepth) {
+                break;
+            }
+            if (b != bus) {
+                neighbors.add(b);
+            }
+        }
+        return neighbors;
+    }
+
+    private void checkIncompatibleTargets(VoltageTargetCheckerParameters parameters,
+                                          Set<LfBus> controlledBuses,
+                                          VoltageTargetCheck.LfResult result) {
+        Graph<LfBus, LfBranch> graph = createGraph(network);
+
+        var ySystem = AdmittanceEquationSystem.create(network, new VariableSet<>());
+        try (var y = AdmittanceMatrix.create(ySystem, parameters.getMatrixFactory())) {
+            for (LfBus controlledBus : controlledBuses) {
+                Set<LfBus> neighborControlledBuses = exploreNeighbors(graph, controlledBus, parameters.getControlledBusNeighborsExplorationDepth())
+                        .stream().filter(controlledBuses::contains)
+                        .collect(Collectors.toSet());
+                if (!neighborControlledBuses.isEmpty()) {
+                    for (LfBus neighborControlledBus : neighborControlledBuses) {
+                        double z = y.getZ(controlledBus, neighborControlledBus).abs();
+                        double dv = Math.abs(controlledBus.getHighestPriorityTargetV().orElseThrow() - neighborControlledBus.getHighestPriorityTargetV().orElseThrow());
+                        double targetVoltagePlausibilityIndicator = dv / z;
+                        LOGGER.debug("Indicator: {}/{} dv = {} dz = {} indicator = {}",
+                                controlledBus.getId(), neighborControlledBus.getId(), dv, z, targetVoltagePlausibilityIndicator);
+                        if (targetVoltagePlausibilityIndicator > parameters.getTargetVoltagePlausibilityIndicatorThreshold()) {
+                            result.lfIncompatibleTarget().add(new VoltageTargetCheck.LfIncompatibleTarget(controlledBus, neighborControlledBus, targetVoltagePlausibilityIndicator));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    VoltageTargetCheck.LfResult check(VoltageTargetCheckerParameters parameters) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        VoltageTargetCheck.LfResult result = new VoltageTargetCheck.LfResult();
+
+        // controlled buses whatever the voltage control type it is
+        Set<LfBus> controlledBuses = network.getBuses().stream()
+                .filter(bus -> !bus.isDisabled()
+                        && bus.isVoltageControlled()
+                        && bus.getVoltageControls().stream().anyMatch(vc -> !vc.isDisabled()))
+                .collect(Collectors.toSet());
+        checkIncompatibleTargets(parameters, controlledBuses, result);
+
+        LOGGER.debug("Voltage targets checked in {} ms", stopwatch.elapsed().toMillis());
+
+        return result;
+    }
+
+    private static List<VoltageTargetCheck.LfIncompatibleTargetResolution> resolveIncompatibleTargets(List<VoltageTargetCheck.LfIncompatibleTarget> lfIncompatibleTargets) {
+
+        List<VoltageTargetCheck.LfIncompatibleTargetResolution> result = new ArrayList<>();
+
+        // some buses could be part of multiple target v incompatible buses couples
+        // fix the most referenced ones
+        Map<LfBus, MutableInt> incompatibleControlledBusRefCount = new HashMap<>();
+        for (VoltageTargetCheck.LfIncompatibleTarget lfIncompatibleTarget : lfIncompatibleTargets) {
+            incompatibleControlledBusRefCount.computeIfAbsent(lfIncompatibleTarget.controlledBus1(), k -> new MutableInt(0)).increment();
+            incompatibleControlledBusRefCount.computeIfAbsent(lfIncompatibleTarget.controlledBus2(), k -> new MutableInt(0)).increment();
+        }
+        List<VoltageTargetCheck.LfIncompatibleTarget> sorteLfIncompatibleTargets = lfIncompatibleTargets.stream()
+                .sorted(Comparator.comparingDouble(t -> -Math.abs(t.targetVoltagePlausibilityIndicator())))
+                .toList();
+        Set<LfBus> controlledBusesToFix = new HashSet<>();
+        for (VoltageTargetCheck.LfIncompatibleTarget lfIncompatibleTarget : sorteLfIncompatibleTargets) {
+            LfBus controlledBus1 = lfIncompatibleTarget.controlledBus1();
+            LfBus controlledBus2 = lfIncompatibleTarget.controlledBus2();
+            if (controlledBusesToFix.contains(controlledBus1) || controlledBusesToFix.contains(controlledBus2)) {
+                continue;
+            }
+            LfBus controlledBusToFix = incompatibleControlledBusRefCount.get(controlledBus1).intValue() > incompatibleControlledBusRefCount.get(controlledBus2).intValue()
+                    ? controlledBus1 : controlledBus2;
+            // predictable choice based on alphabetic id order in case of same refcount
+            if (incompatibleControlledBusRefCount.get(controlledBus1).intValue() == incompatibleControlledBusRefCount.get(controlledBus2).intValue()) {
+                controlledBusToFix = controlledBus1.getId().compareTo(controlledBus2.getId()) < 0
+                        ? controlledBus1 : controlledBus2;
+            }
+            controlledBusesToFix.add(controlledBusToFix);
+            Set<? extends LfElement> elementsToDisable = controlledBusToFix.getVoltageControls().stream().flatMap(vc -> vc.getControllerElements().stream()).collect(Collectors.toSet());
+            result.add(new VoltageTargetCheck.LfIncompatibleTargetResolution(controlledBusToFix, elementsToDisable, lfIncompatibleTarget));
+        }
+
+        return result;
+    }
+
+    public void fix(VoltageTargetCheckerParameters parameters) {
+        ReportNode fixTargetVoltageReport = Reports.reportFixTargetVoltage(network.getReportNode());
+        VoltageTargetCheck.LfResult result = check(parameters);
+
+        List<VoltageTargetCheck.LfIncompatibleTargetResolution> incompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
+        for (VoltageTargetCheck.LfIncompatibleTargetResolution incompatibleTargetResolution : incompatibleTargetResolutions) {
+            LfBus otherBus = incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1() == incompatibleTargetResolution.controlledBusToFix() ?
+                    incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus2()
+                    :
+                    incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1();
+            for (VoltageControl<? extends LfElement> voltageControl : incompatibleTargetResolution.controlledBusToFix().getVoltageControls()) {
+                ReportNode incompatibleTargetNode = Reports.reportIncompatibleVoltageTarget(fixTargetVoltageReport,
+                        incompatibleTargetResolution.controlledBusToFix().getId(),
+                        otherBus.getId(),
+                        incompatibleTargetResolution.largestLfIncompatibleTarget().targetVoltagePlausibilityIndicator(),
+                        voltageControl.getControllerElements().stream().map(LfElement::getId).toList().toString());
+                // The report is guaranteed to not be a NO_OP as OLF creates a root for each the CC
+                LOGGER.warn(incompatibleTargetNode.getMessage());
+                for (var controllerElement : voltageControl.getControllerElements()) {
+                    controllerElement.setVoltageControlEnabled(false);
+                }
+            }
+        }
+    }
+
+}
