@@ -14,7 +14,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class RemoteVoltageTargetCheckerParameters {
+public class VoltageTargetCheckerParameters {
 
     public static final int CONTROLLED_BUS_NEIGHBORS_EXPLORATION_DEPTH_DEFAULT_VALUE = 2;
 
@@ -26,7 +26,7 @@ public class RemoteVoltageTargetCheckerParameters {
 
     private double targetVoltagePlausibilityIndicatorThreshold = TARGET_VOLTAGE_PLAUSIBILITY_THRESHOLD_DEFAULT_VALUE;
 
-    public RemoteVoltageTargetCheckerParameters(MatrixFactory matrixFactory) {
+    public VoltageTargetCheckerParameters(MatrixFactory matrixFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
@@ -42,7 +42,7 @@ public class RemoteVoltageTargetCheckerParameters {
         return controlledBusNeighborsExplorationDepth;
     }
 
-    public RemoteVoltageTargetCheckerParameters setControlledBusNeighborsExplorationDepth(int controlledBusNeighborsExplorationDepth) {
+    public VoltageTargetCheckerParameters setControlledBusNeighborsExplorationDepth(int controlledBusNeighborsExplorationDepth) {
         this.controlledBusNeighborsExplorationDepth = controlledBusNeighborsExplorationDepth;
         return this;
     }
@@ -51,7 +51,7 @@ public class RemoteVoltageTargetCheckerParameters {
         return targetVoltagePlausibilityIndicatorThreshold;
     }
 
-    public RemoteVoltageTargetCheckerParameters setTargetVoltagePlausibilityIndicatorThreshold(double targetVoltagePlausibilityIndicatorThreshold) {
+    public VoltageTargetCheckerParameters setTargetVoltagePlausibilityIndicatorThreshold(double targetVoltagePlausibilityIndicatorThreshold) {
         this.targetVoltagePlausibilityIndicatorThreshold = targetVoltagePlausibilityIndicatorThreshold;
         return this;
     }

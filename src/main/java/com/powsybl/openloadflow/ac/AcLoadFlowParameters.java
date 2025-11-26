@@ -44,7 +44,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
-    public static final boolean FIX_REMOTE_VOLTAGE_TARGET_DEFAULT_VALUE = false;
+    public static final boolean FIX_VOLTAGE_TARGETS_DEFAULT_VALUE = false;
 
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
@@ -58,7 +58,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private double minNominalVoltageRealisticVoltageCheck = DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK;
 
-    private boolean fixRemoteVoltageTarget = FIX_REMOTE_VOLTAGE_TARGET_DEFAULT_VALUE;
+    private boolean fixVoltageTargets = FIX_VOLTAGE_TARGETS_DEFAULT_VALUE;
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
@@ -164,12 +164,12 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
-    public boolean isFixRemoteVoltageTarget() {
-        return fixRemoteVoltageTarget;
+    public boolean isFixVoltageTargets() {
+        return fixVoltageTargets;
     }
 
-    public AcLoadFlowParameters setFixRemoteVoltageTarget(boolean fixRemoteVoltageTarget) {
-        this.fixRemoteVoltageTarget = fixRemoteVoltageTarget;
+    public AcLoadFlowParameters setFixVoltageTargets(boolean fixVoltageTargets) {
+        this.fixVoltageTargets = fixVoltageTargets;
         return this;
     }
 
@@ -191,7 +191,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
-                ", fixRemoteTargetVoltage=" + fixRemoteVoltageTarget +
+                ", fixVoltageTargets=" + fixVoltageTargets +
                 ')';
     }
 }

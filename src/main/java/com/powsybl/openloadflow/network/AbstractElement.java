@@ -73,7 +73,7 @@ public abstract class AbstractElement extends AbstractPropertyBag implements LfE
 
     @Override
     public void setVoltageControlEnabled(boolean enabled) {
-        // nothing byt default
+        // nothing by default
     }
 
     @Override

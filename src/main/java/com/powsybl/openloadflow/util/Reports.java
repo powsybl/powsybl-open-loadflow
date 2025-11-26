@@ -959,9 +959,9 @@ public final class Reports {
                 .build();
     }
 
-    public static ReportNode reportFixRemoteTargetVoltage(ReportNode reportNode) {
+    public static ReportNode reportFixTargetVoltage(ReportNode reportNode) {
         return reportNode.newReportNode()
-                .withMessageTemplate("olf.fixRemoteTargetVoltage")
+                .withMessageTemplate("olf.fixVoltageTargets")
                 .add();
     }
 

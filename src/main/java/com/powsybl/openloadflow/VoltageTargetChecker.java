@@ -35,35 +35,35 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class RemoteVoltageTargetChecker {
+public class VoltageTargetChecker {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RemoteVoltageTargetChecker.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(VoltageTargetChecker.class);
 
     private final LfNetwork network;
 
-    public RemoteVoltageTargetChecker(LfNetwork network) {
+    public VoltageTargetChecker(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
     }
 
-    public static RemoteVoltageTarget.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters) {
+    public static VoltageTargetCheck.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters) {
         return findElementsToDiscardFromVoltageControl(network, parameters, new SparseMatrixFactory());
     }
 
-    public static RemoteVoltageTarget.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters, MatrixFactory matrixFactory) {
-        List<RemoteVoltageTarget.IncompatibleTargetResolution> incompatibleTargetResolutions = new ArrayList<>();
+    public static VoltageTargetCheck.Result findElementsToDiscardFromVoltageControl(Network network, LoadFlowParameters parameters, MatrixFactory matrixFactory) {
+        List<VoltageTargetCheck.IncompatibleTargetResolution> incompatibleTargetResolutions = new ArrayList<>();
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = OpenLoadFlowParameters.getConnectivityFactory(parametersExt, new EvenShiloachGraphDecrementalConnectivityFactory<>());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
         for (LfNetwork lfNetwork : LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters())) {
-            var result = new RemoteVoltageTargetChecker(lfNetwork)
-                    .check(new RemoteVoltageTargetCheckerParameters(acParameters.getMatrixFactory()));
-            List<RemoteVoltageTarget.LfIncompatibleTargetResolution> lfIncompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
+            var result = new VoltageTargetChecker(lfNetwork)
+                    .check(new VoltageTargetCheckerParameters(acParameters.getMatrixFactory()));
+            List<VoltageTargetCheck.LfIncompatibleTargetResolution> lfIncompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
             lfIncompatibleTargetResolutions.forEach(tr -> incompatibleTargetResolutions.add(tr.toIidm()));
         }
         // Return sorted list for repeatable results
-        return new RemoteVoltageTarget.Result(incompatibleTargetResolutions.stream().sorted(Comparator.comparing(RemoteVoltageTarget.IncompatibleTargetResolution::controlledBusToFixId)).toList());
+        return new VoltageTargetCheck.Result(incompatibleTargetResolutions.stream().sorted(Comparator.comparing(VoltageTargetCheck.IncompatibleTargetResolution::controlledBusToFixId)).toList());
     }
 
     private static Graph<LfBus, LfBranch> createGraph(LfNetwork lfNetwork) {
@@ -100,9 +100,9 @@ public class RemoteVoltageTargetChecker {
         return neighbors;
     }
 
-    private void checkIncompatibleTargets(RemoteVoltageTargetCheckerParameters parameters,
+    private void checkIncompatibleTargets(VoltageTargetCheckerParameters parameters,
                                           Set<LfBus> controlledBuses,
-                                          RemoteVoltageTarget.LfResult result) {
+                                          VoltageTargetCheck.LfResult result) {
         Graph<LfBus, LfBranch> graph = createGraph(network);
 
         var ySystem = AdmittanceEquationSystem.create(network, new VariableSet<>());
@@ -119,7 +119,7 @@ public class RemoteVoltageTargetChecker {
                         LOGGER.debug("Indicator: {}/{} dv = {} dz = {} indicator = {}",
                                 controlledBus.getId(), neighborControlledBus.getId(), dv, z, targetVoltagePlausibilityIndicator);
                         if (targetVoltagePlausibilityIndicator > parameters.getTargetVoltagePlausibilityIndicatorThreshold()) {
-                            result.lfIncompatibleTarget().add(new RemoteVoltageTarget.LfIncompatibleTarget(controlledBus, neighborControlledBus, targetVoltagePlausibilityIndicator));
+                            result.lfIncompatibleTarget().add(new VoltageTargetCheck.LfIncompatibleTarget(controlledBus, neighborControlledBus, targetVoltagePlausibilityIndicator));
                         }
                     }
                 }
@@ -127,10 +127,10 @@ public class RemoteVoltageTargetChecker {
         }
     }
 
-    RemoteVoltageTarget.LfResult check(RemoteVoltageTargetCheckerParameters parameters) {
+    VoltageTargetCheck.LfResult check(VoltageTargetCheckerParameters parameters) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        RemoteVoltageTarget.LfResult result = new RemoteVoltageTarget.LfResult();
+        VoltageTargetCheck.LfResult result = new VoltageTargetCheck.LfResult();
 
         // controlled buses whatever the voltage control type it is
         Set<LfBus> controlledBuses = network.getBuses().stream()
@@ -140,27 +140,27 @@ public class RemoteVoltageTargetChecker {
                 .collect(Collectors.toSet());
         checkIncompatibleTargets(parameters, controlledBuses, result);
 
-        LOGGER.debug("Remote voltage targets checked in {} ms", stopwatch.elapsed().toMillis());
+        LOGGER.debug("Voltage targets checked in {} ms", stopwatch.elapsed().toMillis());
 
         return result;
     }
 
-    private static List<RemoteVoltageTarget.LfIncompatibleTargetResolution> resolveIncompatibleTargets(List<RemoteVoltageTarget.LfIncompatibleTarget> lfIncompatibleTargets) {
+    private static List<VoltageTargetCheck.LfIncompatibleTargetResolution> resolveIncompatibleTargets(List<VoltageTargetCheck.LfIncompatibleTarget> lfIncompatibleTargets) {
 
-        List<RemoteVoltageTarget.LfIncompatibleTargetResolution> result = new ArrayList<>();
+        List<VoltageTargetCheck.LfIncompatibleTargetResolution> result = new ArrayList<>();
 
         // some buses could be part of multiple target v incompatible buses couples
         // fix the most referenced ones
         Map<LfBus, MutableInt> incompatibleControlledBusRefCount = new HashMap<>();
-        for (RemoteVoltageTarget.LfIncompatibleTarget lfIncompatibleTarget : lfIncompatibleTargets) {
+        for (VoltageTargetCheck.LfIncompatibleTarget lfIncompatibleTarget : lfIncompatibleTargets) {
             incompatibleControlledBusRefCount.computeIfAbsent(lfIncompatibleTarget.controlledBus1(), k -> new MutableInt(0)).increment();
             incompatibleControlledBusRefCount.computeIfAbsent(lfIncompatibleTarget.controlledBus2(), k -> new MutableInt(0)).increment();
         }
-        List<RemoteVoltageTarget.LfIncompatibleTarget> sorteLfIncompatibleTargets = lfIncompatibleTargets.stream()
+        List<VoltageTargetCheck.LfIncompatibleTarget> sorteLfIncompatibleTargets = lfIncompatibleTargets.stream()
                 .sorted(Comparator.comparingDouble(t -> -Math.abs(t.targetVoltagePlausibilityIndicator())))
                 .toList();
         Set<LfBus> controlledBusesToFix = new HashSet<>();
-        for (RemoteVoltageTarget.LfIncompatibleTarget lfIncompatibleTarget : sorteLfIncompatibleTargets) {
+        for (VoltageTargetCheck.LfIncompatibleTarget lfIncompatibleTarget : sorteLfIncompatibleTargets) {
             LfBus controlledBus1 = lfIncompatibleTarget.controlledBus1();
             LfBus controlledBus2 = lfIncompatibleTarget.controlledBus2();
             if (controlledBusesToFix.contains(controlledBus1) || controlledBusesToFix.contains(controlledBus2)) {
@@ -175,24 +175,24 @@ public class RemoteVoltageTargetChecker {
             }
             controlledBusesToFix.add(controlledBusToFix);
             Set<? extends LfElement> elementsToDisable = controlledBusToFix.getVoltageControls().stream().flatMap(vc -> vc.getControllerElements().stream()).collect(Collectors.toSet());
-            result.add(new RemoteVoltageTarget.LfIncompatibleTargetResolution(controlledBusToFix, elementsToDisable, lfIncompatibleTarget));
+            result.add(new VoltageTargetCheck.LfIncompatibleTargetResolution(controlledBusToFix, elementsToDisable, lfIncompatibleTarget));
         }
 
         return result;
     }
 
-    public void fix(RemoteVoltageTargetCheckerParameters parameters) {
-        ReportNode fixRemoteTargetVoltageReport = Reports.reportFixRemoteTargetVoltage(network.getReportNode());
-        RemoteVoltageTarget.LfResult result = check(parameters);
+    public void fix(VoltageTargetCheckerParameters parameters) {
+        ReportNode fixTargetVoltageReport = Reports.reportFixTargetVoltage(network.getReportNode());
+        VoltageTargetCheck.LfResult result = check(parameters);
 
-        List<RemoteVoltageTarget.LfIncompatibleTargetResolution> incompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
-        for (RemoteVoltageTarget.LfIncompatibleTargetResolution incompatibleTargetResolution : incompatibleTargetResolutions) {
+        List<VoltageTargetCheck.LfIncompatibleTargetResolution> incompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
+        for (VoltageTargetCheck.LfIncompatibleTargetResolution incompatibleTargetResolution : incompatibleTargetResolutions) {
             LfBus otherBus = incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1() == incompatibleTargetResolution.controlledBusToFix() ?
                     incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus2()
                     :
                     incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1();
             for (VoltageControl<? extends LfElement> voltageControl : incompatibleTargetResolution.controlledBusToFix().getVoltageControls()) {
-                ReportNode incompatibleTargetNode = Reports.reportIncompatibleVoltageTarget(fixRemoteTargetVoltageReport,
+                ReportNode incompatibleTargetNode = Reports.reportIncompatibleVoltageTarget(fixTargetVoltageReport,
                         incompatibleTargetResolution.controlledBusToFix().getId(),
                         otherBus.getId(),
                         incompatibleTargetResolution.largestLfIncompatibleTarget().targetVoltagePlausibilityIndicator(),

@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.RemoteVoltageTargetChecker;
-import com.powsybl.openloadflow.RemoteVoltageTargetCheckerParameters;
+import com.powsybl.openloadflow.VoltageTargetChecker;
+import com.powsybl.openloadflow.VoltageTargetCheckerParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -176,9 +176,9 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
     @Override
     public void initialize(AcOuterLoopContext context) {
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
-        if (loadFlowContext.getParameters().isFixRemoteVoltageTarget()) {
-            new RemoteVoltageTargetChecker(context.getNetwork())
-                    .fix(new RemoteVoltageTargetCheckerParameters(loadFlowContext.getParameters().getMatrixFactory()));
+        if (loadFlowContext.getParameters().isFixVoltageTargets()) {
+            new VoltageTargetChecker(context.getNetwork())
+                    .fix(new VoltageTargetCheckerParameters(loadFlowContext.getParameters().getMatrixFactory()));
         }
         context.setData(new ContextData());
     }

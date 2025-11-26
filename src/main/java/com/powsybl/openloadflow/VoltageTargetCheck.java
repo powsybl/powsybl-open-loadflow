@@ -19,9 +19,9 @@ import java.util.TreeSet;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public final class RemoteVoltageTarget {
+public final class VoltageTargetCheck {
 
-    private RemoteVoltageTarget() {
+    private VoltageTargetCheck() {
     }
 
     public record LfIncompatibleTarget(LfBus controlledBus1, LfBus controlledBus2, double targetVoltagePlausibilityIndicator) {

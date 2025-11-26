@@ -17,8 +17,8 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.RemoteVoltageTarget;
-import com.powsybl.openloadflow.RemoteVoltageTargetChecker;
+import com.powsybl.openloadflow.VoltageTargetCheck;
+import com.powsybl.openloadflow.VoltageTargetChecker;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-class RemoteVoltageCheckerTest {
+class VoltageCheckerTest {
 
     @Test
     void testIncompatibleReport() {
@@ -38,9 +38,9 @@ class RemoteVoltageCheckerTest {
         network.getGenerator("g1").setTargetV(400);
         network.getGenerator("g2").setTargetV(403);
         network.getGenerator("g3").setTargetV(407);
-        RemoteVoltageTarget.Result result = RemoteVoltageTargetChecker.findElementsToDiscardFromVoltageControl(network, new LoadFlowParameters());
-        List<RemoteVoltageTarget.IncompatibleTargetResolution> incompatibleTargetResolutions = result.incompatibleTargetResolutions();
-        RemoteVoltageTarget.IncompatibleTargetResolution incompatibleTargetResolution1 = incompatibleTargetResolutions.get(0);
+        VoltageTargetCheck.Result result = VoltageTargetChecker.findElementsToDiscardFromVoltageControl(network, new LoadFlowParameters());
+        List<VoltageTargetCheck.IncompatibleTargetResolution> incompatibleTargetResolutions = result.incompatibleTargetResolutions();
+        VoltageTargetCheck.IncompatibleTargetResolution incompatibleTargetResolution1 = incompatibleTargetResolutions.get(0);
         assertEquals("vl4_0", incompatibleTargetResolution1.controlledBusToFixId());
         assertEquals(Set.of("g1"), incompatibleTargetResolution1.elementsToDisableIds());
         String otherBusId = incompatibleTargetResolution1.largestIncompatibleTarget().controlledBus1Id().equals("vl4_0") ?
@@ -51,7 +51,7 @@ class RemoteVoltageCheckerTest {
         // For low impedance at high nominal voltage (short lines), the double precision limit is reached in the AdmittanceMatrix formula for getZ. We just get the information that z is small...
         assertTrue(incompatibleTargetResolution1.largestIncompatibleTarget().targetVoltagePlausibilityIndicator() > 900);
 
-        RemoteVoltageTarget.IncompatibleTargetResolution incompatibleTargetResolution2 = incompatibleTargetResolutions.get(1);
+        VoltageTargetCheck.IncompatibleTargetResolution incompatibleTargetResolution2 = incompatibleTargetResolutions.get(1);
         assertEquals("vl4_1", incompatibleTargetResolution2.controlledBusToFixId());
         assertEquals(Set.of("g2"), incompatibleTargetResolution2.elementsToDisableIds());
         otherBusId = incompatibleTargetResolution2.largestIncompatibleTarget().controlledBus1Id().equals("vl4_1") ?
@@ -78,7 +78,7 @@ class RemoteVoltageCheckerTest {
         assertEquals(LoadFlowResult.Status.FAILED, result.getStatus());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
 
-        OpenLoadFlowParameters.create(params).setFixRemoteVoltageTarget(true);
+        OpenLoadFlowParameters.create(params).setFixVoltageTargets(true);
         result = runner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters).join();
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
 
@@ -120,7 +120,7 @@ class RemoteVoltageCheckerTest {
                 .withMessageTemplate("test")
                 .build();
         runParameters.setReportNode(testReport);
-        OpenLoadFlowParameters.create(params).setFixRemoteVoltageTarget(true);
+        OpenLoadFlowParameters.create(params).setFixVoltageTargets(true);
         result = runner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters).join();
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
 
@@ -132,8 +132,8 @@ class RemoteVoltageCheckerTest {
         reportString = reportString.replaceAll("and 'vl5_0' have incompatible", "and '***' have incompatible");
 
         // Even the display order (sorted in plausibility indicator) is different between architectures ! SO lets check expected sentences alone
-        assertTrue(reportString.contains("         + Checking remote voltage targets"));
-        assertTrue(reportString.contains("           Controlled buses 'vl4_0' and '***' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl1_0]"));
-        assertTrue(reportString.contains("           Controlled buses 'vl4_2' and '***' have incompatible target voltages (plausibility indicator: ***): disabling controller elements [vl3_0]"));
+        assertTrue(reportString.contains("         + Checking voltage targets"));
+        assertTrue(reportString.contains("           Controlled buses 'vl4_0' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [vl1_0]"));
+        assertTrue(reportString.contains("           Controlled buses 'vl4_2' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [vl3_0]"));
     }
 }
