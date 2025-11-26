@@ -605,6 +605,22 @@ When set to `false`:
 
 The default value is `true`.
 
+**fixVoltageTargets**  
+If true, runs a preprocessing algorithm to identify voltage control settings that may cause convergence issues and 
+removes them automatically from voltage control. This incompatibility is determined by estimating an indicator dv/dz (the 
+difference of target divided by an estimation of the impedance separating the buses). In some situations, in particular when 
+remote voltage control is activated, this could lead to a failure in the Newton-Rapshon convergence.
+
+Note that for small impedances, the indicator value might be affected by the precision limit of double precision computation 
+and, while it always remains high in case of voltage target difference, its precise value may depend on the processor type 
+(for example i686 vs ARM).
+
+**Note** : In situations where the network configuration can be modified (for example when preparing a forecast network configuration) a preferred 
+solution is to identify problematic voltage settings using the VoltageTargetChecker.findElementsToDiscardFromVoltageControl
+that can be run on a Network. This java method returns the problematic voltage settings and the reason. Users can then use this result
+to fix the network data.
+
+The default value is `false`.
 
 ## Configuration file example
 See below an extract of a config file that could help:
