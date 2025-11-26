@@ -19,7 +19,6 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
 import java.util.Objects;
 
 /**
@@ -110,26 +109,6 @@ public class FastDecoupled extends AbstractAcSolver {
             default -> null;
         };
     }
-
-    Comparator<SingleEquation<AcVariableType, AcEquationType>> phiVEquationComparator = (o1, o2) -> {
-        PhiVEquationType equationType1 = getPhiVEquationType(o1.getType());
-        PhiVEquationType equationType2 = getPhiVEquationType(o2.getType());
-        if (equationType1 != equationType2) {
-            return equationType1 == PhiVEquationType.PHI_EQUATION_TYPE ? -1 : 1;
-        } else {
-            return o1.compareTo(o2);
-        }
-    };
-
-    Comparator<Variable<AcVariableType>> phiVVariableComparator = (o1, o2) -> {
-        PhiVVariableType variableType1 = getPhiVVariableType(o1.getType());
-        PhiVVariableType variableType2 = getPhiVVariableType(o2.getType());
-        if (variableType1 != variableType2) {
-            return variableType1 == PhiVVariableType.PHI_VARIABLE_TYPE ? -1 : 1;
-        } else {
-            return o1.compareTo(o2);
-        }
-    };
 
     private int getRangeForPhiSystemPart() {
         MutableInt index = new MutableInt();
