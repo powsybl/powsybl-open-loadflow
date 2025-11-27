@@ -162,6 +162,8 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
+    private boolean isAcDcNetwork;
+
     public LfNetworkParameters() {
     }
 
@@ -212,6 +214,7 @@ public class LfNetworkParameters {
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
+        this.isAcDcNetwork = other.isAcDcNetwork;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -649,6 +652,15 @@ public class LfNetworkParameters {
     public LfNetworkParameters setGeneratorsWithZeroMwTargetAreNotStarted(boolean generatorsWithZeroMwTargetAreNotStarted) {
         this.generatorsWithZeroMwTargetAreNotStarted = generatorsWithZeroMwTargetAreNotStarted;
         return this;
+    }
+
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
+        this.isAcDcNetwork = isAcDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return isAcDcNetwork;
     }
 
     @Override
