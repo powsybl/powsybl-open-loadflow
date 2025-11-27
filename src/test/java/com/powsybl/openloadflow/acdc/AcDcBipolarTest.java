@@ -424,7 +424,7 @@ class AcDcBipolarTest {
     @Test
     void testBipolarModelThreeConvertersWithAcSubNetworks() {
         //Bipolar Model with metallic return, with 3 converters with 3 Ac SubNetworks
-        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithThreeConverters();
+        network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithThreeConverters();
         network.getLine("l25").remove();
         network.getLine("l26").remove();
 
