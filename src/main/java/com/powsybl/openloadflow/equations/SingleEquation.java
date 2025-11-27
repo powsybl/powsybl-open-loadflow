@@ -254,8 +254,8 @@ public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         writer.append(type.getSymbol())
                 .append(Integer.toString(elementNum))
                 .append(" = ");
-        List<SingleEquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(SingleEquationTerm::isActive).collect(Collectors.toList());
-        for (Iterator<SingleEquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
+        List<SingleEquationTerm<V, E>> termsToWrite = writeInactiveTerms ? terms : terms.stream().filter(SingleEquationTerm::isActive).collect(Collectors.toList());
+        for (Iterator<SingleEquationTerm<V, E>> it = termsToWrite.iterator(); it.hasNext();) {
             SingleEquationTerm<V, E> term = it.next();
             if (!term.isActive()) {
                 writer.write("[ ");

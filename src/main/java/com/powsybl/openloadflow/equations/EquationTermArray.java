@@ -29,18 +29,6 @@ import java.util.function.DoubleSupplier;
  */
 public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-    public void compress() {
-        termNumsConcatenated = new TIntArrayList(equationArray.getElementCount() * 2);
-        for (int i = 0; i < termNumsByEquationElementNum.length; i++) {
-            int iStart = termNumsConcatenated.size();
-            termNumsConcatenated.addAll(termNumsByEquationElementNum[i]);
-            termNumsConcatenatedStartIndices[i] = iStart;
-        }
-        termNumsConcatenatedStartIndices[termNumsByEquationElementNum.length] = termNumsConcatenated.size();
-
-        this.termNumByTermElementNum = new TIntIntHashMap(this.termNumByTermElementNum);
-    }
-
     public interface Evaluator<V extends Enum<V> & Quantity> {
 
         String getName();
@@ -156,6 +144,18 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         equationArray.invalidateEquationDerivativeVectors();
         equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
+    }
+
+    public void compress() {
+        termNumsConcatenated = new TIntArrayList(equationArray.getElementCount() * 2);
+        for (int i = 0; i < termNumsByEquationElementNum.length; i++) {
+            int iStart = termNumsConcatenated.size();
+            termNumsConcatenated.addAll(termNumsByEquationElementNum[i]);
+            termNumsConcatenatedStartIndices[i] = iStart;
+        }
+        termNumsConcatenatedStartIndices[termNumsByEquationElementNum.length] = termNumsConcatenated.size();
+
+        this.termNumByTermElementNum = new TIntIntHashMap(this.termNumByTermElementNum);
     }
 
     public double[] eval() {

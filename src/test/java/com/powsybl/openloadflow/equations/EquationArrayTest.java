@@ -108,6 +108,8 @@ class EquationArrayTest {
             equationArray.eval(values2);
         }
 
+        // Since there is only one equation type, both equation system sort the values by element num.
+        // The values arrays are then expected to be equal.
         assertArrayEquals(values, values2);
         DenseMatrix derValues = calculateDer(equationSystem);
         DenseMatrix derValues2 = calculateDer(equationSystem2);
