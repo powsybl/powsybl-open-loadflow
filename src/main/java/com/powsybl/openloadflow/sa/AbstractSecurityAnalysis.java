@@ -366,7 +366,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ComponentMode mode) {
-        return switch(mode){
+        return switch (mode) {
             case MAIN_CONNECTED -> networks.getList().stream()
                     .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
             case MAIN_SYNCHRONOUS -> networks.getList().stream()

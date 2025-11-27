@@ -4226,6 +4226,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters lfParametersAll = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         LoadFlowParameters lfParametersMainConnected = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
         LoadFlowParameters lfParametersMainSynchronous = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
+
         var lfResultAll = LoadFlow.run(network, lfParametersAll);
         assertTrue(lfResultAll.isFullyConverged());
         var lfResultMainConnected = LoadFlow.run(network, lfParametersMainConnected);

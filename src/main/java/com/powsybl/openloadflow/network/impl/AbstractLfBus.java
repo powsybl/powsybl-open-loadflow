@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -279,6 +279,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
+    @Override
+    public void setVoltageControlEnabled(boolean enabled) {
+        setGeneratorVoltageControlEnabled(enabled);
+    }
+
     private static LfLoadModel createLfLoadModel(LoadModel loadModel, LfNetworkParameters parameters) {
         if (!parameters.isUseLoadModel() || loadModel == null) {
             return null;
@@ -472,7 +477,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
             }
         }
-        return loadTargetP;
+        return loadTargetP + getFictitiousInjectionTargetP();
     }
 
     @Override
@@ -496,7 +501,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             }
             loadTargetQ = sum;
         }
-        return loadTargetQ;
+        return loadTargetQ + getFictitiousInjectionTargetQ();
     }
 
     @Override
@@ -912,6 +917,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setArea(LfArea area) {
         this.area = area;
+    }
+
+    @Override
+    public double getFictitiousInjectionTargetP() {
+        return 0;
+    }
+
+    @Override
+    public double getFictitiousInjectionTargetQ() {
+        return 0;
     }
 
 }

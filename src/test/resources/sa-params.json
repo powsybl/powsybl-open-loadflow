@@ -9,7 +9,7 @@
   },
   "intermediate-results-in-operator-strategy" : false,
   "load-flow-parameters" : {
-    "version" : "2.0",
+    "version" : "1.10",
     "voltageInitMode" : "UNIFORM_VALUES",
     "transformerVoltageControlOn" : false,
     "phaseShifterRegulationOn" : false,
@@ -31,10 +31,10 @@
     "open-security-analysis-parameters" : {
       "createResultExtension" : true,
       "contingencyPropagation" : false,
-      "threadCount" : 1,
+      "threadCount" : 3,
       "dcFastMode" : true,
       "contingencyActivePowerLossDistribution" : "Default",
-      "startWithFrozenACEmulation" : true
+      "startWithFrozenACEmulation" : false
     }
   }
 }

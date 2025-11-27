@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,10 +8,13 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -21,6 +24,8 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -330,7 +335,7 @@ class AcLoadFlowTransformerVoltageControlTest {
     }
 
     @Test
-    void voltageControlT2wtTestRationAtLimit() {
+    void voltageControlT2wtTestRationAtLimit() throws IOException {
         LoadFlowParameters stableParams = parameters.copy();
         stableParams.setTransformerVoltageControlOn(true);
         stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlUseInitialTapPosition(true);
@@ -353,7 +358,15 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setTargetV(26.0);
 
         System.out.println("build on server fails here");
-        LoadFlowResult result = loadFlowRunner.run(network, stableParams);
+        ReportNode rootReport = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters loadFlowRunParameters = new LoadFlowRunParameters()
+                .setParameters(stableParams)
+                .setReportNode(rootReport);
+
+        LoadFlowResult result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.283, bus2);
         assertVoltageEquals(28.71, t2wt.getTerminal2().getBusView().getBus());
@@ -361,6 +374,13 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+        String expected = """
+                         + Outer loop TransformerVoltageControl
+                            + 2 transformers reached their tap maximum position
+                               Transformer T2wT1 reached a tap extreme position
+                               Transformer T2wT2 reached a tap extreme position
+                """;
+        assertReportContainsMultiline(expected, rootReport);
     }
 
     @Test

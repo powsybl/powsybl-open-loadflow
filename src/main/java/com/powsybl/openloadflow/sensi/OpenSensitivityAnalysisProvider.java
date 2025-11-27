@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,10 +15,11 @@ import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.contingency.list.ContingencyList;
-import com.powsybl.contingency.contingency.list.DefaultContingencyList;
+import com.powsybl.contingency.list.ContingencyList;
+import com.powsybl.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -133,6 +134,72 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 .registerModule(new SensitivityJsonModule());
     }
 
+    Void runSync(Network network,
+                        String workingVariantId,
+                        SensitivityFactorReader factorReader,
+                        SensitivityResultWriter resultWriter,
+                        List<Contingency> contingencies,
+                        List<SensitivityVariableSet> variableSets,
+                        SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                        ReportNode reportNode) {
+        network.getVariantManager().setWorkingVariant(workingVariantId);
+        ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
+
+        OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+
+        // We only support switch contingency for the moment. Contingency propagation is not supported yet.
+        // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
+        // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+            .setContingencyPropagation(false)
+            .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+            .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+            .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
+
+        SensitivityFactorReader decoratedFactorReader = factorReader;
+
+        // debugging
+        if (sensitivityAnalysisParametersExt.getDebugDir() != null && !sensitivityAnalysisParametersExt.getDebugDir().isEmpty()) {
+            Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
+            String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
+
+            NetworkSerDe.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
+
+            ObjectWriter objectWriter = createObjectMapper()
+                .writerWithDefaultPrettyPrinter();
+            try {
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
+                    ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
+                    objectWriter.writeValue(writer, contingencyList);
+                }
+
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
+                    objectWriter.writeValue(writer, variableSets);
+                }
+
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
+                    objectWriter.writeValue(writer, sensitivityAnalysisParameters);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+
+            decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
+        }
+
+        AbstractSensitivityAnalysis<?, ?> analysis;
+        if (loadFlowParameters.isDc()) {
+            analysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
+        } else {
+            analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
+        }
+        analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig, sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
+        return null;
+    }
+
     public CompletableFuture<Void> run(Network network,
                                        String workingVariantId,
                                        SensitivityFactorReader factorReader,
@@ -148,63 +215,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         ComputationManager computationManager = Objects.requireNonNull(runParameters.getComputationManager());
         ReportNode reportNode = Objects.requireNonNull(runParameters.getReportNode());
 
-        return CompletableFuture.runAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingVariantId);
-            ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
-
-            OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
-
-            // We only support switch contingency for the moment. Contingency propagation is not supported yet.
-            // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
-            // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
-            LfTopoConfig topoConfig = new LfTopoConfig();
-            LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
-            PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
-                    .setContingencyPropagation(false)
-                    .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
-                    .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                    .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
-
-            SensitivityFactorReader decoratedFactorReader = factorReader;
-
-            // debugging
-            if (sensitivityAnalysisParametersExt.getDebugDir() != null && !sensitivityAnalysisParametersExt.getDebugDir().isEmpty()) {
-                Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
-                String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
-
-                NetworkSerDe.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
-
-                ObjectWriter objectWriter = createObjectMapper()
-                        .writerWithDefaultPrettyPrinter();
-                try {
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
-                        ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
-                        objectWriter.writeValue(writer, contingencyList);
-                    }
-
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
-                        objectWriter.writeValue(writer, variableSets);
-                    }
-
-                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
-                        objectWriter.writeValue(writer, sensitivityAnalysisParameters);
-                    }
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-
-                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
-            }
-
-            AbstractSensitivityAnalysis<?, ?> analysis;
-            if (loadFlowParameters.isDc()) {
-                analysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
-            } else {
-                analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
-            }
-            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, topoConfig, sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
-        }, computationManager.getExecutor());
+        return CompletableFutureTask.runAsync(() -> runSync(network,
+            workingVariantId,
+            factorReader,
+            resultWriter,
+            contingencies,
+            variableSets,
+            sensitivityAnalysisParameters,
+            reportNode), computationManager.getExecutor());
     }
 
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
