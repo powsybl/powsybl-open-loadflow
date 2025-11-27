@@ -19,7 +19,7 @@ class EquationDerivativeVector {
     private final int[] termNums;
 
     // cache
-    private final MutableInt[] rowRefs;
+    private final Number[] rowRefs;
     protected final int[] rows;
     protected final int[] termElementNum;
     protected final double[] values;

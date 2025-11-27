@@ -41,7 +41,7 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
         return row.intValue();
     }
 
-    public MutableInt getRowRef() {
+    public Number getRowRef() {
         return row;
     }
 
