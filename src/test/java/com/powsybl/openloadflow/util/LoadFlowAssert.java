@@ -111,7 +111,7 @@ public final class LoadFlowAssert {
         assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reportNode);
     }
 
-    private static String reportToString(ReportNode reportNode) throws IOException {
+    public static String reportToString(ReportNode reportNode) throws IOException {
         StringWriter sw = new StringWriter();
         DecimalFormatSymbols symbols = new DecimalFormatSymbols();
         symbols.setDecimalSeparator('.');
@@ -157,5 +157,14 @@ public final class LoadFlowAssert {
             String txtReport = normalizeLineSeparator(sw.toString());
             return "Report does not contain '" + regex + "': \n-----\n" + txtReport;
         });
+    }
+
+    public static void assertReportContainsMultiline(String extract, ReportNode reportNode) throws IOException {
+        String normalizedExtract = normalizeLineSeparator(extract);
+        String logExport = normalizeLineSeparator(reportToString(reportNode));
+        if (!logExport.contains(normalizedExtract)) {
+            // Then make an assertEquals Exception to facilitate debug
+            assertEquals(normalizedExtract, logExport, "Report extract not found");
+        }
     }
 }

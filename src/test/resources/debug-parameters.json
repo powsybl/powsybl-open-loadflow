@@ -99,6 +99,7 @@
         "startWithFrozenACEmulation" : false,
         "generatorsWithZeroMwTargetAreNotStarted" : true,
         "incrementalShuntControlOuterLoopMaxSectionShift" : 3,
+        "fixVoltageTargets" : false,
         "acDcNetwork" : false
       }
     }

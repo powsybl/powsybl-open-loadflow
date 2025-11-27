@@ -78,7 +78,6 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoopContext.setIteration(outerLoopIteration.getValue());
             outerLoopContext.setOuterLoopTotalIterations(runningContext.outerLoopTotalIterations);
             outerLoopContext.setLastSolverResult(runningContext.lastSolverResult);
-            outerLoopContext.setLoadFlowContext(context);
             outerLoopResult = outerLoop.check(outerLoopContext, olReportNode);
             runningContext.lastOuterLoopResult = outerLoopResult;
 
@@ -214,6 +213,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         for (var outerLoopAndContext : outerLoopsAndContexts) {
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
+            outerLoopContext.setLoadFlowContext(context);
             outerLoop.initialize(outerLoopContext);
         }
 
