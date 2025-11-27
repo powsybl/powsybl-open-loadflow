@@ -44,7 +44,7 @@ import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
-import com.powsybl.security.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import org.slf4j.event.Level;
 
 import java.util.*;
