@@ -45,14 +45,12 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     protected void updateArray(double[] array) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        var equations = equationSystem.getIndex().getSortedSingleEquationsToSolve();
-
         if (array.length != equationSystem.getIndex().getColumnCount()) {
             throw new IllegalArgumentException("Bad equation vector length: " + array.length);
         }
 
         Arrays.fill(array, 0); // necessary?
-        for (SingleEquation<V, E> equation : equations) {
+        for (SingleEquation<V, E> equation : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
             array[equation.getColumn()] = equation.evalLhs();
         }
         for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {

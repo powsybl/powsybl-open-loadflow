@@ -26,6 +26,9 @@ public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<T exte
     protected final Variable<AcVariableType> phi2Var;
     protected final Variable<AcVariableType> v1Var;
     protected final Variable<AcVariableType> v2Var;
+
+    // final variables because this object is built only for fast decoupled derivative calculation (short lifecycle).
+    // But note that in NR load flow, a1 and r1 can vary (if there are tap changes)
     protected final Variable<AcVariableType> a1Var;
     protected final Variable<AcVariableType> r1Var;
 

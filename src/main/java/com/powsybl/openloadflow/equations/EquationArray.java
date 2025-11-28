@@ -263,6 +263,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     singleTermsByEquationElementNum.computeIfAbsent(elementNum, k -> new AdditionalSingleTermsByEquation())
                             .addSingleTerm(singleEquationTerm, this);
                     hasSingleEquationTerms[elementNum] = true;
+                } else {
+                    throw new IllegalArgumentException("Unsupported EquationTerm");
                 }
                 return this;
             }
