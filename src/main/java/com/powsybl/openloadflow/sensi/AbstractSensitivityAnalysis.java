@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
@@ -39,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -742,7 +745,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 double value = sensitivityVariableToWrite.get();
                 if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
-                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC) {
+                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
+                        // If run in batch of contingencies, the contingency may not be part of this result
+                        contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndexById.get(factor.getContingencyContext().getContingencyId()), value, Double.NaN);
                 } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
@@ -757,11 +762,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return validFactorHolder;
     }
 
-    protected void checkContingencies(List<PropagatedContingency> contingencies) {
+    protected void checkContingencies(List<Contingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
-        for (PropagatedContingency contingency : contingencies) {
+        for (Contingency contingency : contingencies) {
             // check ID are unique because, later contingency are indexed by their IDs
-            String contingencyId = contingency.getContingency().getId();
+            String contingencyId = contingency.getId();
             if (contingenciesIds.contains(contingencyId)) {
                 throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
             }
@@ -1200,7 +1205,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         throw new IllegalArgumentException("Illegal function type side switching");
     }
 
-    protected Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+    protected record VariablesTargetVoltageInfo(boolean hasBusTargetVoltage, boolean hasTransformerTargetVoltage) {
+    }
+
+    protected VariablesTargetVoltageInfo getVariableTargetVoltageInfo(SensitivityFactorReader factorReader, Network network) {
         // Left value if we find a BUS_TARGET_VOLTAGE factor and right value if it is linked to a transformer.
         AtomicBoolean hasBusTargetVoltage = new AtomicBoolean(false);
         AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean(false);
@@ -1213,7 +1221,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 }
             }
         });
-        return Pair.of(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
+        return new VariablesTargetVoltageInfo(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
     }
 
     protected static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
@@ -1289,8 +1297,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
     }
 
-    public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig, boolean startWithFrozenACEmulation);
+    public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, PropagatedContingencyCreationParameters creationParameters,
+                                 List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
+                                 SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
+                                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
+                                 Executor executor) throws ExecutionException;
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

@@ -72,6 +72,11 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         assertTrue(parametersExt.isDcFastMode());
         testCount++;
 
+        assertTrue(parametersExt.isStartWithFrozenACEmulation());
+        parametersExt.setStartWithFrozenACEmulation(false);
+        assertFalse(parametersExt.isStartWithFrozenACEmulation());
+        testCount++;
+
         assertEquals(1, parametersExt.getThreadCount());
         parametersExt.setThreadCount(3);
         assertEquals(3, parametersExt.getThreadCount());
@@ -80,11 +85,6 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
         assertThrows(PowsyblException.class, () -> parametersExt.setContingencyActivePowerLossDistribution("Unknown"));
         assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
-        testCount++;
-
-        assertTrue(parametersExt.isStartWithFrozenACEmulation());
-        parametersExt.setStartWithFrozenACEmulation(false);
-        assertFalse(parametersExt.isStartWithFrozenACEmulation());
         testCount++;
 
         assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), testCount);
@@ -100,6 +100,7 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         moduleConfig.setStringProperty("startWithFrozenACEmulation", "false");
         moduleConfig.setStringProperty("threadCount", "3");
         moduleConfig.setStringProperty("contingencyActivePowerLossDistribution", "Default");
+
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
         assertFalse(parametersExt.isContingencyPropagation());
@@ -107,7 +108,9 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
         assertFalse(parametersExt.isStartWithFrozenACEmulation());
         assertEquals(3, parametersExt.getThreadCount());
         // check test completeness
+
         assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), moduleConfig.getPropertyNames().size());
+
     }
 
     @Test
