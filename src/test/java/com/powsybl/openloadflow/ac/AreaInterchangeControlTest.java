@@ -248,7 +248,7 @@ class AreaInterchangeControlTest {
         Area area1 = network.getArea("a1");
         Area area2 = network.getArea("a2");
 
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         var result = loadFlowRunner.run(network, parameters);
 
         var componentResult = result.getComponentResults().get(0);
@@ -265,7 +265,7 @@ class AreaInterchangeControlTest {
         Area area1 = network.getArea("a1");
         Area area2 = network.getArea("a2");
 
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         var result = loadFlowRunner.run(network, parameters);
 
         var componentResult = result.getComponentResults().get(0);
