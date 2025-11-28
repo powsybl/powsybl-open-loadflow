@@ -24,20 +24,20 @@ public class AreaInterchangeControlContextData extends DistributedSlackContextDa
     /**
      * The part of the total slack active power mismatch that should be added to the Area's net interchange mismatch, ie the part of the slack that should be distributed in the Area.
      */
-    private final Map<String, Double> areaSlackDistributionParticipationFactor;
+    private final Map<String, Double> slackDistributionFactorByAreaId;
 
     public AreaInterchangeControlContextData(Set<LfBus> busesWithoutArea, Map<String, Double> areaSlackDistributionParticipationFactor) {
         super();
         this.busesWithoutArea = new HashSet<>(busesWithoutArea);
-        this.areaSlackDistributionParticipationFactor = new HashMap<>(areaSlackDistributionParticipationFactor);
+        this.slackDistributionFactorByAreaId = new HashMap<>(areaSlackDistributionParticipationFactor);
     }
 
     public Set<LfBus> getBusesWithoutArea() {
         return busesWithoutArea;
     }
 
-    public Map<String, Double> getAreaSlackDistributionParticipationFactor() {
-        return areaSlackDistributionParticipationFactor;
+    public Map<String, Double> getSlackDistributionFactorByAreaId() {
+        return slackDistributionFactorByAreaId;
     }
 
 }

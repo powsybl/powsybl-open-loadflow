@@ -237,7 +237,7 @@ Where:
 * "Interchange Target" is the interchange target parameter of the area.  
 * "Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see [Slack bus mismatch attribution](#slack-bus-mismatch-attribution)). 
 
-The outer loop iterates until this mismatch is below the configured [parameter `areaInterchangePMaxMismatch`](parameters.md) for all areas.
+The outer loop iterates until the absolute value of this mismatch is below the configured [parameter `areaInterchangePMaxMismatch`](parameters.md) for all areas.
 
 When it is the case, "interchange only" mismatch is computed for all areas:
 
@@ -245,11 +245,11 @@ $$
 Interchange Mismatch = Interchange - Interchange Target
 $$
 
-If this mismatch for all areas and the slack injection of the buses without area are below the configured [parameter `slackBusPMaxMismatch`](parameters.md), then the outer loop declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
+If the absolute value of this mismatch is below the [parameter `areaInterchangePMaxMismatch`](parameters.md) for all areas and the absolute value of slack bus active power mismatch is below the [parameter `slackBusPMaxMismatch`](parameters.md), then the outer loop declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
 
 If not, the remaining slack bus mismatch is first distributed over the buses that have no area.
 
-If some slack bus mismatch still remains, it is distributed over all buses of the network.
+If some slack bus mismatch still remains, it is distributed over all the areas (see [Remaining slack bus mismatch distribution](#Remaining-slack-bus-mismatch-distribution)).
 
 ### Areas validation
 There are some cases where areas are considered invalid and will not be considered for the area interchange control:
@@ -276,6 +276,18 @@ Indeed, in this case the slack injection can be seen as an interchange to 'the v
     - Connected to only buses that have an area:
         - All connected branches are boundaries of those areas: Not attributed to anyone, the mismatch will already be present in the interchange mismatch
         - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
+
+### Remaining slack bus mismatch distribution
+This section covers the case where the "total mismatch" of all areas is in [-[`areaInterchangePMaxMismatch`](parameters.md);[`areaInterchangePMaxMismatch`](parameters.md)], but some slack bus active power mismatch remains (even after trying to distribute on buses with no area).
+This remaining slack bus active power mismatch will be distributed by all areas, each one will get a share of this mismatch to distribute.
+
+This distribution will affect each area's interchange and will not necessarily make it closer to its target.
+The distribution factor of each area will be computed in a way that minimises chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](parameters.md) in absolute value.  
+So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.  
+
+It is computed like this:  
+$Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $  
+Then factors are normalized to have sum of factors equal to 1.
 
 ### Zero impedance boundary branches
 The following applies when the [`lowImpedanceBranchMode`](parameters.md) is set to `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
