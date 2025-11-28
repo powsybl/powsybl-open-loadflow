@@ -132,33 +132,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
-    public String getId() {
-        return "";
-    }
-
-    @Override
     public double getEquivalentLocalTargetV() {
         return Double.NaN;
-    }
-
-    @Override
-    public double getTargetQ() {
-        return 0;
-    }
-
-    @Override
-    public double getMinP() {
-        return 0;
-    }
-
-    @Override
-    public double getMaxP() {
-        return 0;
-    }
-
-    @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters) {
-
     }
 
     @Override
