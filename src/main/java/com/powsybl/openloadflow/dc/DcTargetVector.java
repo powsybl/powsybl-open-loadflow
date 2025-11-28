@@ -10,7 +10,8 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.SingleEquation;
+import com.powsybl.openloadflow.equations.EquationArray;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -22,7 +23,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType> {
 
-    public static void init(Equation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
+    public static void init(SingleEquation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_P:
                 LfBus bus = network.getBus(equation.getElementNum());
@@ -54,6 +55,16 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
     }
 
     public DcTargetVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(network, equationSystem, DcTargetVector::init);
+        super(network, equationSystem, new Initializer<>() {
+            @Override
+            public void initialize(SingleEquation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
+                DcTargetVector.init(equation, network, targets);
+            }
+
+            @Override
+            public void initialize(EquationArray<DcVariableType, DcEquationType> equationArray, LfNetwork network, double[] targets) {
+                throw new UnsupportedOperationException("Equation Arrays not implemented in DC");
+            }
+        });
     }
 }

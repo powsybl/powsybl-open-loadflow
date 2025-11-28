@@ -13,7 +13,6 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -78,7 +77,7 @@ public class NewtonRaphson extends AbstractAcSolver {
                 findLargestMismatches(equationSystem, equationVector.getArray(), 5)
                         .forEach(e -> {
                             Equation<AcVariableType, AcEquationType> equation = e.getKey();
-                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
+                            String elementId = network.getElement(equation.getType().getElementType(), equation.getElementNum()).getId();
                             LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
                         });
             }

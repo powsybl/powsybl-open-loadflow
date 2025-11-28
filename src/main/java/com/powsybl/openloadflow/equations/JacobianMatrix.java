@@ -65,7 +65,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onEquationChange(Equation<V, E> equation, ChangeType changeType) {
+    public void onEquationChange(SingleEquation<V, E> equation, ChangeType changeType) {
         updateStatus(Status.STRUCTURE_INVALID);
     }
 
@@ -75,8 +75,23 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm<V, E> term) {
+    public void onEquationTermChange(SingleEquationTerm<V, E> term) {
         updateStatus(Status.VALUES_AND_ZEROS_INVALID);
+    }
+
+    @Override
+    public void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType) {
+        updateStatus(Status.STRUCTURE_INVALID);
+    }
+
+    @Override
+    public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType) {
+        updateStatus(Status.VALUES_AND_ZEROS_INVALID);
+    }
+
+    @Override
+    public void onEquationIndexOrderChanged() {
+        updateStatus(Status.STRUCTURE_INVALID);
     }
 
     @Override
@@ -86,23 +101,26 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
-
-        int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
-        int columnCount = equationSystem.getIndex().getSortedVariablesToFind().size();
+        int rowCount = equationSystem.getIndex().getRowCount();
+        int columnCount = equationSystem.getIndex().getColumnCount();
         if (rowCount != columnCount) {
-            throw new PowsyblException("Expected to have same number of equations (" + rowCount
-                    + ") and variables (" + columnCount + ")");
+            throw new PowsyblException("Expected to have same number of equations (" + columnCount
+                    + ") and variables (" + rowCount + ")");
         }
 
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
-        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        for (SingleEquation<V, E> eq : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
             int column = eq.getColumn();
             eq.der((variable, value, matrixElementIndex) -> {
                 int row = variable.getRow();
                 return matrix.addAndGetIndex(row, column, value);
             });
+        }
+        for (var eq : equationSystem.getEquationArrays()) {
+            eq.der((column, row, value, matrixElementIndex) ->
+                    matrix.addAndGetIndex(row, column, value));
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -124,8 +142,14 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
-        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+        for (SingleEquation<V, E> eq : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
             eq.der((variable, value, matrixElementIndex) -> {
+                matrix.addAtIndex(matrixElementIndex, value);
+                return matrixElementIndex; // don't change element index
+            });
+        }
+        for (var eq : equationSystem.getEquationArrays()) {
+            eq.der((column, row, value, matrixElementIndex) -> {
                 matrix.addAtIndex(matrixElementIndex, value);
                 return matrixElementIndex; // don't change element index
             });

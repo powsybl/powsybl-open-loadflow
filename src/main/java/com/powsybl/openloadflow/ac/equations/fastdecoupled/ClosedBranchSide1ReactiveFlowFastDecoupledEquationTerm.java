@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ReactiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator;
 import com.powsybl.openloadflow.equations.Variable;
 import net.jafama.FastMath;
 import java.util.Objects;
@@ -20,12 +21,14 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
-
-    private final ClosedBranchSide1ReactiveFlowEquationTerm term;
+public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm extends AbstractClosedBranchAcFlowFastDecoupledEquationTerm<ClosedBranchSide1ReactiveFlowEquationTerm, ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator> {
 
     public ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(ClosedBranchSide1ReactiveFlowEquationTerm closedBranchSide1ReactiveFlowEquationTerm) {
-        this.term = closedBranchSide1ReactiveFlowEquationTerm;
+        super(closedBranchSide1ReactiveFlowEquationTerm);
+    }
+
+    public ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator closedBranchSide1ReactiveFlowEvaluator, int branchNum) {
+        super(closedBranchSide1ReactiveFlowEvaluator, branchNum);
     }
 
     public static double dq1dv1FastDecoupled(double y, double cosKsi, double b1, double v1, double r1, double cosTheta) {
@@ -43,13 +46,13 @@ public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm implements A
 
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double theta = theta1FastDecoupled(term.getKsi(), term.a1());
-        if (variable.equals(term.getV1Var())) {
-            return dq1dv1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), 1, term.r1(), FastMath.cos(theta));
-        } else if (variable.equals(term.getV2Var())) {
-            return dq1dv2(term.getY(), 1, term.r1(), FastMath.cos(theta));
-        } else if (variable.equals(term.getR1Var())) {
-            return dq1dr1FastDecoupled(term.getY(), FastMath.cos(term.getKsi()), term.getB1(), 1, term.r1(), FastMath.cos(theta));
+        double theta = theta1FastDecoupled(ksi, a1);
+        if (variable.equals(v1Var)) {
+            return dq1dv1FastDecoupled(y, FastMath.cos(ksi), b1, 1, r1, FastMath.cos(theta));
+        } else if (variable.equals(v2Var)) {
+            return dq1dv2(y, 1, r1, FastMath.cos(theta));
+        } else if (variable.equals(r1Var)) {
+            return dq1dr1FastDecoupled(y, FastMath.cos(ksi), b1, 1, r1, FastMath.cos(theta));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

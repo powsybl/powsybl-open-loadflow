@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.equations.Variable;
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
  */
-public interface AbstractFastDecoupledEquationTerm {
+public interface FastDecoupledEquationTerm {
 
     double derFastDecoupled(Variable<AcVariableType> variable);
 }

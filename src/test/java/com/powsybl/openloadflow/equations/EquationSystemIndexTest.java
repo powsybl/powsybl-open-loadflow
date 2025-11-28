@@ -9,8 +9,10 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystemIndexListener.ChangeType;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +78,8 @@ class EquationSystemIndexTest {
 
     @Test
     void test() {
-        EquationSystem<TestVariableType, TestEquationType> equationSystem = new EquationSystem<>();
+        LfNetwork network = Mockito.mock(LfNetwork.class);
+        EquationSystem<TestVariableType, TestEquationType> equationSystem = new EquationSystem<>(TestEquationType.class, network);
         equationSystem.getIndex().addListener(new EquationSystemIndexListener<>() {
             @Override
             public void onVariableChange(Variable<TestVariableType> variable, ChangeType changeType) {
@@ -84,12 +87,27 @@ class EquationSystemIndexTest {
             }
 
             @Override
-            public void onEquationChange(Equation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
+            public void onEquationChange(SingleEquation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
                 quantityAdded.add(Pair.of(equation.getType(), changeType));
             }
 
             @Override
-            public void onEquationTermChange(EquationTerm<TestVariableType, TestEquationType> term) {
+            public void onEquationTermChange(SingleEquationTerm<TestVariableType, TestEquationType> term) {
+                // nothing to do
+            }
+
+            @Override
+            public void onEquationArrayChange(EquationArray<TestVariableType, TestEquationType> equationArray, ChangeType changeType) {
+                // nothing to do
+            }
+
+            @Override
+            public void onEquationTermArrayChange(EquationTermArray<TestVariableType, TestEquationType> equationTermArray, int termNum, ChangeType changeType) {
+                // nothing to do
+            }
+
+            @Override
+            public void onEquationIndexOrderChanged() {
                 // nothing to do
             }
         });
@@ -99,13 +117,13 @@ class EquationSystemIndexTest {
         var a = equationSystem.getVariableSet().getVariable(0, TestVariableType.A);
         var b = equationSystem.getVariableSet().getVariable(0, TestVariableType.B);
         var c = equationSystem.getVariableSet().getVariable(0, TestVariableType.C);
-        EquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
-        EquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
         var x = equationSystem.createEquation(0, TestEquationType.X)
                 .addTerm(aTerm)
                 .addTerm(bTerm);
-        EquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
-        EquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
+        SingleEquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
         var y = equationSystem.createEquation(0, TestEquationType.Y)
                 .addTerm(aTerm2)
                 .addTerm(cTerm);
@@ -116,7 +134,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestVariableType.C, ChangeType.ADDED)),
                       quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate y
@@ -126,7 +144,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate y
@@ -137,7 +155,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate c term
@@ -147,7 +165,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate c term
@@ -157,7 +175,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate all a term
@@ -169,7 +187,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate one 'a' term
@@ -179,7 +197,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactovate other 'a' term
@@ -187,7 +205,7 @@ class EquationSystemIndexTest {
         // y = a + c
         aTerm2.setActive(true);
         assertTrue(quantityAdded.isEmpty());
-        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedSingleEquationsToSolve());
         assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
     }
 }

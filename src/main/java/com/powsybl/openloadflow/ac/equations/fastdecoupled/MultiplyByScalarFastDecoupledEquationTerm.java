@@ -13,12 +13,12 @@ import com.powsybl.openloadflow.equations.Variable;
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
  */
-public class MultiplyByScalarFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
+public class MultiplyByScalarFastDecoupledEquationTerm implements FastDecoupledEquationTerm {
 
     private final double scalar;
-    private final AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm;
+    private final FastDecoupledEquationTerm fastDecoupledEquationTerm;
 
-    public MultiplyByScalarFastDecoupledEquationTerm(double scalar, AbstractFastDecoupledEquationTerm fastDecoupledEquationTerm) {
+    public MultiplyByScalarFastDecoupledEquationTerm(double scalar, FastDecoupledEquationTerm fastDecoupledEquationTerm) {
         this.scalar = scalar;
         this.fastDecoupledEquationTerm = fastDecoupledEquationTerm;
     }

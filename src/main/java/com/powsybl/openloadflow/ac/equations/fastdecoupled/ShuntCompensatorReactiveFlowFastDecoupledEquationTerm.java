@@ -17,7 +17,7 @@ import static com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlow
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ShuntCompensatorReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
+public class ShuntCompensatorReactiveFlowFastDecoupledEquationTerm implements FastDecoupledEquationTerm {
 
     private final ShuntCompensatorReactiveFlowEquationTerm term;
 

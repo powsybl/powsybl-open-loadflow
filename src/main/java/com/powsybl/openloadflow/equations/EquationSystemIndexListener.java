@@ -25,10 +25,19 @@ public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E ext
     /**
      * Called when a new equation has been added or removed to the system.
      */
-    void onEquationChange(Equation<V, E> equation, ChangeType changeType);
+    void onEquationChange(SingleEquation<V, E> equation, ChangeType changeType);
 
     /**
      * Called when a term is added or removed from an equation.
      */
-    void onEquationTermChange(EquationTerm<V, E> term);
+    void onEquationTermChange(SingleEquationTerm<V, E> term);
+
+    void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType);
+
+    void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType);
+
+    /**
+     * Called when the order of variables or columns has been changed even without any change in equations (can happen when using Fast Decoupled)
+     */
+    void onEquationIndexOrderChanged();
 }

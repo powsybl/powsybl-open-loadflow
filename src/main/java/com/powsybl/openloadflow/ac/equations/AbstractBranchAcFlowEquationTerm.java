@@ -42,27 +42,27 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         b12 = -piModel.getX() * y * y;
     }
 
-    public double getB1() {
+    public double b1() {
         return b1;
     }
 
-    public double getB2() {
+    public double b2() {
         return b2;
     }
 
-    public double getG1() {
+    public double g1() {
         return g1;
     }
 
-    public double getG2() {
+    public double g2() {
         return g2;
     }
 
-    public double getY() {
+    public double y() {
         return y;
     }
 
-    public double getKsi() {
+    public double ksi() {
         return ksi;
     }
 }
