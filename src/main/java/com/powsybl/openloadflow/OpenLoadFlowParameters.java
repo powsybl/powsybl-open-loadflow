@@ -380,7 +380,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .put("phaseShifterRegulationOn", PHASE_CONTROL_CATEGORY_KEY)
             .put("voltageInitMode", VOLTAGE_INIT_CATEGORY_KEY)
             .put("hvdcAcEmulation", HVDC_CATEGORY_KEY)
-            .put("computedConnectedComponentScope", PERFORMANCE_CATEGORY_KEY)
+            .put("computedComponentScope", PERFORMANCE_CATEGORY_KEY)
             .build();
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
@@ -1995,7 +1995,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
-                .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
+                .setComputeMainConnectedComponentOnly(parameters.getComponentMode() == LoadFlowParameters.ComponentMode.MAIN_CONNECTED)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
@@ -2121,7 +2121,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
-                .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
+                .setComputeMainConnectedComponentOnly(parameters.getComponentMode() == LoadFlowParameters.ComponentMode.MAIN_CONNECTED)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
@@ -2187,7 +2187,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 parameters1.getBalanceType() == parameters2.getBalanceType() &&
                 parameters1.isDcUseTransformerRatio() == parameters2.isDcUseTransformerRatio() &&
                 parameters1.getCountriesToBalance().equals(parameters2.getCountriesToBalance()) &&
-                parameters1.getConnectedComponentMode() == parameters2.getConnectedComponentMode() &&
+                parameters1.getComponentMode() == parameters2.getComponentMode() &&
                 parameters1.isHvdcAcEmulation() == parameters2.isHvdcAcEmulation() &&
                 parameters1.getDcPowerFactor() == parameters2.getDcPowerFactor();
         if (!equals) {
@@ -2388,7 +2388,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setBalanceType(parameters.getBalanceType())
                 .setDcUseTransformerRatio(parameters.isDcUseTransformerRatio())
                 .setCountriesToBalance(new HashSet<>(parameters.getCountriesToBalance()))
-                .setConnectedComponentMode(parameters.getConnectedComponentMode())
+                .setComponentMode(parameters.getComponentMode())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setDcPowerFactor(parameters.getDcPowerFactor());
 

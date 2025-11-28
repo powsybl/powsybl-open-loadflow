@@ -3792,7 +3792,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()
                 .setThreadCount(threadCount);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
-        securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        securityAnalysisParameters.getLoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
 
         List<Contingency> checkedContingencies = List.of(new Contingency("l13", new BranchContingency("l13")),
                 new Contingency("dummyLoad", new LoadContingency("dummyLoad")));
@@ -3892,7 +3892,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = new OpenSecurityAnalysisParameters()
                 .setThreadCount(threadCount);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, securityAnalysisParametersExt);
-        securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        securityAnalysisParameters.getLoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
 
         // This contingency should impact both components
         List<Contingency> checkedContingencies = List.of(new Contingency("compositeContingency", List.of(new BranchContingency("l13"), new LoadContingency("dummyLoad"))));
@@ -3988,7 +3988,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
             .add();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        securityAnalysisParameters.getLoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        securityAnalysisParameters.getLoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
 
         // Dummy contingency
         List<Contingency> contingencies = List.of(new Contingency("contingencyLoad", List.of(new LoadContingency("dummyLoad"))));
@@ -4160,14 +4160,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, networks.getList().get(1).getNumSC());
 
         // Main connected component mode and all connected component mode should yield same result
-        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
         assertEquals(2, componentMain.size());
         assertEquals(0, componentMain.get(0).getNumCC());
         assertEquals(0, componentMain.get(0).getNumSC());
         assertEquals(0, componentMain.get(1).getNumCC());
         assertEquals(1, componentMain.get(1).getNumSC());
 
-        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         assertEquals(2, componentAll.size());
         assertEquals(0, componentAll.get(0).getNumCC());
         assertEquals(0, componentAll.get(0).getNumSC());
@@ -4187,13 +4187,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, networks.getList().get(1).getNumSC());
 
         // Main connected component mode should only select component associated to main CC
-        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.MAIN);
+        List<LfNetwork> componentMain = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
         assertEquals(1, componentMain.size());
         assertEquals(0, componentMain.get(0).getNumCC());
         assertEquals(0, componentMain.get(0).getNumSC());
 
         // All connected component mode should select all component
-        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ConnectedComponentMode.ALL);
+        List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         assertEquals(2, componentAll.size());
         assertEquals(0, componentAll.get(0).getNumCC());
         assertEquals(0, componentAll.get(0).getNumSC());
@@ -4212,8 +4212,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("CC0 SC4", compByBus.get("b04"));
         assertEquals("CC1 SC0", compByBus.get("b11"));
         assertEquals("CC1 SC0", compByBus.get("b12"));
-        LoadFlowParameters lfParametersAll = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
-        LoadFlowParameters lfParametersMain = new LoadFlowParameters().setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.MAIN);
+        LoadFlowParameters lfParametersAll = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        LoadFlowParameters lfParametersMain = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
         var lfResultAll = LoadFlow.run(network, lfParametersAll);
         assertTrue(lfResultAll.isFullyConverged());
         var lfResultMain = LoadFlow.run(network, lfParametersMain);
