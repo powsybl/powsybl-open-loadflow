@@ -4248,7 +4248,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         var saResultMainSynchronous = runSecurityAnalysis(network, Collections.emptyList(), createNetworkMonitors(network), lfParametersMainSynchronous);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResultMainSynchronous.getPreContingencyResult().getStatus());
         assertEquals(2, saResultMainSynchronous.getPreContingencyResult().getNetworkResult().getBusResults().size()); // 2 buses in SC0 (that is in CC1)
-        assertEquals(1.0, saResultMainSynchronous.getPreContingencyResult().getNetworkResult().getBusResult("b11").getV()); // There is a result in a bus of CC1
+        assertEquals(1.0, saResultMainSynchronous.getPreContingencyResult().getNetworkResult().getBusResult("b11").getV()); // There is a result in a bus of CC1 SC0
     }
 
     @ParameterizedTest
