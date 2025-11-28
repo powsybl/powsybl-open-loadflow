@@ -24,8 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -135,7 +134,7 @@ class GeneratorRemoteControlLocalRescaleTest {
         LoadFlowAssert.assertVoltageEquals(413.4, b2);
         LoadFlowAssert.assertVoltageEquals(21.55, b1);
 
-        // Change a bit the local target V anc verify that it is honnored
+        // Change a bit the local target V anc verify that it is honored
         network.getGenerator("g1").setTargetV(413.4, 21.0);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltageRemoteControl(false);
@@ -180,7 +179,7 @@ class GeneratorRemoteControlLocalRescaleTest {
 
         assertTrue(result.isFullyConverged());
         LoadFlowAssert.assertVoltageEquals(400.48, b2);
-        LoadFlowAssert.assertVoltageEquals(20.9, b1); // The local target V of first generatour found is maintained
+        LoadFlowAssert.assertVoltageEquals(20.9, b1); // The local target V of first generator found is maintained
 
         parameters.getExtension(OpenLoadFlowParameters.class).setDisableInconsistentVoltageControls(true);
         network.getGenerator("g1").setTargetQ(10);
@@ -188,10 +187,10 @@ class GeneratorRemoteControlLocalRescaleTest {
         result = loadFlowRunner.run(network, parameters);
 
         // The groups have been disabled from voltage control
-        assertTrue(result.getComponentResults().getFirst().getStatus() == LoadFlowResult.ComponentResult.Status.NO_CALCULATION);
+        assertSame(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().getFirst().getStatus());
         assertEquals("Network has no generator with voltage control enabled", result.getComponentResults().getFirst().getStatusText());
 
-        // set consistent targets and run with disableInconsistentVOltaeg mode
+        // set consistent targets and run with disableInconsistentVoltage mode
         network.getGenerator("g1").setTargetV(413.4, 21);
         g2.setTargetV(413.4, 21);
 

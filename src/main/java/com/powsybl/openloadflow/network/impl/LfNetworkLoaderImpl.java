@@ -154,10 +154,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         } else {  // !parameters.isGeneratorVoltageRemoteControl() && controlledBus != controllerBus
             double localTargetV = getLocalVoltageTarget(controllerBus, controllerTargetV, controlledBus.getNominalV(),
                     parameters.isDisableInconsistentVoltageControls(), report);
-            if (!Double.isNaN(localTargetV)) {
-                if (controlledBus.getGeneratorVoltageControl().isEmpty()) {
-                    createGeneratorVoltageControl(controllerBus, controllerBus, localTargetV, voltageControls, parameters);
-                }
+            if (!Double.isNaN(localTargetV) && controlledBus.getGeneratorVoltageControl().isEmpty()) {
+                createGeneratorVoltageControl(controllerBus, controllerBus, localTargetV, voltageControls, parameters);
             }
         }
     }
