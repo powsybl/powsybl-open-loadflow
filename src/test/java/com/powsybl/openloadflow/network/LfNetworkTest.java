@@ -196,15 +196,21 @@ class LfNetworkTest extends AbstractSerDeTest {
 
     @Test
     void testMultipleConnectedComponentsMainSynchronousMode() {
-        // Network with one connected component and two synchronous components
-        Network network = HvdcNetworkFactory.createVsc();
+        // Network initially has two one connected component and two synchronous components
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        // Splitting the connected components in two connected components, it now has 3 synchronous components
+        network.getLine("l12").disconnect();
+        network.getLine("l13").disconnect();
+        network.getGenerator("g2").setMaxP(3); // Increasing MaxP to allow slack bus distribution
+        network.getGenerator("g6").setMaxP(3); // Increasing MaxP to allow slack bus distribution
+
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(2, result.getComponentResults().size());
+        assertEquals(3, result.getComponentResults().size());
 
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
         result = loadFlowRunner.run(network, parameters);

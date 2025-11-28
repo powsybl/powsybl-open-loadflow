@@ -386,7 +386,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
-                .setComponentMode(lfParameters.getComponentMode())
+                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
                 .setCountriesToBalance(lfParameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(false)
