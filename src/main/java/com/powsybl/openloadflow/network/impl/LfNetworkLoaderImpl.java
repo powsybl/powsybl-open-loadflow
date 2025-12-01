@@ -113,18 +113,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             // If remote voltage control is off, move remote voltage controle generators to local control
             if (!parameters.isGeneratorVoltageRemoteControl()) {
-                for (LfGenerator g : voltageControlGenerators) {
-                    if (g.getControlledBus() != g.getBus()) {
-                        LfBus remoteControlledBus = g.getControlledBus();
-                        if (!g.switchToLocalVoltageRegulation()) {
-                            report.rescaledRemoteVoltageControls += 1;
-                            double remoteTargetV = g.getTargetV() * remoteControlledBus.getNominalV();
-                            double localTargetV = g.getTargetV() * controllerBus.getNominalV();
-                            LOGGER.warn("Remote voltage control is not activated and no local target is defined for generator {}. The voltage target of {} with remote control is rescaled from {} to {}",
-                                    g.getId(), controllerBus.getId(), remoteTargetV, localTargetV);
-                        }
-                    }
-                }
+                switchGeneratorsToLocalVoltageRegulation(voltageControlGenerators, controllerBus, report);
             }
 
             if (!voltageControlGenerators.isEmpty()) {
@@ -134,6 +123,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         if (parameters.isVoltagePerReactivePowerControl()) {
             voltageControls.forEach(LfNetworkLoaderImpl::checkGeneratorsWithSlope);
+        }
+    }
+
+    private static void switchGeneratorsToLocalVoltageRegulation(List<LfGenerator> voltageControlGenerators,
+                                                                 LfBus controllerBus,
+                                                                 LfNetworkLoadingReport report) {
+        for (LfGenerator g : voltageControlGenerators) {
+            if (g.getControlledBus() != g.getBus()) {
+                LfBus remoteControlledBus = g.getControlledBus();
+                if (!g.switchToLocalVoltageRegulation()) {
+                    report.rescaledRemoteVoltageControls += 1;
+                    double remoteTargetV = g.getTargetV() * remoteControlledBus.getNominalV();
+                    double localTargetV = g.getTargetV() * controllerBus.getNominalV();
+                    LOGGER.warn("Remote voltage control is not activated and no local target is defined for generator {}. The voltage target of {} with remote control is rescaled from {} to {}",
+                            g.getId(), controllerBus.getId(), remoteTargetV, localTargetV);
+                }
+            }
         }
     }
 
