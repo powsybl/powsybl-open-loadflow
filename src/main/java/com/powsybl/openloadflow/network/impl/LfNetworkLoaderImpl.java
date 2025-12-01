@@ -185,7 +185,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (Double.isNaN(localTargetV)) {
             report.rescaledRemoteVoltageControls += 1;
             localTargetV = remoteTargetV;
-            LOGGER.warn("Remote voltage control is not activated and no local terget is defined. The voltage target of {} with remote control is rescaled from {} to {}",
+            LOGGER.warn("Remote voltage control is not activated and no local target is defined. The voltage target of {} with remote control is rescaled from {} to {}",
                     controllerBus.getId(), remoteTargetV * remoteNominal, localTargetV * controllerBus.getNominalV());
         }
         return localTargetV;
