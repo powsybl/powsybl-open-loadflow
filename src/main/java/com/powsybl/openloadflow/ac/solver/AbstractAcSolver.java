@@ -105,6 +105,7 @@ public abstract class AbstractAcSolver implements AcSolver {
                         Equation<AcVariableType, AcEquationType> equation = equationSystem.getIndex().getEquationAtColumn(equationPair.getLeft());
                         double equationMismatch = equationPair.getValue();
                         int elementNum = equation.getElementNum();
+                        // REPORTED_AC_EQUATION_TYPES only contain bus equations
                         LfBus bus = network.getBus(elementNum);
                         int busVRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_V).getRow();
                         int busPhiRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_PHI).getRow();
