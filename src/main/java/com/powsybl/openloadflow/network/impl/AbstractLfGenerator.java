@@ -39,6 +39,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected double targetV = Double.NaN;
 
+    private boolean switchedToLocalVoltageRegulation = false;
+
     protected GeneratorControlType generatorControlType = GeneratorControlType.OFF;
 
     protected String controlledBusId;
@@ -132,8 +134,9 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
-    public double getEquivalentLocalTargetV() {
-        return Double.NaN;
+    public boolean switchToLocalVoltageRegulation() {
+        switchedToLocalVoltageRegulation = true;
+        return false;
     }
 
     @Override
@@ -234,7 +237,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     @Override
     public LfBus getControlledBus() {
-        return network.getBusById(controlledBusId);
+        return switchedToLocalVoltageRegulation ? bus : network.getBusById(controlledBusId);
     }
 
     protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, LfNetworkParameters parameters,

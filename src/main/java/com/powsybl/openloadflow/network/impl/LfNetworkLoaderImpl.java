@@ -111,6 +111,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             voltageControlGenerators.addAll(voltageMonitoringGenerators);
 
+            // If remote voltage control is off, move remote voltage controle generators to local control
+            if (!parameters.isGeneratorVoltageRemoteControl()) {
+                for (LfGenerator g: voltageControlGenerators) {
+                    if (g.getControlledBus() != g.getBus()) {
+                        LfBus remoteControlledBus = g.getControlledBus();
+                        if (!g.switchToLocalVoltageRegulation()) {
+                            report.rescaledRemoteVoltageControls += 1;
+                            double remoteTargetV = g.getTargetV() * remoteControlledBus.getNominalV();
+                            double localTargetV = g.getTargetV() * controllerBus.getNominalV();
+                            LOGGER.warn("Remote voltage control is not activated and no local target is defined for generator {}. The voltage target of {} with remote control is rescaled from {} to {}",
+                                    g.getId(), controllerBus.getId(), remoteTargetV, localTargetV);
+                        }
+                    }
+                }
+            }
+
             if (!voltageControlGenerators.isEmpty()) {
                 checkAndCreateVoltageControl(controllerBus, voltageControls, voltageControlGenerators, parameters, report);
             }
@@ -146,49 +162,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (inconsistentTargetVoltages) {
                 report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages += voltageControlGenerators.size();
             }
-        } else if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
+        } else {
             // if consistent, creating voltage control
             controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                     vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
                     () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
-        } else {  // !parameters.isGeneratorVoltageRemoteControl() && controlledBus != controllerBus
-            double localTargetV = getLocalVoltageTarget(controllerBus, controllerTargetV, controlledBus.getNominalV(),
-                    parameters.isDisableInconsistentVoltageControls(), report);
-            if (!Double.isNaN(localTargetV) && controlledBus.getGeneratorVoltageControl().isEmpty()) {
-                createGeneratorVoltageControl(controllerBus, controllerBus, localTargetV, voltageControls, parameters);
-            }
         }
-    }
-
-    /**
-     * Returns the local target from backup if available. Returns Double.NaN in case of inconsistent backup target for the bus.
-     */
-    private static double getLocalVoltageTarget(LfBus controllerBus,
-                                                double remoteTargetV,
-                                                double remoteNominal,
-                                                boolean disableInconsistentVoltageControls,
-                                                LfNetworkLoadingReport report) {
-        double localTargetV = Double.NaN;
-        for (LfGenerator generator : controllerBus.getGenerators()) {
-            double genLocalTargetV = generator.getEquivalentLocalTargetV();
-            if (!Double.isNaN(genLocalTargetV)) {
-                if (Double.isNaN(localTargetV)) {
-                    localTargetV = genLocalTargetV;
-                } else {
-                    if (disableInconsistentVoltageControls && Math.abs(localTargetV - genLocalTargetV) > TARGET_V_EPSILON) {
-                        return Double.NaN;
-                    }
-                    // else if !disableInconsistentVoltageControls keep the first voltage target found
-                }
-            }
-        }
-        if (Double.isNaN(localTargetV)) {
-            report.rescaledRemoteVoltageControls += 1;
-            localTargetV = remoteTargetV;
-            LOGGER.warn("Remote voltage control is not activated and no local target is defined. The voltage target of {} with remote control is rescaled from {} to {}",
-                    controllerBus.getId(), remoteTargetV * remoteNominal, localTargetV * controllerBus.getNominalV());
-        }
-        return localTargetV;
     }
 
     private static void createGeneratorVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<GeneratorVoltageControl> voltageControls,

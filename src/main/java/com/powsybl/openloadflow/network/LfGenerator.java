@@ -59,7 +59,12 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
 
     double getTargetV();
 
-    double getEquivalentLocalTargetV();
+    /**
+     * Changes the target V to a local voltage regulation. If the Generator has an equivalentLocalTargetV,
+     * this target will be used, instead, the same p.u. target is than the current target V
+     * @return true if the generator has an equivalentLocalTargetV, and false otherwise.
+     */
+    boolean switchToLocalVoltageRegulation();
 
     OptionalDouble getRemoteControlReactiveKey();
 

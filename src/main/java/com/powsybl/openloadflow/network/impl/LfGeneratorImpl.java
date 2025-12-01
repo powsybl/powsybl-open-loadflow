@@ -257,7 +257,14 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public double getEquivalentLocalTargetV() {
-        return generatorRef.get().getEquivalentLocalTargetV() / getBus().getNominalV();
+    public boolean switchToLocalVoltageRegulation() {
+        super.switchToLocalVoltageRegulation();
+        if (!Double.isNaN(generatorRef.get().getEquivalentLocalTargetV())) {
+            targetV = generatorRef.get().getEquivalentLocalTargetV() / getBus().getNominalV();
+            return true;
+        } else {
+            // keep the same targetV i perUnit
+            return false;
+        }
     }
 }
