@@ -391,7 +391,7 @@ class OpenLoadFlowParametersTest {
     @Test
     void testEqualsCloneAndUpdate() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        provider.getSpecificParameters().forEach(sp -> {
+        provider.getRawSpecificParameters().forEach(sp -> {
             var p1 = new LoadFlowParameters();
             var p2 = new LoadFlowParameters();
             var pe1 = OpenLoadFlowParameters.create(p1);
@@ -459,7 +459,7 @@ class OpenLoadFlowParametersTest {
     void testSerializationRoundTrip() {
         Set<String> nullableParams = Set.of("debugDir", "outerLoopNames");
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        provider.getSpecificParameters().forEach(sp -> {
+        provider.getRawSpecificParameters().forEach(sp -> {
             LoadFlowParameters p1 = new LoadFlowParameters();
             OpenLoadFlowParameters e1 = OpenLoadFlowParameters.create(p1);
             List<String> vals;
