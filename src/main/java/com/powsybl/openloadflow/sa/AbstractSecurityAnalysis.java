@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.action.*;
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.CompletableFutureTask;
@@ -22,7 +22,8 @@ import com.powsybl.contingency.strategy.condition.AnyViolationCondition;
 import com.powsybl.contingency.strategy.condition.AtLeastOneViolationCondition;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.contingency.violations.LimitViolation;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.ComponentConstants;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -33,7 +34,6 @@ import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.Actions;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.*;
@@ -171,18 +171,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         } else {
             var contingenciesPartitions = Lists2.partition(contingencies, securityAnalysisParametersExt.getThreadCount());
 
-            // Check now that every operator strategy references an existing contingency. It will be impossible to do after
-            // contingencies are split per partition.
-            final Set<String> contingencyIds = contingencies.stream().map(Contingency::getId).collect(Collectors.toSet());
-            operatorStrategies.stream()
-                    .filter(o -> !hasValidContingency(o, contingencyIds))
-                    .findAny()
-                    .ifPresent(AbstractSecurityAnalysis::throwMissingOperatorStrategyContingency);
-            // Check action ids to report exception to the main thread
-            final Set<String> actionIds = actions.stream().map(Action::getId).collect(Collectors.toSet());
-            operatorStrategies
-                    .forEach(o -> findMissingActionId(o, actionIds)
-                            .ifPresent(id -> throwMissingOperatorStrategyAction(o, id)));
+            OperatorStrategies.check(operatorStrategies, contingencies, actions);
 
             // we pre-allocate the results so that threads can set result in a stable order (using the partition number)
             // so that we always get results in the same order whatever threads completion order is.
@@ -459,65 +448,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract PostContingencyComputationStatus postContingencyStatusFromLoadFlowResult(R result);
 
-    private static boolean hasValidContingency(OperatorStrategy operatorStrategy, Set<String> contingencyIds) {
-        return contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId());
-    }
-
-    private static Optional<String> findMissingActionId(OperatorStrategy operatorStrategy, Set<String> actionIds) {
-        for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            for (String actionId : conditionalActions.getActionIds()) {
-                if (!actionIds.contains(actionId)) {
-                    return Optional.of(actionId);
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
-    private static void throwMissingOperatorStrategyContingency(OperatorStrategy operatorStrategy) {
-        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
-                + operatorStrategy.getContingencyContext().getContingencyId() + "' but this contingency is not present in the list");
-
-    }
-
-    private static void throwMissingOperatorStrategyAction(OperatorStrategy operatorStrategy, String actionId) {
-        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
-                + actionId + "' but this action is not present in the list");
-    }
-
-    protected static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                                              List<OperatorStrategy> operatorStrategies,
-                                                                                              Map<String, Action> actionsById,
-                                                                                              Set<Action> neededActions,
-                                                                                              boolean checkOperatorStrategies) {
-
-        Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
-        Set<String> actionIds = actionsById.keySet();
-        for (OperatorStrategy operatorStrategy : operatorStrategies) {
-            if (hasValidContingency(operatorStrategy, contingencyIds)) {
-                if (checkOperatorStrategies) {
-                    findMissingActionId(operatorStrategy, actionIds)
-                            .ifPresent(id -> throwMissingOperatorStrategyAction(operatorStrategy, id));
-                }
-
-                for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-                    for (String actionId : conditionalActions.getActionIds()) {
-                        Action action = actionsById.get(actionId);
-                        neededActions.add(action);
-                    }
-                }
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
-                        .add(operatorStrategy);
-            } else {
-                if (checkOperatorStrategies) {
-                    throwMissingOperatorStrategyContingency(operatorStrategy);
-                }
-            }
-        }
-        return operatorStrategiesByContingencyId;
-    }
-
     private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds) {
         switch (conditionalActions.getCondition().getType()) {
             case TrueCondition.NAME:
@@ -584,7 +514,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         boolean checkOperatorStrategies = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).getThreadCount() == 1;
 
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
-                indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions,
+                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions,
                         checkOperatorStrategies);
 
         Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters()); // only convert needed actions

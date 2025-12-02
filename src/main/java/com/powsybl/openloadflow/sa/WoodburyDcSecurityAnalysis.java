@@ -32,6 +32,8 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.*;
+import com.powsybl.openloadflow.network.impl.Actions;
+import com.powsybl.openloadflow.network.impl.OperatorStrategies;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -395,7 +397,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         Map<String, Action> actionsById = Actions.indexById(actions);
         Set<Action> neededActions = HashSet.newHashSet(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
-                indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions, true);
+                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions, true);
         Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);

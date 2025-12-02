@@ -1,0 +1,101 @@
+/**
+ * Copyright (c) 2025, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.network.impl;
+
+import com.powsybl.action.Action;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.strategy.ConditionalActions;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+public final class OperatorStrategies {
+
+    private OperatorStrategies() {
+    }
+
+    private static boolean hasValidContingency(OperatorStrategy operatorStrategy, Set<String> contingencyIds) {
+        return contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId());
+    }
+
+    private static Optional<String> findMissingActionId(OperatorStrategy operatorStrategy, Set<String> actionIds) {
+        for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
+            for (String actionId : conditionalActions.getActionIds()) {
+                if (!actionIds.contains(actionId)) {
+                    return Optional.of(actionId);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static void throwMissingOperatorStrategyContingency(OperatorStrategy operatorStrategy) {
+        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
+                + operatorStrategy.getContingencyContext().getContingencyId() + "' but this contingency is not present in the list");
+
+    }
+
+    private static void throwMissingOperatorStrategyAction(OperatorStrategy operatorStrategy, String actionId) {
+        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
+                + actionId + "' but this action is not present in the list");
+    }
+
+    public static Map<String, List<OperatorStrategy>> indexByContingencyId(List<PropagatedContingency> propagatedContingencies,
+                                                                           List<OperatorStrategy> operatorStrategies,
+                                                                           Map<String, Action> actionsById,
+                                                                           Set<Action> neededActions,
+                                                                           boolean checkOperatorStrategies) {
+
+        Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
+        Set<String> actionIds = actionsById.keySet();
+        for (OperatorStrategy operatorStrategy : operatorStrategies) {
+            if (hasValidContingency(operatorStrategy, contingencyIds)) {
+                if (checkOperatorStrategies) {
+                    findMissingActionId(operatorStrategy, actionIds)
+                            .ifPresent(id -> throwMissingOperatorStrategyAction(operatorStrategy, id));
+                }
+
+                for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
+                    for (String actionId : conditionalActions.getActionIds()) {
+                        Action action = actionsById.get(actionId);
+                        neededActions.add(action);
+                    }
+                }
+                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
+                        .add(operatorStrategy);
+            } else {
+                if (checkOperatorStrategies) {
+                    throwMissingOperatorStrategyContingency(operatorStrategy);
+                }
+            }
+        }
+        return operatorStrategiesByContingencyId;
+    }
+
+    public static void check(List<OperatorStrategy> operatorStrategies, List<Contingency> contingencies, List<Action> actions) {
+        // Check now that every operator strategy references an existing contingency. It will be impossible to do after
+        // contingencies are split per partition.
+        final Set<String> contingencyIds = contingencies.stream().map(Contingency::getId).collect(Collectors.toSet());
+        operatorStrategies.stream()
+                .filter(o -> !hasValidContingency(o, contingencyIds))
+                .findAny()
+                .ifPresent(OperatorStrategies::throwMissingOperatorStrategyContingency);
+
+        // Check action ids to report exception to the main thread
+        final Set<String> actionIds = actions.stream().map(Action::getId).collect(Collectors.toSet());
+        operatorStrategies
+                .forEach(o -> findMissingActionId(o, actionIds)
+                        .ifPresent(id -> throwMissingOperatorStrategyAction(o, id)));
+    }
+}
