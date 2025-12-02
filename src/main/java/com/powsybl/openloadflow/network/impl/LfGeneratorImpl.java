@@ -263,7 +263,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             targetV = generatorRef.get().getEquivalentLocalTargetV() / getBus().getNominalV();
             return true;
         } else {
-            // keep the same targetV i perUnit
+            // keep the same targetV in perUnit
             return false;
         }
     }
