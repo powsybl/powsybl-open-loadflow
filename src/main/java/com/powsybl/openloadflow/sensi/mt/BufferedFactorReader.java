@@ -9,6 +9,7 @@
 package com.powsybl.openloadflow.sensi.mt;
 
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityFactorReader;
 import com.powsybl.sensitivity.SensitivityFunctionType;
 import com.powsybl.sensitivity.SensitivityVariableType;
@@ -22,15 +23,7 @@ import java.util.List;
  */
 public class BufferedFactorReader implements SensitivityFactorReader, SensitivityFactorReader.Handler {
 
-    private final List<Entry> entries = new ArrayList<>();
-
-    private record Entry(SensitivityFunctionType functionType,
-                 String functionId,
-                 SensitivityVariableType variableType,
-                 String variableId,
-                 boolean variableSet,
-                 ContingencyContext contingencyContext) {
-    }
+    private final List<SensitivityFactor> entries = new ArrayList<>();
 
     public BufferedFactorReader(SensitivityFactorReader source) {
         source.read(this);
@@ -39,17 +32,17 @@ public class BufferedFactorReader implements SensitivityFactorReader, Sensitivit
 
     @Override
     public void read(Handler handler) {
-        entries.forEach(e -> handler.onFactor(e.functionType,
-                e.functionId,
-                e.variableType,
-                e.variableId,
-                e.variableSet,
-                e.contingencyContext));
+        entries.forEach(e -> handler.onFactor(e.getFunctionType(),
+                e.getFunctionId(),
+                e.getVariableType(),
+                e.getVariableId(),
+                e.isVariableSet(),
+                e.getContingencyContext()));
     }
 
     @Override
     public void onFactor(SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType,
                          String variableId, boolean variableSet, ContingencyContext contingencyContext) {
-        entries.add(new Entry(functionType, functionId, variableType, variableId, variableSet, contingencyContext));
+        entries.add(new SensitivityFactor(functionType, functionId, variableType, variableId, variableSet, contingencyContext));
     }
 }
