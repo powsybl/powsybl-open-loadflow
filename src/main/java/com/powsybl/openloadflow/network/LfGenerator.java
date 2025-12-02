@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
+ * Copyright (c) 2019, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -58,13 +58,6 @@ public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
     void setGeneratorControlType(GeneratorControlType generatorControlType);
 
     double getTargetV();
-
-    /**
-     * Changes the target V to a local voltage control. If the Generator has an equivalentLocalTargetV,
-     * this target will be used, instead, the same p.u. target is than the current target V
-     * @return true if the generator has an equivalentLocalTargetV, and false otherwise.
-     */
-    boolean switchToLocalVoltageControl();
 
     OptionalDouble getRemoteControlReactiveKey();
 

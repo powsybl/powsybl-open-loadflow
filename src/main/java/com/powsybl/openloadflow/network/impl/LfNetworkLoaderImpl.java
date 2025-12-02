@@ -111,7 +111,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             voltageControlGenerators.addAll(voltageMonitoringGenerators);
 
-            // If remote voltage control is off, move remote voltage controle generators to local control
+            // If remote voltage control is off, move remote voltage control generators to local control
             if (!parameters.isGeneratorVoltageRemoteControl()) {
                 switchGeneratorsToLocalVoltageControl(voltageControlGenerators, controllerBus, report);
             }
@@ -132,7 +132,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (LfGenerator g : voltageControlGenerators) {
             if (g.getControlledBus() != g.getBus()) {
                 LfBus remoteControlledBus = g.getControlledBus();
-                if (!g.switchToLocalVoltageControl()) {
+                if (g instanceof AbstractLfGenerator gen && !gen.switchToLocalVoltageControl()) {
                     report.rescaledRemoteVoltageControls += 1;
                     double remoteTargetV = g.getTargetV() * remoteControlledBus.getNominalV();
                     double localTargetV = g.getTargetV() * controllerBus.getNominalV();

@@ -133,7 +133,6 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return targetV;
     }
 
-    @Override
     public boolean switchToLocalVoltageControl() {
         switchedToLocalVoltageRegulation = true;
         return false;
