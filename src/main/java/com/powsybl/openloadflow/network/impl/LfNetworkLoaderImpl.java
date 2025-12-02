@@ -1321,11 +1321,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
-        Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
-            ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-            : busesByCc.entrySet().stream();
+        Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByComponentStream = switch (parameters.getComponentMode()) {
+            case MAIN_CONNECTED -> busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM);
+            case MAIN_SYNCHRONOUS -> busesByCc.entrySet().stream().filter(e -> e.getKey().getRight() == ComponentConstants.MAIN_NUM);
+            case ALL_CONNECTED -> busesByCc.entrySet().stream();
+        };
 
-        List<LfNetwork> lfNetworks = filteredBusesByCcStream
+        List<LfNetwork> lfNetworks = filteredBusesByComponentStream
                 .map(e -> {
                     var networkKey = e.getKey();
                     int numCc = networkKey.getLeft();
