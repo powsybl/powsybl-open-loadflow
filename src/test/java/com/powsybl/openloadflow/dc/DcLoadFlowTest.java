@@ -289,7 +289,7 @@ class DcLoadFlowTest {
         }
 
         // bus 12 and 13 are out of main connected component
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         loadFlowRunner.run(network, parameters);
 
         // check angle is zero for the 2 slack buses
@@ -488,7 +488,7 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
 
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute interchange active power mismatch", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
