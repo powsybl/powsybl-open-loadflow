@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.network.TapPositionChange;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy@artelys.com>}
  */
-public final class ComputedTapPositionChangeElement extends AbstractComputedElement {
+public final class ComputedTapPositionChangeElement extends AbstractComputedElement implements ComputedElement {
 
     private final TapPositionChange tapPositionChange;
 
