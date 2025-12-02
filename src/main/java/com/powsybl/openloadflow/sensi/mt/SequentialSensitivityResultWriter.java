@@ -26,7 +26,7 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
 
     private final SensitivityResultWriter sensitivityResultWriter;
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
-    private final Map<Integer, Integer> baseCaseSensitivityValueWritten = new ConcurrentHashMap<>();
+    private final Map<Integer, Boolean> baseCaseSensitivityValueWritten = new ConcurrentHashMap<>();
 
     public SequentialSensitivityResultWriter(SensitivityResultWriter sensitivityResultWriter) {
         this.sensitivityResultWriter = sensitivityResultWriter;
@@ -38,7 +38,7 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
             // Write the base case only once
             baseCaseSensitivityValueWritten.computeIfAbsent(factorIndex, i -> {
                 executor.execute(() -> sensitivityResultWriter.writeSensitivityValue(factorIndex, contingencyIndex, value, functionReference));
-                return i;
+                return Boolean.TRUE;
             });
         } else {
             executor.execute(() -> sensitivityResultWriter.writeSensitivityValue(factorIndex, contingencyIndex, value, functionReference));
