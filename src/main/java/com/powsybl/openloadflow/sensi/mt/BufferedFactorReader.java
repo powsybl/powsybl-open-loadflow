@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal-ext at rte-france.com>}
- * A class that reads factors once from the source and can then provide them to each trhead
+ * A class that reads factors once from the source and can then provide them to each thread
  */
 public class BufferedFactorReader implements SensitivityFactorReader, SensitivityFactorReader.Handler {
 
