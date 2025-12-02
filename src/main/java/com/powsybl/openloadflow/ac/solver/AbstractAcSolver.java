@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -40,6 +39,8 @@ public abstract class AbstractAcSolver implements AcSolver {
 
     protected boolean detailedReport;
 
+    protected record MismatchInfo(int column, AcEquationType equationType, double mismatch) { }
+
     public static final List<AcEquationType> REPORTED_AC_EQUATION_TYPES = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
 
     protected AbstractAcSolver(LfNetwork network,
@@ -56,14 +57,14 @@ public abstract class AbstractAcSolver implements AcSolver {
         this.detailedReport = detailedReport;
     }
 
-    private static List<Triple<Integer, AcEquationType, Double>> getMismatchInfos(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
-        List<Triple<Integer, AcEquationType, Double>> mismatches = new ArrayList<>();
+    private static List<MismatchInfo> getMismatchInfos(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
+        List<MismatchInfo> mismatches = new ArrayList<>();
         for (var equation : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
-            mismatches.add(Triple.of(equation.getColumn(), equation.getType(), mismatch[equation.getColumn()]));
+            mismatches.add(new MismatchInfo(equation.getColumn(), equation.getType(), mismatch[equation.getColumn()]));
         }
         for (var equationArray : equationSystem.getEquationArrays()) {
             for (int column = equationArray.getFirstColumn(); column < equationArray.getFirstColumn() + equationArray.getLength(); column++) {
-                mismatches.add(Triple.of(column, equationArray.getType(), mismatch[column]));
+                mismatches.add(new MismatchInfo(column, equationArray.getType(), mismatch[column]));
             }
         }
         return mismatches;
@@ -72,17 +73,18 @@ public abstract class AbstractAcSolver implements AcSolver {
     public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {
         return getMismatchInfos(equationSystem, mismatch)
                 .stream()
-                .filter(t -> Math.abs(t.getRight()) > Math.pow(10, -7))
-                .map(t -> Pair.of(equationSystem.getIndex().getEquationAtColumn(t.getLeft()), t.getRight()))
+                .filter(m -> Math.abs(m.mismatch) > Math.pow(10, -7))
+                .map(m -> Pair.of(equationSystem.getIndex().getEquationAtColumn(m.column), m.mismatch))
                 .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
                 .limit(count)
                 .toList();
     }
 
     public static Map<AcEquationType, Pair<Integer, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
-        return getMismatchInfos(equationSystem, mismatch).stream()
-                .collect(Collectors.toMap(Triple::getMiddle,
-                        e -> Pair.of(e.getLeft(), e.getRight()),
+        return getMismatchInfos(equationSystem, mismatch)
+                .stream()
+                .collect(Collectors.toMap(m -> m.equationType,
+                        m -> Pair.of(m.column, m.mismatch),
                         BinaryOperator.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));
     }
 
