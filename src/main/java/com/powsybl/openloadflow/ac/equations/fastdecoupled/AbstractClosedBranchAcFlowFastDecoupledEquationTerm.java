@@ -6,15 +6,15 @@
  */
 package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 
+import com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchAcFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchEquationTermArrayEvaluator;
+import com.powsybl.openloadflow.ac.equations.vector.AbstractClosedBranchEquationTermArrayEvaluator;
 import com.powsybl.openloadflow.equations.Variable;
 
 /**
  * @author Sylvestre Prabakaran {@literal <sylvestre.prabakaran at rte-france.com>}
  */
-public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<T extends ClosedBranchAcFlowEquationTerm, E extends ClosedBranchEquationTermArrayEvaluator> implements FastDecoupledEquationTerm {
+public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<T extends AbstractClosedBranchAcFlowEquationTerm, E extends AbstractClosedBranchEquationTermArrayEvaluator> implements FastDecoupledEquationTerm {
 
     protected final double y;
     protected final double ksi;
