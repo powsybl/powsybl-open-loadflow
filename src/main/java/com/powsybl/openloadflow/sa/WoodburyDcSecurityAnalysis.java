@@ -14,6 +14,7 @@ import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -30,10 +31,7 @@ import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis.Connectivity
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
-import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
-import com.powsybl.openloadflow.network.action.LfAction;
-import com.powsybl.openloadflow.network.action.LfActionUtils;
+import com.powsybl.openloadflow.network.action.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -44,7 +42,6 @@ import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
-import com.powsybl.contingency.strategy.OperatorStrategy;
 import org.slf4j.event.Level;
 
 import java.util.*;
@@ -395,11 +392,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                                                     List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
         // Verify only PST actions are given
         filterActions(actions, lfNetwork);
-        Map<String, Action> actionsById = indexActionsById(actions);
-        Set<Action> neededActions = new HashSet<>(actionsById.size());
+        Map<String, Action> actionsById = Actions.indexById(actions);
+        Set<Action> neededActions = HashSet.newHashSet(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
                 indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions, true);
-        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions
+        Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
