@@ -118,6 +118,22 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
+            case AC_CONV_TARGET_P_REF:
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetP();
+                break;
+
+            case AC_CONV_TARGET_Q_REF:
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetQ();
+                break;
+
+            case DC_NODE_TARGET_V_REF:
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetVdc();
+                break;
+
+            case BUS_TARGET_V_REF:
+                targets[equation.getColumn()] = network.getVoltageSourceConverter(equation.getElementNum()).getTargetVac();
+                break;
+
             case DISTR_RHO,
                  DISTR_SHUNT_B,
                  DUMMY_TARGET_P,
@@ -125,7 +141,9 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                  BUS_TARGET_IX_ZERO,
                  BUS_TARGET_IY_ZERO,
                  BUS_TARGET_IX_NEGATIVE,
-                 BUS_TARGET_IY_NEGATIVE:
+                 BUS_TARGET_IY_NEGATIVE,
+                 DC_NODE_TARGET_I,
+                 DC_NODE_GROUND:
                 targets[equation.getColumn()] = 0;
                 break;
 
