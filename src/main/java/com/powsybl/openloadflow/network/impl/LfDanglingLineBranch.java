@@ -71,11 +71,26 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        return createBranchResultFromResults(new LfBranchResults(p1.eval(), p2.eval(), q1.eval(), q2.eval(), i1.eval(), i2.eval()), preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
+    }
+
+    @Override
+    public List<BranchResult> createNonImpedantBranchResult(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        return createBranchResultFromResults(lfBranchResults, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
+    }
+
+    private List<BranchResult> createBranchResultFromResults(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
         // we follow the convention side 1 for network side and side 2 for boundary side.
         double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
-        return List.of(new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale * i1.eval(),
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale * i2.eval(), Double.NaN));
+        double flowP1 = lfBranchResults.p1() * PerUnit.SB;
+        double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
+        double flowP2 = lfBranchResults.p2() * PerUnit.SB;
+        double flowQ2 = lfBranchResults.q2() * PerUnit.SB;
+        double currentI1 = lfBranchResults.i1() * currentScale;
+        double currentI2 = lfBranchResults.i2() * currentScale;
+        return List.of(new BranchResult(getId(), flowP1, flowQ1, currentI1,
+                flowP2, flowQ2, currentI2, Double.NaN));
     }
 
     @Override

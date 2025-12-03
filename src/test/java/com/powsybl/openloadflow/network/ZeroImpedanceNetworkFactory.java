@@ -64,4 +64,35 @@ public class ZeroImpedanceNetworkFactory extends AbstractLoadFlowNetworkFactory 
                 .add();
         return network;
     }
+
+    /**
+     * l1 --- b1 ---- b2 ==== b3 ---- b4 --- l4
+     *                ||      ||
+     *                  ||  ||
+     *                    b5
+     *                    |
+     *                    |
+     *                   b6
+     *                   |
+     *                  g6
+     */
+    public static Network createWith3BusesNonImpedantSubNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "s", "b1");
+        Bus b2 = createBus(network, "s", "b2");
+        Bus b3 = createBus(network, "s", "b3");
+        Bus b4 = createBus(network, "s", "b4");
+        Bus b5 = createBus(network, "s", "b5");
+        Bus b6 = createBus(network, "s", "b6");
+        createGenerator(b6, "g6", 3, 1);
+        createLoad(b1, "ld1", 2);
+        createLoad(b4, "ld4", 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b3, b4, "l34", 0.1);
+        createLine(network, b2, b5, "l25", 0.0);
+        createLine(network, b3, b5, "l35", 0.0);
+        createLine(network, b5, b6, "l56", 0.1);
+        return network;
+    }
 }

@@ -211,15 +211,32 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        return createBranchResultFromResults(new LfBranchResults(p1.eval(), p2.eval(), q1.eval(), q2.eval(), i1.eval(), i2.eval()), preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
+    }
+
+    @Override
+    public List<BranchResult> createNonImpedantBranchResult(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        return createBranchResultFromResults(lfBranchResults, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
+    }
+
+    private List<BranchResult> createBranchResultFromResults(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        // TODO: HG refacto to have just one method using the map or not depending on the branch impedance status
         var branch = getBranch();
-        double flowTransfer = Double.NaN;
-        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
-            flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
-        }
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
-        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                                            p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
+
+        double flowP1 = lfBranchResults.p1() * PerUnit.SB;
+        double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
+        double flowP2 = lfBranchResults.p2() * PerUnit.SB;
+        double flowQ2 = lfBranchResults.q2() * PerUnit.SB;
+        double currentI1 = lfBranchResults.i1() * currentScale1;
+        double currentI2 = lfBranchResults.i2() * currentScale2;
+
+        double flowTransfer = Double.NaN;
+        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
+            flowTransfer = (flowP1 - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+        }
+        var branchResult = new BranchResult(getId(), flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowTransfer);
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     getV1() * branch.getTerminal1().getVoltageLevel().getNominalV(),
