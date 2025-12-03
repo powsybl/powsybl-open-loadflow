@@ -224,7 +224,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 acParameters.getNetworkParameters().isBreakers(), sequentialSensitivityResultWriter, variablesTargetVoltageInfo, sensitivityAnalysisParametersExt);
                 ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
 
-                ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartition(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
+                ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
                         parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
             }
         }

@@ -82,16 +82,16 @@ public final class ContingencyMultiThreadHelper {
         void mergeReportThreadResults(ReportNode rootReportNode, ReportNode threadReportNode);
     }
 
-    public static <P extends AbstractLoadFlowParameters<P>> void createLFNetworksPerContingencyPartition(Network network,
-                                                                                                         String workingVariantId,
-                                                                                                         List<List<Contingency>> contingenciesPartitions,
-                                                                                                         PropagatedContingencyCreationParameters creationParameters,
-                                                                                                         LfTopoConfig topoConfig,
-                                                                                                         ParameterProvider<P> parameterProvider,
-                                                                                                         ContingencyRunner<P> contingencyRunner,
-                                                                                                         ReportNode rootReportNode,
-                                                                                                         ReportMerger reportMerger,
-                                                                                                         Executor executor) throws ExecutionException {
+    public static <P extends AbstractLoadFlowParameters<P>> void createLFNetworksPerContingencyPartitionAnalysis(Network network,
+                                                                                                                 String workingVariantId,
+                                                                                                                 List<List<Contingency>> contingenciesPartitions,
+                                                                                                                 PropagatedContingencyCreationParameters creationParameters,
+                                                                                                                 LfTopoConfig topoConfig,
+                                                                                                                 ParameterProvider<P> parameterProvider,
+                                                                                                                 ContingencyRunner<P> contingencyRunner,
+                                                                                                                 ReportNode rootReportNode,
+                                                                                                                 ReportMerger reportMerger,
+                                                                                                                 Executor executor) throws ExecutionException {
 
         List<ReportNode> reportNodes = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), ReportNode.NO_OP)));
         List<LfNetworkList> lfNetworksList = new ArrayList<>();
