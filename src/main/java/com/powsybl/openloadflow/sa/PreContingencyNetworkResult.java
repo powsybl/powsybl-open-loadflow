@@ -26,8 +26,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Map<String, BranchResult> branchResults = new HashMap<>();
 
-    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
-        super(network, monitorIndex, createResultExtension);
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+        super(network, monitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
     }
 
     @Override
@@ -50,10 +50,12 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
-        computeZeroImpedanceFlows(monitorIndex.getNoneStateMonitor(), network);
+        addResultsForZeroImpedanceBranches(monitorIndex.getNoneStateMonitor(), network);
         addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled);
-        computeZeroImpedanceFlows(monitorIndex.getNoneStateMonitor(), network);
+        addResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled);
+
+        // TODO HG: 3WT
     }
 
     public BranchResult getBranchResult(String branchId) {
@@ -66,11 +68,20 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         return new ArrayList<>(branchResults.values());
     }
 
-    private void computeZeroImpedanceFlows(StateMonitor monitor, LfNetwork network) {
-        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(LoadFlowModel.AC)) {
+    private void addResultsForZeroImpedanceBranches(StateMonitor monitor, LfNetwork network) {
+        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = new LinkedHashMap<>();
+        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
             if (zeroImpedanceNetwork.getGraph().edgeSet().stream().map(LfBranch::getOriginalIds).flatMap(List::stream).anyMatch(monitor.getBranchIds()::contains)) {
-                new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), LoadFlowModel.AC)
-                        .compute();
+                new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel, dcPowerFactor)
+                        .computeAndProvideResults(zeroImpedanceFlows);
+            }
+        }
+
+        for (String lfBranchId : zeroImpedanceFlows.keySet()) {
+            LfBranch lfBranch = network.getBranchById(lfBranchId);
+            if (!lfBranch.isDisabled()) {
+                lfBranch.createNonImpedantBranchResult(zeroImpedanceFlows.get(lfBranchId), Double.NaN, Double.NaN, createResultExtension)
+                        .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
             }
         }
     }
