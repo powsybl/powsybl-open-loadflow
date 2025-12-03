@@ -1,0 +1,13 @@
++ Test Report
+   + Load flow on network 'GeneratorRemoteControlLocalRescaleTest'
+      + Network CC0 SC0
+         1 generators configured for remote voltage control have no equivalent local targetV and have been rescaled
+         + Network info
+            Network has 2 buses and 1 branches
+            Network balance: active generation=100 MW, active load=99.9 MW, reactive generation=0 MVar, reactive load=80 MVar
+            Angle reference bus: vl2_0
+            Slack bus: vl2_0
+         Outer loop DistributedSlack
+         Outer loop VoltageMonitoring
+         Outer loop ReactiveLimits
+         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
