@@ -30,11 +30,9 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
     private final Map<Integer, Boolean> baseCaseSensitivityValueWritten = new ConcurrentHashMap<>();
     static final int VALUE_BATCH_SIZE = 100;
-    private final ThreadLocal<List<SensitivityRecord>> localBatch = ThreadLocal.withInitial(() -> new ArrayList(VALUE_BATCH_SIZE));
+    private final ThreadLocal<List<SensitivityRecord>> localBatch = ThreadLocal.withInitial(() -> new ArrayList<>(VALUE_BATCH_SIZE));
 
-    record SensitivityRecord(int factorIndex, int contigencyIndex, double value, double functionReference) {
-
-    };
+    record SensitivityRecord(int factorIndex, int contigencyIndex, double value, double functionReference) { }
 
     public SequentialSensitivityResultWriter(SensitivityResultWriter sensitivityResultWriter) {
         this.sensitivityResultWriter = sensitivityResultWriter;
@@ -75,6 +73,7 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     @Override
     public void close() {
         // close shutdowns the executor service and waits until completion of all submitted tasks
+        localBatch.remove();
         executor.close();
     }
 }
