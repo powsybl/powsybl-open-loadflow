@@ -88,7 +88,7 @@ public class LfNetworkParameters {
 
     private boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits = DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE;
 
-    private boolean computeMainConnectedComponentOnly = true;
+    private LoadFlowParameters.ComponentMode componentMode = LoadFlowParameters.ComponentMode.MAIN_CONNECTED;
 
     private Set<Country> countriesToBalance = Collections.emptySet();
 
@@ -178,7 +178,7 @@ public class LfNetworkParameters {
         this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
         this.useActiveLimits = other.useActiveLimits;
         this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = other.disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
-        this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
+        this.componentMode = other.componentMode;
         this.countriesToBalance = new HashSet<>(other.countriesToBalance);
         this.distributedOnConformLoad = other.distributedOnConformLoad;
         this.phaseControl = other.phaseControl;
@@ -211,6 +211,8 @@ public class LfNetworkParameters {
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+        this.disableInconsistentVoltageControls = other.disableInconsistentVoltageControls;
+        this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
@@ -298,12 +300,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isComputeMainConnectedComponentOnly() {
-        return computeMainConnectedComponentOnly;
+    public LoadFlowParameters.ComponentMode getComponentMode() {
+        return componentMode;
     }
 
-    public LfNetworkParameters setComputeMainConnectedComponentOnly(boolean computeMainConnectedComponentOnly) {
-        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
+    public LfNetworkParameters setComponentMode(LoadFlowParameters.ComponentMode componentMode) {
+        this.componentMode = componentMode;
         return this;
     }
 
@@ -673,7 +675,7 @@ public class LfNetworkParameters {
                 ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
                 ", breakers=" + breakers +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
+                ", componentMode=" + componentMode +
                 ", countriesToBalance=" + countriesToBalance +
                 ", distributedOnConformLoad=" + distributedOnConformLoad +
                 ", phaseControl=" + phaseControl +
