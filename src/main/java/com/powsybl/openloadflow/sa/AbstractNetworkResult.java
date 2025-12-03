@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LoadFlowModel;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
 import com.powsybl.security.monitor.StateMonitor;
@@ -34,21 +35,27 @@ public abstract class AbstractNetworkResult {
 
     protected final boolean createResultExtension;
 
+    protected final LoadFlowModel loadFlowModel;
+
+    protected final double dcPowerFactor;
+
     protected final List<BusResult> busResults = new ArrayList<>();
 
     protected final List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
 
-    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
+    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
         this.monitorIndex = Objects.requireNonNull(monitorIndex);
         this.createResultExtension = createResultExtension;
+        this.loadFlowModel = loadFlowModel;
+        this.dcPowerFactor = dcPowerFactor;
     }
 
     protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer, Predicate<LfBranch> isBranchDisabled) {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
-                    .filter(lfBranch -> !isBranchDisabled.test(lfBranch))
+                    .filter(lfBranch -> !isBranchDisabled.test(lfBranch) && !lfBranch.isZeroImpedance(loadFlowModel))
                     .forEach(lfBranch -> {
                         for (String originalId : lfBranch.getOriginalIds()) {
                             if (monitor.getBranchIds().contains(originalId)) {
