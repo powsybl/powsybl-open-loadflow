@@ -137,8 +137,8 @@ The default value is `2 MW` and it must be greater than `0 MW`.
 
 **voltageRemoteControl**  
 The `voltageRemoteControl` property is an optional property that defines if the remote control for voltage controllers has to be modeled.
-If set to false, any existing voltage remote control is converted to a local control, rescaling the target voltage
-according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.  
+If set to false, any existing voltage remote control is converted to a local control, using the generator's _equivalentLocalTargetV_ if available,
+or rescaling the target voltage according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.  
 The default value is `true`.
 
 **voltageRemoteControlRobustMode**  
@@ -363,7 +363,7 @@ their reactive diagram.
 The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
 **minNominalVoltageRealisticVoltageCheck**
-This parameter defines the minimal nominal voltage, in kV, for which a bus oustide of **minRealisticVoltage**
+This parameter defines the minimal nominal voltage, in kV, for which a bus outside of **minRealisticVoltage**
 and **maxRealisticVoltage** will stop the simulation.
 
 Unrealistic voltages -particularly in high-voltage substations- can trigger automated protections or other 
