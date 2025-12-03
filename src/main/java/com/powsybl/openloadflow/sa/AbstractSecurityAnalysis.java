@@ -655,7 +655,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.isSuccess();
             var preContingencyLimitViolationManager = new LimitViolationManager(limitReductions);
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
+            LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
+            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
 
             // only run post-contingency simulations if pre-contingency simulation is ok
@@ -819,7 +820,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // restart LF on post contingency equation system
         PostContingencyComputationStatus status = runActionLoadFlow(context); // FIXME: change name.
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
-        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
+
+        LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result
@@ -880,7 +883,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // restart LF on post contingency and post actions equation system
         PostContingencyComputationStatus status = runActionLoadFlow(context);
         var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
-        var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
+        LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
+        var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result

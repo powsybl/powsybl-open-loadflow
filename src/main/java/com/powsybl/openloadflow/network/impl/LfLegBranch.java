@@ -144,6 +144,11 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
+    public List<BranchResult> createNonImpedantBranchResult(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
+    }
+
+    @Override
     public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
