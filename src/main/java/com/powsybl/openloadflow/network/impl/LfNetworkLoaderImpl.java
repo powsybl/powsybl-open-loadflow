@@ -1447,7 +1447,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 })
                 .toList();
 
-        Stream<Map.Entry<Pair<Integer, Integer>, List<DcBus>>> filteredDcBusesByComponentStream = switch(parameters.getComponentMode()) {
+        Stream<Map.Entry<Pair<Integer, Integer>, List<DcBus>>> filteredDcBusesByComponentStream = switch (parameters.getComponentMode()) {
             case MAIN_CONNECTED -> dcBusesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM);
             case MAIN_SYNCHRONOUS -> dcBusesByCc.entrySet().stream().filter(e -> e.getKey().getRight() == ComponentConstants.MAIN_NUM);
             case ALL_CONNECTED -> dcBusesByCc.entrySet().stream();
