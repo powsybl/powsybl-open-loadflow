@@ -12,6 +12,8 @@ import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityResultWriter;
 
 import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -27,6 +29,12 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     private final SensitivityResultWriter sensitivityResultWriter;
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
     private final Map<Integer, Boolean> baseCaseSensitivityValueWritten = new ConcurrentHashMap<>();
+    static final int VALUE_BATCH_SIZE = 100;
+    private final ThreadLocal<List<SensitivityRecord>> localBatch = ThreadLocal.withInitial(() -> new ArrayList(VALUE_BATCH_SIZE));
+
+    record SensitivityRecord(int factorIndex, int contigencyIndex, double value, double functionReference) {
+
+    };
 
     public SequentialSensitivityResultWriter(SensitivityResultWriter sensitivityResultWriter) {
         this.sensitivityResultWriter = sensitivityResultWriter;
@@ -34,19 +42,32 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
 
     @Override
     public void writeSensitivityValue(int factorIndex, int contingencyIndex, double value, double functionReference) {
+        List<SensitivityRecord> records = localBatch.get();
         if (contingencyIndex == -1) {
             // Write the base case only once
             baseCaseSensitivityValueWritten.computeIfAbsent(factorIndex, i -> {
-                executor.execute(() -> sensitivityResultWriter.writeSensitivityValue(factorIndex, contingencyIndex, value, functionReference));
+                records.add(new SensitivityRecord(factorIndex, contingencyIndex, value, functionReference));
                 return Boolean.TRUE;
             });
         } else {
-            executor.execute(() -> sensitivityResultWriter.writeSensitivityValue(factorIndex, contingencyIndex, value, functionReference));
+            records.add(new SensitivityRecord(factorIndex, contingencyIndex, value, functionReference));
         }
+        if (records.size() == VALUE_BATCH_SIZE) {
+            flush();
+        }
+    }
+
+    public void flush() {
+        List<SensitivityRecord> records = localBatch.get();
+        localBatch.set(new ArrayList<>(VALUE_BATCH_SIZE));
+        executor.execute(() -> records.stream().forEach(r ->
+                sensitivityResultWriter.writeSensitivityValue(r.factorIndex, r.contigencyIndex, r.value, r.functionReference)));
     }
 
     @Override
     public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
+        flush(); // send all previous values to the writer in case it expects ordered data
+
         // Not called for the base case. No need to manage duplicate calls.
         executor.execute(() -> sensitivityResultWriter.writeContingencyStatus(contingencyIndex, status));
     }

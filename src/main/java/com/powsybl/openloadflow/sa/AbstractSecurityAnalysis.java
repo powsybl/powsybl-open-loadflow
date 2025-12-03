@@ -191,7 +191,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                             lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies,
                             actions, limitReductions, lfParameters));
             ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
-            ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
+            ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
                     parameterProvider, contingencyRunner, saReportNode, reportMerger, executor);
 
             // we just need to merge post contingency and operator strategy results, all pre contingency are the same
