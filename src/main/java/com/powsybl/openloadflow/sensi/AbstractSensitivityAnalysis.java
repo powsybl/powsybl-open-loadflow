@@ -638,7 +638,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
         // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int equationCount = equationSystem.getIndex().getColumnCount();
         int factorsGroupCount = factorsGroups.getList().size();
         int maxFactorsGroups = Integer.MAX_VALUE / (equationCount * Double.BYTES);
         if (factorsGroupCount > maxFactorsGroups) {

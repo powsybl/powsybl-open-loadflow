@@ -488,7 +488,7 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
 
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute interchange active power mismatch", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
@@ -527,7 +527,7 @@ class DcLoadFlowTest {
                             Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
-                         Slack bus active power (-0 MW) distributed in 0 distribution iteration(s)
+                         Slack bus active power (0 MW) distributed in 0 distribution iteration(s)
                          + Outer loop IncrementalPhaseControl
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1

@@ -206,6 +206,13 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network createTwoAreasWithXNodeHighZ() {
+        Network network = createTwoAreasWithXNode();
+        network.getLine("l23_A1").setX(7).setR(10);
+        network.getLine("l23_A2").setX(7).setR(10);
+        return network;
+    }
+
     /**
      *   g1 100 MW                                          gen3 40MW
      *      |                                                    |

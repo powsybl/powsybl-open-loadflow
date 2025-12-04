@@ -217,18 +217,20 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportAreaInterchangeControlAreaMismatch(ReportNode reportNode, String area, double mismatch) {
+    public static void reportAicAreaDistributionMismatch(ReportNode reportNode, String area, double mismatch, boolean isInterchangeDistribution) {
+        String messageTemplate = isInterchangeDistribution ? "olf.areaInterchangeControlAreaMismatch" : "olf.areaInterchangeControlAreaSlackMismatch";
         reportNode.newReportNode()
-                .withMessageTemplate("olf.areaInterchangeControlAreaMismatch")
+                .withMessageTemplate(messageTemplate)
                 .withUntypedValue("area", area)
                 .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
-    public static void reportAreaInterchangeControlAreaDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount) {
+    public static void reportAicAreaDistributionSuccess(ReportNode reportNode, String area, double mismatch, int iterationCount, boolean isInterchangeDistribution) {
+        String messageTemplate = isInterchangeDistribution ? "olf.areaInterchangeControlAreaDistributionSuccess" : "olf.areaInterchangeControlSlackDistributionSuccess";
         reportNode.newReportNode()
-                .withMessageTemplate("olf.areaInterchangeControlAreaDistributionSuccess")
+                .withMessageTemplate(messageTemplate)
                 .withUntypedValue("area", area)
                 .withTypedValue(MISMATCH, mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withUntypedValue(ITERATION_COUNT, iterationCount)
@@ -647,6 +649,14 @@ public final class Reports {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.shuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent")
                 .withUntypedValue(IMPACTED_SHUNT_COUNT, impactedShuntCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportRescaledRemoteVoltageControls(ReportNode reportNode, int rescaledRemoteVoltageControls) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.rescaledRemoteVoltageControls")
+                .withUntypedValue("count", rescaledRemoteVoltageControls)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
