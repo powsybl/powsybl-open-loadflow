@@ -111,6 +111,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             voltageControlGenerators.addAll(voltageMonitoringGenerators);
 
+            // If remote voltage control is off, move remote voltage control generators to local control
+            if (!parameters.isGeneratorVoltageRemoteControl()) {
+                switchGeneratorsToLocalVoltageControl(voltageControlGenerators, controllerBus, report);
+            }
+
             if (!voltageControlGenerators.isEmpty()) {
                 checkAndCreateVoltageControl(controllerBus, voltageControls, voltageControlGenerators, parameters, report);
             }
@@ -121,7 +126,28 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void checkAndCreateVoltageControl(LfBus controllerBus, List<GeneratorVoltageControl> voltageControls, List<LfGenerator> voltageControlGenerators, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    private static void switchGeneratorsToLocalVoltageControl(List<LfGenerator> voltageControlGenerators,
+                                                              LfBus controllerBus,
+                                                              LfNetworkLoadingReport report) {
+        for (LfGenerator g : voltageControlGenerators) {
+            if (g.getControlledBus() != g.getBus()) {
+                LfBus remoteControlledBus = g.getControlledBus();
+                if (g instanceof AbstractLfGenerator gen && !gen.switchToLocalVoltageControl()) {
+                    report.rescaledRemoteVoltageControls += 1;
+                    double remoteTargetV = g.getTargetV() * remoteControlledBus.getNominalV();
+                    double localTargetV = g.getTargetV() * controllerBus.getNominalV();
+                    LOGGER.warn("Remote voltage control is not activated and no local target is defined for generator {}. The voltage target of {} with remote control is rescaled from {} to {}",
+                            g.getId(), controllerBus.getId(), remoteTargetV, localTargetV);
+                }
+            }
+        }
+    }
+
+    private static void checkAndCreateVoltageControl(LfBus controllerBus,
+                                                     List<GeneratorVoltageControl> voltageControls,
+                                                     List<LfGenerator> voltageControlGenerators,
+                                                     LfNetworkParameters parameters,
+                                                     LfNetworkLoadingReport report) {
         LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
         LfBus controlledBus = lfGenerator0.getControlledBus();
         double controllerTargetV = lfGenerator0.getTargetV();
@@ -142,18 +168,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (inconsistentTargetVoltages) {
                 report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages += voltageControlGenerators.size();
             }
-        } else if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
+        } else {
             // if consistent, creating voltage control
             controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
                     vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
                     () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
-        } else {
-            // if voltage remote control deactivated and remote control, set local control instead
-            LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
-                    controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
-            controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
-                    vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
-                    () -> createGeneratorVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, parameters));
         }
     }
 
@@ -1068,6 +1087,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.shuntsWithInconsistentTargetVoltage);
         }
 
+        if (report.rescaledRemoteVoltageControls > 0) {
+            Reports.reportRescaledRemoteVoltageControls(reportNode, report.rescaledRemoteVoltageControls);
+            LOGGER.warn("Network {}: {} remote voltage controls have no backup local targetV and have been rescaled",
+                    lfNetwork, report.rescaledRemoteVoltageControls);
+        }
+
         if (parameters.getDebugDir() != null) {
             Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
             String dateStr = ZonedDateTime.now().format(DATE_TIME_FORMAT);
@@ -1296,11 +1321,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
-        Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
-            ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-            : busesByCc.entrySet().stream();
+        Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByComponentStream = switch (parameters.getComponentMode()) {
+            case MAIN_CONNECTED -> busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM);
+            case MAIN_SYNCHRONOUS -> busesByCc.entrySet().stream().filter(e -> e.getKey().getRight() == ComponentConstants.MAIN_NUM);
+            case ALL_CONNECTED -> busesByCc.entrySet().stream();
+        };
 
-        List<LfNetwork> lfNetworks = filteredBusesByCcStream
+        List<LfNetwork> lfNetworks = filteredBusesByComponentStream
                 .map(e -> {
                     var networkKey = e.getKey();
                     int numCc = networkKey.getLeft();

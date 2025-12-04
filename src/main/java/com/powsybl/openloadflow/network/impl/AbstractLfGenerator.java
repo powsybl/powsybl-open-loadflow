@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -38,6 +38,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     protected double calculatedQ = Double.NaN;
 
     protected double targetV = Double.NaN;
+
+    private boolean switchedToLocalVoltageRegulation = false;
 
     protected GeneratorControlType generatorControlType = GeneratorControlType.OFF;
 
@@ -129,6 +131,11 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     @Override
     public double getTargetV() {
         return targetV;
+    }
+
+    public boolean switchToLocalVoltageControl() {
+        switchedToLocalVoltageRegulation = true;
+        return false;
     }
 
     @Override
@@ -229,7 +236,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     @Override
     public LfBus getControlledBus() {
-        return network.getBusById(controlledBusId);
+        return switchedToLocalVoltageRegulation ? bus : network.getBusById(controlledBusId);
     }
 
     protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, LfNetworkParameters parameters,
