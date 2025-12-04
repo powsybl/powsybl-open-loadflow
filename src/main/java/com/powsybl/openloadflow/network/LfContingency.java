@@ -60,7 +60,7 @@ public class LfContingency {
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += getBusLostGenerationTargetP(bus);
-            disconnectedElementIds.addAll(bus.getGenerators().stream().filter(g -> !shoudExcludeVscStation(g)).map(LfGenerator::getId).toList());
+            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).toList());
             disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).toList());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
@@ -96,19 +96,9 @@ public class LfContingency {
                 .map(h -> h.getBus1() == bus ? h.getConverterStation1() : h.getConverterStation2())
                 .mapToDouble(LfGenerator::getTargetP)
                 .sum();
-        // LccStations are not handled as there is currently no know data whith an HVDC and LCC stations belonging to the same connected component
+        // LccStations are not handled at this time
 
         return result;
-    }
-
-    /**
-     * Returns the bus if the generator is a Vsc Station with both ends in the same connect component
-     */
-    private static boolean shoudExcludeVscStation(LfGenerator g) {
-        return switch (g) {
-            case LfVscConverterStation s -> g.getBus().getHvdcs().stream().anyMatch(l -> l.getConverterStation1() == s || l.getConverterStation2() == s);
-            default -> false;
-        };
     }
 
     public String getId() {
