@@ -107,10 +107,16 @@ public final class LoadFlowAssert {
         symbols.setDecimalSeparator('.');
         DecimalFormat decimalFormat = new DecimalFormat("#.######", symbols);
         reportNode.print(sw, typedValue -> {
+            String typedValueStr;
             if (typedValue.getValue() instanceof Double) {
-                return decimalFormat.format(typedValue.getValue());
+                typedValueStr = decimalFormat.format(typedValue.getValue());
+            } else {
+                typedValueStr = typedValue.toString();
             }
-            return typedValue.toString();
+            if (typedValueStr.equals("-0")) {
+                return "0";
+            }
+            return typedValueStr;
         });
         return sw.toString();
     }

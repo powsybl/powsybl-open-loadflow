@@ -19,7 +19,7 @@ import static com.powsybl.openloadflow.ac.equations.OpenBranchSide1ReactiveFlowE
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class OpenBranchSide1ReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
+public class OpenBranchSide1ReactiveFlowFastDecoupledEquationTerm implements FastDecoupledEquationTerm {
 
     private final OpenBranchSide1ReactiveFlowEquationTerm term;
 
@@ -30,7 +30,7 @@ public class OpenBranchSide1ReactiveFlowFastDecoupledEquationTerm implements Abs
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(term.getV2Var())) {
-            return dq2dv2(term.getY(), FastMath.cos(term.getKsi()), FastMath.sin(term.getKsi()), term.getG1(), term.getB1(), term.getB2(), 1);
+            return dq2dv2(term.y(), FastMath.cos(term.ksi()), FastMath.sin(term.ksi()), term.g1(), term.b1(), term.b2(), 1);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

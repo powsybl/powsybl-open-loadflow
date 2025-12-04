@@ -88,14 +88,10 @@ public final class AdmittanceEquationSystem {
     }
 
     public static AdmittanceEquationSystem create(LfNetwork network, VariableSet<AdmittanceVariableType> variableSet) {
-        return create(network.getBuses(), network.getBranches(), variableSet);
-    }
+        EquationSystem<AdmittanceVariableType, AdmittanceEquationType> equationSystem = new EquationSystem<>(AdmittanceEquationType.class, network);
 
-    public static AdmittanceEquationSystem create(Collection<LfBus> buses, Collection<LfBranch> branches, VariableSet<AdmittanceVariableType> variableSet) {
-        EquationSystem<AdmittanceVariableType, AdmittanceEquationType> equationSystem = new EquationSystem<>();
-
-        createBranchEquations(branches, variableSet, equationSystem);
-        createShuntEquations(buses, variableSet, equationSystem);
+        createBranchEquations(network.getBranches(), variableSet, equationSystem);
+        createShuntEquations(network.getBuses(), variableSet, equationSystem);
 
         return new AdmittanceEquationSystem(equationSystem);
     }

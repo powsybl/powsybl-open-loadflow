@@ -13,8 +13,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -102,7 +102,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
-            int nRows = equationSystem.getIndex().getSortedEquationsToSolve().size();
+            int nRows = equationSystem.getIndex().getColumnCount();
             int nColumns = controllerBranches.size();
 
             DenseMatrix rhs = new DenseMatrix(nRows, nColumns);

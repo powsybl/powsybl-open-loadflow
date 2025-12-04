@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -21,7 +20,6 @@ import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +39,8 @@ public abstract class AbstractAcSolver implements AcSolver {
 
     protected boolean detailedReport;
 
+    protected record MismatchInfo(int column, AcEquationType equationType, double mismatch) { }
+
     public static final List<AcEquationType> REPORTED_AC_EQUATION_TYPES = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
 
     protected AbstractAcSolver(LfNetwork network,
@@ -57,19 +57,35 @@ public abstract class AbstractAcSolver implements AcSolver {
         this.detailedReport = detailedReport;
     }
 
+    private static List<MismatchInfo> getMismatchInfos(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
+        List<MismatchInfo> mismatches = new ArrayList<>();
+        for (var equation : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
+            mismatches.add(new MismatchInfo(equation.getColumn(), equation.getType(), mismatch[equation.getColumn()]));
+        }
+        for (var equationArray : equationSystem.getEquationArrays()) {
+            for (int column = equationArray.getFirstColumn(); column < equationArray.getFirstColumn() + equationArray.getLength(); column++) {
+                mismatches.add(new MismatchInfo(column, equationArray.getType(), mismatch[column]));
+            }
+        }
+        return mismatches;
+    }
+
     public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {
-        return equationSystem.getIndex().getSortedEquationsToSolve().stream()
-                .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
-                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
+        return getMismatchInfos(equationSystem, mismatch)
+                .stream()
+                .filter(m -> Math.abs(m.mismatch) > Math.pow(10, -7))
+                .map(m -> Pair.of(equationSystem.getIndex().getEquationAtColumn(m.column), m.mismatch))
                 .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
                 .limit(count)
                 .toList();
     }
 
-    public static Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
-        return equationSystem.getIndex().getSortedEquationsToSolve().stream()
-                .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
-                .collect(Collectors.toMap(e -> e.getKey().getType(), Function.identity(), BinaryOperator.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));
+    public static Map<AcEquationType, Pair<Integer, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
+        return getMismatchInfos(equationSystem, mismatch)
+                .stream()
+                .collect(Collectors.toMap(m -> m.equationType,
+                        m -> Pair.of(m.column, m.mismatch),
+                        BinaryOperator.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));
     }
 
     protected String getEquationTypeDescription(AcEquationType acEquationType) {
@@ -82,33 +98,33 @@ public abstract class AbstractAcSolver implements AcSolver {
     }
 
     public void reportAndLogLargestMismatchByAcEquationType(ReportNode reportNode, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, Logger logger) {
-        Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
+        Map<AcEquationType, Pair<Integer, Double>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
 
         // report largest mismatches in (P, Q, V) equations
         for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
             Optional.ofNullable(mismatchEquations.get(acEquationType))
                     .ifPresent(equationPair -> {
-                        Equation<AcVariableType, AcEquationType> equation = equationPair.getKey();
+                        Equation<AcVariableType, AcEquationType> equation = equationSystem.getIndex().getEquationAtColumn(equationPair.getLeft());
                         double equationMismatch = equationPair.getValue();
                         int elementNum = equation.getElementNum();
-                        String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
+                        // REPORTED_AC_EQUATION_TYPES only contain bus equations
+                        LfBus bus = network.getBus(elementNum);
                         int busVRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_V).getRow();
                         int busPhiRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_PHI).getRow();
                         double busV = equationSystem.getStateVector().get(busVRow);
                         double busPhi = equationSystem.getStateVector().get(busPhiRow);
-                        LfBus bus = network.getBus(elementNum);
                         double busNominalV = bus.getNominalV();
                         double busSumP = bus.getP().eval() * PerUnit.SB;
                         double busSumQ = bus.getQ().eval() * PerUnit.SB;
 
                         if (logger.isTraceEnabled()) {
                             logger.trace("Largest mismatch on {}: {}", getEquationTypeDescription(acEquationType), equationMismatch);
-                            logger.trace("    Bus Id: {} (nominalVoltage={})", elementId, busNominalV);
+                            logger.trace("    Bus Id: {} (nominalVoltage={})", bus.getId(), busNominalV);
                             logger.trace("    Bus  V: {} pu, {} rad", busV, busPhi);
                         }
 
                         if (reportNode != null) {
-                            Reports.BusReport busReport = new Reports.BusReport(elementId, equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
+                            Reports.BusReport busReport = new Reports.BusReport(bus.getId(), equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
                             Reports.reportNewtonRaphsonLargestMismatches(reportNode, getEquationTypeDescription(acEquationType), busReport);
                         }
                     });
