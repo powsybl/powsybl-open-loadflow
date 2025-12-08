@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.network.LfBus;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy@artelys.com>}
  */
-public final class ComputedSwitchBranchElement extends AbstractComputedElement {
+public final class ComputedSwitchBranchElement extends AbstractComputedElement implements ComputedElement {
 
     private final boolean enabled; // indicates whether the action opens or closes the branch
 
@@ -36,7 +36,7 @@ public final class ComputedSwitchBranchElement extends AbstractComputedElement {
     public void applyToConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         LfBranch lfBranch = getLfBranch();
         if (lfBranch.getBus1() != null && lfBranch.getBus2() != null) {
-            if (isEnabled()) {
+            if (enabled) {
                 connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
             } else {
                 connectivity.removeEdge(lfBranch);
