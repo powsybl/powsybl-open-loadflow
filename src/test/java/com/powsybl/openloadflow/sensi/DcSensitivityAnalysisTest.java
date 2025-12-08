@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
@@ -25,7 +26,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -39,6 +39,7 @@ import org.mockito.Mockito;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1112,9 +1113,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = Mockito.mock(EquationSystem.class);
         EquationSystemIndex<DcVariableType, DcEquationType> equationSystemIndex = Mockito.mock(EquationSystemIndex.class);
         Mockito.when(equationSystem.getIndex()).thenReturn(equationSystemIndex);
-        List<Equation<DcVariableType, DcEquationType>> equations = Mockito.mock(List.class);
-        Mockito.when(equations.size()).thenReturn(100000);
-        Mockito.when(equationSystemIndex.getSortedEquationsToSolve()).thenReturn(equations);
+        Mockito.when(equationSystemIndex.getColumnCount()).thenReturn(100000);
         AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorsGroups = Mockito.mock(AbstractSensitivityAnalysis.SensitivityFactorGroupList.class);
         List<AbstractSensitivityAnalysis.SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroupList = Mockito.mock(List.class);
         Mockito.when(factorGroupList.size()).thenReturn(3333333);
@@ -1264,24 +1263,28 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
         SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
 
-        LfTopoConfig topoConfig = new LfTopoConfig();
-
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
             .setContingencyPropagation(false)
             .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
             .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
             .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         // with connectivity break
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        Executor executor = LocalComputationManager.getDefault().getExecutor();
+        List<SensitivityVariableSet> noVar = Collections.emptyList();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies,
+                creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                executor));
 
         // without connectivity break
         List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
-        List<PropagatedContingency> propagatedContingencies2 = PropagatedContingency.createList(network, contingencies2, topoConfig, creationParameters);
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, propagatedContingencies2, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2,
+                creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                executor));
     }
 }

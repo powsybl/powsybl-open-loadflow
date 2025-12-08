@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
+public class OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm implements FastDecoupledEquationTerm {
 
     private final OpenBranchSide2ReactiveFlowEquationTerm term;
 
@@ -28,7 +28,7 @@ public class OpenBranchSide2ReactiveFlowFastDecoupledEquationTerm implements Abs
     public double derFastDecoupled(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(term.getV1Var())) {
-            return dq1dv1(term.getY(), FastMath.cos(term.getKsi()), FastMath.sin(term.getKsi()), term.getB1(), term.getG2(), term.getB2(), 1, term.r1());
+            return dq1dv1(term.y(), FastMath.cos(term.ksi()), FastMath.sin(term.ksi()), term.b1(), term.g2(), term.b2(), 1, term.r1());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

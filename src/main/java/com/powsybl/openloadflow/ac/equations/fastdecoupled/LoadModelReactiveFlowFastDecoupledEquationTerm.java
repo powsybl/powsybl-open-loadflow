@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.network.LfLoadModel;
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class LoadModelReactiveFlowFastDecoupledEquationTerm implements AbstractFastDecoupledEquationTerm {
+public class LoadModelReactiveFlowFastDecoupledEquationTerm implements FastDecoupledEquationTerm {
 
     private final LoadModelReactiveFlowEquationTerm term;
 

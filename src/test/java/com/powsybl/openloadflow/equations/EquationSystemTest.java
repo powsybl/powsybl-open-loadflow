@@ -8,13 +8,16 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.AcTargetVector;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.vector.AcVectorizedEquationSystemCreator;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphson;
 import com.powsybl.openloadflow.dc.equations.*;
@@ -33,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class EquationSystemTest {
 
-    private final List<Equation<AcVariableType, AcEquationType>> equations = new ArrayList<>();
+    private final List<SingleEquation<AcVariableType, AcEquationType>> equations = new ArrayList<>();
     private final List<EquationEventType> equationEventTypes = new ArrayList<>();
     private final List<EquationTermEventType> equationTermEventTypes = new ArrayList<>();
 
@@ -49,22 +52,32 @@ class EquationSystemTest {
         LfNetwork network = lfNetworks.get(0);
 
         LfBus bus = network.getBus(0);
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
         equationSystem.addListener(new EquationSystemListener<>() {
             @Override
-            public void onEquationChange(Equation<AcVariableType, AcEquationType> equation, EquationEventType eventType) {
+            public void onEquationChange(SingleEquation<AcVariableType, AcEquationType> equation, EquationEventType eventType) {
                 equations.add(equation);
                 equationEventTypes.add(eventType);
             }
 
             @Override
-            public void onEquationTermChange(EquationTerm<AcVariableType, AcEquationType> term, EquationTermEventType eventType) {
+            public void onEquationTermChange(SingleEquationTerm<AcVariableType, AcEquationType> term, EquationTermEventType eventType) {
                 equationTermEventTypes.add(eventType);
+            }
+
+            @Override
+            public void onEquationArrayChange(EquationArray<AcVariableType, AcEquationType> equationArray, int elementNum, EquationEventType eventType) {
+                // nothing to do
+            }
+
+            @Override
+            public void onEquationTermArrayChange(EquationTermArray<AcVariableType, AcEquationType> equationTermArray, int termNum, EquationTermEventType eventType) {
+                // nothing to do
             }
         });
         assertTrue(equations.isEmpty());
         assertTrue(equationEventTypes.isEmpty());
-        assertTrue(equationSystem.getIndex().getSortedEquationsToSolve().isEmpty());
+        assertTrue(equationSystem.getIndex().getSortedSingleEquationsToSolve().isEmpty());
 
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm());
         assertEquals(1, equations.size());
@@ -72,7 +85,7 @@ class EquationSystemTest {
         assertEquals(1, equationTermEventTypes.size());
         assertEquals(EquationEventType.EQUATION_CREATED, equationEventTypes.get(0));
         assertEquals(EquationTermEventType.EQUATION_TERM_ADDED, equationTermEventTypes.get(0));
-        assertEquals(1, equationSystem.getIndex().getSortedEquationsToSolve().size());
+        assertEquals(1, equationSystem.getIndex().getSortedSingleEquationsToSolve().size());
 
         clearEvents();
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).setActive(true);
@@ -83,14 +96,14 @@ class EquationSystemTest {
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(EquationEventType.EQUATION_DEACTIVATED, equationEventTypes.get(0));
-        assertTrue(equationSystem.getIndex().getSortedEquationsToSolve().isEmpty());
+        assertTrue(equationSystem.getIndex().getSortedSingleEquationsToSolve().isEmpty());
 
         clearEvents();
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).setActive(true);
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(EquationEventType.EQUATION_ACTIVATED, equationEventTypes.get(0));
-        assertEquals(1, equationSystem.getIndex().getSortedEquationsToSolve().size());
+        assertEquals(1, equationSystem.getIndex().getSortedSingleEquationsToSolve().size());
 
         assertTrue(equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).isPresent());
         assertEquals(1, equationSystem.getEquations(ElementType.BUS, bus.getNum()).size());
@@ -101,7 +114,7 @@ class EquationSystemTest {
         assertTrue(equationSystem.getEquationTerms(ElementType.BRANCH, 0).isEmpty());
 
         clearEvents();
-        EquationTerm<AcVariableType, AcEquationType> equationTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+        SingleEquationTerm<AcVariableType, AcEquationType> equationTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                 .createTerm();
         bus.setCalculatedV(equationTerm);
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(equationTerm);
@@ -136,6 +149,56 @@ class EquationSystemTest {
                 "bus_target_q2 = ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3)",
                 "bus_target_p3 = ac_p_closed_2(v2, v3, φ2, φ3)",
                 "bus_target_q3 = ac_q_closed_2(v2, v3, φ2, φ3)")
+                + System.lineSeparator();
+        assertEquals(ref, equationSystem.writeToString());
+    }
+
+    @Test
+    void writeVectorizedAcSystemTest() {
+        List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        LfNetwork network = lfNetworks.get(0);
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcVectorizedEquationSystemCreator(network).create();
+        String ref = String.join(System.lineSeparator(),
+                "bus_target_v0 = v0",
+                "bus_target_φ0 = φ0",
+                "bus_target_p[1] = ac_p_array_closed_1(v1, v2, φ1, φ2) + ac_p_array_closed_1(v1, v2, φ1, φ2) + ac_p_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_p[2] = ac_p_array_closed_1(v2, v3, φ2, φ3) + ac_p_array_closed_2(v1, v2, φ1, φ2) + ac_p_array_closed_2(v1, v2, φ1, φ2)",
+                "bus_target_p[3] = ac_p_array_closed_2(v2, v3, φ2, φ3)",
+                "bus_target_q[1] = ac_q_array_closed_1(v1, v2, φ1, φ2) + ac_q_array_closed_1(v1, v2, φ1, φ2) + ac_q_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_q[2] = ac_q_array_closed_1(v2, v3, φ2, φ3) + ac_q_array_closed_2(v1, v2, φ1, φ2) + ac_q_array_closed_2(v1, v2, φ1, φ2)",
+                "bus_target_q[3] = ac_q_array_closed_2(v2, v3, φ2, φ3)")
+                + System.lineSeparator();
+        assertEquals(ref, equationSystem.writeToString());
+    }
+
+    @Test
+    void writeVectorizedAcSystemWithSingleTermsTest() {
+        Network hvdcNetwork = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        hvdcNetwork.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSlackBusSelector(new FirstSlackBusSelector())
+                .setHvdcAcEmulation(true);
+        List<LfNetwork> lfNetworks = Networks.load(hvdcNetwork, networkParameters, ReportNode.NO_OP);
+        LfNetwork network = lfNetworks.getFirst();
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcVectorizedEquationSystemCreator(network).create();
+        String ref = String.join(System.lineSeparator(),
+                "bus_target_v0 = v0",
+                "bus_target_φ0 = φ0",
+                "bus_target_v2 = v2",
+                "bus_target_v3 = v3",
+                "bus_target_v4 = v4",
+                "bus_target_p[1] = ac_p_array_closed_1(v1, v2, φ1, φ2) + ac_p_array_closed_1(v1, v4, φ1, φ4) + ac_p_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_p[2] = ac_p_array_closed_2(v0, v2, φ0, φ2) + ac_p_array_closed_2(v1, v2, φ1, φ2) + ac_emulation_p_1(φ2, φ3)", // AC emulation term is an additional single term
+                "bus_target_p[3] = ac_p_array_closed_1(v3, v4, φ3, φ4) + ac_p_array_closed_1(v3, v5, φ3, φ5) + ac_emulation_p_2(φ2, φ3)",
+                "bus_target_p[4] = ac_p_array_closed_1(v4, v5, φ4, φ5) + ac_p_array_closed_2(v1, v4, φ1, φ4) + ac_p_array_closed_2(v3, v4, φ3, φ4)",
+                "bus_target_p[5] = ac_p_array_closed_2(v3, v5, φ3, φ5) + ac_p_array_closed_2(v4, v5, φ4, φ5)",
+                "bus_target_q[1] = ac_q_array_closed_1(v1, v2, φ1, φ2) + ac_q_array_closed_1(v1, v4, φ1, φ4) + ac_q_array_closed_2(v0, v1, φ0, φ1)",
+                "bus_target_q[5] = ac_q_array_closed_2(v3, v5, φ3, φ5) + ac_q_array_closed_2(v4, v5, φ4, φ5)")
                 + System.lineSeparator();
         assertEquals(ref, equationSystem.writeToString());
     }
@@ -191,7 +254,17 @@ class EquationSystemTest {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
         AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, AcTargetVector::init);
+        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, new TargetVector.Initializer<AcVariableType, AcEquationType>() {
+            @Override
+            public void initialize(SingleEquation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
+                AcTargetVector.init(equation, network, targets);
+            }
+
+            @Override
+            public void initialize(EquationArray<AcVariableType, AcEquationType> equationArray, LfNetwork network, double[] targets) {
+                AcTargetVector.init(equationArray, network, targets);
+            }
+        });
         try (var equationVector = new EquationVector<>(equationSystem)) {
             Vectors.minus(equationVector.getArray(), targets);
             var largestMismatches = NewtonRaphson.findLargestMismatches(equationSystem, equationVector.getArray(), 3);
@@ -211,8 +284,8 @@ class EquationSystemTest {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
         AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
-        EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI1();
-        EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI2();
+        SingleEquationTerm<AcVariableType, AcEquationType> i1 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI1();
+        SingleEquationTerm<AcVariableType, AcEquationType> i2 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI2();
         Variable<AcVariableType> v1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> v2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
@@ -239,7 +312,7 @@ class EquationSystemTest {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
         AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
-        EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI1();
+        SingleEquationTerm<AcVariableType, AcEquationType> i1 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI1();
         Variable<AcVariableType> v1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
         assertEquals(0.559170, i1.der(v1var), 10E-6);
@@ -257,7 +330,7 @@ class EquationSystemTest {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
         AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
-        EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI2();
+        SingleEquationTerm<AcVariableType, AcEquationType> i2 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI2();
         Variable<AcVariableType> v2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
         assertEquals(0.55917, i2.der(v2var), 10E-6);

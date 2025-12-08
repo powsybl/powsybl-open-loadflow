@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,9 +9,12 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.DanglingLineContingency;
+import com.powsybl.contingency.LineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -23,14 +26,15 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,11 +42,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -66,6 +71,145 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(2, result.getValues().size());
         assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testEsgTutoMT() throws IOException {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
+
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters)
+                .setThreadCount(2);
+        sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class, openSensitivityAnalysisParameters);
+
+        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        List<Contingency> contingencies = new ArrayList<>();
+        // Create a large list of contingencies
+        for (int i = 0; i < 100; i++) {
+            final String suffix = "-" + i;
+            contingencies.addAll(network.getLineStream().map(l -> new Contingency(l.getId() + suffix, new LineContingency(l.getId()))).toList());
+        }
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getLineStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(402, result.getValues().size()); // (Base case + 200 contingencies) * 2 factors = 402 values
+        assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        for (int i = 0; i < 100; i++) {
+            assertEquals(0,
+                    result.getBranchFlow1SensitivityValue("NHV1_NHV2_1-" + i, "GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                    LoadFlowAssert.DELTA_POWER);
+            assertEquals(0.997,
+                    result.getBranchFlow1SensitivityValue("NHV1_NHV2_1-" + i, "GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                    LoadFlowAssert.DELTA_POWER);
+            assertEquals(0.997,
+                    result.getBranchFlow1SensitivityValue("NHV1_NHV2_2-" + i, "GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                    LoadFlowAssert.DELTA_POWER);
+            assertEquals(0,
+                    result.getBranchFlow1SensitivityValue("NHV1_NHV2_2-" + i, "GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                    LoadFlowAssert.DELTA_POWER);
+        }
+
+        // Test number of calls to the writer
+        SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
+        AtomicInteger valueCallCount = new AtomicInteger(0);
+        AtomicInteger statusCallCount = new AtomicInteger(0);
+        SensitivityResultWriter resultWriter = new SensitivityResultWriter() {
+
+            public void writeSensitivityValue(int factorIndex, int contingencyIndex, double value, double functionReference) {
+                valueCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
+                statusCallCount.incrementAndGet();
+            }
+        };
+
+        runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(),
+                factorReader,
+                resultWriter,
+                runParameters);
+
+        assertEquals(0, statusCallCount.get()); // Not called for the case case
+        assertEquals(factors.size(), valueCallCount.get());
+
+        // now check call count with contingencies, and report
+        statusCallCount.set(0);
+        valueCallCount.set(0);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setReportNode(reportNode);
+        sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(),
+                factorReader,
+                resultWriter,
+                runParameters);
+
+        assertEquals(200, statusCallCount.get()); // 200 contingencies
+        assertEquals(402, valueCallCount.get()); // (base case + 200 contingences) * 2 factors = 402
+
+        assertReportEquals("/sensiMtReport.txt", reportNode);
+
+    }
+
+    @Test
+    void testEsgTutoMTWithSpecificContingencyContexts() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
+
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters)
+                .setThreadCount(2);
+        sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class, openSensitivityAnalysisParameters);
+
+        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        List<Contingency> contingencies = new ArrayList<>();
+        // Create a large list of contingencies
+        for (int i = 0; i < 100; i++) {
+            final String suffix = "-" + i;
+            contingencies.addAll(network.getLineStream().map(l -> new Contingency(l.getId() + suffix, new LineContingency(l.getId()))).toList());
+        }
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getLineStream().collect(Collectors.toList()), contingencies.get(0).getId(), TwoSides.ONE);
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        // IN MT mode, factors with specific contingencies are not reported as invalid for the other contingencies. They are just not written.
+        assertEquals(2, result.getValues().size()); // (1 contingency) * 2 factors = 2 values
+
+        assertEquals(0,
+                result.getBranchFlow1SensitivityValue("NHV1_NHV2_1-0", "GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.997,
+                result.getBranchFlow1SensitivityValue("NHV1_NHV2_1-0", "GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1843,18 +1987,21 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
         SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
 
-        LfTopoConfig topoConfig = new LfTopoConfig();
-
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
             .setContingencyPropagation(false)
             .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
             .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
             .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
 
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, propagatedContingencies, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP, topoConfig, false));
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        Executor executor = LocalComputationManager.getDefault().getExecutor();
+        List<SensitivityVariableSet> noVar = Collections.emptyList();
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId,
+                contingencies, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
+                openSensitivityAnalysisParameters, executor));
     }
 
     @Test

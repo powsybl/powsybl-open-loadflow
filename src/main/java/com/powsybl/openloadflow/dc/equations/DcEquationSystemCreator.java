@@ -165,7 +165,7 @@ public class DcEquationSystemCreator {
     }
 
     public EquationSystem<DcVariableType, DcEquationType> create(boolean withListener) {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>(DcEquationType.class, network);
 
         createBuses(equationSystem);
         createBranches(equationSystem);
