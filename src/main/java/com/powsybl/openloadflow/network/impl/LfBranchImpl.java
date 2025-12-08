@@ -210,20 +210,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        return createBranchResultFromResults(new LfBranchResults(p1.eval(), p2.eval(), q1.eval(), q2.eval(), i1.eval(), i2.eval()), preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
-    }
-
-    @Override
-    public List<BranchResult> createNonImpedantBranchResult(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        return createBranchResultFromResults(lfBranchResults, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
-    }
-
-    private List<BranchResult> createBranchResultFromResults(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        // TODO: HG refacto to have just one method using the map or not depending on the branch impedance status
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                                 boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
+                                                 LoadFlowModel loadFlowModel) {
         var branch = getBranch();
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+
+        LfBranchResults lfBranchResults = this.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(this.getId())
+                : extractLfBranchResults();
 
         double flowP1 = lfBranchResults.p1() * PerUnit.SB;
         double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
