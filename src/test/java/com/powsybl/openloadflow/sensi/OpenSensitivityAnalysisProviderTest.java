@@ -18,6 +18,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -35,7 +36,9 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
     @Test
     void specificParametersTest() {
         var provider = new OpenSensitivityAnalysisProvider();
-        assertEquals(2, provider.getSpecificParametersNames().size());
+
+        assertEquals(3, provider.getSpecificParametersNames().size());
+
         SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
@@ -45,5 +48,13 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
         provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.DEBUG_DIR_PARAM_NAME, ""))
                 .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
         assertEquals("", parameters.getExtension(OpenSensitivityAnalysisParameters.class).getDebugDir());
+
+        provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, "false"))
+                .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
+        assertFalse(parameters.getExtension(OpenSensitivityAnalysisParameters.class).isStartWithFrozenACEmulation());
+
+        provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.THREAD_COUNT_PARAM_NAME, "2"))
+                .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
+        assertEquals(2, parameters.getExtension(OpenSensitivityAnalysisParameters.class).getThreadCount());
     }
 }

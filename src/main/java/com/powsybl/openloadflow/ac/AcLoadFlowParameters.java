@@ -60,6 +60,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean fixVoltageTargets = FIX_VOLTAGE_TARGETS_DEFAULT_VALUE;
 
+    private boolean vectorized = true;
+
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
     }
@@ -173,6 +175,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isVectorized() {
+        return vectorized;
+    }
+
+    public AcLoadFlowParameters setVectorized(boolean vectorized) {
+        this.vectorized = vectorized;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -192,6 +203,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
                 ", fixVoltageTargets=" + fixVoltageTargets +
+                ", vectorized=" + vectorized +
                 ')';
     }
 }

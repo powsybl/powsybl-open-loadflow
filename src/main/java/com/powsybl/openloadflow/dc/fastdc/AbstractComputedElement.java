@@ -124,7 +124,7 @@ public abstract class AbstractComputedElement {
         // those affecting the same branch share the same column
         int columnCount = (int) elements.stream().map(AbstractComputedElement::getLfBranch).filter(Objects::nonNull).distinct().count();
         // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int equationCount = equationSystem.getIndex().getColumnCount();
         int maxElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
         if (columnCount > maxElements) {
             throw new PowsyblException("Too many elements " + columnCount
