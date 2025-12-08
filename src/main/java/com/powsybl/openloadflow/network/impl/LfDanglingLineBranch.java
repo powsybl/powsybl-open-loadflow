@@ -77,17 +77,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
         // we follow the convention side 1 for network side and side 2 for boundary side.
         double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
-
-        LfBranchResults lfBranchResults = this.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(this.getId())
-                : extractLfBranchResults();
-        double flowP1 = lfBranchResults.p1() * PerUnit.SB;
-        double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
-        double flowP2 = lfBranchResults.p2() * PerUnit.SB;
-        double flowQ2 = lfBranchResults.q2() * PerUnit.SB;
-        double currentI1 = lfBranchResults.i1() * currentScale;
-        double currentI2 = lfBranchResults.i2() * currentScale;
-        return List.of(new BranchResult(getId(), flowP1, flowQ1, currentI1,
-                flowP2, flowQ2, currentI2, Double.NaN));
+        return List.of(buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale, currentScale, Double.NaN, Double.NaN));
     }
 
     @Override

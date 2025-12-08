@@ -84,23 +84,10 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         double currentScale1 = PerUnit.ib(nominalV1);
         double currentScale2 = PerUnit.ib(nominalV2);
 
-        LfBranchResults lfBranchResults = this.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(this.getId())
-                : extractLfBranchResults();
+        var branchResult = buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale1, currentScale2, preContingencyBranchP1, preContingencyBranchOfContingencyP1);
 
-        double flowP1 = lfBranchResults.p1() * PerUnit.SB;
-        double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
-        double flowP2 = lfBranchResults.p2() * PerUnit.SB;
-        double flowQ2 = lfBranchResults.q2() * PerUnit.SB;
-        double currentI1 = lfBranchResults.i1() * currentScale1;
-        double currentI2 = lfBranchResults.i2() * currentScale2;
-
-        double flowTransfer = Double.NaN;
-        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
-            flowTransfer = (flowP1 - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
-        }
-        var branchResult = new BranchResult(getId(), flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowTransfer);
-        var half1Result = new BranchResult(getHalf1().getId(), flowP1, flowQ1, currentI1, Double.NaN, Double.NaN, Double.NaN, flowTransfer);
-        var half2Result = new BranchResult(getHalf2().getId(), flowP2, flowQ2, currentI2, Double.NaN, Double.NaN, Double.NaN, flowTransfer);
+        var half1Result = new BranchResult(getHalf1().getId(), branchResult.getP1(), branchResult.getQ1(), branchResult.getI1(), Double.NaN, Double.NaN, Double.NaN, branchResult.getFlowTransfer());
+        var half2Result = new BranchResult(getHalf2().getId(), branchResult.getP2(), branchResult.getQ2(), branchResult.getI2(), Double.NaN, Double.NaN, Double.NaN, branchResult.getFlowTransfer());
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     getV1() * nominalV1, getV2() * nominalV2, Math.toDegrees(getAngle1()), Math.toDegrees(getAngle2())));
