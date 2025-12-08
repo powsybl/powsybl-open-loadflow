@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfZeroImpedanceNetwork;
 import com.powsybl.openloadflow.network.LoadFlowModel;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -40,7 +38,7 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         addResults(monitor, branch -> {
             branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, zeroImpedanceFlows, loadFlowModel)
                     .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
-        }, isBranchDisabled);
+        }, isBranchDisabled, zeroImpedanceFlows);
     }
 
     @Override
@@ -55,8 +53,6 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         zeroImpedanceFlows.clear();
         zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
-
-        // TODO HG: 3WT
     }
 
     public BranchResult getBranchResult(String branchId) {
@@ -67,16 +63,5 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
     @Override
     public List<BranchResult> getBranchResults() {
         return new ArrayList<>(branchResults.values());
-    }
-
-    private Map<String, LfBranch.LfBranchResults> storeResultsForZeroImpedanceBranches(StateMonitor monitor, LfNetwork network) {
-        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = new LinkedHashMap<>();
-        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
-            if (zeroImpedanceNetwork.getGraph().edgeSet().stream().map(LfBranch::getOriginalIds).flatMap(List::stream).anyMatch(monitor.getBranchIds()::contains)) {
-                new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel, dcPowerFactor)
-                        .computeAndProvideResults(zeroImpedanceFlows);
-            }
-        }
-        return zeroImpedanceFlows;
     }
 }
