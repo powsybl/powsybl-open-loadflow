@@ -335,6 +335,38 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testDuplicateVariableSet() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        // this network has no G or B, so we should be very close to DC results
+        Network network = FourBusNetworkFactory.create();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        List<WeightedSensitivityVariable> variables1 = List.of(new WeightedSensitivityVariable("g1", 0.25f),
+                new WeightedSensitivityVariable("g4", 0.25f),
+                new WeightedSensitivityVariable("d2", 0.5f));
+
+        List<WeightedSensitivityVariable> variables2 = List.of(new WeightedSensitivityVariable("g1", 0.50f),
+                new WeightedSensitivityVariable("g4", 0.50f));
+
+        // Two variable set with same ID
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", variables1), new SensitivityVariableSet("glsk", variables2));
+
+        List<SensitivityFactor> factors = network.getBranchStream()
+                .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk"))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisRunParameters sensitivityAnalysisRunParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setVariableSets(variableSets);
+
+        CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, sensitivityAnalysisRunParameters));
+        assertEquals("com.powsybl.commons.PowsyblException: Variable set 'glsk' already exists", ex.getMessage());
+
+    }
+
+    @Test
     void testGlskWithBranchCurrentFunction() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
