@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
@@ -1297,7 +1298,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
     }
 
-    public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, PropagatedContingencyCreationParameters creationParameters,
+    public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<Action> actions,
+                                 PropagatedContingencyCreationParameters creationParameters,
                                  List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                                  SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                                  OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,

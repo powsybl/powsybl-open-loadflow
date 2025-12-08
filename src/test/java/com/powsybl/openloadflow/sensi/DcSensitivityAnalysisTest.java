@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -1276,14 +1277,15 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
         Executor executor = LocalComputationManager.getDefault().getExecutor();
         List<SensitivityVariableSet> noVar = Collections.emptyList();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies,
+        List<Action> actions = Collections.emptyList();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies, actions,
                 creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
 
         // without connectivity break
         List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2,
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2, actions,
                 creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
     }

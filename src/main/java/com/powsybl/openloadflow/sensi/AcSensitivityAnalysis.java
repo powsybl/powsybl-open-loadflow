@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
@@ -177,7 +178,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
     @Override
-    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, PropagatedContingencyCreationParameters creationParameters,
+    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<Action> actions,
+                        PropagatedContingencyCreationParameters creationParameters,
                         List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                         SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,

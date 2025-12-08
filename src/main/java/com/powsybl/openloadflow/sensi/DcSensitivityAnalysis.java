@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
@@ -356,7 +357,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     @Override
-    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, PropagatedContingencyCreationParameters creationParameters,
+    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<Action> actions,
+                        PropagatedContingencyCreationParameters creationParameters,
                         List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                         SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
@@ -387,6 +389,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         LfTopoConfig topoConfig = new LfTopoConfig();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
         boolean breakers = topoConfig.isBreaker();
+
+        // update topo config with supported actions
+        topoConfig.addAllBranchesToClose(network, actions);
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)

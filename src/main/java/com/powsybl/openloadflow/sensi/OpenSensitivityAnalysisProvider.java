@@ -35,9 +35,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.Actions;
-import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.ProviderConstants;
@@ -150,7 +148,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                  List<Action> actions,
                  SensitivityAnalysisParameters sensitivityAnalysisParameters,
                  ComputationManager computationManager,
-                 ReportNode reportNode) {
+                 ReportNode reportNode) throws ExecutionException {
         network.getVariantManager().setWorkingVariant(workingVariantId);
         ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
 
@@ -172,9 +170,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
             .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
             .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
-
-        // update topo config with supported actions
-        topoConfig.addAllBranchesToClose(network, actions);
 
         SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -213,7 +208,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         } else {
             analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
         }
-        analysis.analyse(network, workingVariantId, contingencies, creationParameters, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, sensitivityAnalysisParametersExt, computationManager.getExecutor());
+        analysis.analyse(network, workingVariantId, contingencies, actions, creationParameters, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, sensitivityAnalysisParametersExt, computationManager.getExecutor());
         return null;
     }
 
@@ -236,6 +231,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             runParameters.getOperatorStrategies(),
             runParameters.getActions(),
             runParameters.getSensitivityAnalysisParameters(),
+            runParameters.getComputationManager(),
             runParameters.getReportNode()), runParameters.getComputationManager().getExecutor());
     }
 

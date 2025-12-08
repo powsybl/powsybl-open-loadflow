@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
@@ -1999,8 +2000,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Executor executor = LocalComputationManager.getDefault().getExecutor();
         List<SensitivityVariableSet> noVar = Collections.emptyList();
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        List<Action> actions = Collections.emptyList();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId,
-                contingencies, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
+                contingencies, actions, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
                 openSensitivityAnalysisParameters, executor));
     }
 
@@ -2008,7 +2010,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testRunSyncIsCallable() {
         OpenSensitivityAnalysisProvider p = new OpenSensitivityAnalysisProvider(new SparseMatrixFactory());
         // Make sur that runSync is a Callable. Only CompletableFutureTask.runAsync(Callable) handles correctly thread cancel. Not CompletableFutureTask.runAsync(Runnable)
-        Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null, null);
+        Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null, null, null);
         assertFalse(t instanceof Runnable);
     }
 }
