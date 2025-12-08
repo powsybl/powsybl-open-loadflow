@@ -4798,7 +4798,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(-1.324, network.getLine("l35").getTerminal1().getP(), DELTA_POWER);
         assertEquals(1159.55, network.getLine("l25").getTerminal1().getI(), DELTA_I);
 
-
         SecurityAnalysisResult saResult = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
 
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, saResult.getPreContingencyResult().getStatus());

@@ -36,9 +36,9 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         branchResults.clear();
     }
 
-    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled) {
+    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
         addResults(monitor, branch -> {
-            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension)
+            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, zeroImpedanceFlows, loadFlowModel)
                     .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
         }, isBranchDisabled);
     }
@@ -50,10 +50,11 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
-        addResultsForZeroImpedanceBranches(monitorIndex.getNoneStateMonitor(), network);
-        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled);
-        addResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
-        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled);
+        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getNoneStateMonitor(), network);
+        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
+        zeroImpedanceFlows.clear();
+        zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
+        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
 
         // TODO HG: 3WT
     }
@@ -68,7 +69,7 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         return new ArrayList<>(branchResults.values());
     }
 
-    private void addResultsForZeroImpedanceBranches(StateMonitor monitor, LfNetwork network) {
+    private Map<String, LfBranch.LfBranchResults> storeResultsForZeroImpedanceBranches(StateMonitor monitor, LfNetwork network) {
         Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = new LinkedHashMap<>();
         for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
             if (zeroImpedanceNetwork.getGraph().edgeSet().stream().map(LfBranch::getOriginalIds).flatMap(List::stream).anyMatch(monitor.getBranchIds()::contains)) {
@@ -76,13 +77,6 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
                         .computeAndProvideResults(zeroImpedanceFlows);
             }
         }
-
-        for (String lfBranchId : zeroImpedanceFlows.keySet()) {
-            LfBranch lfBranch = network.getBranchById(lfBranchId);
-            if (!lfBranch.isDisabled()) {
-                lfBranch.createNonImpedantBranchResult(zeroImpedanceFlows.get(lfBranchId), Double.NaN, Double.NaN, createResultExtension)
-                        .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
-            }
-        }
+        return zeroImpedanceFlows;
     }
 }

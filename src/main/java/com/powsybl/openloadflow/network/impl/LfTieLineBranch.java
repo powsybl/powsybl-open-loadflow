@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -75,24 +76,16 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        return createBranchResultFromResults(new LfBranchResults(p1.eval(), p2.eval(), q1.eval(), q2.eval(), i1.eval(), i2.eval()), preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
-    }
-
-    @Override
-    public List<BranchResult> createNonImpedantBranchResult(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        return createBranchResultFromResults(lfBranchResults, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
-    }
-
-    private List<BranchResult> createBranchResultFromResults(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        double flowTransfer = Double.NaN;
-        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
-            flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
-        }
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                                 boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
+                                                 LoadFlowModel loadFlowModel) {
         double nominalV1 = getHalf1().getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = getHalf2().getTerminal().getVoltageLevel().getNominalV();
         double currentScale1 = PerUnit.ib(nominalV1);
         double currentScale2 = PerUnit.ib(nominalV2);
+
+        LfBranchResults lfBranchResults = this.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(this.getId())
+                : extractLfBranchResults();
 
         double flowP1 = lfBranchResults.p1() * PerUnit.SB;
         double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
@@ -100,6 +93,11 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         double flowQ2 = lfBranchResults.q2() * PerUnit.SB;
         double currentI1 = lfBranchResults.i1() * currentScale1;
         double currentI2 = lfBranchResults.i2() * currentScale2;
+
+        double flowTransfer = Double.NaN;
+        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
+            flowTransfer = (flowP1 - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+        }
         var branchResult = new BranchResult(getId(), flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowTransfer);
         var half1Result = new BranchResult(getHalf1().getId(), flowP1, flowQ1, currentI1, Double.NaN, Double.NaN, Double.NaN, flowTransfer);
         var half2Result = new BranchResult(getHalf2().getId(), flowP2, flowQ2, currentI2, Double.NaN, Double.NaN, Double.NaN, flowTransfer);

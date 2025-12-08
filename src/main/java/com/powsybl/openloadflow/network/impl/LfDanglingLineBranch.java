@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -70,19 +71,15 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        return createBranchResultFromResults(new LfBranchResults(p1.eval(), p2.eval(), q1.eval(), q2.eval(), i1.eval(), i2.eval()), preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
-    }
-
-    @Override
-    public List<BranchResult> createNonImpedantBranchResult(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        return createBranchResultFromResults(lfBranchResults, preContingencyBranchP1, preContingencyBranchOfContingencyP1, createExtension);
-    }
-
-    private List<BranchResult> createBranchResultFromResults(LfBranchResults lfBranchResults, double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                                 boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
+                                                 LoadFlowModel loadFlowModel) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
         // we follow the convention side 1 for network side and side 2 for boundary side.
         double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
+
+        LfBranchResults lfBranchResults = this.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(this.getId())
+                : extractLfBranchResults();
         double flowP1 = lfBranchResults.p1() * PerUnit.SB;
         double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
         double flowP2 = lfBranchResults.p2() * PerUnit.SB;
