@@ -11,7 +11,6 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -61,7 +60,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                 }
             }
             branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel));
-        }, isBranchDisabled);
+        }, isBranchDisabled, zeroImpedanceFlows);
     }
 
     @Override
@@ -79,23 +78,10 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
             Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
             addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
         }
-
-        // TODO HG: 3WT
     }
 
     @Override
     public List<BranchResult> getBranchResults() {
         return branchResults;
-    }
-
-    private Map<String, LfBranch.LfBranchResults> storeResultsForZeroImpedanceBranches(StateMonitor monitor, LfNetwork network) {
-        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = new LinkedHashMap<>();
-        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
-            if (zeroImpedanceNetwork.getGraph().edgeSet().stream().map(LfBranch::getOriginalIds).flatMap(List::stream).anyMatch(monitor.getBranchIds()::contains)) {
-                new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel, dcPowerFactor)
-                        .computeAndProvideResults(zeroImpedanceFlows);
-            }
-        }
-        return zeroImpedanceFlows;
     }
 }
