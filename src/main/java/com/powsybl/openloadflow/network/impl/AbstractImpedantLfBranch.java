@@ -498,4 +498,8 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     protected double getAngle2() {
         return getBus2() != null ? getBus2().getAngle() : Double.NaN;
     }
+
+    protected LfBranchResults extractLfBranchResults() {
+        return new LfBranchResults(p1.eval(), p2.eval(), q1.eval(), q2.eval(), i1.eval(), i2.eval());
+    }
 }

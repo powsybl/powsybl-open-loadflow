@@ -55,7 +55,7 @@ public abstract class AbstractNetworkResult {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
-                    .filter(lfBranch -> !isBranchDisabled.test(lfBranch) && !lfBranch.isZeroImpedance(loadFlowModel))
+                    .filter(lfBranch -> !isBranchDisabled.test(lfBranch))
                     .forEach(lfBranch -> {
                         for (String originalId : lfBranch.getOriginalIds()) {
                             if (monitor.getBranchIds().contains(originalId)) {
