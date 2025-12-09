@@ -362,7 +362,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setVariableSets(variableSets);
 
         CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, sensitivityAnalysisRunParameters));
-        assertEquals("com.powsybl.commons.PowsyblException: Variable set 'glsk' already exists", ex.getMessage());
+        assertEquals("com.powsybl.commons.PowsyblException: Variable set ID 'glsk' is duplicated", ex.getMessage());
 
     }
 

@@ -767,10 +767,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         for (SensitivityVariableSet variableSet : variableSets) {
             // check ID are unique because, later sensitivityVariableSet are indexed by their IDs
             String variableSetId = variableSet.getId();
-            if (variableSetIds.contains(variableSetId)) {
-                throw new PowsyblException("Variable set '" + variableSetId + "' already exists");
+            if (!variableSetIds.add(variableSetId)) {
+                throw new PowsyblException("Variable set ID '" + variableSetId + "' is duplicated");
             }
-            variableSetIds.add(variableSetId);
         }
     }
 
@@ -779,10 +778,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         for (Contingency contingency : contingencies) {
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getId();
-            if (contingenciesIds.contains(contingencyId)) {
-                throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
+            if (!contingenciesIds.add(contingencyId)) {
+                throw new PowsyblException("Contingency ID '" + contingencyId + "' is duplicated");
             }
-            contingenciesIds.add(contingencyId);
         }
     }
 
