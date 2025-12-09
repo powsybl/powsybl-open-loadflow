@@ -350,7 +350,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<WeightedSensitivityVariable> variables2 = List.of(new WeightedSensitivityVariable("g1", 0.50f),
                 new WeightedSensitivityVariable("g4", 0.50f));
 
-        // Two variable set with same ID
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", variables1), new SensitivityVariableSet("glsk", variables2));
 
         List<SensitivityFactor> factors = network.getBranchStream()
@@ -363,6 +362,27 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, sensitivityAnalysisRunParameters));
         assertEquals("com.powsybl.commons.PowsyblException: Variable set ID 'glsk' is duplicated", ex.getMessage());
+
+    }
+
+    @Test
+    void testDuplicateContingency() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        Network network = FourBusNetworkFactory.create();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        List<Contingency> contingencies = List.of(new Contingency("foo", new LineContingency("l12")), new Contingency("foo", new LineContingency("l14")));
+
+        List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("l12", "g1"));
+
+        SensitivityAnalysisRunParameters sensitivityAnalysisRunParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies);
+
+        CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, sensitivityAnalysisRunParameters));
+        assertEquals("com.powsybl.commons.PowsyblException: Contingency ID 'foo' is duplicated", ex.getMessage());
 
     }
 
