@@ -23,52 +23,63 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
         super(converter, dcNode1, dcNode2, nominalV, variableSet);
     }
 
-    public static double iConv(double pAc, double qAc, double v1, double v2, double idleLoss, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / 1000.0;
+    public static double iConv(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
+        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
         double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
         return (-pAc - pLoss) / (v1 - v2);
     }
 
-    public static double diConvdv1(double pAc, double qAc, double v1, double v2, double idleLoss, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / 1000.0;
+    public static double diConvdv1(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
+        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
         double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
         return (pAc + pLoss) / ((v1 - v2) * (v1 - v2));
     }
 
-    public static double diConvdv2(double pAc, double qAc, double v1, double v2, double idleLoss, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / 1000.0;
+    public static double diConvdv2(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
+        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
         double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
         return (-pAc - pLoss) / ((v1 - v2) * (v1 - v2));
     }
 
-    public static double diConvdpAc(double pAc, double qAc, double v1, double v2, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / 1000.0;
-        double dpDcdpAc = -1 - pAc * (switchingLoss + 2 * resistiveLoss * iAc) / (iAc * 1000);
+    public static double diConvdpAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
+        double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
+        double iAc = sAc / vAc;
+        double dpDcdpAc = -1 - pAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
         return dpDcdpAc / (v1 - v2);
     }
 
-    public static double diConvdqAc(double pAc, double qAc, double v1, double v2, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / 1000.0;
-        double dpDcdqAc = -qAc * (switchingLoss + 2 * resistiveLoss * iAc) / (iAc * 1000);
+    public static double diConvdqAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
+        double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
+        double iAc = sAc / vAc;
+        double dpDcdqAc = -qAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
         return dpDcdqAc / (v1 - v2);
+    }
+
+    public static double diConvdvAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
+        double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
+        double iAc = sAc / vAc;
+        double dpDcdVAc = qAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * vAc);
+        return dpDcdVAc / (v1 - v2);
     }
 
     @Override
     public double eval() {
-        return iConv(pAc(), qAc(), v1(), v2(), idleLoss, switchingLoss, resistiveLoss);
+        return iConv(pAc(), qAc(), v1(), v2(), vAc(), idleLoss, switchingLoss, resistiveLoss);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(pAcVar)) {
-            return diConvdpAc(pAc(), qAc(), v1(), v2(), switchingLoss, resistiveLoss);
+            return diConvdpAc(pAc(), qAc(), v1(), v2(), vAc(), switchingLoss, resistiveLoss);
         } else if (variable.equals(qAcVar)) {
-            return diConvdqAc(pAc(), qAc(), v1(), v2(), switchingLoss, resistiveLoss);
+            return diConvdqAc(pAc(), qAc(), v1(), v2(), vAc(), switchingLoss, resistiveLoss);
         } else if (variable.equals(v1Var)) {
-            return diConvdv1(pAc(), qAc(), v1(), v2(), idleLoss, switchingLoss, resistiveLoss);
+            return diConvdv1(pAc(), qAc(), v1(), v2(), vAc(), idleLoss, switchingLoss, resistiveLoss);
         } else if (variable.equals(v2Var)) {
-            return diConvdv2(pAc(), qAc(), v1(), v2(), idleLoss, switchingLoss, resistiveLoss);
+            return diConvdv2(pAc(), qAc(), v1(), v2(), vAc(), idleLoss, switchingLoss, resistiveLoss);
+        } else if (variable.equals(vAcVar)) {
+            return diConvdvAc(pAc(), qAc(), v1(), v2(), vAc(), switchingLoss, resistiveLoss);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -32,6 +32,8 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected final Variable<AcVariableType> qAcVar;
 
+    protected final Variable<AcVariableType> vAcVar;
+
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     protected final double idleLoss;
@@ -60,17 +62,19 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
         v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
         pAcVar = variableSet.getVariable(converter.getNum(), pType);
         qAcVar = variableSet.getVariable(converter.getNum(), qType);
+        vAcVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         variables.add(v1Var);
         variables.add(v2Var);
         variables.add(pAcVar);
         variables.add(qAcVar);
+        variables.add(vAcVar);
         lossFactors = converter.getLossFactors();
         dcNominalV = nominalV;
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;
         this.idleLoss = lossFactors.get(0) / PerUnit.SB;
-        this.switchingLoss = lossFactors.get(1) / (Math.sqrt(3) * bus.getNominalV());
-        this.resistiveLoss = lossFactors.get(2) * PerUnit.ib(bus.getNominalV()) * PerUnit.ib(bus.getNominalV()) / PerUnit.SB;
+        this.switchingLoss = lossFactors.get(1) * PerUnit.ib(bus.getNominalV()) / PerUnit.SB;
+        this.resistiveLoss = lossFactors.get(2) / PerUnit.zb(bus.getNominalV()) / 3;
     }
 
     protected double v1() {
@@ -87,6 +91,10 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected double qAc() {
         return sv.get(qAcVar.getRow());
+    }
+
+    protected double vAc() {
+        return sv.get(vAcVar.getRow());
     }
 
     @Override

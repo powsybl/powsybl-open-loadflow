@@ -345,7 +345,7 @@ class EquationsTest {
         var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(converter).getNum();
         Mockito.doReturn(false).when(converter).isDisabled();
-        Mockito.doReturn(List.of(1.0, 0.5, 0.1)).when(converter).getLossFactors();
+        Mockito.doReturn(List.of(0.1, 0.001, 1.0)).when(converter).getLossFactors();
         Mockito.doReturn(0.5).when(converter).getTargetP();
         Mockito.doReturn(bus1).when(converter).getBus1();
         Mockito.doReturn(400.0).when(bus1).getNominalV();
@@ -354,20 +354,22 @@ class EquationsTest {
         var v2Var = variableSet.getVariable(1, AcVariableType.DC_NODE_V);
         var pAcVar = variableSet.getVariable(0, AcVariableType.CONV_P_AC);
         var qAcVar = variableSet.getVariable(0, AcVariableType.CONV_Q_AC);
+        var vAcVar = variableSet.getVariable(0, AcVariableType.BUS_V);
         var unknownVar = variableSet.getVariable(999, AcVariableType.DUMMY_P);
 
-        var variables = List.of(v1Var, v2Var, pAcVar, qAcVar, unknownVar);
+        var variables = List.of(v1Var, v2Var, pAcVar, qAcVar, vAcVar, unknownVar);
         v1Var.setRow(0);
         v2Var.setRow(1);
         pAcVar.setRow(2);
         qAcVar.setRow(3);
-        unknownVar.setRow(4);
+        vAcVar.setRow(4);
+        unknownVar.setRow(5);
 
-        var sv = new StateVector(new double[]{V_1, V_2, P_0, Q_0, 0});
+        var sv = new StateVector(new double[]{V_1, V_2, P_0, Q_0, 1, 0});
 
         // converter equations
         assertEquals("dc_i", new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), variableSet).getName());
-        assertArrayEquals(new double[] {4407.816327979311, 1.0023923390761068E7, -1.0023923390761068E7, 2457.9816726092145, 183.8571073153684, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {4399.465301063602, 1.0004932115306623E7, -1.0004932115306623E7, 2278.2725499388816, 4.147984645035366, -11.310442350075174, Double.NaN, Double.NaN},
                 eval(new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), variableSet), variables, sv));
     }
 }

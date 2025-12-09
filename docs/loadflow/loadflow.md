@@ -21,6 +21,10 @@ equal to zero and $1$. In case of a branch with voltage or phase control, the $\
 
 Open Load Flow also supports networks with HVDC lines (High Voltage Direct Current lines). An HVDC line is connected to the rest of the AC network through HVDC converter stations, that can be either LCC (Line-Commutated Converter) or VSC (Voltage-Source Converter).
 
+### DC detailed model
+
+Additionally, Open Load Flow supports AC-DC loadflow formulation with detailed model of DC components.
+
 (ac-flow-computing)=
 ## AC flows computing
 
@@ -334,19 +338,18 @@ When the Fast-Decoupled algorithm is used, we recommend these values for some co
 ## AC DC flows computing
 
 AC DC lows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
-So the unknowns are voltage magnitude and phase angle for each AC bus, and voltage for each DC node, active and reactive 
-power for each voltage source converter.
+The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC node, and active/reactive 
+power for each voltage source converter.   
 Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
 components are the followings:
 
-#### DC node
+### DC node
 
-At least one DC node must be connected to the ground in each DC network, its potential is set to 0. This equation sets its potential :
-$V = 0$
+At least one DC node must be connected to the ground in each DC network, its potential is therefore set to 0.  
 For the others, each DC node introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the terms 
 introduced by the DC components connected to the DC node.
 
-#### DC Line
+### DC Line
 
 Each DC line adds one term in both of its two connected DC nodes current balance:
 
@@ -354,36 +357,42 @@ $\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcNode1
 
 $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcNode2
 
-#### Voltage source converters
+### Voltage source converters
 
 Let consider a network that is composed of one AC network, and one DC network.
-The voltage source converter is the link between AC and DC networks, it is linked to one AC bus from one side, and two 
-DC nodes from the other side. At least one of the voltage source converters of the DC network must control the voltage 
-between its two dc nodes, the other voltage source converters control the Power injected in the AC network.
+The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
+DC nodes at the other side. The converter can control either the power injected in the AC network (`P_PCC` control mode) 
+or the voltage between its two DC nodes (`V_DC` control mode).
+At least one of the voltage source converters of the DC network must be in `V_DC` mode.
 
-$P_{AC}$, is the power flow injected by the converter to the AC
-side. So $P_{AC}<0$ if the power flows from AC to DC and $P_{AC}>0$ in the contrary.
+In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
+- Reactive power control mode, in which it imposes the reactive power injected from AC to DC, which is 0 by default.
+  In this case, the AC voltage is not fixed.
+- Voltage regulator control mode, in which it imposes the voltage at its AC Bus. In this case the reactive power is not
+  fixed.
 
-If the converter is in `P_PCC` control Mode, we add an equation to impose $P_{AC}$ :
+We note $P_{AC}$ the power flow injected by the converter to the AC side. 
+So $P_{AC}<0$ if the power flows from AC to DC and $P_{AC}>0$ otherwise.
+
+If the converter is in `P_PCC` control mode, we add an equation to impose $P_{AC}$ :
 
 $P_{AC}$ = $P_{Ref}$
 
-Else if the converter is in `V_DC` control Mode, we add an equation to impose the voltage between its two DC nodes :
+Else the converter is in `V_DC` control mode, and we add an equation to impose the voltage between its two DC nodes :
 
 $V_{1} - V_{2} = V_{Ref}$
 
-We add the Power injected by the Converter to AC side :
+Similarly, if the converter controls reactive power, we add an equation to impose $Q_{AC}$ :
 
-$\sum_{i} P_i + P_{AC} = 0$
+$Q_{AC}$ = $Q_{Ref}$
 
-We add an equation to ensure the conservation of power between AC and DC. We introduce the variable $I_{Conv}$
-which is the current flowing in the converter from dcNode1 to dcNode2. Here, we have $P_{DC} = -P_{AC} - P_{Loss}$
-which is the Power injected by the converter to the AC side, and $P_{Loss}$ the converter losses depending on AC
-current.
+Else the converter controls the AC voltage, and we add an equation to impose $V_{AC}$:
 
-$P_{DC} = I_{Conv}*(V_1-V_2)$
+$V_{AC}= V_{Ref}$
 
-Then, we add this power to the current balances of dcNode1 and dcNode2
+On the AC bus, the active and reactive power injected by the converter is added to its power balance.  
+On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcNode1 to dcNode2.
+It is added to the current balances of dcNode1 and dcNode2
 
 $\sum_{i} I_i + I_{Conv} = 0$ for dcNode1
 
@@ -391,24 +400,16 @@ $\sum_{i} I_i - I_{Conv}= 0$ for dcNode2
 
 #### Power Equations
 
-At AC side, the voltage source converter imposes its power flow $P_{AC}$ like a generator, and it can be set in two
-modes :
+The last equation of converters ensures the conservation pf power between AC and DC.
 
-- Reactive Power control mode, in which it imposes the Reactive Power injected from AC to DC, which is 0 by default.
-  And the AC voltage is not fixed.
-- Voltage regulator control mode, in which it imposes the voltage at its AC Bus. So the reactive Power is not fixed.
+$$P_{DC} = -P_{AC} - P_{Loss}$$
 
-The Power injected in the DC network is thus calculated, including losses due to the conversion. 
+with:
+- $P_{AC}$ the power injected by the converter to the AC side
+- $P_{Loss}>0$ the converter losses depending on AC current. Its computation is detailed in the next subsection.
+- $P_{DC} = I_{Conv}*(V_1-V_2)$ the power injected in the DC network.
 
-The loss is defined as $P_{Loss}>0$, which calculation is explained later.
-
-The Power injected by the Converter from AC side to DC side is:
-
-$$
-P_{DC} = -P_{AC} - P_{Loss}
-$$
-
-If the converter acts as Rectifier, AC injects Power in DC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
+If the converter acts as rectifier, AC injects power in DC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
 
 $$
 |P_{DC}| = -P_{AC} - P_{Loss}
@@ -417,7 +418,7 @@ $$
 |P_{DC}| = |P_{AC}| - P_{Loss}
 $$
 
-And if the converter acts as Inverter, DC injects Power in AC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
+And if the converter acts as inverter, DC injects power in AC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
 
 $$
 |P_{DC}| = P_{AC} + P_{Loss}
@@ -426,12 +427,11 @@ $$
 |P_{AC}| = |P_{DC}| - P_{Loss}
 $$
 
-In both cases, we do have a loss of power when passing through the converter.
+In both cases, there is a loss of power when passing through the converter.
 
 #### Loss Calculation
 
-The loss
-calculation is inherited from this paper : https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5275450.
+The loss calculation is inherited from this [paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5275450).
 
 $P_{Loss}$ is defined as :
 $
@@ -457,7 +457,7 @@ $$
 &=-1-\frac{\partial}{\partial P_{AC,pu}}(Loss_{A} + Loss_{B}*I_{AC,pu} + Loss_{C}*I_{AC,pu}^{2}) \\
 &= -1-(Loss_{B}*\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}+2I_{AC,pu}Loss_{C}\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}) \\
 &= -1-(Loss_{B}+2I_{AC,pu}Loss_{C})*\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}\\
-&= -1-\frac{P_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
+&= -1-\frac{P_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{V_{AC,pu}*\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
 \end{aligned}
 $$
 
@@ -466,10 +466,6 @@ And by the same calculation :
 $$
 \begin{aligned}
 \frac{\partial P_{DC,pu}}{\partial Q_{AC,pu}} &= - \frac{\partial P_{Loss,pu}}{\partial Q_{AC,pu}} \\
-&= \frac{-Q_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
+&= \frac{-Q_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{V_{AC,pu}*\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
 \end{aligned}
 $$
-
-
-
-
