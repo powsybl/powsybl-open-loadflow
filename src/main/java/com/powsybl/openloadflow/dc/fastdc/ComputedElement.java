@@ -19,12 +19,13 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -119,4 +120,30 @@ public interface ComputedElement {
         loadFlowContext.getJacobianMatrix().solveTransposed(elementsStates);
         return elementsStates;
     }
+
+    static Map<LfAction, ComputedElement> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<LfAction, ComputedElement> computedElements = lfActionById.values().stream()
+                .map(lfAction -> {
+                    ComputedElement element = switch (lfAction) {
+                        case AbstractLfTapChangerAction<?> abstractLfTapChangerAction ->
+                            new ComputedTapPositionChangeElement(abstractLfTapChangerAction.getChange(), equationSystem);
+                        case AbstractLfBranchAction<?> abstractLfBranchAction when abstractLfBranchAction.getEnabledBranch() != null ->
+                            new ComputedSwitchBranchElement(abstractLfBranchAction.getEnabledBranch(), true, equationSystem);
+                        case AbstractLfBranchAction<?> abstractLfBranchAction when abstractLfBranchAction.getDisabledBranch() != null ->
+                            new ComputedSwitchBranchElement(abstractLfBranchAction.getDisabledBranch(), false, equationSystem);
+                        default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
+                    };
+                    return Map.entry(lfAction, element);
+                })
+                .filter(e -> e.getValue().getLfBranchEquation() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
+        ComputedElement.setComputedElementIndexes(computedElements.values());
+        return computedElements;
+    }
+
 }

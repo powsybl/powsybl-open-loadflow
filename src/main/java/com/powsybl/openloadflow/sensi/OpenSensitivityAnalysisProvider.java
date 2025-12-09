@@ -208,7 +208,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         } else {
             analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
         }
-        analysis.analyse(network, workingVariantId, contingencies, actions, creationParameters, variableSets, decoratedFactorReader, resultWriter, sensiReportNode, sensitivityAnalysisParametersExt, computationManager.getExecutor());
+        analysis.analyse(network, workingVariantId, contingencies, operatorStrategies, actions, creationParameters, variableSets,
+                decoratedFactorReader, resultWriter, sensiReportNode, sensitivityAnalysisParametersExt, computationManager.getExecutor());
         return null;
     }
 

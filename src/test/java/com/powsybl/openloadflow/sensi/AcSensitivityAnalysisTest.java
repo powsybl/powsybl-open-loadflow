@@ -16,6 +16,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.contingency.LineContingency;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -128,13 +129,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         AtomicInteger statusCallCount = new AtomicInteger(0);
         SensitivityResultWriter resultWriter = new SensitivityResultWriter() {
 
-            public void writeSensitivityValue(int factorIndex, int contingencyIndex, double value, double functionReference) {
+            public void writeSensitivityValue(int factorIndex, int contingencyIndex, int operatorStrategyIndex, double value, double functionReference) {
                 valueCallCount.incrementAndGet();
             }
 
             @Override
             public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
                 statusCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void writeOperatorStrategyStatus(int i, int i1, SensitivityAnalysisResult.Status status) {
+                // TODO
             }
         };
 
@@ -2000,9 +2006,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Executor executor = LocalComputationManager.getDefault().getExecutor();
         List<SensitivityVariableSet> noVar = Collections.emptyList();
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        List<OperatorStrategy> operatorStrategies = Collections.emptyList();
         List<Action> actions = Collections.emptyList();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId,
-                contingencies, actions, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
+                contingencies, operatorStrategies, actions, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
                 openSensitivityAnalysisParameters, executor));
     }
 

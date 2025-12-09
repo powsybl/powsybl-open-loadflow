@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.contingency.strategy.ConditionalActions;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 
@@ -25,7 +26,10 @@ public final class OperatorStrategies {
     }
 
     private static boolean hasValidContingency(OperatorStrategy operatorStrategy, Set<String> contingencyIds) {
-        return contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId());
+        if (operatorStrategy.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC) {
+            return contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId());
+        }
+        return true;
     }
 
     private static Optional<String> findMissingActionId(OperatorStrategy operatorStrategy, Set<String> actionIds) {
@@ -53,7 +57,6 @@ public final class OperatorStrategies {
     public static Map<String, List<OperatorStrategy>> indexByContingencyId(List<PropagatedContingency> propagatedContingencies,
                                                                            List<OperatorStrategy> operatorStrategies,
                                                                            Map<String, Action> actionsById,
-                                                                           Set<Action> neededActions,
                                                                            boolean checkOperatorStrategies) {
 
         Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
@@ -65,13 +68,6 @@ public final class OperatorStrategies {
                     findMissingActionId(operatorStrategy, actionIds)
                             .ifPresent(id -> throwMissingOperatorStrategyAction(operatorStrategy, id));
                 }
-
-                for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-                    for (String actionId : conditionalActions.getActionIds()) {
-                        Action action = actionsById.get(actionId);
-                        neededActions.add(action);
-                    }
-                }
                 operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
                         .add(operatorStrategy);
             } else {
@@ -81,6 +77,15 @@ public final class OperatorStrategies {
             }
         }
         return operatorStrategiesByContingencyId;
+    }
+
+    public static Set<Action> getNeededActions(Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
+                                               Map<String, Action> actionsById) {
+        return operatorStrategiesByContingencyId.entrySet().stream().flatMap(e -> e.getValue().stream())
+                .flatMap(operatorStrategy -> operatorStrategy.getConditionalActions().stream()
+                        .flatMap(conditionalActions -> conditionalActions.getActionIds().stream())
+                .map(actionsById::get)
+                .filter(Objects::nonNull)).collect(Collectors.toSet());
     }
 
     public static void check(List<OperatorStrategy> operatorStrategies, List<Contingency> contingencies, List<Action> actions) {

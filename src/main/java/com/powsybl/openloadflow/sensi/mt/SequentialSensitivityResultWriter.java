@@ -32,23 +32,23 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     static final int VALUE_BATCH_SIZE = 100;
     private final ThreadLocal<List<SensitivityRecord>> localBatch = ThreadLocal.withInitial(() -> new ArrayList<>(VALUE_BATCH_SIZE));
 
-    record SensitivityRecord(int factorIndex, int contigencyIndex, double value, double functionReference) { }
+    record SensitivityRecord(int factorIndex, int contingencyIndex, int operatorStrategyIndex, double value, double functionReference) { }
 
     public SequentialSensitivityResultWriter(SensitivityResultWriter sensitivityResultWriter) {
         this.sensitivityResultWriter = sensitivityResultWriter;
     }
 
     @Override
-    public void writeSensitivityValue(int factorIndex, int contingencyIndex, double value, double functionReference) {
+    public void writeSensitivityValue(int factorIndex, int contingencyIndex, int operatorStrategyIndex, double value, double functionReference) {
         List<SensitivityRecord> records = localBatch.get();
         if (contingencyIndex == -1) {
             // Write the base case only once
             baseCaseSensitivityValueWritten.computeIfAbsent(factorIndex, i -> {
-                records.add(new SensitivityRecord(factorIndex, contingencyIndex, value, functionReference));
+                records.add(new SensitivityRecord(factorIndex, contingencyIndex, operatorStrategyIndex, value, functionReference));
                 return Boolean.TRUE;
             });
         } else {
-            records.add(new SensitivityRecord(factorIndex, contingencyIndex, value, functionReference));
+            records.add(new SensitivityRecord(factorIndex, contingencyIndex, operatorStrategyIndex, value, functionReference));
         }
         if (records.size() == VALUE_BATCH_SIZE) {
             flush();
@@ -58,8 +58,8 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     public void flush() {
         List<SensitivityRecord> records = localBatch.get();
         localBatch.set(new ArrayList<>(VALUE_BATCH_SIZE));
-        executor.execute(() -> records.stream().forEach(r ->
-                sensitivityResultWriter.writeSensitivityValue(r.factorIndex, r.contigencyIndex, r.value, r.functionReference)));
+        executor.execute(() -> records.forEach(r ->
+                sensitivityResultWriter.writeSensitivityValue(r.factorIndex, r.contingencyIndex, r.operatorStrategyIndex, r.value, r.functionReference)));
     }
 
     @Override
@@ -68,6 +68,11 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
 
         // Not called for the base case. No need to manage duplicate calls.
         executor.execute(() -> sensitivityResultWriter.writeContingencyStatus(contingencyIndex, status));
+    }
+
+    @Override
+    public void writeOperatorStrategyStatus(int i, int i1, SensitivityAnalysisResult.Status status) {
+        // TODO
     }
 
     @Override
