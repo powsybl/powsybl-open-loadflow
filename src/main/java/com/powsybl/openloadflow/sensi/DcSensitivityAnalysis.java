@@ -525,7 +525,28 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                     calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
                             workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, contingency,
-                            connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, sensiReportNode, Collections.emptySet(), false);
+                            connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements,
+                            Collections.emptySet(), resultWriter, sensiReportNode, Collections.emptySet(), false);
+
+                    // process operator strategies
+                    for (OperatorStrategy operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingency.getContingency().getId(), Collections.emptyList())) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            stopwatch.stop();
+                            throw new PowsyblException("Computation was interrupted");
+                        }
+
+                        var postContingencyConnectivityAnalysisResult = new ConnectivityBreakAnalysis.ConnectivityAnalysisResult(contingency, lfNetwork);
+                        List<String> operatorStrategyActionIds = operatorStrategy.getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
+                        List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
+                        var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
+                                postContingencyConnectivityAnalysisResult,
+                                connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                                connectivityBreakAnalysisResults.contingenciesStates(),
+                                operatorStrategyLfActions,
+                                actionElementsIndexByLfAction,
+                                actionsStates);
+                        // TODO
+                    }
                 }
 
                 LOGGER.info("Processing contingencies with connectivity break");
