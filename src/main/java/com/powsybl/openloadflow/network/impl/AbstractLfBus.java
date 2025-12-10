@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -59,6 +60,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected QLimitType qLimitType;
 
     protected final List<LfGenerator> generators = new ArrayList<>();
+
+    protected final List<LfVoltageSourceConverter> converters = new ArrayList<>();
 
     protected LfShunt shunt;
 
@@ -588,6 +591,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<LfVoltageSourceConverter> getConverters() {
+        return converters;
+    }
+
+    @Override
     public List<LfLoad> getLoads() {
         return loads;
     }
@@ -927,6 +935,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getFictitiousInjectionTargetQ() {
         return 0;
+    }
+
+    @Override
+    public void addConverter(LfVoltageSourceConverter converter) {
+        converters.add(converter);
     }
 
 }
