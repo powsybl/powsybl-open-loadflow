@@ -1208,9 +1208,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
 
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Switch contingency is not yet supported with sensitivity function of type BUS_VOLTAGE", e.getCause().getMessage());
     }
@@ -1348,7 +1349,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l46"), LoadFlowAssert.DELTA_POWER);
         // with contingency context specific (no pre contingency state asked...)
         factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1", "l12")); // specific contingency context.
-        result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("l12", "g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l46"), LoadFlowAssert.DELTA_POWER);
         assertTrue(result.getValues(null).isEmpty()); // nothing because invalid factor in pre contingency state.
