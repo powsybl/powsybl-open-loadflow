@@ -311,7 +311,9 @@ public final class Networks {
                 yield Optional.empty();
             }
             case GENERATOR -> Optional.of(((Generator) identifiable).getRegulatingTerminal());
-            case BATTERY -> Optional.of(((Battery) identifiable).getExtension(VoltageRegulation.class).getRegulatingTerminal());
+            case BATTERY -> ((Battery) identifiable).getExtension(VoltageRegulation.class) != null
+                    ? Optional.of(((Battery) identifiable).getExtension(VoltageRegulation.class).getRegulatingTerminal())
+                    : Optional.empty();
             case SHUNT_COMPENSATOR -> Optional.of(((ShuntCompensator) identifiable).getRegulatingTerminal());
             case STATIC_VAR_COMPENSATOR -> Optional.of(((StaticVarCompensator) identifiable).getRegulatingTerminal());
             case HVDC_CONVERTER_STATION -> ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC
