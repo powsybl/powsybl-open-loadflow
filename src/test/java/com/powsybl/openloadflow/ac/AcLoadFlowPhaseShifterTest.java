@@ -695,4 +695,56 @@ class AcLoadFlowPhaseShifterTest {
         assertEquals(1, t2wt.getPhaseTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
     }
+
+    @Test
+    void reproIssue() {
+        selectNetwork(PhaseControlFactory.createNetworkWithT2wtExaggerateRxgbTable());
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+
+        // capture values, no regulation, tap 0
+        t2wt.getPhaseTapChanger().setTapPosition(0).setRegulating(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(19.640065492845597, t2wt.getTerminal1());
+        assertActivePowerEquals(-19.470174369634652, t2wt.getTerminal2()); // ~0.2 MW losses
+
+        // capture values, no regulation, tap 1
+        t2wt.getPhaseTapChanger().setTapPosition(1);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(51.600451222217735, t2wt.getTerminal1());
+        assertActivePowerEquals(-51.01933286447334, t2wt.getTerminal2()); // ~0.6 MW losses
+
+        // capture values, no regulation, tap 2
+        t2wt.getPhaseTapChanger().setTapPosition(2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(68.79959358311605, t2wt.getTerminal1());
+        assertActivePowerEquals(-67.1856778979987, t2wt.getTerminal2()); // ~1.6 MW losses
+
+        // set at tap 0, enable regulation to have PST moving to tap 2
+        t2wt.getPhaseTapChanger().setTapPosition(0)
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulationValue(-100.)
+                .setTargetDeadband(10.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(96.97419631337866, t2wt.getTerminal1()); // fixme should be 68.79959358311605
+        assertActivePowerEquals(-96.23804384142429, t2wt.getTerminal2()); // fixme should be -67.1856778979987
+
+        // damn, looks like rxgb from tap 0 is used, although we moved to tap 2 ? check hypothesis ...
+        // put in tap 2 rxgb params from tap 0, disable regulation, set to tap 2
+        t2wt.getPhaseTapChanger().getStep(2).setR(-50).setX(-50).setG(-50).setB(-50);
+        t2wt.getPhaseTapChanger().setRegulating(false).setTapPosition(2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
+        // hypothesis verified
+        assertActivePowerEquals(96.97419631337866, t2wt.getTerminal1());
+        assertActivePowerEquals(-96.23804384142429, t2wt.getTerminal2());
+    }
 }
