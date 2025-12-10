@@ -24,7 +24,7 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.dc.fastdc.AbstractComputedElement;
+import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
@@ -1197,7 +1197,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             Mockito.when(contingencyElement.getLfBranch()).thenReturn(branch);
             contingencyElements.add(contingencyElement);
         }
-        e = assertThrows(PowsyblException.class, () -> AbstractComputedElement.initRhs(equationSystem, contingencyElements));
+        e = assertThrows(PowsyblException.class, () -> ComputedElement.initRhs(equationSystem, contingencyElements));
         assertEquals("Too many elements 3000, maximum is 2684 for a system with 100000 equations", e.getMessage());
     }
 
