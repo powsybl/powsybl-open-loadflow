@@ -423,10 +423,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "a"));
 
-        List<Contingency> contingencies = Collections.emptyList();
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
@@ -438,10 +437,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "a"));
 
-        List<Contingency> contingencies = Collections.emptyList();
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
@@ -455,9 +453,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<Contingency> contingencies = List.of(new Contingency("a", new BranchContingency("NHV1_NHV2_2")));
 
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }

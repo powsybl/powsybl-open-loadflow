@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
+import com.powsybl.sensitivity.SensitivityAnalysisRunParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
 import org.junit.jupiter.api.Test;
 
@@ -47,8 +48,10 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
             network.getLineStream().collect(Collectors.toList()));
-        sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault(), reportNode);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setReportNode(reportNode)
+                .setParameters(sensiParameters);
+        sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, runParameters);
 
         assertReportEquals("/esgTutoReport.txt", reportNode);
     }
@@ -66,8 +69,10 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
                 .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SENSITIVITY_ANALYSIS));
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
-        sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(), factors, Collections.emptyList(), Collections.emptyList(),
-                sensiParameters, LocalComputationManager.getDefault(), reportNode);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setReportNode(reportNode)
+                .setParameters(sensiParameters);
+        sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(), factors, runParameters);
 
         assertReportEquals("/esgTutoReportDetailedNrReportSensi.txt", reportNode);
     }

@@ -99,7 +99,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        
+
         assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(0.05d, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.35d, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -210,13 +210,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("l23+l34", new BranchContingency("l23"), new BranchContingency("l34")));
 
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
-                                                             network.getBranchStream().collect(Collectors.toList()));
+                network.getBranchStream().collect(Collectors.toList()));
 
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        
 
         Network networkDisconnected = FourBusNetworkFactory.create();
         networkDisconnected.getLine("l23").getTerminal1().disconnect();
@@ -248,7 +247,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        
 
         assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(0.05d, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -281,7 +279,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        
 
         assertEquals(14, result.getValues("l34").size());
         assertEquals(-2d / 3d, result.getBranchFlow1SensitivityValue("l34", "g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -315,13 +312,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")));
 
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                                                             network.getBranchStream().collect(Collectors.toList()));
+                network.getBranchStream().collect(Collectors.toList()));
 
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        
 
         assertEquals(14, result.getValues("l34").size());
         assertEquals(-0.5d, result.getBranchFlow1SensitivityValue("l34", "g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -362,7 +358,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        
 
         assertEquals(14, result.getValues("l34").size());
         assertEquals(-0.5d, result.getBranchFlow1SensitivityValue("l34", "g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -399,7 +394,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        
 
         assertEquals(36, result.getValues("l34+l48").size());
 
@@ -462,7 +456,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
-
         assertEquals(16, result.getValues("l34+l45").size());
 
         assertEquals(-2d / 3d, result.getBranchFlow1SensitivityValue("l34+l45", "g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -501,7 +494,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-
 
         assertEquals(33, result.getValues("l34+l47").size());
 
@@ -557,7 +549,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
-
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "d1", "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "d1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "d1", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -586,7 +577,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-
 
         assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(15d / 4d * Math.PI / 180d, result.getBranchFlow1SensitivityValue("l23", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
@@ -619,7 +609,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-
 
         assertEquals(7, result.getValues("l34").size());
 
