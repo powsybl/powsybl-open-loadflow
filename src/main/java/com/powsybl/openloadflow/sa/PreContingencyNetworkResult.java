@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LoadFlowModel;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -23,8 +24,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Map<String, BranchResult> branchResults = new HashMap<>();
 
-    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
-        super(network, monitorIndex, createResultExtension);
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+        super(network, monitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
     }
 
     @Override
@@ -33,11 +34,11 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         branchResults.clear();
     }
 
-    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled) {
+    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
         addResults(monitor, branch -> {
-            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension)
+            branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, zeroImpedanceFlows, loadFlowModel)
                     .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
-        }, isBranchDisabled);
+        }, isBranchDisabled, zeroImpedanceFlows);
     }
 
     @Override
@@ -47,8 +48,11 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
-        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled);
-        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled);
+        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getNoneStateMonitor(), network);
+        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
+        zeroImpedanceFlows.clear();
+        zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
+        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
     }
 
     public BranchResult getBranchResult(String branchId) {
