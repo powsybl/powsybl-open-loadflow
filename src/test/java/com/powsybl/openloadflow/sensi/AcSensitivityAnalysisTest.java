@@ -66,7 +66,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                                                              network.getLineStream().collect(Collectors.toList()));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(2, result.getValues().size());
         assertEquals(0.498d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -224,7 +226,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g4")),
                                                              network.getBranchStream().collect(Collectors.toList()));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
 
@@ -247,7 +251,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                                                              network.getBranchStream().collect(Collectors.toList()));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(15, result.getValues().size());
 
@@ -282,7 +288,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()), null, TwoSides.TWO);
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(15, result.getValues().size());
 
@@ -323,7 +331,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk"))
             .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
 
@@ -355,7 +366,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                         ContingencyContext.none()))
                 .toList();
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
 
@@ -377,7 +391,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                                                              network.getBranchStream().collect(Collectors.toList()));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(15, result.getValues().size());
 
@@ -410,7 +426,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
 
@@ -433,7 +451,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerPSTAngle("l14", "l23"));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(0, result.getBranchFlow1SensitivityValue("l23", "l14", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_ANGLE);
@@ -441,7 +461,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         network.getBranch("l23").getTerminal1().connect();
         network.getBranch("l23").getTerminal2().disconnect();
 
-        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result2.getValues().size());
         assertEquals(0, result2.getBranchFlow1SensitivityValue("l23", "l14", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_ANGLE);
@@ -459,7 +479,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerPSTAngle("l14", "l23"));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(0, result.getBranchFlow1SensitivityValue("l23", "l14", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_ANGLE);
@@ -467,7 +489,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         network.getBranch("l23").getTerminal1().connect();
         network.getBranch("l23").getTerminal2().disconnect();
 
-        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result2.getValues().size());
         assertEquals(0, result2.getBranchFlow1SensitivityValue("l23", "l14", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_ANGLE);
@@ -484,7 +506,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                                                              network.getBranchStream().collect(Collectors.toList()));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(15, result.getValues().size());
 
@@ -505,7 +529,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
 
@@ -530,7 +556,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         factors.addAll(factorsSide1);
         factors.addAll(factorsSide2);
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(10, result.getValues().size());
 
@@ -564,7 +592,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         factors.addAll(factorsSide1);
         factors.addAll(factorsSide2);
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(6, result.getValues().size());
 
@@ -588,7 +618,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
         assertEquals(766.4654d, result.getBranchCurrent1FunctionReferenceValue("l23"), LoadFlowAssert.DELTA_I);
@@ -609,7 +641,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "g1"))
                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(4, result.getValues().size());
         assertEquals(0.04997d, result.getBusVoltageSensitivityValue("g1", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
@@ -629,7 +663,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "g2"))
                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(4, result.getValues().size());
         assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // no impact on a pv
@@ -650,7 +686,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "g2"))
                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // 1 on itself
@@ -705,7 +743,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "T2wT"))
                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(4, result.getValues().size());
         assertEquals(0d, result.getBusVoltageSensitivityValue("T2wT", "BUS_1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
@@ -720,7 +760,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setRegulationTerminal(t2wt.getTerminal1()) // control will be disabled.
                 .setTargetV(135.0);
 
-        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(4, result2.getValues().size());
         assertEquals(0d, result2.getBusVoltageSensitivityValue("T2wT", "BUS_1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
@@ -745,7 +785,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "cs2"))
                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(0d, result.getBusVoltageSensitivityValue("cs2", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
         assertEquals(1d, result.getBusVoltageSensitivityValue("cs2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
@@ -769,7 +811,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "T3wT"))
                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(4, result.getValues().size());
         assertEquals(0d, result.getBusVoltageSensitivityValue("T3wT", "BUS_1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
@@ -790,7 +834,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "GEN"))
                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         Function<String, Double> getV = busId -> network.getBusView().getBus(busId).getV();
         assertEquals(getV.apply("VLGEN_0"), result.getBusVoltageFunctionReferenceValue("NGEN"), LoadFlowAssert.DELTA_V);
@@ -811,7 +857,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001).setNewtonRaphsonConvEpsPerEq(0.0001);
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
         assertEquals(0.00963d, result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
         assertEquals(0.01926d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-5);
@@ -821,7 +869,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 createBusVoltagePerTargetQ("b3", "g1", null),
                 createBusVoltagePerTargetQ("b2", "g1", null),
                 createBusVoltagePerTargetQ("b1", "g1", null)});
-        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b1", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
         assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b3", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
         assertEquals(0d, result.getBusVoltageSensitivityValue("g1", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 0);
@@ -829,7 +877,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         sensiParameters.setFlowVoltageSensitivityValueThreshold(0.1);
 
-        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0, result.getValues().size());
     }
 
@@ -843,7 +891,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0.0741, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
         // Other sensi should be null
         assertEquals(0, result.getSensitivityValue("g1", "b2", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-6);
@@ -851,11 +901,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(3, result.getValues().size());
 
         sensiParameters.setFlowVoltageSensitivityValueThreshold(0.1);
-        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0, result.getValues().size());
 
         sensiParameters.setFlowVoltageSensitivityValueThreshold(0.05);
-        result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        result = sensiRunner.run(network, factors, runParameters);
         assertEquals(1, result.getValues().size());
     }
 
@@ -870,7 +920,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(0.788, result.getSensitivityValue("g1", "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
         assertEquals(-0.789, result.getSensitivityValue("g1", "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE), 1e-3);
@@ -883,14 +935,15 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // Tests mainly created to satisfy code coverage criteria
         Network network = ShuntNetworkFactory.create();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
-
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
         // Test a combination that is not supported yet
         SensitivityFactor notSupportedYetAndSonarWantsToSeeItInAction =
                 new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, "b1",
                         SensitivityVariableType.INJECTION_ACTIVE_POWER, "b2", false,
                         ContingencyContext.all());
         Throwable thrown = assertThrows(CompletionException.class,
-                () -> sensiRunner.run(network, Arrays.asList(notSupportedYetAndSonarWantsToSeeItInAction), Collections.emptyList(), Collections.emptyList(), sensiParameters));
+                () -> sensiRunner.run(network, Arrays.asList(notSupportedYetAndSonarWantsToSeeItInAction), runParameters));
         assertTrue(thrown.getMessage().contains("Variable type INJECTION_ACTIVE_POWER not supported with function type BUS_REACTIVE_POWER"));
 
         // Test sensitivity for a bus that does not exist in the LfNetwork
@@ -899,7 +952,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, "NotConnected",
                         SensitivityVariableType.BUS_TARGET_VOLTAGE, "g1", false,
                         ContingencyContext.all());
-        SensitivityAnalysisResult result = sensiRunner.run(network, Arrays.asList(injectionBusDoesNotExist), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, Arrays.asList(injectionBusDoesNotExist), runParameters);
         assertEquals(0,
                 result.getSensitivityValue("g1", "NotConnected", SensitivityFunctionType.BUS_REACTIVE_POWER, SensitivityVariableType.BUS_TARGET_VOLTAGE),
                 0);
@@ -914,8 +967,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
 
@@ -945,7 +999,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Regulating terminal for 'd3' not found", e.getCause().getMessage());
     }
@@ -963,8 +1021,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<Contingency> contingencies = Collections.emptyList();
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Regulating terminal for 'a' not found", e.getCause().getMessage());
     }
@@ -983,8 +1044,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<Contingency> contingencies = Collections.emptyList();
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Regulating terminal for 'l23' not found", e.getCause().getMessage());
     }
@@ -1000,8 +1064,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<Contingency> contingencies = Collections.emptyList();
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
 
         assertTrue(e.getCause() instanceof PowsyblException);
 
@@ -1031,7 +1098,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                                                                          SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
                                                                          false, ContingencyContext.all());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -1060,8 +1129,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_CURRENT_1, List.of("l12", "l13", "l23"),
                 SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
                 false, ContingencyContext.all());
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(loadFlowDiff.get("l12"), result.getBranchCurrent1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
         assertEquals(loadFlowDiff.get("l13"), result.getBranchCurrent1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_I);
@@ -1085,13 +1155,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_CURRENT_1, List.of("l12", "l13", "l23"),
                 SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
                 false, ContingencyContext.all());
-
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
         if (acEmulationParameter) {
-            CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+            CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
             assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
         } else {
             // If parameter hvdcAcEmulation is false, no problem
-            SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+            SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
             assertEquals(3, result.getValues().size());
         }
     }
