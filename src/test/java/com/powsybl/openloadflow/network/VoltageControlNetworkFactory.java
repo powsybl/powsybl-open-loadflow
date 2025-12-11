@@ -948,22 +948,23 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     }
 
     /**
-     * A very small network to test with a T3wt.
+     * A very small network to test with a T3wt and a cycle.
      *<pre>
-     *     G1        LD2        LD3
-     *     |    L12   |          |
-     *     |  ------- |          |
-     *     B1         B2         B3
-     *                  \        /
-     *                leg1     leg2
-     *                   \      /
-     *                     T3WT
-     *                      |
-     *                     leg3
-     *                      |
-     *                      B4
-     *                      |
-     *                     LD4
+     *                           T2WT
+     *     G1        LD2  L25  /     \  L36   LD3
+     *     |    L12   | ----- |       | ----- |
+     *     |  ------- |       B5     B6       |
+     *     B1         B2                     B3
+     *                  \                   /
+     *                   leg1            leg2
+     *                     \            /
+     *                      \__ T3WT __/
+     *                           |
+     *                          leg3
+     *                           |
+     *                           B4
+     *                           |
+     *                          LD4
      *</pre>
      */
     public static Network createNetworkWithT3wtAndT2wt() {
