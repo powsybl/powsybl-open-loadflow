@@ -948,6 +948,85 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     }
 
     /**
+     * A very small network to test with a T3wt.
+     *<pre>
+     *     G1        LD2        LD3
+     *     |    L12   |          |
+     *     |  ------- |          |
+     *     B1         B2         B3
+     *                  \        /
+     *                leg1     leg2
+     *                   \      /
+     *                     T3WT
+     *                      |
+     *                     leg3
+     *                      |
+     *                      B4
+     *                      |
+     *                     LD4
+     *</pre>
+     */
+    public static Network createNetworkWithT3wtAndT2wt() {
+
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        network.newSubstation()
+                .setId("SUBSTATION2")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl5 = network.getSubstation("SUBSTATION2").newVoltageLevel()
+                .setId("VL_5")
+                .setNominalV(132.0)
+                .setLowVoltageLimit(118.8)
+                .setHighVoltageLimit(145.2)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl5.getBusBreakerView().newBus()
+                .setId("BUS_5")
+                .add();
+        VoltageLevel vl6 = network.getSubstation("SUBSTATION2").newVoltageLevel()
+                .setId("VL_6")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0)
+                .setHighVoltageLimit(100)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl6.getBusBreakerView().newBus()
+                .setId("BUS_6")
+                .add();
+        network.newLine()
+                .setId("LINE_25")
+                .setBus1("BUS_2")
+                .setBus2("BUS_5")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .add();
+        network.newLine()
+                .setId("LINE_36")
+                .setBus1("BUS_3")
+                .setBus2("BUS_6")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .add();
+        network.getSubstation("SUBSTATION2")
+                .newTwoWindingsTransformer()
+                .setId("T2wT")
+                .setRatedU1(132.0)
+                .setRatedU2(33.0)
+                .setR(17.0)
+                .setX(10.0)
+                .setG(0.00573921028466483)
+                .setB(0.000573921028466483)
+                .setBus1("BUS_5")
+                .setBus2("BUS_6")
+                .add();
+
+        return network;
+    }
+
+    /**
      *
      *     G1        LD2           LD3
      *     |    L12   |   T2WT2    |
