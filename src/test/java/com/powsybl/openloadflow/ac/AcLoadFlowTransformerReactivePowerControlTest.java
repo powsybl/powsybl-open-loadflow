@@ -528,7 +528,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(3.891, network.getLine("LINE_12").getTerminal1());
+        assertReactivePowerEquals(3.893, network.getLine("LINE_12").getTerminal1());
         assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
     }
@@ -572,9 +572,9 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setSolvedTapPosition(0) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(0)
-                .setRegulationTerminal(t3wt.getLeg2().getTerminal())
+                .setRegulationTerminal(t3wt.getLeg1().getTerminal())
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
-                .setRegulationValue(0.035);
+                .setRegulationValue(-0.035);
 
         parameters.setTransformerVoltageControlOn(true);
 
