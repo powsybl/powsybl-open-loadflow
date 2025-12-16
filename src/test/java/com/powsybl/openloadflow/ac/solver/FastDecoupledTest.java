@@ -185,11 +185,14 @@ class FastDecoupledTest {
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
-    @Test
-    void testWithShuntVoltageControl() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testWithShuntVoltageControl(boolean isSparseMatrix) {
         Network network = ShuntNetworkFactory.create();
         ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        // Check that in case of SparseMatrixFactory, columns are filled in the right order
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(isSparseMatrix ? new SparseMatrixFactory() : new DenseMatrixFactory()));
 
         parametersFastDecoupled.setUseReactiveLimits(true)
                 .setDistributedSlack(true);
@@ -200,6 +203,18 @@ class FastDecoupledTest {
         parametersFastDecoupled.setShuntCompensatorVoltageControlOn(true);
         parametersNewtonRaphson.setShuntCompensatorVoltageControlOn(true);
 
+        // With generator mode
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+
+        // Incremental mode
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
@@ -207,7 +222,7 @@ class FastDecoupledTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testWithContinuousTransformerVoltageControl(boolean isSparseMatrix) {
+    void testWithTransformerVoltageControl(boolean isSparseMatrix) {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
 
@@ -221,6 +236,23 @@ class FastDecoupledTest {
         parametersFastDecoupled.setTransformerVoltageControlOn(true);
         parametersNewtonRaphson.setTransformerVoltageControlOn(true);
 
+        // With generator mode
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+
+        // Incremental mode
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
@@ -231,9 +263,11 @@ class FastDecoupledTest {
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
-    @Test
-    void testWithContinuousTransformerActivePowerControl() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testWithTransformerActivePowerControl(boolean isSparseMatrix) {
+        // Check that in case of SparseMatrixFactory, columns are filled in the right order
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(isSparseMatrix ? new SparseMatrixFactory() : new DenseMatrixFactory()));
 
         Network network = PhaseControlFactory.createNetworkWithT2wt();
 
@@ -244,7 +278,10 @@ class FastDecoupledTest {
         parametersFastDecoupled.setPhaseShifterRegulationOn(true);
         parametersNewtonRaphson.setPhaseShifterRegulationOn(true);
 
-        // Regulation on side 1
+        // Continuous mode
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
+            // Regulation on side 1
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
@@ -253,9 +290,50 @@ class FastDecoupledTest {
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
-
-        // Regulation on side 2
+            // Regulation on side 2
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+
+        // Incremental mode
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+            // Regulation on side 1
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83);
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+            // Regulation on side 2
+        t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
+        compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testWithTransformerReactivePowerControl(boolean isSparseMatrix) {
+        Network network = VoltageControlNetworkFactory.createNetworkWith2T2wtAndSwitch();
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
+
+        // Check that in case of SparseMatrixFactory, columns are filled in the right order
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(isSparseMatrix ? new SparseMatrixFactory() : new DenseMatrixFactory()));
+
+        parametersFastDecoupled.setDistributedSlack(true);
+        parametersNewtonRaphson.setDistributedSlack(true);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setTransformerReactivePowerControl(true);
+        parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerReactivePowerControl(true);
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(3.0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationValue(-10.0);
+
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
