@@ -115,24 +115,25 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Iterator<SingleEquation<V, E>> itSingleEquation = equationSystem.getIndex().getSortedSingleEquationsToSolve().iterator();
         Iterator<EquationArray<V, E>> itEquationArray = equationSystem.getIndex().getSortedEquationArraysToSolve().iterator();
 
-        // When building the matrix, it must be filled in the column order (in case of SparseMatrix)
+        // When initializing the matrix, it must be filled in the column order (in case of SparseMatrix)
         SingleEquation<V, E> eq = itSingleEquation.hasNext() ? itSingleEquation.next() : null;
         EquationArray<V, E> eqArray = itEquationArray.hasNext() ? itEquationArray.next() : null;
         int index = 0; // index is either the column number in case of SingleEquation, either the first column in case of EquationArray
         while (eq != null || eqArray != null) {
-            if (eqArray != null && index == eqArray.getFirstColumn()) { // Next index is an EquationArray
-                eqArray.der((column, row, value, matrixElementIndex) ->
-                        matrix.addAndGetIndex(row, column, value));
-                index += eqArray.getLength();
-                eqArray = itEquationArray.hasNext() ? itEquationArray.next() : null;
-            } else if (eq != null) { // Next index is a SingleEquation
-                final int column = eq.getColumn();
+            while (eq != null && index == eq.getColumn()) { // Compute derivatives of all SingleEquations until next EquationArray
+                final int column = index;
                 eq.der((variable, value, matrixElementIndex) -> {
                     int row = variable.getRow();
                     return matrix.addAndGetIndex(row, column, value);
                 });
                 index++;
                 eq = itSingleEquation.hasNext() ? itSingleEquation.next() : null;
+            }
+            while (eqArray != null && index == eqArray.getFirstColumn()) { // Compute derivatives of next EquationArrays
+                eqArray.der((column, row, value, matrixElementIndex) ->
+                        matrix.addAndGetIndex(row, column, value));
+                index += eqArray.getLength();
+                eqArray = itEquationArray.hasNext() ? itEquationArray.next() : null;
             }
         }
 
