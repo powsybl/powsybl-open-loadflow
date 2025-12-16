@@ -38,22 +38,16 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double lossFactor2;
 
-    protected final double pMaxFromCS1toCS2;
-
-    protected final double pMaxFromCS2toCS1;
-
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
         variables = List.of(ph1Var, ph2Var);
-        k = hvdc.getDroop() * 180 / Math.PI;
-        p0 = hvdc.getP0();
+        k = hvdc.getAcEmulationControl().getDroop() * 180 / Math.PI;
+        p0 = hvdc.getAcEmulationControl().getP0();
         r = hvdc.getR();
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
-        pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
-        pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
     }
 
     protected static double rawP(double p0, double k, double ph1, double ph2) {
@@ -83,8 +77,8 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
-    protected static double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossNonController, double r) {
-        double lineInputPower = (1 - lossController) * Math.abs(boundedP);
+    public static double getAbsActivePowerWithLosses(double pController, double lossController, double lossNonController, double r) {
+        double lineInputPower = (1 - lossController) * Math.abs(pController);
         return (1 - lossNonController) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
     }
 

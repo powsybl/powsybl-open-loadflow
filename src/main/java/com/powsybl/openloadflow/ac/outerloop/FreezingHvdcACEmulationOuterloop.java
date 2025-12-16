@@ -68,7 +68,7 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
                 .filter(LfHvdc::isAcEmulation)
                 .filter(lfHvdc -> !lfHvdc.isDisabled())
                 .forEach(lfHvdc -> {
-                    double setPointBus1 = lfHvdc.freezeFromCurrentAngles();
+                    double setPointBus1 = lfHvdc.getAcEmulationControl().switchToFrozenState();
                     if (!Double.isNaN(setPointBus1)) {
                         Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);
                     }
@@ -94,14 +94,14 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
 
         List<LfHvdc> frozenHvdc = context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .filter(LfHvdc::isAcEmulationFrozen)
+                .filter(hvdc -> hvdc.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FROZEN)
                 .toList();
 
         if (!frozenHvdc.isEmpty()) {
 
             for (LfHvdc lfHvdc : frozenHvdc) {
                 Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
-                lfHvdc.setAcEmulationFrozen(false);
+                lfHvdc.getAcEmulationControl().switchToLinearMode();
             }
 
             // Return to initial state (we are in a possibly non-physical state after first partial resolution)

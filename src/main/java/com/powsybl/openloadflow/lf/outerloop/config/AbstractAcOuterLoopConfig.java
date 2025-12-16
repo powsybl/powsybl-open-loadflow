@@ -52,6 +52,13 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
+    protected static Optional<AcOuterLoop> createAcHvdcAcEmulationOuterLoop(LoadFlowParameters parameters) {
+        if (parameters.isHvdcAcEmulation()) {
+            return Optional.of(new AcHvdcAcEmulationOuterLoop());
+        }
+        return Optional.empty();
+    }
+
     protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         if (loadFlowParametersOverride.isAreaInterchangeControl(parametersExt)) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParametersOverride.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());

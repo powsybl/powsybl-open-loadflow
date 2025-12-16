@@ -127,6 +127,11 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         }
     }
 
+    @Override
+    public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        AcEquationSystemCreator.updateHvdcAcEmulationEquations(hvdc);
+    }
+
     private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()

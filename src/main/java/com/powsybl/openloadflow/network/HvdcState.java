@@ -13,14 +13,16 @@ package com.powsybl.openloadflow.network;
 public class HvdcState extends ElementState<LfHvdc> {
 
     private final boolean acEmulation;
-    private final double angleDifferenceToFreeze;
-    private final boolean acEmulationFrozen;
+    private final LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus;
 
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
         this.acEmulation = hvdc.isAcEmulation();
-        this.acEmulationFrozen = hvdc.isAcEmulationFrozen();
-        this.angleDifferenceToFreeze = hvdc.getAngleDifferenceToFreeze();
+        if (this.acEmulation) {
+            this.acEmulationStatus = hvdc.getAcEmulationControl().getAcEmulationStatus();
+        } else {
+            this.acEmulationStatus = null;
+        }
     }
 
     public static HvdcState save(LfHvdc hvdc) {
@@ -31,7 +33,8 @@ public class HvdcState extends ElementState<LfHvdc> {
     public void restore() {
         super.restore();
         element.setAcEmulation(acEmulation);
-        element.setAcEmulationFrozen(acEmulationFrozen);
-        element.setAngleDifferenceToFreeze(angleDifferenceToFreeze);
+        if (acEmulation) {
+            element.getAcEmulationControl().setAcEmulationStatus(acEmulationStatus);
+        }
     }
 }

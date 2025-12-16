@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRange;
@@ -55,6 +56,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private boolean acEmulationFrozen = false;
 
+    private AcEmulationControl acEmulationControl;
+
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
         this.id = Objects.requireNonNull(id);
@@ -64,10 +67,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         this.r = hvdcLine.getR();
         HvdcAngleDroopActivePowerControl droopControl = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
         this.acEmulation = acEmulation && droopControl != null && droopControl.isEnabled();
-        if (this.acEmulation) {
-            droop = droopControl.getDroop();
-            p0 = droopControl.getP0();
-        }
         HvdcOperatorActivePowerRange powerRange = hvdcLine.getExtension(HvdcOperatorActivePowerRange.class);
         if (powerRange != null) {
             pMaxFromCS1toCS2 = powerRange.getOprFromCS1toCS2();
@@ -75,6 +74,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         } else {
             pMaxFromCS2toCS1 = hvdcLine.getMaxP();
             pMaxFromCS1toCS2 = hvdcLine.getMaxP();
+        }
+        if (this.acEmulation) {
+            acEmulationControl = new AcEmulationControl(this, droopControl.getDroop(), droopControl.getP0(), pMaxFromCS1toCS2, pMaxFromCS2toCS1);
         }
     }
 
@@ -134,18 +136,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public double getDroop() {
-        return droop / PerUnit.SB;
-    }
-
-    @Override
     public double getR() {
         return r / PerUnit.zb(nominalV);
-    }
-
-    @Override
-    public double getP0() {
-        return p0 / PerUnit.SB;
     }
 
     @Override
@@ -183,50 +175,38 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public void updateState() {
         if (acEmulation) {
-            ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
-            ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+            switch (getAcEmulationControl().getAcEmulationStatus()) {
+                case LINEAR_MODE -> {
+                    ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
+                    ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+                }
+                case SATURATION_MODE_FROM_CS1_TO_CS2 -> {
+                    ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(converterStation1.getTargetP() * PerUnit.SB);
+                    ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(converterStation2.getTargetP() * PerUnit.SB);
+                }
+                case FROZEN -> {
+                    throw new PowsyblException("Trying to update network with HVDC AC Emulation at a frozen state.");
+                }
+            }
+
         }
     }
 
     @Override
-    public double getPMaxFromCS1toCS2() {
-        return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS1toCS2 / PerUnit.SB;
+    public AcEmulationControl getAcEmulationControl() {
+        return acEmulationControl;
     }
 
     @Override
-    public double getPMaxFromCS2toCS1() {
-        return Double.isNaN(pMaxFromCS1toCS2) ? Double.MAX_VALUE : pMaxFromCS2toCS1 / PerUnit.SB;
+    public void setAcEmulationControl(AcEmulationControl acEmulationControl) {
+        this.acEmulationControl = Objects.requireNonNull(acEmulationControl);
     }
 
-    public double freezeFromCurrentAngles() {
-        angleToFreeze = bus1.getAngle() - bus2.getAngle();
-        if (!Double.isNaN(angleToFreeze)) {
-            acEmulationFrozen = true;
-            return p1.eval();
-        } else {
-            // Might happen if an HVDC is reconnected by an action. In this case
-            // the freeze should be ignoered
-            return Double.NaN;
+    @Override
+    public void updateAcEmulationStatus(AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        acEmulationControl.setAcEmulationStatus(acEmulationStatus);
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onHvdcAcEmulationStatusChange(this, acEmulationStatus);
         }
-    }
-
-    @Override
-    public boolean isAcEmulationFrozen() {
-        return acEmulationFrozen;
-    }
-
-    @Override
-    public void setAcEmulationFrozen(boolean frozen) {
-        this.acEmulationFrozen = frozen;
-    }
-
-    @Override
-    public double getAngleDifferenceToFreeze() {
-        return isAcEmulationFrozen() ? angleToFreeze : getBus1().getAngle() - getBus2().getAngle();
-    }
-
-    @Override
-    public void setAngleDifferenceToFreeze(double frozenP) {
-        this.angleToFreeze = frozenP;
     }
 }
