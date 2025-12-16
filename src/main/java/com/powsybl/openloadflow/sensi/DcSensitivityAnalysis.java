@@ -515,7 +515,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 LOGGER.info("Processing contingencies with no connectivity break");
 
                 // process contingencies with no connectivity break
-                for (PropagatedContingency contingency : connectivityBreakAnalysisResults.nonBreakingConnectivityContingencies()) {
+                for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.nonBreakingConnectivityAnalysisResults()) {
                     if (Thread.currentThread().isInterrupted()) {
                         stopwatch.stop();
                         throw new PowsyblException("Computation was interrupted");
@@ -524,22 +524,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     workingFactorStates.copyValuesFrom(baseFactorStates);
 
                     calculateSensitivityValuesForAContingency(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
-                            workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, contingency,
+                            workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), workingFlowStates, connectivityAnalysisResult.getPropagatedContingency(),
                             connectivityBreakAnalysisResults.contingencyElementByBranch(), Collections.emptySet(), participatingElements,
                             Collections.emptySet(), resultWriter, sensiReportNode, Collections.emptySet(), false);
 
                     // process operator strategies
-                    for (OperatorStrategy operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingency.getContingency().getId(), Collections.emptyList())) {
+                    for (OperatorStrategy operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(connectivityAnalysisResult.getPropagatedContingency().getContingency().getId(), Collections.emptyList())) {
                         if (Thread.currentThread().isInterrupted()) {
                             stopwatch.stop();
                             throw new PowsyblException("Computation was interrupted");
                         }
 
-                        var postContingencyConnectivityAnalysisResult = new ConnectivityBreakAnalysis.ConnectivityAnalysisResult(contingency, lfNetwork);
                         List<String> operatorStrategyActionIds = operatorStrategy.getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
                         List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
                         var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
-                                postContingencyConnectivityAnalysisResult,
+                                connectivityAnalysisResult,
                                 connectivityBreakAnalysisResults.contingencyElementByBranch(),
                                 connectivityBreakAnalysisResults.contingenciesStates(),
                                 operatorStrategyLfActions,
@@ -552,7 +551,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 LOGGER.info("Processing contingencies with connectivity break");
 
                 // process contingencies with connectivity break
-                for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityAnalysisResults()) {
+                for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults()) {
                     if (Thread.currentThread().isInterrupted()) {
                         stopwatch.stop();
                         throw new PowsyblException("Computation was interrupted");
