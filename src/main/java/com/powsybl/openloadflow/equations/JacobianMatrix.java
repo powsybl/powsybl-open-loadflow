@@ -112,13 +112,21 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
-        Iterator<SingleEquation<V, E>> itSingleEquation = equationSystem.getIndex().getSortedSingleEquationsToSolve().iterator();
-        Iterator<EquationArray<V, E>> itEquationArray = equationSystem.getIndex().getSortedEquationArraysToSolve().iterator();
-
         // When initializing the matrix, it must be filled in the column order (in case of SparseMatrix)
-        SingleEquation<V, E> eq = itSingleEquation.hasNext() ? itSingleEquation.next() : null;
-        EquationArray<V, E> eqArray = itEquationArray.hasNext() ? itEquationArray.next() : null;
-        int index = 0; // index is either the column number in case of SingleEquation, either the first column in case of EquationArray
+        //
+        // SingleEquations are sorted by their column number
+        // EquationArrays are sorted by their first column number (and all following column numbers are contiguous for a defined length)
+        //
+        // Example of EquationSystemIndex organization (e.g. in Fast Decoupled) :
+        //   1    |   2    | ... | 12 | 13 | ... | 31 | 32 | 33 | ... | 51 |   52   |   53   | ... | 64 | ... | 83 | 84 | ... | 101 |    <-- index (corresponding to the unique column number)
+        // Single | Single | ... |        Array       |        Array       | Single | Single | ... |     Array     |      Array     |
+
+        Iterator<SingleEquation<V, E>> itSortedSingleEquation = equationSystem.getIndex().getSortedSingleEquationsToSolve().iterator();
+        Iterator<EquationArray<V, E>> itSortedEquationArray = equationSystem.getIndex().getSortedEquationArraysToSolve().iterator();
+
+        SingleEquation<V, E> eq = itSortedSingleEquation.hasNext() ? itSortedSingleEquation.next() : null;
+        EquationArray<V, E> eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
+        int index = 0; // index is either the column number of SingleEquation, either the first column of EquationArray
         while (eq != null || eqArray != null) {
             while (eq != null && index == eq.getColumn()) { // Compute derivatives of all SingleEquations until next EquationArray
                 final int column = index;
@@ -127,13 +135,13 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     return matrix.addAndGetIndex(row, column, value);
                 });
                 index++;
-                eq = itSingleEquation.hasNext() ? itSingleEquation.next() : null;
+                eq = itSortedSingleEquation.hasNext() ? itSortedSingleEquation.next() : null;
             }
             while (eqArray != null && index == eqArray.getFirstColumn()) { // Compute derivatives of next EquationArrays
                 eqArray.der((column, row, value, matrixElementIndex) ->
                         matrix.addAndGetIndex(row, column, value));
                 index += eqArray.getLength();
-                eqArray = itEquationArray.hasNext() ? itEquationArray.next() : null;
+                eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
             }
         }
 
