@@ -162,7 +162,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 return matrixElementIndex; // don't change element index
             });
         }
-        for (var eq : equationSystem.getEquationArrays()) {
+        for (var eq : equationSystem.getIndex().getSortedEquationArraysToSolve()) {
             eq.der((column, row, value, matrixElementIndex) -> {
                 matrix.addAtIndex(matrixElementIndex, value);
                 return matrixElementIndex; // don't change element index
