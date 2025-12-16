@@ -18,12 +18,15 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -202,12 +205,14 @@ class FastDecoupledTest {
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
-    @Test
-    void testWithContinuousTransformerVoltageControl() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testWithContinuousTransformerVoltageControl(boolean isSparseMatrix) {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        // Check that in case of SparseMatrixFactory, columns are filled in the right order
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(isSparseMatrix ? new SparseMatrixFactory() : new DenseMatrixFactory()));
 
         parametersFastDecoupled.setDistributedSlack(true);
         parametersNewtonRaphson.setDistributedSlack(true);

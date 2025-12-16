@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -111,16 +112,29 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
-        for (SingleEquation<V, E> eq : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
-            int column = eq.getColumn();
-            eq.der((variable, value, matrixElementIndex) -> {
-                int row = variable.getRow();
-                return matrix.addAndGetIndex(row, column, value);
-            });
-        }
-        for (var eq : equationSystem.getEquationArrays()) {
-            eq.der((column, row, value, matrixElementIndex) ->
-                    matrix.addAndGetIndex(row, column, value));
+        Iterator<SingleEquation<V, E>> itSingleEquation = equationSystem.getIndex().getSortedSingleEquationsToSolve().iterator();
+        Iterator<EquationArray<V, E>> itEquationArray = equationSystem.getIndex().getSortedEquationArraysToSolve().iterator();
+
+        // When building the matrix, it must be filled in the column order (in case of SparseMatrix)
+        SingleEquation<V, E> eq = itSingleEquation.hasNext() ? itSingleEquation.next() : null;
+        EquationArray<V, E> eqArray = itEquationArray.hasNext() ? itEquationArray.next() : null;
+        int index = 0; // index is either the column number in case of SingleEquation, either the first column in case of EquationArray
+        while (eq != null || eqArray != null) {
+            if (eqArray != null && index == eqArray.getFirstColumn()) {
+                eqArray.der((col, row, value, matrixElementIndex) ->
+                        matrix.addAndGetIndex(row, col, value));
+                index += eqArray.getLength();
+                eqArray = itEquationArray.hasNext() ? itEquationArray.next() : null;
+            }
+            if (eq != null) {
+                final int column = eq.getColumn();
+                eq.der((variable, value, matrixElementIndex) -> {
+                    int row = variable.getRow();
+                    return matrix.addAndGetIndex(row, column, value);
+                });
+                index++;
+                eq = itSingleEquation.hasNext() ? itSingleEquation.next() : null;
+            }
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
