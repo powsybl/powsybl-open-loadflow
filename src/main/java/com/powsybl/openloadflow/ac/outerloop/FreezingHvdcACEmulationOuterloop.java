@@ -11,10 +11,12 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
@@ -44,12 +46,13 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         private final HashMap<String, Double> voltage = new HashMap<>();
 
         private ContextData(LfNetwork network) {
+            /* TO DO : Check if this code should be kept
             network.getBuses()
                     .stream().filter(b -> !b.isDisabled())
                     .forEach(b -> {
                         angles.put(b.getId(), Double.isNaN(b.getAngle()) ? 0 : b.getAngle());
                         voltage.put(b.getId(), Double.isNaN(b.getV()) ? 1 : b.getV());
-                    });
+                    });*/
         }
 
     }
@@ -64,14 +67,15 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         ContextData contextData = new ContextData(context.getNetwork());
         context.setData(contextData);
         LfNetwork network = context.getNetwork();
+        if (context.getLoadFlowContext().getEquationSystem().getStateVector().get() == null) { // If State Vector was not initialized, initializing (angles are used to compute frozen state of AC emulation)
+            AcSolverUtil.initStateVector(context.getNetwork(), context.getLoadFlowContext().getEquationSystem(), new PreviousValueVoltageInitializer());
+        }
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .filter(lfHvdc -> !lfHvdc.isDisabled())
+                .filter(lfHvdc -> !lfHvdc.isDisabled() && !lfHvdc.getBus1().isDisabled() && !lfHvdc.getBus2().isDisabled() && lfHvdc.getAcEmulationControl().isFreezable())
                 .forEach(lfHvdc -> {
-                    double setPointBus1 = lfHvdc.getAcEmulationControl().switchToFrozenState();
-                    if (!Double.isNaN(setPointBus1)) {
-                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);
-                    }
+                    double setPointBus1 = lfHvdc.getAcEmulationControl().switchToFrozenState(true);
+                    Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);
                 });
     }
 
@@ -105,13 +109,14 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
             }
 
             // Return to initial state (we are in a possibly non-physical state after first partial resolution)
-            context.getNetwork().getBuses()
+            // TO DO : Check if this code should be kept
+            /*context.getNetwork().getBuses()
                     .stream()
                     .filter(b -> !b.isDisabled())
                     .forEach(b -> {
                         b.setAngle(contextData.angles.get(b.getId()));
                         b.setV(contextData.voltage.get(b.getId()));
-                    });
+                    });*/
         }
 
         return new OuterLoopResult(this, frozenHvdc.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE);

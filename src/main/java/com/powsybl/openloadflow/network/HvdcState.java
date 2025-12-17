@@ -13,15 +13,15 @@ package com.powsybl.openloadflow.network;
 public class HvdcState extends ElementState<LfHvdc> {
 
     private final boolean acEmulation;
-    private final LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus;
+    private final LfHvdc.AcEmulationControl acEmulationControl;
 
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
         this.acEmulation = hvdc.isAcEmulation();
         if (this.acEmulation) {
-            this.acEmulationStatus = hvdc.getAcEmulationControl().getAcEmulationStatus();
+            this.acEmulationControl = hvdc.getAcEmulationControl();
         } else {
-            this.acEmulationStatus = null;
+            this.acEmulationControl = null;
         }
     }
 
@@ -32,9 +32,9 @@ public class HvdcState extends ElementState<LfHvdc> {
     @Override
     public void restore() {
         super.restore();
-        element.setAcEmulation(acEmulation);
         if (acEmulation) {
-            element.getAcEmulationControl().setAcEmulationStatus(acEmulationStatus);
+            element.setAcEmulationControl(acEmulationControl);
         }
+        element.setAcEmulation(acEmulation);
     }
 }

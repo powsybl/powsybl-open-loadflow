@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -255,12 +256,8 @@ class EquationsTest {
         var hvdc = Mockito.mock(LfHvdc.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(hvdc).getNum();
         Mockito.doReturn(false).when(hvdc).isDisabled();
-        Mockito.doReturn(DROOP).when(hvdc).getAcEmulationControl().getDroop();
-        Mockito.doReturn(P_0).when(hvdc).getAcEmulationControl().getP0();
+        Mockito.doReturn(new LfHvdc.AcEmulationControl(hvdc, DROOP * PerUnit.SB, P_0 * PerUnit.SB, Double.MAX_VALUE, Double.MAX_VALUE)).when(hvdc).getAcEmulationControl();
         Mockito.doReturn(0d).when(hvdc).getR();
-        /*Mockito.doReturn(Double.MAX_VALUE).when(hvdc).getPMaxFromCS1toCS2();
-        Mockito.doReturn(Double.MAX_VALUE).when(hvdc).getPMaxFromCS2toCS1();
-        Mockito.doReturn(false).when(hvdc).isAcEmulationFrozen();*/
         LfVscConverterStationImpl station1 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
         LfVscConverterStationImpl station2 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(station1).when(hvdc).getConverterStation1();

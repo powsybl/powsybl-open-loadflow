@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.ac.equations.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -29,6 +29,7 @@ public interface LfHvdc extends LfElement {
         private final double p0;
         private final double pMaxFromCS1toCS2;
         private final double pMaxFromCS2toCS1;
+        private boolean freezable; // If the HVDC was disabled and has been reconnected, we do not want it to be frozen
         private AcEmulationStatus acEmulationStatus = AcEmulationStatus.LINEAR_MODE;
 
         public AcEmulationControl(LfHvdc hvdc, double droop, double p0, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
@@ -37,6 +38,7 @@ public interface LfHvdc extends LfElement {
             this.p0 = p0;
             this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2;
             this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1;
+            this.freezable = true;
         }
 
         public double getDroop() {
@@ -63,16 +65,28 @@ public interface LfHvdc extends LfElement {
             acEmulationStatus = status;
         }
 
-        public void switchToSaturationMode(TwoSides feedingSide, double pMaxController, double pMaxNonController) {
-            if (feedingSide == TwoSides.ONE) {
-                hvdc.getConverterStation1().setTargetP(pMaxController);
-                hvdc.getConverterStation2().setTargetP(pMaxNonController);
-                hvdc.updateAcEmulationStatus(AcEmulationStatus.SATURATION_MODE_FROM_CS1_TO_CS2);
-            } else {
-                hvdc.getConverterStation2().setTargetP(pMaxController);
-                hvdc.getConverterStation1().setTargetP(pMaxNonController);
-                hvdc.updateAcEmulationStatus(AcEmulationStatus.SATURATION_MODE_FROM_CS2_TO_CS1);
-            }
+        public void switchToSaturationFromCS1toCS2(boolean computeLoss) {
+            double pMaxController = getPMaxFromCS1toCS2();
+            double lossController = hvdc.getConverterStation1().getLossFactor() / 100;
+            double lossNonController = hvdc.getConverterStation2().getLossFactor() / 100;
+            double pMaxNonController = computeLoss ?
+                    -AbstractHvdcAcEmulationFlowEquationTerm.getAbsActivePowerWithLosses(pMaxController, lossController, lossNonController, hvdc.getR())
+                    : -pMaxController;
+            hvdc.getConverterStation1().setTargetP(pMaxController);
+            hvdc.getConverterStation2().setTargetP(pMaxNonController);
+            hvdc.updateAcEmulationStatus(AcEmulationStatus.SATURATION_MODE_FROM_CS1_TO_CS2);
+        }
+
+        public void switchToSaturationFromCS2toCS1(boolean computeLoss) {
+            double pMaxController = hvdc.getAcEmulationControl().getPMaxFromCS2toCS1();
+            double lossController = hvdc.getConverterStation2().getLossFactor() / 100;
+            double lossNonController = hvdc.getConverterStation1().getLossFactor() / 100;
+            double pMaxNonController = computeLoss ?
+                    -AbstractHvdcAcEmulationFlowEquationTerm.getAbsActivePowerWithLosses(pMaxController, lossController, lossNonController, hvdc.getR())
+                    : -pMaxController;
+            hvdc.getConverterStation2().setTargetP(pMaxController);
+            hvdc.getConverterStation1().setTargetP(pMaxNonController);
+            hvdc.updateAcEmulationStatus(AcEmulationStatus.SATURATION_MODE_FROM_CS2_TO_CS1);
         }
 
         public void switchToLinearMode() {
@@ -81,18 +95,28 @@ public interface LfHvdc extends LfElement {
             hvdc.updateAcEmulationStatus(AcEmulationStatus.LINEAR_MODE);
         }
 
-        public double switchToFrozenState() {
-            if (!Double.isNaN(hvdc.getBus1().getAngle()) && !Double.isNaN(hvdc.getBus2().getAngle())) {
-                if (hvdc.getAcEmulationControl().getAcEmulationStatus() == AcEmulationStatus.LINEAR_MODE) {
-                    double p1 = hvdc.getP1().eval();
-                    double p2 = hvdc.getP2().eval();
-                    hvdc.getConverterStation1().setTargetP(p1);
-                    hvdc.getConverterStation2().setTargetP(p2);
+        public double switchToFrozenState(boolean computeLoss) {
+            if (hvdc.getAcEmulationControl().getAcEmulationStatus() == AcEmulationStatus.LINEAR_MODE) {
+                double p1 = hvdc.getP1().eval();
+                double p2 = hvdc.getP2().eval();
+                if (p1 > pMaxFromCS1toCS2) {
+                    switchToSaturationFromCS1toCS2(computeLoss);
+                } else if (p2 > pMaxFromCS2toCS1) {
+                    switchToSaturationFromCS2toCS1(computeLoss);
                 }
-                hvdc.updateAcEmulationStatus(AcEmulationStatus.FROZEN);
-                return hvdc.getConverterStation1().getTargetP();
+                hvdc.getConverterStation1().setTargetP(p1);
+                hvdc.getConverterStation2().setTargetP(p2);
             }
-            return Double.NaN; // Might happen if an HVDC is reconnected by an action. In this case the freeze should be ignored
+            hvdc.updateAcEmulationStatus(AcEmulationStatus.FROZEN);
+            return hvdc.getConverterStation1().getTargetP();
+        }
+
+        public boolean isFreezable() {
+            return freezable;
+        }
+
+        public void setFreezable(boolean freezable) {
+            this.freezable = freezable;
         }
     }
 
@@ -126,9 +150,9 @@ public interface LfHvdc extends LfElement {
 
     void setConverterStation2(LfVscConverterStation converterStation2);
 
-    AcEmulationControl getAcEmulationControl();
-
     void setAcEmulationControl(AcEmulationControl acEmulationControl);
+
+    AcEmulationControl getAcEmulationControl();
 
     void updateAcEmulationStatus(AcEmulationControl.AcEmulationStatus acEmulationStatus);
 

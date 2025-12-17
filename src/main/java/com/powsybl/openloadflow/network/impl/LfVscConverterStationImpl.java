@@ -71,7 +71,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
             if (hvdc.isAcEmulation()) {
                 return switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
                     // Because in case of AC emulation in saturated mode or frozen, active power target is specified in the target vector
-                    case FROZEN, SATURATION_MODE_FROM_CS1_TO_CS2 -> super.getTargetP();
+                    case FROZEN, SATURATION_MODE_FROM_CS1_TO_CS2, SATURATION_MODE_FROM_CS2_TO_CS1 -> super.getTargetP();
                     // Because in case of AC emulation in linear mode active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
                     case LINEAR_MODE -> 0;
                 };

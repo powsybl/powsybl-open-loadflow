@@ -34,10 +34,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private Evaluable p2 = NAN;
 
-    private double droop = Double.NaN;
-
-    private double p0 = Double.NaN;
-
     private double r = Double.NaN;
 
     private double nominalV = Double.NaN;
@@ -47,14 +43,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     private LfVscConverterStation converterStation2;
 
     private boolean acEmulation;
-
-    private final double pMaxFromCS1toCS2;
-
-    private final double pMaxFromCS2toCS1;
-
-    private double angleToFreeze;
-
-    private boolean acEmulationFrozen = false;
 
     private AcEmulationControl acEmulationControl;
 
@@ -68,6 +56,8 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         HvdcAngleDroopActivePowerControl droopControl = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
         this.acEmulation = acEmulation && droopControl != null && droopControl.isEnabled();
         HvdcOperatorActivePowerRange powerRange = hvdcLine.getExtension(HvdcOperatorActivePowerRange.class);
+        double pMaxFromCS1toCS2;
+        double pMaxFromCS2toCS1;
         if (powerRange != null) {
             pMaxFromCS1toCS2 = powerRange.getOprFromCS1toCS2();
             pMaxFromCS2toCS1 = powerRange.getOprFromCS2toCS1();
@@ -107,6 +97,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public void setDisabled(boolean disabled) {
+        if (acEmulation && isDisabled() && !disabled) {
+            acEmulationControl.setFreezable(false); // If an HVDC is reconnected by an action, we do not want it to be frozen
+        }
         super.setDisabled(disabled); // for AC emulation equations only.
         if (!acEmulation && !disabled) {
             // re-active power transmission to initial target values.
@@ -147,6 +140,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public void setAcEmulation(boolean acEmulation) {
+        if (acEmulation && acEmulationControl == null) {
+            throw new PowsyblException("Cannot switch to AC Emulation mode without defined AC Emulation Control");
+        }
         this.acEmulation = acEmulation;
     }
 
@@ -180,7 +176,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
                     ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
                     ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
                 }
-                case SATURATION_MODE_FROM_CS1_TO_CS2 -> {
+                case SATURATION_MODE_FROM_CS1_TO_CS2, SATURATION_MODE_FROM_CS2_TO_CS1 -> {
                     ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(converterStation1.getTargetP() * PerUnit.SB);
                     ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(converterStation2.getTargetP() * PerUnit.SB);
                 }
@@ -193,13 +189,13 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public AcEmulationControl getAcEmulationControl() {
-        return acEmulationControl;
+    public void setAcEmulationControl(AcEmulationControl acEmulationControl) {
+        this.acEmulationControl = acEmulationControl;
     }
 
     @Override
-    public void setAcEmulationControl(AcEmulationControl acEmulationControl) {
-        this.acEmulationControl = Objects.requireNonNull(acEmulationControl);
+    public AcEmulationControl getAcEmulationControl() {
+        return acEmulationControl;
     }
 
     @Override
