@@ -463,6 +463,14 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         PiModel piModel = branch.getPiModel();
         branchVector.a1[branch.getNum()] = piModel.getA1();
         branchVector.r1[branch.getNum()] = piModel.getR1();
+        branchVector.y[branch.getNum()] = piModel.getY();
+        double ksi = piModel.getKsi();
+        var w = new DoubleWrapper();
+        branchVector.ksi[branch.getNum()] = ksi;
+        branchVector.sinKsi[branch.getNum()] = FastMath.sinAndCos(ksi, w);
+        branchVector.cosKsi[branch.getNum()] = w.value;
+        branchVector.g1[branch.getNum()] = piModel.getG1();
+        branchVector.b1[branch.getNum()] = piModel.getB1();
     }
 
     @Override

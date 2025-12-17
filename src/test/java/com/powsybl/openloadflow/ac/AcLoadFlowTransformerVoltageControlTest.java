@@ -18,6 +18,7 @@ import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -452,6 +453,42 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(34.43, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(4, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTestImpedanceOfTaps() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
+        parameters.getExtension(OpenLoadFlowParameters.class).setMaxActivePowerMismatch(1e-4);
+        parameters.getExtension(OpenLoadFlowParameters.class).setMaxReactivePowerMismatch(1e-4);
+        parameters.getExtension(OpenLoadFlowParameters.class).setMaxVoltageMismatch(1e-4);
+
+        parameters.setTransformerVoltageControlOn(false);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(3);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus());
+        assertActivePowerEquals(13.256, t2wt.getTerminal1());
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertActivePowerEquals(13.256, t2wt.getTerminal1());
     }
 
     @Test
