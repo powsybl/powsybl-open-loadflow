@@ -8,6 +8,9 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
+import com.powsybl.openloadflow.network.LfAcDcConverter;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -46,5 +49,20 @@ public class FullVoltageInitializer implements VoltageInitializer {
     @Override
     public double getAngle(LfBus bus) {
         return angleInitializer.getAngle(bus);
+    }
+
+    @Override
+    public double getReactivePower(LfVoltageSourceConverter converter) {
+        return magnitudeInitializer.getReactivePower(converter);
+    }
+
+    @Override
+    public double getActivePower(LfAcDcConverter converter) {
+        return magnitudeInitializer.getActivePower(converter);
+    }
+
+    @Override
+    public double getMagnitude(LfDcNode dcNode) {
+        return magnitudeInitializer.getMagnitude(dcNode);
     }
 }

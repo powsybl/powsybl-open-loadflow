@@ -10,6 +10,9 @@ package com.powsybl.openloadflow.ac;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.network.LfAcDcConverter;
+import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -234,6 +237,21 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         stopwatch.stop();
         LOGGER.info("Initial voltage magnitude solved in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
+    @Override
+    public double getReactivePower(LfVoltageSourceConverter converter) {
+        return converter.getQac();
+    }
+
+    @Override
+    public double getActivePower(LfAcDcConverter converter) {
+        return converter.getPac();
+    }
+
+    @Override
+    public double getMagnitude(LfDcNode dcNode) {
+        return dcNode.getV();
     }
 
     @Override
