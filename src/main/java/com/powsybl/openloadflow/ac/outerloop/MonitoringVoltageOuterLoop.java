@@ -145,7 +145,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
     @Override
     public boolean isNeeded(AcLoadFlowContext context) {
         return context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR).stream()
-                .filter(bus -> bus.isGeneratorVoltageControlled())
+                .filter(LfBus::isGeneratorVoltageControlled)
                 .anyMatch(bus -> getControlledBusVoltageLimits(bus).isPresent());
     }
 }
