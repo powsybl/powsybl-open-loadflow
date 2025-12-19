@@ -695,4 +695,45 @@ class AcLoadFlowPhaseShifterTest {
         assertEquals(1, t2wt.getPhaseTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
     }
+
+    @Test
+    void reproIssue() {
+        selectNetwork(PhaseControlFactory.createNetworkWithT2wtExaggerateRxgbTable());
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+
+        // capture values, no regulation, tap 0
+        t2wt.getPhaseTapChanger().setTapPosition(0).setRegulating(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(19.640, t2wt.getTerminal1());
+        assertActivePowerEquals(-19.470, t2wt.getTerminal2()); // ~0.2 MW losses
+
+        // capture values, no regulation, tap 1
+        t2wt.getPhaseTapChanger().setTapPosition(1);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(51.600, t2wt.getTerminal1());
+        assertActivePowerEquals(-51.019, t2wt.getTerminal2()); // ~0.6 MW losses
+
+        // capture values, no regulation, tap 2
+        t2wt.getPhaseTapChanger().setTapPosition(2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(68.799, t2wt.getTerminal1());
+        assertActivePowerEquals(-67.185, t2wt.getTerminal2()); // ~1.6 MW losses
+
+        // set at tap 0, enable regulation to have PST moving to tap 2
+        t2wt.getPhaseTapChanger().setTapPosition(0)
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulationValue(-100.)
+                .setTargetDeadband(10.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(68.799, t2wt.getTerminal1()); // same as when solving with fixed tap 2
+        assertActivePowerEquals(-67.185, t2wt.getTerminal2()); // same as when solving with fixed tap 2
+    }
 }
