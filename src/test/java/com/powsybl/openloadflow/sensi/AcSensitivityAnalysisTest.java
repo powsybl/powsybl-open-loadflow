@@ -1389,7 +1389,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertInstanceOf(PowsyblException.class, e.getCause());
         assertEquals("Regulating terminal for 'bat1' not found", e.getCause().getMessage());
-
     }
 
     @Test
