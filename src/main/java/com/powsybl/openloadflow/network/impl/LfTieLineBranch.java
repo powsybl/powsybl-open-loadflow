@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -75,21 +76,18 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        double flowTransfer = Double.NaN;
-        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
-            flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
-        }
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                                 boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
+                                                 LoadFlowModel loadFlowModel) {
         double nominalV1 = getHalf1().getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = getHalf2().getTerminal().getVoltageLevel().getNominalV();
         double currentScale1 = PerUnit.ib(nominalV1);
         double currentScale2 = PerUnit.ib(nominalV2);
-        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
-        var half1Result = new BranchResult(getHalf1().getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                Double.NaN, Double.NaN, Double.NaN, flowTransfer);
-        var half2Result = new BranchResult(getHalf2().getId(), p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(),
-                Double.NaN, Double.NaN, Double.NaN, flowTransfer);
+
+        var branchResult = buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale1, currentScale2, preContingencyBranchP1, preContingencyBranchOfContingencyP1);
+
+        var half1Result = new BranchResult(getHalf1().getId(), branchResult.getP1(), branchResult.getQ1(), branchResult.getI1(), Double.NaN, Double.NaN, Double.NaN, branchResult.getFlowTransfer());
+        var half2Result = new BranchResult(getHalf2().getId(), branchResult.getP2(), branchResult.getQ2(), branchResult.getI2(), Double.NaN, Double.NaN, Double.NaN, branchResult.getFlowTransfer());
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     getV1() * nominalV1, getV2() * nominalV2, Math.toDegrees(getAngle1()), Math.toDegrees(getAngle2())));
