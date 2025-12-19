@@ -99,7 +99,6 @@
                   Bus Id: VL_1_0 (nominalVoltage=132kV)
                   Bus V: 1.022727 pu, 0.014523 rad
                   Bus injection: 27.073264 MW, 7.030733 MVar
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerVoltageControl
             + Outer loop iteration 2
@@ -196,11 +195,9 @@
                   Bus Id: VL_1_0 (nominalVoltage=132kV)
                   Bus V: 1.022727 pu, 0.016275 rad
                   Bus injection: 30.225137 MW, 6.812951 MVar
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop IncrementalTransformerVoltageControl
          Outer loop DistributedSlack
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop IncrementalTransformerVoltageControl
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

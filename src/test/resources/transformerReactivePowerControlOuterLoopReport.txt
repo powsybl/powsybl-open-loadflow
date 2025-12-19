@@ -97,7 +97,6 @@
                   Bus Id: VL_1_0 (nominalVoltage=132kV)
                   Bus V: 1.022727 pu, 0.011752 rad
                   Bus injection: 22.111404 MW, 7.616219 MVar
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 2
@@ -244,13 +243,11 @@
                   Bus Id: VL_1_0 (nominalVoltage=132kV)
                   Bus V: 1.022727 pu, 0.013084 rad
                   Bus injection: 24.49142 MW, 7.284141 MVar
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5
                1 reactive power-controlled branches are outside of their target deadbands
          Outer loop DistributedSlack
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5

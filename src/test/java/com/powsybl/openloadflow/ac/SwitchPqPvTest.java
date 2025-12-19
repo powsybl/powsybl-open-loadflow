@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -226,13 +226,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                             Network balance: active generation=300 MW, active load=300 MW, reactive generation=0 MVar, reactive load=200 MVar
                             Angle reference bus: vl4_0
                             Slack bus: vl4_0
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 2 buses switched PV -> PQ (1 buses remain PV)
                                   Switch bus 'vl1_0' PV -> PQ, q=-200.872086 < minQ=-179
                                   Switch bus 'vl2_0' PV -> PQ, q=712.632433 > maxQ=700
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
