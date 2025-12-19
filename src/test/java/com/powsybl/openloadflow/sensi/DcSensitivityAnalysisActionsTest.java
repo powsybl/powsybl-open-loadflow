@@ -26,13 +26,15 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
     @Test
-    void test() {
+    void testReconnectContingencyLine() {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
 
@@ -44,6 +46,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
                 network.getBranchStream().toList());
 
+        // the operator strategy is to reconnected to contingency line l23
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("reclose l23",
                                                                                  ContingencyContext.all(),
                                                                                  List.of(new ConditionalActions("always reclose l23", new TrueCondition(), List.of("reclose l23")))));
@@ -53,6 +56,9 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters)
                 .setOperatorStrategies(operatorStrategies)
                 .setActions(actions));
+
+        assertEquals(5, result.getPreContingencyValues().size());
+        assertEquals(10, result.getValues("l23").size());
 
         for (var value : result.getValues()) {
             System.out.println(value);
