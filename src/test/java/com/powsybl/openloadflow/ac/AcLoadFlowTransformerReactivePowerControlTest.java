@@ -155,7 +155,6 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                             Network balance: active generation=3 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
                             Angle reference bus: b1_vl_0
                             Slack bus: b1_vl_0
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 1 bus(es) with remote reactive power controller switched PQ
@@ -167,7 +166,6 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                                1 transformers reached their tap maximum position
                             + Outer loop iteration 3
                                1 reactive power-controlled branches are outside of their target deadbands
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          + Outer loop IncrementalTransformerReactivePowerControl
                             + Outer loop iteration 3
@@ -230,12 +228,10 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                             Network balance: active generation=3 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
                             Angle reference bus: b1_vl_0
                             Slack bus: b1_vl_0
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 1 bus(es) with remote reactive power controller switched PQ
                                   Remote reactive power controller bus 'b4_vl_0' -> PQ, q=-3.49137 < minQ=-3
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
