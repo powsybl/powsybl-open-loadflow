@@ -376,6 +376,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         return sortedSingleEquationsToSolve;
     }
 
+    public List<EquationArray<V, E>> getSortedEquationArraysToSolve() {
+        update();
+        return sortedEquationArraysToSolve;
+    }
+
     public Equation<V, E> getEquationAtColumn(int column) {
         update();
         if (sortedEquationArraysToSolve.isEmpty()) {
