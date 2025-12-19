@@ -134,17 +134,17 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         // try for find all switches to be operated as actions.
         LfTopoConfig topoConfig = new LfTopoConfig();
-        topoConfig.addAllSwitchesToOperate(network, actions);
+        Actions.addAllSwitchesToOperate(topoConfig, network, actions);
 
         // try to find all ptc and rtc to retain because involved in ptc and rtc actions
-        topoConfig.addAllPtcToOperate(actions);
-        topoConfig.addAllRtcToOperate(actions);
+        Actions.addAllPtcToOperate(topoConfig, actions);
+        Actions.addAllRtcToOperate(topoConfig, actions);
         // try to find all shunts which section can change through actions.
-        topoConfig.addAllShuntsToOperate(actions);
+        Actions.addAllShuntsToOperate(topoConfig, actions);
 
         // try to find branches (lines and two windings transformers).
         // tie lines and three windings transformers missing.
-        topoConfig.addAllBranchesToClose(network, actions);
+        Actions.addAllBranchesToClose(topoConfig, network, actions);
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()

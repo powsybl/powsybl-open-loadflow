@@ -392,7 +392,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         boolean breakers = topoConfig.isBreaker();
 
         // update topo config with supported actions
-        topoConfig.addAllBranchesToClose(network, actions);
+        Actions.addAllBranchesToClose(topoConfig, network, actions);
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
