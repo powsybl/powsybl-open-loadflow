@@ -34,6 +34,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.Actions;
+import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.network.impl.OperatorStrategies;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -61,7 +62,7 @@ import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanC
  */
 public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
-    private record WoodburyContext(DcLoadFlowContext dcLoadFlowContext, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId, Map<String, LfAction> lfActionById,
+    private record WoodburyContext(DcLoadFlowContext dcLoadFlowContext, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId, Map<String, LfAction> lfActionById,
                                    boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                    List<LimitReduction> limitReductions) {
     }
@@ -319,20 +320,20 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // restore pre contingency states for next calculation
             restorePreContingencyStates.run();
 
-            List<OperatorStrategy> operatorStrategiesForThisContingency = woodburyContext.operatorStrategiesByContingencyId.get(contingency.getId());
+            List<Indexed<OperatorStrategy>> operatorStrategiesForThisContingency = woodburyContext.operatorStrategiesByContingencyId.get(contingency.getId());
             if (operatorStrategiesForThisContingency != null) {
-                for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                    ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesForThisContingency) {
+                    ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.value().getId());
                     lfNetwork.setReportNode(osSimReportNode);
 
                     // get the actions associated to the operator strategy
-                    List<String> actionIds = checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult());
+                    List<String> actionIds = checkCondition(operatorStrategy.value(), postContingencyResult.getLimitViolationsResult());
                     List<LfAction> operatorStrategyLfActions = actionIds.stream()
                             .map(woodburyContext.lfActionById::get)
                             .filter(Objects::nonNull)
                             .toList();
 
-                    logActionStart(lfNetwork, operatorStrategy);
+                    logActionStart(lfNetwork, operatorStrategy.value());
                     stopwatch = Stopwatch.createStarted();
 
                     // process post contingency and operator strategy connectivity result with given supplier
@@ -349,12 +350,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     };
 
                     double[] postContingencyAndOperatorStrategyStates = toFastDcResults.toPostContingencyAndOperatorStrategyStates.apply(postContingencyAndOperatorStrategyConnectivityAnalysisResult);
-                    OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(woodburyContext, lfContingency, operatorStrategy, operatorStrategyLfActions,
+                    OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(woodburyContext, lfContingency, operatorStrategy.value(), operatorStrategyLfActions,
                             securityAnalysisSimulationResults.preContingencyLimitViolationManager, postContingencyAndOperatorStrategyStates, isBranchDisabledDueToContingencyAndOperatorStrategy);
                     securityAnalysisSimulationResults.operatorStrategyResults.add(operatorStrategyResult);
 
                     stopwatch.stop();
-                    logActionEnd(lfNetwork, operatorStrategy, stopwatch);
+                    logActionEnd(lfNetwork, operatorStrategy.value(), stopwatch);
 
                     // restore pre contingency states for next calculation
                     restorePreContingencyStates.run();
@@ -370,7 +371,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         // Verify only PST actions are given
         filterActions(actions, lfNetwork);
         Map<String, Action> actionsById = Actions.indexById(actions);
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
                 OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
         Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
         Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network, dcParameters.getNetworkParameters()); // only convert needed actions

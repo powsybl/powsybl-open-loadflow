@@ -38,6 +38,7 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Derivable;
+import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -442,7 +443,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             checkLoadFlowParameters(lfParameters);
 
             Map<String, Action> actionsById = Actions.indexById(actions);
-            Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
+            Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
                     OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
             Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
             Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network, lfNetworkParameters); // only convert needed actions
@@ -564,13 +565,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // process operator strategies
                 for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : Stream.concat(connectivityBreakAnalysisResults.nonBreakingConnectivityAnalysisResults().stream(),
                                                                                                                      connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults().stream()).toList()) {
-                    for (OperatorStrategy operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(connectivityAnalysisResult.getPropagatedContingency().getContingency().getId(), Collections.emptyList())) {
+                    for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(connectivityAnalysisResult.getPropagatedContingency().getContingency().getId(), Collections.emptyList())) {
                         if (Thread.currentThread().isInterrupted()) {
                             stopwatch.stop();
                             throw new PowsyblException("Computation was interrupted");
                         }
 
-                        List<String> operatorStrategyActionIds = operatorStrategy.getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
+                        List<String> operatorStrategyActionIds = operatorStrategy.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
                         List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
                         var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                 connectivityAnalysisResult,

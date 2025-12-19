@@ -37,6 +37,7 @@ import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
+import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -408,7 +409,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // In MT the operator strategy check is performed before running the simulations
         boolean checkOperatorStrategies = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).getThreadCount() == 1;
 
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId =
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
                 OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById,
                         checkOperatorStrategies);
         Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
@@ -487,14 +488,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                     contingencyParametersResetter.accept(context.getParameters());
                                 }
 
-                                List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
+                                List<Indexed<OperatorStrategy>> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(lfContingency.getId());
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least one operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
                                         // only one operator strategy, no need to do a complete save of network state,
                                         // but need to set generators initialTargetP positions to the current (=postContingency) targetP
                                         lfNetwork.setGeneratorsInitialTargetPToTargetP();
-                                        OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0);
+                                        OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0).value();
                                         ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                                         lfNetwork.setReportNode(osSimReportNode);
                                         runActionSimulation(lfNetwork, context,
@@ -506,11 +507,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                     } else {
                                         // multiple operator strategies, save post contingency state for later restoration after action
                                         NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
-                                        for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                                            ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                                        for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesForThisContingency) {
+                                            ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.value().getId());
                                             lfNetwork.setReportNode(osSimReportNode);
                                             runActionSimulation(lfNetwork, context,
-                                                    operatorStrategy, preContingencyLimitViolationManager,
+                                                    operatorStrategy.value(), preContingencyLimitViolationManager,
                                                     securityAnalysisParameters, lfActionById,
                                                     createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
                                                     acParameters.getNetworkParameters(), limitReductions)

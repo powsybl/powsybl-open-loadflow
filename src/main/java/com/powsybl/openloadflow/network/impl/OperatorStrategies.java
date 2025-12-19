@@ -13,6 +13,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.contingency.strategy.ConditionalActions;
 import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.openloadflow.util.Indexed;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -54,15 +55,17 @@ public final class OperatorStrategies {
                 + actionId + "' but this action is not present in the list");
     }
 
-    public static Map<String, List<OperatorStrategy>> indexByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                           List<OperatorStrategy> operatorStrategies,
-                                                                           Map<String, Action> actionsById,
-                                                                           boolean checkOperatorStrategies) {
+    public static Map<String, List<Indexed<OperatorStrategy>>> indexByContingencyId(List<PropagatedContingency> propagatedContingencies,
+                                                                                    List<OperatorStrategy> operatorStrategies,
+                                                                                    Map<String, Action> actionsById,
+                                                                                    boolean checkOperatorStrategies) {
 
         Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId = new HashMap<>();
         Set<String> actionIds = actionsById.keySet();
-        for (OperatorStrategy operatorStrategy : operatorStrategies) {
+        for (int i = 0; i < operatorStrategies.size(); i++) {
+            OperatorStrategy operatorStrategy = operatorStrategies.get(i);
+            Indexed<OperatorStrategy> indexedOperatorStrategy = new Indexed<>(i, operatorStrategy);
             if (hasValidContingency(operatorStrategy, contingencyIds)) {
                 if (checkOperatorStrategies) {
                     findMissingActionId(operatorStrategy, actionIds)
@@ -72,12 +75,12 @@ public final class OperatorStrategies {
                     case ALL, ONLY_CONTINGENCIES -> {
                         for (String contingencyId : contingencyIds) {
                             operatorStrategiesByContingencyId.computeIfAbsent(contingencyId, key -> new ArrayList<>())
-                                    .add(operatorStrategy);
+                                    .add(indexedOperatorStrategy);
                         }
                     }
                     case SPECIFIC ->
                         operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
-                                .add(operatorStrategy);
+                                .add(indexedOperatorStrategy);
                     case NONE -> {
                         // nothing to do
                     }
@@ -91,10 +94,10 @@ public final class OperatorStrategies {
         return operatorStrategiesByContingencyId;
     }
 
-    public static Set<Action> getNeededActions(Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
+    public static Set<Action> getNeededActions(Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
                                                Map<String, Action> actionsById) {
         return operatorStrategiesByContingencyId.entrySet().stream().flatMap(e -> e.getValue().stream())
-                .flatMap(operatorStrategy -> operatorStrategy.getConditionalActions().stream()
+                .flatMap(operatorStrategy -> operatorStrategy.value().getConditionalActions().stream()
                         .flatMap(conditionalActions -> conditionalActions.getActionIds().stream())
                 .map(actionsById::get)
                 .filter(Objects::nonNull)).collect(Collectors.toSet());
