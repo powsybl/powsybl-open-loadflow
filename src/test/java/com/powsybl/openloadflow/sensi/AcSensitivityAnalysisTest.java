@@ -1376,6 +1376,23 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testBatteryNoVoltageControlExtension() {
+        Network network = DistributedSlackNetworkFactory.createWithBattery();
+        // Battery 'bat1' has no VoltageRegulation extension
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(Collections.emptyList());
+
+        List<SensitivityFactor> factors = List.of(createBranchReactivePowerPerTargetV("l14", "bat1"));
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
+        assertInstanceOf(PowsyblException.class, e.getCause());
+        assertEquals("Regulating terminal for 'bat1' not found", e.getCause().getMessage());
+
+    }
+
+    @Test
     void testWithHvdcAcEmulation() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
