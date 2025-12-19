@@ -32,6 +32,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
+import com.powsybl.openloadflow.network.action.LfOperatorStrategy;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -212,7 +213,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      */
     private void calculateSensitivityValuesForContingencyAndOperatorStrategy(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder,
                                                                              SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates, DenseMatrix actionsStates,
-                                                                             DenseMatrix flowStates, PropagatedContingency contingency, List<LfAction> operatorStrategyLfActions, Map<String, ComputedContingencyElement> contingencyElementByBranch, Map<LfAction, ComputedElement> actionElementByLfAction,
+                                                                             DenseMatrix flowStates, PropagatedContingency contingency, LfOperatorStrategy operatorStrategy, Map<String, ComputedContingencyElement> contingencyElementByBranch, Map<LfAction, ComputedElement> actionElementByLfAction,
                                                                              Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
                                                                              SensitivityResultWriter resultWriter, ReportNode reportNode, Set<LfBranch> partialDisabledBranches, boolean rhsChangedAfterConnectivityBreak) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = validFactorHolder.getFactorsForContingency(contingency.getContingency().getId());
@@ -220,10 +221,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
-        List<ComputedElement> actionElements = operatorStrategyLfActions.stream()
+        List<ComputedElement> actionElements = operatorStrategy != null ? operatorStrategy.getActions().stream()
                 .map(actionElementByLfAction::get)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
-                .toList();
+                .toList() : Collections.emptyList();
 
         var lfNetwork = loadFlowContext.getNetwork();
         Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
@@ -332,7 +333,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // there is no connectivity break
             calculateSensitivityValuesForContingencyAndOperatorStrategy(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
                     factorsStates, contingenciesStates, actionsStates, flowStates, connectivityAnalysisResult.getPropagatedContingency(),
-                    connectivityAnalysisResult.getLfActions(), contingencyElementByBranch, actionElementByLfAction, Collections.emptySet(),
+                    connectivityAnalysisResult.getOperatorStrategy(), contingencyElementByBranch, actionElementByLfAction, Collections.emptySet(),
                     participatingElements, Collections.emptySet(), resultWriter, reportNode, Collections.emptySet(), false);
         } else {
             // there is a connectivity break
@@ -368,7 +369,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             calculateSensitivityValuesForContingencyAndOperatorStrategy(loadFlowContext, lfParametersExt,
                     validFactorHolder, factorGroups, factorsStates, contingenciesStates, actionsStates, flowStates,
-                    contingency, connectivityAnalysisResult.getLfActions(), contingencyElementByBranch, actionElementByLfAction, disabledBuses,
+                    contingency, connectivityAnalysisResult.getOperatorStrategy(), contingencyElementByBranch, actionElementByLfAction, disabledBuses,
                     participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reportNode, partialDisabledBranches, rhsChanged);
         }
     }
@@ -573,11 +574,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                         List<String> operatorStrategyActionIds = operatorStrategy.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
                         List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
+                        LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy.index(), operatorStrategyLfActions);
                         var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                 connectivityAnalysisResult,
                                 connectivityBreakAnalysisResults.contingencyElementByBranch(),
                                 connectivityBreakAnalysisResults.contingenciesStates(),
-                                operatorStrategyLfActions,
+                                lfOperatorStrategy,
                                 actionElementsIndexByLfAction,
                                 actionsStates);
                         // TODO

@@ -33,6 +33,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
+import com.powsybl.openloadflow.network.action.LfOperatorStrategy;
 import com.powsybl.openloadflow.network.impl.Actions;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.network.impl.OperatorStrategies;
@@ -68,7 +69,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     private record ToFastDcResults(Function<ConnectivityAnalysisResult, double[]> toPostContingencyStates,
-                                   BiFunction<ConnectivityAnalysisResult, List<LfAction>, ConnectivityAnalysisResult> toPostContingencyAndOperatorStrategyConnectivityAnalysisResult,
+                                   BiFunction<ConnectivityAnalysisResult, LfOperatorStrategy, ConnectivityAnalysisResult> toPostContingencyAndOperatorStrategyConnectivityAnalysisResult,
                                    Function<ConnectivityAnalysisResult, double[]> toPostContingencyAndOperatorStrategyStates) {
     }
 
@@ -131,7 +132,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
         Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
-        List<LfAction> operatorStrategyLfActions = connectivityAnalysisResult.getLfActions();
+        List<LfAction> operatorStrategyLfActions = connectivityAnalysisResult.getOperatorStrategy() != null ? connectivityAnalysisResult.getOperatorStrategy().getActions() : Collections.emptyList();
 
         // reset active flow of hvdc line without power
         connectivityAnalysisResult.getHvdcsWithoutPower().forEach(hvdcWithoutPower -> {
@@ -332,13 +333,14 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             .map(woodburyContext.lfActionById::get)
                             .filter(Objects::nonNull)
                             .toList();
+                    LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy.index(), operatorStrategyLfActions);
 
                     logActionStart(lfNetwork, operatorStrategy.value());
                     stopwatch = Stopwatch.createStarted();
 
                     // process post contingency and operator strategy connectivity result with given supplier
                     // operator strategy actions might have changed the post contingency connectivity results
-                    ConnectivityAnalysisResult postContingencyAndOperatorStrategyConnectivityAnalysisResult = toFastDcResults.toPostContingencyAndOperatorStrategyConnectivityAnalysisResult.apply(connectivityAnalysisResult, operatorStrategyLfActions);
+                    ConnectivityAnalysisResult postContingencyAndOperatorStrategyConnectivityAnalysisResult = toFastDcResults.toPostContingencyAndOperatorStrategyConnectivityAnalysisResult.apply(connectivityAnalysisResult, lfOperatorStrategy);
 
                     // predicate to determine if a branch is disabled or not due to the contingency and operator strategy actions
                     // the connectivity results are used to determine which branches have been disabled, due to the contingency or connectivity loss
@@ -442,7 +444,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // function to compute post contingency and post operator strategy connectivity result, with post contingency connectivity result and operator strategy actions
             // due to branch enabling/disabling actions, connectivity results may have changed
-            BiFunction<ConnectivityAnalysisResult, List<LfAction>, ConnectivityAnalysisResult> toPostContingencyAndOperatorStrategyConnectivityAnalysisResult = (postContingencyConnectivityAnalysisResult, operatorStrategyLfActions)
+            BiFunction<ConnectivityAnalysisResult, LfOperatorStrategy, ConnectivityAnalysisResult> toPostContingencyAndOperatorStrategyConnectivityAnalysisResult = (postContingencyConnectivityAnalysisResult, operatorStrategyLfActions)
                     -> ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(
                             context, postContingencyConnectivityAnalysisResult, connectivityBreakAnalysisResults.contingencyElementByBranch(), connectivityBreakAnalysisResults.contingenciesStates(),
                             operatorStrategyLfActions, actionElementsIndexByLfAction, actionsStates);
