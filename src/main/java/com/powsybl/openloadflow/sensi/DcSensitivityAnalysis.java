@@ -48,6 +48,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanContingencies;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
@@ -535,8 +536,29 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     processContingency(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
                             validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
                             workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, sensiReportNode);
+                }
 
-                    // process operator strategies
+                LOGGER.info("Processing contingencies with connectivity break");
+
+                // process contingencies with connectivity break
+                for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
+                        throw new PowsyblException("Computation was interrupted");
+                    }
+                    workingFlowStates.copyValuesFrom(baseFlowStates);
+                    workingFactorStates.copyValuesFrom(baseFactorStates);
+
+                    processContingency(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
+                            validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                            workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, sensiReportNode);
+                }
+
+                LOGGER.info("Processing operator strategies");
+
+                // process operator strategies
+                for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : Stream.concat(connectivityBreakAnalysisResults.nonBreakingConnectivityAnalysisResults().stream(),
+                                                                                                                     connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults().stream()).toList()) {
                     for (OperatorStrategy operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(connectivityAnalysisResult.getPropagatedContingency().getContingency().getId(), Collections.emptyList())) {
                         if (Thread.currentThread().isInterrupted()) {
                             stopwatch.stop();
@@ -554,22 +576,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                 actionsStates);
                         // TODO
                     }
-                }
-
-                LOGGER.info("Processing contingencies with connectivity break");
-
-                // process contingencies with connectivity break
-                for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults()) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        stopwatch.stop();
-                        throw new PowsyblException("Computation was interrupted");
-                    }
-                    workingFlowStates.copyValuesFrom(baseFlowStates);
-                    workingFactorStates.copyValuesFrom(baseFactorStates);
-
-                    processContingency(connectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                            validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
-                            workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), resultWriter, sensiReportNode);
                 }
             }
 
