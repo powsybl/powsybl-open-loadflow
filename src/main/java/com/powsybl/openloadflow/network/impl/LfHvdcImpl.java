@@ -180,9 +180,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
                     ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(converterStation1.getTargetP() * PerUnit.SB);
                     ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(converterStation2.getTargetP() * PerUnit.SB);
                 }
-                case FROZEN -> {
-                    throw new PowsyblException("Trying to update network with HVDC AC Emulation at a frozen state.");
-                }
+                case FROZEN -> throw new PowsyblException("Trying to update network with HVDC AC Emulation at a frozen state.");
             }
 
         }
