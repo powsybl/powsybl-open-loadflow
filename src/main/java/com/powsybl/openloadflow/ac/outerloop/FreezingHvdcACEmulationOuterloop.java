@@ -46,13 +46,12 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         private final HashMap<String, Double> voltage = new HashMap<>();
 
         private ContextData(LfNetwork network) {
-            /* TO DO : Check if this code should be kept
             network.getBuses()
                     .stream().filter(b -> !b.isDisabled())
                     .forEach(b -> {
                         angles.put(b.getId(), Double.isNaN(b.getAngle()) ? 0 : b.getAngle());
                         voltage.put(b.getId(), Double.isNaN(b.getV()) ? 1 : b.getV());
-                    });*/
+                    });
         }
 
     }
@@ -102,25 +101,22 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
                 .toList();
 
         if (!frozenHvdc.isEmpty()) {
-
             for (LfHvdc lfHvdc : frozenHvdc) {
                 Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
                 lfHvdc.getAcEmulationControl().switchToLinearMode();
             }
 
             // Return to initial state (we are in a possibly non-physical state after first partial resolution)
-            // TO DO : Check if this code should be kept
-            /*context.getNetwork().getBuses()
+            context.getNetwork().getBuses()
                     .stream()
                     .filter(b -> !b.isDisabled())
                     .forEach(b -> {
                         b.setAngle(contextData.angles.get(b.getId()));
                         b.setV(contextData.voltage.get(b.getId()));
-                    });*/
+                    });
         }
 
         return new OuterLoopResult(this, frozenHvdc.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE);
-
     }
 
 }
