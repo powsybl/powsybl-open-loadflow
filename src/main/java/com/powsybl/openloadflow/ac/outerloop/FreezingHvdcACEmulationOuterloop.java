@@ -66,12 +66,10 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         ContextData contextData = new ContextData(context.getNetwork());
         context.setData(contextData);
         LfNetwork network = context.getNetwork();
-        if (context.getLoadFlowContext().getEquationSystem().getStateVector().get() == null) { // If State Vector was not initialized, initializing (angles are used to compute frozen state of AC emulation)
-            AcSolverUtil.initStateVector(context.getNetwork(), context.getLoadFlowContext().getEquationSystem(), new PreviousValueVoltageInitializer());
-        }
+        AcSolverUtil.initStateVector(context.getNetwork(), context.getLoadFlowContext().getEquationSystem(), new PreviousValueVoltageInitializer(true)); // Updating State Vector with previous values
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .filter(lfHvdc -> !lfHvdc.isDisabled() && !lfHvdc.getBus1().isDisabled() && !lfHvdc.getBus2().isDisabled() && lfHvdc.getAcEmulationControl().isFreezable())
+                .filter(lfHvdc -> !lfHvdc.isDisabled() && !lfHvdc.getBus1().isDisabled() && !lfHvdc.getBus2().isDisabled())
                 .forEach(lfHvdc -> {
                     double setPointBus1 = lfHvdc.getAcEmulationControl().switchToFrozenState(true);
                     Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);

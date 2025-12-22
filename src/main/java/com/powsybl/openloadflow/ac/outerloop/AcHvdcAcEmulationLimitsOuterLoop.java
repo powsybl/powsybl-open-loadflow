@@ -43,7 +43,6 @@ public class AcHvdcAcEmulationLimitsOuterLoop
             if (!hvdc.isAcEmulation() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled() || hvdc.isDisabled()) {
                 continue;
             }
-            hvdc.getAcEmulationControl().setFreezable(true);
             if (checkAcEmulationMode(hvdc, true)) {
                 LOGGER.trace("Hvdc '{}' AC emulation state is changed to {}", hvdc.getId(), hvdc.getAcEmulationControl().getAcEmulationStatus());
                 status = OuterLoopStatus.UNSTABLE;

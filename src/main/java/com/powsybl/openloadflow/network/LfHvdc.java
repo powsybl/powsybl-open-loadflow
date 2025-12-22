@@ -29,7 +29,6 @@ public interface LfHvdc extends LfElement {
         private final double p0;
         private final double pMaxFromCS1toCS2;
         private final double pMaxFromCS2toCS1;
-        private boolean freezable; // If the HVDC was disabled and has been reconnected, we do not want it to be frozen
         private AcEmulationStatus acEmulationStatus = AcEmulationStatus.LINEAR_MODE;
 
         public AcEmulationControl(LfHvdc hvdc, double droop, double p0, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
@@ -38,7 +37,6 @@ public interface LfHvdc extends LfElement {
             this.p0 = p0;
             this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2;
             this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1;
-            this.freezable = true;
         }
 
         public double getDroop() {
@@ -96,27 +94,20 @@ public interface LfHvdc extends LfElement {
         }
 
         public double switchToFrozenState(boolean computeLoss) {
-            if (hvdc.getAcEmulationControl().getAcEmulationStatus() == AcEmulationStatus.LINEAR_MODE) {
-                double p1 = hvdc.getP1().eval();
-                double p2 = hvdc.getP2().eval();
-                if (p1 > pMaxFromCS1toCS2) {
-                    switchToSaturationFromCS1toCS2(computeLoss);
-                } else if (p2 > pMaxFromCS2toCS1) {
-                    switchToSaturationFromCS2toCS1(computeLoss);
-                }
+            double p1 = hvdc.getP1().eval();
+            double p2 = hvdc.getP2().eval();
+            // Checking if linear mode overpasses operating limits
+            if (p1 > getPMaxFromCS1toCS2()) {
+                switchToSaturationFromCS1toCS2(computeLoss);
+            } else if (p2 > getPMaxFromCS2toCS1()) {
+                switchToSaturationFromCS2toCS1(computeLoss);
+            } else {
+                // If not, freezing at current linear position
                 hvdc.getConverterStation1().setTargetP(p1);
                 hvdc.getConverterStation2().setTargetP(p2);
             }
-            hvdc.updateAcEmulationStatus(AcEmulationStatus.FROZEN);
+            hvdc.updateAcEmulationStatus(AcEmulationStatus.FROZEN); // Freezing at current position whatever the mode was (either linear or saturated)
             return hvdc.getConverterStation1().getTargetP();
-        }
-
-        public boolean isFreezable() {
-            return freezable;
-        }
-
-        public void setFreezable(boolean freezable) {
-            this.freezable = freezable;
         }
     }
 

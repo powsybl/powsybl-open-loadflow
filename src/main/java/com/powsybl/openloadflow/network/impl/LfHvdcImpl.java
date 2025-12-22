@@ -98,7 +98,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public void setDisabled(boolean disabled) {
         if (acEmulation && isDisabled() && !disabled) {
-            acEmulationControl.setFreezable(false); // If an HVDC is reconnected by an action, we do not want it to be frozen
+            //acEmulationControl.setFreezable(false); // If an HVDC is reconnected by an action, we do not want it to be frozen
         }
         super.setDisabled(disabled); // for AC emulation equations only.
         if (!acEmulation && !disabled) {

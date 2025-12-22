@@ -13,15 +13,22 @@ package com.powsybl.openloadflow.network;
 public class HvdcState extends ElementState<LfHvdc> {
 
     private final boolean acEmulation;
-    private final LfHvdc.AcEmulationControl acEmulationControl;
+    private final LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus;
+    private final double vsc1TargetP;
+    private final double vsc2TargetP;
 
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
         this.acEmulation = hvdc.isAcEmulation();
         if (this.acEmulation) {
-            this.acEmulationControl = hvdc.getAcEmulationControl();
+            acEmulationStatus = hvdc.getAcEmulationControl().getAcEmulationStatus();
+            // VSCs targetP are stored to be used if the AC emulation is in saturated mode
+            vsc1TargetP = hvdc.getConverterStation1().getTargetP();
+            vsc2TargetP = hvdc.getConverterStation2().getTargetP();
         } else {
-            this.acEmulationControl = null;
+            vsc1TargetP = Double.NaN;
+            vsc2TargetP = Double.NaN;
+            acEmulationStatus = null;
         }
     }
 
@@ -33,7 +40,9 @@ public class HvdcState extends ElementState<LfHvdc> {
     public void restore() {
         super.restore();
         if (acEmulation) {
-            element.setAcEmulationControl(acEmulationControl);
+            element.getAcEmulationControl().setAcEmulationStatus(acEmulationStatus);
+            element.getConverterStation1().setTargetP(vsc1TargetP);
+            element.getConverterStation2().setTargetP(vsc2TargetP);
         }
         element.setAcEmulation(acEmulation);
     }
