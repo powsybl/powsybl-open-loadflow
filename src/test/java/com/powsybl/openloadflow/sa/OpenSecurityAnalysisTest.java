@@ -4737,4 +4737,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         });
 
     }
+
+    @Test
+    void testContingencyDisconnectingPqBlockedBus() {
+        Network network = VoltageControlNetworkFactory.createThreeBuses();
+
+        // Contingency disconnects/isolates B3 with 1 load, 1 gen blocked PQ, and one fixed shunt.
+        List<Contingency> contingencies = List.of(new Contingency("l23", new LineContingency("l23")));
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12"), Collections.emptySet(), Collections.emptySet()));
+
+        // FIXME: Expected to have same number of equations (4) and variables (5)
+        SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors));
+        assertEquals(50., result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
+        assertEquals(100., result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
+    }
 }
