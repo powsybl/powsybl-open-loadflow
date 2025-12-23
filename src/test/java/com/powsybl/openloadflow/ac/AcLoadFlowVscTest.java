@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
@@ -14,6 +15,7 @@ import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRangeAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -542,25 +544,65 @@ class AcLoadFlowVscTest {
         network.getHvdcLine("hvdc23")
                 .setMaxP(170);
 
+        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters p = new LoadFlowParameters();
-        p.setHvdcAcEmulation(true);
-        LoadFlowResult result = loadFlowRunner.run(network, p);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setReportNode(report);
+        runParameters.getLoadFlowParameters().setHvdcAcEmulation(true);
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
 
         assertTrue(result.isFullyConverged());
 
         // Active flow capped at limit. Output has losses (due to VSC stations)
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(-166.263, network.getHvdcConverterStation("cs3").getTerminal());
+        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=170\\.0 MW from station cs2 to station cs3\\)", report);
 
         // now invert power direction
         HvdcAngleDroopActivePowerControl activePowerControl = network.getHvdcLine("hvdc23").getExtension(HvdcAngleDroopActivePowerControl.class);
         activePowerControl.setP0(-activePowerControl.getP0());
-        result = loadFlowRunner.run(network, p);
+        report = ReportNode.newRootReportNode().withMessageTemplate("test2").build();
+        runParameters.setReportNode(report);
+        result = loadFlowRunner.run(network, runParameters);
         assertTrue(result.isFullyConverged());
+        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=170\\.0 MW from station cs3 to station cs2\\)", report);
 
         assertActivePowerEquals(-166.263, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs3").getTerminal());
+    }
+
+    @Test
+    void testAcEmuPMaxBackToLinear() {
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+        network.getLine("l14").setX(1.0);
+        network.getHvdcLine("hvdc23")
+                .setMaxP(204);
+        network.getVscConverterStation("cs2").setVoltageRegulatorOn(false);
+        network.getGenerator("g1")
+                .setTargetV(370); // Decrease targetV to force the generator to have high reactive power absorption
+
+        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setReportNode(report);
+        runParameters.getLoadFlowParameters().setHvdcAcEmulation(true);
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
+
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(204, network.getHvdcConverterStation("cs2").getTerminal());
+        assertActivePowerEquals(-199.512, network.getHvdcConverterStation("cs3").getTerminal());
+        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=204\\.0 MW from station cs2 to station cs3\\)", report);
+
+        // Adding minQ limit (will force generator to reduce q absorption by switching PV -> PQ)
+        // This will reduce the flow through the HVDC line after the ReactiveLimits outerloop (which comes after AcHvdcAcEmulationLimits outerloop) -> AC emulation should go back to linear mode
+        network.getGenerator("g1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(10).add();
+
+        report = ReportNode.newRootReportNode().withMessageTemplate("test2").build();
+        runParameters.setReportNode(report);
+        result = loadFlowRunner.run(network, runParameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(203.885, network.getHvdcConverterStation("cs2").getTerminal()); // This is below Pmax of AC emulation
+        assertActivePowerEquals(-199.399, network.getHvdcConverterStation("cs3").getTerminal());
+        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=204\\.0 MW from station cs2 to station cs3\\)", report);
+        assertReportContains("HVDC line hvdc23 AC emulation switches back from saturated mode to linear mode", report);
     }
 
     @Test
