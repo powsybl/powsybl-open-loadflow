@@ -70,6 +70,7 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
                 .filter(lfHvdc -> !lfHvdc.isDisabled() && !lfHvdc.getBus1().isDisabled() && !lfHvdc.getBus2().isDisabled())
+                .filter(lfHvdc -> !Double.isNaN(lfHvdc.getBus1().getAngle() - lfHvdc.getBus1().getAngle())) // If some angles are at NaN, it means that the HVDC has been reconnected by an action, AC emulation is not frozen
                 .forEach(lfHvdc -> {
                     double setPointBus1 = lfHvdc.getAcEmulationControl().switchToFrozenState(true);
                     Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);

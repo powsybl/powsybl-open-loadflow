@@ -39,11 +39,11 @@ public class HvdcState extends ElementState<LfHvdc> {
     @Override
     public void restore() {
         super.restore();
+        element.setAcEmulation(acEmulation);
         if (acEmulation) {
-            element.getAcEmulationControl().setAcEmulationStatus(acEmulationStatus);
             element.getConverterStation1().setTargetP(vsc1TargetP);
             element.getConverterStation2().setTargetP(vsc2TargetP);
+            element.updateAcEmulationStatus(acEmulationStatus);
         }
-        element.setAcEmulation(acEmulation);
     }
 }
