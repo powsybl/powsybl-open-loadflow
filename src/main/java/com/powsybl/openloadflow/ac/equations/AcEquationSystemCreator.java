@@ -983,7 +983,7 @@ public class AcEquationSystemCreator {
     public static void updateHvdcAcEmulationEquations(LfHvdc hvdc) {
         if (hvdc.getBus1() != null && !hvdc.getBus1().isDisabled()
                 && hvdc.getBus2() != null && !hvdc.getBus2().isDisabled()
-                && hvdc.isAcEmulation()) {
+                && !hvdc.isDisabled() && hvdc.isAcEmulation()) {
             switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
                 case LINEAR_MODE -> {
                     setActive(hvdc.getP1(), true);
@@ -996,6 +996,9 @@ public class AcEquationSystemCreator {
                     setActive(hvdc.getP2(), false);
                 }
             }
+        } else {
+            setActive(hvdc.getP1(), false);
+            setActive(hvdc.getP2(), false);
         }
     }
 

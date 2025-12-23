@@ -41,12 +41,11 @@ public class DcHvdcAcEmulationLimitsOuterLoop
             if (!hvdc.isAcEmulation() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled() || hvdc.isDisabled()) {
                 continue;
             }
-            if (checkAcEmulationMode(hvdc, false)) {
+            if (checkAcEmulationMode(hvdc, false, LOGGER, reportNode)) {
                 LOGGER.trace("Hvdc '{}' AC emulation state is changed to {}", hvdc.getId(), hvdc.getAcEmulationControl().getAcEmulationStatus());
                 status = OuterLoopStatus.UNSTABLE;
             }
         }
         return new OuterLoopResult(this, status);
     }
-
 }

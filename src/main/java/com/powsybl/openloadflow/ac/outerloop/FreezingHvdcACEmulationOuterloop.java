@@ -69,11 +69,26 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         AcSolverUtil.initStateVector(context.getNetwork(), context.getLoadFlowContext().getEquationSystem(), new PreviousValueVoltageInitializer(true)); // Updating State Vector with previous values
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .filter(lfHvdc -> !lfHvdc.isDisabled() && !lfHvdc.getBus1().isDisabled() && !lfHvdc.getBus2().isDisabled())
-                .filter(lfHvdc -> !Double.isNaN(lfHvdc.getBus1().getAngle() - lfHvdc.getBus1().getAngle())) // If some angles are at NaN, it means that the HVDC has been reconnected by an action, AC emulation is not frozen
+                .filter(lfHvdc -> !lfHvdc.isDisabled() && !lfHvdc.getBus1().isDisabled() && !lfHvdc.getBus2().isDisabled()) // If some angles are at NaN, it means that the HVDC has been reconnected by an action, AC emulation is not frozen
                 .forEach(lfHvdc -> {
-                    double setPointBus1 = lfHvdc.getAcEmulationControl().switchToFrozenState(true);
-                    Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);
+                    if (!Double.isNaN(lfHvdc.getBus1().getAngle() - lfHvdc.getBus1().getAngle())) {
+                        lfHvdc.getAcEmulationControl().switchToFrozenState(true);
+                        double setPointHvdc;
+                        String controllerId;
+                        String nonControllerId;
+                        if (lfHvdc.getConverterStation1().getTargetP() < 0) {
+                            setPointHvdc = -lfHvdc.getConverterStation1().getTargetP() * PerUnit.SB;
+                            controllerId = lfHvdc.getConverterStation1().getId();
+                            nonControllerId = lfHvdc.getConverterStation2().getId();
+                        } else {
+                            setPointHvdc = -lfHvdc.getConverterStation2().getTargetP() * PerUnit.SB;
+                            controllerId = lfHvdc.getConverterStation2().getId();
+                            nonControllerId = lfHvdc.getConverterStation1().getId();
+                        }
+                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), controllerId, nonControllerId, setPointHvdc, LOGGER);
+                    } else {
+                        Reports.reportNoFreezeBecauseHvdcAction(context.getNetwork().getReportNode(), lfHvdc.getId(), LOGGER);
+                    }
                 });
     }
 

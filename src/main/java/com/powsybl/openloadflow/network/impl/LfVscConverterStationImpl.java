@@ -69,6 +69,9 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
             return hvdcDandlingInIidm ? 0 : super.getTargetP();
         } else {
             if (hvdc.isAcEmulation()) {
+                if (hvdc.isDisabled() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled()) {
+                    return 0;
+                }
                 return switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
                     // Because in case of AC emulation in saturated mode or frozen, active power target is specified in the target vector
                     case FROZEN, SATURATION_MODE_FROM_CS1_TO_CS2, SATURATION_MODE_FROM_CS2_TO_CS1 -> super.getTargetP();
