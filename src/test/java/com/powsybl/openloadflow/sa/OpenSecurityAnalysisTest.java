@@ -4747,7 +4747,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12"), Collections.emptySet(), Collections.emptySet()));
 
-        // FIXME: Expected to have same number of equations (4) and variables (5)
         SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors));
         assertEquals(50., result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
         assertEquals(100., result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
