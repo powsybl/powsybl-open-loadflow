@@ -326,11 +326,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                             addVariables(variables);
                         }
                     }
-                    for (var singleTerm : equationArray.getSingleEquationTerms(elementNum)) {
-                        if (singleTerm.isActive()) {
-                            List<Variable<V>> variables = singleTerm.getVariables();
-                            addVariables(variables);
-                        }
+                }
+                for (var singleTerm : equationArray.getSingleEquationTerms(elementNum)) {
+                    if (singleTerm.isActive()) {
+                        List<Variable<V>> variables = singleTerm.getVariables();
+                        addVariables(variables);
                     }
                 }
                 equationsIndexValid = false;
