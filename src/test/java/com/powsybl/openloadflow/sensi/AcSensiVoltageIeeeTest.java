@@ -10,15 +10,11 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.sensitivity.SensitivityAnalysisParameters;
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
-import com.powsybl.sensitivity.SensitivityFunctionType;
-import com.powsybl.sensitivity.SensitivityVariableType;
+import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Collections;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -27,14 +23,16 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
 
     private Network network;
 
-    private SensitivityAnalysisParameters sensiParameters;
+    private SensitivityAnalysisRunParameters runParameters;
 
     @BeforeEach
     @Override
     public void setUp() throws IOException {
         super.setUp();
         network = IeeeCdfNetworkFactory.create14();
-        sensiParameters = new SensitivityAnalysisParameters();
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
         runLf(network, sensiParameters.getLoadFlowParameters());
         for (var g : network.getGenerators()) {
             if (g.getId().equals("B1-G") || g.getId().equals("B3-G")) {
@@ -50,7 +48,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
     void testVarVFunTargetQ() {
         var sensiMatrix = new SensitivityMatrix(SensitivityFunctionType.BUS_VOLTAGE, network.getBusBreakerView().getBusStream().limit(5),
                                                 SensitivityVariableType.INJECTION_REACTIVE_POWER, network.getGeneratorStream().limit(3));
-        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), runParameters);
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
@@ -67,7 +65,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
     void testVarVFunTargetV() {
         var sensiMatrix = new SensitivityMatrix(SensitivityFunctionType.BUS_VOLTAGE, network.getBusBreakerView().getBusStream().limit(5),
                                                 SensitivityVariableType.BUS_TARGET_VOLTAGE, network.getGeneratorStream().limit(3));
-        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), runParameters);
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
@@ -84,7 +82,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
     void testVarBusQFunBranchI() {
         var sensiMatrix = new SensitivityMatrix(SensitivityFunctionType.BRANCH_CURRENT_1, network.getLineStream().limit(5),
                                                 SensitivityVariableType.INJECTION_REACTIVE_POWER, network.getLoadStream().limit(3));
-        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), runParameters);
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
@@ -101,7 +99,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
     void testVarBusQFunBusV() {
         var sensiMatrix = new SensitivityMatrix(SensitivityFunctionType.BUS_VOLTAGE, network.getBusBreakerView().getBusStream().limit(5),
                                                 SensitivityVariableType.INJECTION_REACTIVE_POWER, network.getLoadStream().limit(3));
-        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), runParameters);
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
@@ -118,7 +116,7 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
     void testVarBusQFunBusQ() {
         var sensiMatrix = new SensitivityMatrix(SensitivityFunctionType.BUS_REACTIVE_POWER, network.getBusBreakerView().getBusStream().limit(5),
                                                 SensitivityVariableType.INJECTION_REACTIVE_POWER, network.getLoadStream().limit(3));
-        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, sensiMatrix.toFactors(), runParameters);
         var m = sensiMatrix.toResultMatrix(result);
         @SuppressWarnings("SingleSpaceSeparator")
         var mRef = new DenseMatrix(5, 3, new double[] {
