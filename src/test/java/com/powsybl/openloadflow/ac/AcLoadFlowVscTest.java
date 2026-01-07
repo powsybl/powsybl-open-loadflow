@@ -571,38 +571,43 @@ class AcLoadFlowVscTest {
     }
 
     @Test
-    void testAcEmuPMaxBackToLinear() {
-        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
-        network.getLine("l14").setX(1.0);
-        network.getHvdcLine("hvdc23")
-                .setMaxP(204);
-        network.getVscConverterStation("cs2").setVoltageRegulatorOn(false);
-        network.getGenerator("g1")
-                .setTargetV(370); // Decrease targetV to force the generator to have high reactive power absorption
+    void testAcEmulationStatusChanges() {
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulationAndPSTInSymetricNetwork();
+        // MaxP is set so that the HVDC is in saturated mode before phase tap changing outer loop
+        // After phase tap changing outer loop, active power flows let the HVDC getting back to linear mode
+        // (This has no physical sense since such interaction between AC emulation and phase shifter would need dynamic simulation)
+        network.getHvdcLine("hvdc12")
+                .setMaxP(51);
 
         ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setReportNode(report);
-        runParameters.getLoadFlowParameters().setHvdcAcEmulation(true);
+        runParameters.getLoadFlowParameters().setHvdcAcEmulation(true)
+                .setPhaseShifterRegulationOn(true)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
         LoadFlowResult result = loadFlowRunner.run(network, runParameters);
 
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(204, network.getHvdcConverterStation("cs2").getTerminal());
-        assertActivePowerEquals(-199.512, network.getHvdcConverterStation("cs3").getTerminal());
-        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=204\\.0 MW from station cs2 to station cs3\\)", report);
+        assertReportContains("HVDC line hvdc12 AC emulation switches from linear mode to saturated mode \\(Pmax=51\\.0 MW from station cs1 to station cs2\\)", report);
+        assertReportContains("HVDC line hvdc12 AC emulation switches back from saturated mode to linear mode", report);
 
-        // Adding minQ limit (will force generator to reduce q absorption by switching PV -> PQ)
-        // This will reduce the flow through the HVDC line after the ReactiveLimits outerloop (which comes after AcHvdcAcEmulationLimits outerloop) -> AC emulation should go back to linear mode
-        network.getGenerator("g1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(10).add();
+        // MaxP is set so that the HVDC is in saturated mode before phase tap changing outer loop
+        // After phase tap changing outer loop, active power flows let the HVDC being saturated on the opposite side
+        network.getHvdcLine("hvdc12")
+                .setMaxP(1.5);
+        network.getGenerator("g1").setTargetP(15);
+        network.getLoad("l1").setP0(10);
+        network.getGenerator("g2").setTargetP(10);
+        network.getLoad("l2").setP0(15);
+        network.getTwoWindingsTransformer("pst").getPhaseTapChanger().setRegulationValue(20);
 
         report = ReportNode.newRootReportNode().withMessageTemplate("test2").build();
         runParameters.setReportNode(report);
         result = loadFlowRunner.run(network, runParameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(203.885, network.getHvdcConverterStation("cs2").getTerminal()); // This is below Pmax of AC emulation
-        assertActivePowerEquals(-199.399, network.getHvdcConverterStation("cs3").getTerminal());
-        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=204\\.0 MW from station cs2 to station cs3\\)", report);
-        assertReportContains("HVDC line hvdc23 AC emulation switches back from saturated mode to linear mode", report);
+        assertReportContains("HVDC line hvdc12 AC emulation switches from linear mode to saturated mode \\(Pmax=1\\.5 MW from station cs1 to station cs2\\)", report);
+        assertReportContains("HVDC line hvdc12 AC emulation saturation switches from one side to the opposite \\(new Pmax=1\\.5 MW from station cs2 to station cs1\\)", report);
     }
 
     @Test

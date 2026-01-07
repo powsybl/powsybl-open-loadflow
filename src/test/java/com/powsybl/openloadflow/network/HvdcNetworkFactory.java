@@ -675,6 +675,60 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     *       -----------pst---------------
+     *      |                            |
+     *       ------------l12--------------
+     *      |                            |
+     * g1--b1-----vsc1--hvdc12--vsc2----b2--g2
+     *     |                             |
+     *     l1                            l2
+     *
+     * @return
+     */
+    public static Network createHvdcInAcEmulationAndPSTInSymetricNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "substation", "b1");
+        Bus b2 = createBus(network, "substation", "b2");
+        createGenerator(b1, "g1", 200).setMaxP(300);
+        createGenerator(b2, "g2", 10).setMaxP(300);
+        createLoad(b1, "l1", 50);
+        createLoad(b2, "l2", 150);
+        createLine(network, b1, b2, "l12", 0.1f);
+        TwoWindingsTransformer twt = createTransformer(network, "substation", b1, b2, "pst", 0.01, 1);
+        twt.newPhaseTapChanger().setTapPosition(2)
+                .setRegulationTerminal(twt.getTerminal1())
+                .setTargetDeadband(1)
+                .setRegulationValue(87)
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulating(true)
+                .beginStep()
+                .setAlpha(-50)
+                .endStep()
+                .beginStep()
+                .setAlpha(-10)
+                .endStep()
+                .beginStep()
+                .setAlpha(0)
+                .endStep()
+                .beginStep()
+                .setAlpha(10)
+                .endStep()
+                .beginStep()
+                .setAlpha(50)
+                .endStep()
+                .add();
+        VscConverterStation cs1 = createVsc(b1, "cs1", 1.2d, 0d);
+        VscConverterStation cs2 = createVsc(b2, "cs2", 1.2d, 0d);
+        createHvdcLine(network, "hvdc12", cs1, cs2, 400, 0.1, 2)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(1)
+                .withP0(0)
+                .withEnabled(true)
+                .add();
+        return network;
+    }
+
+    /**
      * <pre>
      *            (low imp)
      *          ----l12big-----
