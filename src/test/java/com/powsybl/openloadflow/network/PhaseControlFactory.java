@@ -40,8 +40,8 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
         ps1.setR(20).setX(100).setG(1e-6).setB(1e-6);
         ps1.getPhaseTapChanger().getStep(0).setAlpha(-5).setR(-50).setX(-50).setG(-50).setB(-50);
-        ps1.getPhaseTapChanger().getStep(1).setAlpha(0).setR(0).setX(0).setG(0).setB(0);
-        ps1.getPhaseTapChanger().getStep(2).setAlpha(5).setR(100).setX(100).setG(100).setB(100);
+        ps1.getPhaseTapChanger().getStep(1).setAlpha(0).setR(-100).setX(-100).setG(-100).setB(-100); // zero impedance
+        ps1.getPhaseTapChanger().getStep(2).setAlpha(10).setR(100).setX(100).setG(100).setB(100);
         return network;
     }
 
