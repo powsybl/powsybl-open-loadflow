@@ -572,9 +572,9 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setSolvedTapPosition(0) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(0)
-                .setRegulationTerminal(t3wt.getLeg1().getTerminal())
+                .setRegulationTerminal(t3wt.getLeg2().getTerminal())
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
-                .setRegulationValue(-0.035);
+                .setRegulationValue(0.035);
 
         parameters.setTransformerVoltageControlOn(true);
 
