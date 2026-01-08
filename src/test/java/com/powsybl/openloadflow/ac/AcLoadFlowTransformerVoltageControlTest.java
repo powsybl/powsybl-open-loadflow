@@ -18,12 +18,11 @@ import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
 
@@ -1222,5 +1221,92 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(8, result3.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);
+    }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+             lowImpedanceBranchMode,         twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2,  tap0v,  tap1v,  tap2v
+             REPLACE_BY_ZERO_IMPEDANCE_LINE, false,                    5.073,    -5.0,    5.0,    -5.0,  5.440,    -5.0, 30.002, 33.577, 35.610
+             REPLACE_BY_MIN_IMPEDANCE_LINE,  false,                    5.073,    -5.0,    5.0,    -5.0,  5.440,    -5.0, 30.002, 33.577, 35.610
+             REPLACE_BY_ZERO_IMPEDANCE_LINE, true,                     5.073,    -5.0,    5.0,    -5.0,  5.456,    -5.0, 30.084, 33.577, 38.000
+             REPLACE_BY_MIN_IMPEDANCE_LINE,  true,                     5.073,    -5.0,    5.0,    -5.0,  5.456,    -5.0, 30.084, 33.577, 38.000
+            """
+    )
+    void rxgbChangeOnRtcControlTest(OpenLoadFlowParameters.LowImpedanceBranchMode lowImpedanceBranchMode, boolean twtSplitShuntAdmittance,
+                                    double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2,
+                                    double tap0v, double tap1v, double tap2v) {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        t2wt.setR(2.).setX(20.).setG(1e-4).setB(1e-3);
+
+        t2wt.newRatioTapChanger()
+                .beginStep().setRho(0.9).setR(-50.).setX(-50.).setG(-50.).setB(-50.).endStep()
+                .beginStep().setRho(1.0).setR(-100.).setX(-100.).setG(-100.).setB(-100.).endStep()
+                .beginStep().setRho(1.1).setR(150.).setX(150.).setG(150.).setB(150.).endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(false)
+                .setTargetV(33.0)
+                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .add();
+
+        t2wt.getRatioTapChanger().setTapPosition(0).setRegulating(false);
+
+        parameters
+                .setDistributedSlack(true)
+                .setTransformerVoltageControlOn(true)
+                .setTwtSplitShuntAdmittance(twtSplitShuntAdmittance);
+        parametersExt
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setLowImpedanceBranchMode(lowImpedanceBranchMode);
+
+        // capture values, no regulation, tap 0
+        t2wt.getRatioTapChanger().setTapPosition(0).setRegulating(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap0p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap0p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap0v, bus3);
+
+        // capture values, no regulation, tap 1
+        t2wt.getRatioTapChanger().setTapPosition(1);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap1v, bus3);
+
+        // capture values, no regulation, tap 2
+        t2wt.getRatioTapChanger().setTapPosition(2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap2v, bus3);
+
+        // set at tap 0, enable regulation to have RTC moving to tap 1 which is zero impedance
+        t2wt.getRatioTapChanger().setTapPosition(0)
+                .setRegulationValue(33.5)
+                .setTargetDeadband(1.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        // FIXME: incorrect result for Zero impedance mode & non convergence for Min impedance mode
+        // FIXME assertTrue(result.isFullyConverged());
+        // FIXME assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        // FIXME assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        // FIXME assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+        // FIXME assertVoltageEquals(tap1v, bus3);
+
+        // set at tap 0, enable regulation to have RTC moving to tap 2
+        t2wt.getRatioTapChanger().setTapPosition(0)
+                .setRegulationValue(37.)
+                .setTargetDeadband(2.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap2v, bus3);
     }
 }

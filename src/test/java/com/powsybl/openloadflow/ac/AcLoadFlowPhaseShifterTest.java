@@ -22,6 +22,8 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 
@@ -694,5 +696,71 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(0.0, line2.getTerminal1());
         assertEquals(1, t2wt.getPhaseTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+    }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+             lowImpedanceBranchMode,         twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2
+             REPLACE_BY_ZERO_IMPEDANCE_LINE, false,                   19.640, -19.470, 66.739, -66.739, 95.497, -92.751
+             REPLACE_BY_MIN_IMPEDANCE_LINE,  false,                   19.640, -19.470, 66.739, -66.739, 95.497, -92.751
+             REPLACE_BY_ZERO_IMPEDANCE_LINE, true,                    19.633, -19.464, 66.739, -66.739, 95.428, -92.693
+             REPLACE_BY_MIN_IMPEDANCE_LINE,  true,                    19.633, -19.464, 66.739, -66.739, 95.428, -92.693
+            """
+    )
+    void rxgbChangeOnPstControlTest(OpenLoadFlowParameters.LowImpedanceBranchMode lowImpedanceBranchMode, boolean twtSplitShuntAdmittance,
+                                    double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2) {
+        selectNetwork(PhaseControlFactory.createNetworkWithT2wtExaggerateRxgbTable());
+
+        parameters
+                .setPhaseShifterRegulationOn(true)
+                .setTwtSplitShuntAdmittance(twtSplitShuntAdmittance);
+        parametersExt
+                .setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL)
+                .setLowImpedanceBranchMode(lowImpedanceBranchMode);
+
+        // capture values, no regulation, tap 0
+        t2wt.getPhaseTapChanger().setTapPosition(0).setRegulating(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap0p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap0p2, t2wt.getTerminal2());
+
+        // capture values, no regulation, tap 1
+        t2wt.getPhaseTapChanger().setTapPosition(1);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+
+        // capture values, no regulation, tap 2
+        t2wt.getPhaseTapChanger().setTapPosition(2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+
+        // set at tap 0, enable regulation to have PST moving to tap 1 which is zero impedance
+        t2wt.getPhaseTapChanger().setTapPosition(0)
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulationValue(-65.)
+                .setTargetDeadband(10.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, t2wt.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+
+        // set at tap 0, enable regulation to have PST moving to tap 2
+        t2wt.getPhaseTapChanger().setTapPosition(0)
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulationValue(-100.)
+                .setTargetDeadband(10.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
     }
 }
