@@ -134,13 +134,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             }
 
             @Override
-            public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
+            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status) {
                 statusCallCount.incrementAndGet();
-            }
-
-            @Override
-            public void writeOperatorStrategyStatus(int i, int i1, SensitivityAnalysisResult.Status status) {
-                // TODO
             }
         };
 
@@ -1992,7 +1987,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
-        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
+        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies, Collections.emptyList());
 
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()

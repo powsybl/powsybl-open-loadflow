@@ -235,7 +235,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(),
                                                    contingencyElements, contingenciesStates, actionElements, actionsStates);
-
+        int operatorStrategyIndex = operatorStrategy != null ? operatorStrategy.getIndex() : -1;
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
             DenseMatrix newFlowStates = flowStates;
             // we need to recompute the factor states because the connectivity changed
@@ -261,9 +261,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, operatorStrategy, resultWriter, disabledNetwork);
             // write contingency status
             if (contingency.hasNoImpact()) {
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.NO_IMPACT);
             } else {
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
             }
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
@@ -294,10 +294,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     rhsChangedAfterGlskRescaling = rescaleGlsk(factorGroups, impactedBuses);
                 }
                 // write contingency status
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
             } else {
                 // write contingency status
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.NO_IMPACT);
             }
 
             // we need to recompute the factor states because the rhs or the participating elements have changed
@@ -516,7 +516,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     if (!lfFactors.isEmpty()) {
                         contingenciesWithFactors.add(contingency);
                     } else {
-                        resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                        resultWriter.writeStateStatus(contingency.getIndex(), -1, SensitivityAnalysisResult.Status.SUCCESS);
                     }
                 });
 

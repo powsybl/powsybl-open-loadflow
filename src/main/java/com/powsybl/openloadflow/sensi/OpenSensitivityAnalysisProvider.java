@@ -52,10 +52,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -299,6 +296,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public ReplayResult<SensitivityResultModelWriter> replay(ZonedDateTime date, Path debugDir) {
-        return replay(date, debugDir, SensitivityResultModelWriter::new);
+        return replay(date, debugDir, contingencies -> new SensitivityResultModelWriter(contingencies, Collections.emptyList()));
     }
 }

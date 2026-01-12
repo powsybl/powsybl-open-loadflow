@@ -18,10 +18,7 @@ import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.sensitivity.SensitivityAnalysisParameters;
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
-import com.powsybl.sensitivity.SensitivityAnalysisRunParameters;
-import com.powsybl.sensitivity.SensitivityFactor;
+import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -58,7 +55,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         assertEquals(5, result.getPreContingencyValues().size());
-        assertEquals(10, result.getValues("l23").size());
+        assertEquals(5, result.getValues(SensitivityState.postContingency("l23")).size());
 
         for (var value : result.getValues()) {
             System.out.println(value);
