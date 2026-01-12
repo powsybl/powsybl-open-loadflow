@@ -15,6 +15,7 @@ import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.strategy.ConditionalActions;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
@@ -56,9 +57,15 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(5, result.getValues(SensitivityState.postContingency("l23")).size());
+        assertEquals(5, result.getValues(new SensitivityState("l23", "reclose l23")).size());
 
         for (var value : result.getValues()) {
             System.out.println(value);
         }
+        // we should get same sensi and reference values in N and after operator strategy
+//        for (Branch<?> branch : network.getBranches()) {
+//            assertEquals(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, branch.getId(), SensitivityFunctionType.BRANCH_ACTIVE_POWER_1),
+//                         result.getFunctionReferenceValue(new SensitivityState("l23", "reclose l23"), branch.getId(), SensitivityFunctionType.BRANCH_ACTIVE_POWER_1));
+//        }
     }
 }
