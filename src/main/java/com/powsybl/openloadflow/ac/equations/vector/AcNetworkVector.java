@@ -461,6 +461,18 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     @Override
     public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
         PiModel piModel = branch.getPiModel();
+
+        double y = piModel.getY();
+        branchVector.y[branch.getNum()] = y;
+        double ksi = piModel.getKsi();
+        var w = new DoubleWrapper();
+        branchVector.ksi[branch.getNum()] = ksi;
+        branchVector.sinKsi[branch.getNum()] = FastMath.sinAndCos(ksi, w);
+        branchVector.cosKsi[branch.getNum()] = w.value;
+        branchVector.b1[branch.getNum()] = piModel.getB1();
+        branchVector.b2[branch.getNum()] = piModel.getB2();
+        branchVector.g1[branch.getNum()] = piModel.getG1();
+        branchVector.g2[branch.getNum()] = piModel.getG2();
         branchVector.a1[branch.getNum()] = piModel.getA1();
         branchVector.r1[branch.getNum()] = piModel.getR1();
     }
