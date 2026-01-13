@@ -727,7 +727,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
         Map<String, Integer> contingencyIndexById = new HashMap<>();
-        contingencies.stream().forEach(contingency -> contingencyIndexById.put(contingency.getContingency().getId(), contingency.getIndex()));
+        contingencies.forEach(contingency -> contingencyIndexById.put(contingency.getContingency().getId(), contingency.getIndex()));
         for (var factor : factorHolder.getAllFactors()) {
             Optional<Double> sensitivityVariableToWrite = Optional.empty();
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
