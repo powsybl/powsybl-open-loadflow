@@ -100,12 +100,12 @@ dependencies to respectively have access to network model, IEEE test networks an
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>7.1.0</version>
+    <version>7.1.1</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>7.1.0</version>
+    <version>7.1.1</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
