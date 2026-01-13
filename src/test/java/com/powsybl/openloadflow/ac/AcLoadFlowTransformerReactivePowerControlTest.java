@@ -531,36 +531,36 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
     @Test
     void baseCaseT3wtTest() {
-        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wtAndT2wt());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        assertReactivePowerEquals(7.813, network.getLine("LINE_12").getTerminal1());
-        assertReactivePowerEquals(-7.532, network.getLine("LINE_12").getTerminal2());
-        assertReactivePowerEquals(0.031, t3wt.getLeg1().getTerminal());
-        assertReactivePowerEquals(0.003, t3wt.getLeg2().getTerminal());
-        assertReactivePowerEquals(1.459e-4, t3wt.getLeg3().getTerminal());
+        assertReactivePowerEquals(7.38, network.getLine("LINE_12").getTerminal1());
+        assertReactivePowerEquals(-6.927, network.getLine("LINE_12").getTerminal2());
+        assertReactivePowerEquals(0.814, t3wt.getLeg1().getTerminal());
+        assertReactivePowerEquals(-0.774, t3wt.getLeg2().getTerminal());
+        assertReactivePowerEquals(0, t3wt.getLeg3().getTerminal());
     }
 
     @Test
     void tapPlusTwoT3wtTest() {
-        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wtAndT2wt());
 
         t3wt.getLeg2().getRatioTapChanger().setTapPosition(2);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        assertReactivePowerEquals(7.816, network.getLine("LINE_12").getTerminal1());
-        assertReactivePowerEquals(-7.535, network.getLine("LINE_12").getTerminal2());
-        assertReactivePowerEquals(0.035, t3wt.getLeg1().getTerminal());
-        assertReactivePowerEquals(8.076e-6, t3wt.getLeg2().getTerminal());
-        assertReactivePowerEquals(6.698e-8, t3wt.getLeg3().getTerminal());
+        assertReactivePowerEquals(8.194, network.getLine("LINE_12").getTerminal1());
+        assertReactivePowerEquals(-7.715, network.getLine("LINE_12").getTerminal2());
+        assertReactivePowerEquals(-4.137, t3wt.getLeg1().getTerminal());
+        assertReactivePowerEquals(4.161, t3wt.getLeg2().getTerminal());
+        assertReactivePowerEquals(0, t3wt.getLeg3().getTerminal());
     }
 
     @Test
     void transformerReactivePowerControlT3wtTest() {
-        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wtAndT2wt());
 
         parametersExt.setTransformerReactivePowerControl(true);
         t3wt.getLeg2().getRatioTapChanger()
@@ -570,17 +570,17 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setTapPosition(0)
                 .setRegulationTerminal(t3wt.getLeg2().getTerminal())
                 .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
-                .setRegulationValue(0.035);
+                .setRegulationValue(4.161);
 
         parameters.setTransformerVoltageControlOn(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(7.816, network.getLine("LINE_12").getTerminal1());
-        assertReactivePowerEquals(-7.535, network.getLine("LINE_12").getTerminal2());
-        assertReactivePowerEquals(0.035, t3wt.getLeg1().getTerminal());
-        assertReactivePowerEquals(8.076e-6, t3wt.getLeg2().getTerminal());
-        assertReactivePowerEquals(6.698e-8, t3wt.getLeg3().getTerminal());
+        assertReactivePowerEquals(8.194, network.getLine("LINE_12").getTerminal1());
+        assertReactivePowerEquals(-7.715, network.getLine("LINE_12").getTerminal2());
+        assertReactivePowerEquals(-4.137, t3wt.getLeg1().getTerminal());
+        assertReactivePowerEquals(4.161, t3wt.getLeg2().getTerminal());
+        assertReactivePowerEquals(0, t3wt.getLeg3().getTerminal());
         assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
     }
