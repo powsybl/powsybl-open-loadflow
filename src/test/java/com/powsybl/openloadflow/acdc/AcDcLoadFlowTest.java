@@ -201,6 +201,9 @@ class AcDcLoadFlowTest {
     @Test
     void testVscAsymmetricalMonopole() {
         network = DcDetailedNetworkFactory.createVscAsymmetricalMonopole();
+        // Set the same nominal voltage to nodes connected to the ground. Ground equation will set their voltage to zero
+        network.getDcNode("dcNodeFrNeg").setNominalV(500.0F);
+        network.getDcNode("dcNodeGbNeg").setNominalV(500.0F);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         //TODO: adapt slack distribution for AC subnetworks
         //for now, we just deactivate slack distribution for AC DC load flow
@@ -212,7 +215,7 @@ class AcDcLoadFlowTest {
 
         Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
         assertVoltageEquals(149.776011, busGb150);
-        assertAngleEquals(-2.550141, busGb150);
+        assertAngleEquals(-2.550131, busGb150);
 
         Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
         assertVoltageEquals(399.556099, busFr400);
@@ -224,7 +227,7 @@ class AcDcLoadFlowTest {
 
         Bus busGb = network.getBusBreakerView().getBus("BUS-GB");
         assertVoltageEquals(400.000000, busGb);
-        assertAngleEquals(-0.431794, busGb);
+        assertAngleEquals(-0.431791, busGb);
 
         DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
         assertVoltageEquals(-501.992063, dcNodeGbPos);
@@ -261,7 +264,7 @@ class AcDcLoadFlowTest {
         network = DcDetailedNetworkFactory.createVscSymmetricalMonopole();
         Network subnetwork = network.getSubnetwork("VscSymmetricalMonopole");
         // A DcGround is needed in the network to set voltage reference
-        subnetwork.newDcNode().setId("dnGround").setNominalV(500.0).add();
+        subnetwork.newDcNode().setId("dnGround").setNominalV(250.0).add();
         subnetwork.newDcLine().setId("dlGroundNeg").setR(1e10).setDcNode1("dcNodeGbNeg").setDcNode2("dnGround").add();
         subnetwork.newDcLine().setId("dlGroundPos").setR(1e10).setDcNode1("dcNodeGbPos").setDcNode2("dnGround").add();
         subnetwork.newDcGround().setDcNode("dnGround").setId("dcGround").add();
