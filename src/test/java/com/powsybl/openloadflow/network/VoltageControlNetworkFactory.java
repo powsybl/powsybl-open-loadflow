@@ -1603,4 +1603,23 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setTargetV(1.2);
         return network;
     }
+
+    public static Network createThreeBuses() {
+        Network network = Network.create("three-buses", "code");
+
+        Bus b1 = createBus(network, "B1", 400.);
+        Bus b2 = createBus(network, "B2", 400.);
+        Bus b3 = createBus(network, "B3", 400.);
+        createGenerator(b1, "GEN1", 150., 400.);
+        createGenerator(b3, "GEN3", 150., 400.)
+            .newMinMaxReactiveLimits().setMinQ(-1).setMaxQ(1).add();
+        createLoad(b1, "LOAD1", 100., 30.);
+        createLoad(b2, "LOAD2", 100., 30.);
+        createLoad(b3, "LOAD3", 100., 30.);
+        createFixedShuntCompensator(b3, "SC3", 1e-8, 1e-5);
+        createLine(network, b1, b2, "l12", 3.00);
+        createLine(network, b2, b3, "l23", 3.00);
+
+        return network;
+    }
 }
