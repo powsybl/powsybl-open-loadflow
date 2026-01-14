@@ -982,7 +982,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l23"));
+        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l23")));
 
         network.getLine("l23").getTerminal1().disconnect();
         network.getLine("l23").getTerminal2().disconnect();
@@ -1257,7 +1257,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getStateStatus(SensitivityState.postContingency("NHV1_NHV2_2"));
+        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getStateStatus(SensitivityState.postContingency("NHV1_NHV2_2")));
     }
 
     @Test
