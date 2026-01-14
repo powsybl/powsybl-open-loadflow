@@ -415,7 +415,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                                Slack bus active power (12.547029 MW) distributed in 1 distribution iteration(s)
                             + Outer loop iteration 3
                                Slack bus active power (-2.479879 MW) distributed in 1 distribution iteration(s)
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 4
                                All PV buses should switch PQ, strongest one will stay PV: SO_poste_0
@@ -434,10 +433,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                                Slack bus active power (-499.788814 MW) distributed in 1 distribution iteration(s)
                             + Outer loop iteration 8
                                Slack bus active power (-6.481646 MW) distributed in 1 distribution iteration(s)
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          Outer loop DistributedSlack
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
