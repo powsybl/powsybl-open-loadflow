@@ -2,61 +2,54 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.condition.ThresholdCondition;
+import com.powsybl.security.condition.*;
 
-public class ThresholdConditionEvaluator {
+public final class ThresholdConditionEvaluator {
 
-    private final Network network;
-    private final LfNetwork lfNetwork;
-    private final ThresholdCondition condition;
-
-    public ThresholdConditionEvaluator(Network network, LfNetwork lfNetwork, ThresholdCondition condition) {
-        this.network = network;
-        this.lfNetwork = lfNetwork;
-        this.condition = condition;
+    private ThresholdConditionEvaluator() {
     }
 
-    public boolean evaluate() {
-        Identifiable<?> identifiable = network.getIdentifiable(condition.getEquipmentId());
-
+    public static boolean evaluate(Network network, LfNetwork lfNetwork, Condition condition) {
+        AbstractThresholdCondition abstractThresholdCondition = (AbstractThresholdCondition) condition;
         // Check the contingency ?
-        switch (identifiable.getType()) {
-            case LINE, TWO_WINDINGS_TRANSFORMER -> {
-                return evaluateBranchCondition((Branch<?>) identifiable, condition.getSide().toTwoSides(), condition.getVariable());
+        switch (condition.getType()) {
+            case BranchThresholdCondition.NAME -> {
+                return evaluateBranchCondition((BranchThresholdCondition) condition, network, lfNetwork);
             }
-            case THREE_WINDINGS_TRANSFORMER -> {
-                return evaluateThreeWindingsTransformerCondition((ThreeWindingsTransformer) identifiable, condition.getSide(), condition.getVariable());
+            case ThreeWindingsTransformerThresholdCondition.NAME -> {
+                return evaluateThreeWindingsTransformerCondition((ThreeWindingsTransformerThresholdCondition) condition, network, lfNetwork);
             }
-            case GENERATOR -> {
-                return evaluateGeneratorCondition(identifiable.getId(), condition.getVariable());
+            case InjectionThresholdCondition.NAME -> {
+                return evaluateGeneratorCondition((InjectionThresholdCondition) condition, lfNetwork);
             }
-            default -> throw new PowsyblException(String.format("Unsupported threshold condition on equipment %s of type %s.", condition.getEquipmentId(), condition.getComparisonType().name()));
+            default -> throw new PowsyblException(String.format("Unsupported threshold condition on equipment %s of type %s.", abstractThresholdCondition.getEquipmentId(), abstractThresholdCondition.getComparisonType().name()));
         }
     }
 
-    boolean evaluateGeneratorCondition(String generatorId, ThresholdCondition.Variable variable) {
-        LfGenerator gen = lfNetwork.getGeneratorById(generatorId);
+    private static boolean evaluateGeneratorCondition(InjectionThresholdCondition condition, LfNetwork lfNetwork) {
+        LfGenerator gen = lfNetwork.getGeneratorById(condition.getEquipmentId());
 
         // InitialTargetP represents the original target of the generator
         // while TargetP represents the target and an additional possible participation to the slack
-        if (ThresholdCondition.Variable.TARGET_P.equals(variable)) {
+        if (AbstractThresholdCondition.Variable.TARGET_P.equals(condition.getVariable())) {
             return evaluateThreshold(gen.getInitialTargetP(), condition.getThreshold(), condition.getComparisonType());
-
-        } else if (ThresholdCondition.Variable.ACTIVE_POWER.equals(variable)) {
+        } else if (AbstractThresholdCondition.Variable.ACTIVE_POWER.equals(condition.getVariable())) {
             return evaluateThreshold(gen.getTargetP(), condition.getThreshold(), condition.getComparisonType());
         } else {
-            throw new PowsyblException(String.format("Cannot evaluate condition on variable %s on a generator", variable.name()));
+            throw new PowsyblException(String.format("Cannot evaluate condition on variable %s on a generator", condition.getVariable().name()));
         }
     }
 
-    boolean evaluateBranchCondition(Branch<?> branch, TwoSides side, ThresholdCondition.Variable variable) {
+    private static boolean evaluateBranchCondition(BranchThresholdCondition condition, Network network, LfNetwork lfNetwork) {
         double s1;
         double s2;
-        switch (variable) {
+        Branch<?> branch = network.getBranch(condition.getEquipmentId());
+        switch (condition.getVariable()) {
             case ACTIVE_POWER -> {
                 s1 = lfNetwork.getBranchById(branch.getId()).getP1().eval() * PerUnit.SB;
                 s2 = lfNetwork.getBranchById(branch.getId()).getP2().eval() * PerUnit.SB;
@@ -69,52 +62,31 @@ public class ThresholdConditionEvaluator {
                 s1 = lfNetwork.getBranchById(branch.getId()).getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
                 s2 = lfNetwork.getBranchById(branch.getId()).getI2().eval() * PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
             }
-            default -> throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on branch %s", variable.name(), branch.getId()));
+            default -> throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on branch %s", condition.getVariable().name(), branch.getId()));
         }
 
-        if (TwoSides.ONE.equals(side)) {
+        if (TwoSides.ONE.equals(condition.getSide())) {
             return evaluateThreshold(s1, condition.getThreshold(), condition.getComparisonType());
         } else {
             return evaluateThreshold(s2, condition.getThreshold(), condition.getComparisonType());
         }
     }
 
-    boolean evaluateThreeWindingsTransformerCondition(ThreeWindingsTransformer transformer, ThreeSides side, ThresholdCondition.Variable variable) {
-        double s1;
-        double s2;
-        double s3;
-        switch (variable) {
-            case ACTIVE_POWER -> {
-                s1 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 1)).getP1().eval() * PerUnit.SB;
-                s2 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 2)).getP1().eval() * PerUnit.SB;
-                s3 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 3)).getP1().eval() * PerUnit.SB;
-            }
-            case REACTIVE_POWER -> {
-                s1 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 1)).getQ1().eval() * PerUnit.SB;
-                s2 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 2)).getQ1().eval() * PerUnit.SB;
-                s3 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 3)).getQ1().eval() * PerUnit.SB;
-            }
-            case CURRENT -> {
-                s1 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 1)).getI1().eval()
-                    * PerUnit.ib(transformer.getLeg1().getTerminal().getVoltageLevel().getNominalV());
-                s2 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 2)).getI1().eval()
-                    * PerUnit.ib(transformer.getLeg2().getTerminal().getVoltageLevel().getNominalV());
-                s3 = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), 3)).getI1().eval()
-                    * PerUnit.ib(transformer.getLeg3().getTerminal().getVoltageLevel().getNominalV());
-            }
-            default -> throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on transformer %s", variable.name(), transformer.getId()));
+    private static boolean evaluateThreeWindingsTransformerCondition(ThreeWindingsTransformerThresholdCondition condition, Network network, LfNetwork lfNetwork) {
+        double value;
+        ThreeSides side = condition.getSide();
+        ThreeWindingsTransformer transformer = network.getThreeWindingsTransformer(condition.getEquipmentId());
+        LfBranch lfBranch = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), side.getNum()));
+        switch (condition.getVariable()) {
+            case ACTIVE_POWER -> value = lfBranch.getP1().eval() * PerUnit.SB;
+            case REACTIVE_POWER -> value = lfBranch.getQ1().eval() * PerUnit.SB;
+            case CURRENT -> value = lfBranch.getI1().eval() * PerUnit.ib(transformer.getLeg(condition.getSide()).getTerminal().getVoltageLevel().getNominalV());
+            default -> throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on transformer %s", condition.getVariable().name(), transformer.getId()));
         }
-
-        if (ThreeSides.ONE.equals(side)) {
-            return evaluateThreshold(s1, condition.getThreshold(), condition.getComparisonType());
-        } else if (ThreeSides.TWO.equals(side)) {
-            return evaluateThreshold(s2, condition.getThreshold(), condition.getComparisonType());
-        } else {
-            return evaluateThreshold(s3, condition.getThreshold(), condition.getComparisonType());
-        }
+        return evaluateThreshold(value, condition.getThreshold(), condition.getComparisonType());
     }
 
-    boolean evaluateThreshold(double value, double threshold, ThresholdCondition.ComparisonType type) {
+    private static boolean evaluateThreshold(double value, double threshold, AbstractThresholdCondition.ComparisonType type) {
         switch (type) {
             case EQUALS -> {
                 return value == threshold;
