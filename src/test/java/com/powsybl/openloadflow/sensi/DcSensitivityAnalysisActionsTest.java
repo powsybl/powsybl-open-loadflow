@@ -102,9 +102,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters)
                 .setOperatorStrategies(operatorStrategies)
                 .setActions(actions));
-        for (var value : result.getValues()) {
-            System.out.println(value);
-        }
+
         assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(5, result.getValues(SensitivityState.postContingency("l23")).size());
         assertEquals(5, result.getValues(new SensitivityState("l23", "open l14")).size());
@@ -114,6 +112,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
         assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
 
+        // should give results equivalent to the previous test with a double contingency
         assertEquals(0.25d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l14", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(1.25d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
@@ -146,7 +145,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
                 network.getBranchStream().toList());
 
-        // the operator strategy is to reconnected to contingency line l23
+        // the operator strategy is to reconnect the contingency line l23
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("reclose l23",
                                                                                  ContingencyContext.all(),
                                                                                  new TrueCondition(), List.of("reclose l23")));
@@ -161,13 +160,27 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(5, result.getValues(SensitivityState.postContingency("l23")).size());
         assertEquals(5, result.getValues(new SensitivityState("l23", "reclose l23")).size());
 
-        for (var value : result.getValues()) {
-            System.out.println(value);
-        }
-        // we should get same sensi and reference values in N and after operator strategy
-//        for (Branch<?> branch : network.getBranches()) {
-//            assertEquals(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, branch.getId(), SensitivityFunctionType.BRANCH_ACTIVE_POWER_1),
-//                         result.getFunctionReferenceValue(new SensitivityState("l23", "reclose l23"), branch.getId(), SensitivityFunctionType.BRANCH_ACTIVE_POWER_1));
-//        }
+        var contSimpleState = SensitivityState.postContingency("l23");
+        var contAndOpStratState = new SensitivityState("l23", "reclose l23");
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+
+        assertEquals(0.25d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l14", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.25d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.25d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l34", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.5d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.666d, result.getFunctionReferenceValue(contSimpleState, "l14", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d, result.getFunctionReferenceValue(contSimpleState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(contSimpleState, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+        assertEquals(-1.666d, result.getFunctionReferenceValue(contSimpleState, "l34", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2.333d, result.getFunctionReferenceValue(contSimpleState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.25d, result.getFunctionReferenceValue(contAndOpStratState, "l14", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getFunctionReferenceValue(contAndOpStratState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.25d, result.getFunctionReferenceValue(contAndOpStratState, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.25d, result.getFunctionReferenceValue(contAndOpStratState, "l34", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.5d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
     }
 }

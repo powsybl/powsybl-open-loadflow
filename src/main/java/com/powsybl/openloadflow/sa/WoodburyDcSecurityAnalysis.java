@@ -169,7 +169,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
             // same if there is an action, as they are only on pst for now
             if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || !operatorStrategyLfActions.isEmpty()) {
-                newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, operatorStrategyLfActions);
+                newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, operatorStrategyLfActions, reportNode);
             }
             engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
         } else {
@@ -181,7 +181,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     // only process the power shifts due to the loss of loads, generators, and HVDCs
                     // the loss of buses and phase shifts are taken into account in the override of the flow states
                     .ifPresent(lfContingency -> lfContingency.processLostPowerChanges(lfParameters.getBalanceType(), false));
-            newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, operatorStrategyLfActions);
+            newFlowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, operatorStrategyLfActions, reportNode);
             engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
             ElementState.restore(busStates);
         }
@@ -333,7 +333,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             .map(woodburyContext.lfActionById::get)
                             .filter(Objects::nonNull)
                             .toList();
-                    LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy.index(), operatorStrategyLfActions);
+                    LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy.value(), operatorStrategy.index(), operatorStrategyLfActions);
 
                     logActionStart(lfNetwork, operatorStrategy.value());
                     stopwatch = Stopwatch.createStarted();

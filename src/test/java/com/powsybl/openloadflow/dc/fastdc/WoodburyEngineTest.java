@@ -65,14 +65,14 @@ class WoodburyEngineTest {
                 .toArray();
     }
 
-    double[] calculateFlows(Network network) {
+    private double[] calculateFlows(Network network) {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), dcParameters.getNetworkParameters()).getFirst();
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
             new DcLoadFlowEngine(context)
                     .run();
 
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
             DenseMatrix flowStates = new DenseMatrix(dx.length, 1, dx);
             return calculateFlows(lfNetwork, flowStates, Collections.emptySet());
         }
@@ -93,7 +93,7 @@ class WoodburyEngineTest {
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
             DenseMatrix flowStates = new DenseMatrix(dx.length, 1, dx);
             engine.toPostContingencyStates(flowStates);
             assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Set.of("l23")), LoadFlowAssert.DELTA_POWER);
@@ -120,9 +120,10 @@ class WoodburyEngineTest {
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] flowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
+            var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
-            assertArrayEquals(flowsRef, calculateFlows(lfNetwork, new DenseMatrix(flowStates.length, 1, flowStates), Set.of("l23", "l14")), LoadFlowAssert.DELTA_POWER);
+            assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Set.of("l23", "l14")), LoadFlowAssert.DELTA_POWER);
         }
     }
 
@@ -144,9 +145,10 @@ class WoodburyEngineTest {
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] flowStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
+            var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
-            assertArrayEquals(flowsRef, calculateFlows(lfNetwork, new DenseMatrix(flowStates.length, 1, flowStates), Collections.emptySet()), LoadFlowAssert.DELTA_POWER);
+            assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Collections.emptySet()), LoadFlowAssert.DELTA_POWER);
         }
     }
 }
