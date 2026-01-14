@@ -324,7 +324,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     disableBranchIds.add(branchAction.getDisabledBranch().getId());
                 }
             } else {
-                throw new IllegalArgumentException("Unexpected action type: " + action.getClass().getSimpleName());
+                throw new PowsyblException("Unexpected action type: " + action.getClass().getSimpleName());
             }
         }
         for (LfAction action : actions) {
