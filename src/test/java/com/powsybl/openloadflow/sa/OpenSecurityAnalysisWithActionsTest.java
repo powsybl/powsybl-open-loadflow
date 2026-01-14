@@ -100,15 +100,28 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
-    void testThresholdAction() throws IOException {
+    void testThresholdAction() {
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
         List<Contingency> contingencies = List.of(new Contingency("L3", new BranchContingency("L3")));
-        List<Action> actions = List.of(new SwitchAction("action1", "C1", false));
+        List<Action> actions = List.of(
+            new SwitchAction("action1", "C1", false),
+            new SwitchAction("action2", "C2", false));
 
-        ThresholdCondition condition = new ThresholdCondition(600.0, ThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, "L1", ThreeSides.ONE, ThresholdCondition.Variable.CURRENT);
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), condition, List.of("action1")));
+        // This condition should trigger (current goes above 600.0 after contingency)
+        BranchThresholdCondition condition1 = new BranchThresholdCondition(
+            "L1", AbstractThresholdCondition.Variable.CURRENT, AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS,
+            600.0, TwoSides.ONE);
+
+        // This condition should not trigger (current is under 650.0 after contingency)
+        BranchThresholdCondition condition2 = new BranchThresholdCondition(
+            "L1", AbstractThresholdCondition.Variable.CURRENT, AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS,
+            650.0, TwoSides.ONE);
+
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategyL3_1", ContingencyContext.specificContingency("L3"), condition1, List.of("action1")),
+            new OperatorStrategy("strategyL3_2", ContingencyContext.specificContingency("L3"), condition2, List.of("action2")));
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDistributedSlack(false);
@@ -116,11 +129,14 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
 
-        // L1 current 578.740 -> > 600
-        // active power -> > 400
-        // reactive power -> > 120
+        // L1 current goes from 578 to 602
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters,
             operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Only a single operator strategy result : strategyL3_1, the other is not triggered
+        assertEquals(1, result.getOperatorStrategyResults().size());
+        assertEquals("strategyL3_1", result.getOperatorStrategyResults().getFirst().getOperatorStrategy().getId());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getOperatorStrategyResults().getFirst().getStatus());
     }
 
     @Test

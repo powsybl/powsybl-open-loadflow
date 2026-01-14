@@ -528,10 +528,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         .collect(Collectors.toSet());
                 return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
             }
-            case ThresholdCondition.NAME: {
-                return new ThresholdConditionEvaluator(network, lfNetwork,
-                    (ThresholdCondition) conditionalActions.getCondition())
-                    .evaluate();
+            case BranchThresholdCondition.NAME, ThreeWindingsTransformerThresholdCondition.NAME, InjectionThresholdCondition.NAME: {
+                return ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionalActions.getCondition());
             }
             default:
                 throw new UnsupportedOperationException("Unsupported condition type: " + conditionalActions.getCondition().getType());
