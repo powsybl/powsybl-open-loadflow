@@ -597,7 +597,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                         List<String> operatorStrategyActionIds = operatorStrategy.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
                         List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
-                        LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy.value(), operatorStrategy.index(), operatorStrategyLfActions);
+                        LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy, operatorStrategyLfActions);
                         var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                 connectivityAnalysisResult,
                                 connectivityBreakAnalysisResults.contingencyElementByBranch(),

@@ -333,7 +333,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                             .map(woodburyContext.lfActionById::get)
                             .filter(Objects::nonNull)
                             .toList();
-                    LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy.value(), operatorStrategy.index(), operatorStrategyLfActions);
+                    LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy, operatorStrategyLfActions);
 
                     logActionStart(lfNetwork, operatorStrategy.value());
                     stopwatch = Stopwatch.createStarted();

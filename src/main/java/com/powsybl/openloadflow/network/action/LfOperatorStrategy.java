@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.openloadflow.util.Indexed;
 
 import java.util.List;
 import java.util.Objects;
@@ -17,24 +18,21 @@ import java.util.Objects;
  */
 public class LfOperatorStrategy {
 
-    private final OperatorStrategy operatorStrategy;
-
-    private final int index;
+    private final Indexed<OperatorStrategy> indexedOperatorStrategy;
 
     private final List<LfAction> actions;
 
-    public LfOperatorStrategy(OperatorStrategy operatorStrategy, int index, List<LfAction> actions) {
-        this.operatorStrategy = Objects.requireNonNull(operatorStrategy);
-        this.index = index;
+    public LfOperatorStrategy(Indexed<OperatorStrategy> indexedOperatorStrategy, List<LfAction> actions) {
+        this.indexedOperatorStrategy = Objects.requireNonNull(indexedOperatorStrategy);
         this.actions = Objects.requireNonNull(actions);
     }
 
-    public OperatorStrategy getOperatorStrategy() {
-        return operatorStrategy;
+    public Indexed<OperatorStrategy> getIndexedOperatorStrategy() {
+        return indexedOperatorStrategy;
     }
 
     public int getIndex() {
-        return index;
+        return indexedOperatorStrategy.index();
     }
 
     public List<LfAction> getActions() {
