@@ -53,7 +53,6 @@
                   Bus V: 0.975 pu, 0.001013 rad
                   Bus injection: 101.366186 MW, 150.649844 MVar
          Outer loop DistributedSlack
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          + Outer loop IncrementalShuntVoltageControl
             + Outer loop iteration 1
@@ -105,7 +104,6 @@
                   Bus V: 0.975 pu, 0.002015 rad
                   Bus injection: 101.366408 MW, -2.165165 MVar
          Outer loop DistributedSlack
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop IncrementalShuntVoltageControl
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
