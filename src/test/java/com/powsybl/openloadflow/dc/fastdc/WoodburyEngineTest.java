@@ -53,6 +53,9 @@ class WoodburyEngineTest {
 
         pstNetworkRef = PhaseControlFactory.createWithOneT2wtTwoLines();
         pstNetwork = PhaseControlFactory.createWithOneT2wtTwoLines();
+        // FIXME hack because impedance change by tap is not taken into account
+        pstNetworkRef.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(0).setX(100);
+        pstNetwork.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(0).setX(100);
     }
 
     private static double[] calculateFlows(LfNetwork lfNetwork, DenseMatrix flowStates, Set<String> disconnectedBranchIds) {
@@ -170,7 +173,7 @@ class WoodburyEngineTest {
         topoConfig.addBranchIdWithPtcToRetain("PS1");
         LfNetwork lfNetwork = LfNetwork.load(pstNetwork, new LfNetworkLoaderImpl(), topoConfig, dcParameters.getNetworkParameters(), ReportNode.NO_OP).getFirst();
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
-//            context.getParameters().getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
+            context.getParameters().getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
             new DcLoadFlowEngine(context)
                     .run();
 
