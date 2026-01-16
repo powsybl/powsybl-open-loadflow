@@ -74,9 +74,6 @@ class WoodburyEngineTest {
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
             new DcLoadFlowEngine(context)
                     .run();
-            for (LfBranch branch : lfNetwork.getBranches()) {
-                System.out.println(branch.getId() + " " + branch.getP1().eval());
-            }
 
             DisabledNetwork disabledNetwork = new DisabledNetwork();
             double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
@@ -172,6 +169,7 @@ class WoodburyEngineTest {
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
             new DcLoadFlowEngine(context)
                     .run();
+
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("L1"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
