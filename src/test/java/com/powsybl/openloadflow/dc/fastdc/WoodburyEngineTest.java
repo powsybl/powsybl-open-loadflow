@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.dc.fastdc;
 
+import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.iidm.network.Network;
@@ -18,6 +19,8 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -158,28 +161,31 @@ class WoodburyEngineTest {
     @Disabled
     @Test
     void testContingencyAndPstTapChange() {
+        int newTapPosition = 0;
         pstNetworkRef.getLine("L1").disconnect();
-        pstNetworkRef.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
+        pstNetworkRef.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(newTapPosition);
         double[] flowsRef = calculateFlows(pstNetworkRef);
 
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.addBranchIdWithPtcToRetain("PS1");
         LfNetwork lfNetwork = LfNetwork.load(pstNetwork, new LfNetworkLoaderImpl(), topoConfig, dcParameters.getNetworkParameters(), ReportNode.NO_OP).getFirst();
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+//            context.getParameters().getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
             new DcLoadFlowEngine(context)
                     .run();
 
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("L1"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<ComputedElement> actionElements = List.of(new ComputedTapPositionChangeElement(new TapPositionChange(lfNetwork.getBranchById("PS1"), 0, false), context.getEquationSystem()));
+            List<LfAction> actions = List.of(new LfPhaseTapChangerAction("PS1", new PhaseTapChangerTapPositionAction("PS1", "PS1", false, newTapPosition), lfNetwork));
+            List<ComputedElement> actionElements = List.of(new ComputedTapPositionChangeElement(new TapPositionChange(lfNetwork.getBranchById("PS1"), newTapPosition, false), context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, actions);
             var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
             var flows = calculateFlows(lfNetwork, flowStates, Set.of("L1"));
