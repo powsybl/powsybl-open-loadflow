@@ -37,9 +37,9 @@ public class LfAcDcNetwork extends LfNetwork {
 
             // Check all DC nodes have the same nominal voltage
             Set<Double> dcVoltages = new HashSet<>();
-            network.getDcNodes().forEach(dc_node-> dcVoltages.add(dc_node.getNominalV()));
+            network.getDcNodes().forEach(dc_node -> dcVoltages.add(dc_node.getNominalV()));
             if (dcVoltages.size() > 1) {
-                throw new PowsyblException("DC nodes in the same DC network must have the same nominal voltage but voltages " + dcVoltages +" were found");
+                throw new PowsyblException("DC nodes in the same DC network must have the same nominal voltage but voltages " + dcVoltages + " were found");
             }
         }
         acSubNetworks = acNetworks;
@@ -90,5 +90,3 @@ public class LfAcDcNetwork extends LfNetwork {
         return acSubNetworks;
     }
 }
-
-

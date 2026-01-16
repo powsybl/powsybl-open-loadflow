@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createAcDcNetwork1;
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createBaseNetwork;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -428,11 +429,11 @@ class AcDcLoadFlowTest {
     @Test
     void testAcDcExampleGridForming() {
         //2 converters, 1 AC Network, the converter cs45 which controls Vac and Vdc is slack and reference bus for AC Network.
-        network = AcDcNetworkFactory.createAcDcNetwork1();
+        network = createAcDcNetwork1();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -582,7 +583,7 @@ class AcDcLoadFlowTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -630,7 +631,7 @@ class AcDcLoadFlowTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

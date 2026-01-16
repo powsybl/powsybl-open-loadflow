@@ -33,7 +33,7 @@ public interface SlackBusSelector {
                 return new NameSlackBusSelector(slackBusesIds, countries, new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countries));
             case LARGEST_GENERATOR:
                 return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countries);
-            case CONVERTERS:
+            case LARGEST_CONVERTER:
                 return new ConverterSlackBusSelector(countries);
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);

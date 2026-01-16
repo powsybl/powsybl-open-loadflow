@@ -210,7 +210,7 @@ class AcDcBipolarTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
                 .setAcDcNetwork(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -319,7 +319,7 @@ class AcDcBipolarTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -431,7 +431,7 @@ class AcDcBipolarTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.CONVERTERS)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

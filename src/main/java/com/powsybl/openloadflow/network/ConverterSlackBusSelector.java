@@ -23,7 +23,7 @@ public class ConverterSlackBusSelector extends AbstractSlackBusSelector {
         super(countries);
     }
 
-    private static double getMaxPac(LfBus bus) {
+    private static double getTargetPac(LfBus bus) {
         return bus.getConverters().stream().mapToDouble(LfAcDcConverter::getTargetP).sum();
     }
 
@@ -36,7 +36,7 @@ public class ConverterSlackBusSelector extends AbstractSlackBusSelector {
                 .filter(bus -> bus.getConverters()
                         .stream()
                         .anyMatch(LfVoltageSourceConverter::isVoltageRegulatorOn))
-                .sorted(Comparator.comparingDouble(ConverterSlackBusSelector::getMaxPac).reversed())
+                .sorted(Comparator.comparingDouble(ConverterSlackBusSelector::getTargetPac).reversed())
                 .limit(limit)
                 .collect(Collectors.toList());
 

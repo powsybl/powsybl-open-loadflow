@@ -55,6 +55,7 @@ The `slackBusSelectionMode` property is an optional property that defines how to
 - `MOST_MESHED` if you want to choose the most meshed bus among buses with the highest nominal voltage as the slack bus.
   This option is typically required for computation with several synchronous components.
 - `LARGEST_GENERATOR` if you want to choose the bus with the highest total generation capacity as the slack bus.
+- `LARGEST_CONVERTER` if you want to choose the bus with the highest power assured by an AC/DC converter as the slack bus.
 
 The default value is `MOST_MESHED`.
 

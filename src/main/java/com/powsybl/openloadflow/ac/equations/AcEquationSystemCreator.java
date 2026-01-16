@@ -799,9 +799,9 @@ public class AcEquationSystemCreator {
 
         // We keep the same construction as impedant branch equations, we will implement equation updating later
         SingleEquationTerm<AcVariableType, AcEquationType> closedP1 = null;
-        EquationTerm<AcVariableType, AcEquationType> closedI1 = null;
+        SingleEquationTerm<AcVariableType, AcEquationType> closedI1 = null;
         SingleEquationTerm<AcVariableType, AcEquationType> closedP2 = null;
-        EquationTerm<AcVariableType, AcEquationType> closedI2 = null;
+        SingleEquationTerm<AcVariableType, AcEquationType> closedI2 = null;
 
         if (dcNode1 != null && dcNode2 != null) {
             if (!dcNode1.isGrounded()) {
@@ -938,8 +938,8 @@ public class AcEquationSystemCreator {
     protected static void createDcLineEquations(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                         Evaluable p1, Evaluable i1,
                                                         Evaluable p2, Evaluable i2,
-                                                        SingleEquationTerm<AcVariableType, AcEquationType> closedP1, EquationTerm<AcVariableType, AcEquationType> closedI1,
-                                                        SingleEquationTerm<AcVariableType, AcEquationType> closedP2, EquationTerm<AcVariableType, AcEquationType> closedI2) {
+                                                        SingleEquationTerm<AcVariableType, AcEquationType> closedP1, SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
+                                                        SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
 
         if (closedI1 != null) {
             equationSystem.getEquation(dcNode1.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_NODE_TARGET_I).orElseThrow()
