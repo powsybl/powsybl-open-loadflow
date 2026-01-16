@@ -24,7 +24,6 @@ import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -53,9 +52,6 @@ class WoodburyEngineTest {
 
         pstNetworkRef = PhaseControlFactory.createWithOneT2wtTwoLines();
         pstNetwork = PhaseControlFactory.createWithOneT2wtTwoLines();
-        // FIXME hack because impedance change by tap is not taken into account
-        pstNetworkRef.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(0).setX(100);
-        pstNetwork.getTwoWindingsTransformer("PS1").getPhaseTapChanger().getStep(0).setX(100);
     }
 
     private static double[] calculateFlows(LfNetwork lfNetwork, DenseMatrix flowStates, Set<String> disconnectedBranchIds) {
@@ -77,6 +73,7 @@ class WoodburyEngineTest {
     private double[] calculateFlows(Network network) {
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), dcParameters.getNetworkParameters()).getFirst();
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            dcParameters.getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
             new DcLoadFlowEngine(context)
                     .run();
 
@@ -161,7 +158,6 @@ class WoodburyEngineTest {
         }
     }
 
-    @Disabled
     @Test
     void testContingencyAndPstTapChange() {
         int newTapPosition = 0;
@@ -173,6 +169,7 @@ class WoodburyEngineTest {
         topoConfig.addBranchIdWithPtcToRetain("PS1");
         LfNetwork lfNetwork = LfNetwork.load(pstNetwork, new LfNetworkLoaderImpl(), topoConfig, dcParameters.getNetworkParameters(), ReportNode.NO_OP).getFirst();
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            // we need to add phase shift angle variables to have Woodbury working with phase shifter tap update
             context.getParameters().getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
             new DcLoadFlowEngine(context)
                     .run();
@@ -191,6 +188,9 @@ class WoodburyEngineTest {
             double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, actions);
             var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
+            // we need to update the phase shift in the model that that the equation term tap is also updated and
+            // calculateSensi in calculateFlows gives the correct value
+            lfNetwork.getBranchById("PS1").getPiModel().setTapPosition(newTapPosition);
             var flows = calculateFlows(lfNetwork, flowStates, Set.of("L1"));
             assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
         }
