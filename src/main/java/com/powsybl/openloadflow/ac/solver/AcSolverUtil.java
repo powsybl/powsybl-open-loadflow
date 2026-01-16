@@ -66,15 +66,15 @@ public final class AcSolverUtil {
                     break;
 
                 case DC_NODE_V:
-                    x[v.getRow()] = initializer.getMagnitude(network.getDcNode(v.getElementNum()));
+                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getMagnitude(network.getDcNode(v.getElementNum()));
                     break;
 
                 case CONV_P_AC:
-                    x[v.getRow()] = initializer.getActivePower(network.getVoltageSourceConverter(v.getElementNum()));
+                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getActivePower(network.getVoltageSourceConverter(v.getElementNum()));
 
                     break;
                 case CONV_Q_AC:
-                    x[v.getRow()] = initializer.getReactivePower(network.getVoltageSourceConverter(v.getElementNum()));
+                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getReactivePower(network.getVoltageSourceConverter(v.getElementNum()));
                     break;
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());

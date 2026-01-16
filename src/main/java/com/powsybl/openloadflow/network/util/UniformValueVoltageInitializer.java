@@ -7,9 +7,6 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.openloadflow.network.LfAcDcConverter;
-import com.powsybl.openloadflow.network.LfDcNode;
-import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -17,6 +14,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class UniformValueVoltageInitializer implements VoltageInitializer {
+
+    private final UniformValueAcDcNetworkInitializer acDcNetworkInitializer = new UniformValueAcDcNetworkInitializer();
 
     @Override
     public void prepare(LfNetwork network) {
@@ -34,21 +33,8 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public double getMagnitude(LfDcNode dcNode) {
-        if (dcNode.isNeutralPole()) {
-            return 0.0;
-        }
-        return 1.0;
-    }
-
-    @Override
-    public double getReactivePower(LfVoltageSourceConverter converter) {
-        return 1.0;
-    }
-
-    @Override
-    public double getActivePower(LfAcDcConverter converter) {
-        return 1.0;
+    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
+        return acDcNetworkInitializer;
     }
 }
 

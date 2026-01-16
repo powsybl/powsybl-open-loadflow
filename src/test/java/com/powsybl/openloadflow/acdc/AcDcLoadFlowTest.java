@@ -19,10 +19,12 @@ import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CompletionException;
+
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createAcDcNetwork1;
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createBaseNetwork;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -680,5 +682,61 @@ class AcDcLoadFlowTest {
         DcLine dl78 = network.getDcLine("dl78");
         assertDcPowerEquals(-24.461614, dl78.getDcTerminal1());
         assertDcPowerEquals(24.461240, dl78.getDcTerminal2());
+    }
+
+    @Test
+    void testVoltageInitializer() {
+        network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        // Uniform values initializer
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters1 = new LoadFlowParameters()
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+        OpenLoadFlowParameters.create(parameters1)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result1 = loadFlowRunner.run(network, parameters1);
+        assertTrue(result1.isFullyConverged());
+
+        // Previous values initializer
+        LoadFlowParameters parameters2 = new LoadFlowParameters()
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        OpenLoadFlowParameters.create(parameters2)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters2);
+        assertTrue(result2.isFullyConverged());
+
+        // DC initializer (should throw exception)
+        LoadFlowParameters parameters3 = new LoadFlowParameters()
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        OpenLoadFlowParameters.create(parameters3)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setAcDcNetwork(true);
+
+        CompletionException e3 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters3));
+        assertEquals("DC initialization is not yet supported with AcDcNetwork", e3.getCause().getMessage());
+
+        // Voltage magnitude override (should throw exception)
+        LoadFlowParameters parameters4 = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters4)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.VOLTAGE_MAGNITUDE)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setAcDcNetwork(true);
+
+        CompletionException e4 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters4));
+        assertEquals("Voltage magnitude initialization is not yet supported with AcDcNetwork", e4.getCause().getMessage());
+
+        // Full voltage override (should throw exception)
+        LoadFlowParameters parameters5 = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters5)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setAcDcNetwork(true);
+
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters5));
+        assertEquals("Full voltage initialization is not yet supported with AcDcNetwork", e5.getCause().getMessage());
     }
 }

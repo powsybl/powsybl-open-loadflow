@@ -11,12 +11,10 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.LfAcDcConverter;
-import com.powsybl.openloadflow.network.LfDcNode;
-import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.AcDcNetworkInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.List;
@@ -99,21 +97,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public double getReactivePower(LfVoltageSourceConverter converter) {
-        return 1;
-    }
-
-    @Override
-    public double getActivePower(LfAcDcConverter converter) {
-        return 1;
-    }
-
-    @Override
-    public double getMagnitude(LfDcNode dcNode) {
-        if (dcNode.isNeutralPole()) {
-            return 0.0;
-        } else {
-            return 1;
-        }
+    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
+        throw new PowsyblException("DC initialization is not yet supported with AcDcNetwork");
     }
 }

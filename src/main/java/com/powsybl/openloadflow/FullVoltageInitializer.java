@@ -7,13 +7,12 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
-import com.powsybl.openloadflow.network.LfAcDcConverter;
-import com.powsybl.openloadflow.network.LfDcNode;
-import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.AcDcNetworkInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.Objects;
@@ -52,17 +51,7 @@ public class FullVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public double getReactivePower(LfVoltageSourceConverter converter) {
-        return magnitudeInitializer.getReactivePower(converter);
-    }
-
-    @Override
-    public double getActivePower(LfAcDcConverter converter) {
-        return magnitudeInitializer.getActivePower(converter);
-    }
-
-    @Override
-    public double getMagnitude(LfDcNode dcNode) {
-        return magnitudeInitializer.getMagnitude(dcNode);
+    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
+        throw new PowsyblException("Full voltage initialization is not yet supported with AcDcNetwork");
     }
 }
