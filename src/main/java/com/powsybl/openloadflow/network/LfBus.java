@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.security.ViolationLocation;
+import com.powsybl.contingency.violations.ViolationLocation;
 import com.powsybl.security.results.BusResult;
 
 import java.util.*;
