@@ -175,7 +175,7 @@ class WoodburyEngineTest {
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("L1"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<ComputedElement> actionElements = List.of(new ComputedTapPositionChangeElement(new TapPositionChange(lfNetwork.getBranchById("PS1"), 2, false), context.getEquationSystem()));
+            List<ComputedElement> actionElements = List.of(new ComputedTapPositionChangeElement(new TapPositionChange(lfNetwork.getBranchById("PS1"), 0, false), context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
