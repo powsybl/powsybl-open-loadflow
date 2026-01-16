@@ -60,7 +60,6 @@ class WoodburyEngineTest {
             } else {
                 @SuppressWarnings("unchecked")
                 var p1 = (EquationTerm<DcVariableType, DcEquationType>) branch.getP1();
-                System.out.println("TOTO " + branch.getId() + " " + p1.eval() + " " + p1.calculateSensi(flowStates, 0));
                 flows[branch.getNum()] = p1.calculateSensi(flowStates, 0);
             }
         }
