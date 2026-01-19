@@ -33,7 +33,7 @@ public class ZeroImpedanceFlows {
         this.dcPowerFactor = dcPowerFactor;
     }
 
-    public void computeFlows(Boolean provideResults, Map<String, LfBranch.LfBranchResults> resultsMap) {
+    public void computeFlows(boolean provideResults, Map<String, LfBranch.LfBranchResults> resultsMap) {
         Set<LfBus> processed = new HashSet<>();
 
         graph.vertexSet().stream().sorted(Comparator.comparingInt(LfElement::getNum)).forEach(lfBus -> {
