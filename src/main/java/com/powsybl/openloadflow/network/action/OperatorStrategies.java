@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network.impl;
+package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
@@ -13,6 +13,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.contingency.strategy.ConditionalActions;
 import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.Indexed;
 
 import java.util.*;

@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network.impl;
+package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TieLine;
 import com.powsybl.openloadflow.network.LfTopoConfig;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 
 import java.util.List;
 import java.util.Map;
