@@ -320,13 +320,8 @@ class AreaInterchangeControlTest {
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
     }
 
-    @Test
-    void remainingSlackDistributionShares() throws IOException {
+    Network prepareAicRemainingSlackDistribution() {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
-        ReportNode node = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
-                .withMessageTemplate("test")
-                .build();
 
         // slack bus in area a1
         parameters.setReadSlackBus(true);
@@ -339,6 +334,17 @@ class AreaInterchangeControlTest {
         parametersExt.setAreaInterchangePMaxMismatch(0.5);
         network.getArea("a1").setInterchangeTarget(-10); // will have a margin of 0.9 for slack distribution  (interchange with slack =-10.4 and max acceptable interchange = -9.5)
         network.getArea("a2").setInterchangeTarget(9.51); // will have a margin of 0.01 for slack distribution (interchange with slack = 10 and max acceptable interchange = 10.01)
+        return network;
+    }
+
+    @Test
+    void remainingSlackDistributionShares() throws IOException {
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        Network network = prepareAicRemainingSlackDistribution();
 
         var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
@@ -360,6 +366,78 @@ class AreaInterchangeControlTest {
                          Outer loop AreaInterchangeControl
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """;
+        LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
+    }
+
+    @Test
+    void remainingSlackDistributionSharesOneAreaDistributionFails() throws IOException {
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        Network network = prepareAicRemainingSlackDistribution();
+        network.getGenerator("g1").setMinP(70.3); // target is 70.4, will have an initial share of 0,29 but will be able to distribute only 0.1. The rest will be distributed by a2
+        parametersExt.setAreaInterchangePMaxMismatch(1); // keep interchanges within max mismatch while having readable differences in distribution
+
+        var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+        String expectedReport = """
+                + test
+                   + Load flow on network 'areas'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 3 branches
+                            Network balance: active generation=110.4 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         + Outer loop AreaInterchangeControl
+                            + Outer loop iteration 1
+                               Area a1 slack distribution share (-0.1 MW) distributed in 1 distribution iteration(s)
+                               Area a2 slack distribution share (-0.3 MW) distributed in 2 distribution iteration(s)
+                         Outer loop VoltageMonitoring
+                         Outer loop ReactiveLimits
+                         Outer loop AreaInterchangeControl
+                         Outer loop VoltageMonitoring
+                         Outer loop ReactiveLimits
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """;
+        LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
+    }
+
+    @Test
+    void remainingSlackDistributionSharesAllAreasDistributionFails() throws IOException {
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        Network network = prepareAicRemainingSlackDistribution();
+        // There is 0.4 MW of slack to distribute, but the two areas can distribute only 0.3 MW total, the distribution will fail
+        network.getGenerator("g1").setMinP(70.2);
+        network.getGenerator("gen3").setMinP(39.9);
+
+        var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
+        assertEquals(LoadFlowResult.Status.FAILED, result.getStatus());
+        assertEquals(-0.4, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+        String expectedReport = """
+                + test
+                   + Load flow on network 'areas'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 3 branches
+                            Network balance: active generation=110.4 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         + Outer loop AreaInterchangeControl
+                            + Outer loop iteration 1
+                               + Failed to distribute interchange active power mismatch
+                                  Remaining slack distribution mismatch for Area a1: -0.00101 MW
+                                  Remaining slack distribution mismatch for Area a2: -0.1 MW
+                            Outer loop unsuccessful with status: FAILED
+                         AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=FAILED)
                 """;
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
     }
