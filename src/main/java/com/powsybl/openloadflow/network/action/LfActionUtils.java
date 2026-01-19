@@ -15,7 +15,11 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Reports;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.action.AbstractLfBranchAction.updateBusesAndBranchStatus;
 
@@ -50,6 +54,12 @@ public final class LfActionUtils {
                 new LfAreaInterchangeTargetAction(action.getId(), (AreaInterchangeTargetAction) action);
             default -> throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         };
+    }
+
+    public static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
+        return actions.stream()
+                .map(action -> LfActionUtils.createLfAction(action, network, parameters.isBreakers(), lfNetwork))
+                .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
     public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
