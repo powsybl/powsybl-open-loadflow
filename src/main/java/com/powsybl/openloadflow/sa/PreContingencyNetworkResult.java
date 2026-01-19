@@ -24,8 +24,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Map<String, BranchResult> branchResults = new HashMap<>();
 
-    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, monitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+        super(network, monitorIndex, zeroImpedanceMonitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
     }
 
     @Override
@@ -48,10 +48,10 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
-        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getNoneStateMonitor(), network);
+        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getNoneStateMonitor(), network);
         addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
         zeroImpedanceFlows.clear();
-        zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
+        zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
     }
 

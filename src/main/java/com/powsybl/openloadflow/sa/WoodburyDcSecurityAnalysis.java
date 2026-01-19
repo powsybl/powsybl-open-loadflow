@@ -43,6 +43,7 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.event.Level;
@@ -226,7 +227,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
 
         // update post contingency network result
-        var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, woodburyContext.createResultExtension, preContingencyNetworkResult, contingency, LoadFlowModel.DC, woodburyContext.dcLoadFlowContext().getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, zeroImpedanceMonitoredIndex, woodburyContext.createResultExtension, preContingencyNetworkResult, contingency, LoadFlowModel.DC, woodburyContext.dcLoadFlowContext().getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
         postContingencyNetworkResult.update(isBranchDisabledDueToContingency);
 
         // detect violations
@@ -267,7 +268,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
 
         // update network result
-        var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, woodburyContext.createResultExtension, LoadFlowModel.DC, loadFlowContext.getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
+        var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, zeroImpedanceMonitoredIndex, woodburyContext.createResultExtension, LoadFlowModel.DC, loadFlowContext.getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
         postActionsNetworkResult.update(isBranchDisabledDueToContingency);
 
         // detect violations
@@ -432,7 +433,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             }
 
             // update network result
-            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension, LoadFlowModel.DC, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
+            List<StateMonitor> zeroImpedanceStateMonitors = extractZeroImpedanceStateMonitors(lfNetwork);
+            this.zeroImpedanceMonitoredIndex = new StateMonitorIndex(zeroImpedanceStateMonitors);
+            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, zeroImpedanceMonitoredIndex, createResultExtension, LoadFlowModel.DC, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
             preContingencyNetworkResult.update();
 
             // detect violations

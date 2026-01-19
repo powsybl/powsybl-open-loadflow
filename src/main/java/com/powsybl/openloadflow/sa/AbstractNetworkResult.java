@@ -37,6 +37,8 @@ public abstract class AbstractNetworkResult {
 
     protected final StateMonitorIndex monitorIndex;
 
+    protected final StateMonitorIndex zeroImpedanceMonitorIndex;
+
     protected final boolean createResultExtension;
 
     protected final LoadFlowModel loadFlowModel;
@@ -49,9 +51,10 @@ public abstract class AbstractNetworkResult {
 
     static final List<LfBranch.BranchType> T3WT_BRANCH_TYPES = List.of(TRANSFO_3_LEG_1, TRANSFO_3_LEG_2, TRANSFO_3_LEG_3);
 
-    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
         this.monitorIndex = Objects.requireNonNull(monitorIndex);
+        this.zeroImpedanceMonitorIndex = Objects.requireNonNull(zeroImpedanceMonitorIndex);
         this.createResultExtension = createResultExtension;
         this.loadFlowModel = loadFlowModel;
         this.dcPowerFactor = dcPowerFactor;
@@ -115,7 +118,7 @@ public abstract class AbstractNetworkResult {
                     return true;
                 }
             } else {
-                if (monitor.getBranchIds().contains(lfBranch.getMainOriginalId())) {
+                if (monitor.getBranchIds().contains(lfBranch.getId())) {
                     return true;
                 }
             }

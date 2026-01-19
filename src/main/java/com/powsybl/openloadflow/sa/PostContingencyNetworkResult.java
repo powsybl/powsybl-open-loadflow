@@ -29,9 +29,9 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Contingency contingency;
 
-    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension,
+    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex, boolean createResultExtension,
                                         PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, monitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
+        super(network, monitorIndex, zeroImpedanceMonitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
         this.preContingencyMonitorInfos = Objects.requireNonNull(preContingencyMonitorInfos);
         this.contingency = Objects.requireNonNull(contingency);
     }
@@ -72,10 +72,10 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         clear();
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
         if (stateMonitor != null) {
-            Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(stateMonitor, network);
+            Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getSpecificStateMonitors().get(contingency.getId()), network);
             addResults(stateMonitor, isBranchDisabled, zeroImpedanceFlows);
         } else {
-            Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(monitorIndex.getAllStateMonitor(), network);
+            Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
             addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
         }
     }
