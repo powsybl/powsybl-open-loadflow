@@ -33,7 +33,7 @@ public class ZeroImpedanceFlows {
         this.dcPowerFactor = dcPowerFactor;
     }
 
-    public void computeWithFlowsUpdate() {
+    public void computeFlows(Boolean provideResults, Map<String, LfBranch.LfBranchResults> resultsMap) {
         Set<LfBus> processed = new HashSet<>();
 
         graph.vertexSet().stream().sorted(Comparator.comparingInt(LfElement::getNum)).forEach(lfBus -> {
@@ -41,13 +41,23 @@ public class ZeroImpedanceFlows {
                 return;
             }
             TreeByLevels treeByLevels = new TreeByLevels(graph, tree, lfBus, loadFlowModel, dcPowerFactor);
-            treeByLevels.updateFlows();
+            if (provideResults) {
+                treeByLevels.buildFlowResults(resultsMap);
+            } else {
+                treeByLevels.updateFlows();
+            }
             processed.addAll(treeByLevels.getProcessedLfBuses());
         });
 
         // zero flows for all zero impedance branches outside the tree
         graph.edgeSet().stream().filter(branch -> !tree.getEdges().contains(branch))
-                .forEach(branch -> branch.updateFlows(0.0, 0.0, 0.0, 0.0));
+                .forEach(branch -> {
+                    if (provideResults) {
+                        resultsMap.put(branch.getId(), new LfBranch.LfBranchResults(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+                    } else {
+                        branch.updateFlows(0.0, 0.0, 0.0, 0.0);
+                    }
+                });
     }
 
     public void computeAndProvideResults(Map<String, LfBranch.LfBranchResults> resultsMap) {

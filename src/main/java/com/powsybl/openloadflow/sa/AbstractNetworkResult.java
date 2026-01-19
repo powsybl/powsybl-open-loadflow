@@ -126,10 +126,14 @@ public abstract class AbstractNetworkResult {
 
     protected Map<String, LfBranch.LfBranchResults> storeResultsForZeroImpedanceBranches(StateMonitor monitor, LfNetwork network) {
         Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = new LinkedHashMap<>();
+        if (monitor.getBranchIds().isEmpty() && monitor.getThreeWindingsTransformerIds().isEmpty()) {
+            // Nothing to store as no branches are monitored
+            return zeroImpedanceFlows;
+        }
         for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
             if (isContainingAMonitoredBranch(zeroImpedanceNetwork, monitor)) {
                 new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel, dcPowerFactor)
-                        .computeAndProvideResults(zeroImpedanceFlows);
+                        .computeFlows(true, zeroImpedanceFlows);
             }
         }
         return zeroImpedanceFlows;
