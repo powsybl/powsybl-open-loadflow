@@ -254,10 +254,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         boolean remainsPV = true;
         boolean generatorRemoteController = isGeneratorRemoteController(controllerBus);
 
-        if (q < minQ) {
+        if (q < minQ - maxReactivePowerMismatch) {
             buses.add(new ControllerBusToPqBus(controllerBus, q, minQ, LfBus.QLimitType.MIN_Q));
             remainsPV = false;
-        } else if (q > maxQ) {
+        } else if (q > maxQ + maxReactivePowerMismatch) {
             buses.add(new ControllerBusToPqBus(controllerBus, q, maxQ, LfBus.QLimitType.MAX_Q));
             remainsPV = false;
         }
