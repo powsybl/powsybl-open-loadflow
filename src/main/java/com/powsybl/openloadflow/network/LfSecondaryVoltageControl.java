@@ -138,6 +138,7 @@ public class LfSecondaryVoltageControl {
         // the secondary voltage control to get a reactive power alignment
         if (!controllerBusesToLimit.isEmpty() && controllerBusesToLimit.size() < allControllerBuses.size()) {
             for (LfBus controllerBus : controllerBusesToLimit) {
+                controllerBus.invalidateGenerationTargetQ();
                 controllerBus.setGeneratorVoltageControlEnabled(true);
                 controllerBus.setQLimitType(null);
             }
