@@ -191,6 +191,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(sensiReportNode);
 
+        if (!operatorStrategies.isEmpty()) {
+            throw new PowsyblException("AC sensitivity analysis does not support operator strategies");
+        }
+
         network.getVariantManager().setWorkingVariant(workingVariantId);
 
         LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
