@@ -20,6 +20,7 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -59,6 +60,8 @@ class SecondaryVoltageControlTest {
 
     private LoadFlow.Runner loadFlowRunner;
 
+    private LoadFlowRunParameters loadFlowRunParameters;
+
     private LoadFlowParameters parameters;
 
     private OpenLoadFlowParameters parametersExt;
@@ -83,6 +86,7 @@ class SecondaryVoltageControlTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMaxPlausibleTargetVoltage(1.6);
+        loadFlowRunParameters = new LoadFlowRunParameters().setParameters(parameters);
     }
 
     private static double qToK(Generator g) {
@@ -211,7 +215,8 @@ class SecondaryVoltageControlTest {
                 .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
-        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
+        loadFlowRunParameters.setReportNode(node);
+        var result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(14, result.getComponentResults().get(0).getIterationCount());
 
@@ -266,7 +271,7 @@ class SecondaryVoltageControlTest {
     }
 
     @Test
-    void testSecurityAnalysisWithUnblockedGenerator() throws IOException {
+    void testSecurityAnalysisWithUnblockedGenerator() {
         modifyNetworkToUnblockGeneratorFromLimit();
 
         // Pilot point is set to test unblocking of generators without them turning back PQ
@@ -299,7 +304,8 @@ class SecondaryVoltageControlTest {
                 .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
-        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
+        loadFlowRunParameters.setReportNode(node);
+        var result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(11, result.getComponentResults().get(0).getIterationCount());
 
