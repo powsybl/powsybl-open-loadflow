@@ -234,7 +234,7 @@ public final class Networks {
             // and close switches that could be closed during the simulation
             retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
+            List<LfNetwork> lfNetworks = load(network, modifiedTopoConfig, networkParameters, reportNode);
 
             if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
                 Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream()

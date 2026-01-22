@@ -11,8 +11,6 @@ package com.powsybl.openloadflow.network.action;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -20,8 +18,6 @@ import org.slf4j.LoggerFactory;
  * @author Jean-Luc Bouchot {@literal <jlbouchot at gmail.com>}
  */
 public class LfTerminalsConnectionAction extends AbstractLfBranchAction<TerminalsConnectionAction> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfTerminalsConnectionAction.class);
 
     public LfTerminalsConnectionAction(String id, TerminalsConnectionAction action, LfNetwork lfNetwork) {
         super(id, action, lfNetwork);
@@ -39,8 +35,6 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
             } else {
                 setEnabledBranch(branch);
             }
-        } else {
-            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} not found", action.getId(), action.getElementId());
         }
     }
 }

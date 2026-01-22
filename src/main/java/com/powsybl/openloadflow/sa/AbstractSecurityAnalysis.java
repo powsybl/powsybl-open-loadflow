@@ -113,6 +113,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract P createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas);
 
+    protected void checkSupportedActions(List<Action> actions) {
+    }
+
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                    List<OperatorStrategy> operatorStrategies, List<Action> actions, List<LimitReduction> limitReductions,
                                    String workingVariantId, Executor executor) throws ExecutionException {
@@ -132,8 +135,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         LOGGER.info("Running {} security analysis on {} contingencies on {} threads",
                 getLoadFlowModel() == LoadFlowModel.AC ? "AC" : "DC", contingencies.size(), securityAnalysisParametersExt.getThreadCount());
 
+        // check all actions are supported
+        checkSupportedActions(actions);
+
         // check actions validity
-        Actions.check(network, actions);
+        Actions.checkValidity(network, actions);
 
         // try for find all switches to be operated as actions.
         LfTopoConfig topoConfig = new LfTopoConfig();
@@ -416,7 +422,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         checkOperatorStrategies);
         Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
 
-        Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters()); // only convert needed actions
+        Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);

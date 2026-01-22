@@ -429,10 +429,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         LfTopoConfig topoConfig = new LfTopoConfig();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
-        boolean breakers = topoConfig.isBreaker();
 
         // update topo config with supported actions
+        Actions.addAllSwitchesToOperate(topoConfig, network, actions);
         Actions.addAllBranchesToClose(topoConfig, network, actions);
+        Actions.addAllPtcToOperate(topoConfig, actions);
+
+        boolean breakers = topoConfig.isBreaker();
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
@@ -470,7 +473,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
                     OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
             Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
-            Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network, lfNetworkParameters); // only convert needed actions
+            Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
             SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
@@ -596,7 +599,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         }
 
                         List<String> operatorStrategyActionIds = operatorStrategy.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
-                        List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
+                        List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).filter(LfAction::isValid).toList();
                         LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy, operatorStrategyLfActions);
                         var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                 connectivityAnalysisResult,

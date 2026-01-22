@@ -179,7 +179,7 @@ public final class ConnectivityBreakAnalysis {
             for (ComputedElement element2 : computedElements) {
                 LfBranch branch = lfNetwork.getBranchById(element2.getLfBranch().getId());
                 ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                DenseMatrix elementMatrix = element2 instanceof ComputedContingencyElement ? contingenciesStates : actionStates;
+                DenseMatrix elementMatrix = element instanceof ComputedContingencyElement ? contingenciesStates : actionStates;
                 double value = Math.abs(p.calculateSensi(elementMatrix, element.getComputedElementIndex()));
                 sum += value;
             }
@@ -358,11 +358,13 @@ public final class ConnectivityBreakAnalysis {
         // compute the connectivity result for the contingency and the associated actions
         return computeConnectivityAnalysisResult(lfNetwork, contingency, contingencyElementByBranch, operatorStrategy, actionElementsIndexByLfAction)
                 .map(postContingencyAndOperatorStrategyConnectivityAnalysisResult -> {
-                    LOGGER.info("After graph based connectivity analysis, the contingency and associated actions break connectivity");
+                    LOGGER.debug("After graph based connectivity analysis, the contingency '{}' and operator strategy '{}' break connectivity",
+                            contingency.getContingency().getId(), operatorStrategy.getIndexedOperatorStrategy().value().getId());
                     return postContingencyAndOperatorStrategyConnectivityAnalysisResult;
                 })
                 .orElseGet(() -> {
-                    LOGGER.info("After graph based connectivity analysis, the contingency and associated actions do not break connectivity");
+                    LOGGER.debug("After graph based connectivity analysis, the contingency '{}' and operator strategy '{}' do not break connectivity",
+                            contingency.getContingency().getId(), operatorStrategy.getIndexedOperatorStrategy().value().getId());
                     return ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(postContingencyConnectivityAnalysisResult.propagatedContingency, operatorStrategy, postContingencyConnectivityAnalysisResult.network);
                 });
     }

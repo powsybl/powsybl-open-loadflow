@@ -33,7 +33,7 @@ public final class LfActionUtils {
     private LfActionUtils() {
     }
 
-    public static LfAction createLfAction(Action action, Network network, boolean breakers, LfNetwork lfNetwork) {
+    public static LfAction createLfAction(Action action, Network network, LfNetwork lfNetwork) {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         return switch (action.getType()) {
@@ -45,20 +45,20 @@ public final class LfActionUtils {
             case RatioTapChangerTapPositionAction.NAME ->
                 new LfRatioTapChangerAction(action.getId(), (RatioTapChangerTapPositionAction) action, lfNetwork);
             case LoadAction.NAME ->
-                new LfLoadAction(action.getId(), (LoadAction) action, network, breakers);
+                new LfLoadAction(action.getId(), (LoadAction) action, network, lfNetwork);
             case GeneratorAction.NAME -> new LfGeneratorAction(action.getId(), (GeneratorAction) action, lfNetwork);
-            case HvdcAction.NAME -> new LfHvdcAction(action.getId(), (HvdcAction) action);
+            case HvdcAction.NAME -> new LfHvdcAction(action.getId(), (HvdcAction) action, lfNetwork);
             case ShuntCompensatorPositionAction.NAME ->
-                new LfShuntCompensatorPositionAction(action.getId(), (ShuntCompensatorPositionAction) action);
+                new LfShuntCompensatorPositionAction(action.getId(), (ShuntCompensatorPositionAction) action, lfNetwork);
             case AreaInterchangeTargetAction.NAME ->
-                new LfAreaInterchangeTargetAction(action.getId(), (AreaInterchangeTargetAction) action);
+                new LfAreaInterchangeTargetAction(action.getId(), (AreaInterchangeTargetAction) action, lfNetwork);
             default -> throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         };
     }
 
-    public static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
+    public static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network) {
         return actions.stream()
-                .map(action -> LfActionUtils.createLfAction(action, network, parameters.isBreakers(), lfNetwork))
+                .map(action -> LfActionUtils.createLfAction(action, network, lfNetwork))
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 

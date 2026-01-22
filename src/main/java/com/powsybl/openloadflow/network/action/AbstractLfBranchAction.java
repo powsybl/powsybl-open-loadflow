@@ -49,13 +49,17 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
 
     abstract void findEnabledDisabledBranches(LfNetwork lfNetwork);
 
+    @Override
+    public boolean isValid() {
+        return disabledBranch != null || enabledBranch != null;
+    }
+
     /**
      * Standalone apply
      */
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        boolean found = disabledBranch != null || enabledBranch != null;
-        if (!found) {
+        if (!isValid()) {
             return false;
         }
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();

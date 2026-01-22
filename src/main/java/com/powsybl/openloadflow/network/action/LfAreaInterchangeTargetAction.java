@@ -16,14 +16,21 @@ import com.powsybl.openloadflow.util.PerUnit;
  */
 public class LfAreaInterchangeTargetAction extends AbstractLfAction<AreaInterchangeTargetAction> {
 
-    public LfAreaInterchangeTargetAction(String id, AreaInterchangeTargetAction action) {
+    private final LfArea area;
+
+    public LfAreaInterchangeTargetAction(String id, AreaInterchangeTargetAction action, LfNetwork network) {
         super(id, action);
+        this.area = network.getAreaById(action.getAreaId());
+    }
+
+    @Override
+    public boolean isValid() {
+        return area != null;
     }
 
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        LfArea area = network.getAreaById(action.getAreaId());
-        if (area != null) {
+        if (isValid()) {
             area.setInterchangeTarget(action.getInterchangeTarget() / PerUnit.SB);
             return true;
         }

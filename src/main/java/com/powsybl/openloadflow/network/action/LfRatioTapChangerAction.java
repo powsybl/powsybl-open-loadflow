@@ -28,7 +28,7 @@ public class LfRatioTapChangerAction extends AbstractLfTapChangerAction<RatioTap
 
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        if (this.branch != null) {
+        if (isValid()) {
             if (branch.getVoltageControl().isPresent()) {
                 LOGGER.warn("Ratio tap changer tap position action: voltage control is present on the tap changer, tap position could be overriden.");
             }

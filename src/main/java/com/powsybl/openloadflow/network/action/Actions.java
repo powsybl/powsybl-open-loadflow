@@ -31,7 +31,28 @@ public final class Actions {
     private Actions() {
     }
 
-    public static void check(Network network, List<Action> actions) {
+    public static void checkWoodburySupported(Network network, List<Action> actions) {
+        // verify there is no closing of transformer in the actions
+        actions.stream()
+                .filter(TerminalsConnectionAction.class::isInstance)
+                .map(TerminalsConnectionAction.class::cast)
+                .filter(action -> !action.isOpen() && (network.getTwoWindingsTransformer(action.getElementId()) != null
+                        || network.getThreeWindingsTransformer(action.getElementId()) != null))
+                .findAny()
+                .ifPresent(e -> {
+                    throw new IllegalStateException("For now, TerminalsConnectionAction enabling a transformer is not allowed in WoodburyDcSecurityAnalysis");
+                });
+
+        // verify there is no other action than pst tap change or switching action
+        actions.stream()
+                .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction || action instanceof TerminalsConnectionAction || action instanceof SwitchAction))
+                .findAny()
+                .ifPresent(e -> {
+                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction and SwitchAction are allowed in fast DC Security Analysis");
+                });
+    }
+
+    public static void checkValidity(Network network, List<Action> actions) {
         for (Action action : actions) {
             switch (action.getType()) {
                 case SwitchAction.NAME: {

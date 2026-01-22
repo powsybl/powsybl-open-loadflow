@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
 import com.powsybl.action.Action;
-import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
@@ -33,6 +32,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.action.Actions;
@@ -43,6 +43,8 @@ import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -64,6 +66,8 @@ import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
  */
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpenSensitivityAnalysisProvider.class);
 
     private final MatrixFactory matrixFactory;
 
@@ -126,15 +130,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 .registerModule(new SensitivityJsonModule());
     }
 
-    private static void checkSupportedActions(List<Action> actions) {
-        actions.stream()
-                .filter(action -> !(action instanceof TerminalsConnectionAction))
-                .findAny()
-                .ifPresent(e -> {
-                    throw new IllegalStateException("For now, only TerminalsConnectionAction is allowed in DC sensitivity analysis");
-                });
-    }
-
     Void runSync(Network network,
                  String workingVariantId,
                  SensitivityFactorReader factorReader,
@@ -152,11 +147,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt =
                 OpenSensitivityAnalysisParameters.getOrDefault(sensitivityAnalysisParameters);
 
-        // check actions validity
-        Actions.check(network, actions);
+        // we have a limited number of actions supported by Woodbury engine
+        Actions.checkWoodburySupported(network, actions);
 
-        // we have a limited number of actions supported in DC sensitivity analysis
-        checkSupportedActions(actions);
+        // check actions validity
+        Actions.checkValidity(network, actions);
 
         // Contingency propagation is not supported yet.
         // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
@@ -199,11 +194,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
         }
 
+        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
+        if (operatorStrategies.isEmpty()) {
+            selectedConnectivityFactory = connectivityFactory;
+        } else {
+            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
+            selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        }
+
         AbstractSensitivityAnalysis<?, ?> analysis;
         if (loadFlowParameters.isDc()) {
-            analysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
+            analysis = new DcSensitivityAnalysis(matrixFactory, selectedConnectivityFactory, sensitivityAnalysisParameters);
         } else {
-            analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
+            analysis = new AcSensitivityAnalysis(matrixFactory, selectedConnectivityFactory, sensitivityAnalysisParameters);
         }
         analysis.analyse(network, workingVariantId, contingencies, operatorStrategies, actions, creationParameters, variableSets,
                 decoratedFactorReader, resultWriter, sensiReportNode, sensitivityAnalysisParametersExt, computationManager.getExecutor());

@@ -641,7 +641,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
-    void testCheckActions(int threadCount) {
+    void testCheckValidityActions(int threadCount) {
         Network network = MetrixTutorialSixBusesFactory.create();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
