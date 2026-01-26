@@ -310,7 +310,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
      * A PQ bus can have its Qmin or Qmax limit updated after a change in targetP of the generator or a change of the voltage magnitude of the bus.
      */
     private void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,
-                                   double maxReactivePowerMismatch, boolean canSwitchPqToPv) {
+                            boolean canSwitchPqToPv) {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
         double q = controllerCapableBus.getGenerationTargetQ();
@@ -410,7 +410,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 checkControllerBus(bus, pvToPqBuses, remainingPvBusCount);
             } else {
                 // we don't support switching PQ to PV for bus with one controller with slope.
-                checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, maxReactivePowerMismatch, !bus.hasGeneratorsWithSlope());
+                checkPqBus(bus, pqToPvBuses, busesWithUpdatedQLimits, !bus.hasGeneratorsWithSlope());
             }
         });
 
