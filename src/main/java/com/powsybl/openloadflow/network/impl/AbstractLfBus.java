@@ -87,6 +87,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected TransformerVoltageControl transformerVoltageControl;
 
+    protected AcDcConverterVoltageControl acDcConverterVoltageControl;
+
     protected ShuntVoltageControl shuntVoltageControl;
 
     protected Evaluable p = NAN;
@@ -162,7 +164,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public List<VoltageControl<?>> getVoltageControls() {
-        List<VoltageControl<?>> voltageControls = new ArrayList<>(3);
+        List<VoltageControl<?>> voltageControls = new ArrayList<>(4);
+        getAcDcConverterVoltageControl().ifPresent(voltageControls::add);
         getGeneratorVoltageControl().ifPresent(voltageControls::add);
         getTransformerVoltageControl().ifPresent(voltageControls::add);
         getShuntVoltageControl().ifPresent(voltageControls::add);
@@ -171,12 +174,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isVoltageControlled() {
-        return isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
+        return isAcDcConverterVoltageControlled() || isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
     }
 
     @Override
     public boolean isVoltageControlled(VoltageControl.Type type) {
         return switch (type) {
+            case AC_DC_CONVERTER -> isAcDcConverterVoltageControlled();
             case GENERATOR -> isGeneratorVoltageControlled();
             case TRANSFORMER -> isTransformerVoltageControlled();
             case SHUNT -> isShuntVoltageControlled();
@@ -826,6 +830,21 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl) {
         this.shuntVoltageControl = shuntVoltageControl;
+    }
+
+    @Override
+    public Optional<AcDcConverterVoltageControl> getAcDcConverterVoltageControl() {
+        return Optional.ofNullable(acDcConverterVoltageControl);
+    }
+
+    @Override
+    public boolean isAcDcConverterVoltageControlled() {
+        return acDcConverterVoltageControl != null && acDcConverterVoltageControl.getControlledBus() == this;
+    }
+
+    @Override
+    public void setAcDcConverterVoltageControl(AcDcConverterVoltageControl acDcConverterVoltageControl) {
+        this.acDcConverterVoltageControl = acDcConverterVoltageControl;
     }
 
     @Override

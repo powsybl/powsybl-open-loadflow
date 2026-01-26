@@ -1024,9 +1024,8 @@ public class AcEquationSystemCreator {
                 .addTerm(qAc.minus());
         //If the Converter station control vAc instead of Q
         if (converter.isVoltageRegulatorOn()) {
-            equationSystem.createEquation(converter, AcEquationType.BUS_TARGET_V_REF)
-                    .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
-                            .createTerm());
+            equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).orElseThrow()
+                    .setActive(true);
         } else {
             equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_Q_REF)
                     .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_Q_AC)

@@ -136,10 +136,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[column] = network.getVoltageSourceConverter(elementNum).getTargetVdc();
                 break;
 
-            case BUS_TARGET_V_REF:
-                targets[column] = network.getVoltageSourceConverter(elementNum).getTargetVac();
-                break;
-
             case DISTR_RHO,
                  DISTR_SHUNT_B,
                  DUMMY_TARGET_P,

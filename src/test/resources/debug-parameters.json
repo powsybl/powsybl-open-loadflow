@@ -86,7 +86,7 @@
         "newtonKrylovLineSearch" : false,
         "referenceBusSelectionMode" : "FIRST_SLACK",
         "writeReferenceTerminals" : true,
-        "voltageTargetPriorities" : [ "GENERATOR", "TRANSFORMER", "SHUNT" ],
+        "voltageTargetPriorities" : [ "AC_DC_CONVERTER", "GENERATOR", "TRANSFORMER", "SHUNT" ],
         "transformerVoltageControlUseInitialTapPosition" : false,
         "generatorVoltageControlMinNominalVoltage" : -1.0,
         "fictitiousGeneratorVoltageControlCheckMode" : "FORCED",

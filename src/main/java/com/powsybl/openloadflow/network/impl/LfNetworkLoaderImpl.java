@@ -623,6 +623,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfDcNode lfDcNode2 = getLfDcNode(acDcConverter.getDcTerminal2(), lfNetwork);
                 if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
                     LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcNode1, lfDcNode2, lfBus1, parameters);
+
+                    if (voltageSourceConverterImpl.isVoltageRegulatorOn()) {
+                        AcDcConverterVoltageControl voltageControl = new AcDcConverterVoltageControl(lfBus1, parameters.getVoltageTargetPriority(VoltageControl.Type.AC_DC_CONVERTER), voltageSourceConverterImpl.getTargetVac());
+                        voltageControl.addControllerElement(lfBus1);
+                        lfBus1.setAcDcConverterVoltageControl(voltageControl);
+                    }
+
                     addVoltageSourceConverter(lfNetwork, voltageSourceConverterImpl);
                 }
                 //lcc converter not implemented yet

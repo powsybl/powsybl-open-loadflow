@@ -217,6 +217,14 @@ public interface LfBus extends LfElement {
 
     boolean isShuntVoltageControlled();
 
+    // AC-DC converter voltage control
+
+    Optional<AcDcConverterVoltageControl> getAcDcConverterVoltageControl();
+
+    void setAcDcConverterVoltageControl(AcDcConverterVoltageControl acDcConverterVoltageControl);
+
+    boolean isAcDcConverterVoltageControlled();
+
     void setP(Evaluable p);
 
     Evaluable getP();
