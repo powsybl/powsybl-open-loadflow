@@ -265,6 +265,47 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testFilteredCondition() {
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getSwitch("C2").setOpen(true);
+        network.getLine("L1").getCurrentLimits1().orElseThrow().setPermanentLimit(580.0);
+        network.getLine("L1").getCurrentLimits2().orElseThrow().setPermanentLimit(580.0);
+
+        List<Contingency> contingencies = Stream.of("L2")
+            .map(id -> new Contingency(id, new BranchContingency(id)))
+            .toList();
+
+        List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
+            new SwitchAction("action3", "C2", false));
+
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategyL2_Current", ContingencyContext.specificContingency("L2"), new AtLeastOneViolationCondition(List.of("L1"), Set.of(LimitViolationType.CURRENT)), List.of("action1", "action3")),
+            new OperatorStrategy("strategyL2_Voltage", ContingencyContext.specificContingency("L2"), new AtLeastOneViolationCondition(List.of("L1"), Set.of(LimitViolationType.HIGH_VOLTAGE)), List.of("action1", "action3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+        // L2 contingency
+        assertEquals(583.624, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        // Operator strategy with filter on current, we have one current violation on L2
+        assertEquals(441.539, getOperatorStrategyResult(result, "strategyL2_Current").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+
+        // Operator strategy with filter on voltage, no violation, operator strategy not triggered
+        assertTrue(getOptionalOperatorStrategyResult(result, "strategyL2_Voltage").isEmpty());
+    }
+
+    @Test
     void testSecurityAnalysisWithOperatorStrategy3() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
