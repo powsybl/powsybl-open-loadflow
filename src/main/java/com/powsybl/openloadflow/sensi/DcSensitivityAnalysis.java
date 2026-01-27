@@ -594,8 +594,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process operator strategies
                 if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
-                    LOGGER.info("Processing operator strategies");
-
+                    LOGGER.info("Running operator strategies connectivity analysis...");
+                    Stopwatch operatorStrategyStopwatch = Stopwatch.createStarted();
+                    List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> postActionsConnectivityAnalysisResults = new ArrayList<>();
                     for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult connectivityAnalysisResult : Stream.concat(connectivityBreakAnalysisResults.nonBreakingConnectivityAnalysisResults().stream(),
                             connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults().stream()).toList()) {
                         List<Indexed<OperatorStrategy>> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.getOrDefault(connectivityAnalysisResult.getPropagatedContingency().getContingency().getId(), Collections.emptyList());
@@ -615,15 +616,28 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                     lfOperatorStrategy,
                                     actionElementsIndexByLfAction,
                                     actionsStates);
-
-                            workingFlowStates.copyValuesFrom(baseFlowStates);
-                            workingFactorStates.copyValuesFrom(baseFactorStates);
-
-                            processContingencyAndOperatorStrategy(postActionsConnectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                                    validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(), actionElementsIndexByLfAction,
-                                    workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), actionsStates, resultWriter, sensiReportNode);
+                            postActionsConnectivityAnalysisResults.add(postActionsConnectivityAnalysisResult);
                         }
                     }
+                    operatorStrategyStopwatch.stop();
+                    LOGGER.info("Operator strategies connectivity analysis done in {} ms", operatorStrategyStopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+                    LOGGER.info("Running operator strategies sensitivity calculation...");
+                    operatorStrategyStopwatch.reset().start();
+                    for (ConnectivityBreakAnalysis.ConnectivityAnalysisResult postActionsConnectivityAnalysisResult : postActionsConnectivityAnalysisResults) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            stopwatch.stop();
+                            throw new PowsyblException("Computation was interrupted");
+                        }
+
+                        workingFlowStates.copyValuesFrom(baseFlowStates);
+                        workingFactorStates.copyValuesFrom(baseFactorStates);
+
+                        processContingencyAndOperatorStrategy(postActionsConnectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
+                                validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(), actionElementsIndexByLfAction,
+                                workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), actionsStates, resultWriter, sensiReportNode);
+                    }
+                    LOGGER.info("Operator strategies sensitivity calculation done in {} ms", operatorStrategyStopwatch.elapsed(TimeUnit.MILLISECONDS));
                 }
             }
 
