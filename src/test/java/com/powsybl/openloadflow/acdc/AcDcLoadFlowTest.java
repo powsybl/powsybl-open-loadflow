@@ -478,7 +478,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testThreeConverters() {
-        //3 converters, 1 AC Network, cs23 controls Vdc, cs45 and cs56 control Pac
+        //3 converters, 1 AC Network, cs23 controls Vdc, cs45 and cs67 control Pac
         network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -517,7 +517,7 @@ class AcDcLoadFlowTest {
         assertDcPowerEquals(-25.538415, conv45.getDcTerminal1());
         assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
 
-        VoltageSourceConverter conv56 = network.getVoltageSourceConverter("conv56");
+        VoltageSourceConverter conv56 = network.getVoltageSourceConverter("conv67");
         assertActivePowerEquals(25.000000, conv56.getTerminal1());
         assertReactivePowerEquals(0.000000, conv56.getTerminal1());
         assertDcPowerEquals(-25.538415, conv56.getDcTerminal1());
@@ -693,7 +693,7 @@ class AcDcLoadFlowTest {
         LoadFlowParameters parameters1 = new LoadFlowParameters()
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
         OpenLoadFlowParameters.create(parameters1)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result1 = loadFlowRunner.run(network, parameters1);
@@ -703,7 +703,7 @@ class AcDcLoadFlowTest {
         LoadFlowParameters parameters2 = new LoadFlowParameters()
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         OpenLoadFlowParameters.create(parameters2)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAcDcNetwork(true);
 
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters2);
@@ -713,7 +713,7 @@ class AcDcLoadFlowTest {
         LoadFlowParameters parameters3 = new LoadFlowParameters()
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         OpenLoadFlowParameters.create(parameters3)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAcDcNetwork(true);
 
         CompletionException e3 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters3));
@@ -723,7 +723,7 @@ class AcDcLoadFlowTest {
         LoadFlowParameters parameters4 = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters4)
                 .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.VOLTAGE_MAGNITUDE)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAcDcNetwork(true);
 
         CompletionException e4 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters4));
@@ -733,7 +733,7 @@ class AcDcLoadFlowTest {
         LoadFlowParameters parameters5 = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters5)
                 .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_CONVERTER)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
                 .setAcDcNetwork(true);
 
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters5));

@@ -283,7 +283,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * l12       |        dl34                       |
      *           |                                   |
      *           |                                   |
-     *           |l23--------------------------------
+     *           |l25--------------------------------
      * </pre>
      */
     public static Network createAcDcNetwork1() {
@@ -334,7 +334,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * l12       |        dl34                       |
      *           |                                   |
      *           |                                   |
-     *           |l23--------------------------------
+     *           |l25--------------------------------
      * </pre>
      */
     public static Network createAcDcNetwork2() {
@@ -381,11 +381,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1       ld2                                                ld5
      * |         |                                                  |
-     * b1 ------b2conv23-dn3----------dnMiddle-----------dn4-conv45-b5
-     * l12       |        dl3             dl5            dl4        |
-     *           |                         |                        |
-     *           |                        dn5conv56-b6-ld6          |
-     *           l23-------------------------------------------------
+     * b1 ------b2-conv23-dn3----------dnMiddle----------dn4-conv45-b5
+     * l12       ||       dl3             dl7            dl4        |
+     *           ||            ld6         |                        |
+     *           | ---l26-------b6-conv67-dn7                       |
+     *           l25-------------------------------------------------
      * </pre>
      */
     public static Network createAcDcNetworkWithThreeConverters() {
@@ -460,7 +460,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(400.)
                 .add();
         network.newDcNode()
-                .setId("dn5")
+                .setId("dn7")
                 .setNominalV(400.)
                 .add();
         network.newDcNode()
@@ -476,7 +476,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(400.)
                 .add();
         network.newDcNode()
-                .setId("dnDummy5")
+                .setId("dnDummy7")
                 .setNominalV(400.)
                 .add();
 
@@ -538,9 +538,9 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
 
         network.newDcLine()
-                .setId("dl5")
+                .setId("dl7")
                 .setDcNode1("dnMiddle")
-                .setDcNode2("dn5")
+                .setDcNode2("dn7")
                 .setR(0.1)
                 .add();
 
@@ -555,8 +555,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
 
         network.newDcGround()
-                .setId("dg5")
-                .setDcNode("dnDummy5")
+                .setId("dg7")
+                .setDcNode("dnDummy7")
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -597,10 +597,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setResistiveLoss(1)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
                 .setTargetP(25.)
-                .setId("conv56")
+                .setId("conv67")
                 .setBus1("b6")
-                .setDcNode1("dn5")
-                .setDcNode2("dnDummy5")
+                .setDcNode1("dn7")
+                .setDcNode2("dnDummy7")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
                 .setVoltageRegulatorOn(false)
@@ -618,7 +618,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * l12       |        dl34                         |
      *           |                                     |
      *           |                                     |
-     *           |l23----------------------------------|
+     *           |l25----------------------------------|
      * </pre>
      */
     public static Network createAcDcNetworkWithAcVoltageControl() {

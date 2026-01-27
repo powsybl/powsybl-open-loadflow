@@ -1457,6 +1457,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!parameters.isAcDcNetwork()) {
             stopwatch.stop();
 
+            if (!dcBusesByCc.isEmpty()) {
+                throw new PowsyblException("Network model contains DC detailed components but OpenLoadFlowParameter acDcNetwork is set to false");
+            }
+
             LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return acLfNetworks;

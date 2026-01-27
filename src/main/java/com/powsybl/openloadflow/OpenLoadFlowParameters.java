@@ -2132,6 +2132,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
                 parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), parametersExt.getSlackBusCountryFilter());
 
+        if (parametersExt.isAcDcNetwork()) {
+            throw new PowsyblException("DC load flow is not supported for AC-DC network yet");
+        }
+
         var networkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
@@ -2161,7 +2165,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
-                .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls());
+                .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
+                .setAcDcNetwork(parametersExt.isAcDcNetwork());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)

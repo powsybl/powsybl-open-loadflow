@@ -634,6 +634,16 @@ If `false`, the loadflow is the classic one, without DC detailed components.
 
 The default value is `false`.
 
+**Note :** With AC-DC network load flow, the following parameters are restricted:
+- Generic parameters
+  - `dc`: must be set to false.
+  - `voltageInitMode` cannot be set to `DC_VALUES`.
+  - `componentMode` cannot be set to `MAIN_SYNCHRONOUS`.
+- Specific parameters
+  - `voltageInitModeOverride` must be set to `NONE`.
+  - `maxSlackBusCount` must be set to 1.
+  - `acSolverType` must be set to `NEWTON_RAPHSON`.
+
 ## Configuration file example
 See below an extract of a config file that could help:
 
