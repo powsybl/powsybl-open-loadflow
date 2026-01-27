@@ -10,20 +10,16 @@
             + Outer loop DistributedSlack
                + Outer loop iteration 1
                   Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
-            Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
-            Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'NHV1_NHV2_2'
             + Outer loop DistributedSlack
                + Outer loop iteration 1
                   Slack bus active power (5.803741 MW) distributed in 1 distribution iteration(s)
-            Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
-            Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
             + Operator strategy simulation 'strategy1'
