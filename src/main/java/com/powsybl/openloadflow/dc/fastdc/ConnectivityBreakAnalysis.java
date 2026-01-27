@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.dc.fastdc;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
@@ -24,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -313,21 +315,27 @@ public final class ConnectivityBreakAnalysis {
 
         // this first method based on sensitivity criteria is able to detect some contingencies that do not break
         // connectivity and other contingencies that potentially break connectivity
+        LOGGER.info("Running sensitivity based connectivity analysis...");
+        Stopwatch stopwatch = Stopwatch.createStarted();
         detectPotentialConnectivityBreak(loadFlowContext.getNetwork(), contingenciesStates, contingencies, contingencyElementByBranch, loadFlowContext.getEquationSystem(),
                 nonBreakingConnectivityAnalysisResults, potentiallyBreakingConnectivityContingencies);
-        LOGGER.info("After sensitivity based connectivity analysis, {} contingencies do not break connectivity, {} contingencies potentially break connectivity",
-                nonBreakingConnectivityAnalysisResults.size(), potentiallyBreakingConnectivityContingencies.size());
+        stopwatch.stop();
+        LOGGER.info("Sensitivity based connectivity analysis done in {} ms, {} contingencies do not break connectivity, {} contingencies potentially break connectivity",
+                stopwatch.elapsed(TimeUnit.MILLISECONDS), nonBreakingConnectivityAnalysisResults.size(), potentiallyBreakingConnectivityContingencies.size());
 
         // this second method process all contingencies that potentially break connectivity and using graph algorithms
         // find remaining contingencies that do not break connectivity
+        LOGGER.info("Running graph based connectivity analysis...");
+        stopwatch.reset().start();
         for (PropagatedContingency propagatedContingency : potentiallyBreakingConnectivityContingencies) {
             // compute connectivity analysis result, with contingency only
             computeConnectivityAnalysisResult(loadFlowContext.getNetwork(), propagatedContingency, contingencyElementByBranch, null, Collections.emptyMap())
                     .ifPresentOrElse(connectivityBreakingAnalysisResults::add,
                                      () -> nonBreakingConnectivityAnalysisResults.add(ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(propagatedContingency, null, loadFlowContext.getNetwork())));
         }
-        LOGGER.info("After graph based connectivity analysis, {} contingencies do not break connectivity, {} contingencies break connectivity",
-                nonBreakingConnectivityAnalysisResults.size(), connectivityBreakingAnalysisResults.size());
+        stopwatch.stop();
+        LOGGER.info("Graph based connectivity analysis done in {} ms, {} contingencies do not break connectivity, {} contingencies break connectivity",
+                stopwatch.elapsed(TimeUnit.MILLISECONDS), nonBreakingConnectivityAnalysisResults.size(), connectivityBreakingAnalysisResults.size());
 
         return new ConnectivityBreakAnalysisResults(nonBreakingConnectivityAnalysisResults, connectivityBreakingAnalysisResults, contingenciesStates, contingencyElementByBranch);
     }
