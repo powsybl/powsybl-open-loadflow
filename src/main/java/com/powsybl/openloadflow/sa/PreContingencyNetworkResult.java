@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LoadFlowModel;
 import com.powsybl.security.monitor.StateMonitor;
-import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
@@ -24,8 +23,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Map<String, BranchResult> branchResults = new HashMap<>();
 
-    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, monitorIndex, zeroImpedanceMonitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+        super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
     }
 
     @Override

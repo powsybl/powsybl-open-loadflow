@@ -629,15 +629,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     private boolean checkZeroImpedanceT3WT(LfNetwork lfNetwork, String id) {
-        LfBranch leg1 = lfNetwork.getBranchById(id + "_leg_" + 1);
+        String leg = "_leg_";
+        LfBranch leg1 = lfNetwork.getBranchById(id + leg + 1);
         if (leg1 != null && leg1.isZeroImpedance(getLoadFlowModel())) {
             return true;
         }
-        LfBranch leg2 = lfNetwork.getBranchById(id + "_leg_" + 2);
+        LfBranch leg2 = lfNetwork.getBranchById(id + leg + 2);
         if (leg2 != null && leg2.isZeroImpedance(getLoadFlowModel())) {
             return true;
         }
-        LfBranch leg3 = lfNetwork.getBranchById(id + "_leg_" + 3);
+        LfBranch leg3 = lfNetwork.getBranchById(id + leg + 3);
         return leg3 != null && leg3.isZeroImpedance(getLoadFlowModel());
     }
 
@@ -699,7 +700,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
             List<StateMonitor> zeroImpedanceStateMonitors = extractZeroImpedanceStateMonitors(lfNetwork);
             this.zeroImpedanceMonitoredIndex = new StateMonitorIndex(zeroImpedanceStateMonitors);
-            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, zeroImpedanceMonitoredIndex, createResultExtension, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
+            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension,
+                    loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
 
             // only run post-contingency simulations if pre-contingency simulation is ok
@@ -865,7 +867,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
 
         LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
-        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, zeroImpedanceMonitoredIndex, createResultExtension, preContingencyNetworkResult, contingency, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension, preContingencyNetworkResult, contingency, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result
@@ -927,7 +929,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         PostContingencyComputationStatus status = runActionLoadFlow(context);
         var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
         LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
-        var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, zeroImpedanceMonitoredIndex, createResultExtension, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
+        var postActionsNetworkResult = new PreContingencyNetworkResult(network, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension,
+                loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result

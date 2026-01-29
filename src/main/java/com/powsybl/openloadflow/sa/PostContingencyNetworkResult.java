@@ -12,7 +12,6 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.security.monitor.StateMonitor;
-import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
@@ -29,9 +28,9 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Contingency contingency;
 
-    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex, boolean createResultExtension,
+    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension,
                                         PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, monitorIndex, zeroImpedanceMonitorIndex, createResultExtension, loadFlowModel, dcPowerFactor);
+        super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
         this.preContingencyMonitorInfos = Objects.requireNonNull(preContingencyMonitorInfos);
         this.contingency = Objects.requireNonNull(contingency);
     }

@@ -51,10 +51,13 @@ public abstract class AbstractNetworkResult {
 
     static final List<LfBranch.BranchType> T3WT_BRANCH_TYPES = List.of(TRANSFO_3_LEG_1, TRANSFO_3_LEG_2, TRANSFO_3_LEG_3);
 
-    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+    public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
+    }
+
+    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
-        this.monitorIndex = Objects.requireNonNull(monitorIndex);
-        this.zeroImpedanceMonitorIndex = Objects.requireNonNull(zeroImpedanceMonitorIndex);
+        this.monitorIndex = Objects.requireNonNull(monitorIndexes.monitorIndex);
+        this.zeroImpedanceMonitorIndex = Objects.requireNonNull(monitorIndexes.zeroImpedanceMonitorIndex);
         this.createResultExtension = createResultExtension;
         this.loadFlowModel = loadFlowModel;
         this.dcPowerFactor = dcPowerFactor;
