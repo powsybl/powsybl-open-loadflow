@@ -144,7 +144,6 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 LfBus controllerBus = pvToPqBus.controllerBus;
 
                 // switch PV -> PQ
-                controllerBus.setGeneratorVoltageControlEnabled(false);
                 controllerBus.freezeGenerationTargetQ(pvToPqBus.qLimit);
                 controllerBus.setQLimitType(pvToPqBus.limitType);
                 // increment PV -> PQ switch counter
@@ -197,8 +196,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             if (pvPqSwitchCount >= maxPqPvSwitch) {
                 pqPvNodes.add(Reports.createRootReportPvPqSwitchLimit(reportNode, controllerBus, pvPqSwitchCount, log, LOGGER));
             } else {
-                controllerBus.setGeneratorVoltageControlEnabled(true);
-                controllerBus.invalidateGenerationTargetQ();
+                controllerBus.setVoltageControlEnabled(true);
                 controllerBus.setQLimitType(null);
                 pqPvSwitchCount++;
 

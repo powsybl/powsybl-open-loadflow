@@ -185,7 +185,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             voltageControls.add(voltageControl);
         }
         if (controllerBus.getGenerators().stream().anyMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)) {
-            controllerBus.setGeneratorVoltageControlEnabled(false);
+            controllerBus.setVoltageControlEnabled(false);
         }
     }
 
@@ -195,12 +195,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void discardGeneratorVoltageControl(LfBus controllerBus) {
-        controllerBus.setGeneratorVoltageControlEnabled(false);
+        controllerBus.setVoltageControlEnabled(false);
         controllerBus.getGenerators()
                 .stream()
                 .filter(lfGenerator -> lfGenerator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
                 .forEach(lfGenerator -> lfGenerator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
-        controllerBus.invalidateGenerationTargetQ();
     }
 
     private static void checkGeneratorsWithSlope(GeneratorVoltageControl voltageControl) {

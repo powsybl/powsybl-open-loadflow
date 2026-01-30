@@ -181,7 +181,7 @@ public enum NetworkCache {
                     } else {
                         context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                         if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                            lfBus.setGeneratorVoltageControlEnabled(false);
+                            lfBus.setVoltageControlEnabled(false);
                         }
                     }
                     context.getNetwork().validate(LoadFlowModel.AC, null);
