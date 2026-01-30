@@ -398,8 +398,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     @Override
-    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> operatorStrategies,
-                        List<Action> actions, PropagatedContingencyCreationParameters creationParameters,
+    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> configuredOperatorStrategies,
+                        List<Action> configuredActions, PropagatedContingencyCreationParameters creationParameters,
                         List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                         SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
@@ -429,6 +429,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         LfTopoConfig topoConfig = new LfTopoConfig();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
+
+        List<OperatorStrategy> operatorStrategies;
+        List<Action> actions;
+        if (parameters.getOperatorStrategiesCalculationMode() == SensitivityOperatorStrategiesCalculationMode.NONE) {
+            operatorStrategies = Collections.emptyList();
+            actions = Collections.emptyList();
+        } else {
+            operatorStrategies = configuredOperatorStrategies;
+            actions = configuredActions;
+        }
 
         // update topo config with supported actions
         Actions.addAllSwitchesToOperate(topoConfig, network, actions);
