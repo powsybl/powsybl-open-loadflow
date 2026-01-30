@@ -4750,4 +4750,24 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(50., result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
         assertEquals(100., result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
     }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testContingencyDisconnectingZeroImpedanteBranchConnectedOneSide(boolean dc) {
+        Network network = FourBusNetworkFactory.create();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setDc(dc);
+        OpenLoadFlowParameters.create(loadFlowParameters)
+                .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+
+        // Zero impedance branch connected at side 1 only, used as contingency
+        network.getLine("l14")
+                .setX(0.0)
+                .getTerminal2().disconnect();
+        List<Contingency> contingencies = List.of(Contingency.line("l14"));
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters));
+    }
 }
