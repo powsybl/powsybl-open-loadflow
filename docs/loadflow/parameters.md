@@ -622,6 +622,13 @@ to fix the network data.
 
 The default value is `false`.
 
+
+**useFictitiousInjections**
+If true, the value `fictitiousP0` and `fictitiousQ0` of buses are taken into account in the load flow computation.
+
+The default value is `true`.
+
+
 ## Configuration file example
 See below an extract of a config file that could help:
 

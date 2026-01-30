@@ -59,8 +59,8 @@ public class LfBusImpl extends AbstractLfBus {
         this.participating = participating;
         this.breakers = parameters.isBreakers();
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
-        fictitiousInjectionTargetP = bus.getFictitiousP0() / PerUnit.SB;
-        fictitiousInjectionTargetQ = bus.getFictitiousQ0() / PerUnit.SB;
+        fictitiousInjectionTargetP = parameters.isUseFictitiousInjections() ? bus.getFictitiousP0() / PerUnit.SB : 0;
+        fictitiousInjectionTargetQ = parameters.isUseFictitiousInjections() ? bus.getFictitiousQ0() / PerUnit.SB : 0;
         if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
             bbsIds = bus.getConnectedTerminalStream()
                     .map(Terminal::getConnectable)
@@ -70,7 +70,6 @@ public class LfBusImpl extends AbstractLfBus {
         } else {
             bbsIds = Collections.emptyList();
         }
-
     }
 
     private static void createAsym(Bus bus, LfBusImpl lfBus) {
