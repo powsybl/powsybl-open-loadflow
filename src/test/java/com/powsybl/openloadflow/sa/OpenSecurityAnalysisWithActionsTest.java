@@ -1758,6 +1758,29 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testTerminalsConnectionActionWith3WindingsTransformer() {
+
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        List<Contingency> contingencies = Stream.of("LOAD_4")
+            .map(id -> new Contingency(id, new LoadContingency(id)))
+            .toList();
+
+        List<Action> actions = List.of(new TerminalsConnectionAction("disconnect3WT", "T3wT", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("Strategy3WT", ContingencyContext.specificContingency("LOAD_4"), new TrueCondition(), List.of("disconnect3WT")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(true);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+
+        assertTrue(result.getOperatorStrategyResults().stream().findAny().isPresent());
+    }
+
+    @Test
     void testOperatorStrategyNoMoreBusVoltageControlled() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         // trip one of the two parallel lines
