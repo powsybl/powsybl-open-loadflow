@@ -16,5 +16,7 @@ public interface LfAction {
 
     String getId();
 
+    boolean isValid();
+
     boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters);
 }

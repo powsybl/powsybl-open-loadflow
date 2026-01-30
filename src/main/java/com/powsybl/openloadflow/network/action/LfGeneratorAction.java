@@ -22,13 +22,15 @@ import java.util.OptionalDouble;
  */
 public class LfGeneratorAction extends AbstractLfAction<GeneratorAction> {
 
+    private final LfGenerator generator;
+
     private record GeneratorChange(double change, boolean isRelative) { }
 
     private GeneratorChange generatorChange;
 
     public LfGeneratorAction(String id, GeneratorAction action, LfNetwork lfNetwork) {
         super(id, action);
-        LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
+        generator = lfNetwork.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
             OptionalDouble activePowerValue = action.getActivePowerValue();
             Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
@@ -41,9 +43,13 @@ public class LfGeneratorAction extends AbstractLfAction<GeneratorAction> {
     }
 
     @Override
+    public boolean isValid() {
+        return generator != null;
+    }
+
+    @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        LfGenerator generator = network.getGeneratorById(action.getGeneratorId());
-        if (generator != null && !generator.isDisabled()) {
+        if (isValid() && !generator.isDisabled()) {
             double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.change() : generatorChange.change();
             generator.setTargetP(newTargetP);
             generator.setInitialTargetP(newTargetP);

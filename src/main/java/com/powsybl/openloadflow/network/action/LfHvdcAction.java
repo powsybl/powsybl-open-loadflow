@@ -9,11 +9,12 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.HvdcAction;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.LfHvdc;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Optional;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -24,20 +25,26 @@ public class LfHvdcAction extends AbstractLfAction<HvdcAction> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfHvdcAction.class);
 
-    public LfHvdcAction(String id, HvdcAction action) {
+    private final LfHvdc lfHvdc;
+
+    public LfHvdcAction(String id, HvdcAction action, LfNetwork network) {
         super(id, action);
-        Optional<Boolean> acEmulationEnabled = action.isAcEmulationEnabled();
         // As a first approach, we only support an action that switches an hvdc operated in AC emulation
         // into an active power set point operation mode.
-        if (acEmulationEnabled.isPresent() && acEmulationEnabled.get().equals(Boolean.TRUE)) {
+        if (action.isAcEmulationEnabled().orElse(false)) {
             throw new UnsupportedOperationException("Hvdc action: enabling ac emulation mode through an action is not supported yet.");
         }
+        lfHvdc = network.getHvdcById(action.getHvdcId());
+    }
+
+    @Override
+    public boolean isValid() {
+        return lfHvdc != null;
     }
 
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        LfHvdc lfHvdc = network.getHvdcById(action.getHvdcId());
-        if (lfHvdc != null) {
+        if (isValid()) {
             if (action.isAcEmulationEnabled().isEmpty()) {
                 LOGGER.warn("Hvdc action {}: only explicitly disabling ac emulation is supported.", action.getId());
                 return false;
