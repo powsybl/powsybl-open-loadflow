@@ -15,6 +15,7 @@ import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -72,6 +73,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     protected final StateMonitorIndex monitorIndex;
+
+    protected StateMonitorIndex zeroImpedanceMonitoredIndex;
 
     protected final ReportNode reportNode;
 
@@ -620,6 +623,45 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract LoadFlowEngine<V, E, P, R> createLoadFlowEngine(C context);
 
+    private boolean checkZeroImpedanceLine(LfNetwork lfNetwork, String id) {
+        LfBranch lfBranch = lfNetwork.getBranchById(id);
+        return lfBranch != null && lfBranch.isZeroImpedance(getLoadFlowModel());
+    }
+
+    private boolean checkZeroImpedanceT3WT(LfNetwork lfNetwork, String id) {
+        String leg = "_leg_";
+        LfBranch leg1 = lfNetwork.getBranchById(id + leg + 1);
+        if (leg1 != null && leg1.isZeroImpedance(getLoadFlowModel())) {
+            return true;
+        }
+        LfBranch leg2 = lfNetwork.getBranchById(id + leg + 2);
+        if (leg2 != null && leg2.isZeroImpedance(getLoadFlowModel())) {
+            return true;
+        }
+        LfBranch leg3 = lfNetwork.getBranchById(id + leg + 3);
+        return leg3 != null && leg3.isZeroImpedance(getLoadFlowModel());
+    }
+
+    private StateMonitor extractZeroImpedanceStateMonitor(StateMonitor stateMonitor, LfNetwork lfNetwork) {
+        ContingencyContext contingencyContext = stateMonitor.getContingencyContext();
+        Set<String> branchIds = stateMonitor.getBranchIds().stream().filter(id -> checkZeroImpedanceLine(lfNetwork, id)).collect(Collectors.toSet());
+        Set<String> threeWindingTransformerIds = stateMonitor.getThreeWindingsTransformerIds().stream().filter(id -> checkZeroImpedanceT3WT(lfNetwork, id)).collect(Collectors.toSet());
+        return new StateMonitor(contingencyContext, branchIds, new HashSet<>(), threeWindingTransformerIds);
+    }
+
+    protected List<StateMonitor> extractZeroImpedanceStateMonitors(LfNetwork lfNetwork) {
+        List<StateMonitor> zeroImpedanceStateMonitors = new ArrayList<>();
+        // All
+        zeroImpedanceStateMonitors.add(extractZeroImpedanceStateMonitor(this.monitorIndex.getAllStateMonitor(), lfNetwork));
+        // None
+        zeroImpedanceStateMonitors.add(extractZeroImpedanceStateMonitor(this.monitorIndex.getNoneStateMonitor(), lfNetwork));
+        // Contingency related
+        List<StateMonitor> specificStateMonitors = this.monitorIndex.getSpecificStateMonitors().values().stream().map(sm -> extractZeroImpedanceStateMonitor(sm, lfNetwork)).toList();
+        zeroImpedanceStateMonitors.addAll(specificStateMonitors);
+
+        return zeroImpedanceStateMonitors;
+    }
+
     protected void afterPreContingencySimulation(P acParameters) {
     }
 
@@ -655,7 +697,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.isSuccess();
             var preContingencyLimitViolationManager = new LimitViolationManager(limitReductions);
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
+            LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
+            List<StateMonitor> zeroImpedanceStateMonitors = extractZeroImpedanceStateMonitors(lfNetwork);
+            this.zeroImpedanceMonitoredIndex = new StateMonitorIndex(zeroImpedanceStateMonitors);
+            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension,
+                    loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
 
             // only run post-contingency simulations if pre-contingency simulation is ok
@@ -819,7 +865,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // restart LF on post contingency equation system
         PostContingencyComputationStatus status = runActionLoadFlow(context); // FIXME: change name.
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
-        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
+
+        LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension, preContingencyNetworkResult, contingency, loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result
@@ -880,7 +928,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // restart LF on post contingency and post actions equation system
         PostContingencyComputationStatus status = runActionLoadFlow(context);
         var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, limitReductions, securityAnalysisParameters.getIncreasedViolationsParameters());
-        var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
+        LoadFlowModel loadFlowModel = securityAnalysisParameters.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC;
+        var postActionsNetworkResult = new PreContingencyNetworkResult(network, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension,
+                loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result

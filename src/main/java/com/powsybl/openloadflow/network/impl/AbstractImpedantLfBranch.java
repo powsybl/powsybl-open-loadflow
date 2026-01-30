@@ -11,9 +11,12 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -497,5 +500,28 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
     protected double getAngle2() {
         return getBus2() != null ? getBus2().getAngle() : Double.NaN;
+    }
+
+    protected LfBranchResults getImpedantLfBranchResults() {
+        return new LfBranchResults(p1.eval(), p2.eval(), q1.eval(), q2.eval(), i1.eval(), i2.eval());
+    }
+
+    protected BranchResult buildBranchResult(LoadFlowModel loadFlowModel, Map<String, LfBranchResults> zeroImpedanceFlows, double currentScale1, double currentScale2,
+                                             double preContingencyBranchP1, double preContingencyBranchOfContingencyP1) {
+        LfBranchResults lfBranchResults = this.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(this.getId())
+                : getImpedantLfBranchResults();
+
+        double flowP1 = lfBranchResults.p1() * PerUnit.SB;
+        double flowQ1 = lfBranchResults.q1() * PerUnit.SB;
+        double flowP2 = lfBranchResults.p2() * PerUnit.SB;
+        double flowQ2 = lfBranchResults.q2() * PerUnit.SB;
+        double currentI1 = lfBranchResults.i1() * currentScale1;
+        double currentI2 = lfBranchResults.i2() * currentScale2;
+
+        double flowTransfer = Double.NaN;
+        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
+            flowTransfer = (flowP1 - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+        }
+        return new BranchResult(getId(), flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowTransfer);
     }
 }
