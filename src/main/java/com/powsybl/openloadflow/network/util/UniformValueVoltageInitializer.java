@@ -15,6 +15,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class UniformValueVoltageInitializer implements VoltageInitializer {
 
+    private final UniformValueAcDcNetworkInitializer acDcNetworkInitializer = new UniformValueAcDcNetworkInitializer();
+
     @Override
     public void prepare(LfNetwork network) {
         // nothing to do
@@ -29,4 +31,10 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
     public double getAngle(LfBus bus) {
         return 0;
     }
+
+    @Override
+    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
+        return acDcNetworkInitializer;
+    }
 }
+
