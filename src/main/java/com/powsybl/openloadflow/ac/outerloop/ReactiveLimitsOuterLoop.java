@@ -196,7 +196,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             if (pvPqSwitchCount >= maxPqPvSwitch) {
                 pqPvNodes.add(Reports.createRootReportPvPqSwitchLimit(reportNode, controllerBus, pvPqSwitchCount, log, LOGGER));
             } else {
-                controllerBus.setVoltageControlEnabled(true);
+                controllerBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(true);
                 controllerBus.setQLimitType(null);
                 pqPvSwitchCount++;
 

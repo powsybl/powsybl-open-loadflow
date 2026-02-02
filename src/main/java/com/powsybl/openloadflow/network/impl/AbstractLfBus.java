@@ -269,8 +269,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generatorVoltageControlEnabled;
     }
 
-    @Override
-    public void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
+    private void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
         if (this.generatorVoltageControlEnabled != generatorVoltageControlEnabled) {
             this.generatorVoltageControlEnabled = generatorVoltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
@@ -280,13 +279,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void setGeneratorVoltageControlEnabledAndRecomputeTargetQ(boolean generatorVoltageControlEnabled) {
+        setGeneratorVoltageControlEnabled(generatorVoltageControlEnabled);
+        invalidateGenerationTargetQ();
+    }
+
+    @Override
     public void setVoltageControlEnabled(boolean enabled) {
-        setGeneratorVoltageControlEnabled(enabled);
-        // If voltageControl is off and targetQ is frozen, we do not want to invalidate the existing targetQ
-        // in the logical opposite way => If voltageControl is on or targetQ is not frozen, we invalidate the existing targetQ
-        if (enabled || !isGenerationTargetQFrozen) {
-            invalidateGenerationTargetQ();
-        }
+        setGeneratorVoltageControlEnabledAndRecomputeTargetQ(enabled);
     }
 
     private static LfLoadModel createLfLoadModel(LoadModel loadModel, LfNetworkParameters parameters) {
@@ -410,7 +410,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    public void invalidateGenerationTargetQ() {
+    private void invalidateGenerationTargetQ() {
         // If generationTargetQ was frozen, it is now freed. generationTargetQ is computed according to its definition in getGenerationTargetQ()
         invalidatedGenerationTargetQ = true;
         isGenerationTargetQFrozen = false;

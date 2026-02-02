@@ -60,7 +60,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
             LfBus controllerBus = pqToPvBus.controllerBus;
 
-            controllerBus.setVoltageControlEnabled(true);
+            controllerBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(true);
             double newTargetV;
             if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX
                     || pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MIN) {

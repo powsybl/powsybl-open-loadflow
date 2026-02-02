@@ -81,7 +81,7 @@ public class GeneratorVoltageControlManager {
      */
     public void enableGeneratorVoltageControlsUnderMaxControlledNominalVoltage() {
         for (LfBus controllerBus : disabledControllerBuses) {
-            controllerBus.setVoltageControlEnabled(true);
+            controllerBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(true);
         }
     }
 

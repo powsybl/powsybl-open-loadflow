@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 
 import java.io.IOException;
@@ -212,7 +213,7 @@ public class LfContingency {
         // Only AC quantities
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                bus.setVoltageControlEnabled(false);
+                bus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
             }
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
                 bus.setGeneratorReactivePowerControlEnabled(false);

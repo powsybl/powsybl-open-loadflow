@@ -87,7 +87,7 @@ public interface LfBus extends LfElement {
 
     boolean isGeneratorVoltageControlEnabled();
 
-    void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled);
+    void setGeneratorVoltageControlEnabledAndRecomputeTargetQ(boolean generatorVoltageControlEnabled);
 
     // generator reactive power control
 
@@ -132,8 +132,6 @@ public interface LfBus extends LfElement {
     double getLoadTargetQ();
 
     void invalidateGenerationTargetP();
-
-    void invalidateGenerationTargetQ();
 
     double getGenerationTargetP();
 

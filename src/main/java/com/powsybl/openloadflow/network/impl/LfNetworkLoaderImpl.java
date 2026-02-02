@@ -185,7 +185,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             voltageControls.add(voltageControl);
         }
         if (controllerBus.getGenerators().stream().anyMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)) {
-            controllerBus.setVoltageControlEnabled(false);
+            controllerBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
         }
     }
 
@@ -195,7 +195,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void discardGeneratorVoltageControl(LfBus controllerBus) {
-        controllerBus.setVoltageControlEnabled(false);
+        controllerBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
         controllerBus.getGenerators()
                 .stream()
                 .filter(lfGenerator -> lfGenerator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
