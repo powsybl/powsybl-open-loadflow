@@ -397,10 +397,8 @@ class AreaInterchangeControlTest {
                             + Outer loop iteration 1
                                Area a1 slack distribution share (-0.1 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (-0.3 MW) distributed in 2 distribution iteration(s)
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          Outer loop AreaInterchangeControl
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
