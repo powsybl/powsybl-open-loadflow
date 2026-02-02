@@ -454,7 +454,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void freezeGenerationTargetQ(double generationTargetQ) {
+    public void freezeGenerationTargetQAndDisableGeneratorVoltageControl(double generationTargetQ) {
         // This is only used in case of PV bus switched to PQ bus
         setGeneratorVoltageControlEnabled(false);
         updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);

@@ -139,7 +139,7 @@ public interface LfBus extends LfElement {
 
     double getGenerationTargetQ();
 
-    void freezeGenerationTargetQ(double generationTargetQ);
+    void freezeGenerationTargetQAndDisableGeneratorVoltageControl(double generationTargetQ);
 
     boolean isGenerationTargetQFrozen();
 
