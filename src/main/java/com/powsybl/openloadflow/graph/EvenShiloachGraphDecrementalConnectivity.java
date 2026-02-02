@@ -26,8 +26,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     private Map<V, Integer> vertexToConnectedComponent;
     private final List<Set<V>> newConnectedComponents = new ArrayList<>();
 
-    private final Map<V, LevelNeighbours> levelNeighboursMap = new HashMap<>();
-    private final Deque<Map<V, LevelNeighbours>> allSavedChangedLevels = new ArrayDeque<>();
+    private final Deque<Map<V, LevelNeighbours>> levelNeighboursMaps = new ArrayDeque<>();
+    private final Deque<Deque<Map<V, LevelNeighbours>>> allSavedChangedLevels = new ArrayDeque<>();
 
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemoval) {
@@ -47,7 +47,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
             processB.undoChanges();
             updateNewConnectedComponents(processA.verticesOut);
         } else { // processB halted
-            allSavedChangedLevels.add(processB.savedChangedLevels);
+            allSavedChangedLevels.peek().add(processB.savedChangedLevels);
         }
     }
 
@@ -72,8 +72,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         vertexToConnectedComponent = null;
         componentSets = null;
         newConnectedComponents.clear();
-        allSavedChangedLevels.descendingIterator().forEachRemaining(levelNeighboursMap::putAll);
-        allSavedChangedLevels.clear();
+        levelNeighboursMaps.poll();
+        allSavedChangedLevels.poll();
     }
 
     @Override
@@ -88,23 +88,33 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
     @Override
     public void startTemporaryChanges() {
-        if (!getModificationsContexts().isEmpty()) {
-            throw new PowsyblException("This implementation supports only one level of temporary changes");
-        }
+//        if (!getModificationsContexts().isEmpty()) {
+//            throw new PowsyblException("This implementation supports only one level of temporary changes");
+//        }
         super.startTemporaryChanges();
-        if (levelNeighboursMap.isEmpty()) {
+        Map<V, LevelNeighbours> lnm = levelNeighboursMaps.peek();
+        if (lnm == null) {
+            Map<V, LevelNeighbours> lnm0 = new HashMap<>();
+            levelNeighboursMaps.push(lnm0);
             Set<V> vertices = getGraph().vertexSet();
             vertices.stream()
                     .max(Comparator.comparingInt(v -> getGraph().degreeOf(v)))
-                    .ifPresent(v -> buildLevelNeighbours(Collections.singleton(v), 0));
-            if (vertices.size() > levelNeighboursMap.size()) {
+                    .ifPresent(v -> buildLevelNeighbours(Collections.singleton(v), 0, lnm0));
+            if (vertices.size() > lnm0.size()) {
                 // Checking if only one connected components at start
                 throw new PowsyblException("This implementation does not support saving a graph with several connected components");
             }
+            lnm = lnm0;
+
+            allSavedChangedLevels.push(new ArrayDeque<>());
         }
+        Map<V, LevelNeighbours> lnm1 = new HashMap<>();
+        lnm.forEach((k, v) -> lnm1.put(k, new LevelNeighbours(v)));
+        levelNeighboursMaps.push(lnm1);
+        allSavedChangedLevels.push(new ArrayDeque<>());
     }
 
-    private void buildLevelNeighbours(Collection<V> level, int levelIndex) {
+    private void buildLevelNeighbours(Collection<V> level, int levelIndex, Map<V, LevelNeighbours> levelNeighboursMap) {
         Collection<V> nextLevel = new HashSet<>();
         for (V v : level) {
             LevelNeighbours neighbours = levelNeighboursMap.computeIfAbsent(v, value -> new LevelNeighbours(levelIndex));
@@ -115,7 +125,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
             nextLevel.addAll(neighbours.upperLevel);
         }
         if (!nextLevel.isEmpty()) {
-            buildLevelNeighbours(nextLevel, levelIndex + 1);
+            buildLevelNeighbours(nextLevel, levelIndex + 1, levelNeighboursMap);
         }
     }
 
@@ -276,7 +286,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         }
 
         private LevelNeighbours getLevelNeighbour(V v) {
-            LevelNeighbours levelNeighbours = levelNeighboursMap.get(v);
+            LevelNeighbours levelNeighbours = levelNeighboursMaps.peek().get(v);
             savedChangedLevels.computeIfAbsent(v, vertex -> new LevelNeighbours(levelNeighbours));
             return levelNeighbours;
         }
@@ -323,7 +333,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         }
 
         public void undoChanges() {
-            levelNeighboursMap.putAll(savedChangedLevels);
+            levelNeighboursMaps.peek().putAll(savedChangedLevels);
             savedChangedLevels.clear();
             verticesToUpdate.clear();
         }
@@ -386,7 +396,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
             this.sameLevel.addAll(origin.sameLevel);
             this.upperLevel.addAll(origin.upperLevel);
         }
-
     }
 
     private void fillNeighbours(LevelNeighbours neighbours, V neighbour, int neighbourLevel) {

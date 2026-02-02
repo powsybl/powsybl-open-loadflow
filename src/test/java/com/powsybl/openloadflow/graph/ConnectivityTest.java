@@ -440,12 +440,21 @@ class ConnectivityTest {
     void removeThenAddEdgesTest(GraphConnectivity<Integer, String> c) {
         IntStream.range(1, 6).forEach(c::addVertex);
         IntStream.range(1, 5).forEach(i -> c.addEdge(i, i + 1, i + "-" + (i + 1)));
+        c.addEdge(5, 1, "5-1");
+        // 1---2---3---4---5
+        // |               |
+        // -----------------
+
+        c.startTemporaryChanges();
+        c.removeEdge("5-1");
+        assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
+        assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of("5-1"), c.getEdgesRemovedFromMainComponent());
         // 1---2---3---4---5
 
         c.startTemporaryChanges();
         c.removeEdge("2-3");
-        assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
-        assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(1, 2), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of("1-2", "2-3"), c.getEdgesRemovedFromMainComponent());
         // 1---2   3---4---5
@@ -495,6 +504,7 @@ class ConnectivityTest {
     private static Stream<Arguments> provideNonRestrictedConnectivities() {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
+                Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>()),
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()));
     }
 
