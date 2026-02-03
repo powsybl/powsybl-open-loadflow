@@ -55,6 +55,7 @@ import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
@@ -4752,8 +4753,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void testContingencyDisconnectingZeroImpedanteBranchConnectedOneSide(boolean dc) {
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            dc,    side, expectedL12P1
+            false, ONE,  0.336
+            true,  ONE,  0.333
+            false, TWO,  0.336
+            true,  TWO,  0.333
+        """)
+    void testContingencyDisconnectingZeroImpedanteBranchConnectedOneSide(boolean dc, TwoSides side, double expectedL12P1) {
         Network network = FourBusNetworkFactory.create();
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
@@ -4765,13 +4772,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getLine("l14")
                 .setR(0.0)
                 .setX(0.0)
-                .getTerminal2().disconnect();
+                .getTerminal(side).disconnect();
         List<Contingency> contingencies = List.of(Contingency.line("l14"));
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12"), Collections.emptySet(), Collections.emptySet()));
 
         SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters));
-        double expectedL12P1 = dc ? 0.333 : 0.336;
         assertEquals(expectedL12P1, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
         assertEquals(expectedL12P1, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
     }
