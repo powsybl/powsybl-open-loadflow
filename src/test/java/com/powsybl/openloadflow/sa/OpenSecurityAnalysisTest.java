@@ -4756,18 +4756,23 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testContingencyDisconnectingZeroImpedanteBranchConnectedOneSide(boolean dc) {
         Network network = FourBusNetworkFactory.create();
 
-        LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setDc(dc);
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDc(dc);
         OpenLoadFlowParameters.create(loadFlowParameters)
                 .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
 
         // Zero impedance branch connected at side 1 only, used as contingency
         network.getLine("l14")
+                .setR(0.0)
                 .setX(0.0)
                 .getTerminal2().disconnect();
         List<Contingency> contingencies = List.of(Contingency.line("l14"));
 
-        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14"), Collections.emptySet(), Collections.emptySet()));
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l12"), Collections.emptySet(), Collections.emptySet()));
 
         SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters));
+        double expectedL12P1 = dc ? 0.333 : 0.336;
+        assertEquals(expectedL12P1, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
+        assertEquals(expectedL12P1, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
     }
 }
