@@ -212,9 +212,10 @@ public final class ConnectivityBreakAnalysis {
 
         // we confirm the breaking of connectivity by network connectivity
         ConnectivityAnalysisResult connectivityAnalysisResult = null;
-        int nbConnectedComponentsBefore = connectivity.getNbConnectedComponents();
         connectivity.startTemporaryChanges();
         try {
+            int nbConnectedComponentsBefore = connectivity.getNbConnectedComponents();
+
             // apply all modifications of connectivity, due to the lost/enabled/disabled branches
             modifyingConnectivityCandidates.forEach(computedElement -> computedElement.applyToConnectivity(connectivity));
 
