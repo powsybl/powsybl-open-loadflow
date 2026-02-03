@@ -66,7 +66,7 @@ class LfActionTest extends AbstractSerDeTest {
         LfTopoConfig topoConfig = new LfTopoConfig();
         LfNetworkParameters networkParameters = acParameters.getNetworkParameters();
         topoConfig.getSwitchesToOpen().add(network.getSwitch("C"));
-        try (LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, networkParameters, ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfSwitchAction = LfActionUtils.createLfAction(switchAction, network, lfNetwork);
             String loadId = "LOAD";
@@ -111,7 +111,7 @@ class LfActionTest extends AbstractSerDeTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class,
                 () -> new LfGeneratorAction("Gen action", generatorAction, lfNetwork));
@@ -136,7 +136,7 @@ class LfActionTest extends AbstractSerDeTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfActionUtils.createLfAction(generatorAction, network, lfNetwork);
             lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters());
@@ -162,7 +162,7 @@ class LfActionTest extends AbstractSerDeTest {
                 .withP0(200.0)
                 .withDroop(90.0)
                 .build();
-        try (LfNetworkList lfNetworks = Networks.load(network, new LfNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), new LfNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> new LfHvdcAction("action", hvdcAction, lfNetwork));
             assertEquals("Hvdc action: enabling ac emulation mode through an action is not supported yet.", e.getMessage());
@@ -182,7 +182,7 @@ class LfActionTest extends AbstractSerDeTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
             new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfActionUtils.createLfAction(hvdcAction2, network, lfNetwork);
             assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
@@ -212,7 +212,7 @@ class LfActionTest extends AbstractSerDeTest {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
             new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         acParameters.getNetworkParameters().setAreaInterchangeControl(true);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
 
             LfAction lfAreaTargetAction = LfActionUtils.createLfAction(targetAction, network, lfNetwork);
@@ -224,7 +224,7 @@ class LfActionTest extends AbstractSerDeTest {
 
         // With area interchange target control disabled
         acParameters.getNetworkParameters().setAreaInterchangeControl(false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             acParameters.getNetworkParameters().setAreaInterchangeControl(false);
 

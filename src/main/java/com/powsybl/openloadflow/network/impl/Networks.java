@@ -117,7 +117,7 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reportNode);
     }
 
-    private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
+    private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters) {
         network.getSwitchStream()
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(false));
@@ -128,11 +128,13 @@ public final class Networks {
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(true));
 
-        topoConfig.getSwitchesToClose().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
-        topoConfig.getBranchIdsToClose().stream().map(network::getBranch).forEach(branch -> {
-            branch.getTerminal1().connect();
-            branch.getTerminal2().connect();
-        }); // in order to be present in the network.
+        if (networkParameters.isIncludeReconnectableElements()) {
+            topoConfig.getSwitchesToClose().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
+            topoConfig.getBranchIdsToClose().stream().map(network::getBranch).forEach(branch -> {
+                branch.getTerminal1().connect();
+                branch.getTerminal2().connect();
+            }); // in order to be present in the network.
+        }
     }
 
     private static void restoreInitialTopology(LfNetwork network, Set<String> switchAndBranchIdsToClose) {
@@ -200,13 +202,13 @@ public final class Networks {
         }
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     LfTopoConfig topoConfig, ReportNode reportNode) {
-        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reportNode);
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              ReportNode reportNode) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode);
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
-                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
@@ -232,11 +234,11 @@ public final class Networks {
 
             // retain in topology all switches that could be open or close
             // and close switches that could be closed during the simulation
-            retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
+            retainAndCloseNecessarySwitches(network, modifiedTopoConfig, networkParameters);
 
             List<LfNetwork> lfNetworks = load(network, modifiedTopoConfig, networkParameters, reportNode);
 
-            if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
+            if (networkParameters.isIncludeReconnectableElements() && !(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
                 Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream()
                         .filter(Objects::nonNull)
                         .map(Identifiable::getId)
