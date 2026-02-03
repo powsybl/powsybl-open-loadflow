@@ -39,7 +39,6 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
-import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
@@ -1493,9 +1492,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertFalse(r.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, r.getComponentResults().get(0).getStatus());
         assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620\\.15[0-9]* MW at station cs2.", report);
-        n.getLineStream().forEach(l -> {
-            System.out.println(l.getId() + " " + l.getTerminal1().getP() + " MW " + l.getTerminal2().getP() + " MW");
-        });
 
         // The same network would converge with a DC init
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);

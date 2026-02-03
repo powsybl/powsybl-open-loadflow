@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 
 import java.io.IOException;
