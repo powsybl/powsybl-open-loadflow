@@ -11,8 +11,6 @@ package com.powsybl.openloadflow.network.action;
 import com.powsybl.action.SwitchAction;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -20,8 +18,6 @@ import org.slf4j.LoggerFactory;
  * @author Jean-Luc Bouchot {@literal <jlbouchot at gmail.com>}
  */
 public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfSwitchAction.class);
 
     public LfSwitchAction(String id, SwitchAction action, LfNetwork lfNetwork) {
         super(id, action, lfNetwork);
@@ -36,8 +32,6 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
             } else {
                 setEnabledBranch(branch);
             }
-        } else {
-            LOGGER.warn("Switch action {}: branch matching switch id {} not found", action.getId(), action.getSwitchId());
         }
     }
 }

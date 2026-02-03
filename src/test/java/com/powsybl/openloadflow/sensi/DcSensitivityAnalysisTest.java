@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -15,6 +16,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.contingency.GeneratorContingency;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -1335,7 +1337,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
-        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
+        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies, Collections.emptyList());
 
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
@@ -1350,14 +1352,16 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
         Executor executor = LocalComputationManager.getDefault().getExecutor();
         List<SensitivityVariableSet> noVar = Collections.emptyList();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies,
+        List<OperatorStrategy> operatorStrategies = Collections.emptyList();
+        List<Action> actions = Collections.emptyList();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies, operatorStrategies, actions,
                 creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
 
         // without connectivity break
         List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
         Thread.currentThread().interrupt();
-        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2,
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2, operatorStrategies, actions,
                 creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
     }

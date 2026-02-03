@@ -378,7 +378,7 @@ class DcLoadFlowTest {
                 .setMaxOuterLoopIterations(1);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(c1);
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, ReportNode.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {

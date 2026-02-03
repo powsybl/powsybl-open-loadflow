@@ -19,18 +19,28 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
 public interface ComputedElement {
+
+    Logger LOGGER = LoggerFactory.getLogger(ComputedElement.class);
 
     int getComputedElementIndex();
 
@@ -119,4 +129,34 @@ public interface ComputedElement {
         loadFlowContext.getJacobianMatrix().solveTransposed(elementsStates);
         return elementsStates;
     }
+
+    static Map<LfAction, ComputedElement> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<LfAction, ComputedElement> computedElements = lfActionById.values().stream()
+                .flatMap(lfAction -> {
+                    if (!lfAction.isValid()) {
+                        LOGGER.warn("Action '{}' is not valid, it will be ignored", lfAction.getId());
+                        return Stream.empty();
+                    }
+                    ComputedElement element = switch (lfAction) {
+                        case AbstractLfTapChangerAction<?> abstractLfTapChangerAction ->
+                            new ComputedTapPositionChangeElement(abstractLfTapChangerAction.getChange(), equationSystem);
+                        case AbstractLfBranchAction<?> abstractLfBranchAction when abstractLfBranchAction.getEnabledBranch() != null ->
+                            new ComputedSwitchBranchElement(abstractLfBranchAction.getEnabledBranch(), true, equationSystem);
+                        case AbstractLfBranchAction<?> abstractLfBranchAction when abstractLfBranchAction.getDisabledBranch() != null ->
+                            new ComputedSwitchBranchElement(abstractLfBranchAction.getDisabledBranch(), false, equationSystem);
+                        default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
+                    };
+                    return Stream.of(Map.entry(lfAction, element));
+                })
+                .filter(e -> e.getValue().getLfBranchEquation() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
+        ComputedElement.setComputedElementIndexes(computedElements.values());
+        return computedElements;
+    }
+
 }
