@@ -4309,6 +4309,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l12").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l13").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
     }
 
     @ParameterizedTest
@@ -4327,6 +4328,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 List.of(new LineContingency("l25"), new LineContingency("l45"), new LineContingency("l46"))));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
 
+        loadFlowRunner.run(network, securityAnalysisParameters.getLoadFlowParameters());
+        double g5ActivePowerBaseCase = -network.getGenerator("g5").getTerminal().getP();
+
         // apply contingency by hand
         network.getLine("l25").disconnect();
         network.getLine("l45").disconnect();
@@ -4341,6 +4345,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(network.getLine("l12").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l13").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // The disconnected power is the production of g5 in the base case , and g5 is in the disconnected elements list
+        assertEquals(g5ActivePowerBaseCase, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().contains("g5"));
     }
 
     @ParameterizedTest
@@ -4633,8 +4641,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         StateMonitor m = new StateMonitor(ContingencyContext.all(), Set.of("l12", "l34"), Collections.emptySet(), Collections.emptySet());
         SecurityAnalysisResult sr = runSecurityAnalysis(network, List.of(new Contingency("l14", new LineContingency("l14"))), List.of(m), sp);
 
+        // Note that no simulation has been run on the separated part of the synchronous component (other side of the HVDC). The simulator "assumes"
+        // that the other side is still alive and can deliver the power to the HVDC.
+
         // Check that the HVDC link still works
         assertEquals(-200, sr.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("l12").getP2(), 1e-2);
+
+        // Check that the reported active lost is that of g4 in the base case, and that it belongs to the disconnected element
+        runLoadFlow(network, p);
+        assertEquals(-g4.getTerminal().getP(), sr.getPostContingencyResults().getFirst().getConnectivityResult().getDisconnectedGenerationActivePower());
+        assertTrue(sr.getPostContingencyResults().getFirst().getConnectivityResult().getDisconnectedElements().contains("g4"));
 
         // DC
         p.setDc(true);
