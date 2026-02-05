@@ -234,6 +234,8 @@ public final class ConnectivityBreakAnalysis {
         ConnectivityAnalysisResult connectivityAnalysisResult = null;
         connectivity.startTemporaryChanges();
         try {
+            int nbConnectedComponentsBefore = connectivity.getNbConnectedComponents();
+
             // apply all modifications of connectivity, due to the lost/enabled/disabled branches
             modifyingConnectivityCandidates.forEach(computedElement -> computedElement.applyToConnectivity(connectivity));
 
@@ -246,7 +248,7 @@ public final class ConnectivityBreakAnalysis {
 
             if (!breakingConnectivityElements.isEmpty()) {
                 // only compute for factors that have to be computed for this contingency lost
-                Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
+                Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements, nbConnectedComponentsBefore);
                 int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
                 Set<LfBus> disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
@@ -268,7 +270,9 @@ public final class ConnectivityBreakAnalysis {
     /**
      * Given the elements breaking the connectivity, extract the minimum number of elements which reconnect all connected components together
      */
-    private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<ComputedElement> breakingConnectivityElements) {
+    private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity,
+                                                          Set<ComputedElement> breakingConnectivityElements,
+                                                          int nbConnectedComponentsBefore) {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
         // We suppose we're reconnecting one by one each element breaking connectivity.
@@ -294,7 +298,10 @@ public final class ConnectivityBreakAnalysis {
             }
         }
 
-        if (reconnectedCc.size() != 1 || reconnectedCc.get(0).size() != connectivity.getNbConnectedComponents()) {
+        // !!! we can have more than one connected component on base case because of actions potentially reconnecting
+        // some elements
+        int createdConnectedComponents = connectivity.getNbConnectedComponents() - nbConnectedComponentsBefore;
+        if (reconnectedCc.size() != 1 || reconnectedCc.getFirst().size() - 1 != createdConnectedComponents) {
             LOGGER.error("Elements to reconnect computed do not reconnect all connected components together");
         }
 
