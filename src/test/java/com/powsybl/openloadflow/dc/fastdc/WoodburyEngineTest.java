@@ -22,14 +22,12 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -193,6 +191,30 @@ class WoodburyEngineTest {
             lfNetwork.getBranchById("PS1").getPiModel().setTapPosition(newTapPosition);
             var flows = calculateFlows(lfNetwork, flowStates, Set.of("L1"));
             assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    @Test
+    void testContingencyAndLineReconnectionWithNewBus() {
+        Network fourBusNetworkWithIsolatedBus = FourBusNetworkFactory.createWithDisconnectedBus();
+
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        topoConfig.getBranchIdsToClose().add("l15");
+        try (var lfNetworks = Networks.load(fourBusNetworkWithIsolatedBus, dcParameters.getNetworkParameters(), topoConfig, ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+                new DcLoadFlowEngine(context)
+                        .run();
+
+                List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l14"), lfNetwork, context.getEquationSystem()));
+                ComputedElement.setComputedElementIndexes(contingencyElements);
+
+                List<ComputedElement> actionElements = List.of(new ComputedSwitchBranchElement(lfNetwork.getBranchById("l15"), true, context.getEquationSystem()));
+                ComputedElement.setComputedElementIndexes(actionElements);
+
+                DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
+                DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
+            }
         }
     }
 }
