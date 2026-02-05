@@ -59,7 +59,7 @@ public class LfContingency {
 
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
-            disconnectedGenerationActivePower += bus.getGenerationTargetP();
+            disconnectedGenerationActivePower += getBusLostGenerationTargetP(bus);
             disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).toList());
             disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).toList());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
@@ -80,6 +80,25 @@ public class LfContingency {
         }
         disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
         // FIXME: shuntsShift has to be included in the disconnected elements.
+    }
+
+    /**
+     * Returns the bus generation targetP without the injection of HVDC stations
+     * that have both stations in the same connected component
+     */
+    private static double getBusLostGenerationTargetP(LfBus bus) {
+        double result = bus.getGenerationTargetP();
+
+        // An HVDC line is created for HVDC with a VscStation that are in the same component
+        //remove their contribution
+        result -= bus.getHvdcs().stream()
+                .filter(h -> !h.isAcEmulation()) // for HVDC in AC emulation, the hvdc injection is not counted as generation targetP
+                .map(h -> h.getBus1() == bus ? h.getConverterStation1() : h.getConverterStation2())
+                .mapToDouble(LfGenerator::getTargetP)
+                .sum();
+        // LccStations are not handled at this time
+
+        return result;
     }
 
     public String getId() {
