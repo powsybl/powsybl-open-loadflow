@@ -364,7 +364,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         return Collections.emptyList();
     }
 

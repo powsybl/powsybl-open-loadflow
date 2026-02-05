@@ -102,14 +102,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, getHalf1()::getActivePowerLimits, limitReductionManager);
+                return getLimits1(type, getHalf1()::getAllSelectedActivePowerLimits, limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, getHalf1()::getApparentPowerLimits, limitReductionManager);
+                return getLimits1(type, getHalf1()::getAllSelectedApparentPowerLimits, limitReductionManager);
             case CURRENT:
-                return getLimits1(type, getHalf1()::getCurrentLimits, limitReductionManager);
+                return getLimits1(type, getHalf1()::getAllSelectedCurrentLimits, limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -117,14 +117,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, getHalf2()::getActivePowerLimits, limitReductionManager);
+                return getLimits2(type, getHalf2()::getAllSelectedActivePowerLimits, limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, getHalf2()::getApparentPowerLimits, limitReductionManager);
+                return getLimits2(type, getHalf2()::getAllSelectedApparentPowerLimits, limitReductionManager);
             case CURRENT:
-                return getLimits2(type, getHalf2()::getCurrentLimits, limitReductionManager);
+                return getLimits2(type, getHalf2()::getAllSelectedCurrentLimits, limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
