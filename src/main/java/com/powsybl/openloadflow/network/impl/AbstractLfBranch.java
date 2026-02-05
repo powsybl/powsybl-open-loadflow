@@ -179,7 +179,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits, bus2,
                         getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits)));
             }
-            setLimits1(type, limits);
+            setLimits2(type, limits);
         }
         return limits;
     }

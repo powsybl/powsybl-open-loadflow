@@ -156,7 +156,7 @@ public class LimitViolationManager {
             detectBranchCurrentViolations(branch, bus, iGetter, limits.getSortedLimits(), side);
         }
 
-        limitsGroups = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
+        limitsGroups = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
         for (LfBranch.LfLimitsGroup limits : limitsGroups) {
             detectBranchActivePowerViolations(branch, pGetter, limits.getSortedLimits(), side);
         }
