@@ -36,10 +36,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
+import com.powsybl.security.condition.*;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
@@ -509,13 +506,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return operatorStrategiesByContingencyId;
     }
 
-    private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds) {
+    private static boolean checkCondition(ConditionalActions conditionalActions, LimitViolationsResult limitViolationsResult) {
         switch (conditionalActions.getCondition().getType()) {
             case TrueCondition.NAME:
                 return true;
-            case AnyViolationCondition.NAME:
+            case AnyViolationCondition.NAME: {
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds((AbstractFilteredCondition) conditionalActions.getCondition(), limitViolationsResult);
                 return !limitViolationEquipmentIds.isEmpty();
+            }
             case AtLeastOneViolationCondition.NAME: {
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds((AbstractFilteredCondition) conditionalActions.getCondition(), limitViolationsResult);
                 AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) conditionalActions.getCondition();
                 Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
                         .distinct()
@@ -524,6 +524,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 return !commonEquipmentIds.isEmpty();
             }
             case AllViolationCondition.NAME: {
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds((AbstractFilteredCondition) conditionalActions.getCondition(), limitViolationsResult);
                 AllViolationCondition allCondition = (AllViolationCondition) conditionalActions.getCondition();
                 Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
                         .distinct()
@@ -536,13 +537,17 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
+    private static Set<String> filterLimitViolationEquipmentIds(AbstractFilteredCondition condition, LimitViolationsResult limitViolationsResult) {
+        return limitViolationsResult.getLimitViolations().stream()
+            .filter(violation -> condition.getFilters().isEmpty() || condition.getFilters().contains(violation.getLimitType()))
+            .map(LimitViolation::getSubjectId)
+            .collect(Collectors.toSet());
+    }
+
     protected List<String> checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
-        Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
-                .map(LimitViolation::getSubjectId)
-                .collect(Collectors.toSet());
         List<String> actionsIds = new ArrayList<>();
         for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            if (checkCondition(conditionalActions, limitViolationEquipmentIds)) {
+            if (checkCondition(conditionalActions, limitViolationsResult)) {
                 actionsIds.addAll(conditionalActions.getActionIds());
             }
         }
