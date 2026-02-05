@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,17 +29,17 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected final LfBus bus2;
 
-    private List<LfLimit> currentLimits1;
+    private List<LfLimitsGroup> currentLimits1;
 
-    private List<LfLimit> activePowerLimits1;
+    private List<LfLimitsGroup> activePowerLimits1;
 
-    private List<LfLimit> apparentPowerLimits1;
+    private List<LfLimitsGroup> apparentPowerLimits1;
 
-    private List<LfLimit> currentLimits2;
+    private List<LfLimitsGroup> currentLimits2;
 
-    private List<LfLimit> activePowerLimits2;
+    private List<LfLimitsGroup> activePowerLimits2;
 
-    private List<LfLimit> apparentPowerLimits2;
+    private List<LfLimitsGroup> apparentPowerLimits2;
 
     protected final PiModel piModel;
 
@@ -92,42 +91,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return Optional.empty();
     }
 
-    /**
-     * Create the list of LfLimits from a LoadingLimits and a list of reductions.
-     * The resulting list will contain the permanent limit
-     */
-    protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus, double[] limitReductions) {
-        List<LfLimit> sortedLimits = new ArrayList<>(3);
-        if (loadingLimits != null) {
-            double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
-
-            int i = 0;
-            for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
-                if (temporaryLimit.getAcceptableDuration() != 0) {
-                    // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
-                    // for this limit is infinity.
-                    // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
-                    double reduction = limitReductions.length == 0 ? 1d : limitReductions[i + 1]; // Temporary limit's reductions are stored starting from index 1 in `limitReductions`
-                    double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
-                    sortedLimits.add(0, LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
-                            originalValuePerUnit, reduction));
-                }
-                i++;
-            }
-            double reduction = limitReductions.length == 0 ? 1d : limitReductions[0];
-            sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));
-        }
-        if (sortedLimits.size() > 1) {
-            // we only make that fix if there is more than a permanent limit attached to the branch.
-            for (int i = sortedLimits.size() - 1; i > 0; i--) {
-                // From the permanent limit to the most serious temporary limit.
-                sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
-            }
-            sortedLimits.get(0).setAcceptableDuration(0);
-        }
-        return sortedLimits;
-    }
-
     @Override
     public ElementType getType() {
         return ElementType.BRANCH;
@@ -143,7 +106,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    private List<LfLimit> getLimits1(LimitType type) {
+    private List<LfLimitsGroup> getLimits1(LimitType type) {
         switch (type) {
             case ACTIVE_POWER -> {
                 return activePowerLimits1;
@@ -158,7 +121,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    private void setLimits1(LimitType type, List<LfLimit> limits) {
+    private void setLimits1(LimitType type, List<LfLimitsGroup> limits) {
         switch (type) {
             case ACTIVE_POWER -> activePowerLimits1 = limits;
             case APPARENT_POWER -> apparentPowerLimits1 = limits;
@@ -167,19 +130,22 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    public <T extends LoadingLimits> List<LfLimit> getLimits1(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
-        var limits = getLimits1(type);
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits1(LimitType type, Supplier<Collection<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
+        List<LfLimitsGroup> limits = getLimits1(type);
         if (limits == null) {
             // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-            var loadingLimits = loadingLimitsSupplier.get().orElse(null);
-            limits = createSortedLimitsList(loadingLimits, bus1,
-                    getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits));
+            Collection<T> allSelectedLoadingLimits = loadingLimitsSupplier.get();
+            limits = new ArrayList<>();
+            for (T loadingLimits : allSelectedLoadingLimits) {
+                limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits, bus1,
+                        getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits)));
+            }
             setLimits1(type, limits);
         }
         return limits;
     }
 
-    private List<LfLimit> getLimits2(LimitType type) {
+    private List<LfLimitsGroup> getLimits2(LimitType type) {
         switch (type) {
             case ACTIVE_POWER -> {
                 return activePowerLimits2;
@@ -194,7 +160,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    private void setLimits2(LimitType type, List<LfLimit> limits) {
+    private void setLimits2(LimitType type, List<LfLimitsGroup> limits) {
         switch (type) {
             case ACTIVE_POWER -> activePowerLimits2 = limits;
             case APPARENT_POWER -> apparentPowerLimits2 = limits;
@@ -203,13 +169,16 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    public <T extends LoadingLimits> List<LfLimit> getLimits2(LimitType type, Supplier<Optional<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits2(LimitType type, Supplier<Collection<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
         var limits = getLimits2(type);
         if (limits == null) {
             // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-            var loadingLimits = loadingLimitsSupplier.get().orElse(null);
-            limits = createSortedLimitsList(loadingLimits, bus2,
-                    getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits));
+            Collection<T> allSelectedLoadingLimits = loadingLimitsSupplier.get();
+            limits = new ArrayList<>();
+            for (T loadingLimits : allSelectedLoadingLimits) {
+                limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits, bus2,
+                        getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits)));
+            }
             setLimits2(type, limits);
         }
         return limits;
@@ -262,19 +231,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected void updateSolvedTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
         Transformers.findTapPosition(rtc, ptcRho, rho).ifPresent(rtc::setSolvedTapPosition);
-    }
-
-    protected static double getScaleForLimitType(LimitType type, LfBus bus) {
-        switch (type) {
-            case ACTIVE_POWER,
-                 APPARENT_POWER:
-                return 1.0 / PerUnit.SB;
-            case CURRENT:
-                return 1.0 / PerUnit.ib(bus.getNominalV());
-            case VOLTAGE:
-            default:
-                throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
-        }
     }
 
     @Override
