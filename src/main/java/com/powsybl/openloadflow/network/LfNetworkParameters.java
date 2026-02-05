@@ -74,7 +74,7 @@ public class LfNetworkParameters {
 
     public static final boolean GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE = true;
 
-    public static final boolean INCLUDE_RECONNECTABLE_ELEMENTS_DEFAULT_VALUE = true;
+    public static final boolean INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE = true;
 
     private boolean generatorVoltageRemoteControl = true;
 
@@ -164,7 +164,7 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
-    private boolean includeReconnectableElements = INCLUDE_RECONNECTABLE_ELEMENTS_DEFAULT_VALUE;
+    private boolean includeElementsReconnectingSmallComponents = INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
     }
@@ -218,7 +218,7 @@ public class LfNetworkParameters {
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
-        this.includeReconnectableElements = other.includeReconnectableElements;
+        this.includeElementsReconnectingSmallComponents = other.includeElementsReconnectingSmallComponents;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -658,12 +658,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isIncludeReconnectableElements() {
-        return includeReconnectableElements;
+    public boolean isIncludeElementsReconnectingSmallComponents() {
+        return includeElementsReconnectingSmallComponents;
     }
 
-    public LfNetworkParameters setIncludeReconnectableElements(boolean includeReconnectableElements) {
-        this.includeReconnectableElements = includeReconnectableElements;
+    public LfNetworkParameters setIncludeElementsReconnectingSmallComponents(boolean includeElementsReconnectingSmallComponents) {
+        this.includeElementsReconnectingSmallComponents = includeElementsReconnectingSmallComponents;
         return this;
     }
 
@@ -712,7 +712,7 @@ public class LfNetworkParameters {
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
-                ", includeReconnectableElements=" + includeReconnectableElements +
+                ", includeElementsReconnectingSmallComponents=" + includeElementsReconnectingSmallComponents +
                 ')';
     }
 }

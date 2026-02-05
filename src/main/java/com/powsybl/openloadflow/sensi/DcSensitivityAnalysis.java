@@ -469,7 +469,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setHvdcAcEmulation(false) // still not supported
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
-                .setIncludeReconnectableElements(false); // FIXME does not work yet with woodbury
+                .setIncludeElementsReconnectingSmallComponents(false); // FIXME does not work yet with woodbury
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, sensiReportNode)) {
