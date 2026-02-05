@@ -36,6 +36,9 @@ public interface LfBranch extends LfElement {
         TIE_LINE
     }
 
+    record LfBranchResults(double p1, double p2, double q1, double q2, double i1, double i2) {
+    }
+
     class LfLimitsGroup {
 
         private List<LfLimit> sortedLimits;
@@ -319,7 +322,9 @@ public interface LfBranch extends LfElement {
 
     boolean isTransformerReactivePowerControlled();
 
-    List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
+    List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                          boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
+                                          LoadFlowModel loadFlowModel);
 
     double computeApparentPower1();
 
