@@ -214,8 +214,6 @@ public class LfContingency {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                 bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
                 bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
-            } else {
-                bus.invalidateGenerationTargetQ();
             }
             if (generator instanceof LfStaticVarCompensator svc) {
                 svc.getStandByAutomatonShunt().ifPresent(svcShunt -> {
@@ -233,7 +231,7 @@ public class LfContingency {
         // Only AC quantities
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                bus.setGeneratorVoltageControlEnabled(false);
+                bus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
             }
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
                 bus.setGeneratorReactivePowerControlEnabled(false);
