@@ -33,26 +33,26 @@ public interface LfHvdc extends LfElement {
 
         public AcEmulationControl(LfHvdc hvdc, double droop, double p0, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
             this.hvdc = hvdc;
-            this.droop = droop;
-            this.p0 = p0;
-            this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2;
-            this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1;
+            this.droop = droop / PerUnit.SB;
+            this.p0 = p0  / PerUnit.SB;
+            this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2 / PerUnit.SB;
+            this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1 / PerUnit.SB;
         }
 
         public double getDroop() {
-            return droop / PerUnit.SB;
+            return droop;
         }
 
         public double getP0() {
-            return p0 / PerUnit.SB;
+            return p0;
         }
 
         public double getPMaxFromCS1toCS2() {
-            return pMaxFromCS1toCS2 / PerUnit.SB;
+            return pMaxFromCS1toCS2;
         }
 
         public double getPMaxFromCS2toCS1() {
-            return pMaxFromCS2toCS1 / PerUnit.SB;
+            return pMaxFromCS2toCS1;
         }
 
         public AcEmulationStatus getAcEmulationStatus() {
