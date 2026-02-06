@@ -22,6 +22,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
@@ -32,7 +33,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -689,5 +692,44 @@ class OpenLoadFlowParametersTest {
 
         e = assertThrows(IllegalArgumentException.class, () -> olfParameters.setMaxVoltageChangeStateVectorScalingMaxDphi(0.0));
         assertEquals("Invalid value for parameter maxVoltageChangeStateVectorScalingMaxDphi: 0.0", e.getMessage());
+    }
+
+    @Test
+    void testParamsExtensionJsonUpdate() {
+
+        // some params with non-default values
+        LoadFlowParameters p = new LoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setUseReactiveLimits(false);
+        OpenLoadFlowParameters op = OpenLoadFlowParameters.create(p)
+                .setMaxNewtonRaphsonIterations(30)
+                .setMaxNewtonKrylovIterations(50);
+
+        assertEquals(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES, p.getVoltageInitMode());
+        assertFalse(op.isNewtonKrylovLineSearch());
+
+        byte[] json = """
+                {
+                  "version": "1.10",
+                  "voltageInitMode" : "DC_VALUES",
+                  "extensions": {
+                    "open-load-flow-parameters": {
+                      "maxNewtonRaphsonIterations": 35,
+                      "newtonKrylovLineSearch" : true
+                    }
+                  }
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+
+        JsonLoadFlowParameters.update(p, new ByteArrayInputStream(json));
+
+        // unchanged
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, p.getBalanceType());
+        assertFalse(p.isUseReactiveLimits());
+        assertEquals(50, op.getMaxNewtonKrylovIterations());
+
+        // updated
+        assertEquals(35, op.getMaxNewtonRaphsonIterations());
+        assertTrue(op.isNewtonKrylovLineSearch());
     }
 }
