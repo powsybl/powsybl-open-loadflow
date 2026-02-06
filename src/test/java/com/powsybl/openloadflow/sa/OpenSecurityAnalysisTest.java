@@ -1415,7 +1415,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
-        assertEquals(-2.783, g1ContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.781, g1ContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
 
         List<Contingency> contingencies2 = new ArrayList<>();
         contingencies2.add(Contingency.hvdcLine("hvdc34"));
@@ -1427,7 +1427,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(-2.000, hvdcContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
 
         PostContingencyResult g1ContingencyResult2 = getPostContingencyResult(result, "g1");
-        assertEquals(-2.783, g1ContingencyResult2.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.781, g1ContingencyResult2.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

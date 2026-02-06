@@ -119,15 +119,6 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
                 Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
                 lfHvdc.getAcEmulationControl().switchToLinearMode();
             }
-
-            // Return to initial state (we are in a possibly non-physical state after first partial resolution)
-            context.getNetwork().getBuses()
-                    .stream()
-                    .filter(b -> !b.isDisabled())
-                    .forEach(b -> {
-                        b.setAngle(contextData.angles.get(b.getId()));
-                        b.setV(contextData.voltage.get(b.getId()));
-                    });
         }
 
         return new OuterLoopResult(this, frozenHvdc.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE);
