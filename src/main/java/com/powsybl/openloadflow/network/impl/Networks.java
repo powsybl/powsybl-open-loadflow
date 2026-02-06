@@ -262,9 +262,17 @@ public final class Networks {
                        : network.getBusView().getBuses();
     }
 
+    public static Iterable<DcBus> getDcBuses(Network network) {
+        return network.getDcBuses();
+    }
+
     public static Bus getBus(Terminal terminal, boolean breakers) {
         return breakers ? terminal.getBusBreakerView().getBus()
                         : terminal.getBusView().getBus();
+    }
+
+    public static DcNode getDcNode(DcTerminal terminal) {
+        return terminal.getDcNode();
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
