@@ -182,11 +182,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public void setAcEmulationControl(AcEmulationControl acEmulationControl) {
-        this.acEmulationControl = acEmulationControl;
-    }
-
-    @Override
     public AcEmulationControl getAcEmulationControl() {
         return acEmulationControl;
     }

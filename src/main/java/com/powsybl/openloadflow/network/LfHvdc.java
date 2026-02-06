@@ -138,8 +138,6 @@ public interface LfHvdc extends LfElement {
 
     void setConverterStation2(LfVscConverterStation converterStation2);
 
-    void setAcEmulationControl(AcEmulationControl acEmulationControl);
-
     AcEmulationControl getAcEmulationControl();
 
     void updateAcEmulationStatus(AcEmulationControl.AcEmulationStatus acEmulationStatus);
