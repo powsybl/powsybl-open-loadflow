@@ -10,6 +10,7 @@ package com.powsybl.openloadflow;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.*;
+import com.powsybl.openloadflow.ac.equations.dcnetwork.*;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide2DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
