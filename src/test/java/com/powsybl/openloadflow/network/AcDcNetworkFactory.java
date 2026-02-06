@@ -1590,6 +1590,208 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     * Two embedded DC networks
+     * <pre>
+     *       |-----------------l16----------------|
+     *       |                                    |
+     * ld1--b1---conv12-dn2---dl23---dn3-conv36---b6--g6
+     *       |                                    |
+     *       |                                    |
+     *       |---conv14-dn4---dl45---dn5-conv56---|
+     * </pre>
+     */
+    public static Network createAcDcNetworkTwoDcSubNetworks() {
+        Network network = Network.create("vsc", "test");
+
+        // Create the two substations
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newLoad()
+                .setId("ld1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setP0(500)
+                .setQ0(50)
+                .add();
+
+        Substation s6 = network.newSubstation()
+                .setId("S6")
+                .add();
+        VoltageLevel vl6 = s6.newVoltageLevel()
+                .setId("vl6")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl6.getBusBreakerView().newBus()
+                .setId("b6")
+                .add();
+        vl6.newGenerator()
+                .setId("g6")
+                .setConnectableBus("b6")
+                .setBus("b6")
+                .setTargetP(300)
+                .setTargetV(400)
+                .setMinP(0)
+                .setMaxP(1000)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        // Connect the buses through an AC line to ensure there is only one AC Island
+        network.newLine()
+                .setId("l16")
+                .setBus1("b1")
+                .setConnectableBus1("b1")
+                .setBus2("b6")
+                .setConnectableBus2("b6")
+                .setR(1)
+                .setX(5)
+                .add();
+
+        // Create a first DC network
+        network.newDcNode()
+                .setId("dn2")
+                .setNominalV(500)
+                .add();
+        network.newDcNode()
+                .setId("dn2Gr")
+                .setNominalV(500)
+                .add();
+        network.newDcNode()
+                .setId("dn3")
+                .setNominalV(500)
+                .add();
+        network.newDcNode()
+                .setId("dn3Gr")
+                .setNominalV(500)
+                .add();
+        network.newDcGround()
+                .setId("dg2")
+                .setDcNode("dn2Gr")
+                .add();
+        network.newDcGround()
+                .setId("dg3")
+                .setDcNode("dn3Gr")
+                .add();
+        network.newDcLine()
+                .setId("dl23")
+                .setDcNode1("dn2")
+                .setDcNode2("dn3")
+                .setConnected1(true)
+                .setConnected2(true)
+                .setR(1)
+                .add();
+
+        vl1.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(250)
+                .setId("conv12")
+                .setBus1("b1")
+                .setDcNode1("dn2")
+                .setDcNode2("dn2Gr")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        vl6.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(500)
+                .setId("conv36")
+                .setBus1("b6")
+                .setDcNode1("dn3")
+                .setDcNode2("dn3Gr")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        // Create a second DC network
+        network.newDcNode()
+                .setId("dn4")
+                .setNominalV(300)
+                .add();
+        network.newDcNode()
+                .setId("dn4Gr")
+                .setNominalV(300)
+                .add();
+        network.newDcNode()
+                .setId("dn5")
+                .setNominalV(300)
+                .add();
+        network.newDcNode()
+                .setId("dn5Gr")
+                .setNominalV(300)
+                .add();
+        network.newDcGround()
+                .setId("dg4")
+                .setDcNode("dn4Gr")
+                .add();
+        network.newDcGround()
+                .setId("dg5")
+                .setDcNode("dn5Gr")
+                .add();
+        network.newDcLine()
+                .setId("dl45")
+                .setDcNode1("dn4")
+                .setDcNode2("dn5")
+                .setConnected1(true)
+                .setConnected2(true)
+                .setR(1)
+                .add();
+
+        vl1.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(200)
+                .setId("conv14")
+                .setBus1("b1")
+                .setDcNode1("dn4")
+                .setDcNode2("dn4Gr")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        vl6.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(300)
+                .setId("conv56")
+                .setBus1("b6")
+                .setDcNode1("dn5")
+                .setDcNode2("dn5Gr")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        return network;
+    }
+
+    /**
      * VSC test case.
      * <pre>
      * ld1                                            g5                                     ld9
@@ -1808,6 +2010,22 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    /**
+     * Rigid bipole test case
+     * <pre>
+     *                   dn3p ------------ dl34p ---------- dn4p
+     *                   |                                   |
+     * g1       ld2 conv23p                                  conv45p ld5
+     * |         |   |   |                                   |   |    |
+     * b1 ------ b2--|   dn3r -- GROUND          GROUND -- dn4r  |----b5
+     * l12           |   |                                   |   |    |
+     *              conv23n                                  conv45n g5
+     *                   |                                   |
+     *                   dn3n ------------ dl34n ---------- dn4n
+     *
+     *
+     * </pre>
+     */
     public static Network createBipolarModelWithoutMetallicReturn() {
         Network network = Network.create("vsc", "test");
 
@@ -1852,37 +2070,12 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setQ0(10)
                 .add();
 
-        network.newDcNode()
-                .setId("dn3p")
-                .setNominalV(400.)
-                .add();
-        network.newDcNode()
-                .setId("dn3n")
-                .setNominalV(400.)
-                .add();
-        network.newDcNode()
-                .setId("dn4p")
-                .setNominalV(400.)
-                .add();
-        network.newDcNode()
-                .setId("dn4n")
-                .setNominalV(400.)
-                .add();
-        network.newDcNode()
-                .setId("dnGp")
-                .setNominalV(400.)
-                .add();
-        network.newDcNode()
-                .setId("dnGn")
-                .setNominalV(400.)
-                .add();
-        network.newDcNode()
-                .setId("dnGr")
-                .setNominalV(400.)
-                .add();
-        network.newDcGround()
-                .setId("Ground")
-                .setDcNode("dnGr")
+        network.newLine()
+                .setId("l12")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
                 .add();
 
         Substation s5 = network.newSubstation()
@@ -1905,14 +2098,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
 
         network.newLine()
-                .setId("l12")
-                .setBus1("b1")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .add();
-
-        network.newLine()
                 .setId("l25")
                 .setBus1("b2")
                 .setBus2("b5")
@@ -1920,46 +2105,52 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setX(3)
                 .add();
 
-        network.newDcLine()
-                .setId("dl3Gp")
-                .setDcNode1("dn3p")
-                .setDcNode2("dnGp")
-                .setR(0.1)
+        // Create the DC network
+        network.newDcNode()
+                .setId("dn3p")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn3n")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn3r")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4p")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4n")
+                .setNominalV(400.)
+                .add();
+        network.newDcNode()
+                .setId("dn4r")
+                .setNominalV(400.)
+                .add();
+        network.newDcGround()
+                .setId("Ground3")
+                .setDcNode("dn3r")
+                .add();
+        network.newDcGround()
+                .setId("Ground4")
+                .setDcNode("dn4r")
                 .add();
 
         network.newDcLine()
-                .setId("dlG4p")
-                .setDcNode1("dnGp")
+                .setId("dl34p")
+                .setDcNode1("dn3p")
                 .setDcNode2("dn4p")
                 .setR(0.1)
                 .add();
 
         network.newDcLine()
-                .setId("dl3Gn")
+                .setId("dl34n")
                 .setDcNode1("dn3n")
-                .setDcNode2("dnGn")
-                .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlG4n")
-                .setDcNode1("dnGn")
                 .setDcNode2("dn4n")
                 .setR(0.1)
-                .add();
-
-        network.newDcLine()
-                .setId("dlGpGr")
-                .setDcNode1("dnGp")
-                .setDcNode2("dnGr")
-                .setR(10000)
-                .add();
-
-        network.newDcLine()
-                .setId("dlGnGr")
-                .setDcNode1("dnGr")
-                .setDcNode2("dnGn")
-                .setR(10000)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -1967,11 +2158,27 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0.0)
                 .setResistiveLoss(0.0)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(-50.)
-                .setId("conv23")
+                .setTargetP(-25.)
+                .setId("conv23p")
                 .setBus1("b2")
                 .setDcNode1("dn3p")
-                .setDcNode2("dn3n")
+                .setDcNode2("dn3r")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-25.)
+                .setId("conv23n")
+                .setBus1("b2")
+                .setDcNode1("dn3n")
+                .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
                 .setVoltageRegulatorOn(false)
@@ -1983,11 +2190,27 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0.0)
                 .setResistiveLoss(0.0)
                 .setControlMode(AcDcConverter.ControlMode.V_DC)
-                .setTargetVdc(400.)
-                .setId("conv45")
+                .setTargetVdc(200.)
+                .setId("conv45p")
                 .setBus1("b5")
                 .setDcNode1("dn4p")
-                .setDcNode2("dn4n")
+                .setDcNode2("dn4r")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(-200)
+                .setId("conv45n")
+                .setBus1("b5")
+                .setDcNode1("dn4n")
+                .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
                 .setVoltageRegulatorOn(false)

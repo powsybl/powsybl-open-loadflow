@@ -14,6 +14,5 @@ public enum SlackBusSelectionMode {
     FIRST,
     MOST_MESHED,
     NAME,
-    LARGEST_GENERATOR,
-    LARGEST_CONVERTER
+    LARGEST_GENERATOR
 }

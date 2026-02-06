@@ -24,6 +24,8 @@ Open Load Flow also supports networks with HVDC lines (High Voltage Direct Curre
 ### DC detailed model
 
 Additionally, Open Load Flow supports AC-DC loadflow formulation with detailed model of DC components.
+However, it is currently restricted to embedded DC networks, meaning that the global network should only contain one AC
+network.
 
 (ac-flow-computing)=
 ## AC flows computing
@@ -391,7 +393,7 @@ Else the converter controls the AC voltage, and we add an equation to impose $V_
 $V_{AC}= V_{Ref}$
 
 On the AC bus, the active and reactive power injected by the converter is added to its power balance.  
-On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcNode1 to dcNode2.
+On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcNode2 to dcNode1.
 It is added to the current balances of dcNode1 and dcNode2
 
 $\sum_{i} I_i + I_{Conv} = 0$ for dcNode1

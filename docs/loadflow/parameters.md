@@ -628,7 +628,8 @@ The default value is `false`.
 Defines if the loadflow uses DC detailed component and computes an AC DC loadflow 
 
 If `true`, the network supports DC detailed components, and the loadflow is computed on the whole connected network, 
-AC and DC sides in the same Jacobian matrix.
+AC and DC sides in the same Jacobian matrix. Currently, the network shall contain only one AC island, but the number of 
+embedded DC islands is not restricted.
 
 If `false`, the loadflow is the classic one, without DC detailed components.
 

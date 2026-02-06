@@ -55,8 +55,8 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     public void updateFlows(double i1, double i2, double p1, double p2) {
         var dcLine = getDcLine();
 
-        dcLine.getDcTerminal1().setI(i1 * PerUnit.ib(dcNode1.getNominalV()));
-        dcLine.getDcTerminal2().setI(i2 * PerUnit.ib(dcNode2.getNominalV()));
+        dcLine.getDcTerminal1().setI(i1 * PerUnit.ibDc(dcNode1.getNominalV()));
+        dcLine.getDcTerminal2().setI(i2 * PerUnit.ibDc(dcNode2.getNominalV()));
         dcLine.getDcTerminal1().setP(p1 * PerUnit.SB);
         dcLine.getDcTerminal2().setP(p2 * PerUnit.SB);
     }

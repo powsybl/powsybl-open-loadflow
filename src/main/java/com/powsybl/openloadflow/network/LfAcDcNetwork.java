@@ -25,6 +25,11 @@ public class LfAcDcNetwork extends LfNetwork {
     public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
         //TODO : find a better way to implement super class
         super(acNetworks.getFirst());
+
+        if (acNetworks.size() > 1) {
+            throw new PowsyblException("AC-DC load flow does not support multiple AC island for the moment");
+        }
+
         for (LfNetwork network : acNetworks) {
             network.getBuses().forEach(this::addBus);
             network.getBranches().forEach(this::addBranch);

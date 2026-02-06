@@ -81,8 +81,8 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         var converter = getConverter();
         double v1 = converter.getDcTerminal1().getDcNode().getV() / dcNode1.getNominalV();
         double v2 = converter.getDcTerminal2().getDcNode().getV() / dcNode2.getNominalV();
-        converter.getDcTerminal1().setI(iConv1 * PerUnit.ib(dcNode1.getNominalV()));
-        converter.getDcTerminal2().setI(iConv2 * PerUnit.ib(dcNode2.getNominalV()));
+        converter.getDcTerminal1().setI(iConv1 * PerUnit.ibDc(dcNode1.getNominalV()));
+        converter.getDcTerminal2().setI(iConv2 * PerUnit.ibDc(dcNode2.getNominalV()));
         converter.getDcTerminal1().setP(iConv1 * v1 * PerUnit.SB);
         converter.getDcTerminal2().setP(iConv2 * v2 * PerUnit.SB);
         converter.getTerminal1().setP(pAc * PerUnit.SB);
