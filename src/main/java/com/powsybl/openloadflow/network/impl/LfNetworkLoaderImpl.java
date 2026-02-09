@@ -1186,6 +1186,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<DcNode> dcNodes = new ArrayList<>();
         dcBuses.forEach(bus -> bus.getDcNodes().forEach(dcNodes::add));
+
+        // Check all DC nodes have the same nominal voltage
+        Set<Double> dcVoltages = new HashSet<>();
+        dcNodes.forEach(dc_node -> dcVoltages.add(dc_node.getNominalV()));
+        if (dcVoltages.size() > 1) {
+            throw new PowsyblException("DC nodes in the same DC network must have the same nominal voltage but voltages " + dcVoltages + " were found");
+        }
+
         List<DcGround> dcGrounds = new ArrayList<>();
         dcBuses.forEach(bus -> bus.getDcGrounds().forEach(dcGrounds::add));
 

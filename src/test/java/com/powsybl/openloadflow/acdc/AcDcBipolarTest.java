@@ -205,7 +205,7 @@ class AcDcBipolarTest {
 
     @Test
     void testBipolarModelGridForming() {
-        //Bipolar Model with metallic return, the converters conv4p and conv4n control Vac
+        //Bipolar Model with metallic return, the converters conv45p and conv45n control Vac
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelGridForming();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();

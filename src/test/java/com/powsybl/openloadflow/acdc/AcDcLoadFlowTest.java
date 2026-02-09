@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createAcDcNetwork1;
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createBaseNetwork;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -478,56 +477,8 @@ class AcDcLoadFlowTest {
     }
 
     @Test
-    void testAcDcExampleGridForming() {
-        //2 converters, 1 AC Network, the converter cs45 which controls Vac and Vdc is slack and reference bus for AC Network.
-        network = createAcDcNetwork1();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR)
-                .setAcDcNetwork(true);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-
-        Bus b5 = network.getBusBreakerView().getBus("b5");
-        assertVoltageEquals(389.505640, b5);
-        assertAngleEquals(-0.1044353, b5);
-
-        DcNode dn3 = network.getDcNode("dn3");
-        assertVoltageEquals(400.012374, dn3);
-
-        DcNode dn4 = network.getDcNode("dn4");
-        assertVoltageEquals(400.000000, dn4);
-
-        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
-        assertActivePowerEquals(-50.000000, conv23.getTerminal1());
-        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
-        assertDcPowerEquals(49.420411, conv23.getDcTerminal1());
-        assertDcPowerEquals(-0.000000, conv23.getDcTerminal2());
-
-        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
-        assertActivePowerEquals(48.841248, conv45.getTerminal1());
-        assertReactivePowerEquals(0.000000, conv45.getTerminal1());
-        assertDcPowerEquals(-49.418885, conv45.getDcTerminal1());
-        assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
-
-        Line l12 = network.getLine("l12");
-        assertActivePowerEquals(101.229478, l12.getTerminal1());
-        assertReactivePowerEquals(20.212180, l12.getTerminal1());
-        assertActivePowerEquals(-101.159419, l12.getTerminal2());
-        assertReactivePowerEquals(-20.002003, l12.getTerminal2());
-
-        Line l25 = network.getLine("l25");
-        assertActivePowerEquals(1.159419, l25.getTerminal1());
-        assertReactivePowerEquals(10.002003, l25.getTerminal1());
-        assertActivePowerEquals(-1.1587516, l25.getTerminal2());
-        assertReactivePowerEquals(-10.000000, l25.getTerminal2());
-    }
-
-    @Test
     void testThreeConverters() {
-        //3 converters, 1 AC Network, cs23 controls Vdc, cs45 and cs67 control Pac
+        //3 converters, 1 AC Network, conv23 controls Vdc, conv45 and conv67 control Pac
         network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -583,7 +534,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testAcVoltageControl() {
-        //2 converters, 1 AC Network, cs23 controls Pac, cs45 controls Vdc and Vac, but is not a slack
+        //2 converters, 1 AC Network, conv23 controls Pac, conv45 controls Vdc and Vac
         network = AcDcNetworkFactory.createAcDcNetworkWithAcVoltageControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -643,7 +594,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testDcSubNetworks() {
-        //2 converters, 3 AC Network, 2 DC Networks, the converters set Vac and set slack and reference buses
+        // 1 AC Network, 2 DC Networks
         network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();

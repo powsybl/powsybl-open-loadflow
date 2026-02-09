@@ -10,9 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -39,13 +37,6 @@ public class LfAcDcNetwork extends LfNetwork {
         for (LfNetwork network : dcNetworks) {
             network.getDcNodes().forEach(this::addDcNode);
             network.getDcLines().forEach(this::addDcLine);
-
-            // Check all DC nodes have the same nominal voltage
-            Set<Double> dcVoltages = new HashSet<>();
-            network.getDcNodes().forEach(dc_node -> dcVoltages.add(dc_node.getNominalV()));
-            if (dcVoltages.size() > 1) {
-                throw new PowsyblException("DC nodes in the same DC network must have the same nominal voltage but voltages " + dcVoltages + " were found");
-            }
         }
         acSubNetworks = acNetworks;
         dcSubNetworks = dcNetworks;
