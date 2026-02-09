@@ -41,7 +41,6 @@ class NetworkConnectivityTest {
     void testConnectivity() {
         testConnectivity(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
-        testConnectivity(new HybridGraphConnectivity<>(LfBus::getNum));
     }
 
     @Test
@@ -50,7 +49,6 @@ class NetworkConnectivityTest {
         // created connected component.
         testReducedMainComponent(new NaiveGraphConnectivity<>(LfBus::getNum));
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
-        testReducedMainComponent(new HybridGraphConnectivity<>(LfBus::getNum));
     }
 
     @Test
@@ -59,7 +57,6 @@ class NetworkConnectivityTest {
         testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
         testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
-        testReaddEdge(new HybridGraphConnectivity<>(LfBus::getNum), true);
     }
 
     @Test
