@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
+public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>> implements GraphConnectivity<V, E> {
 
-    private final GraphModel<V, E> graph;
+    private final G graph;
 
     private final Deque<ModificationsContext<V, E>> modificationsContexts = new ArrayDeque<>();
 
@@ -35,7 +35,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     protected abstract void updateComponents();
 
-    protected AbstractGraphConnectivity(GraphModel<V, E> graph) {
+    protected AbstractGraphConnectivity(G graph) {
         this.graph = Objects.requireNonNull(graph);
     }
 
@@ -149,7 +149,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
                 .flatMap(Collection::stream).collect(Collectors.toSet());
     }
 
-    public GraphModel<V, E> getGraph() {
+    public G getGraph() {
         return graph;
     }
 

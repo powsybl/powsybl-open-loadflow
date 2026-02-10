@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.math.graph.GraphUtil;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.*;
@@ -16,31 +15,31 @@ import java.util.function.ToIntFunction;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class JGraphTModelFasterConnectivity<V, E> implements GraphModel<V, E> {
+public class JGraphTModelWithAdjacencyList<V, E> implements GraphModel<V, E> {
 
     private final JGraphTModel<V, E> delegate = new JGraphTModel<>();
 
-    private final ToIntFunction<V> vertexNumGetter;
+    private final ToIntFunction<V> numGetter;
 
     private final Map<V, TIntArrayList> adjacencyList = new LinkedHashMap<>();
 
-    public JGraphTModelFasterConnectivity(ToIntFunction<V> vertexNumGetter) {
-        this.vertexNumGetter = Objects.requireNonNull(vertexNumGetter);
+    public JGraphTModelWithAdjacencyList(ToIntFunction<V> numGetter) {
+        this.numGetter = Objects.requireNonNull(numGetter);
     }
 
     @Override
     public void addEdge(V v1, V v2, E e) {
         delegate.addEdge(v1, v2, e);
-        adjacencyList.get(v1).add(vertexNumGetter.applyAsInt(v2));
-        adjacencyList.get(v2).add(vertexNumGetter.applyAsInt(v1));
+        adjacencyList.get(v1).add(numGetter.applyAsInt(v2));
+        adjacencyList.get(v2).add(numGetter.applyAsInt(v1));
     }
 
     @Override
     public void removeEdge(E e) {
         V edgeSource = getEdgeSource(e);
         V edgeTarget = getEdgeTarget(e);
-        adjacencyList.get(edgeSource).remove(vertexNumGetter.applyAsInt(edgeTarget));
-        adjacencyList.get(edgeTarget).remove(vertexNumGetter.applyAsInt(edgeSource));
+        adjacencyList.get(edgeSource).remove(numGetter.applyAsInt(edgeTarget));
+        adjacencyList.get(edgeTarget).remove(numGetter.applyAsInt(edgeSource));
         delegate.removeEdge(e);
     }
 
@@ -106,24 +105,7 @@ public class JGraphTModelFasterConnectivity<V, E> implements GraphModel<V, E> {
         return delegate.getNeighborVerticesOf(v);
     }
 
-    @Override
-    public List<Set<V>> calculateConnectedSets() {
-        TIntArrayList[] adjacencyListArray = new TIntArrayList[adjacencyList.size()];
-        for (Map.Entry<V, TIntArrayList> entry : this.adjacencyList.entrySet()) {
-            V vertex = entry.getKey();
-            TIntArrayList adj = entry.getValue();
-            adjacencyListArray[vertexNumGetter.applyAsInt(vertex)] = adj;
-        }
-        GraphUtil.ConnectedComponentsComputationResult result = GraphUtil.computeConnectedComponents(adjacencyListArray);
-        List<Set<V>> connectedSets = new ArrayList<>();
-        for (int size : result.getComponentSize()) {
-            connectedSets.add(HashSet.newHashSet(size));
-        }
-        int[] componentNum = result.getComponentNumber();
-        for (V vertex : this.adjacencyList.keySet()) {
-            int v = vertexNumGetter.applyAsInt(vertex);
-            connectedSets.get(componentNum[v]).add(vertex);
-        }
-        return connectedSets;
+    public Map<V, TIntArrayList> getAdjacencyList() {
+        return adjacencyList;
     }
 }

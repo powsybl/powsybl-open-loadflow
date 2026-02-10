@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
+public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
     private Map<V, Integer> vertexToConnectedComponent;
     private final List<Set<V>> newConnectedComponents = new ArrayList<>();

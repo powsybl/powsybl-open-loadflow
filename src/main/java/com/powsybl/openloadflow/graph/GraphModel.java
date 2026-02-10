@@ -42,6 +42,4 @@ public interface GraphModel<V, E> {
     Set<V> getVertices();
 
     List<V> getNeighborVerticesOf(V v);
-
-    List<Set<V>> calculateConnectedSets();
 }

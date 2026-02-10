@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
+public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
     private final Deque<SpanningTrees> mstSaved = new ArrayDeque<>();
     private SpanningTrees mst;

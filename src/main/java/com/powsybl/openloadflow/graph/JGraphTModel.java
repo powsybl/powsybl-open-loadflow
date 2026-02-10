@@ -9,10 +9,8 @@ package com.powsybl.openloadflow.graph;
 
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -91,14 +89,5 @@ public class JGraphTModel<V, E> implements GraphModel<V, E> {
     @Override
     public List<V> getNeighborVerticesOf(V v) {
         return Graphs.neighborListOf(graph, v);
-    }
-
-    @Override
-    public List<Set<V>> calculateConnectedSets() {
-        return new ConnectivityInspector<>(graph)
-                .connectedSets()
-                .stream()
-                .sorted(Comparator.comparing(Set<V>::size).reversed())
-                .toList();
     }
 }
