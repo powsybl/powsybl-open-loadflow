@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.util.UnionFind;
 
@@ -17,10 +16,14 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
+public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
     private final Deque<SpanningTrees> mstSaved = new ArrayDeque<>();
     private SpanningTrees mst;
+
+    public MinimumSpanningTreeGraphConnectivity() {
+        super(new JGraphTModel<>());
+    }
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
@@ -90,12 +93,12 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
 
         @Override
         public SpanningTrees getSpanningTree() {
-            Graph<V, E> graph = getGraph();
-            MyUnionFind forest = new MyUnionFind(graph.vertexSet());
+            GraphModel<V, E> graph = getGraph();
+            MyUnionFind forest = new MyUnionFind(graph.getVertices());
             Set<Object> edgeList = new HashSet<>();
             SpanningTrees spanningTree = new SpanningTrees(forest, edgeList, 0);
 
-            for (E edge : graph.edgeSet()) {
+            for (E edge : graph.getEdges()) {
                 V source = graph.getEdgeSource(edge);
                 V target = graph.getEdgeTarget(edge);
                 spanningTree.addEdge(source, target, edge);
@@ -159,7 +162,7 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
         private void lazyComputeConnectedComponents() {
             if (rootConnectedComponentMap == null) {
                 rootConnectedComponentMap = new HashMap<>();
-                getGraph().vertexSet().forEach(vertex -> rootConnectedComponentMap.computeIfAbsent(find(vertex), k -> new HashSet<>()).add(vertex));
+                getGraph().getVertices().forEach(vertex -> rootConnectedComponentMap.computeIfAbsent(find(vertex), k -> new HashSet<>()).add(vertex));
             }
         }
 

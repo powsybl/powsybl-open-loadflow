@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.jgrapht.Graph;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,7 +53,7 @@ public class ModificationsContext<V, E> {
         return modifications;
     }
 
-    public Set<E> getEdgesRemovedFromMainComponent(Graph<V, E> graph) {
+    public Set<E> getEdgesRemovedFromMainComponent(GraphModel<V, E> graph) {
         if (edgesRemovedFromMainComponent == null) {
             edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(graph);
         }
@@ -76,7 +74,7 @@ public class ModificationsContext<V, E> {
         return verticesRemovedFromMainComponent;
     }
 
-    public Set<E> getEdgesAddedToMainComponent(Graph<V, E> graph) {
+    public Set<E> getEdgesAddedToMainComponent(GraphModel<V, E> graph) {
         if (edgesAddedToMainComponent == null) {
             edgesAddedToMainComponent = computeEdgesAddedToMainComponent(graph);
         }
@@ -100,9 +98,9 @@ public class ModificationsContext<V, E> {
         return verticesNotInMainComponentGetter.apply(mainComponentVertex);
     }
 
-    private Set<E> computeEdgesRemovedFromMainComponent(Graph<V, E> graph) {
+    private Set<E> computeEdgesRemovedFromMainComponent(GraphModel<V, E> graph) {
         Set<V> verticesRemoved = getVerticesRemovedFromMainComponent();
-        Set<E> result = verticesRemoved.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+        Set<E> result = verticesRemoved.stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream).collect(Collectors.toSet());
 
         // We need to look in modifications to adjust the computation of the edges above, indeed:
         //  - result contains the edges which were added in the small components
@@ -126,8 +124,8 @@ public class ModificationsContext<V, E> {
         return result;
     }
 
-    private Set<E> computeEdgesAddedToMainComponent(Graph<V, E> graph) {
-        Set<E> result = getVerticesAddedToMainComponent().stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+    private Set<E> computeEdgesAddedToMainComponent(GraphModel<V, E> graph) {
+        Set<E> result = getVerticesAddedToMainComponent().stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream).collect(Collectors.toSet());
 
         // We need to look in modifications to adjust the computation of the edges above
         // Indeed result is missing the edges added in main component with an EdgeAdd modification
