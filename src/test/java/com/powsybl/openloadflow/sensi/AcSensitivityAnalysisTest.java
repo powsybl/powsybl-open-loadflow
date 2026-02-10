@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
@@ -15,6 +16,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.contingency.LineContingency;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
@@ -131,12 +133,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         AtomicInteger statusCallCount = new AtomicInteger(0);
         SensitivityResultWriter resultWriter = new SensitivityResultWriter() {
 
-            public void writeSensitivityValue(int factorIndex, int contingencyIndex, double value, double functionReference) {
+            public void writeSensitivityValue(int factorIndex, int contingencyIndex, int operatorStrategyIndex, double value, double functionReference) {
                 valueCallCount.incrementAndGet();
             }
 
             @Override
-            public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
+            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status) {
                 statusCallCount.incrementAndGet();
             }
         };
@@ -2192,7 +2194,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
-        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
+        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies, Collections.emptyList());
 
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
@@ -2206,8 +2208,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Executor executor = LocalComputationManager.getDefault().getExecutor();
         List<SensitivityVariableSet> noVar = Collections.emptyList();
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        List<OperatorStrategy> operatorStrategies = Collections.emptyList();
+        List<Action> actions = Collections.emptyList();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId,
-                contingencies, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
+                contingencies, operatorStrategies, actions, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
                 openSensitivityAnalysisParameters, executor));
     }
 
@@ -2215,7 +2219,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testRunSyncIsCallable() {
         OpenSensitivityAnalysisProvider p = new OpenSensitivityAnalysisProvider(new SparseMatrixFactory());
         // Make sur that runSync is a Callable. Only CompletableFutureTask.runAsync(Callable) handles correctly thread cancel. Not CompletableFutureTask.runAsync(Runnable)
-        Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null);
+        Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null, null, null);
         assertFalse(t instanceof Runnable);
     }
 }

@@ -97,7 +97,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         double dph1 = dx.get(ph1Var.getRow(), column);
         double dph2 = dx.get(ph2Var.getRow(), column);
         double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : 0;
-        // - eval(0,0,0) to have an exact epression and remove the constant term of the affine function (wich is 0 in practe because A2 = 0)
+        // - eval(0,0,0) to have an exact expression and remove the constant term of the affine function (which is 0 in practice because A2 = 0)
         return eval(dph1, dph2, da1) - eval(0, 0, 0);
     }
 

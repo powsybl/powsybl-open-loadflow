@@ -7,11 +7,13 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -725,7 +727,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
         Map<String, Integer> contingencyIndexById = new HashMap<>();
-        contingencies.stream().forEach(contingency -> contingencyIndexById.put(contingency.getContingency().getId(), contingency.getIndex()));
+        contingencies.forEach(contingency -> contingencyIndexById.put(contingency.getContingency().getId(), contingency.getIndex()));
         for (var factor : factorHolder.getAllFactors()) {
             Optional<Double> sensitivityVariableToWrite = Optional.empty();
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
@@ -744,14 +746,14 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 // directly write output for zero and invalid factors
                 double value = sensitivityVariableToWrite.get();
                 if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
+                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
                 } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
                         // If run in batch of contingencies, the contingency may not be part of this result
                         contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndexById.get(factor.getContingencyContext().getContingencyId()), value, Double.NaN);
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndexById.get(factor.getContingencyContext().getContingencyId()), -1, value, Double.NaN);
                 } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
-                    contingencyIndexById.values().forEach(index -> resultWriter.writeSensitivityValue(factor.getIndex(), index, value, Double.NaN));
+                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
+                    contingencyIndexById.values().forEach(index -> resultWriter.writeSensitivityValue(factor.getIndex(), index, -1, value, Double.NaN));
                 }
             }
         }
@@ -1307,7 +1309,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
     }
 
-    public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, PropagatedContingencyCreationParameters creationParameters,
+    public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> operatorStrategies,
+                                 List<Action> actions, PropagatedContingencyCreationParameters creationParameters,
                                  List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                                  SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                                  OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,

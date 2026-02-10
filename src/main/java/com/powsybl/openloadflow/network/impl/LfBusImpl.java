@@ -13,9 +13,9 @@ import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.BusBreakerViolationLocation;
-import com.powsybl.security.NodeBreakerViolationLocation;
-import com.powsybl.security.ViolationLocation;
+import com.powsybl.contingency.violations.BusBreakerViolationLocation;
+import com.powsybl.contingency.violations.NodeBreakerViolationLocation;
+import com.powsybl.contingency.violations.ViolationLocation;
 import com.powsybl.security.results.BusResult;
 
 import java.util.*;

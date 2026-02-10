@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.action.LoadAction;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.openloadflow.network.impl.LfLoadImpl;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -70,21 +69,5 @@ public class PowerShift {
         return new PowerShift(load.getP0() / PerUnit.SB,
                 variableActivePower,
                 load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
-    }
-
-    /**
-     * Returns the power shift for a load action.
-     */
-    public static PowerShift createPowerShift(Load load, LoadAction loadAction) {
-        double activePowerShift = loadAction.getActivePowerValue().stream().map(a -> loadAction.isRelativeValue() ? a : a - load.getP0()).findAny().orElse(0);
-        double reactivePowerShift = loadAction.getReactivePowerValue().stream().map(r -> loadAction.isRelativeValue() ? r : r - load.getQ0()).findAny().orElse(0);
-
-        // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
-        // of P0 that could be described in a LoadDetail extension.
-        // Note that fictitious loads have a zero variable active power shift.
-        double variableActivePower = LfLoadImpl.isLoadNotParticipating(load) ? 0.0 : activePowerShift;
-        return new PowerShift(activePowerShift / PerUnit.SB,
-                variableActivePower / PerUnit.SB,
-                reactivePowerShift / PerUnit.SB);
     }
 }
