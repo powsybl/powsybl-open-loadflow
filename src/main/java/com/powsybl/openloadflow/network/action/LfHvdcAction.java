@@ -27,8 +27,8 @@ public class LfHvdcAction extends AbstractLfAction<HvdcAction> {
 
     private final LfHvdc lfHvdc;
 
-    public LfHvdcAction(String id, HvdcAction action, LfNetwork network) {
-        super(id, action);
+    public LfHvdcAction(HvdcAction action, LfNetwork network) {
+        super(action);
         // As a first approach, we only support an action that switches an hvdc operated in AC emulation
         // into an active power set point operation mode.
         if (action.isAcEmulationEnabled().orElse(false)) {

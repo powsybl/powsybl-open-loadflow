@@ -22,8 +22,8 @@ public class LfRatioTapChangerAction extends AbstractLfTapChangerAction<RatioTap
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfRatioTapChangerAction.class);
 
-    public LfRatioTapChangerAction(String id, RatioTapChangerTapPositionAction action, LfNetwork network) {
-        super(id, action, network);
+    public LfRatioTapChangerAction(RatioTapChangerTapPositionAction action, LfNetwork network) {
+        super(action, network);
     }
 
     @Override

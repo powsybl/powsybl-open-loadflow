@@ -27,8 +27,8 @@ public class LfShuntCompensatorPositionAction extends AbstractLfAction<ShuntComp
 
     private final LfShunt shunt;
 
-    public LfShuntCompensatorPositionAction(String id, ShuntCompensatorPositionAction action, LfNetwork network) {
-        super(id, action);
+    public LfShuntCompensatorPositionAction(ShuntCompensatorPositionAction action, LfNetwork network) {
+        super(action);
         LfShunt aShunt = network.getShuntById(action.getShuntCompensatorId());
         this.shunt = aShunt instanceof LfShuntImpl ? aShunt : null; // no svc here
     }

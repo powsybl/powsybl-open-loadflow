@@ -119,7 +119,7 @@ class WoodburyEngineTest {
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<ComputedElement> actionElements = List.of(new ComputedSwitchBranchElement(lfNetwork.getBranchById("l14"), false, context.getEquationSystem()));
+            List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("l14"), false, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
@@ -144,7 +144,7 @@ class WoodburyEngineTest {
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<ComputedElement> actionElements = List.of(new ComputedSwitchBranchElement(lfNetwork.getBranchById("l23"), true, context.getEquationSystem()));
+            List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("l23"), true, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
@@ -177,7 +177,7 @@ class WoodburyEngineTest {
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("L1"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<LfAction> actions = List.of(new LfPhaseTapChangerAction("PS1", new PhaseTapChangerTapPositionAction("PS1", "PS1", false, newTapPosition), lfNetwork));
+            List<LfAction> actions = List.of(new LfPhaseTapChangerAction(new PhaseTapChangerTapPositionAction("PS1", "PS1", false, newTapPosition), lfNetwork));
             List<ComputedElement> actionElements = List.of(new ComputedTapPositionChangeElement(new TapPositionChange(lfNetwork.getBranchById("PS1"), newTapPosition, false), context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 

@@ -26,8 +26,8 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
 
     private LfBranch enabledBranch = null; // switch to close
 
-    AbstractLfBranchAction(String id, A action, LfNetwork lfNetwork) {
-        super(id, action);
+    AbstractLfBranchAction(A action, LfNetwork lfNetwork) {
+        super(action);
         findEnabledDisabledBranches(lfNetwork);
     }
 

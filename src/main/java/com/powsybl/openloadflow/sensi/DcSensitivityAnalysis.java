@@ -220,12 +220,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
-        List<ComputedElement> actionElements = operatorStrategy != null ? operatorStrategy.getActions().stream()
+
+        List<LfAction> actions = operatorStrategy != null ? operatorStrategy.getActions().stream().filter(LfAction::isValid).toList()
+                                                          : Collections.emptyList();
+
+        List<ComputedElement> actionElements = actions.stream()
                 .map(actionElementByLfAction::get)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
-                .toList() : Collections.emptyList();
-
-        List<LfAction> actions = operatorStrategy != null ? operatorStrategy.getActions() : Collections.emptyList();
+                .toList();
 
         var lfNetwork = loadFlowContext.getNetwork();
         Set<LfBranch> disabledBranches = findDisabledBranchIds(contingency, actions).stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
@@ -485,6 +487,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
             Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
             Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
+            for (LfAction lfAction : lfActionById.values()) {
+                if (!lfAction.isValid()) {
+                    LOGGER.warn("Action '{}' is not valid", lfAction.getId());
+                }
+            }
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
             SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
@@ -618,7 +625,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             }
 
                             List<String> operatorStrategyActionIds = operatorStrategy.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
-                            List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).filter(LfAction::isValid).toList();
+                            List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
                             LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy, operatorStrategyLfActions);
                             var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                     connectivityAnalysisResult,

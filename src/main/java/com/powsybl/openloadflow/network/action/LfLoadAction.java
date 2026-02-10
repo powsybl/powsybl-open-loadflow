@@ -26,8 +26,8 @@ public class LfLoadAction extends AbstractLfAction<LoadAction> {
     private final LfLoad lfLoad;
     private final PowerShift powerShift;
 
-    public LfLoadAction(String id, LoadAction action, Network network, LfNetwork lfNetwork) {
-        super(id, action);
+    public LfLoadAction(LoadAction action, Network network, LfNetwork lfNetwork) {
+        super(action);
         this.loadId = action.getLoadId();
         Load load = network.getLoad(action.getLoadId());
         lfLoad = lfNetwork.getLoadById(action.getLoadId());

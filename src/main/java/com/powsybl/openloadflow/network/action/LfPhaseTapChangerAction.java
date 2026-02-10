@@ -22,8 +22,8 @@ public class LfPhaseTapChangerAction extends AbstractLfTapChangerAction<PhaseTap
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfPhaseTapChangerAction.class);
 
-    public LfPhaseTapChangerAction(String id, PhaseTapChangerTapPositionAction action, LfNetwork network) {
-        super(id, action, network);
+    public LfPhaseTapChangerAction(PhaseTapChangerTapPositionAction action, LfNetwork network) {
+        super(action, network);
     }
 
     @Override

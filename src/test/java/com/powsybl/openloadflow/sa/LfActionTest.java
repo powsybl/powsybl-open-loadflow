@@ -95,7 +95,7 @@ class LfActionTest extends AbstractSerDeTest {
 
             var lineAction = new TerminalsConnectionAction("A line action", "L1", ThreeSides.ONE, false);
             assertEquals("Terminals connection action: only open or close branch at both sides is supported yet.",
-                assertThrows(UnsupportedOperationException.class, () -> new LfTerminalsConnectionAction("A line action", lineAction, lfNetwork)).getMessage());
+                assertThrows(UnsupportedOperationException.class, () -> new LfTerminalsConnectionAction(lineAction, lfNetwork)).getMessage());
         }
     }
 
@@ -114,7 +114,7 @@ class LfActionTest extends AbstractSerDeTest {
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class,
-                () -> new LfGeneratorAction("Gen action", generatorAction, lfNetwork));
+                () -> new LfGeneratorAction(generatorAction, lfNetwork));
             assertEquals("Generator action on G : configuration not supported yet.", e.getMessage());
         }
     }
@@ -164,7 +164,7 @@ class LfActionTest extends AbstractSerDeTest {
                 .build();
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), new LfNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> new LfHvdcAction("action", hvdcAction, lfNetwork));
+            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> new LfHvdcAction(hvdcAction, lfNetwork));
             assertEquals("Hvdc action: enabling ac emulation mode through an action is not supported yet.", e.getMessage());
         }
     }

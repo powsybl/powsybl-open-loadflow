@@ -28,8 +28,8 @@ public class LfGeneratorAction extends AbstractLfAction<GeneratorAction> {
 
     private GeneratorChange generatorChange;
 
-    public LfGeneratorAction(String id, GeneratorAction action, LfNetwork lfNetwork) {
-        super(id, action);
+    public LfGeneratorAction(GeneratorAction action, LfNetwork lfNetwork) {
+        super(action);
         generator = lfNetwork.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
             OptionalDouble activePowerValue = action.getActivePowerValue();

@@ -18,8 +18,8 @@ public class LfAreaInterchangeTargetAction extends AbstractLfAction<AreaIntercha
 
     private final LfArea area;
 
-    public LfAreaInterchangeTargetAction(String id, AreaInterchangeTargetAction action, LfNetwork network) {
-        super(id, action);
+    public LfAreaInterchangeTargetAction(AreaInterchangeTargetAction action, LfNetwork network) {
+        super(action);
         this.area = network.getAreaById(action.getAreaId());
     }
 

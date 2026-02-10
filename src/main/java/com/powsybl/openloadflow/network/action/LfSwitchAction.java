@@ -19,8 +19,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
 
-    public LfSwitchAction(String id, SwitchAction action, LfNetwork lfNetwork) {
-        super(id, action, lfNetwork);
+    public LfSwitchAction(SwitchAction action, LfNetwork lfNetwork) {
+        super(action, lfNetwork);
     }
 
     @Override

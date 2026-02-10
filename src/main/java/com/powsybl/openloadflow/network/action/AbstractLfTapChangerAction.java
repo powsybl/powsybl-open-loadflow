@@ -23,8 +23,8 @@ public abstract class AbstractLfTapChangerAction<A extends AbstractTapChangerTap
 
     protected LfBranch branch;
 
-    AbstractLfTapChangerAction(String id, A action, LfNetwork network) {
-        super(id, action);
+    AbstractLfTapChangerAction(A action, LfNetwork network) {
+        super(action);
         String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
         branch = network.getBranchById(branchId);
         if (branch != null) {
