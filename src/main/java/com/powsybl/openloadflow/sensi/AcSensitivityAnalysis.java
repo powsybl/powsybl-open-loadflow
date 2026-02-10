@@ -209,6 +209,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
         SlackBusSelector slackBusSelector = makeSlackBusSelector(network, lfParameters, lfParametersExt);
 
+        checkVariableSet(variableSets);
         checkContingencies(contingencies);
         checkLoadFlowParameters(lfParameters);
 

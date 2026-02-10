@@ -116,7 +116,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
+                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC, parameters.getDcPowerFactor());
             }
         } finally {
             if (parametersExt.isNetworkCacheEnabled()) {
@@ -197,10 +197,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private record ReferenceBusAndSlackBusesResults(String referenceBusId, List<LoadFlowResult.SlackBusResult> slackBusResultList) {
     }
 
-    private void computeZeroImpedanceFlows(LfNetwork network, LoadFlowModel loadFlowModel) {
+    private void computeZeroImpedanceFlows(LfNetwork network, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
-            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel)
-                    .compute();
+            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel, dcPowerFactor)
+                    .computeFlows(false, Map.of());
         }
     }
 
@@ -240,7 +240,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC);
+            computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC, parameters.getDcPowerFactor());
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
