@@ -313,6 +313,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String FIX_VOLTAGE_TARGETS_PARAM_NAME = "fixVoltageTargets";
 
+    public static final String USE_FICTITIOUS_INJECTIONS_PARAM_NAME = "useFictitiousInjections";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -463,7 +465,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
         new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental shunt control maximum section shift per outer loop", IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(FIX_VOLTAGE_TARGETS_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix problematic voltage targets", AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY)
+        new Parameter(FIX_VOLTAGE_TARGETS_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix problematic voltage targets", AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(USE_FICTITIOUS_INJECTIONS_PARAM_NAME, ParameterType.BOOLEAN, "Use bus fictitiousTargetP0 and fictitiousTargetQ0", LfNetworkParameters.USE_FICTITIOUS_INJECTIONS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -664,6 +667,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int incrementalShuntControlOuterLoopMaxSectionShift = IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE;
 
     private boolean fixVoltageTargets = AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE;
+
+    private boolean useFictitiousInjections = LfNetworkParameters.USE_FICTITIOUS_INJECTIONS_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1473,6 +1478,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isUseFictitiousInjections() {
+        return useFictitiousInjections;
+    }
+
+    public OpenLoadFlowParameters setUseFictitiousInjections(boolean useFictitiousInjections) {
+        this.useFictitiousInjections = useFictitiousInjections;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1609,6 +1623,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalIntProperty(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME)
                             .ifPresent(this::setIncrementalShuntControlOuterLoopMaxSectionShift);
                     config.getOptionalBooleanProperty(FIX_VOLTAGE_TARGETS_PARAM_NAME).ifPresent(this::setFixVoltageTargets);
+                    config.getOptionalBooleanProperty(USE_FICTITIOUS_INJECTIONS_PARAM_NAME).ifPresent(this::setUseFictitiousInjections);
+
                 });
         return this;
     }
@@ -1783,6 +1799,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setIncrementalShuntControlOuterLoopMaxSectionShift(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(FIX_VOLTAGE_TARGETS_PARAM_NAME))
                 .ifPresent(prop -> this.setFixVoltageTargets(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(USE_FICTITIOUS_INJECTIONS_PARAM_NAME))
+                .ifPresent(prop -> this.setUseFictitiousInjections(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -1868,6 +1886,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, generatorsWithZeroMwTargetAreNotStarted);
         map.put(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, incrementalShuntControlOuterLoopMaxSectionShift);
         map.put(FIX_VOLTAGE_TARGETS_PARAM_NAME, fixVoltageTargets);
+        map.put(USE_FICTITIOUS_INJECTIONS_PARAM_NAME, useFictitiousInjections);
         return map;
     }
 
@@ -2029,7 +2048,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
-                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
+                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
+                .setUseFictitiousInjections(parametersExt.isUseFictitiousInjections());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2285,7 +2305,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isStartWithFrozenACEmulation() == extension2.isStartWithFrozenACEmulation() &&
                 extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted() &&
                 extension1.getIncrementalShuntControlOuterLoopMaxSectionShift() == extension2.getIncrementalShuntControlOuterLoopMaxSectionShift() &&
-                extension1.isFixVoltageTargets() == extension2.isFixVoltageTargets();
+                extension1.isFixVoltageTargets() == extension2.isFixVoltageTargets() &&
+                extension1.isUseFictitiousInjections() == extension2.isUseFictitiousInjections();
     }
 
     public static OpenLoadFlowParameters clone(OpenLoadFlowParameters extension) {
@@ -2369,7 +2390,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted())
                 .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation())
                 .setIncrementalShuntControlOuterLoopMaxSectionShift(extension.getIncrementalShuntControlOuterLoopMaxSectionShift())
-                .setFixVoltageTargets(extension.isFixVoltageTargets());
+                .setFixVoltageTargets(extension.isFixVoltageTargets())
+                .setUseFictitiousInjections(extension.isUseFictitiousInjections());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {

@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -67,6 +68,13 @@ class FictitiousInjectionTest {
                 """;
 
         LoadFlowAssert.assertReportEquals(new ByteArrayInputStream(expected.getBytes()), parameters.getReportNode());
+
+        // Disable fictitiousInjections
+        parameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setUseFictitiousInjections(false);
+        result = runner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(-60, result.getComponentResults().getFirst().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+        LoadFlowAssert.assertReactivePowerEquals(-105.08, network.getGenerator("g1").getTerminal());
     }
 
     @Test
@@ -104,5 +112,10 @@ class FictitiousInjectionTest {
                 """;
 
         LoadFlowAssert.assertReportEquals(new ByteArrayInputStream(expected.getBytes()), parameters.getReportNode());
+
+        // Same test but having fictitious injections
+        network.getBusBreakerView().getBus("b3").setFictitiousP0(29);
+        network.getBusBreakerView().getBus("b2").setFictitiousP0(1);
+        network.getBusBreakerView().getBus("b1").setFictitiousQ0(50);
     }
 }

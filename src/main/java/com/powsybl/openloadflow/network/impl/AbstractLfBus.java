@@ -476,8 +476,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             for (LfLoad load : loads) {
                 loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
             }
+            loadTargetP += getFictitiousInjectionTargetP();
         }
-        return loadTargetP + getFictitiousInjectionTargetP();
+        return loadTargetP;
     }
 
     @Override
@@ -499,9 +500,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             for (LfLoad load : loads) {
                 sum += load.getTargetQ() * load.getLoadModel().flatMap(lm -> lm.getExpTermQ(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
             }
-            loadTargetQ = sum;
+            loadTargetQ = sum + getFictitiousInjectionTargetQ();
         }
-        return loadTargetQ + getFictitiousInjectionTargetQ();
+        return loadTargetQ;
     }
 
     @Override
