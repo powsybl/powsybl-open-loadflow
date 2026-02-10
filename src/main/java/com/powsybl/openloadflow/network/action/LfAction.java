@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.action;
 
+import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.*;
 
 /**
@@ -19,6 +20,8 @@ public interface LfAction {
     String getType();
 
     boolean isValid();
+
+    boolean checkError(Network network);
 
     boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters);
 }

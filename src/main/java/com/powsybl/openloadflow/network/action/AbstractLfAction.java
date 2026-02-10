@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.Action;
+import com.powsybl.iidm.network.Network;
 
 import java.util.Objects;
 
@@ -30,5 +31,10 @@ public abstract class AbstractLfAction<A extends Action> implements LfAction {
     @Override
     public String getType() {
         return action.getType();
+    }
+
+    @Override
+    public boolean checkError(Network network) {
+        return false;
     }
 }
