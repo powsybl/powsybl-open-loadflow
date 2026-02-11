@@ -120,11 +120,19 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 shunt.getVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 break;
             case HVDC:
-                // nothing to do
+                LfHvdc hvdc = (LfHvdc) element;
+                if (hvdc.isAcEmulation()) {
+                    AcEquationSystemCreator.updateHvdcAcEmulationEquations(hvdc);
+                }
                 break;
             default:
                 throw new IllegalStateException("Unknown element type: " + element.getType());
         }
+    }
+
+    @Override
+    public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        AcEquationSystemCreator.updateHvdcAcEmulationEquations(hvdc);
     }
 
     private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {

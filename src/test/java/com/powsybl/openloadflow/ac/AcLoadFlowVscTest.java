@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
@@ -14,6 +15,7 @@ import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRangeAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -542,25 +544,70 @@ class AcLoadFlowVscTest {
         network.getHvdcLine("hvdc23")
                 .setMaxP(170);
 
+        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters p = new LoadFlowParameters();
-        p.setHvdcAcEmulation(true);
-        LoadFlowResult result = loadFlowRunner.run(network, p);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setReportNode(report);
+        runParameters.getLoadFlowParameters().setHvdcAcEmulation(true);
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
 
         assertTrue(result.isFullyConverged());
 
         // Active flow capped at limit. Output has losses (due to VSC stations)
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(-166.263, network.getHvdcConverterStation("cs3").getTerminal());
+        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=170\\.0 MW from station cs2 to station cs3\\)", report);
 
         // now invert power direction
         HvdcAngleDroopActivePowerControl activePowerControl = network.getHvdcLine("hvdc23").getExtension(HvdcAngleDroopActivePowerControl.class);
         activePowerControl.setP0(-activePowerControl.getP0());
-        result = loadFlowRunner.run(network, p);
+        report = ReportNode.newRootReportNode().withMessageTemplate("test2").build();
+        runParameters.setReportNode(report);
+        result = loadFlowRunner.run(network, runParameters);
         assertTrue(result.isFullyConverged());
+        assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=170\\.0 MW from station cs3 to station cs2\\)", report);
 
         assertActivePowerEquals(-166.263, network.getHvdcConverterStation("cs2").getTerminal());
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs3").getTerminal());
+    }
+
+    @Test
+    void testAcEmulationStatusChanges() {
+        Network network = HvdcNetworkFactory.createHvdcInAcEmulationAndPSTInSymetricNetwork();
+        // MaxP is set so that the HVDC is in saturated mode before phase tap changing outer loop
+        // After phase tap changing outer loop, active power flows let the HVDC getting back to linear mode
+        // (This has no physical sense since such interaction between AC emulation and phase shifter would need dynamic simulation)
+        network.getHvdcLine("hvdc12")
+                .setMaxP(51);
+
+        ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setReportNode(report);
+        runParameters.getLoadFlowParameters().setHvdcAcEmulation(true)
+                .setPhaseShifterRegulationOn(true)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
+
+        assertTrue(result.isFullyConverged());
+        assertReportContains("HVDC line hvdc12 AC emulation switches from linear mode to saturated mode \\(Pmax=51\\.0 MW from station cs1 to station cs2\\)", report);
+        assertReportContains("HVDC line hvdc12 AC emulation switches back from saturated mode to linear mode", report);
+
+        // MaxP is set so that the HVDC is in saturated mode before phase tap changing outer loop
+        // After phase tap changing outer loop, active power flows let the HVDC being saturated on the opposite side
+        network.getHvdcLine("hvdc12")
+                .setMaxP(1.5);
+        network.getGenerator("g1").setTargetP(15);
+        network.getLoad("l1").setP0(10);
+        network.getGenerator("g2").setTargetP(10);
+        network.getLoad("l2").setP0(15);
+        network.getTwoWindingsTransformer("pst").getPhaseTapChanger().setRegulationValue(20);
+
+        report = ReportNode.newRootReportNode().withMessageTemplate("test2").build();
+        runParameters.setReportNode(report);
+        result = loadFlowRunner.run(network, runParameters);
+        assertTrue(result.isFullyConverged());
+        assertReportContains("HVDC line hvdc12 AC emulation switches from linear mode to saturated mode \\(Pmax=1\\.5 MW from station cs1 to station cs2\\)", report);
+        assertReportContains("HVDC line hvdc12 AC emulation saturation switches from one side to the opposite \\(new Pmax=1\\.5 MW from station cs2 to station cs1\\)", report);
     }
 
     @Test

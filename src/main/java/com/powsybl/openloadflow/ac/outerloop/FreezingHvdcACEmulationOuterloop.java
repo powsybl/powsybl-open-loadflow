@@ -11,10 +11,12 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
@@ -64,13 +66,28 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         ContextData contextData = new ContextData(context.getNetwork());
         context.setData(contextData);
         LfNetwork network = context.getNetwork();
+        AcSolverUtil.initStateVector(context.getNetwork(), context.getLoadFlowContext().getEquationSystem(), new PreviousValueVoltageInitializer(true)); // Updating State Vector with previous values
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .filter(lfHvdc -> !lfHvdc.isDisabled())
+                .filter(lfHvdc -> !lfHvdc.isDisabled() && !lfHvdc.getBus1().isDisabled() && !lfHvdc.getBus2().isDisabled()) // If some angles are at NaN, it means that the HVDC has been reconnected by an action, AC emulation is not frozen
                 .forEach(lfHvdc -> {
-                    double setPointBus1 = lfHvdc.freezeFromCurrentAngles();
-                    if (!Double.isNaN(setPointBus1)) {
-                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), lfHvdc.getConverterStation1().getId(), setPointBus1 * PerUnit.SB, LOGGER);
+                    if (!Double.isNaN(lfHvdc.getBus1().getAngle() - lfHvdc.getBus2().getAngle())) {
+                        lfHvdc.getAcEmulationControl().switchToFrozenState(true);
+                        double setPointHvdc;
+                        String controllerId;
+                        String nonControllerId;
+                        if (lfHvdc.getConverterStation1().getTargetP() < 0) {
+                            setPointHvdc = -lfHvdc.getConverterStation1().getTargetP() * PerUnit.SB;
+                            controllerId = lfHvdc.getConverterStation1().getId();
+                            nonControllerId = lfHvdc.getConverterStation2().getId();
+                        } else {
+                            setPointHvdc = -lfHvdc.getConverterStation2().getTargetP() * PerUnit.SB;
+                            controllerId = lfHvdc.getConverterStation2().getId();
+                            nonControllerId = lfHvdc.getConverterStation1().getId();
+                        }
+                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), controllerId, nonControllerId, setPointHvdc, LOGGER);
+                    } else {
+                        Reports.reportNoFreezeBecauseHvdcAction(context.getNetwork().getReportNode(), lfHvdc.getId(), LOGGER);
                     }
                 });
     }
@@ -94,28 +111,17 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
 
         List<LfHvdc> frozenHvdc = context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
-                .filter(LfHvdc::isAcEmulationFrozen)
+                .filter(hvdc -> hvdc.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.FROZEN)
                 .toList();
 
         if (!frozenHvdc.isEmpty()) {
-
             for (LfHvdc lfHvdc : frozenHvdc) {
                 Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
-                lfHvdc.setAcEmulationFrozen(false);
+                lfHvdc.getAcEmulationControl().switchToLinearMode();
             }
-
-            // Return to initial state (we are in a possibly non-physical state after first partial resolution)
-            context.getNetwork().getBuses()
-                    .stream()
-                    .filter(b -> !b.isDisabled())
-                    .forEach(b -> {
-                        b.setAngle(contextData.angles.get(b.getId()));
-                        b.setV(contextData.voltage.get(b.getId()));
-                    });
         }
 
         return new OuterLoopResult(this, frozenHvdc.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE);
-
     }
 
 }

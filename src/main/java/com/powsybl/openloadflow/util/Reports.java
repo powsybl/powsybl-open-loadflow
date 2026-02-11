@@ -941,12 +941,55 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String stationId, double setPoint, Logger logger) {
+    public static void reportAcEmulationFromLinearToSaturated(ReportNode reportNode, String hvdcId, String controllerStationId, String nonControllerStationId, double pMax, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.acEmulationFromLinearToSaturated")
+                .withUntypedValue("hvdcId", hvdcId)
+                .withUntypedValue("controllerStationId", controllerStationId)
+                .withUntypedValue("nonControllerStationId", nonControllerStationId)
+                .withUntypedValue("pMax", pMax)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportAcEmulationSaturationSideSwitch(ReportNode reportNode, String hvdcId, String newControllerStationId, String newNonControllerStationId, double pMax, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.acEmulationSaturationSideSwitch")
+                .withUntypedValue("hvdcId", hvdcId)
+                .withUntypedValue("controllerStationId", newControllerStationId)
+                .withUntypedValue("nonControllerStationId", newNonControllerStationId)
+                .withUntypedValue("pMax", pMax)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportAcEmulationBackToLinear(ReportNode reportNode, String hvdcId, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.acEmulationBackToLinear")
+                .withUntypedValue("hvdcId", hvdcId)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String controllerStationId, String nonControllerStationId, double setPoint, Logger logger) {
         ReportNode node = reportNode.newReportNode()
                 .withMessageTemplate("olf.freezeHvdc")
                 .withUntypedValue("hvdcId", hvdcId)
-                .withUntypedValue("stationId", stationId)
+                .withUntypedValue("controllerStationId", controllerStationId)
+                .withUntypedValue("nonControllerStationId", nonControllerStationId)
                 .withUntypedValue("setPoint", setPoint)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportNoFreezeBecauseHvdcAction(ReportNode reportNode, String hvdcId, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.noFreezeBecauseHvdcAction")
+                .withUntypedValue("hvdcId", hvdcId)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
         logger.info(node.getMessage());
