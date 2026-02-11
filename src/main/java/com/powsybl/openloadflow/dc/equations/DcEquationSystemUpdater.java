@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -29,6 +29,11 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
 
     @Override
     protected void updateNonImpedantBranchEquations(LfBranch branch, boolean enable) {
+        if (branch.getBus2() == null || branch.getBus1() == null) {
+            // Nothing to do
+            return;
+        }
+
         // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
         // or equations that set dummy p and q variable to zero
         equationSystem.getEquation(branch.getNum(), DcEquationType.ZERO_PHI)
