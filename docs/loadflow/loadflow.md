@@ -30,7 +30,7 @@ AC flows computing in OpenLoadFLow relies on solving a system of non-linear squa
 
 Moreover, at the slack bus, the active balance equation is removed and replaced by an equation fixing the voltage phase angle at 0.
 
-Let $v_i$ be the unknown voltage magnitude at bus $i$. Let $\theta_i$ be the unknown voltage phase angle at bus $i$. Equation fixing voltage magnitude to a reference (also called target) is simply written $v_i = V^{ref}_i$. Equation fixing voltage phase angle at slack bus $i$ is: $\phi_i = 0$
+Let $v_i$ be the unknown voltage magnitude at bus $i$. Let $\phi_i$ be the unknown voltage phase angle at bus $i$. Equation fixing voltage magnitude to a reference (also called target) is simply written $v_i = V^{ref}_i$. Equation fixing voltage phase angle at slack bus $i$ is: $\phi_i = 0$
 
 To build the active and reactive balance equations, Open Load Flow first expresses active and reactive power flowing from a bus to another through a line:
 
@@ -122,12 +122,12 @@ from the rectifier station to the inverter station is fixed and equals to a targ
   - $P_{rectifier}= P$
   - $P_{inverter}= (1 - LossFactor_{inverter}) * ((1 - LossFactor_{rectifier}) * (P - P_{LineLoss}))$
 
-- In **AC emulation** mode, the active power flow between both stations is given by: $P = P_0 + k~(\theta_1 - \theta_2)$ 
-with $\theta_1$ and $\theta_2$ being the voltage angles at the bus connection for each converter station, and $P_0$ and $k$ being fixed parameters for the HVDC line. 
+- In **AC emulation** mode, the active power flow between both stations is given by: $P = P_0 + k~(\phi_1 - \phi_2)$ 
+with $\phi_1$ and $\phi_2$ being the voltage angles at the bus connection for each converter station, and $P_0$ and $k$ being fixed parameters for the HVDC line. 
 If $P$ is positive, the converter station 1 is controller, else it is converter station 2. For example, if station 1 is controller, the
 active power flow at each station is given by the formula below (HVDC line losses are described in the next paragraph):
-  - $P_{controller} = P_0 + k~(\theta_1 - \theta_2)$
-  - $P_{noncontroller} = (1 - LossFactor_{noncontroller}) * ((1 - LossFactor_{controller}) * (P_0 + k~(\theta_1 - \theta_2) - P_{LineLoss}))$
+  - $P_{controller} = P_0 + k~(\phi_1 - \phi_2)$
+  - $P_{noncontroller} = (1 - LossFactor_{noncontroller}) * ((1 - LossFactor_{controller}) * (P_0 + k~(\phi_1 - \phi_2) - P_{LineLoss}))$
 
 The HVDC line losses are described in a dedicated section further below.
 
@@ -154,12 +154,12 @@ In this simple model, reactive power flows and active power losses are totally n
 
 Therefore, the power flows from bus $i$ to bus $j$ following the linear expression:
 
-$$ P_{i,j} = \frac{\theta_i-\theta_j+A_{i,j}}{X_{i,j}} $$
+$$ P_{i,j} = \frac{\phi_i-\phi_j+A_{i,j}}{X_{i,j}} $$
 
-Where $X_{i,j}$ is the serial reactance of the line $(i,j)$, $\theta_i$ the voltage angle at bus $i$ and $A_{i,j}$ is the phase angle shifting on side $j$.
+Where $X_{i,j}$ is the serial reactance of the line $(i,j)$, $\phi_i$ the voltage angle at bus $i$ and $A_{i,j}$ is the phase angle shifting on side $j$.
 
 DC flows computing gives a linear grid constraints system.
-The variables of the system are, for each bus, the voltage angle $\theta$.
+The variables of the system are, for each bus, the voltage angle $\phi$.
 The constraints of the system are the active power balance at each bus, except for the slack bus.
 The voltage angle at slack bus is set to zero.
 Therefore, the linear system is composed of $N$ variables and $N$ constraints, where $N$ is the number of buses in the network.
@@ -194,7 +194,7 @@ Where $P_i$ is the injection at bus $i$.
 
 This linear system is resumed by:
 
-$$ J\theta = b $$
+$$ J\phi = b $$
 
 The grid constraints system takes as variables the voltage angles.
 Note that the vector $b$ of right-hand sides is linearly computed from the given injections and phase-shifting angles.
