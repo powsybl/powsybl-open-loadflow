@@ -1813,6 +1813,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult contingencyResult = getPostContingencyResult(result, "T3wT");
         assertEquals(network.getLine("LINE_12").getTerminal2().getP(), contingencyResult.getNetworkResult().getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("LINE_12").getTerminal2().getQ(), contingencyResult.getNetworkResult().getBranchResult("LINE_12").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Set.of("LOAD_3", "LOAD_4", "T3wT"), contingencyResult.getConnectivityResult().getDisconnectedElements());
 
         network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().connect();
         network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().connect();
@@ -1821,6 +1822,25 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, securityAnalysisParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Three windings transformer 'T3wT2' not found in the network", e.getCause().getMessage());
+    }
+
+    @Test
+    void testIndirectlyDisconnectedElements() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wtAndT2wt();
+        // Disconnect leg1 so T3wT is only connected to the rest of the network by LINE_36
+        // Then simulate a LINE_36 contingency
+        network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().disconnect();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL_1");
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        List<Contingency> contingencies = List.of(new Contingency("LINE_36", new LineContingency("LINE_36")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        PostContingencyResult contingencyResult = getPostContingencyResult(result, "LINE_36");
+        assertEquals(Set.of("LOAD_3", "LOAD_4", "LINE_36", "T3wT"), contingencyResult.getConnectivityResult().getDisconnectedElements());
     }
 
     @Test

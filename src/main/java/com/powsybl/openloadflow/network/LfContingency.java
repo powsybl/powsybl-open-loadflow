@@ -78,7 +78,7 @@ public class LfContingency {
             }
             disconnectedElementIds.add(generator.getOriginalId());
         }
-        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
+        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().flatMap(lfBranch -> lfBranch.getOriginalIds().stream()).toList());
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 
