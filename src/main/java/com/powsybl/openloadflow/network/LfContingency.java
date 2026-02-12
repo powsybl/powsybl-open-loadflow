@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -78,7 +79,13 @@ public class LfContingency {
             }
             disconnectedElementIds.add(generator.getOriginalId());
         }
-        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
+        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(lfBranch -> {
+            if (lfBranch instanceof LfLegBranch legBranch) {
+                return legBranch.getOriginalIds().getFirst();
+            } else {
+                return lfBranch.getId();
+            }
+        }).toList());
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 

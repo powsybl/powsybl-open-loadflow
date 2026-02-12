@@ -1813,6 +1813,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         PostContingencyResult contingencyResult = getPostContingencyResult(result, "T3wT");
         assertEquals(network.getLine("LINE_12").getTerminal2().getP(), contingencyResult.getNetworkResult().getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("LINE_12").getTerminal2().getQ(), contingencyResult.getNetworkResult().getBranchResult("LINE_12").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Set.of("LOAD_3", "LOAD_4", "T3wT"), contingencyResult.getConnectivityResult().getDisconnectedElements());
 
         network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().connect();
         network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().connect();
