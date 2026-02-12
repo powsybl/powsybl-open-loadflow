@@ -81,7 +81,7 @@ public class LfContingency {
         }
         disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(lfBranch -> {
             if (lfBranch instanceof LfLegBranch legBranch) {
-                return legBranch.getOriginalIds().getFirst();
+                return legBranch.getTwt().getId();
             } else {
                 return lfBranch.getId();
             }
