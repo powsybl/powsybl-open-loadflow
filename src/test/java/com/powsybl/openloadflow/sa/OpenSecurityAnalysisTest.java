@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -4864,5 +4864,23 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // Network flows are not modified after the Security Analysis
         assertEquals(-2.0, network.getThreeWindingsTransformer("t3wt").getTerminal(ThreeSides.ONE).getP(), DELTA_POWER);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testOpenAtOneSideZeroImpedanceBranch(boolean useDC) {
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setDc(useDC);
+
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getLine("L2").setR(0.0).setX(0.0);
+        network.getLine("L2").getTerminal2().disconnect();
+
+        SecurityAnalysisResult saResult = runSecurityAnalysis(network, List.of(Contingency.line("L2")), Collections.emptyList(), parameters);
+
+        assertEquals(saResult.getPreContingencyResult().getStatus(), LoadFlowResult.ComponentResult.Status.CONVERGED);
+        assertEquals(saResult.getPostContingencyResults().get(0).getStatus(), PostContingencyComputationStatus.CONVERGED);
+        assertEquals(saResult.getPostContingencyResults().get(0).getConnectivityResult().getDisconnectedElements().size(), 3);
     }
 }

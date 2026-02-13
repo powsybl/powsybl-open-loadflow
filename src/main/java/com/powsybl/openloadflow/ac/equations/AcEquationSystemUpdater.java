@@ -72,7 +72,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     protected void updateNonImpedantBranchEquations(LfBranch branch, boolean enable) {
         if (branch.getBus2() == null || branch.getBus1() == null) {
-            // Nothing to do
+            // Nothing to do - nom impedant equations have not been created
             return;
         }
 
