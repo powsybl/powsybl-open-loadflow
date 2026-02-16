@@ -11,6 +11,7 @@ package com.powsybl.openloadflow.network.action;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,14 +34,33 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
     @Override
     void findEnabledDisabledBranches(LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getElementId());
-        if (branch != null && branch.getBus1() != null && branch.getBus2() != null) {
+        if (branch != null) {
+            applyEnabledDisabled(branch, action);
+        } else {
+            // Maybe a 3 windings transformer ?
+            LfBranch branch1 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 1));
+            LfBranch branch2 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 2));
+            LfBranch branch3 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 3));
+
+            if (branch1 != null && branch2 != null && branch3 != null) {
+                applyEnabledDisabled(branch1, action);
+                applyEnabledDisabled(branch2, action);
+                applyEnabledDisabled(branch3, action);
+            } else {
+                LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} not found", action.getId(), action.getElementId());
+            }
+        }
+    }
+
+    void applyEnabledDisabled(LfBranch branch, TerminalsConnectionAction action) {
+        if (branch.getBus1() != null && branch.getBus2() != null) {
             if (action.isOpen()) {
                 setDisabledBranch(branch);
             } else {
                 setEnabledBranch(branch);
             }
         } else {
-            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} not found", action.getId(), action.getElementId());
+            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} has null bus", action.getId(), action.getElementId());
         }
     }
 }
