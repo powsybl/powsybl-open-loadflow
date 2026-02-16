@@ -60,7 +60,7 @@ public class LfContingency {
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += getBusLostGenerationTargetP(bus);
-            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).toList());
+            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getOriginalId).toList());
             disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).toList());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
