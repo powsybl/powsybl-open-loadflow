@@ -348,16 +348,16 @@ components are the followings:
 ### DC node
 
 At least one DC node must be connected to the ground in each DC network, its potential is therefore set to 0.  
-For the others, each DC node introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the terms 
-introduced by the DC components connected to the DC node.
+For the others, each DC node introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC node.
+These terms are introduced by the DC components connected to the DC node.
 
 ### DC Line
 
 Each DC line adds one term in both of its two connected DC nodes current balance:
 
-$\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcNode1
+$\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcNode1
 
-$\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcNode2
+$\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcNode2
 
 ### Voltage source converters
 
@@ -396,9 +396,9 @@ On the AC bus, the active and reactive power injected by the converter is added 
 On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcNode2 to dcNode1.
 It is added to the current balances of dcNode1 and dcNode2
 
-$\sum_{i} I_i + I_{Conv} = 0$ for dcNode1
+$\sum_{i} I_i - I_{Conv} = 0$ for dcNode1
 
-$\sum_{i} I_i - I_{Conv}= 0$ for dcNode2
+$\sum_{i} I_i + I_{Conv}= 0$ for dcNode2
 
 #### Power Equations
 

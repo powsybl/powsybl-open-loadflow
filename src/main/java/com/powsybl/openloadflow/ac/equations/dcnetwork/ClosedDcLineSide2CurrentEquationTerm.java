@@ -25,15 +25,15 @@ public class ClosedDcLineSide2CurrentEquationTerm extends AbstractClosedDcLineFl
     }
 
     public static double i2(double v1, double v2, double r) {
-        return (v1 - v2) / r;
+        return -(v1 - v2) / r;
     }
 
     public static double di2dv1(double r) {
-        return 1 / r;
+        return -1 / r;
     }
 
     public static double di2dv2(double r) {
-        return -1 / r;
+        return 1 / r;
     }
 
     @Override

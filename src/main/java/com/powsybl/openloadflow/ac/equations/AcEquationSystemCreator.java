@@ -1000,8 +1000,8 @@ public class AcEquationSystemCreator {
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                 .addTerm(pAc.minus());
 
-        SingleEquationTerm<AcVariableType, AcEquationType> iConv1 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), equationSystem.getVariableSet());
-        SingleEquationTerm<AcVariableType, AcEquationType> iConv2 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode2.getNominalV(), equationSystem.getVariableSet()).minus();
+        SingleEquationTerm<AcVariableType, AcEquationType> iConv1 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), equationSystem.getVariableSet()).minus();
+        SingleEquationTerm<AcVariableType, AcEquationType> iConv2 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode2.getNominalV(), equationSystem.getVariableSet());
         equationSystem.attach(iConv1);
         converter.setCalculatedIconv1(iConv1);
         equationSystem.attach(iConv2);

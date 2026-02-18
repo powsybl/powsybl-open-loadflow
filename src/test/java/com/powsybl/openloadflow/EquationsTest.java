@@ -331,13 +331,13 @@ class EquationsTest {
         assertEquals("dc_p_closed_1", new ClosedDcLineSide1PowerEquationTerm(dcLine, dcNode1, dcNode2, variableSet).getName());
         assertEquals("dc_p_closed_2", new ClosedDcLineSide2PowerEquationTerm(dcLine, dcNode1, dcNode2, variableSet).getName());
 
-        assertArrayEquals(new double[] {0.7035674405958758, -1600.0, 1600.0, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcNode1, dcNode2, variableSet), variables, sv));
         assertArrayEquals(new double[] {-0.7035674405958758, 1600.0, -1600.0, Double.NaN, Double.NaN},
+                eval(new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcNode1, dcNode2, variableSet), variables, sv));
+        assertArrayEquals(new double[] {0.7035674405958758, -1600.0, 1600.0, Double.NaN, Double.NaN},
                 eval(new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcNode1, dcNode2, variableSet), variables, sv));
-        assertArrayEquals(new double[] {0.7538300813508406, -1713.5999386168091, 1714.303506057405, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {-0.7538300813508406, 1713.5999386168091, -1714.303506057405, Double.NaN, Double.NaN},
                 eval(new ClosedDcLineSide1PowerEquationTerm(dcLine, dcNode1, dcNode2, variableSet), variables, sv));
-        assertArrayEquals(new double[] {-0.7541394608155072, 1715.0070734980009, -1715.7106409385967, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.7541394608155072, -1715.0070734980009, 1715.7106409385967, Double.NaN, Double.NaN},
                 eval(new ClosedDcLineSide2PowerEquationTerm(dcLine, dcNode1, dcNode2, variableSet), variables, sv));
     }
 

@@ -25,15 +25,15 @@ public class ClosedDcLineSide2PowerEquationTerm extends AbstractClosedDcLineFlow
     }
 
     public static double p2(double v1, double v2, double r) {
-        return v2 * (v1 - v2) / r;
+        return -v2 * (v1 - v2) / r;
     }
 
     public static double dp2dv1(double v2, double r) {
-        return v2 / r;
+        return -v2 / r;
     }
 
     public static double dp2dv2(double v1, double v2, double r) {
-        return (-2 * v2 + v1) / r;
+        return (2 * v2 - v1) / r;
     }
 
     @Override
