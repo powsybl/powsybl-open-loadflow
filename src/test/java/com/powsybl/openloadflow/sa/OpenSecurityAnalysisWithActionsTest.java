@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.*;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -162,6 +163,9 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             double currentSide1 = lfNetwork.getBranchById(branch.getId()).getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
             testWithAllComparisonType(network, lfNetwork, currentSide1, (comparisonType, value) ->
                 new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.ONE));
+            double currentSide2 = lfNetwork.getBranchById(branch.getId()).getI2().eval() * PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+            testWithAllComparisonType(network, lfNetwork, currentSide2, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.TWO));
 
             double activePowerSide1 = lfNetwork.getBranchById(branch.getId()).getP1().eval() * PerUnit.SB;
             testWithAllComparisonType(network, lfNetwork, activePowerSide1, (comparisonType, value) ->
@@ -204,6 +208,11 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
             new ThreeWindingsTransformerThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
                 AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, ThreeSides.ONE)));
+
+        var badInjectionCondition = new InjectionThresholdCondition("GEN_1", AbstractThresholdCondition.Variable.CURRENT,
+            AbstractThresholdCondition.ComparisonType.EQUALS, 0.0);
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(network, lfNetwork, badInjectionCondition),
+            "Cannot evaluate condition on variable CURRENT on a generator");
     }
 
     void testWithAllComparisonType(Network network, LfNetwork lfNetwork, double value,
