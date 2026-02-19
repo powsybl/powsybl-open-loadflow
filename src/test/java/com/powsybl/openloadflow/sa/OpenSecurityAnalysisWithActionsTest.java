@@ -211,8 +211,12 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         var badInjectionCondition = new InjectionThresholdCondition("GEN_1", AbstractThresholdCondition.Variable.CURRENT,
             AbstractThresholdCondition.ComparisonType.EQUALS, 0.0);
+        var badBranchCondition = new BranchThresholdCondition("LINE_12", AbstractThresholdCondition.Variable.TARGET_P,
+            AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE);
         assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(network, lfNetwork, badInjectionCondition),
-            "Cannot evaluate condition on variable CURRENT on a generator");
+            "Unsupported variable CURRENT for threshold condition on generator GEN_1");
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(network, lfNetwork, badBranchCondition),
+            "Unsupported variable TARGET_P for threshold condition on branch LINE_12");
     }
 
     void testWithAllComparisonType(Network network, LfNetwork lfNetwork, double value,

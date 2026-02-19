@@ -49,7 +49,7 @@ public final class ThresholdConditionEvaluator {
         } else if (AbstractThresholdCondition.Variable.ACTIVE_POWER.equals(condition.getVariable())) {
             return evaluateThreshold(gen.getTargetP(), condition.getThreshold(), condition.getComparisonType());
         } else {
-            throw new PowsyblException(String.format("Cannot evaluate condition on variable %s on a generator", condition.getVariable().name()));
+            throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on injection %s", condition.getVariable().name(), condition.getEquipmentId()));
         }
     }
 
