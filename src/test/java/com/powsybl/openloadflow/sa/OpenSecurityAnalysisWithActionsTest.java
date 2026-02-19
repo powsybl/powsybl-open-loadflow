@@ -193,6 +193,17 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             testWithAllComparisonType(network, lfNetwork, targetP, (comparisonType, value) ->
                 new InjectionThresholdCondition(gen.getId(), AbstractThresholdCondition.Variable.TARGET_P, comparisonType, value));
         }
+
+        // Test invalid ids
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+            new InjectionThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+            new BranchThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+            new ThreeWindingsTransformerThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, ThreeSides.ONE)));
     }
 
     void testWithAllComparisonType(Network network, LfNetwork lfNetwork, double value,
