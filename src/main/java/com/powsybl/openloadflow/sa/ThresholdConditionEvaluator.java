@@ -8,8 +8,12 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.condition.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ThresholdConditionEvaluator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThresholdConditionEvaluator.class);
 
     private ThresholdConditionEvaluator() {
     }
@@ -33,6 +37,10 @@ public final class ThresholdConditionEvaluator {
 
     private static boolean evaluateGeneratorCondition(InjectionThresholdCondition condition, LfNetwork lfNetwork) {
         LfGenerator gen = lfNetwork.getGeneratorById(condition.getEquipmentId());
+        if (gen == null) {
+            LOGGER.warn("Generator with id {} not found for condition evaluation", condition.getEquipmentId());
+            return false;
+        }
 
         // InitialTargetP represents the original target of the generator
         // while TargetP represents the target and an additional possible participation to the slack
@@ -49,6 +57,10 @@ public final class ThresholdConditionEvaluator {
         double s1;
         double s2;
         Branch<?> branch = network.getBranch(condition.getEquipmentId());
+        if (branch == null) {
+            LOGGER.warn("Branch with id {} not found for condition evaluation", condition.getEquipmentId());
+            return false;
+        }
         switch (condition.getVariable()) {
             case ACTIVE_POWER -> {
                 s1 = lfNetwork.getBranchById(branch.getId()).getP1().eval() * PerUnit.SB;
@@ -76,7 +88,16 @@ public final class ThresholdConditionEvaluator {
         double value;
         ThreeSides side = condition.getSide();
         ThreeWindingsTransformer transformer = network.getThreeWindingsTransformer(condition.getEquipmentId());
-        LfBranch lfBranch = lfNetwork.getBranchById(LfLegBranch.getId(transformer.getId(), side.getNum()));
+        if (transformer == null) {
+            LOGGER.warn("Three windings transformer with id {} not found for condition evaluation", condition.getEquipmentId());
+            return false;
+        }
+        String legBranchId = LfLegBranch.getId(transformer.getId(), side.getNum());
+        LfBranch lfBranch = lfNetwork.getBranchById(legBranchId);
+        if (lfBranch == null) {
+            LOGGER.warn("Leg branch {} not found for three windings transformer with id {} necessary for condition evaluation", legBranchId, condition.getEquipmentId());
+            return false;
+        }
         switch (condition.getVariable()) {
             case ACTIVE_POWER -> value = lfBranch.getP1().eval() * PerUnit.SB;
             case REACTIVE_POWER -> value = lfBranch.getQ1().eval() * PerUnit.SB;
