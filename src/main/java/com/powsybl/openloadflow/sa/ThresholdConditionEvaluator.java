@@ -23,7 +23,7 @@ public final class ThresholdConditionEvaluator {
         // Check the contingency ?
         switch (condition.getType()) {
             case BranchThresholdCondition.NAME -> {
-                return evaluateBranchCondition((BranchThresholdCondition) condition, network, lfNetwork);
+                return evaluateBranchCondition((BranchThresholdCondition) condition, lfNetwork);
             }
             case ThreeWindingsTransformerThresholdCondition.NAME -> {
                 return evaluateThreeWindingsTransformerCondition((ThreeWindingsTransformerThresholdCondition) condition, network, lfNetwork);
@@ -53,26 +53,29 @@ public final class ThresholdConditionEvaluator {
         }
     }
 
-    private static boolean evaluateBranchCondition(BranchThresholdCondition condition, Network network, LfNetwork lfNetwork) {
+    private static boolean evaluateBranchCondition(BranchThresholdCondition condition, LfNetwork lfNetwork) {
         double s1;
         double s2;
-        Branch<?> branch = network.getBranch(condition.getEquipmentId());
+        LfBranch branch = lfNetwork.getBranchById(condition.getEquipmentId());
         if (branch == null) {
             LOGGER.warn("Branch with id {} not found for condition evaluation", condition.getEquipmentId());
             return false;
         }
+        if (branch.getBus1() == null || branch.getBus2() == null) {
+            return false;
+        }
         switch (condition.getVariable()) {
             case ACTIVE_POWER -> {
-                s1 = lfNetwork.getBranchById(branch.getId()).getP1().eval() * PerUnit.SB;
-                s2 = lfNetwork.getBranchById(branch.getId()).getP2().eval() * PerUnit.SB;
+                s1 = branch.getP1().eval() * PerUnit.SB;
+                s2 = branch.getP2().eval() * PerUnit.SB;
             }
             case REACTIVE_POWER -> {
-                s1 = lfNetwork.getBranchById(branch.getId()).getQ1().eval() * PerUnit.SB;
-                s2 = lfNetwork.getBranchById(branch.getId()).getQ2().eval() * PerUnit.SB;
+                s1 = branch.getQ1().eval() * PerUnit.SB;
+                s2 = branch.getQ2().eval() * PerUnit.SB;
             }
             case CURRENT -> {
-                s1 = lfNetwork.getBranchById(branch.getId()).getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
-                s2 = lfNetwork.getBranchById(branch.getId()).getI2().eval() * PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+                s1 = branch.getI1().eval() * PerUnit.ib(branch.getBus1().getNominalV());
+                s2 = branch.getI2().eval() * PerUnit.ib(branch.getBus2().getNominalV());
             }
             default -> throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on branch %s", condition.getVariable().name(), branch.getId()));
         }
