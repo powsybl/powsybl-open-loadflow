@@ -23,9 +23,12 @@ Open Load Flow also supports networks with HVDC lines (High Voltage Direct Curre
 
 ### DC detailed model
 
-Additionally, Open Load Flow supports AC-DC loadflow formulation with detailed model of DC components.
-However, it is currently restricted to embedded DC networks, meaning that the global network should only contain one AC
-network.
+Additionally, Open Load Flow supports AC-DC load flow formulation with detailed model of DC elements.  
+However, it is currently restricted to embedded DC islands, meaning that all converters of a given DC island must be connected to the same AC island. 
+In other words, a DC island cannot be used to connect two different AC islands. Consequently, a single connected component should only contain one AC island.
+However, the number of DC islands within a connected component is not restricted.  
+Yet, it is possible two run a load flow on a network with several AC islands (with their own embedded DC island) as long
+as they do not belong to the same connected component.
 
 (ac-flow-computing)=
 ## AC flows computing
@@ -339,7 +342,7 @@ When the Fast-Decoupled algorithm is used, we recommend these values for some co
 
 ## AC DC flows computing
 
-AC DC lows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
+AC DC flows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
 The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC node, and active/reactive 
 power for each voltage source converter.   
 Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
@@ -359,13 +362,21 @@ $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcNode1
 
 $\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcNode2
 
+
+### Line Commutated Converter
+
+Line commutated converters are not supported yet by Open Load Flow.
+
 ### Voltage source converters
 
 Let consider a network that is composed of one AC network, and one DC network.
 The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
-DC nodes at the other side. The converter can control either the power injected in the AC network (`P_PCC` control mode) 
+DC nodes at the other side.   
+Please note thet converters with a second optional AC terminal are not supported by Open Load Flow.
+
+The converter can control either the power injected in the AC network (`P_PCC` control mode) 
 or the voltage between its two DC nodes (`V_DC` control mode).
-At least one of the voltage source converters of the DC network must be in `V_DC` mode.
+At least one of the voltage source converters of the DC network must be in `V_DC` mode. Otherwise, an exception will be thrown.
 
 In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
 - Reactive power control mode, in which it imposes the reactive power injected from AC to DC, which is 0 by default.

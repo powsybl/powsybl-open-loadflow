@@ -11,7 +11,10 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.extensions.ControlUnit;
+import com.powsybl.iidm.network.extensions.ControlZone;
+import com.powsybl.iidm.network.extensions.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -616,7 +619,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createAcDcConverters(List<AcDcConverter<?>> acDcConverters, LfNetwork lfNetwork, LfNetworkParameters parameters) {
+        boolean isVdcControlled = false;
         for (AcDcConverter<?> acDcConverter : acDcConverters) {
+            if (acDcConverter.getTerminal2().isPresent()) {
+                throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
+            }
+
             LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
             if (lfBus1 != null) {
                 LfDcNode lfDcNode1 = getLfDcNode(acDcConverter.getDcTerminal1(), lfNetwork);
@@ -631,9 +639,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     }
 
                     addVoltageSourceConverter(lfNetwork, voltageSourceConverterImpl);
+                    isVdcControlled = isVdcControlled || voltageSourceConverter.getControlMode() == AcDcConverter.ControlMode.V_DC;
                 }
                 //lcc converter not implemented yet
             }
+        }
+        if (!isVdcControlled) {
+            throw new PowsyblException("At least one AC/DC converter control mode must be V_DC");
         }
     }
 
@@ -1499,6 +1511,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int ccNum = dcBus.getConnectedComponent().getNum();
                     acDcConvertersByCc.computeIfAbsent(ccNum, k -> new ArrayList<>()).add(converter);
                 }
+            }
+            if (network.getLineCommutatedConverterCount() > 0) {
+                throw new PowsyblException("Open Load Flow does not currently support LCC converters");
             }
 
             stopwatch.stop();

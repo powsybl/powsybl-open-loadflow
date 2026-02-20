@@ -719,4 +719,102 @@ class AcDcLoadFlowTest {
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters5));
         assertEquals("Full voltage initialization is not yet supported with AcDcNetwork", e5.getCause().getMessage());
     }
+
+    @Test
+    void testConverterWithTwoAcTerminals() {
+        // AC/DC converters with two AC terminals are not supported. This should trigger an Exception
+        network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        vl2.getBusBreakerView().newBus()
+                .setId("b2bis")
+                .add();
+        network.newLine()
+                .setId("l12bis")
+                .setBus1("b1")
+                .setBus2("b2bis")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        network.getVoltageSourceConverter("conv23").remove();
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setBus2("b2bis")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        // Run load flow
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setAcDcNetwork(true);
+
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Open Load Flow does not support AC/DC converters with two AC terminals", e5.getCause().getMessage());
+    }
+
+    @Test
+    void testLineCommutatedConverter() {
+        // LCC is not supported. This should trigger an Exception
+        network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+
+        network.getVoltageSourceConverter("conv23").remove();
+        vl2.newLineCommutatedConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setReactiveModel(LineCommutatedConverter.ReactiveModel.FIXED_POWER_FACTOR)
+                .setPowerFactor(0.89443)
+                .add();
+
+        // Run load flow
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setAcDcNetwork(true);
+
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Open Load Flow does not currently support LCC converters", e5.getCause().getMessage());
+    }
+
+    @Test
+    void testNoVdcControl() {
+        // LCC is not supported. This should trigger an Exception
+        network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        network.getVoltageSourceConverter("conv45")
+                .setTargetP(50)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC);
+
+        // Run load flow
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setAcDcNetwork(true);
+
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("At least one AC/DC converter control mode must be V_DC", e5.getCause().getMessage());
+    }
 }

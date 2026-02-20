@@ -644,6 +644,12 @@ The default value is `false`.
   - `voltageInitModeOverride` must be set to `NONE`.
   - `acSolverType` must be set to `NEWTON_RAPHSON`.
 
+Moreover, network with the following characteristics are not supported:
+- A network containing detailed AC/DC converters with two AC terminals
+- A network containing detailed LCC converters
+
+If any of these cases occurs, an exception describing the problem is thrown.
+
 ## Configuration file example
 See below an extract of a config file that could help:
 
