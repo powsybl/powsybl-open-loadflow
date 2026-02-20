@@ -12,6 +12,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.AcDcNetworkInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
@@ -244,5 +245,10 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     @Override
     public double getAngle(LfBus bus) {
         return 0;
+    }
+
+    @Override
+    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
+        throw new PowsyblException("Voltage magnitude initialization is not yet supported with AcDcNetwork");
     }
 }

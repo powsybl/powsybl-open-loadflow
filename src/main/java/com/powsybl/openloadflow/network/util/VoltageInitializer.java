@@ -20,4 +20,6 @@ public interface VoltageInitializer {
     double getMagnitude(LfBus bus);
 
     double getAngle(LfBus bus);
+
+    AcDcNetworkInitializer getAcDcNetworkInitializer();
 }

@@ -20,12 +20,15 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
     private final boolean defaultToUniformValue;
 
+    private final PreviousValueAcDcNetworkInitializer acDcNetworkInitializer;
+
     public PreviousValueVoltageInitializer() {
         this(false);
     }
 
     public PreviousValueVoltageInitializer(boolean defaultToUniformValue) {
         this.defaultToUniformValue = defaultToUniformValue;
+        this.acDcNetworkInitializer = new PreviousValueAcDcNetworkInitializer(defaultToUniformValue);
     }
 
     @Override
@@ -57,5 +60,10 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
             }
         }
         return angle;
+    }
+
+    @Override
+    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
+        return acDcNetworkInitializer;
     }
 }

@@ -41,6 +41,9 @@ public class FastDecoupledFactory extends NewtonRaphsonFactory {
         if (parameters.isHvdcAcEmulation()) {
             throw new PowsyblException("Fast-Decoupled solver is incompatible with AcEmulation: hvdcAcEmulation LoadFlowParameter should be switched to false");
         }
+        if (parametersExt.isAcDcNetwork()) {
+            throw new PowsyblException("Fast-Decoupled solver is incompatible with AC-DC load flow: acDcNetwork OpenLoadFlowParameter should be switched to false");
+        }
     }
 
     @Override

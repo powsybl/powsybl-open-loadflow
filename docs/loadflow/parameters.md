@@ -55,6 +55,7 @@ The `slackBusSelectionMode` property is an optional property that defines how to
 - `MOST_MESHED` if you want to choose the most meshed bus among buses with the highest nominal voltage as the slack bus.
   This option is typically required for computation with several synchronous components.
 - `LARGEST_GENERATOR` if you want to choose the bus with the highest total generation capacity as the slack bus.
+- `LARGEST_CONVERTER` if you want to choose the bus with the highest power assured by an AC/DC converter as the slack bus.
 
 The default value is `MOST_MESHED`.
 
@@ -621,6 +622,33 @@ that can be run on a Network. This java method returns the problematic voltage s
 to fix the network data.
 
 The default value is `false`.
+
+**acDcNetwork**
+
+Defines if the loadflow uses DC detailed component and computes an AC DC loadflow 
+
+If `true`, the network supports DC detailed components, and the loadflow is computed on the whole connected network, 
+AC and DC sides in the same Jacobian matrix. Currently, the network shall contain only one AC island, but the number of 
+embedded DC islands is not restricted.
+
+If `false`, the loadflow is the classic one, without DC detailed components.
+
+The default value is `false`.
+
+**Note:** With AC-DC network load flow, the following parameters are restricted:
+- Generic parameters
+  - `dc`: must be set to false.
+  - `voltageInitMode` cannot be set to `DC_VALUES`.
+  - `componentMode` cannot be set to `MAIN_SYNCHRONOUS`.
+- Specific parameters
+  - `voltageInitModeOverride` must be set to `NONE`.
+  - `acSolverType` must be set to `NEWTON_RAPHSON`.
+
+Moreover, network with the following characteristics are not supported:
+- A network containing detailed AC/DC converters with two AC terminals
+- A network containing detailed LCC converters
+
+If any of these cases occurs, an exception describing the problem is thrown.
 
 ## Configuration file example
 See below an extract of a config file that could help:

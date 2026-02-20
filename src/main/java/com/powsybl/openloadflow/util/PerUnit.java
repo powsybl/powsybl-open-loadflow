@@ -15,12 +15,20 @@ public final class PerUnit {
     public static final double SB = 100d;
     public static final double SQRT_3 = Math.sqrt(3);
     public static final double BASE_CURRENT_FACTOR = (1000d * SB) / SQRT_3;
+    public static final double BASE_DC_CURRENT_FACTOR = 1000d * SB;
 
     /**
      * Base current value for a given nominal voltage.
      */
     public static double ib(double nominalV) {
         return BASE_CURRENT_FACTOR / nominalV;
+    }
+
+    /**
+     * Base current value for a given nominal voltage in a DC system.
+     */
+    public static double ibDc(double nominalV) {
+        return BASE_DC_CURRENT_FACTOR / nominalV;
     }
 
     public static double zb(double nominalV) {
