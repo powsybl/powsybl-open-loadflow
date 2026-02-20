@@ -27,39 +27,39 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
     public static double iConv(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
         double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
         double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
-        return (-pAc - pLoss) / (v1 - v2);
+        return (pLoss - pAc) / (v1 - v2);
     }
 
     public static double diConvdv1(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
         double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
         double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
-        return (pAc + pLoss) / ((v1 - v2) * (v1 - v2));
+        return -(pLoss - pAc) / ((v1 - v2) * (v1 - v2));
     }
 
     public static double diConvdv2(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
         double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
         double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
-        return (-pAc - pLoss) / ((v1 - v2) * (v1 - v2));
+        return (pLoss - pAc) / ((v1 - v2) * (v1 - v2));
     }
 
     public static double diConvdpAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
         double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
         double iAc = sAc / vAc;
-        double dpDcdpAc = -1 - pAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
+        double dpDcdpAc = -1 + pAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
         return dpDcdpAc / (v1 - v2);
     }
 
     public static double diConvdqAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
         double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
         double iAc = sAc / vAc;
-        double dpDcdqAc = -qAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
+        double dpDcdqAc = qAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
         return dpDcdqAc / (v1 - v2);
     }
 
     public static double diConvdvAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
         double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
         double iAc = sAc / vAc;
-        double dpDcdVAc = qAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * vAc);
+        double dpDcdVAc = -sAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * vAc);
         return dpDcdVAc / (v1 - v2);
     }
 

@@ -84,10 +84,10 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         // iConv1 is the current going from dcNode1 to dcNode2
         converter.getDcTerminal1().setI(iConv1 * PerUnit.ibDc(dcNode1.getNominalV()));
         converter.getDcTerminal2().setI(iConv2 * PerUnit.ibDc(dcNode2.getNominalV()));
-        // Active power injected in the DC network
-        converter.getDcTerminal1().setP(-iConv1 * v1 * PerUnit.SB);
-        converter.getDcTerminal2().setP(-iConv2 * v2 * PerUnit.SB);
-        // Active and reactive power injected in the AC network
+        // Active power injected by the DC network in the converter
+        converter.getDcTerminal1().setP(iConv1 * v1 * PerUnit.SB);
+        converter.getDcTerminal2().setP(iConv2 * v2 * PerUnit.SB);
+        // Active and reactive power injected by the AC network in the converter
         converter.getTerminal1().setP(pAc * PerUnit.SB);
         converter.getTerminal1().setQ(qAc * PerUnit.SB);
     }

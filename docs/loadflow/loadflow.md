@@ -372,20 +372,20 @@ Line commutated converters are not supported yet by Open Load Flow.
 Let consider a network that is composed of one AC network, and one DC network.
 The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
 DC nodes at the other side.   
-Please note thet converters with a second optional AC terminal are not supported by Open Load Flow.
+Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
 
-The converter can control either the power injected in the AC network (`P_PCC` control mode) 
+The converter can control either the power received by the AC network (`P_PCC` control mode) 
 or the voltage between its two DC nodes (`V_DC` control mode).
 At least one of the voltage source converters of the DC network must be in `V_DC` mode. Otherwise, an exception will be thrown.
 
 In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
-- Reactive power control mode, in which it imposes the reactive power injected from AC to DC, which is 0 by default.
+- Reactive power control mode, in which it imposes the reactive power received from AC to DC, which is 0 by default.
   In this case, the AC voltage is not fixed.
 - Voltage regulator control mode, in which it imposes the voltage at its AC Bus. In this case the reactive power is not
   fixed.
 
-We note $P_{AC}$ the power flow injected by the converter to the AC side. 
-So $P_{AC}<0$ if the power flows from AC to DC and $P_{AC}>0$ otherwise.
+We note $P_{AC}$ the power flow injected by AC network into the converter. 
+So $P_{AC}>0$ if the power flows from AC to DC and $P_{AC}<0$ otherwise.
 
 If the converter is in `P_PCC` control mode, we add an equation to impose $P_{AC}$ :
 
@@ -403,38 +403,38 @@ Else the converter controls the AC voltage, and we add an equation to impose $V_
 
 $V_{AC}= V_{Ref}$
 
-On the AC bus, the active and reactive power injected by the converter is added to its power balance.  
-On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcNode2 to dcNode1.
+On the AC bus, the active and reactive power injected into the converter is added to its power balance.  
+On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcNode1 to dcNode2.
 It is added to the current balances of dcNode1 and dcNode2
 
-$\sum_{i} I_i - I_{Conv} = 0$ for dcNode1
+$\sum_{i} I_i + I_{Conv} = 0$ for dcNode1
 
-$\sum_{i} I_i + I_{Conv}= 0$ for dcNode2
+$\sum_{i} I_i - I_{Conv}= 0$ for dcNode2
 
 #### Power Equations
 
-The last equation of converters ensures the conservation pf power between AC and DC.
+The last equation of converters ensures the conservation of power between AC and DC.
 
-$$P_{DC} = -P_{AC} - P_{Loss}$$
+$$P_{DC} + P_{AC} = P_{Loss}$$
 
 with:
-- $P_{AC}$ the power injected by the converter to the AC side
-- $P_{Loss}>0$ the converter losses depending on AC current. Its computation is detailed in the next subsection.
-- $P_{DC} = I_{Conv}*(V_1-V_2)$ the power injected in the DC network.
+- $P_{AC}$ the power injected by the AC network into the converter
+- $P_{Loss}>=0$ the converter losses depending on AC current. Its computation is detailed in the next subsection.
+- $P_{DC} = I_{Conv}*(V_1-V_2)$ the power injected by the DC network into the converter.
 
-If the converter acts as rectifier, AC injects power in DC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
+If the converter acts as rectifier, AC injects power in DC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
 
 $$
-|P_{DC}| = -P_{AC} - P_{Loss}
+-|P_{DC}| + P_{AC} = P_{Loss}
 $$
 $$
 |P_{DC}| = |P_{AC}| - P_{Loss}
 $$
 
-And if the converter acts as inverter, DC injects power in AC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
+And if the converter acts as inverter, DC injects power in AC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
 
 $$
-|P_{DC}| = P_{AC} + P_{Loss}
+P_{DC} - |P_{AC}| = P_{Loss}
 $$
 $$
 |P_{AC}| = |P_{DC}| - P_{Loss}

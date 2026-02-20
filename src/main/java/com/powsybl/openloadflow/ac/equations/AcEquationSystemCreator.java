@@ -977,7 +977,7 @@ public class AcEquationSystemCreator {
         LfDcNode dcNode1 = converter.getDcNode1();
         LfDcNode dcNode2 = converter.getDcNode2();
         if (converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
-            // if a converter is in PCC Mode, we add an equation to set Pac injected by the converter
+            // if a converter is in PCC Mode, we add an equation to set Pac injected into the converter
             equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
                     .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
                             .createTerm());
@@ -992,22 +992,28 @@ public class AcEquationSystemCreator {
                     .addTerm(v2.minus());
         }
 
-        //The Converter add its power pAc in AC power balance
-        //We choose the convention pAc < 0 if the converter inject power in DC Network. So at AC side, in the bus power balance, we add -pAc to be coherent with AC convention
+        // The converter add its power pAc in AC power balance
+        // We choose the convention pAc > 0 if the converter inject power in DC Network.
         EquationTerm<AcVariableType, AcEquationType> pAc = equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC).createTerm();
-
         converter.setCalculatedPac(pAc);
         equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
-                .addTerm(pAc.minus());
+                .addTerm(pAc);
 
-        SingleEquationTerm<AcVariableType, AcEquationType> iConv1 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), equationSystem.getVariableSet()).minus();
-        SingleEquationTerm<AcVariableType, AcEquationType> iConv2 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode2.getNominalV(), equationSystem.getVariableSet());
+        // The converter add its reactive power qAc in AC reactive power balance
+        EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_Q_AC).createTerm();
+        converter.setCalculatedQac(qAc);
+        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+                .addTerm(qAc);
+
+        // DC current equations
+        SingleEquationTerm<AcVariableType, AcEquationType> iConv1 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), equationSystem.getVariableSet());
+        SingleEquationTerm<AcVariableType, AcEquationType> iConv2 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode2.getNominalV(), equationSystem.getVariableSet()).minus();
         equationSystem.attach(iConv1);
         converter.setCalculatedIconv1(iConv1);
         equationSystem.attach(iConv2);
         converter.setCalculatedIconv2(iConv2);
 
-        //The converter is injecting current Iconv into DcNode, so we add Iconv to current balance
+        // The converter is injecting current Iconv into DcNode, so we add Iconv to current balance
         if (!dcNode1.isGrounded()) {
             equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
                     .addTerm(iConv1);
@@ -1018,12 +1024,7 @@ public class AcEquationSystemCreator {
                     .addTerm(iConv2);
         }
 
-        EquationTerm<AcVariableType, AcEquationType> qAc = equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_Q_AC).createTerm();
-        converter.setCalculatedQac(qAc);
-        //The Converter add its reactive power qAc in AC reactive power balance
-        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
-                .addTerm(qAc.minus());
-        //If the Converter station control vAc instead of Q
+        // If the converter controls vAc instead of Q
         if (converter.isVoltageRegulatorOn()) {
             equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).orElseThrow()
                     .setActive(true);

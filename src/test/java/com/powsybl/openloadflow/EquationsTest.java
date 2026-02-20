@@ -370,7 +370,7 @@ class EquationsTest {
 
         // converter equations
         assertEquals("dc_i", new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), variableSet).getName());
-        assertArrayEquals(new double[] {4399.465301063602, 1.0004932115306623E7, -1.0004932115306623E7, 2278.2725499388816, 4.147984645035366, -11.310442350075174, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {4369.971402109096, 9937859.315167887, -9937859.315167887, 2269.976580648811, -4.147984645035366, 15.995380967915333, Double.NaN, Double.NaN},
                 eval(new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), variableSet), variables, sv));
     }
 }
