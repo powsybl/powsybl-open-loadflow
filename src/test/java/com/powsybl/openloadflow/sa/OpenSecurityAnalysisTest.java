@@ -33,8 +33,10 @@ import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -1207,6 +1209,35 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaWithGeneratorThatSwitchedPQContingency() {
+        // This test is made to avoid a bug happening when a generator that switched PV->PQ is lost during a contingency (reactive injection of the bus was not updated)
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getGenerator("g2").setTargetV(420).setVoltageRegulatorOn(true) // High targetV forces g2 to produce huge amount of reactive pwer
+                .newMinMaxReactiveLimits()
+                .setMinQ(0)
+                .setMaxQ(10000) // MaxQ is high but not enough to reach 420 kV, g2 will switch PQ
+                .add();
+        List<Contingency> contingencies = List.of(new Contingency("g2", new GeneratorContingency("g2")));
+
+        // Contingency parameter to remove ReactiveLimitsOuterloop during contingency calculation (to avoid reactive injection update, in order to enlighten the bug)
+        ContingencyLoadFlowParameters contLfParams1 = new ContingencyLoadFlowParameters()
+                .setOuterLoopNames(List.of(DistributedSlackOuterLoop.NAME));
+        contingencies.getFirst().addExtension(ContingencyLoadFlowParameters.class, contLfParams1);
+
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("b1").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals(406.049, preContingencyResult.getNetworkResult().getBusResult("b2").getV(), LoadFlowAssert.DELTA_V);
+        // post-contingency tests
+        PostContingencyResult g2ContingencyResult = getPostContingencyResult(result, "g2");
+        assertEquals(400.0, g2ContingencyResult.getNetworkResult().getBusResult("b1").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals(399.891, g2ContingencyResult.getNetworkResult().getBusResult("b2").getV(), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
     void testSaWithTransformerContingency() {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
 
@@ -1454,13 +1485,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         params.getExtension(OpenLoadFlowParameters.class).setStartWithFrozenACEmulation(true);
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
 
-        r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), computationManager, params, report);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters()
+                .setReportNode(report)
+                .setParameters(params)
+                .setComputationManager(computationManager);
+        r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), runParameters);
         assertFalse(r.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, r.getComponentResults().get(0).getStatus());
         assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620\\.15[0-9]* MW at station cs2.", report);
-        n.getLineStream().forEach(l -> {
-            System.out.println(l.getId() + " " + l.getTerminal1().getP() + " MW " + l.getTerminal2().getP() + " MW");
-        });
 
         // The same network would converge with a DC init
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
