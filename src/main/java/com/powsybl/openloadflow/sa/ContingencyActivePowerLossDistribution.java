@@ -37,6 +37,6 @@ public interface ContingencyActivePowerLossDistribution {
 
     String getName();
 
-    void run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode);
+    double run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode);
 
 }

@@ -24,4 +24,6 @@ public interface LoadFlowResult {
     double getSlackBusActivePowerMismatch();
 
     Status toComponentResultStatus();
+
+    double getDistributedActivePower();
 }

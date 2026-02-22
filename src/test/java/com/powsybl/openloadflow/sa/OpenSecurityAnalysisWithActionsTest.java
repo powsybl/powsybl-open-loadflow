@@ -1955,4 +1955,53 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             assertEquals(75, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         }
     }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            isDc,  expectedPre, expectedPost, expectedOpStrat
+            false, 21.203,      102.650,      -30.321
+            true,  20.000,      102.500,      -30.000
+        """)
+    void testDistributedActivePower(boolean isDc, double expectedPre, double expectedPost, double expectedOpStrat) {
+        Network network = DistributedSlackNetworkFactory.create();
+        network.getLoad("l1").setP0(500.);
+        network.getLineStream().forEach(l -> l.setR(0.6));
+        network.getGeneratorStream().forEach(g -> g.setTargetV(g.getTerminal().getVoltageLevel().getNominalV()).setVoltageRegulatorOn(true));
+
+        Contingency contingency1 = Contingency.generator("g1");
+
+        Action action1 = new GeneratorActionBuilder().withId("g2action")
+                .withGeneratorId("g2")
+                .withActivePowerRelativeValue(true).withActivePowerValue(30)
+                .build();
+
+        OperatorStrategy operatorStrategy1 = new OperatorStrategy(
+                "strategy1",
+                ContingencyContext.specificContingency(contingency1.getId()),
+                new TrueCondition(),
+                List.of(action1.getId()));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Contingency> contingencies = List.of(contingency1);
+        List<Action> actions = List.of(action1);
+        List<OperatorStrategy> operatorStrategies = List.of(operatorStrategy1);
+
+        // run the security analysis
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(isDc);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // pre-contingency
+        assertEquals(expectedPre, result.getPreContingencyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, contingency1.getId());
+        assertEquals(expectedPost, postContingencyResult.getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // operator strategy
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, operatorStrategy1.getId());
+        assertEquals(expectedOpStrat, strategyResult.getFinalOperatorStrategyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
 }

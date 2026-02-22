@@ -242,13 +242,14 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
                 lfContingency.getDisconnectedElementIds());
 
-        return new PostContingencyResult(contingency,
+        return new PostContingencyResult(
+                contingency,
                 PostContingencyComputationStatus.CONVERGED,
                 new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
-                postContingencyNetworkResult.getBranchResults(),
-                postContingencyNetworkResult.getBusResults(),
-                postContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                connectivityResult);
+                new NetworkResult(postContingencyNetworkResult.getBranchResults(), postContingencyNetworkResult.getBusResults(), postContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                connectivityResult,
+                0.0 // TODO: report distributed active power in Fast DC SA
+        );
     }
 
     /**
@@ -277,11 +278,15 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 woodburyContext.limitReductions, woodburyContext.violationsParameters);
         postActionsViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency);
 
-        return new OperatorStrategyResult(operatorStrategy, PostContingencyComputationStatus.CONVERGED,
+        var car = new OperatorStrategyResult.ConditionalActionsResult(operatorStrategy.getId(),
+                PostContingencyComputationStatus.CONVERGED,
                 new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
                 new NetworkResult(postActionsNetworkResult.getBranchResults(),
                         postActionsNetworkResult.getBusResults(),
-                        postActionsNetworkResult.getThreeWindingsTransformerResults()));
+                        postActionsNetworkResult.getThreeWindingsTransformerResults()),
+                0.0); // TODO: report distributed active power in Fast DC SA
+
+        return new OperatorStrategyResult(operatorStrategy, List.of(car));
     }
 
     /**
@@ -510,11 +515,15 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             });
 
             return new SecurityAnalysisResult(
-                    new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED,
-                            new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
-                            preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
-                            postContingencyResults, operatorStrategyResults);
+                    new PreContingencyResult(
+                        LoadFlowResult.ComponentResult.Status.CONVERGED,
+                        new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
+                        new NetworkResult(preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(), preContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                        0.0 // TODO: report distributed active power in Fast DC SA
+                    ),
+                    postContingencyResults,
+                    operatorStrategyResults
+            );
         }
     }
 }
