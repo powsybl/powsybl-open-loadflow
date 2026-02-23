@@ -40,13 +40,15 @@ jobs:
 
       - name: Build and Install Powsybl Core
         working-directory: ./powsybl-core
-        run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mvnw.cmd install -DskipTests -Dspotless.check.skip
-          else
-            ./mvnw install -DskipTests -Dspotless.check.skip
-          fi
-        shell: bash
+        if: matrix.os == 'windows-latest'
+        run: mvnw.cmd --batch-mode install -DskipTests -Dspotless.check.skip
+        shell: cmd
+
+      - name: Build and Install Powsybl Core
+        working-directory: ./powsybl-core
+        if: matrix.os != 'windows-latest'
+        run: ./mvnw --batch-mode -Pjacoco install -DskipTests -Dspotless.check.skip
+        shell: cmd
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
