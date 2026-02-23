@@ -1964,27 +1964,32 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         """)
     void testDistributedActivePower(boolean isDc, double expectedPre, double expectedPost, double expectedOpStrat) {
         Network network = DistributedSlackNetworkFactory.create();
+        // with below load change network has initial imbalance (ignoring losses) of 20 MW (lack of generation)
         network.getLoad("l1").setP0(500.);
+        // make network a bit resistive so we have different results in AC or DC
         network.getLineStream().forEach(l -> l.setR(0.6));
+        // put all generators on voltage control so the network is solvable on g1 contingency
         network.getGeneratorStream().forEach(g -> g.setTargetV(g.getTerminal().getVoltageLevel().getNominalV()).setVoltageRegulatorOn(true));
 
-        Contingency contingency1 = Contingency.generator("g1");
+        // note that g1 has targetP 100 MW but solves in N at ~102.5 MW because of slack distribution
+        Contingency g1contingency = Contingency.generator("g1");
 
-        Action action1 = new GeneratorActionBuilder().withId("g2action")
+        // action to increase g2 by 30 MW in relative
+        Action g2action = new GeneratorActionBuilder().withId("g2action")
                 .withGeneratorId("g2")
                 .withActivePowerRelativeValue(true).withActivePowerValue(30)
                 .build();
 
-        OperatorStrategy operatorStrategy1 = new OperatorStrategy(
-                "strategy1",
-                ContingencyContext.specificContingency(contingency1.getId()),
+        OperatorStrategy opStrat = new OperatorStrategy(
+                "opStrat",
+                ContingencyContext.specificContingency(g1contingency.getId()),
                 new TrueCondition(),
-                List.of(action1.getId()));
+                List.of(g2action.getId()));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        List<Contingency> contingencies = List.of(contingency1);
-        List<Action> actions = List.of(action1);
-        List<OperatorStrategy> operatorStrategies = List.of(operatorStrategy1);
+        List<Contingency> contingencies = List.of(g1contingency);
+        List<Action> actions = List.of(g2action);
+        List<OperatorStrategy> operatorStrategies = List.of(opStrat);
 
         // run the security analysis
         LoadFlowParameters parameters = new LoadFlowParameters().setDc(isDc);
@@ -1997,11 +2002,11 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(expectedPre, result.getPreContingencyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency
-        PostContingencyResult postContingencyResult = getPostContingencyResult(result, contingency1.getId());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, g1contingency.getId());
         assertEquals(expectedPost, postContingencyResult.getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
 
         // operator strategy
-        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, operatorStrategy1.getId());
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, opStrat.getId());
         assertEquals(expectedOpStrat, strategyResult.getFinalOperatorStrategyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
     }
 }

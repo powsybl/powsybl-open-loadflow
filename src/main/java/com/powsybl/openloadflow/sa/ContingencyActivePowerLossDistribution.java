@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.ServiceLoader;
 
 /**
+ * Handling of active power injection lost by contingency.
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 public interface ContingencyActivePowerLossDistribution {
@@ -37,6 +38,16 @@ public interface ContingencyActivePowerLossDistribution {
 
     String getName();
 
+    /**
+     * Called by the security analysis engine for each contingency. Pre-distributes active power imbalances created by contingencies (disconnection of loads, of generators, ...).
+     * @param network the network
+     * @param lfContingency the contingency in open-loadflow representation, including among others information about disconnected network elements, and how much active power has been lost
+     * @param contingency the contingency definition
+     * @param securityAnalysisParameters the security analysis parameters
+     * @param loadFlowParametersOverride the contingency load flow parameters overrides if any
+     * @param reportNode the contingency report node - so that the plugin may add any report message needed
+     * @return the amount of distributed active power in per-unit
+     */
     double run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode);
 
 }
