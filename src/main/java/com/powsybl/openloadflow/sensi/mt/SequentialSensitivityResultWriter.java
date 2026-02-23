@@ -63,11 +63,16 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     }
 
     @Override
-    public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
+    public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status, SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus, int numCC, int numCS) {
         flush(); // send all previous values to the writer in case it expects ordered data
 
         // Not called for the base case. No need to manage duplicate calls.
-        executor.execute(() -> sensitivityResultWriter.writeContingencyStatus(contingencyIndex, status));
+        executor.execute(() -> sensitivityResultWriter.writeContingencyStatus(contingencyIndex, status, loadFlowStatus, numCC, numCS));
+    }
+
+    @Override
+    public void computationComplete() {
+        executor.execute(sensitivityResultWriter::computationComplete);
     }
 
     @Override
@@ -76,4 +81,5 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
         localBatch.remove();
         executor.close();
     }
+
 }

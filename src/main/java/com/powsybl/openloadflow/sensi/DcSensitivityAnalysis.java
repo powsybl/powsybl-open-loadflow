@@ -13,6 +13,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -58,6 +59,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private static final Logger LOGGER = LoggerFactory.getLogger(DcSensitivityAnalysis.class);
 
     private static final double FUNCTION_REFERENCE_ZER0_THRESHOLD = 1e-13;
+
+    public static final String DC_LINEAR_UPDATE_MSG = "DC linear update";
 
     public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         super(matrixFactory, connectivityFactory, parameters);
@@ -215,7 +218,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
-                .collect(Collectors.toList());
+                .toList();
 
         var lfNetwork = loadFlowContext.getNetwork();
         Set<LfBranch> disabledBranches = contingency.getBranchIdsToOpen().keySet().stream().map(lfNetwork::getBranchById).collect(Collectors.toSet());
@@ -250,9 +253,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, resultWriter, disabledNetwork);
             // write contingency status
             if (contingency.hasNoImpact()) {
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, DC_LINEAR_UPDATE_MSG),
+                        lfNetwork.getNumCC(), lfNetwork.getNumSC());
             } else {
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, DC_LINEAR_UPDATE_MSG),
+                        lfNetwork.getNumCC(), lfNetwork.getNumSC());
             }
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
@@ -271,7 +278,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     newParticipatingElements = participatingElements.stream()
                             .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
                             .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
-                            .collect(Collectors.toList());
+                            .toList();
                     normalizeParticipationFactors(newParticipatingElements);
                     participatingElementsChanged = true;
                 } else if (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLose().isEmpty()) {
@@ -283,10 +290,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     rhsChangedAfterGlskRescaling = rescaleGlsk(factorGroups, impactedBuses);
                 }
                 // write contingency status
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, DC_LINEAR_UPDATE_MSG),
+                        lfNetwork.getNumCC(), lfNetwork.getNumSC());
             } else {
                 // write contingency status
-                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, DC_LINEAR_UPDATE_MSG),
+                        lfNetwork.getNumCC(), lfNetwork.getNumSC());
             }
 
             // we need to recompute the factor states because the rhs or the participating elements have changed
@@ -459,7 +470,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 DcLoadFlowEngine.initStateVector(lfNetwork, loadFlowContext.getEquationSystem(), voltageInitializer);
 
                 // index factors by variable group to compute the minimal number of states
-                SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups = createFactorGroups(validLfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
+                SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups = createFactorGroups(validLfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).toList());
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution)
@@ -487,7 +498,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     if (!lfFactors.isEmpty()) {
                         contingenciesWithFactors.add(contingency);
                     } else {
-                        resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
+                        resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS,
+                                new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, DC_LINEAR_UPDATE_MSG),
+                                lfNetwork.getNumCC(), lfNetwork.getNumSC());
                     }
                 });
 
@@ -528,6 +541,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
 
             stopwatch.stop();
+            resultWriter.computationComplete();
             LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
     }

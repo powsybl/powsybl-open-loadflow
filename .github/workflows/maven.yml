@@ -25,6 +25,25 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: 'maven'
+
+      # --- New Step: Build Powsybl Core Snapshot ---
+      - name: Checkout Powsybl Core
+        uses: actions/checkout@v4
+        with:
+          repository: powsybl/powsybl-core
+          path: powsybl-core
+          ref: '7.2.0-SNAPSHOT'
+
+      - name: Build and Install Powsybl Core
+        working-directory: ./powsybl-core
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mvnw.cmd install -DskipTests -Dspotless.check.skip
+          else
+            ./mvnw install -DskipTests -Dspotless.check.skip
+          fi
+        shell: bash
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
