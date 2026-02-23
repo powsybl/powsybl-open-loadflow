@@ -48,7 +48,6 @@ jobs:
         working-directory: ./powsybl-core
         if: matrix.os != 'windows-latest'
         run: ./mvnw --batch-mode -Pjacoco install -DskipTests -Dspotless.check.skip
-        shell: cmd
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
