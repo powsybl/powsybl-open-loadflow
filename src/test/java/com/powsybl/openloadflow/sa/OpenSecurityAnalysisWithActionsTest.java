@@ -1500,6 +1500,12 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(193.799, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(193.799, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // The connectivity result should not report any lost generation active power because both ends of the HVDC belong to the same synchrnous network
+        assertEquals(0, getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedGenerationActivePower());
+        // However, the VSC station should be reported as disconnected
+        assertTrue(getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedElements().contains("cs2"));
+
     }
 
     @Test
@@ -1647,6 +1653,44 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(-200.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-200.0, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // The connectivity result should not report any lost generation active power because both ends of the HVDC belong to the same synchrnous network
+        assertEquals(0, getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedGenerationActivePower());
+        // However, the VSC station should be reported as disconnected
+        assertTrue(getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedElements().contains("cs2"));
+
+    }
+
+    @Test
+    void testVSCLossSetpointSeparated() {
+        // HVDC links to separate components
+        // Contingency leads to loss of HVDC that should be counted as a generation loss
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+
+        // Disconnect the two sides of the HVDC and add a load on the main side
+        network.getLine("l14").disconnect();
+        network.getVoltageLevel("b2_vl").newLoad().setQ0(0).setP0(220).setId("l2").setBus("b2").add();
+
+        List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")));
+        List<Action> actions = List.of(new SwitchAction("action", "s2", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy",
+                ContingencyContext.specificContingency("contingency"),
+                new TrueCondition(),
+                List.of("action")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setHvdcAcEmulation(false);
+        securityAnalysisParameters.getLoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // The connectivity result should report the injection loss of the HVDC since the other side of the HVDC is in a different synchronous component
+        assertEquals(195.6, getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedGenerationActivePower(), 0.1);
+        // However, the VSC station should be reported as disconnected
+        assertTrue(getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedElements().contains("cs2"));
+        // No injection from g1
+        assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @ParameterizedTest

@@ -415,6 +415,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, sensiReportNode)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
 
+            checkVariableSet(variableSets);
             checkContingencies(contingencies);
 
             cleanContingencies(lfNetwork, propagatedContingencies);
