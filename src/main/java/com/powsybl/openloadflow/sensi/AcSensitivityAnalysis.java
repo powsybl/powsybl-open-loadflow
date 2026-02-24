@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -200,15 +199,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
                         Executor executor) throws ExecutionException {
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(contingencies);
-        Objects.requireNonNull(factorReader);
-        Objects.requireNonNull(resultWriter);
-        Objects.requireNonNull(sensiReportNode);
 
-        network.getVariantManager().setWorkingVariant(workingVariantId);
-
-        LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
+        LoadFlowParameters lfParameters = getAndCheckLoadFlowParameters(network, workingVariantId, contingencies, factorReader, resultWriter, sensiReportNode);
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
         VariablesTargetVoltageInfo variablesTargetVoltageInfo = getVariableTargetVoltageInfo(factorReader, network);
 
@@ -304,17 +296,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SENSITIVITY_ANALYSIS));
         acParameters.setNetworkParameters(makeNetworkParameters(slackBusSelector, lfParameters, lfParametersExt, breakers));
         return acParameters;
-    }
-
-    static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ComponentMode mode) {
-        return switch (mode) {
-            case MAIN_CONNECTED -> networks.getList().stream()
-                    .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-            case MAIN_SYNCHRONOUS -> networks.getList().stream()
-                    .filter(n -> n.getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-            case ALL_CONNECTED -> networks.getList().stream()
-                    .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-        };
     }
 
     private void analyzeContingencySet(Network network, LfNetworkList lfNetworks, List<PropagatedContingency> contingencies, AcLoadFlowParameters acParameters,
