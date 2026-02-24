@@ -71,6 +71,14 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     }
 
     @Override
+    public void writeSynchronousComponentStatus(int numCC, int numCS, SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus) {
+        flush(); // send all previous values to the writer in case it expects ordered data
+
+        // Not called for the base case. No need to manage duplicate calls.
+        executor.execute(() -> sensitivityResultWriter.writeSynchronousComponentStatus(numCC, numCS, loadFlowStatus));
+    }
+
+    @Override
     public void computationComplete() {
         executor.execute(sensitivityResultWriter::computationComplete);
     }

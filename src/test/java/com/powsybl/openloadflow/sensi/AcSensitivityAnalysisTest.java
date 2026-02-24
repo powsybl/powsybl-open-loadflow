@@ -129,6 +129,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
         AtomicInteger valueCallCount = new AtomicInteger(0);
         AtomicInteger statusCallCount = new AtomicInteger(0);
+        AtomicInteger syncStatusCallCount = new AtomicInteger(0);
         AtomicInteger computationCompleteCallCount = new AtomicInteger(0);
         SensitivityResultWriter resultWriter = new SensitivityResultWriter() {
 
@@ -139,6 +140,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             @Override
             public void writeContingencyStatus(int i, SensitivityAnalysisResult.Status status, SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus, int i1, int i2) {
                 statusCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void writeSynchronousComponentStatus(int i, int i1, SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus) {
+                syncStatusCallCount.incrementAndGet();
             }
 
             @Override
@@ -156,7 +162,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 runParameters);
 
         assertEquals(2, computationCompleteCallCount.get());
-        assertEquals(0, statusCallCount.get()); // Not called for the case case
+        assertEquals(0, statusCallCount.get());
+        assertEquals(1, syncStatusCallCount.get());
         assertEquals(factors.size(), valueCallCount.get());
 
         // now check call count with contingencies, and report

@@ -481,6 +481,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     // create workingFactorStates matrix that will be a working copy of baseFactorStates
                     DenseMatrix workingFactorStates = new DenseMatrix(baseFactorStates.getRowCount(), baseFactorStates.getColumnCount());
 
+                    resultWriter.writeSynchronousComponentStatus(lfNetwork.getNumCC(), lfNetwork.getNumSC(), new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, DC_LINEAR_UPDATE_MSG));
+
                     // calculate sensitivity values for pre-contingency network
                     calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), baseFactorStates, baseFlowStates, null, resultWriter, new DisabledNetwork());
 

@@ -54,6 +54,8 @@ import java.util.stream.Collectors;
  */
 public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariableType, AcEquationType> {
 
+    public static final String NO_IMPACT_ON_ANY_COMPONENT_S = "No impact on any component(s)";
+
     public AcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         super(matrixFactory, connectivityFactory, parameters);
     }
@@ -311,6 +313,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
         // create networks including all necessary switches
         // Change: Computation is not done anymore on the largest CC but depends on the component mode of the network parameter's Sensitivity Analysis Parameters
+        Set<PropagatedContingency> contingenciesWithNoImpact = new LinkedHashSet<>();
+        Map<PropagatedContingency, LoadFlowResult.Status> contingenciesWithStatusMap = new LinkedHashMap<>();
         for (LfNetwork lfNetwork : getNetworksToSimulate(lfNetworks, acParameters.getNetworkParameters().getComponentMode())) {
 
             ReportNode networkReportNode = lfNetwork.getReportNode();
@@ -327,6 +331,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
                 SensitivityAnalysisResult.LoadFlowStatus loadflowResultsStatus = runLoadFlow(context, true);
+
+                resultWriter.writeSynchronousComponentStatus(lfNetwork.getNumCC(), lfNetwork.getNumSC(), loadflowResultsStatus);
 
                 // index factors by variable group to compute a minimal number of states
                 SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
@@ -385,7 +391,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
                     contingency.toLfContingency(lfNetwork)
                             .ifPresentOrElse(lfContingency -> {
-
+                                contingenciesWithNoImpact.remove(contingency);
                                 ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
                                 lfNetwork.setReportNode(postContSimReportNode);
 
@@ -431,16 +437,21 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 }
                                 networkState.restore();
                             }, () -> {
+                                contingenciesWithNoImpact.add(contingency);
                                 // it means that the contingency has no impact.
                                 // we need to force the state vector to be re-initialized from base case network state
                                 AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
 
                                 calculateSensitivityValues(validFactorHolder.getFactorsForContingency(contingency.getContingency().getId()), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
-                                // write contingency status
-                                resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT, loadflowResultsStatus, lfNetwork.getNumCC(), lfNetwork.getNumSC());
+
                             });
                 });
             }
+        }
+        // Report contingency with no impact on all component status
+        for (PropagatedContingency propagatedContingencyWithNoImpact : contingenciesWithNoImpact) {
+            resultWriter.writeContingencyStatus(propagatedContingencyWithNoImpact.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT,
+                    new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, NO_IMPACT_ON_ANY_COMPONENT_S), -1, -1);
         }
         resultWriter.computationComplete();
 
