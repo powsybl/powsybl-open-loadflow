@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -394,8 +395,12 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
     protected void runDcLf(Network network, ReportNode reportNode) {
         LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(false).setDc(true);
+        LoadFlowRunParameters lfRunParameters = new LoadFlowRunParameters()
+                .setParameters(parameters)
+                .setReportNode(reportNode)
+                .setComputationManager(LocalComputationManager.getDefault());
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reportNode)
+                .run(network, VariantManagerConstants.INITIAL_VARIANT_ID, lfRunParameters)
                 .join();
         if (!result.isFullyConverged()) {
             throw new PowsyblException("DC LF failed");
@@ -407,8 +412,12 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
     }
 
     protected void runLf(Network network, LoadFlowParameters loadFlowParameters, ReportNode reportNode) {
+        LoadFlowRunParameters lfRunParameters = new LoadFlowRunParameters()
+                .setParameters(loadFlowParameters)
+                .setReportNode(reportNode)
+                .setComputationManager(LocalComputationManager.getDefault());
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, loadFlowParameters, reportNode)
+                .run(network, VariantManagerConstants.INITIAL_VARIANT_ID, lfRunParameters)
                 .join();
         if (!result.isFullyConverged()) {
             throw new PowsyblException("LF failed");
@@ -423,10 +432,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "a"));
 
-        List<Contingency> contingencies = Collections.emptyList();
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
@@ -438,10 +446,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "a"));
 
-        List<Contingency> contingencies = Collections.emptyList();
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
@@ -455,9 +462,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<Contingency> contingencies = List.of(new Contingency("a", new BranchContingency("NHV1_NHV2_2")));
 
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
@@ -470,11 +478,11 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerLinearGlsk("NHV1_NHV2_1", "glsk"));
 
-        List<Contingency> contingencies = Collections.emptyList();
-
         List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("a", 10f))));
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
@@ -486,10 +494,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityFactor> factors = List.of(createHvdcInjection("l12", "nop", TwoSides.ONE));
 
-        List<Contingency> contingencies = Collections.emptyList();
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("HVDC line 'nop' cannot be found in the network.", e.getCause().getMessage());
     }
@@ -502,10 +509,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("b", "GEN"));
 
-        List<Contingency> contingencies = Collections.emptyList();
-        List<SensitivityVariableSet> variableSets = Collections.emptyList();
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Branch, tie line, dangling line or leg of 'b' not found", e.getCause().getMessage());
     }
@@ -517,8 +523,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
 
         List<SensitivityFactor> factors = Collections.emptyList();
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertTrue(result.getValues().isEmpty());
     }
@@ -529,8 +536,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l56", "g1"));
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(0d, result.getValues().iterator().next().getValue());
@@ -542,8 +550,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l12", "g3"));
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(0f, result.getBranchFlow1SensitivityValue("g3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -555,8 +564,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerPSTAngle("l12", "l45"));
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l45", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
@@ -576,8 +586,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("g6", 1f),
                                                                                                                          new WeightedSensitivityVariable("g3", 2f))));
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -597,8 +609,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("g6", 1f),
                                                                                                        new WeightedSensitivityVariable("g3", 2f))));
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
         assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("glsk", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -614,14 +628,16 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("ld2", 1f),
                                                                                                        new WeightedSensitivityVariable("g3", 2f))));
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(1, result.getValues().size());
 
         List<SensitivityFactor> factorsInjection = List.of(createBranchFlowPerInjectionIncrease("l12", "ld2"));
-
-        SensitivityAnalysisResult resultInjection = sensiRunner.run(network, factorsInjection, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        runParameters.setVariableSets(Collections.emptyList());
+        SensitivityAnalysisResult resultInjection = sensiRunner.run(network, factorsInjection, runParameters);
 
         assertEquals(resultInjection.getValues().iterator().next().getValue(), result.getValues().iterator().next().getValue(), LoadFlowAssert.DELTA_POWER);
     }

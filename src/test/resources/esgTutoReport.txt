@@ -9,10 +9,8 @@
          + Outer loop DistributedSlack
             + Outer loop iteration 1
                Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          Outer loop DistributedSlack
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
    + Sensitivity analysis on network 'sim1'
@@ -22,6 +20,5 @@
             Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
             Angle reference bus: VLLOAD_0
             Slack bus: VLLOAD_0
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

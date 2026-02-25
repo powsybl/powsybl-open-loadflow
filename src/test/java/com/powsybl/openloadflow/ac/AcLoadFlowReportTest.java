@@ -299,7 +299,6 @@ class AcLoadFlowReportTest {
                                  + Outer loop DistributedSlack
                                     + Outer loop iteration 1
                                        Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
-                                 Outer loop VoltageMonitoring
                                  Outer loop ReactiveLimits
                                  + 4 buses have a voltage magnitude out of the configured realistic range [0.99, 1.01] p.u.
                                     Bus VLGEN_0 has an unrealistic voltage magnitude: 1.020833 p.u.

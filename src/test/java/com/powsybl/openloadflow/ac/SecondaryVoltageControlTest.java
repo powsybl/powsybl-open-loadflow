@@ -225,7 +225,6 @@ class SecondaryVoltageControlTest {
                             Slack bus: VL1_0
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 3
                                + 3 buses switched PV -> PQ (2 buses remain PV)
@@ -242,7 +241,6 @@ class SecondaryVoltageControlTest {
                             + Outer loop iteration 6
                                Failed to distribute slack bus active power mismatch, 3.011164 MW remains
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 8
                                + 2 buses switched PV -> PQ (1 buses remain PV)
@@ -252,7 +250,6 @@ class SecondaryVoltageControlTest {
                             + Outer loop iteration 9
                                Failed to distribute slack bus active power mismatch, 3.016519 MW remains
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
@@ -305,7 +302,6 @@ class SecondaryVoltageControlTest {
                             Slack bus: VL1_0
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 3
                                + 3 buses switched PV -> PQ (2 buses remain PV)
@@ -322,14 +318,12 @@ class SecondaryVoltageControlTest {
                             + Outer loop iteration 5
                                Slack bus active power (3.013536 MW) distributed in 1 distribution iteration(s)
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 6
                                + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)
                                   Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 6
                                + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)

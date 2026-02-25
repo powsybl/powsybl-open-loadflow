@@ -60,10 +60,8 @@ class FictitiousInjectionTest {
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-30 MW) distributed in 1 distribution iteration(s)
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          Outer loop DistributedSlack
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
@@ -99,10 +97,8 @@ class FictitiousInjectionTest {
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-60 MW) distributed in 1 distribution iteration(s)
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          Outer loop DistributedSlack
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;

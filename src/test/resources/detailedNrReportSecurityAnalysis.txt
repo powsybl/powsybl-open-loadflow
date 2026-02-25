@@ -66,7 +66,6 @@
                      Bus V: 0.995 pu, 0 rad
                      Bus injection: 603.769387 MW, 121.940403 MVar
             Outer loop DistributedSlack
-            Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L2'
@@ -161,9 +160,7 @@
                      Bus Id: VL1_0 (nominalVoltage=400kV)
                      Bus V: 0.995 pu, 0 rad
                      Bus injection: 608.334674 MW, 234.023593 MVar
-            Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             Outer loop DistributedSlack
-            Outer loop VoltageMonitoring
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

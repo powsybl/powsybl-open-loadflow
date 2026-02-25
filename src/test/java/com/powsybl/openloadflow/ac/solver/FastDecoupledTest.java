@@ -454,7 +454,6 @@ class FastDecoupledTest {
                                   Bus V: 1.04 pu, 0 rad
                                   Bus injection: 71.632631 MW, 27.046074 MVar
                          Outer loop DistributedSlack
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
