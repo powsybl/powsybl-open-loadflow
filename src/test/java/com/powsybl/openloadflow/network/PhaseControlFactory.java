@@ -18,6 +18,7 @@ import java.time.ZonedDateTime;
 public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
+     * <pre>
      * A very small network to test a phase shifter on a T2wt.
      *
      *     G1                   LD2
@@ -26,6 +27,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
      *     B1                   B2
      *        --------B3-------
      *           PS1       L2
+     * </pre>
      */
     public static Network createNetworkWithT2wt() {
         Network network = PhaseShifterTestCaseFactory.create();
@@ -40,14 +42,14 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
         ps1.setR(20).setX(100).setG(1e-6).setB(1e-6);
         ps1.getPhaseTapChanger().getStep(0).setAlpha(-5).setR(-50).setX(-50).setG(-50).setB(-50);
-        ps1.getPhaseTapChanger().getStep(1).setAlpha(0).setR(-100).setX(-100).setG(-100).setB(-100); // zero impedance
+        ps1.getPhaseTapChanger().getStep(1).setAlpha(0).setR(0).setX(0).setG(0).setB(0);
         ps1.getPhaseTapChanger().getStep(2).setAlpha(10).setR(100).setX(100).setG(100).setB(100);
         return network;
     }
 
     /**
      * A very small network to test a phase shifter on a T3wt.
-     *
+     * <pre>
      *     G1                   LD2
      *     |          L1        |
      *     |  ----------------- |
@@ -62,6 +64,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
      *          B4
      *          |
      *         LD4
+     * </pre>
      */
     public static Network createNetworkWithT3wt() {
         Network network = NetworkFactory.findDefault().createNetwork("three-windings-transformer", "test");
@@ -78,7 +81,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
         Bus b1 = vl1.getBusBreakerView().newBus()
                 .setId("B1")
                 .add();
-        Generator g1 = vl1.newGenerator()
+        vl1.newGenerator()
                 .setId("G1")
                 .setConnectableBus("B1")
                 .setBus("B1")
@@ -196,7 +199,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
      * A very small network to test contingencies and phase tap modification by remedial actions.
-     *
+     * <pre>
      *     G1                   LD2
      *     |          L1        |
      *     |  ----------------- |
@@ -204,6 +207,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
      *     |  ----------------- |
      *     |         PS1        |
      *     B1 ----------------- B2
+     * </pre>
      */
     public static Network createWithOneT2wtTwoLines() {
         Network network = NetworkFactory.findDefault().createNetwork("phaseShifterTestCase", "code");
@@ -330,7 +334,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
      * A very small network to test contingencies and phase tap modifications by remedial actions.
-     *
+     * <pre>
      *     G1                   LD2
      *     |          L1        |
      *     |  ----------------- |
@@ -338,6 +342,7 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
      *     |  ----------------- |
      *     |     PS1      PS2   |
      *     B1 --------B3------- B2
+     * </pre>
      */
     public static Network createWithTwoT2wtTwoLines() {
         Network network = NetworkFactory.findDefault().createNetwork("two-phase-tap-changers-test", "test");
@@ -523,13 +528,14 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
      * A very small network to test connectivity break and phase tap modification by remedial actions.
-     *
+     * <pre>
      *     G1         LD2
      *     |     PS1   |
      *     |  -------  |
      *     |           |         LD3
      *     |    L12    |   L23    |
      *     B1 ------- B2 -------- B3
+     * </pre>
      */
     public static Network createNetworkWith3Buses() {
         Network network = NetworkFactory.findDefault().createNetwork("phaseShifterTestCase", "code");

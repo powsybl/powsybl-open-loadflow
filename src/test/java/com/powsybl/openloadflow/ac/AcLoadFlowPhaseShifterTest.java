@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -635,7 +636,7 @@ class AcLoadFlowPhaseShifterTest {
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setPhaseControl(true);
-        LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).get(0);
+        LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).getFirst();
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
                 .setNetworkParameters(lfNetworkParameters)
                 .setMatrixFactory(new DenseMatrixFactory());
@@ -700,14 +701,12 @@ class AcLoadFlowPhaseShifterTest {
 
     @ParameterizedTest
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
-             lowImpedanceBranchMode,         twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2
-             REPLACE_BY_ZERO_IMPEDANCE_LINE, false,                   19.640, -19.470, 66.739, -66.739, 95.497, -92.751
-             REPLACE_BY_MIN_IMPEDANCE_LINE,  false,                   19.640, -19.470, 66.739, -66.739, 95.497, -92.751
-             REPLACE_BY_ZERO_IMPEDANCE_LINE, true,                    19.633, -19.464, 66.739, -66.739, 95.428, -92.693
-             REPLACE_BY_MIN_IMPEDANCE_LINE,  true,                    19.633, -19.464, 66.739, -66.739, 95.428, -92.693
+             twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2
+             false,                   19.640, -19.470, 51.597, -51.016, 95.497, -92.751
+             true,                    19.633, -19.464, 51.573, -50.995, 95.428, -92.693
             """
     )
-    void rxgbChangeOnPstControlTest(OpenLoadFlowParameters.LowImpedanceBranchMode lowImpedanceBranchMode, boolean twtSplitShuntAdmittance,
+    void rxgbChangeOnPstControlTest(boolean twtSplitShuntAdmittance,
                                     double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2) {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wtExaggerateRxgbTable());
 
@@ -716,7 +715,9 @@ class AcLoadFlowPhaseShifterTest {
                 .setTwtSplitShuntAdmittance(twtSplitShuntAdmittance);
         parametersExt
                 .setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL)
-                .setLowImpedanceBranchMode(lowImpedanceBranchMode);
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-3)
+                .setMaxReactivePowerMismatch(1e-3);
 
         // capture values, no regulation, tap 0
         t2wt.getPhaseTapChanger().setTapPosition(0).setRegulating(false);
@@ -739,7 +740,7 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
         assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
 
-        // set at tap 0, enable regulation to have PST moving to tap 1 which is zero impedance
+        // set at tap 0, enable regulation to have PST moving to tap 1
         t2wt.getPhaseTapChanger().setTapPosition(0)
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setRegulationValue(-65.)

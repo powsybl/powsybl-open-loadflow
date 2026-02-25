@@ -18,6 +18,7 @@ import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -982,13 +983,14 @@ class AcLoadFlowTransformerVoltageControlTest {
 
     /**
      * A very small network to test with a T2wt.
-     *
+     * <pre>
      *     G1        LD2
      *     |    L12   |
      *     |  ------- |
      *     B1         B2 - T2WT2 - B4 - L43 - B3
      *                  \                      \
      *                   T2WT - B5 - L53 - B3 - LD3
+     * </pre>
      */
     private Network createNetworkWithSharedControl() {
 
@@ -1016,7 +1018,7 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setId("BUS_5")
                 .add();
 
-        Line line43 = network.newLine()
+        network.newLine()
                 .setId("LINE_43")
                 .setBus1("BUS_4")
                 .setBus2("BUS_3")
@@ -1024,7 +1026,7 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setX(0.)
                 .add();
 
-        Line line53 = network.newLine()
+        network.newLine()
                 .setId("LINE_53")
                 .setBus1("BUS_5")
                 .setBus2("BUS_3")
@@ -1185,7 +1187,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
         assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().getFirst().getIterationCount());
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);
         // we force the min nominal voltage control to 225kV...
@@ -1202,7 +1204,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(6, result2.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result2.getComponentResults().getFirst().getIterationCount());
         assertVoltageEquals(276.072, b4);
         assertVoltageEquals(110.460, b6);
         // we force the min nominal voltage control to 20k...
@@ -1218,21 +1220,19 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
         assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(8, result3.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result3.getComponentResults().getFirst().getIterationCount());
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);
     }
 
     @ParameterizedTest
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
-             lowImpedanceBranchMode,         twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2,  tap0v,  tap1v,  tap2v
-             REPLACE_BY_ZERO_IMPEDANCE_LINE, false,                    5.073,    -5.0,    5.0,    -5.0,  5.440,    -5.0, 30.002, 33.577, 35.610
-             REPLACE_BY_MIN_IMPEDANCE_LINE,  false,                    5.073,    -5.0,    5.0,    -5.0,  5.440,    -5.0, 30.002, 33.577, 35.610
-             REPLACE_BY_ZERO_IMPEDANCE_LINE, true,                     5.073,    -5.0,    5.0,    -5.0,  5.456,    -5.0, 30.084, 33.577, 38.000
-             REPLACE_BY_MIN_IMPEDANCE_LINE,  true,                     5.073,    -5.0,    5.0,    -5.0,  5.456,    -5.0, 30.084, 33.577, 38.000
+             twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2,  tap0v,  tap1v,  tap2v
+             false,                    5.073,    -5.0,  5.159,    -5.0,  5.440,    -5.0, 30.002, 33.152, 35.610
+             true,                     5.073,    -5.0,  5.158,    -5.0,  5.456,    -5.0, 30.084, 33.483, 38.000
             """
     )
-    void rxgbChangeOnRtcControlTest(OpenLoadFlowParameters.LowImpedanceBranchMode lowImpedanceBranchMode, boolean twtSplitShuntAdmittance,
+    void rxgbChangeOnRtcControlTest(boolean twtSplitShuntAdmittance,
                                     double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2,
                                     double tap0v, double tap1v, double tap2v) {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
@@ -1241,7 +1241,7 @@ class AcLoadFlowTransformerVoltageControlTest {
 
         t2wt.newRatioTapChanger()
                 .beginStep().setRho(0.9).setR(-50.).setX(-50.).setG(-50.).setB(-50.).endStep()
-                .beginStep().setRho(1.0).setR(-100.).setX(-100.).setG(-100.).setB(-100.).endStep()
+                .beginStep().setRho(1.0).setR(0.).setX(0.).setG(0.).setB(0.).endStep()
                 .beginStep().setRho(1.1).setR(150.).setX(150.).setG(150.).setB(150.).endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
@@ -1258,7 +1258,9 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setTwtSplitShuntAdmittance(twtSplitShuntAdmittance);
         parametersExt
                 .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
-                .setLowImpedanceBranchMode(lowImpedanceBranchMode);
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-3)
+                .setMaxReactivePowerMismatch(1e-3);
 
         // capture values, no regulation, tap 0
         t2wt.getRatioTapChanger().setTapPosition(0).setRegulating(false);
@@ -1284,18 +1286,17 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
         assertVoltageEquals(tap2v, bus3);
 
-        // set at tap 0, enable regulation to have RTC moving to tap 1 which is zero impedance
+        // set at tap 0, enable regulation to have RTC moving to tap 1
         t2wt.getRatioTapChanger().setTapPosition(0)
                 .setRegulationValue(33.5)
                 .setTargetDeadband(1.)
                 .setRegulating(true);
         result = loadFlowRunner.run(network, parameters);
-        // FIXME: incorrect result for Zero impedance mode & non convergence for Min impedance mode
-        // FIXME assertTrue(result.isFullyConverged());
-        // FIXME assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
-        // FIXME assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
-        // FIXME assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
-        // FIXME assertVoltageEquals(tap1v, bus3);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap1v, bus3);
 
         // set at tap 0, enable regulation to have RTC moving to tap 2
         t2wt.getRatioTapChanger().setTapPosition(0)
