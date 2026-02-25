@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -127,7 +128,7 @@ class LfBusImplTest {
         LfNetworkParameters parameters = new LfNetworkParameters()
                 .setBreakers(true);
         LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, parameters, true);
-        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
+        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport(ReportNode.NO_OP);
         lfBus.addStaticVarCompensator(svc1, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc3, parameters, lfNetworkLoadingReport);
@@ -150,7 +151,7 @@ class LfBusImplTest {
                 .setPlausibleActivePowerLimit(100)
                 .setMinPlausibleTargetVoltage(0.9)
                 .setMaxPlausibleTargetVoltage(1.1);
-        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
+        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport(ReportNode.NO_OP);
         LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"), lfNetwork, parameters1, lfNetworkLoadingReport);
         lfGenerator1.setCalculatedQ(initQs.get(0));
         LfNetworkParameters parameters23 = new LfNetworkParameters()

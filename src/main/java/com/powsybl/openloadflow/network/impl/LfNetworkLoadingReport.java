@@ -7,22 +7,41 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.report.ReportNode;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkLoadingReport {
 
+    public LfNetworkLoadingReport(ReportNode firstRootReportNode) {
+        this.firstRootReportNode = firstRootReportNode;
+    }
+
+    ReportNode firstRootReportNode;
+
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted = new ArrayList<>();
 
     int generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = new ArrayList<>();
+
     int generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = new ArrayList<>();
 
     int generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages = 0;
 
     int generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = new ArrayList<>();
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = 0;
 

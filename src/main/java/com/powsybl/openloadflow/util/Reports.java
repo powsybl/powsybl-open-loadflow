@@ -379,6 +379,52 @@ public final class Reports {
         return result;
     }
 
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(ReportNode firstRootReportNode, LfGenerator generator) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseNotStarted")
+                .withUntypedValue("generatorId", generator.getId())
+                .withUntypedValue("targetP", generator.getTargetP() * PerUnit.SB)
+                .withUntypedValue("minP", generator.getMinP() * PerUnit.SB)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(ReportNode firstRootReportNode, LfGenerator generator) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
+                .withUntypedValue("generatorId", generator.getId())
+                .withUntypedValue("targetP", generator.getTargetP() * PerUnit.SB)
+                .withUntypedValue("minP", generator.getMinP() * PerUnit.SB)
+                .withUntypedValue("maxP", generator.getMaxP() * PerUnit.SB)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(ReportNode firstRootReportNode, LfGenerator generator) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
+                .withUntypedValue("generatorId", generator.getId())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(ReportNode firstRootReportNode, String generatorId, double targetP) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetEqualsToZero")
+                .withUntypedValue("generatorId", generatorId)
+                .withUntypedValue("targetP", targetP)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
     public static void reportBusForcedToBePv(ReportNode reportNode, String busId) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.busForcedToBePv")
@@ -589,24 +635,24 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseNotStarted")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
@@ -632,6 +678,46 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode reportNode, int impactedGeneratorCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static void reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(ReportNode reportNode, int impactedGeneratorCount) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
