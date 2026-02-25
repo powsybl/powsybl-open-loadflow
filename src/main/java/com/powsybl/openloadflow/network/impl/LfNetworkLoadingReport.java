@@ -45,6 +45,8 @@ public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = new ArrayList<>();
+
     int generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = 0;

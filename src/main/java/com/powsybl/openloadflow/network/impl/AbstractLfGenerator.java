@@ -416,6 +416,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) > maxTargetP ({} MW)",
                     generatorId, targetP, maxTargetP);
             if (report != null) {
+                report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(report.firstRootReportNode, generatorId, targetP, maxP));
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
             }
             participating = false;

@@ -1036,7 +1036,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP > 0) {
-            Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
+            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
+            report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.forEach(summary::include);
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
         }

@@ -425,6 +425,19 @@ public final class Reports {
                 .build();
     }
 
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode firstRootReportNode, String generatorId, double targetP, double maxP) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP")
+                .withUntypedValue("generatorId", generatorId)
+                .withUntypedValue("targetP", targetP)
+                .withUntypedValue("maxP", targetP)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+
     public static void reportBusForcedToBePv(ReportNode reportNode, String busId) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.busForcedToBePv")
@@ -691,8 +704,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
