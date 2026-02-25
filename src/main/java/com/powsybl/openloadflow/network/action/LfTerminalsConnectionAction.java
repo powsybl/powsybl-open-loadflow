@@ -47,7 +47,7 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
                 applyEnabledDisabled(branch2, action);
                 applyEnabledDisabled(branch3, action);
             } else {
-                LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} not found", action.getId(), action.getElementId());
+                LOGGER.warn("TerminalsConnectionAction action {}: branch or three windings transformer matching element id {} not found", action.getId(), action.getElementId());
             }
         }
     }
@@ -60,7 +60,7 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
                 setEnabledBranch(branch);
             }
         } else {
-            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} has null bus", action.getId(), action.getElementId());
+            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} has one missing bus", action.getId(), action.getElementId());
         }
     }
 }
