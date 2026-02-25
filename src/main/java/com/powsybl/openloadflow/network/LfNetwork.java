@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -300,6 +301,30 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public LfBranch getBranchById(String branchId) {
         Objects.requireNonNull(branchId);
         return branchesById.get(branchId);
+    }
+
+    public LfBranch getThreeWindingsTransformerBranch(String twtId, ThreeSides side) {
+        Objects.requireNonNull(twtId);
+        List<LfBranch> legs = getBranchByOriginalId(twtId);
+        switch (side) {
+            case ONE -> {
+                return legs.stream().filter(b -> LfBranch.BranchType.TRANSFO_3_LEG_1.equals(b.getBranchType())).findFirst().orElse(null);
+            }
+            case TWO -> {
+                return legs.stream().filter(b -> LfBranch.BranchType.TRANSFO_3_LEG_2.equals(b.getBranchType())).findFirst().orElse(null);
+            }
+            case THREE -> {
+                return legs.stream().filter(b -> LfBranch.BranchType.TRANSFO_3_LEG_3.equals(b.getBranchType())).findFirst().orElse(null);
+            }
+            default -> {
+                return null;
+            }
+        }
+    }
+
+    public List<LfBranch> getBranchByOriginalId(String originalId) {
+        Objects.requireNonNull(originalId);
+        return getBranches().stream().filter(b -> b.getOriginalIds().contains(originalId)).toList();
     }
 
     private void addShunt(LfShunt shunt) {

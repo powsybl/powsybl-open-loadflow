@@ -9,6 +9,7 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.TerminalsConnectionAction;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
@@ -38,9 +39,9 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
             applyEnabledDisabled(branch, action);
         } else {
             // Maybe a 3 windings transformer ?
-            LfBranch branch1 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 1));
-            LfBranch branch2 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 2));
-            LfBranch branch3 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 3));
+            LfBranch branch1 = lfNetwork.getThreeWindingsTransformerBranch(action.getElementId(), ThreeSides.ONE);
+            LfBranch branch2 = lfNetwork.getThreeWindingsTransformerBranch(action.getElementId(), ThreeSides.TWO);
+            LfBranch branch3 = lfNetwork.getThreeWindingsTransformerBranch(action.getElementId(), ThreeSides.THREE);
 
             if (branch1 != null && branch2 != null && branch3 != null) {
                 applyEnabledDisabled(branch1, action);
