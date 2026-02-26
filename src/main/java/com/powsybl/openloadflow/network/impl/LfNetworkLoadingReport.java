@@ -40,11 +40,7 @@ public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages = 0;
 
-    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages = new ArrayList<>();
-
     int generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus = 0;
-
-    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus = new ArrayList<>();
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
