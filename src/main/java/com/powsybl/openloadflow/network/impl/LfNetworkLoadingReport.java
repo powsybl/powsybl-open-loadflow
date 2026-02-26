@@ -52,7 +52,11 @@ public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP = new ArrayList<>();
+
     int generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = new ArrayList<>();
 
     int generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP = 0;
 

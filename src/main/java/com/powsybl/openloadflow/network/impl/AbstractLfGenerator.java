@@ -412,6 +412,9 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) > plausibleLimit ({} MW)",
                     generatorId, maxP, parameters.getPlausibleActivePowerLimit());
             if (report != null) {
+                if (report.detailed) {
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(report.firstRootReportNode, generatorId, maxP, parameters.getPlausibleActivePowerLimit()));
+                }
                 report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             }
             participating = false;
@@ -425,7 +428,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                     generatorId, targetP, maxTargetP);
             if (report != null) {
                 if (report.detailed) {
-                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(report.firstRootReportNode, generatorId, targetP, maxP));
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(report.firstRootReportNode, generatorId, targetP, maxTargetP));
                 }
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
             }
@@ -435,6 +438,9 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({} MW) < minTargetP ({} MW)",
                     generatorId, targetP, minTargetP);
             if (report != null) {
+                if (report.detailed) {
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(report.firstRootReportNode, generatorId, targetP, minTargetP));
+                }
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
             }
             participating = false;
