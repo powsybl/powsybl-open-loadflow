@@ -447,8 +447,11 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         }
         if ((maxTargetP - minTargetP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
-                    generatorId, minTargetP, minTargetP);
+                    generatorId, maxTargetP, minTargetP);
             if (report != null) {
+                if (report.detailed) {
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(report.firstRootReportNode, generatorId, maxTargetP, minTargetP));
+                }
                 report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
             }
             participating = false;

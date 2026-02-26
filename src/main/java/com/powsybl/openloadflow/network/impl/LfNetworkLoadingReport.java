@@ -60,6 +60,8 @@ public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP = new ArrayList<>();
+
     int branchesDiscardedBecauseConnectedToSameBusAtBothEnds = 0;
 
     int nonImpedantBranches = 0;

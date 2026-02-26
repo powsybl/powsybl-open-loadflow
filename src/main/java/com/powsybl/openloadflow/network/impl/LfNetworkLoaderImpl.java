@@ -1068,7 +1068,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP > 0) {
-            Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
+            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
+            if (report.detailed) {
+                report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP equals to minP",
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
         }
