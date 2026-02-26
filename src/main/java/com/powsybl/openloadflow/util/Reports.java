@@ -35,12 +35,16 @@ public final class Reports {
 
     private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
+    private static final String GENERATOR_ID = "generatorId";
     private static final String GENERATORS_ID = "generatorIds";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
     private static final String ACTION_ID = "actionId";
     private static final String CONTINGENCY_ID = "contingencyId";
-    public static final String MISMATCH = "mismatch";
+    private static final String MISMATCH = "mismatch";
+    private static final String TARGET_V = "targetV";
+    private static final String TARGET_P = "targetP";
+
 
     public static final String LF_NETWORK_KEY = "olf.lfNetwork";
     public static final String POST_CONTINGENCY_SIMULATION_KEY = "olf.postContingencySimulation";
@@ -352,7 +356,7 @@ public final class Reports {
                 // busV and targetV need a higher precision than usual Voltage rounding to understand
                 // the difference. Their unit is not given to avoid a too high formatting based on Unit
                 .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
-                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
+                .withUntypedValue(TARGET_V, targetV * controlledBus.getNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
@@ -370,7 +374,7 @@ public final class Reports {
                 // busV and targetV need a higher precision than usual Voltage rounding to understand
                 // the difference. Their unit is not given to avoid a too high formatting based on Unit
                 .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
-                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
+                .withUntypedValue(TARGET_V, targetV * controlledBus.getNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
@@ -384,8 +388,8 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseNotStarted")
-                .withUntypedValue("generatorId", generator.getId())
-                .withUntypedValue("targetP", generator.getTargetP() * PerUnit.SB)
+                .withUntypedValue(GENERATOR_ID, generator.getId())
+                .withUntypedValue(TARGET_P, generator.getTargetP() * PerUnit.SB)
                 .withUntypedValue("minP", generator.getMinP() * PerUnit.SB)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
@@ -396,8 +400,8 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
-                .withUntypedValue("generatorId", generator.getId())
-                .withUntypedValue("targetP", generator.getTargetP() * PerUnit.SB)
+                .withUntypedValue(GENERATOR_ID, generator.getId())
+                .withUntypedValue(TARGET_P, generator.getTargetP() * PerUnit.SB)
                 .withUntypedValue("minP", generator.getMinP() * PerUnit.SB)
                 .withUntypedValue("maxP", generator.getMaxP() * PerUnit.SB)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
@@ -409,7 +413,7 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
-                .withUntypedValue("generatorId", generator.getId())
+                .withUntypedValue(GENERATOR_ID, generator.getId())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
     }
@@ -419,8 +423,8 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseImplausibleTargetVoltage")
-                .withUntypedValue("generatorId", generatorId)
-                .withUntypedValue("targetV", targetV)
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_V, targetV)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
     }
@@ -430,8 +434,8 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetEqualsToZero")
-                .withUntypedValue("generatorId", generatorId)
-                .withUntypedValue("targetP", targetP)
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_P, targetP)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
     }
@@ -441,8 +445,8 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP")
-                .withUntypedValue("generatorId", generatorId)
-                .withUntypedValue("targetP", targetP)
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_P, targetP)
                 .withUntypedValue("maxTargetP", maxTargetP)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
@@ -453,8 +457,8 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP")
-                .withUntypedValue("generatorId", generatorId)
-                .withUntypedValue("targetP", targetP)
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_P, targetP)
                 .withUntypedValue("minTargetP", minTargetP)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
@@ -465,7 +469,7 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseMaxPNotPlausible")
-                .withUntypedValue("generatorId", generatorId)
+                .withUntypedValue(GENERATOR_ID, generatorId)
                 .withUntypedValue("maxP", maxP)
                 .withUntypedValue("plausibleLimit", plausibleLimit)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
@@ -477,7 +481,7 @@ public final class Reports {
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseMaxPEqualsMinP")
-                .withUntypedValue("generatorId", generatorId)
+                .withUntypedValue(GENERATOR_ID, generatorId)
                 .withUntypedValue("maxTargetP", maxP)
                 .withUntypedValue("minTargetP", minP)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
@@ -495,7 +499,7 @@ public final class Reports {
     public static String reportGeneratorWithUpdatedTargetQ(ReportNode reportNode, LfGenerator generator, double oldTargetQ, double newTargetQ) {
         ReportNode result = reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorWithUpdatedTargetQ")
-                .withUntypedValue("generatorId", generator.getId())
+                .withUntypedValue(GENERATOR_ID, generator.getId())
                 .withUntypedValue("oldTargetQ", oldTargetQ)
                 .withUntypedValue("newTargetQ", newTargetQ)
                 .withSeverity(TypedValue.INFO_SEVERITY)
