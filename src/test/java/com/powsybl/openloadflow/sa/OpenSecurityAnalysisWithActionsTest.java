@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.*;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -18,19 +19,22 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
+import com.powsybl.security.condition.*;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -46,6 +50,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -100,6 +105,137 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 saParameters, Collections.emptyList(), Collections.emptyList(), reportNode);
 
         assertReportEquals("/detailedNrReportSecurityAnalysis.txt", reportNode);
+    }
+
+    @Test
+    void testThresholdAction() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getSwitch("C2").setOpen(true);
+        List<Contingency> contingencies = List.of(new Contingency("L3", new BranchContingency("L3")));
+        List<Action> actions = List.of(
+            new SwitchAction("action1", "C1", false),
+            new SwitchAction("action2", "C2", false));
+
+        // This condition should trigger (current goes above 600.0 after contingency)
+        BranchThresholdCondition condition1 = new BranchThresholdCondition(
+            "L1", AbstractThresholdCondition.Variable.CURRENT, AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS,
+            600.0, TwoSides.ONE);
+
+        // This condition should not trigger (current is under 650.0 after contingency)
+        BranchThresholdCondition condition2 = new BranchThresholdCondition(
+            "L1", AbstractThresholdCondition.Variable.CURRENT, AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS,
+            650.0, TwoSides.ONE);
+
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategyL3_1", ContingencyContext.specificContingency("L3"), condition1, List.of("action1")),
+            new OperatorStrategy("strategyL3_2", ContingencyContext.specificContingency("L3"), condition2, List.of("action2")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        // L1 current goes from 578 to 602
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Only a single operator strategy result : strategyL3_1, the other is not triggered
+        assertEquals(1, result.getOperatorStrategyResults().size());
+        assertEquals("strategyL3_1", result.getOperatorStrategyResults().getFirst().getOperatorStrategy().getId());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getOperatorStrategyResults().getFirst().getStatus());
+    }
+
+    @Test
+    void testThresholdConditionEvaluator() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wtAndT2wt();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+
+        AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
+            .setMatrixFactory(new DenseMatrixFactory());
+        try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            new AcloadFlowEngine(context).run();
+
+            // Branch Condition
+            var branch = network.getBranch("LINE_12");
+            double currentSide1 = lfNetwork.getBranchById(branch.getId()).getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
+            testWithAllComparisonType(network, lfNetwork, currentSide1, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.ONE));
+            double currentSide2 = lfNetwork.getBranchById(branch.getId()).getI2().eval() * PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+            testWithAllComparisonType(network, lfNetwork, currentSide2, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.TWO));
+
+            double activePowerSide1 = lfNetwork.getBranchById(branch.getId()).getP1().eval() * PerUnit.SB;
+            testWithAllComparisonType(network, lfNetwork, activePowerSide1, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value, TwoSides.ONE));
+
+            double reactivePowerSide1 = lfNetwork.getBranchById(branch.getId()).getQ1().eval() * PerUnit.SB;
+            testWithAllComparisonType(network, lfNetwork, reactivePowerSide1, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.REACTIVE_POWER, comparisonType, value, TwoSides.ONE));
+
+            // 3WT Condition
+            var transformer = network.getThreeWindingsTransformer("T3wT");
+            LfBranch lfLegBranch = lfNetwork.getBranchById(transformer.getId() + "_leg_1");
+            double current3WtSide1 = lfLegBranch.getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
+            testWithAllComparisonType(network, lfNetwork, current3WtSide1, (comparisonType, value) ->
+                new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, ThreeSides.ONE));
+            double activePower3WtSide1 = lfLegBranch.getP1().eval() * PerUnit.SB;
+            testWithAllComparisonType(network, lfNetwork, activePower3WtSide1, (comparisonType, value) ->
+                new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value, ThreeSides.ONE));
+            double reactivePower3WtSide1 = lfLegBranch.getQ1().eval() * PerUnit.SB;
+            testWithAllComparisonType(network, lfNetwork, reactivePower3WtSide1, (comparisonType, value) ->
+                new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.REACTIVE_POWER, comparisonType, value, ThreeSides.ONE));
+
+            // Injection condition
+            var gen = network.getGenerator("GEN_1");
+            double targetP = lfNetwork.getGeneratorById(gen.getId()).getInitialTargetP();
+            double p = lfNetwork.getGeneratorById(gen.getId()).getTargetP();
+            testWithAllComparisonType(network, lfNetwork, p, (comparisonType, value) ->
+                new InjectionThresholdCondition(gen.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value));
+            testWithAllComparisonType(network, lfNetwork, targetP, (comparisonType, value) ->
+                new InjectionThresholdCondition(gen.getId(), AbstractThresholdCondition.Variable.TARGET_P, comparisonType, value));
+        }
+
+        // Test invalid ids
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+            new InjectionThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+            new BranchThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+            new ThreeWindingsTransformerThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, ThreeSides.ONE)));
+
+        var badInjectionCondition = new InjectionThresholdCondition("GEN_1", AbstractThresholdCondition.Variable.CURRENT,
+            AbstractThresholdCondition.ComparisonType.EQUALS, 0.0);
+        var badBranchCondition = new BranchThresholdCondition("LINE_12", AbstractThresholdCondition.Variable.TARGET_P,
+            AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE);
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(network, lfNetwork, badInjectionCondition),
+            "Unsupported variable CURRENT for threshold condition on generator GEN_1");
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(network, lfNetwork, badBranchCondition),
+            "Unsupported variable TARGET_P for threshold condition on branch LINE_12");
+    }
+
+    void testWithAllComparisonType(Network network, LfNetwork lfNetwork, double value,
+                                   BiFunction<AbstractThresholdCondition.ComparisonType, Double, Condition> conditionBuilder) {
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value - 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value - 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value + 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value + 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value - 1.0)));
+
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value + 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value + 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value)));
     }
 
     @Test
