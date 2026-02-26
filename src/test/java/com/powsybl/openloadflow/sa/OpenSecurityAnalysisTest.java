@@ -1211,7 +1211,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testSaWithGeneratorThatSwitchedPQContingency() {
-        // This test is made to avoid a bug happening when a generator that switched PV->PQ is lost during a contingency (reactive injection of the bus was not updated)
+        // Unit test for a corner case : A generator that switched PV -> PQ during base case situation is lost through a contingency
+        // We check that reactive injection (and voltage) are correctly updated (even without ReactiveLimitsOuterloop during the contingency calculation)
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getGenerator("g2").setTargetV(420).setVoltageRegulatorOn(true) // High targetV forces g2 to produce huge amount of reactive pwer
                 .newMinMaxReactiveLimits()
@@ -1220,7 +1221,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .add();
         List<Contingency> contingencies = List.of(new Contingency("g2", new GeneratorContingency("g2")));
 
-        // Contingency parameter to remove ReactiveLimitsOuterloop during contingency calculation (to avoid reactive injection update, in order to enlighten the bug)
+        // Contingency parameter to remove ReactiveLimitsOuterloop during contingency calculation (to avoid it to update the reactive injection)
         ContingencyLoadFlowParameters contLfParams1 = new ContingencyLoadFlowParameters()
                 .setOuterLoopNames(List.of(DistributedSlackOuterLoop.NAME));
         contingencies.getFirst().addExtension(ContingencyLoadFlowParameters.class, contLfParams1);
