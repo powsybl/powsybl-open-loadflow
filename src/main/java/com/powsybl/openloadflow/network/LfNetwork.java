@@ -286,6 +286,31 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return branchesById.get(branchId);
     }
 
+    public void removeBranch(String branchId) {
+        Objects.requireNonNull(branchId);
+        LfBranch branch = branchesById.remove(branchId);
+        if (branch == null) {
+            throw new PowsyblException("Branch " + branchId + " not found in network " + this);
+        }
+        branches.remove(branch);
+        invalidateSlackAndReference();
+        if (connectivity != null) {
+            connectivity.removeEdge(branch);
+        }
+        invalidateZeroImpedanceNetworks();
+
+        // renumber all branches
+        for (int i = 0; i < branches.size(); i++) {
+            branches.get(i).setNum(i);
+        }
+        if (branch.getBus1() != null) {
+            branch.getBus1().removeBranch(branch);
+        }
+        if (branch.getBus2() != null) {
+            branch.getBus2().removeBranch(branch);
+        }
+    }
+
     private void addShunt(LfShunt shunt) {
         shunt.setNum(shuntCount++);
         shuntsByIndex.add(shunt);

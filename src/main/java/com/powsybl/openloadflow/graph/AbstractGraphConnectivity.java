@@ -8,8 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import org.jgrapht.Graph;
-import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
-    private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
+    private final GraphModel<V, E> graph;
 
     private final Deque<ModificationsContext<V, E>> modificationsContexts = new ArrayDeque<>();
 
@@ -36,6 +34,10 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     protected abstract void resetConnectivity(Deque<GraphModification<V, E>> m);
 
     protected abstract void updateComponents();
+
+    protected AbstractGraphConnectivity(GraphModel<V, E> graph) {
+        this.graph = Objects.requireNonNull(graph);
+    }
 
     @Override
     public void addVertex(V vertex) {
@@ -147,7 +149,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
                 .flatMap(Collection::stream).collect(Collectors.toSet());
     }
 
-    public Graph<V, E> getGraph() {
+    public GraphModel<V, E> getGraph() {
         return graph;
     }
 

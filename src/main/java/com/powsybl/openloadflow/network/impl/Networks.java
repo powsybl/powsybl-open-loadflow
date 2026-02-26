@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -118,7 +117,7 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reportNode);
     }
 
-    private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
+    private static Set<String> retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
         network.getSwitchStream()
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(false));
@@ -129,14 +128,20 @@ public final class Networks {
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(true));
 
-        topoConfig.getSwitchesToClose().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
+        Set<String> closedBranchesOrSwitches = new LinkedHashSet<>();
+        topoConfig.getSwitchesToClose().forEach(sw -> {
+            sw.setOpen(false);
+            closedBranchesOrSwitches.add(sw.getId());
+        }); // in order to be present in the network.
         topoConfig.getBranchIdsToClose().stream().map(network::getBranch).forEach(branch -> {
             branch.getTerminal1().connect();
             branch.getTerminal2().connect();
+            closedBranchesOrSwitches.add(branch.getId());
         }); // in order to be present in the network.
+        return closedBranchesOrSwitches;
     }
 
-    private static void restoreInitialTopology(LfNetwork network, Set<String> switchAndBranchIdsToClose) {
+    private static void restoreInitialTopology(LfNetwork network, Set<String> switchAndBranchIdsToClose, LfNetworkParameters networkParameters) {
         var connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
         Set<String> toRemove = new HashSet<>();
@@ -148,6 +153,7 @@ public final class Networks {
             }
         });
         switchAndBranchIdsToClose.removeAll(toRemove);
+
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
         Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
@@ -156,6 +162,15 @@ public final class Networks {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
         }
         removedBranches.forEach(branch -> branch.setDisabled(true));
+        if (!networkParameters.isIncludeElementsReconnectingSmallComponents()) {
+            // remove branches that reconnect a bus to main connected component
+            for (LfBranch branch : removedBranches) {
+                if (branch.isConnectedAtBothSides() && connectivity.getComponentNumber(branch.getBus1()) != connectivity.getComponentNumber(branch.getBus2())) {
+                    network.removeBranch(branch.getId());
+                }
+            }
+        }
+
         for (LfHvdc hvdc : network.getHvdcs()) {
             if (isIsolatedBusForHvdc(hvdc.getBus1(), connectivity) || isIsolatedBusForHvdc(hvdc.getBus2(), connectivity)) {
                 hvdc.setDisabled(true);
@@ -201,13 +216,13 @@ public final class Networks {
         }
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     LfTopoConfig topoConfig, ReportNode reportNode) {
-        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reportNode);
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              ReportNode reportNode) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode);
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
-                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
@@ -233,23 +248,14 @@ public final class Networks {
 
             // retain in topology all switches that could be open or close
             // and close switches that could be closed during the simulation
-            retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
+            Set<String> closedBranchesOrSwitches = retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
+            List<LfNetwork> lfNetworks = load(network, modifiedTopoConfig, networkParameters, reportNode);
 
-            if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
-                Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream()
-                        .filter(Objects::nonNull)
-                        .map(Identifiable::getId)
-                        .collect(Collectors.toSet());
-                switchAndBranchIdsLeftToClose.addAll(modifiedTopoConfig.getBranchIdsToClose());
+            if (!closedBranchesOrSwitches.isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    // all switches and branches were closed
-                    if (switchAndBranchIdsLeftToClose.isEmpty()) {
-                        break;
-                    }
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, switchAndBranchIdsLeftToClose);
+                    restoreInitialTopology(lfNetwork, closedBranchesOrSwitches, networkParameters);
                 }
             }
 

@@ -8,23 +8,33 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.Action;
+import com.powsybl.iidm.network.Network;
+
+import java.util.Objects;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
 public abstract class AbstractLfAction<A extends Action> implements LfAction {
 
-    protected final String id;
-
     protected final A action;
 
-    AbstractLfAction(String id, A action) {
-        this.id = id;
-        this.action = action;
+    AbstractLfAction(A action) {
+        this.action = Objects.requireNonNull(action);
     }
 
     @Override
     public String getId() {
-        return id;
+        return action.getId();
+    }
+
+    @Override
+    public String getType() {
+        return action.getType();
+    }
+
+    @Override
+    public boolean checkError(Network network) {
+        return false;
     }
 }

@@ -7,14 +7,10 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
-
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.ToIntFunction;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -25,8 +21,9 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     private final ToIntFunction<V> numGetter;
 
-    public NaiveGraphConnectivity(ToIntFunction<V> numGetter) {
-        this.numGetter = Objects.requireNonNull(numGetter);
+    public NaiveGraphConnectivity(ToIntFunction<V> vertexNumGetter) {
+        super(new JGraphTModelFasterConnectivity<>(vertexNumGetter));
+        this.numGetter = Objects.requireNonNull(vertexNumGetter);
     }
 
     @Override
@@ -36,12 +33,8 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     protected void updateComponents() {
         if (components == null) {
-            components = new int[getGraph().vertexSet().size()];
-            componentSets = new ConnectivityInspector<>(getGraph())
-                    .connectedSets()
-                    .stream()
-                    .sorted(Comparator.comparing(Set<V>::size).reversed())
-                    .collect(Collectors.toList());
+            components = new int[getGraph().getVertices().size()];
+            componentSets = getGraph().calculateConnectedSets();
             for (int componentIndex = 0; componentIndex < componentSets.size(); componentIndex++) {
                 Set<V> vertices = componentSets.get(componentIndex);
                 for (V vertex : vertices) {

@@ -603,6 +603,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void removeBranch(LfBranch branch) {
+        branches.remove(Objects.requireNonNull(branch));
+    }
+
+    @Override
     public List<LfHvdc> getHvdcs() {
         return hvdcs;
     }
