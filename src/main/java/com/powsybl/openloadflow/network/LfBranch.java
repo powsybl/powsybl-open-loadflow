@@ -17,10 +17,7 @@ import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -36,6 +33,9 @@ public interface LfBranch extends LfElement {
         DANGLING_LINE,
         SWITCH,
         TIE_LINE
+    }
+
+    record LfBranchResults(double p1, double p2, double q1, double q2, double i1, double i2) {
     }
 
     class LfLimit {
@@ -261,7 +261,9 @@ public interface LfBranch extends LfElement {
 
     boolean isTransformerReactivePowerControlled();
 
-    List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
+    List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                          boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
+                                          LoadFlowModel loadFlowModel);
 
     double computeApparentPower1();
 

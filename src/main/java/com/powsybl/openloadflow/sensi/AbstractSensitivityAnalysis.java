@@ -762,15 +762,25 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return validFactorHolder;
     }
 
+    protected void checkVariableSet(List<SensitivityVariableSet> variableSets) {
+        Set<String> variableSetIds = new HashSet<>();
+        for (SensitivityVariableSet variableSet : variableSets) {
+            // check ID are unique because, later sensitivityVariableSet are indexed by their IDs
+            String variableSetId = variableSet.getId();
+            if (!variableSetIds.add(variableSetId)) {
+                throw new PowsyblException("Variable set ID '" + variableSetId + "' is duplicated");
+            }
+        }
+    }
+
     protected void checkContingencies(List<Contingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (Contingency contingency : contingencies) {
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getId();
-            if (contingenciesIds.contains(contingencyId)) {
-                throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
+            if (!contingenciesIds.add(contingencyId)) {
+                throw new PowsyblException("Contingency ID '" + contingencyId + "' is duplicated");
             }
-            contingenciesIds.add(contingencyId);
         }
     }
 
