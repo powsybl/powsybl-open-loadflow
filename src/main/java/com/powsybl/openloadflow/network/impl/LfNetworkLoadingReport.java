@@ -17,11 +17,14 @@ import java.util.List;
  */
 public class LfNetworkLoadingReport {
 
-    public LfNetworkLoadingReport(ReportNode firstRootReportNode) {
+    public LfNetworkLoadingReport(ReportNode firstRootReportNode, boolean detailed) {
         this.firstRootReportNode = firstRootReportNode;
+        this.detailed = detailed;
     }
 
     ReportNode firstRootReportNode;
+
+    boolean detailed;
 
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
 

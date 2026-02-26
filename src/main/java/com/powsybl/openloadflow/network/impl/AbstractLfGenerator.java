@@ -314,7 +314,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         if (parameters.isGeneratorsWithZeroMwTargetAreNotStarted() && Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             report.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted.add(Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(report.firstRootReportNode, this));
-            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP() * PerUnit.SB, getMinP()  * PerUnit.SB);
+            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP() * PerUnit.SB, getMinP() * PerUnit.SB);
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
             return false;
         }

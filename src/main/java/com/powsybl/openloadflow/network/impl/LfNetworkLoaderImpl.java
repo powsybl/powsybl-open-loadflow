@@ -957,7 +957,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), reportNode);
 
         LoadingContext loadingContext = new LoadingContext();
-        LfNetworkLoadingReport report = new LfNetworkLoadingReport(reportNode);
+        LfNetworkLoadingReport report = new LfNetworkLoadingReport(reportNode, parameters.isDetailedReport());
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
                         || pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName()))
@@ -1002,20 +1002,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reportNode, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
-            report.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted.forEach(summary::include);
+            if (report.detailed) {
+                ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reportNode, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reportNode, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
-            report.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall.forEach(summary::include);
+            if (report.detailed) {
+                ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reportNode, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small reactive range",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
-            report.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits.forEach(summary::include);
+            if (report.detailed) {
+                ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because targetP is outside active power limits",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
         }
@@ -1030,14 +1036,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
-            report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero.forEach(summary::include);
+            if (report.detailed) {
+                ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
+                report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
-            report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.forEach(summary::include);
+            if (report.detailed) {
+                ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(reportNode, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
+                report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
         }

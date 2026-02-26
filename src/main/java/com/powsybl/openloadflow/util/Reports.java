@@ -437,7 +437,6 @@ public final class Reports {
                 .build();
     }
 
-
     public static void reportBusForcedToBePv(ReportNode reportNode, String busId) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.busForcedToBePv")
