@@ -473,6 +473,28 @@ public final class Reports {
                 .build();
     }
 
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(ReportNode firstRootReportNode, String generatorIds, String controllerBus) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorsGroupDiscardedFromVoltageControlBecauseInconsistentControlledBus")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue("controllerBus", controllerBus)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode firstRootReportNode, String generatorIds, String controllerBus) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorsGroupDiscardedFromVoltageControlBecauseInconsistentTargetVoltages")
+                .withUntypedValue("generatorIds", generatorIds)
+                .withUntypedValue("controllerBus", controllerBus)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
     public static void reportBusForcedToBePv(ReportNode reportNode, String busId) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.busForcedToBePv")
@@ -715,16 +737,16 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)

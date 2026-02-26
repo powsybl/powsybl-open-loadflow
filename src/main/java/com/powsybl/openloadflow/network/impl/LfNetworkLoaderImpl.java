@@ -162,10 +162,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         if (parameters.isDisableInconsistentVoltageControls() && (inconsistentControlledBus || inconsistentTargetVoltages)) {
             discardGeneratorVoltageControl(controllerBus);
+            String generatorIds = voltageControlGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             if (inconsistentControlledBus) {
+                if (report.detailed) {
+                    report.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus.add(Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(report.firstRootReportNode, generatorIds, controllerBus.getId()));
+                }
+                LOGGER.trace("Discard generators [{}}] from voltage control because they are connected to the same bus {} but they control the voltage of different buses",
+                        generatorIds, controllerBus.getId());
                 report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus += voltageControlGenerators.size();
             }
             if (inconsistentTargetVoltages) {
+                if (report.detailed) {
+                    report.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages.add(Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(report.firstRootReportNode, generatorIds, controllerBus.getId()));
+                }
+                LOGGER.trace("Discard generators [{}}] from voltage control because they are connected to the same bus {} but they have different target voltages",
+                        generatorIds, controllerBus.getId());
                 report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages += voltageControlGenerators.size();
             }
         } else {
@@ -1026,12 +1037,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(reportNode, report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus);
+            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(reportNode, report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus);
+            if (report.detailed) {
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because connected to the same bus but controlling the voltage of different buses",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(reportNode, report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
+            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(reportNode, report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
+            if (report.detailed) {
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages.forEach(summary::include);
+            }
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because connected to the same bus but having different target voltages",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
         }
