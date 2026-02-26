@@ -45,7 +45,6 @@ public final class Reports {
     private static final String TARGET_V = "targetV";
     private static final String TARGET_P = "targetP";
 
-
     public static final String LF_NETWORK_KEY = "olf.lfNetwork";
     public static final String POST_CONTINGENCY_SIMULATION_KEY = "olf.postContingencySimulation";
 
