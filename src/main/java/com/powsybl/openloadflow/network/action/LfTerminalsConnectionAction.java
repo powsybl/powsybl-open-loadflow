@@ -15,6 +15,8 @@ import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -33,22 +35,11 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
 
     @Override
     void findEnabledDisabledBranches(LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getElementId());
-        if (branch != null) {
-            applyEnabledDisabled(branch, action);
+        List<LfBranch> branches = lfNetwork.getBranchesByOriginalId(action.getElementId());
+        if (branches != null) {
+            branches.forEach(b -> applyEnabledDisabled(b, action));
         } else {
-            // Maybe a 3 windings transformer ?
-            LfBranch branch1 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 1));
-            LfBranch branch2 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 2));
-            LfBranch branch3 = lfNetwork.getBranchById(LfLegBranch.getId(action.getElementId(), 3));
-
-            if (branch1 != null && branch2 != null && branch3 != null) {
-                applyEnabledDisabled(branch1, action);
-                applyEnabledDisabled(branch2, action);
-                applyEnabledDisabled(branch3, action);
-            } else {
-                LOGGER.warn("TerminalsConnectionAction action {}: branch or three windings transformer matching element id {} not found", action.getId(), action.getElementId());
-            }
+            LOGGER.warn("TerminalsConnectionAction action {}: branch or three windings transformer matching element id {} not found", action.getId(), action.getElementId());
         }
     }
 
