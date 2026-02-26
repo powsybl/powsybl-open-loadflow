@@ -178,19 +178,16 @@ class AcLoadFlowReportTest {
     void generatorVoltageControlDiscardedMultipleCauses(boolean detailedReport) throws IOException {
         var lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(lfParameters)
+                .setPlausibleActivePowerLimit(5000)
                 .setReportedFeatures(detailedReport ? Set.of(OpenLoadFlowParameters.ReportedFeatures.NETWORK_LOADING) : Collections.emptySet())
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(true);
 
         Network network = IeeeCdfNetworkFactory.create14();
-        network.getGeneratorStream().forEach(g -> System.out.println(g.getId() + " " + g.getTargetP() + "MW " + g.getTargetV() + "kV " + g.isVoltageRegulatorOn()));
         network.getGenerator("B1-G").setMaxP(200); // targetP > maxP, active power control and voltage control will be discarded
-        network.getGenerator("B2-G").setTargetV(10) // not plausible targetV, voltage control will be discarded
-                .setMaxP(10000) // not plausible maxP, active power control will be discarded
-                .setMaxP(200);
+        network.getGenerator("B2-G").setTargetV(10).setMaxP(4000); // not plausible targetV, voltage control will be discarded
         network.getGenerator("B3-G").setTargetP(10).setMaxP(10).setMinP(10); // minP ~= maxP, active power control will be discarded
         network.getGenerator("B6-G").setTargetP(10).setMinP(20); // targetP < minP active power control and voltage control will be discarded
         network.getGenerator("B8-G").newMinMaxReactiveLimits().setMinQ(10).setMaxQ(10).add(); // reactive range is too small, voltage control will be discarded
-        network.getGeneratorStream().forEach(g -> System.out.println(g.getId() + " " + g.getTargetP() + "MW " + g.getTargetV() + "kV " + g.isVoltageRegulatorOn()));
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -222,15 +219,19 @@ class AcLoadFlowReportTest {
                             Discard generator B1-G from active power control because targetP (232.4 MW) > maxTargetP (200 MW)
                          + 1 generators have been discarded from active power control because of a targetP < minP
                             Discard generator B6-G from active power control because targetP (10 MW) < minTargetP (20 MW)
+                         + 1 generators have been discarded from active power control because of maxP not plausible
+                            Discard generator B6-G from active power control because maxP (9999MW) > plausibleLimit (5000 MW)
                          + 1 generators have been discarded from active power control because of maxP equals to minP
-                            Discard generator 'B3-G' from active power control because maxP (${maxP} MW) equals minP (${minP} MW)
-                         1 generators have been discarded from voltage control because targetV is implausible
+                            Discard generator B3-G from active power control because maxP (${maxP} MW) equals minP (${minP} MW)
+                         + 1 generators have been discarded from voltage control because targetV is implausible
+                            Discard generator B2-G from voltage control because of implausible target voltage: 0.074074 p.u
                 """ : // not detailed version
                 """
                          1 generators have been discarded from voltage control because of a too small reactive range
                          2 generators have been discarded from voltage control because targetP is outside active power limits
                          1 generators have been discarded from active power control because of a targetP > maxP
                          1 generators have been discarded from active power control because of a targetP < minP
+                         1 generators have been discarded from active power control because of maxP not plausible
                          1 generators have been discarded from active power control because of maxP equals to minP
                          1 generators have been discarded from voltage control because targetV is implausible
                 """) + """

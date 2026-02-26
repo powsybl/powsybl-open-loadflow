@@ -414,6 +414,17 @@ public final class Reports {
                 .build();
     }
 
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(ReportNode firstRootReportNode, String generatorId, double targetV) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseImplausibleTargetVoltage")
+                .withUntypedValue("generatorId", generatorId)
+                .withUntypedValue("targetV", targetV)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
     public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(ReportNode firstRootReportNode, String generatorId, double targetP) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
@@ -461,14 +472,14 @@ public final class Reports {
                 .build();
     }
 
-    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(ReportNode firstRootReportNode, String generatorId, double maxTargetP, double minTargetP) {
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(ReportNode firstRootReportNode, String generatorId, double maxP, double minP) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseMaxPEqualsMinP")
                 .withUntypedValue("generatorId", generatorId)
-                .withUntypedValue("maxTargetP", maxTargetP)
-                .withUntypedValue("minTargetP", minTargetP)
+                .withUntypedValue("maxTargetP", maxP)
+                .withUntypedValue("minTargetP", minP)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
     }
@@ -707,8 +718,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsImplausible(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseTargetVIsImplausible")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
