@@ -60,7 +60,7 @@ public class LfContingency {
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += getBusLostGenerationTargetP(bus);
-            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).toList());
+            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getOriginalId).toList());
             disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).toList());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
@@ -78,7 +78,7 @@ public class LfContingency {
             }
             disconnectedElementIds.add(generator.getOriginalId());
         }
-        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
+        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().flatMap(lfBranch -> lfBranch.getOriginalIds().stream()).toList());
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 
