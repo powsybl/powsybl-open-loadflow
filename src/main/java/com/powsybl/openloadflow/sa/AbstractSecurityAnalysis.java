@@ -508,21 +508,22 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             case TrueCondition.NAME:
                 return true;
             case AnyViolationCondition.NAME: {
-                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds((AbstractFilteredCondition) conditionalActions.getCondition(), limitViolationsResult);
+                AnyViolationCondition anyCondition = (AnyViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(anyCondition.getFilters(), limitViolationsResult);
                 return !limitViolationEquipmentIds.isEmpty();
             }
             case AtLeastOneViolationCondition.NAME: {
-                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds((AbstractFilteredCondition) conditionalActions.getCondition(), limitViolationsResult);
-                AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) conditionalActions.getCondition();
-                Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
+                AtLeastOneViolationCondition atLeastOneCondition = (AtLeastOneViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(atLeastOneCondition.getFilters(), limitViolationsResult);
+                Set<String> commonEquipmentIds = atLeastOneCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
                         .collect(Collectors.toSet());
                 return !commonEquipmentIds.isEmpty();
             }
             case AllViolationCondition.NAME: {
-                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds((AbstractFilteredCondition) conditionalActions.getCondition(), limitViolationsResult);
                 AllViolationCondition allCondition = (AllViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(allCondition.getFilters(), limitViolationsResult);
                 Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
@@ -534,9 +535,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
-    private static Set<String> filterLimitViolationEquipmentIds(AbstractFilteredCondition condition, LimitViolationsResult limitViolationsResult) {
+    private static Set<String> filterLimitViolationEquipmentIds(Set<LimitViolationType> filters, LimitViolationsResult limitViolationsResult) {
         return limitViolationsResult.getLimitViolations().stream()
-            .filter(violation -> condition.getFilters().isEmpty() || condition.getFilters().contains(violation.getLimitType()))
+            .filter(violation -> filters.isEmpty() || filters.contains(violation.getLimitType()))
             .map(LimitViolation::getSubjectId)
             .collect(Collectors.toSet());
     }
