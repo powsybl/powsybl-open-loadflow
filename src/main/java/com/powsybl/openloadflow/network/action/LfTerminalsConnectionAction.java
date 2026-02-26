@@ -11,7 +11,6 @@ package com.powsybl.openloadflow.network.action;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
