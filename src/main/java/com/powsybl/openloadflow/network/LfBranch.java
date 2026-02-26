@@ -15,6 +15,7 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
@@ -36,6 +37,66 @@ public interface LfBranch extends LfElement {
     }
 
     record LfBranchResults(double p1, double p2, double q1, double q2, double i1, double i2) {
+    }
+
+    class LfLimitsGroup {
+
+        private List<LfLimit> sortedLimits;
+
+        public LfLimitsGroup(List<LfLimit> sortedLimits) {
+            this.sortedLimits = sortedLimits;
+        }
+
+        public List<LfLimit> getSortedLimits() {
+            return sortedLimits;
+        }
+
+        private static double getScaleForLimitType(LimitType type, LfBus bus) {
+            return switch (type) {
+                case ACTIVE_POWER, APPARENT_POWER -> 1.0 / PerUnit.SB;
+                case CURRENT -> 1.0 / PerUnit.ib(bus.getNominalV());
+                default ->
+                        throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
+            };
+        }
+
+        /**
+         * Create the list of LfLimits from a LoadingLimits and a list of reductions.
+         * The resulting list will contain the permanent limit
+         * This list is returned in a LfLimitsGroup object
+         */
+        public static LfLimitsGroup createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus, double[] limitReductions) {
+            List<LfLimit> sortedLimits = new ArrayList<>(3);
+            if (loadingLimits != null) {
+                double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
+
+                int i = 0;
+                for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
+                    if (temporaryLimit.getAcceptableDuration() != 0) {
+                        // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
+                        // for this limit is infinity.
+                        // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
+                        double reduction = limitReductions.length == 0 ? 1d : limitReductions[i + 1]; // Temporary limit's reductions are stored starting from index 1 in `limitReductions`
+                        double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
+                        sortedLimits.add(0, LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
+                                originalValuePerUnit, reduction));
+                    }
+                    i++;
+                }
+                double reduction = limitReductions.length == 0 ? 1d : limitReductions[0];
+                sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));
+            }
+            if (sortedLimits.size() > 1) {
+                // we only make that fix if there is more than a permanent limit attached to the branch.
+                for (int i = sortedLimits.size() - 1; i > 0; i--) {
+                    // From the permanent limit to the most serious temporary limit.
+                    sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
+                }
+                sortedLimits.get(0).setAcceptableDuration(0);
+            }
+            return new LfLimitsGroup(sortedLimits);
+        }
+
     }
 
     class LfLimit {
@@ -211,9 +272,9 @@ public interface LfBranch extends LfElement {
 
     List<Evaluable> getAdditionalClosedQ2();
 
-    List<LfLimit> getLimits1(LimitType type, LimitReductionManager limitReductionManager);
+    List<LfLimitsGroup> getLimits1(LimitType type, LimitReductionManager limitReductionManager);
 
-    default List<LfLimit> getLimits2(LimitType type, LimitReductionManager limitReductionManager) {
+    default List<LfLimitsGroup> getLimits2(LimitType type, LimitReductionManager limitReductionManager) {
         return Collections.emptyList();
     }
 

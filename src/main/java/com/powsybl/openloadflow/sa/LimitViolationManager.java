@@ -146,24 +146,24 @@ public class LimitViolationManager {
     }
 
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
-                                            TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimit>> limitsGetter,
+                                            TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimitsGroup>> limitsGetter,
                                             Function<LfBranch, Evaluable> iGetter,
                                             Function<LfBranch, Evaluable> pGetter,
                                             ToDoubleFunction<LfBranch> sGetter,
                                             TwoSides side) {
-        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
-        if (!limits.isEmpty()) {
-            detectBranchCurrentViolations(branch, bus, iGetter, limits, side);
+        List<LfBranch.LfLimitsGroup> limitsGroups = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
+        for (LfBranch.LfLimitsGroup limits : limitsGroups) {
+            detectBranchCurrentViolations(branch, bus, iGetter, limits.getSortedLimits(), side);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
-        if (!limits.isEmpty()) {
-            detectBranchActivePowerViolations(branch, pGetter, limits, side);
+        limitsGroups = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
+        for (LfBranch.LfLimitsGroup limits : limitsGroups) {
+            detectBranchActivePowerViolations(branch, pGetter, limits.getSortedLimits(), side);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
-        if (!limits.isEmpty()) {
-            detectBranchApparentPowerViolations(branch, sGetter, limits, side);
+        limitsGroups = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
+        for (LfBranch.LfLimitsGroup limits : limitsGroups) {
+                detectBranchApparentPowerViolations(branch, sGetter, limits.getSortedLimits(), side);
         }
     }
 
