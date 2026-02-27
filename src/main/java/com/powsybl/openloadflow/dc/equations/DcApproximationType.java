@@ -12,5 +12,6 @@ package com.powsybl.openloadflow.dc.equations;
  */
 public enum DcApproximationType {
     IGNORE_R,
-    IGNORE_G
+    IGNORE_G,
+    HOT_START
 }

@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.openloadflow.util.Evaluable;
 
 /**
@@ -61,5 +62,11 @@ public interface LfHvdc extends LfElement {
     double getAngleDifferenceToFreeze();
 
     void setAngleDifferenceToFreeze(double angleToFreeze);
+
+    HvdcLine.ConvertersMode getConvertersMode();
+
+    double getP10();
+
+    double getP20();
 
 }

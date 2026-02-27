@@ -102,12 +102,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean forceTargetQInReactiveLimits;
 
+    protected double lossInjectionTargetP;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, LfNetworkParameters parameters) {
         super(network);
         this.v = v;
         this.angle = angle;
         this.distributedOnConformLoad = parameters.isDistributedOnConformLoad();
         this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
+        this.lossInjectionTargetP = 0.;
     }
 
     @Override
@@ -477,7 +480,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
             }
         }
-        return loadTargetP + getFictitiousInjectionTargetP();
+        return loadTargetP + getFictitiousInjectionTargetP() + getLossInjectionTargetP();
     }
 
     @Override
@@ -927,6 +930,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getFictitiousInjectionTargetQ() {
         return 0;
+    }
+
+    @Override
+    public double getLossInjectionTargetP() {
+        return this.lossInjectionTargetP;
+    }
+
+    @Override
+    public void addLossInjectionTargetP(double lossInjectionTargetP) {
+        this.lossInjectionTargetP += lossInjectionTargetP;
     }
 
 }
