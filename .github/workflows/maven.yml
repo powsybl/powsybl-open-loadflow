@@ -17,6 +17,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
+      - name: Enable long paths for Git
+        run: git config --global core.longpaths true
+
       - name: Checkout sources
         uses: actions/checkout@v4
 
@@ -25,6 +28,26 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: 'maven'
+
+      # --- New Step: Build Powsybl Core Snapshot ---
+      - name: Checkout Powsybl Core
+        uses: actions/checkout@v4
+        with:
+          repository: powsybl/powsybl-core
+          path: powsybl-core
+          ref: 'features/sensitivity-analysis-resultwriter-enhancements'
+
+      - name: Build and Install Powsybl Core
+        working-directory: ./powsybl-core
+        if: matrix.os == 'windows-latest'
+        run: mvnw.cmd --batch-mode install -DskipTests -Dspotless.check.skip
+        shell: cmd
+
+      - name: Build and Install Powsybl Core
+        working-directory: ./powsybl-core
+        if: matrix.os != 'windows-latest'
+        run: ./mvnw --batch-mode -Pjacoco install -DskipTests -Dspotless.check.skip
 
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'

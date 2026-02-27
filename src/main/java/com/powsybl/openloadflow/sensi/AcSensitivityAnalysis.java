@@ -12,6 +12,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -52,6 +53,8 @@ import java.util.stream.Collectors;
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariableType, AcEquationType> {
+
+    public static final String NO_IMPACT_ON_ANY_COMPONENT_S = "No impact on any component(s)";
 
     public AcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         super(matrixFactory, connectivityFactory, parameters);
@@ -119,14 +122,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
         }
 
-        if (!runLoadFlow(context, false)) {
+        SensitivityAnalysisResult.LoadFlowStatus loadFlowResults = runLoadFlow(context, false);
+        if (loadFlowResults.status().equals(LoadFlowResult.ComponentResult.Status.FAILED)) {
             // write contingency status
-            resultWriter.writeContingencyStatus(contingencyIndex, SensitivityAnalysisResult.Status.FAILURE);
+            resultWriter.writeContingencyStatus(contingencyIndex, SensitivityAnalysisResult.Status.FAILURE, loadFlowResults, lfNetwork.getNumCC(), lfNetwork.getNumSC());
             return;
         }
 
         // write contingency status
-        resultWriter.writeContingencyStatus(contingencyIndex, SensitivityAnalysisResult.Status.SUCCESS);
+        resultWriter.writeContingencyStatus(contingencyIndex, SensitivityAnalysisResult.Status.SUCCESS, loadFlowResults, lfNetwork.getNumCC(), lfNetwork.getNumSC());
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -154,11 +158,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
     }
 
-    private static boolean runLoadFlow(AcLoadFlowContext context, boolean isRunningBaseSituation) {
+    private static SensitivityAnalysisResult.LoadFlowStatus runLoadFlow(AcLoadFlowContext context, boolean isRunningBaseSituation) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
         if (result.isSuccess() || result.getSolverStatus() == AcSolverStatus.NO_CALCULATION) {
-            return true;
+            return new SensitivityAnalysisResult.LoadFlowStatus(getStatusFromSolverStatus(result.getSolverStatus()), result.getSolverStatus().toString());
         } else {
             if (isRunningBaseSituation) {
                 if (result.getOuterLoopResult().status() != OuterLoopStatus.STABLE) {
@@ -168,9 +172,24 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 }
             } else {
                 LOGGER.warn("Load flow failed with result={}", result);
-                return false;
+                return new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.FAILED, result.getSolverStatus().toString());
             }
         }
+    }
+
+    /**
+     * @param solverStatus the AC loadflow solver status
+     * @return a corresponding LoadflowResultsComponentResult.Status from an AcSolverStatus
+     */
+    private static LoadFlowResult.ComponentResult.Status getStatusFromSolverStatus(AcSolverStatus solverStatus) {
+        return switch (solverStatus) {
+            case AcSolverStatus.CONVERGED -> LoadFlowResult.ComponentResult.Status.CONVERGED;
+            case AcSolverStatus.NO_CALCULATION -> LoadFlowResult.ComponentResult.Status.NO_CALCULATION;
+            case AcSolverStatus.MAX_ITERATION_REACHED -> LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+            case AcSolverStatus.SOLVER_FAILED -> LoadFlowResult.ComponentResult.Status.FAILED;
+            case AcSolverStatus.UNREALISTIC_STATE -> LoadFlowResult.ComponentResult.Status.FAILED;
+        };
+
     }
 
     /**
@@ -182,15 +201,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
                         Executor executor) throws ExecutionException {
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(contingencies);
-        Objects.requireNonNull(factorReader);
-        Objects.requireNonNull(resultWriter);
-        Objects.requireNonNull(sensiReportNode);
 
-        network.getVariantManager().setWorkingVariant(workingVariantId);
-
-        LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
+        LoadFlowParameters lfParameters = getAndCheckLoadFlowParameters(network, workingVariantId, contingencies, factorReader, resultWriter, sensiReportNode);
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
         VariablesTargetVoltageInfo variablesTargetVoltageInfo = getVariableTargetVoltageInfo(factorReader, network);
 
@@ -214,6 +226,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 analyzeContingencySet(network, lfNetworks, propagatedContingencies, acParameters, lfParameters, lfParametersExt, variableSets, factorReader,
                         topoConfig.isBreaker(), resultWriter, variablesTargetVoltageInfo, sensitivityAnalysisParametersExt);
+                resultWriter.computationComplete();
             }
         } else {
             try (SequentialSensitivityResultWriter sequentialSensitivityResultWriter = new SequentialSensitivityResultWriter(resultWriter)) {
@@ -229,6 +242,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
                         parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
+
+                sequentialSensitivityResultWriter.computationComplete();
             }
         }
     }
@@ -296,138 +311,149 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // bus/breaker topology. It is not compatible and must be fixed in the API.
             throw new PowsyblException("Switch contingency is not yet supported with sensitivity function of type BUS_VOLTAGE");
         }
-
         // create networks including all necessary switches
-        LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
+        // Change: Computation is not done anymore on the largest CC but depends on the component mode of the network parameter's Sensitivity Analysis Parameters
+        Set<PropagatedContingency> contingenciesWithNoImpact = new LinkedHashSet<>();
+        Map<PropagatedContingency, LoadFlowResult.Status> contingenciesWithStatusMap = new LinkedHashMap<>();
+        for (LfNetwork lfNetwork : getNetworksToSimulate(lfNetworks, acParameters.getNetworkParameters().getComponentMode())) {
 
-        ReportNode networkReportNode = lfNetwork.getReportNode();
+            ReportNode networkReportNode = lfNetwork.getReportNode();
 
-        Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
-        SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
-        List<LfSensitivityFactor<AcVariableType, AcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
-        LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());
+            Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
+            SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
+            List<LfSensitivityFactor<AcVariableType, AcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
+            LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());
 
-        // next we only work with valid and valid only for function factors
-        var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, contingencies);
-        var validLfFactors = validFactorHolder.getAllFactors();
+            // next we only work with valid and valid only for function factors
+            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, contingencies);
+            var validLfFactors = validFactorHolder.getAllFactors();
 
-        try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
-            runLoadFlow(context, true);
+                SensitivityAnalysisResult.LoadFlowStatus loadflowResultsStatus = runLoadFlow(context, true);
 
-            // index factors by variable group to compute a minimal number of states
-            SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
-                    .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
+                resultWriter.writeSynchronousComponentStatus(lfNetwork.getNumCC(), lfNetwork.getNumSC(), loadflowResultsStatus);
 
-            // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
-            // buses that contain elements participating to slack distribution
+                // index factors by variable group to compute a minimal number of states
+                SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
+                        .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).toList());
 
-            Map<LfBus, Double> slackParticipationByBus;
-            if (lfParameters.isDistributedSlack()) {
-                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
-                slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-                        ParticipatingElement::getLfBus,
-                        element -> -element.getFactor(),
-                        Double::sum
-                ));
-            } else {
-                slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
+                // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
+                // buses that contain elements participating to slack distribution
 
-            }
+                Map<LfBus, Double> slackParticipationByBus;
+                if (lfParameters.isDistributedSlack()) {
+                    List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                    slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
+                            ParticipatingElement::getLfBus,
+                            element -> -element.getFactor(),
+                            Double::sum
+                    ));
+                } else {
+                    slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
 
-            // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
-            // system obtained just before the transformer steps rounding.
-            if (variablesTargetVoltageInfo.hasTransformerTargetVoltage()) {
-                // switch on regulating transformers
-                for (LfBranch branch : lfNetwork.getBranches()) {
-                    branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
                 }
-                lfNetwork.fixTransformerVoltageControls();
-            }
 
-            // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-
-            // initialize right hand side from valid factors
-            DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
-
-            // solve system
-            context.getJacobianMatrix().solveTransposed(factorsStates);
-
-            // calculate sensitivity values
-            setFunctionReferences(validLfFactors);
-            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, resultWriter);
-
-            NetworkState networkState = NetworkState.save(lfNetwork);
-
-            // we always restart from base case voltages for contingency simulation
-            context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-
-            OpenLoadFlowParameters contingencylfParametersExt = applyGenericContingencyParameters(context, lfParameters, lfParametersExt,
-                    sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
-
-            contingencies.forEach(contingency -> {
-                if (Thread.currentThread().isInterrupted()) {
-                    throw new PowsyblException("Computation was interrupted");
+                // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
+                // system obtained just before the transformer steps rounding.
+                if (variablesTargetVoltageInfo.hasTransformerTargetVoltage()) {
+                    // switch on regulating transformers
+                    for (LfBranch branch : lfNetwork.getBranches()) {
+                        branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
+                    }
+                    lfNetwork.fixTransformerVoltageControls();
                 }
-                LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
-                contingency.toLfContingency(lfNetwork)
-                        .ifPresentOrElse(lfContingency -> {
 
-                            ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
-                            lfNetwork.setReportNode(postContSimReportNode);
+                // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
 
-                            List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
-                            contingencyFactors.forEach(lfFactor -> {
-                                lfFactor.setSensitivityValuePredefinedResult(null);
-                                lfFactor.setFunctionPredefinedResult(null);
+                // initialize right hand side from valid factors
+                DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
+
+                // solve system
+                context.getJacobianMatrix().solveTransposed(factorsStates);
+
+                // calculate sensitivity values
+                setFunctionReferences(validLfFactors);
+                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, resultWriter);
+
+                NetworkState networkState = NetworkState.save(lfNetwork);
+
+                // we always restart from base case voltages for contingency simulation
+                context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+
+                OpenLoadFlowParameters contingencylfParametersExt = applyGenericContingencyParameters(context, lfParameters, lfParametersExt,
+                        sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
+
+                contingencies.forEach(contingency -> {
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new PowsyblException("Computation was interrupted");
+                    }
+                    LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
+                    contingency.toLfContingency(lfNetwork)
+                            .ifPresentOrElse(lfContingency -> {
+                                contingenciesWithNoImpact.remove(contingency);
+                                ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
+                                lfNetwork.setReportNode(postContSimReportNode);
+
+                                List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
+                                contingencyFactors.forEach(lfFactor -> {
+                                    lfFactor.setSensitivityValuePredefinedResult(null);
+                                    lfFactor.setFunctionPredefinedResult(null);
+                                });
+
+                                lfContingency.apply(lfParameters.getBalanceType());
+
+                                setPredefinedResults(contingencyFactors, lfContingency.getDisabledNetwork(), contingency);
+
+                                Map<LfBus, Double> postContingencySlackParticipationByBus;
+                                Set<LfBus> slackConnectedComponent;
+                                boolean hasChanged = false;
+                                if (lfContingency.getDisabledNetwork().getBuses().isEmpty()) {
+                                    // contingency not breaking connectivity
+                                    LOGGER.debug("Contingency '{}' without loss of connectivity", lfContingency.getId());
+                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
+                                } else {
+                                    // contingency breaking connectivity
+                                    LOGGER.debug("Contingency '{}' with loss of connectivity", lfContingency.getId());
+                                    // we check if factors are still in the main component
+                                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledNetwork().getBuses()::contains)).collect(Collectors.toSet());
+                                    // we recompute GLSK weights if needed
+                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledNetwork().getBuses());
+                                }
+
+                                // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
+                                // buses that contain elements participating to slack distribution)
+                                if (lfParameters.isDistributedSlack()) {
+                                    postContingencySlackParticipationByBus = getParticipatingElements(slackConnectedComponent, lfParameters.getBalanceType(), contingencylfParametersExt).stream().collect(Collectors.toMap(
+                                            ParticipatingElement::getLfBus, element -> -element.getFactor(), Double::sum));
+                                } else {
+                                    postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
+                                }
+                                calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
+                                        lfParameters, contingencylfParametersExt, lfContingency.getIndex(), resultWriter, variablesTargetVoltageInfo.hasTransformerTargetVoltage());
+
+                                if (hasChanged) {
+                                    rescaleGlsk(factorGroups, Collections.emptySet());
+                                }
+                                networkState.restore();
+                            }, () -> {
+                                contingenciesWithNoImpact.add(contingency);
+                                // it means that the contingency has no impact.
+                                // we need to force the state vector to be re-initialized from base case network state
+                                AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
+
+                                calculateSensitivityValues(validFactorHolder.getFactorsForContingency(contingency.getContingency().getId()), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
+
                             });
-
-                            lfContingency.apply(lfParameters.getBalanceType());
-
-                            setPredefinedResults(contingencyFactors, lfContingency.getDisabledNetwork(), contingency);
-
-                            Map<LfBus, Double> postContingencySlackParticipationByBus;
-                            Set<LfBus> slackConnectedComponent;
-                            boolean hasChanged = false;
-                            if (lfContingency.getDisabledNetwork().getBuses().isEmpty()) {
-                                // contingency not breaking connectivity
-                                LOGGER.debug("Contingency '{}' without loss of connectivity", lfContingency.getId());
-                                slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
-                            } else {
-                                // contingency breaking connectivity
-                                LOGGER.debug("Contingency '{}' with loss of connectivity", lfContingency.getId());
-                                // we check if factors are still in the main component
-                                slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledNetwork().getBuses()::contains)).collect(Collectors.toSet());
-                                // we recompute GLSK weights if needed
-                                hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledNetwork().getBuses());
-                            }
-
-                            // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
-                            // buses that contain elements participating to slack distribution)
-                            if (lfParameters.isDistributedSlack()) {
-                                postContingencySlackParticipationByBus = getParticipatingElements(slackConnectedComponent, lfParameters.getBalanceType(), contingencylfParametersExt).stream().collect(Collectors.toMap(
-                                        ParticipatingElement::getLfBus, element -> -element.getFactor(), Double::sum));
-                            } else {
-                                postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
-                            }
-                            calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
-                                    lfParameters, contingencylfParametersExt, lfContingency.getIndex(), resultWriter, variablesTargetVoltageInfo.hasTransformerTargetVoltage());
-
-                            if (hasChanged) {
-                                rescaleGlsk(factorGroups, Collections.emptySet());
-                            }
-                            networkState.restore();
-                        }, () -> {
-                            // it means that the contingency has no impact.
-                            // we need to force the state vector to be re-initialized from base case network state
-                            AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
-
-                            calculateSensitivityValues(validFactorHolder.getFactorsForContingency(contingency.getContingency().getId()), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
-                            // write contingency status
-                            resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
-                        });
-            });
+                });
+            }
         }
+        // Report contingency with no impact on all component status
+        for (PropagatedContingency propagatedContingencyWithNoImpact : contingenciesWithNoImpact) {
+            resultWriter.writeContingencyStatus(propagatedContingencyWithNoImpact.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT,
+                    new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, NO_IMPACT_ON_ANY_COMPONENT_S), -1, -1);
+        }
+        resultWriter.computationComplete();
 
     }
 

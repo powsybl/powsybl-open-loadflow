@@ -1307,6 +1307,27 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
     }
 
+    protected LoadFlowParameters getAndCheckLoadFlowParameters(Network network, String workingVariantId, List<Contingency> contingencies, SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode sensiReportNode) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(contingencies);
+        Objects.requireNonNull(factorReader);
+        Objects.requireNonNull(resultWriter);
+        Objects.requireNonNull(sensiReportNode);
+        network.getVariantManager().setWorkingVariant(workingVariantId);
+        return parameters.getLoadFlowParameters();
+    }
+
+    static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ComponentMode mode) {
+        return switch (mode) {
+            case MAIN_CONNECTED -> networks.getList().stream()
+                    .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+            case MAIN_SYNCHRONOUS -> networks.getList().stream()
+                    .filter(n -> n.getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+            case ALL_CONNECTED -> networks.getList().stream()
+                    .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        };
+    }
+
     public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, PropagatedContingencyCreationParameters creationParameters,
                                  List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                                  SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
