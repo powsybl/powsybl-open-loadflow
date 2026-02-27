@@ -12,16 +12,16 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfBranchImpl;
+import com.powsybl.openloadflow.network.impl.LfBusImpl;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -199,6 +199,30 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
 
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
+
+        if (context.getParameters().getEquationSystemCreationParameters().getDcApproximationType() == DcApproximationType.HOT_START) {
+            double totalLoss = 0.;
+            for (LfBranch branch : network.getBranches()) {
+                LfBranchImpl lfbranch = (LfBranchImpl) branch;
+                double p1 = lfbranch.getBranch().getTerminal1().getP();
+                double p2 = lfbranch.getBranch().getTerminal2().getP();
+                double loss = (p1 + p2) / PerUnit.SB;
+                totalLoss += loss;
+                LfBusImpl lfbus1 = (LfBusImpl) lfbranch.getBus1();
+                lfbus1.addLossInjectionTargetP(loss / 2.);
+                LfBusImpl lfbus2 = (LfBusImpl) lfbranch.getBus2();
+                lfbus2.addLossInjectionTargetP(loss / 2);
+            }
+
+            for (LfHvdc hvdc : network.getHvdcs()) {
+                double loss = (hvdc.getP10() + hvdc.getP20()) / PerUnit.SB;
+                totalLoss += loss;
+                hvdc.getConverterStation1().getBus().addLossInjectionTargetP(loss / 2.);
+                hvdc.getConverterStation2().getBus().addLossInjectionTargetP(loss / 2.);
+            }
+
+            Reports.reporDcLossCompensation(reportNode, totalLoss * PerUnit.SB);
+        }
 
         double initialSlackBusActivePowerMismatch = getActivePowerMismatch(network.getBuses());
         double distributedActivePower = 0.0;

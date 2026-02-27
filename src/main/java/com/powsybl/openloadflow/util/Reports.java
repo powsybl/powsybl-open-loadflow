@@ -161,6 +161,14 @@ public final class Reports {
                 .add();
     }
 
+    public static void reporDcLossCompensation(ReportNode reportNode, double totalLoss) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.dcLossCompensation")
+                .withUntypedValue("totalLossCompensation", totalLoss)
+                .withSeverity(TypedValue.DEBUG_SEVERITY)
+                .add();
+    }
+
     public static void reportMismatchDistributionFailure(ReportNode reportNode, double remainingMismatch) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.mismatchDistributionFailure")

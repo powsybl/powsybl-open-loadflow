@@ -188,7 +188,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return lfBranch;
     }
 
-    private Branch<?> getBranch() {
+    public Branch<?> getBranch() {
         return branchRef.get();
     }
 
