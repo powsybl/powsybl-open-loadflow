@@ -121,6 +121,11 @@ public interface LfBus extends LfElement {
      */
     double getFictitiousInjectionTargetQ();
 
+    /**
+     * Returns the part of getLoadTargetP that does not come from a load but from the loss bus injection
+     */
+    double getLossInjectionTargetP();
+
     void invalidateLoadTargetP();
 
     double getLoadTargetP();
@@ -261,4 +266,6 @@ public interface LfBus extends LfElement {
     void setArea(LfArea area);
 
     ViolationLocation getViolationLocation();
+
+    void addLossInjectionTargetP(double lossInjectionTargetP);
 }

@@ -55,6 +55,12 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private boolean acEmulationFrozen = false;
 
+    private HvdcLine.ConvertersMode mode;
+
+    private double p10;
+
+    private double p20;
+
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine, boolean acEmulation) {
         super(network);
         this.id = Objects.requireNonNull(id);
@@ -76,6 +82,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
             pMaxFromCS2toCS1 = hvdcLine.getMaxP();
             pMaxFromCS1toCS2 = hvdcLine.getMaxP();
         }
+        this.mode = hvdcLine.getConvertersMode();
+        this.p10 = hvdcLine.getConverterStation1().getTerminal().getP();
+        this.p20 = hvdcLine.getConverterStation2().getTerminal().getP();
     }
 
     @Override
@@ -229,4 +238,20 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     public void setAngleDifferenceToFreeze(double frozenP) {
         this.angleToFreeze = frozenP;
     }
+
+    @Override
+    public HvdcLine.ConvertersMode getConvertersMode() {
+        return mode;
+    }
+
+    @Override
+    public double getP10() {
+        return p10;
+    }
+
+    @Override
+    public double getP20() {
+        return p20;
+    }
+
 }

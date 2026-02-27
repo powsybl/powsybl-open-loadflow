@@ -16,10 +16,12 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.PiModelArray;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.List;
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.dc.equations.DcApproximationType.HOT_START;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
@@ -56,7 +58,19 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         this.useTransformerRatio = useTransformerRatio;
         this.dcApproximationType = dcApproximationType;
         isPowerPreComputed = !(piModel instanceof PiModelArray);
-        power = isPowerPreComputed ? computePower(useTransformerRatio, dcApproximationType, piModel) : Double.NaN;
+        double zb = bus1.getNominalV() * bus2.getNominalV() / PerUnit.SB;
+        double v1 = bus1.getV();
+        double v2 = bus2.getV();
+        double angle1 = bus1.getAngle();
+        double angle2 = bus2.getAngle();
+        double deltaTheta = angle1 - angle2;
+        double angular;
+        if (deltaTheta == 0.) {
+            angular = 1.;
+        } else {
+            angular = Math.sin(deltaTheta) / deltaTheta;
+        }
+        power = isPowerPreComputed ? computePower(useTransformerRatio, dcApproximationType, piModel, v1, v2, angular, zb) : Double.NaN;
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {
@@ -68,16 +82,23 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
      * Update power only if the branch is a PiModelArray.
      */
     protected double getPower() {
-        return isPowerPreComputed ? power : computePower(useTransformerRatio, dcApproximationType, element.getPiModel());
+        return isPowerPreComputed ? power : computePower(useTransformerRatio, dcApproximationType, element.getPiModel(), 1., 1., 1., 1.);
     }
 
-    public static double computePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel) {
+    public static double computePower(boolean useTransformerRatio, DcApproximationType dcApproximationType, PiModel piModel, double v1, double v2, double angular, double zb) {
         double b = switch (dcApproximationType) {
             case IGNORE_R -> 1d / piModel.getX();
             case IGNORE_G -> {
                 double r = piModel.getR();
                 double x = piModel.getX();
                 yield x / (r * r + x * x);
+            }
+            case HOT_START -> {
+                double r = piModel.getR() * zb;
+                double x = piModel.getX() * zb;
+                double susceptance = -x / (r * r + x * x);
+                double admittance = -v1 * v2 * susceptance * angular;
+                yield admittance * zb;
             }
         };
         return b * (useTransformerRatio ? piModel.getR1() * R2 : 1);
