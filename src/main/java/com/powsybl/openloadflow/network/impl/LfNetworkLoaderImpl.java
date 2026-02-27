@@ -624,7 +624,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
             }
 
-            LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
+            LfBus lfBus1 = getLfBus(acDcConverter.getPccTerminal(), lfNetwork, parameters.isBreakers());
             if (lfBus1 != null) {
                 LfDcNode lfDcNode1 = getLfDcNode(acDcConverter.getDcTerminal1(), lfNetwork);
                 LfDcNode lfDcNode2 = getLfDcNode(acDcConverter.getDcTerminal2(), lfNetwork);

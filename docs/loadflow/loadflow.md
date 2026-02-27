@@ -385,7 +385,7 @@ In addition to the control modes `P_PCC` and `V_DC`, the voltage source converte
 - Voltage regulator control mode, in which it imposes the voltage at its AC Bus. In this case the reactive power is not
   fixed.
 
-We note $P_{AC}$ the power flow injected by AC network into the converter. 
+We note $P_{AC}$ the power flow injected by AC network into the converter at its PCC terminal. 
 So $P_{AC}>0$ if the power flows from AC to DC and $P_{AC}<0$ otherwise.
 
 If the converter is in `P_PCC` control mode, we add an equation to impose $P_{AC}$ :
