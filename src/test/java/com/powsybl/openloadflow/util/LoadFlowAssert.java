@@ -70,6 +70,10 @@ public final class LoadFlowAssert {
         assertEquals(i, terminal.getI(), DELTA_I);
     }
 
+    public static void assertDcCurrentEquals(double i, DcTerminal terminal) {
+        assertEquals(i, terminal.getI(), DELTA_I);
+    }
+
     public static void assertUndefinedActivePower(Terminal terminal) {
         assertTrue(Double.isNaN(terminal.getP()));
     }

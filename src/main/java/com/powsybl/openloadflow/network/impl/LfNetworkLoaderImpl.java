@@ -1209,6 +1209,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<DcGround> dcGrounds = new ArrayList<>();
         dcBuses.forEach(bus -> bus.getDcGrounds().forEach(dcGrounds::add));
 
+        if (dcGrounds.isEmpty()) {
+            throw new PowsyblException("Open Load Flow does not support DC networks without a DC ground");
+        }
+
         LoadingContext loadingContext = new LoadingContext();
         List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
                 .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS

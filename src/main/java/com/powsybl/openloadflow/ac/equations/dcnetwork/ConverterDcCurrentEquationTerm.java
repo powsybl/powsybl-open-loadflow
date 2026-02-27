@@ -24,63 +24,109 @@ public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEq
         super(converter, dcNode1, dcNode2, nominalV, variableSet);
     }
 
-    public static double iConv(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
-        double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
-        return (pLoss - pAc) / (v1 - v2);
+    private static double iConvSign(double pAc, double v1, double v2) {
+        // P_AC <=0 and v1>=v2 or P_AC>=0 and v1<=v2 implies Iconv>=0. Otherwise, Iconv<=0
+        return -Math.signum(pAc) * Math.signum(v1 - v2);
     }
 
-    public static double diConvdv1(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
-        double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
-        return -(pLoss - pAc) / ((v1 - v2) * (v1 - v2));
+    /*
+        Computation of Iconv and its derivative if there is no resistive losses
+     */
+    public static double iConvNoResistiveLoss(double pAc, double v1, double v2, double idleLoss, double switchingLoss) {
+        double iConvSign = iConvSign(pAc, v1, v2);
+        return (pAc - idleLoss) / (iConvSign * switchingLoss - (v1 - v2));
     }
 
-    public static double diConvdv2(double pAc, double qAc, double v1, double v2, double vAc, double idleLoss, double switchingLoss, double resistiveLoss) {
-        double iAc = Math.sqrt(pAc * pAc + qAc * qAc) / vAc;
-        double pLoss = idleLoss + switchingLoss * iAc + resistiveLoss * iAc * iAc;
-        return (pLoss - pAc) / ((v1 - v2) * (v1 - v2));
+    public static double diConvdpAcNoResistiveLoss(double pAc, double v1, double v2, double switchingLoss) {
+        double iConvSign = iConvSign(pAc, v1, v2);
+        return 1 / (iConvSign * switchingLoss - (v1 - v2));
     }
 
-    public static double diConvdpAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
-        double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
-        double iAc = sAc / vAc;
-        double dpDcdpAc = -1 + pAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
-        return dpDcdpAc / (v1 - v2);
+    public static double diConvdv1NoResistiveLoss(double pAc, double v1, double v2, double idleLoss, double switchingLoss) {
+        double iConvSign = -Math.signum(pAc) * Math.signum(v1 - v2);
+        return (pAc - idleLoss) / Math.pow(iConvSign * switchingLoss - (v1 - v2), 2);
     }
 
-    public static double diConvdqAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
-        double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
-        double iAc = sAc / vAc;
-        double dpDcdqAc = qAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * sAc);
-        return dpDcdqAc / (v1 - v2);
+    public static double diConvdv2NoResistiveLoss(double pAc, double v1, double v2, double idleLoss, double switchingLoss) {
+        double iConvSign = -Math.signum(pAc) * Math.signum(v1 - v2);
+        return -(pAc - idleLoss) / Math.pow(iConvSign * switchingLoss - (v1 - v2), 2);
     }
 
-    public static double diConvdvAc(double pAc, double qAc, double v1, double v2, double vAc, double switchingLoss, double resistiveLoss) {
-        double sAc = Math.sqrt(pAc * pAc + qAc * qAc);
-        double iAc = sAc / vAc;
-        double dpDcdVAc = -sAc * (switchingLoss + 2 * resistiveLoss * iAc) / (vAc * vAc);
-        return dpDcdVAc / (v1 - v2);
+    /*
+        Computation of Iconv and its derivative if there is resistive losses
+     */
+    public static double iConvWithResistiveLoss(double pAc, double v1, double v2, double idleLoss, double switchingLoss, double resistiveLoss) {
+        // Once the sign of Iconv is fixed, the equation is a simple second order polynomial
+        double iConvSign = iConvSign(pAc, v1, v2);
+        double b = iConvSign * switchingLoss - (v1 - v2); // In polynomial expression a=resistiveLoss and c=idleLoss-P_AC
+        double delta = Math.pow(b, 2) - 4 * resistiveLoss * (idleLoss - pAc);
+        // Whether to consider solution with + sqrt(delta) or -sqrt(delta) depends on the sign of v1-v2
+        return (-b - Math.signum(v1 - v2) * Math.sqrt(delta)) / (2 * resistiveLoss);
+    }
+
+    public static double diConvdpAcWithResistiveLoss(double pAc, double v1, double v2, double idleLoss, double switchingLoss, double resistiveLoss) {
+        double iConvSign = iConvSign(pAc, v1, v2);
+        double b = iConvSign * switchingLoss - (v1 - v2);
+        double delta = Math.pow(b, 2) - 4 * resistiveLoss * (idleLoss - pAc);
+
+        return -Math.signum(v1 - v2) / Math.sqrt(delta);
+    }
+
+    public static double diConvdv1WithResistiveLoss(double pAc, double v1, double v2, double idleLoss, double switchingLoss, double resistiveLoss) {
+        double iConvSign = -Math.signum(pAc) * Math.signum(v1 - v2);
+        double b = iConvSign * switchingLoss - (v1 - v2);
+        double delta = Math.pow(b, 2) - 4 * resistiveLoss * (idleLoss - pAc);
+
+        return (1 - Math.signum(v1 - v2) * (v1 - v2 - iConvSign * switchingLoss) / Math.sqrt(delta)) / (2 * resistiveLoss);
+    }
+
+    public static double diConvdv2WithResistiveLoss(double pAc, double v1, double v2, double idleLoss, double switchingLoss, double resistiveLoss) {
+        double iConvSign = -Math.signum(pAc) * Math.signum(v1 - v2);
+        double b = iConvSign * switchingLoss - (v1 - v2);
+        double delta = Math.pow(b, 2) - 4 * resistiveLoss * (idleLoss - pAc);
+
+        return -(1 - Math.signum(v1 - v2) * (v1 - v2 - iConvSign * switchingLoss) / Math.sqrt(delta)) / (2 * resistiveLoss);
     }
 
     @Override
     public double eval() {
-        return iConv(pAc(), qAc(), v1(), v2(), vAc(), idleLoss, switchingLoss, resistiveLoss);
+        /*
+            P_AC + P_DC = P_loss
+            P_AC + I_conv * (V1-V2) = idle_loss + switching_loss_factor * |Iconv| + resistive_loss_factor * I_conv^2
+            This is close to a 2nd order polynomial expression except for the absolute value of Iconv, which is the
+            unknown value to compute.
+            Assuming |P_AC|, |P_DC| > P_loss, the sign of P_AC and P_DC are opposite.
+            Thus, we can use sign(P_AC) and sign(V1-V2) to infer sign(I_conv) and solve the polynomial expression.
+            Additionally, the equation system changes if resistive_loss_factor is zero
+         */
+        if (resistiveLoss == 0) {
+            return iConvNoResistiveLoss(pAc(), v1(), v2(), idleLoss, switchingLoss);
+        } else {
+            return iConvWithResistiveLoss(pAc(), v1(), v2(), idleLoss, switchingLoss, resistiveLoss);
+        }
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(pAcVar)) {
-            return diConvdpAc(pAc(), qAc(), v1(), v2(), vAc(), switchingLoss, resistiveLoss);
-        } else if (variable.equals(qAcVar)) {
-            return diConvdqAc(pAc(), qAc(), v1(), v2(), vAc(), switchingLoss, resistiveLoss);
+            if (resistiveLoss == 0) {
+                return diConvdpAcNoResistiveLoss(pAc(), v1(), v2(), switchingLoss);
+            } else {
+                return diConvdpAcWithResistiveLoss(pAc(), v1(), v2(), idleLoss, switchingLoss, resistiveLoss);
+            }
         } else if (variable.equals(v1Var)) {
-            return diConvdv1(pAc(), qAc(), v1(), v2(), vAc(), idleLoss, switchingLoss, resistiveLoss);
+            if (resistiveLoss == 0) {
+                return diConvdv1NoResistiveLoss(pAc(), v1(), v2(), idleLoss, switchingLoss);
+            } else {
+                return diConvdv1WithResistiveLoss(pAc(), v1(), v2(), idleLoss, switchingLoss, resistiveLoss);
+            }
         } else if (variable.equals(v2Var)) {
-            return diConvdv2(pAc(), qAc(), v1(), v2(), vAc(), idleLoss, switchingLoss, resistiveLoss);
-        } else if (variable.equals(vAcVar)) {
-            return diConvdvAc(pAc(), qAc(), v1(), v2(), vAc(), switchingLoss, resistiveLoss);
+            if (resistiveLoss == 0) {
+                return diConvdv2NoResistiveLoss(pAc(), v1(), v2(), idleLoss, switchingLoss);
+            } else {
+                return diConvdv2WithResistiveLoss(pAc(), v1(), v2(), idleLoss, switchingLoss, resistiveLoss);
+            }
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

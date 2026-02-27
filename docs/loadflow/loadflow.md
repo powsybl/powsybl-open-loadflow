@@ -350,8 +350,9 @@ components are the followings:
 
 ### DC node
 
-At least one DC node must be connected to the ground in each DC network, its potential is therefore set to 0.  
-For the others, each DC node introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC node.
+At least one DC node must be connected to the ground in each DC network, its potential is therefore set to 0. 
+Therefore, symmetrical configuration are currently not supported.  
+For the others DC node, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC node.
 These terms are introduced by the DC components connected to the DC node.
 
 ### DC Line
@@ -419,7 +420,7 @@ $$P_{DC} + P_{AC} = P_{Loss}$$
 
 with:
 - $P_{AC}$ the power injected by the AC network into the converter
-- $P_{Loss}>=0$ the converter losses depending on AC current. Its computation is detailed in the next subsection.
+- $P_{Loss}>=0$ the converter losses depending on AC current. Its computation is detailed below.
 - $P_{DC} = I_{Conv}*(V_1-V_2)$ the power injected by the DC network into the converter.
 
 If the converter acts as rectifier, AC injects power in DC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
@@ -442,43 +443,17 @@ $$
 
 In both cases, there is a loss of power when passing through the converter.
 
-#### Loss Calculation
 
-The loss calculation is inherited from this [paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5275450).
-
-$P_{Loss}$ is defined as :
+$P_{Loss}$ is defined as :  
 $
-P_{Loss} = Loss_{A} + Loss_{B}*I_{AC,pu} + Loss_{C}*I_{AC,pu}^{2}
+P_{Loss} = IdleLoss + SwitchingLoss * |I_{Conv}| + ResistiveLoss * I_{Conv}^{2}
 $
-Where $Loss_{A}, Loss_{B}$ and $Loss_{C}$ are loss factors that depend on the converter, also called `idle loss`,
-`switching loss` and `resistive loss`, and $I_{ACpu}$ is the current flowing from the converter to AC side.
 
-$I_{AC,pu}$ is calculated by :
 
+Idle loss, switching loss and resistive loss are loss factors that depend on the converter.
+
+Using the previous equation of power conservation between AC and DC, we have
 $$
-\begin{aligned}
-I_{AC,pu} &= \frac{\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}{V_{AC,pu}} \\
-\end{aligned}
+I_{Conv}*(V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss*|I_{Conv}| + ResistiveLoss*I_{Conv}^{2}
 $$
 
-And in the Jacobian, we then have the two derivatives: $\frac{\partial P_{DC,pu}}{\partial P_{AC,pu}}$ and
-$\frac{\partial P_{DC,pu}}{\partial Q_{AC,pu}}$ :
-
-$$
-\begin{aligned}
-\frac{\partial P_{DC,pu}}{\partial P_{AC,pu}} &= -1- \frac{\partial P_{Loss,pu}}{\partial P_{AC,pu}} \\
-&=-1-\frac{\partial}{\partial P_{AC,pu}}(Loss_{A} + Loss_{B}*I_{AC,pu} + Loss_{C}*I_{AC,pu}^{2}) \\
-&= -1-(Loss_{B}*\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}+2I_{AC,pu}Loss_{C}\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}) \\
-&= -1-(Loss_{B}+2I_{AC,pu}Loss_{C})*\frac{\partial I_{AC,pu}}{\partial P_{AC,pu}}\\
-&= -1-\frac{P_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{V_{AC,pu}*\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
-\end{aligned}
-$$
-
-And by the same calculation :
-
-$$
-\begin{aligned}
-\frac{\partial P_{DC,pu}}{\partial Q_{AC,pu}} &= - \frac{\partial P_{Loss,pu}}{\partial Q_{AC,pu}} \\
-&= \frac{-Q_{AC,pu}(Loss_{B} + 2Loss_{C}*I_{AC,pu})}{V_{AC,pu}*\sqrt{Q_{AC,pu}^{2} + P_{AC,pu}^{2}}}
-\end{aligned}
-$$

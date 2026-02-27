@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfDcNode;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -31,10 +30,6 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
     protected final Variable<AcVariableType> v2Var;
 
     protected final Variable<AcVariableType> pAcVar;
-
-    protected final Variable<AcVariableType> qAcVar;
-
-    protected final Variable<AcVariableType> vAcVar;
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
@@ -58,25 +53,19 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
         Objects.requireNonNull(variableSet);
         AcVariableType vType = AcVariableType.DC_NODE_V;
         AcVariableType pType = AcVariableType.CONV_P_AC;
-        AcVariableType qType = AcVariableType.CONV_Q_AC;
-        LfBus bus = converter.getBus1();
         v1Var = variableSet.getVariable(dcNode1.getNum(), vType);
         v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
         pAcVar = variableSet.getVariable(converter.getNum(), pType);
-        qAcVar = variableSet.getVariable(converter.getNum(), qType);
-        vAcVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         variables.add(v1Var);
         variables.add(v2Var);
         variables.add(pAcVar);
-        variables.add(qAcVar);
-        variables.add(vAcVar);
         lossFactors = converter.getLossFactors();
         dcNominalV = nominalV;
         this.dcNode1 = dcNode1;
         this.dcNode2 = dcNode2;
         this.idleLoss = lossFactors.get(0) / PerUnit.SB;
-        this.switchingLoss = lossFactors.get(1) * PerUnit.ib(bus.getNominalV()) / PerUnit.SB;
-        this.resistiveLoss = lossFactors.get(2) / PerUnit.zb(bus.getNominalV()) / 3;
+        this.switchingLoss = lossFactors.get(1) * 1000d / nominalV;
+        this.resistiveLoss = lossFactors.get(2) / PerUnit.zb(nominalV);
     }
 
     protected double v1() {
@@ -89,14 +78,6 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected double pAc() {
         return sv.get(pAcVar.getRow());
-    }
-
-    protected double qAc() {
-        return sv.get(qAcVar.getRow());
-    }
-
-    protected double vAc() {
-        return sv.get(vAcVar.getRow());
     }
 
     @Override
