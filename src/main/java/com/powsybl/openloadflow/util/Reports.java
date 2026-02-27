@@ -481,8 +481,8 @@ public final class Reports {
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
                 .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseMaxPEqualsMinP")
                 .withUntypedValue(GENERATOR_ID, generatorId)
-                .withUntypedValue("maxTargetP", maxP)
-                .withUntypedValue("minTargetP", minP)
+                .withUntypedValue("maxP", maxP)
+                .withUntypedValue("minP", minP)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
     }
