@@ -209,4 +209,12 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         // never selected
         return -1;
     }
+
+    @Override
+    public double getRangeQ(ReactiveRangeMode rangeMode) {
+        // rangeQ of SVCs is always calculated assuming nominal voltage
+        // and is not re-evaluated during calculation.
+        return (svcRef.get().getBmax() - svcRef.get().getBmin())
+                * nominalV * nominalV / PerUnit.SB;
+    }
 }
