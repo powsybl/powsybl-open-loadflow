@@ -387,7 +387,7 @@ small reactive power ranger means limited to zero voltage control capability. Th
 - Static VAR compensators
 
 For a given active power output, the reactive power range is defined as $MaxQ - MinQ$ (always a positive value).  
-The *maximum* and *minimum* reactive range of a generator is:
+The *maximum* and *minimum* reactive range of a network element is:
 - for network elements without reactive limits: infinity 
 - for network elements with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
 - for network elements with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
