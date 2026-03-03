@@ -438,6 +438,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             contingencylfParametersExt.setStartWithFrozenACEmulation(true);
             context.getParameters().setOuterLoops(OpenLoadFlowParameters.createAcOuterLoops(lfParameters, contingencylfParametersExt));
         }
+        context.getParameters().setFixVoltageTargets(false); // Checking voltage targets in contingency cases is unnecessary in most cases
         return contingencylfParametersExt;
     }
 }
