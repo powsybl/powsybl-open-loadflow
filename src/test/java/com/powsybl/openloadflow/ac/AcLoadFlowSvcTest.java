@@ -459,9 +459,6 @@ class AcLoadFlowSvcTest {
                 .setRegulatingTerminal(g1.getRegulatingTerminal())
                 .setRegulating(true);
 
-        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
-        parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.NONE);
-
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
