@@ -11,6 +11,9 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.commons.test.TestUtil;
+import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -20,8 +23,15 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.VoltageTargetCheck;
 import com.powsybl.openloadflow.VoltageTargetChecker;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
+import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
+import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.SecurityAnalysisReport;
+import com.powsybl.security.SecurityAnalysisRunParameters;
+import com.powsybl.sensitivity.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,13 +41,19 @@ import java.util.Set;
 
 class VoltageCheckerTest {
 
-    @Test
-    void testIncompatibleReport() {
-        Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControlAndSmallSeparatingImpedance();
+    private Network network;
+
+    @BeforeEach
+    void setUp() {
+        network = VoltageControlNetworkFactory.createWithGeneratorRemoteControlAndSmallSeparatingImpedance();
 
         network.getGenerator("g1").setTargetV(400);
         network.getGenerator("g2").setTargetV(403);
         network.getGenerator("g3").setTargetV(407);
+    }
+
+    @Test
+    void testIncompatibleReport() {
         VoltageTargetCheck.Result result = VoltageTargetChecker.findElementsToDiscardFromVoltageControl(network, new LoadFlowParameters());
         List<VoltageTargetCheck.IncompatibleTargetResolution> incompatibleTargetResolutions = result.incompatibleTargetResolutions();
         VoltageTargetCheck.IncompatibleTargetResolution incompatibleTargetResolution1 = incompatibleTargetResolutions.get(0);
@@ -65,11 +81,6 @@ class VoltageCheckerTest {
 
     @Test
     void testAutomaticFix() {
-        Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControlAndSmallSeparatingImpedance();
-        network.getGenerator("g1").setTargetV(400);
-        network.getGenerator("g2").setTargetV(403);
-        network.getGenerator("g3").setTargetV(407);
-
         OpenLoadFlowProvider runner = new OpenLoadFlowProvider();
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters();
         LoadFlowParameters params = new LoadFlowParameters();
@@ -90,11 +101,6 @@ class VoltageCheckerTest {
 
     @Test
     void testAutomaticFixReports() throws IOException {
-        Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControlAndSmallSeparatingImpedance();
-        network.getGenerator("g1").setTargetV(400);
-        network.getGenerator("g2").setTargetV(403);
-        network.getGenerator("g3").setTargetV(407);
-
         // Add a PV node on the load
         network.getVoltageLevel("vl5").newGenerator()
                 .setId("g5")
@@ -135,5 +141,108 @@ class VoltageCheckerTest {
         assertTrue(reportString.contains("         + Checking voltage targets"));
         assertTrue(reportString.contains("           Controlled buses 'vl4_0' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [vl1_0]"));
         assertTrue(reportString.contains("           Controlled buses 'vl4_2' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [vl3_0]"));
+    }
+
+    @Test
+    void testAutomaticFixSecurityAnalysis() throws IOException {
+        // Checking that voltage target check is disabled during contingency cases
+        OpenSecurityAnalysisProvider saRunner = new OpenSecurityAnalysisProvider();
+        ReportNode testReport = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+        LoadFlowParameters params = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(params).setFixVoltageTargets(true);
+
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setSecurityAnalysisParameters(new SecurityAnalysisParameters().setLoadFlowParameters(params))
+                .setReportNode(testReport);
+        List<Contingency> contingencies = List.of(Contingency.line("l1"), Contingency.line("l2"));
+        ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisReport result = saRunner.run(network, network.getVariantManager().getWorkingVariantId(), provider, runParameters).join();
+        // For high values, indicator values is hardware sensitive (based on small differences between large numbers)
+        // So we remove them from the tests
+        String reportString = TestUtil.normalizeLineSeparator(LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)"));
+        // Also replacing all vl ids by *** to avoid order difference between hardwares
+        reportString = reportString.replaceAll("vl\\d_\\d", "***");
+        assertEquals("""
+                            + test
+                               + AC security analysis on network 'generator-remote-control-test'
+                                  + Network CC0 SC0
+                                     + Network info
+                                        Network has 7 buses and 6 branches
+                                        Network balance: active generation=300 MW, active load=299.6 MW, reactive generation=0 MVar, reactive load=200 MVar
+                                        Angle reference bus: ***
+                                        Slack bus: ***
+                                     + Pre-contingency simulation
+                                        + Checking voltage targets
+                                           Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
+                                           Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
+                                        Outer loop DistributedSlack
+                                        Outer loop ReactiveLimits
+                                        AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                                     + Post-contingency simulation 'l1'
+                                        Contingency caused the loss of 100 MW injection: 100 MW distributed, 0 MW remaining.
+                                        Outer loop DistributedSlack
+                                        Outer loop ReactiveLimits
+                                        AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                                     + Post-contingency simulation 'l2'
+                                        Contingency caused the loss of 100 MW injection: 100 MW distributed, 0 MW remaining.
+                                        Outer loop DistributedSlack
+                                        Outer loop ReactiveLimits
+                                        AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                            """, reportString);
+    }
+
+    @Test
+    void testAutomaticFixSensitivityAnalysis() throws IOException {
+        // Checking that voltage target check is disabled during contingency cases in sensitivity analysis
+        OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider();
+        SensitivityAnalysis.Runner sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
+        ReportNode testReport = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+        LoadFlowParameters params = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(params).setFixVoltageTargets(true);
+        List<Contingency> contingencies = List.of(Contingency.line("l1"), Contingency.line("l2"));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(new SensitivityAnalysisParameters().setLoadFlowParameters(params))
+                .setContingencies(contingencies)
+                .setReportNode(testReport);
+        SensitivityFactor factor = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER, "g1", false, ContingencyContext.all());
+        SensitivityAnalysisResult result = sensiRunner.run(network, List.of(factor), runParameters);
+        // For high values, indicator values is hardware sensitive (based on small differences between large numbers)
+        // So we remove them from the tests
+        String reportString = TestUtil.normalizeLineSeparator(LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)"));
+        // Also strongest incompatibility with vl4_0 can be vl4_2 or vl5_0 depending on incompatibility factor numerical errors
+        // Also replacing all vl ids by *** to avoid order difference between hardwares
+        reportString = reportString.replaceAll("vl\\d_\\d", "***");
+
+        // Even the display order (sorted in plausibility indicator) is different between architectures ! SO lets check expected sentences alone
+        assertEquals("""
+                + test
+                   + Sensitivity analysis on network 'generator-remote-control-test'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 7 buses and 6 branches
+                            Network balance: active generation=300 MW, active load=299.6 MW, reactive generation=0 MVar, reactive load=200 MVar
+                            Angle reference bus: ***
+                            Slack bus: ***
+                         + Checking voltage targets
+                            Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
+                            Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
+                         Outer loop DistributedSlack
+                         Outer loop ReactiveLimits
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                         + Post-contingency simulation 'l1'
+                            Outer loop DistributedSlack
+                            Outer loop ReactiveLimits
+                            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                         + Post-contingency simulation 'l2'
+                            Outer loop DistributedSlack
+                            Outer loop ReactiveLimits
+                            AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportString);
     }
 }
