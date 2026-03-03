@@ -357,4 +357,42 @@ class GeneratorTargetVoltageInconsistencyTest {
         LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 but control the voltage of different buses \\(vl1\\_0 and vl2\\_0\\)\\: disabling voltage control", reportNode);
         assertEquals(150.0, lfNetwork.getBusById("vl1_0").getGenerationTargetQ() * PerUnit.SB);
     }
+
+    @Test
+    void remoteAndLocalTestWithInconsistentTargetVoltage() {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
+        Generator g2 = network.getGenerator("g2");
+        g2.setRegulatingTerminal(network.getLoad("ld2").getTerminal()).setTargetV(400.0);
+        VoltageLevel vl1 = network.getVoltageLevel("vl1");
+        vl1.newGenerator()
+                .setId("g3")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setTargetV(24)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport")
+                .build();
+        List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
+        LfNetwork lfNetwork = networkList.get(0);
+        LfBus lfBus = lfNetwork.getBusById("vl1_0");
+        Optional<GeneratorVoltageControl> sharedVoltageControl = lfBus.getGeneratorVoltageControl();
+        assertTrue(sharedVoltageControl.isPresent());
+        LoadFlowAssert.assertReportContains(
+                ".*Generators \\[g1\\, g2\\, g3\\] are connected to the same bus vl1\\_0 but control the voltage of different buses: vl1\\_0 \\(kept\\) and vl2\\_0 \\(rejected\\).*",
+                reportNode);
+        LoadFlowAssert.assertReportContains(
+                ".*Generators \\[g1\\, g2\\, g3\\] are connected to the same bus vl1\\_0 with different target voltages: 23\\.0 kV \\(kept\\) and 24\\.0 kV \\(rejected\\).*",
+                reportNode);
+        assertEquals(23.0, sharedVoltageControl.get().getTargetValue() * lfBus.getNominalV());
+    }
 }
