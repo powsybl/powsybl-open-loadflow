@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -87,7 +86,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected TransformerVoltageControl transformerVoltageControl;
 
-    protected AcDcConverterVoltageControl acDcConverterVoltageControl;
+    protected VoltageSourceConverterVoltageControl voltageSourceConverterVoltageControl;
 
     protected ShuntVoltageControl shuntVoltageControl;
 
@@ -165,7 +164,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public List<VoltageControl<?>> getVoltageControls() {
         List<VoltageControl<?>> voltageControls = new ArrayList<>(4);
-        getAcDcConverterVoltageControl().ifPresent(voltageControls::add);
+        getVoltageSourceConverterVoltageControl().ifPresent(voltageControls::add);
         getGeneratorVoltageControl().ifPresent(voltageControls::add);
         getTransformerVoltageControl().ifPresent(voltageControls::add);
         getShuntVoltageControl().ifPresent(voltageControls::add);
@@ -174,13 +173,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isVoltageControlled() {
-        return isAcDcConverterVoltageControlled() || isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
+        return isVoltageSourceConverterVoltageControlled() || isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
     }
 
     @Override
     public boolean isVoltageControlled(VoltageControl.Type type) {
         return switch (type) {
-            case AC_DC_CONVERTER -> isAcDcConverterVoltageControlled();
+            case VOLTAGE_SOURCE_CONVERTER -> isVoltageSourceConverterVoltageControlled();
             case GENERATOR -> isGeneratorVoltageControlled();
             case TRANSFORMER -> isTransformerVoltageControlled();
             case SHUNT -> isShuntVoltageControlled();
@@ -835,18 +834,18 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<AcDcConverterVoltageControl> getAcDcConverterVoltageControl() {
-        return Optional.ofNullable(acDcConverterVoltageControl);
+    public Optional<VoltageSourceConverterVoltageControl> getVoltageSourceConverterVoltageControl() {
+        return Optional.ofNullable(voltageSourceConverterVoltageControl);
     }
 
     @Override
-    public boolean isAcDcConverterVoltageControlled() {
-        return acDcConverterVoltageControl != null && acDcConverterVoltageControl.getControlledBus() == this;
+    public boolean isVoltageSourceConverterVoltageControlled() {
+        return voltageSourceConverterVoltageControl != null && voltageSourceConverterVoltageControl.getControlledBus() == this;
     }
 
     @Override
-    public void setAcDcConverterVoltageControl(AcDcConverterVoltageControl acDcConverterVoltageControl) {
-        this.acDcConverterVoltageControl = acDcConverterVoltageControl;
+    public void setVoltageSourceConverterVoltageControl(VoltageSourceConverterVoltageControl voltageSourceConverterVoltageControl) {
+        this.voltageSourceConverterVoltageControl = voltageSourceConverterVoltageControl;
     }
 
     @Override

@@ -18,10 +18,10 @@ public class VoltageControl<T extends LfElement> extends Control {
         GENERATOR,
         TRANSFORMER,
         SHUNT,
-        AC_DC_CONVERTER
+        VOLTAGE_SOURCE_CONVERTER
     }
 
-    public static final List<String> VOLTAGE_CONTROL_PRIORITIES = List.of(Type.AC_DC_CONVERTER.name(), Type.GENERATOR.name(), Type.TRANSFORMER.name(), Type.SHUNT.name());
+    public static final List<String> VOLTAGE_CONTROL_PRIORITIES = List.of(Type.VOLTAGE_SOURCE_CONVERTER.name(), Type.GENERATOR.name(), Type.TRANSFORMER.name(), Type.SHUNT.name());
 
     public enum MergeStatus {
         MAIN,
