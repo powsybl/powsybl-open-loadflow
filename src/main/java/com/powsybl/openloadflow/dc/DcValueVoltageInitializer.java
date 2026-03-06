@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.AcDcNetworkInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.List;
@@ -97,7 +96,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
+    public double getMagnitude(LfDcBus dcBus) {
         throw new PowsyblException("DC initialization is not yet supported with AcDcNetwork");
     }
 }

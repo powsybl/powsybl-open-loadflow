@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
@@ -21,5 +22,5 @@ public interface VoltageInitializer {
 
     double getAngle(LfBus bus);
 
-    AcDcNetworkInitializer getAcDcNetworkInitializer();
+    double getMagnitude(LfDcBus dcBus);
 }

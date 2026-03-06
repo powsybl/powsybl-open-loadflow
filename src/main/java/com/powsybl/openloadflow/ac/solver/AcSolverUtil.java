@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 /**
@@ -66,15 +67,17 @@ public final class AcSolverUtil {
                     break;
 
                 case DC_BUS_V:
-                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getMagnitude(network.getDcBus(v.getElementNum()));
+                    x[v.getRow()] = initializer.getMagnitude(network.getDcBus(v.getElementNum()));
                     break;
 
                 case CONV_P_AC:
-                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getActivePower(network.getVoltageSourceConverter(v.getElementNum()));
-
+                    double p = network.getVoltageSourceConverter(v.getElementNum()).getPac();
+                    x[v.getRow()] = Double.isNaN(p) || !(initializer instanceof PreviousValueVoltageInitializer) ? 0.0 : p;
                     break;
+
                 case CONV_Q_AC:
-                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getReactivePower(network.getVoltageSourceConverter(v.getElementNum()));
+                    double q = network.getVoltageSourceConverter(v.getElementNum()).getQac();
+                    x[v.getRow()] = Double.isNaN(q) || !(initializer instanceof PreviousValueVoltageInitializer) ? 0.0 : q;
                     break;
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());

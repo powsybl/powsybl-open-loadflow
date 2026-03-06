@@ -8,14 +8,13 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class UniformValueVoltageInitializer implements VoltageInitializer {
-
-    private final UniformValueAcDcNetworkInitializer acDcNetworkInitializer = new UniformValueAcDcNetworkInitializer();
 
     @Override
     public void prepare(LfNetwork network) {
@@ -32,9 +31,11 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
         return 0;
     }
 
-    @Override
-    public AcDcNetworkInitializer getAcDcNetworkInitializer() {
-        return acDcNetworkInitializer;
+    public double getMagnitude(LfDcBus dcBus) {
+        if (dcBus.isNeutralPole()) {
+            return 0.0;
+        }
+        return 1.0;
     }
 }
 

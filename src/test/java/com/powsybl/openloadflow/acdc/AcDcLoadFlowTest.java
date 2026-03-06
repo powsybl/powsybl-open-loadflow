@@ -336,7 +336,7 @@ class AcDcLoadFlowTest {
         assertVoltageEquals(-250.000000, dcNodeFrPos);
 
         Generator genGb = network.getGenerator("GEN-GB");
-        assertActivePowerEquals(-2001.716598, genGb.getTerminal());
+        assertActivePowerEquals(-2001.713011, genGb.getTerminal());
         assertReactivePowerEquals(-10.448402, genGb.getTerminal());
 
         VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
