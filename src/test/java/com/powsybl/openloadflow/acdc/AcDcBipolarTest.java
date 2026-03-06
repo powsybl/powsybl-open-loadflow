@@ -30,7 +30,7 @@ class AcDcBipolarTest {
 
     @Test
     void testBipolarModel() {
-        //Bipolar Model with metallic return, conv23p and conv23n control Pac, and conv45p and 45n control Vdc
+        // Bipolar Model with metallic return, conv23p and conv23n control Pac, and conv45p and 45n control Vdc
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -93,7 +93,7 @@ class AcDcBipolarTest {
 
     @Test
     void testBipolarModelWithOtherControl() {
-        //Bipolar Model with metallic return, conv23p and conv23n control Vdc, and conv45p and conv45n control Pac
+        // Bipolar Model with metallic return, conv23p and conv23n control Vdc, and conv45p and conv45n control Pac
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithOtherControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -152,7 +152,7 @@ class AcDcBipolarTest {
 
     @Test
     void testBipolarModelAcVoltageControl() {
-        //Bipolar Model with metallic return, conv23p and conv23n control Pac, and conv45p and conv45n control Vdc, and conv45p control Vac
+        // Bipolar Model with metallic return, conv23p and conv23n control Pac, and conv45p and conv45n control Vdc, and conv45p control Vac
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcVoltageControl();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -205,7 +205,7 @@ class AcDcBipolarTest {
 
     @Test
     void testBipolarModelGridForming() {
-        //Bipolar Model with metallic return, the converters conv45p and conv45n control Vac
+        // Bipolar Model with metallic return, the converters conv45p and conv45n control Vac
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelGridForming();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -289,7 +289,7 @@ class AcDcBipolarTest {
 
     @Test
     void testBipolarModelThreeConverters() {
-        //Bipolar Model with metallic return, with 3 converters but 1 Ac Network
+        // Bipolar Model with metallic return, with 3 converters but 1 Ac Network
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithThreeConverters();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -350,7 +350,7 @@ class AcDcBipolarTest {
 
     @Test
     void testBipolarModelWithoutMetallicReturn() {
-        //Bipolar Model without metallic return
+        // Bipolar Model without metallic return
         network = AcDcNetworkFactory.createBipolarModelWithoutMetallicReturn();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();

@@ -21,11 +21,11 @@ public class LfAcDcNetwork extends LfNetwork {
     private List<LfNetwork> dcSubNetworks = new ArrayList<>();
 
     public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
-        //TODO : find a better way to implement super class
+        // TODO : find a better way to implement super class
         super(acNetworks.getFirst());
 
         if (acNetworks.size() > 1) {
-            throw new PowsyblException("AC-DC load flow does not support multiple AC island for the moment");
+            throw new PowsyblException("AC-DC load flow does not support multiple synchronous components for the moment");
         }
 
         for (LfNetwork network : acNetworks) {
@@ -78,7 +78,7 @@ public class LfAcDcNetwork extends LfNetwork {
     @Override
     public LfBus getReferenceBus() {
         updateSlackBusesAndReferenceBus();
-        //FIXME: which bus do we return ?
+        // FIXME: which bus do we return ?
         return acDcReferenceBuses.getFirst();
     }
 

@@ -1645,7 +1645,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(true)
                 .add();
 
-        // Connect the buses through an AC line to ensure there is only one AC Island
+        // Connect the buses through an AC line to ensure there is only one synchronous component
         network.newLine()
                 .setId("l16")
                 .setBus1("b1")

@@ -542,12 +542,12 @@ Works only when `referenceBusSelectionMode` is set to `GENERATOR_REFERENCE_PRIOR
 When multiple equipment regulate the same bus with different voltage targets,
 this parameter enables configuring priority to resolve inconsistencies by aligning the voltage targets.
 Priority is determined by equipment type order; the voltage target of the equipment type listed first takes precedence over those listed later.
-By default, the order is `["GENERATOR", "TRANSFORMER", "SHUNT"]`.  
+By default, the order is `["VOLTAGE_SOURCE_CONVERTER", "GENERATOR", "TRANSFORMER", "SHUNT"]`.  
 Note that `"GENERATOR"` indistinctively includes generators, batteries, static var compensators, and VSC HVDC converters.
 
 If the user specifies only a sub-list of priorities, this sub-list is completed by the
 order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
-it will be completed to `["TRANSFORMER", "GENERATOR", "SHUNT"]`.
+it will be completed to `["TRANSFORMER", "VOLTAGE_SOURCE_CONVERTER", "GENERATOR", "SHUNT"]`.
 
 **transformerVoltageControlUseInitialTapPosition**  
 This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
@@ -624,11 +624,11 @@ The default value is `false`.
 
 **acDcNetwork**
 
-Defines if the loadflow uses DC detailed component and computes an AC DC loadflow 
+Defines if the loadflow uses DC detailed equipment and computes an AC DC loadflow 
 
-If `true`, the network supports DC detailed components, and the loadflow is computed on the whole connected network, 
-AC and DC sides in the same Jacobian matrix. Currently, the network shall contain only one AC island, but the number of 
-embedded DC islands is not restricted.
+If `true`, the network supports DC detailed equipments, and the loadflow is computed on the whole connected network, 
+AC and DC sides in the same Jacobian matrix. Currently, the network shall contain only one synchronous component, but the number of 
+embedded DC components is not restricted.
 
 If `false`, the loadflow is the classic one, without DC detailed components.
 

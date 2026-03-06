@@ -640,7 +640,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     addVoltageSourceConverter(lfNetwork, voltageSourceConverterImpl);
                     isVdcControlled = isVdcControlled || voltageSourceConverter.getControlMode() == AcDcConverter.ControlMode.V_DC;
                 }
-                //lcc converter not implemented yet
+                // lcc converter not implemented yet
             }
         }
         if (!isVdcControlled) {

@@ -207,8 +207,8 @@ class AcDcLoadFlowTest {
         network.getDcNode("dcNodeGbNeg").setNominalV(500.0F);
 
         // TODO: adapt slack distribution for AC subnetworks
-        // For now, AC-DC load flow with multiple AC island is not possible. Therefore, we add an AC line to connect the
-        // two AC island
+        // For now, AC-DC load flow with multiple synchronous components is not possible. Therefore, we add an AC line to connect the
+        // two synchronous components
         network.newLine()
                 .setId("acLine")
                 .setBus1("BUS-FR")
@@ -295,8 +295,8 @@ class AcDcLoadFlowTest {
         subnetwork.newDcGround().setDcNode("dnGround").setId("dcGround").add();
 
         // TODO: adapt slack distribution for AC subnetworks
-        // For now, AC-DC load flow with multiple AC island is not possible. Therefore, we add an AC line to connect the
-        // two AC island
+        // For now, AC-DC load flow with multiple synchronous components is not possible. Therefore, we add an AC line to connect the
+        // two synchronous components
         network.newLine()
                 .setId("acLine")
                 .setBus1("BUS-FR")
@@ -575,7 +575,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testAcSubNetworks() {
-        // Network with 2 AC Island. An exception should be thrown
+        // Network with 2 synchronous components. An exception should be thrown
         network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -584,7 +584,7 @@ class AcDcLoadFlowTest {
                 .setAcDcNetwork(true);
 
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("AC-DC load flow does not support multiple AC island for the moment", e.getCause().getMessage());
+        assertEquals("AC-DC load flow does not support multiple synchronous components for the moment", e.getCause().getMessage());
     }
 
     @Test
