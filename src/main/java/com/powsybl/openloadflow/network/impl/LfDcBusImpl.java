@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.DcNode;
+import com.powsybl.iidm.network.DcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -17,31 +17,33 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class LfDcNodeImpl extends AbstractLfDcNode {
+public class LfDcBusImpl extends AbstractLfDcBus {
 
-    private final Ref<DcNode> dcNodeRef;
+    private final Ref<DcBus> dcBusRef;
 
     private boolean isGrounded = false;
 
-    public LfDcNodeImpl(DcNode dcNode, LfNetwork network, double nominalV, LfNetworkParameters parameters) {
-        super(network, nominalV, dcNode.getV());
-        this.dcNodeRef = Ref.create(dcNode, parameters.isCacheEnabled());
+    public LfDcBusImpl(DcBus dcBus, LfNetwork network, double nominalV, LfNetworkParameters parameters) {
+        super(network, nominalV, dcBus.getV());
+        this.dcBusRef = Ref.create(dcBus, parameters.isCacheEnabled());
     }
 
-    public static LfDcNodeImpl create(DcNode dcNode, LfNetwork network, LfNetworkParameters parameters) {
+    public static LfDcBusImpl create(DcBus dcBus, LfNetwork network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(dcNode);
+        Objects.requireNonNull(dcBus);
         Objects.requireNonNull(parameters);
-        return new LfDcNodeImpl(dcNode, network, dcNode.getNominalV(), parameters);
+        // Previous check has already validated that all DC nodes have the same nominal voltage
+        double nominalV = dcBus.getDcNodeStream().toList().getFirst().getNominalV();
+        return new LfDcBusImpl(dcBus, network, nominalV, parameters);
     }
 
-    private DcNode getDcNode() {
-        return dcNodeRef.get();
+    private DcBus getDcBus() {
+        return dcBusRef.get();
     }
 
     @Override
     public String getId() {
-        return getDcNode().getId();
+        return getDcBus().getId();
     }
 
     @Override
@@ -56,7 +58,7 @@ public class LfDcNodeImpl extends AbstractLfDcNode {
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
-        var dcNode = getDcNode();
-        dcNode.setV(v);
+        var dcBus = getDcBus();
+        dcBus.setV(v);
     }
 }

@@ -10,13 +10,14 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.SingleEquation;
 import com.powsybl.openloadflow.equations.EquationArray;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.SingleEquation;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -132,7 +133,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[column] = network.getVoltageSourceConverter(elementNum).getTargetQ();
                 break;
 
-            case DC_NODE_TARGET_V_REF:
+            case DC_BUS_TARGET_V_REF:
                 targets[column] = network.getVoltageSourceConverter(elementNum).getTargetVdc();
                 break;
 
@@ -144,8 +145,8 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                  BUS_TARGET_IY_ZERO,
                  BUS_TARGET_IX_NEGATIVE,
                  BUS_TARGET_IY_NEGATIVE,
-                 DC_NODE_TARGET_I,
-                 DC_NODE_GROUND:
+                 DC_BUS_TARGET_I,
+                 DC_BUS_GROUND:
                 targets[column] = 0;
                 break;
 

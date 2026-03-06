@@ -343,25 +343,25 @@ When the Fast-Decoupled algorithm is used, we recommend these values for some co
 ## AC DC flows computing
 
 AC DC flows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
-The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC node, and active/reactive 
+The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC bus, and active/reactive 
 power for each voltage source converter.   
 Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
 components are the followings:
 
-### DC node
+### DC bus
 
-At least one DC node must be connected to the ground in each DC network, its potential is therefore set to 0. 
+At least one DC bus must be connected to the ground in each DC network, its potential is therefore set to 0. 
 Therefore, symmetrical configuration are currently not supported.  
-For the others DC node, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC node.
-These terms are introduced by the DC components connected to the DC node.
+For the others DC buses, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
+These terms are introduced by the DC components connected to the DC bus.
 
 ### DC Line
 
-Each DC line adds one term in both of its two connected DC nodes current balance:
+Each DC line adds one term in both of its two connected DC buses current balance:
 
-$\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcNode1
+$\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
 
-$\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcNode2
+$\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcBus2
 
 
 ### Line Commutated Converter
@@ -372,11 +372,11 @@ Line commutated converters are not supported yet by Open Load Flow.
 
 Let consider a network that is composed of one AC network, and one DC network.
 The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
-DC nodes at the other side.   
+DC buses at the other side.   
 Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
 
 The converter can control either the power received by the AC network (`P_PCC` control mode) 
-or the voltage between its two DC nodes (`V_DC` control mode).
+or the voltage between its two DC buses (`V_DC` control mode).
 At least one of the voltage source converters of the DC network must be in `V_DC` mode. Otherwise, an exception will be thrown.
 
 In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
@@ -394,7 +394,7 @@ If the converter is in `P_PCC` control mode, we add an equation to impose $P_{AC
 
 $P_{AC}$ = $P_{Ref}$
 
-Else the converter is in `V_DC` control mode, and we add an equation to impose the voltage between its two DC nodes :
+Else the converter is in `V_DC` control mode, and we add an equation to impose the voltage between its two DC buses :
 
 $V_{1} - V_{2} = V_{Ref}$
 
@@ -407,12 +407,12 @@ Else the converter controls the AC voltage, and we add an equation to impose $V_
 $V_{AC}= V_{Ref}$
 
 On the AC bus, the active and reactive power injected into the converter is added to its power balance.  
-On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcNode1 to dcNode2.
-It is added to the current balances of dcNode1 and dcNode2
+On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcBus1 to dcBus2.
+It is added to the current balances of dcBus1 and dcBus2
 
-$\sum_{i} I_i + I_{Conv} = 0$ for dcNode1
+$\sum_{i} I_i + I_{Conv} = 0$ for dcBus1
 
-$\sum_{i} I_i - I_{Conv}= 0$ for dcNode2
+$\sum_{i} I_i - I_{Conv}= 0$ for dcBus2
 
 #### Power Equations
 

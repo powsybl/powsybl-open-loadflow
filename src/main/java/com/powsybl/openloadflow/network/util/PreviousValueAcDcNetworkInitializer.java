@@ -2,7 +2,7 @@ package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfAcDcConverter;
-import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 
 public class PreviousValueAcDcNetworkInitializer implements AcDcNetworkInitializer {
@@ -46,13 +46,13 @@ public class PreviousValueAcDcNetworkInitializer implements AcDcNetworkInitializ
     }
 
     @Override
-    public double getMagnitude(LfDcNode dcNode) {
-        double v = dcNode.getV();
+    public double getMagnitude(LfDcBus dcBus) {
+        double v = dcBus.getV();
         if (Double.isNaN(v)) {
             if (defaultToUniformValue) {
-                return defaultVoltageInitializer.getMagnitude(dcNode);
+                return defaultVoltageInitializer.getMagnitude(dcBus);
             } else {
-                throw new PowsyblException("Voltage is undefined for dcNode '" + dcNode.getId() + "'");
+                throw new PowsyblException("Voltage is undefined for dcBus '" + dcBus.getId() + "'");
             }
         }
         return v;

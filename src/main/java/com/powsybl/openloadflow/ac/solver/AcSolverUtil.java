@@ -65,8 +65,8 @@ public final class AcSolverUtil {
                     x[v.getRow()] = 0.1;
                     break;
 
-                case DC_NODE_V:
-                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getMagnitude(network.getDcNode(v.getElementNum()));
+                case DC_BUS_V:
+                    x[v.getRow()] = initializer.getAcDcNetworkInitializer().getMagnitude(network.getDcBus(v.getElementNum()));
                     break;
 
                 case CONV_P_AC:
@@ -129,8 +129,8 @@ public final class AcSolverUtil {
                     // nothing to do
                     break;
 
-                case DC_NODE_V:
-                    network.getDcNode(v.getElementNum()).setV(stateVector.get(v.getRow()));
+                case DC_BUS_V:
+                    network.getDcBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
                     break;
 
                 case CONV_P_AC:

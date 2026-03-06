@@ -12,8 +12,8 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfDcLine;
-import com.powsybl.openloadflow.network.LfDcNode;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
@@ -33,15 +33,15 @@ public abstract class AbstractClosedDcLineFlowEquationTerm extends AbstractEleme
 
     protected final double r;
 
-    protected AbstractClosedDcLineFlowEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
+    protected AbstractClosedDcLineFlowEquationTerm(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
         super(dcLine);
         Objects.requireNonNull(variableSet);
-        AcVariableType vType = AcVariableType.DC_NODE_V;
-        v1Var = variableSet.getVariable(dcNode1.getNum(), vType);
-        v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
+        AcVariableType vType = AcVariableType.DC_BUS_V;
+        v1Var = variableSet.getVariable(dcBus1.getNum(), vType);
+        v2Var = variableSet.getVariable(dcBus2.getNum(), vType);
         variables.add(v1Var);
         variables.add(v2Var);
-        r = dcLine.getR() / (dcNode1.getNominalV() * dcNode2.getNominalV() / PerUnit.SB);
+        r = dcLine.getR() / (dcBus1.getNominalV() * dcBus2.getNominalV() / PerUnit.SB);
     }
 
     protected double v1() {

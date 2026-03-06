@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac.equations.dcnetwork;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 
 import java.util.Objects;
@@ -20,8 +20,8 @@ import java.util.Objects;
  */
 public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEquationTerm {
 
-    public ConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, double nominalV, VariableSet<AcVariableType> variableSet) {
-        super(converter, dcNode1, dcNode2, nominalV, variableSet);
+    public ConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, double nominalV, VariableSet<AcVariableType> variableSet) {
+        super(converter, dcBus1, dcBus2, nominalV, variableSet);
     }
 
     private static double iConvSign(double pAc, double v1, double v2) {

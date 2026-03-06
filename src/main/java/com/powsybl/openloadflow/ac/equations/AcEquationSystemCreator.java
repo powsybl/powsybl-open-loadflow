@@ -72,14 +72,14 @@ public class AcEquationSystemCreator {
         createLoadEquations(bus, equationSystem);
     }
 
-    protected void createDcNodeEquation(LfDcNode dcNode,
-                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        if (dcNode.isGrounded()) {
-            equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_GROUND)
-                    .addTerm(equationSystem.getVariable(dcNode.getNum(), AcVariableType.DC_NODE_V)
+    protected void createDcBusEquation(LfDcBus dcBus,
+                                       EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        if (dcBus.isGrounded()) {
+            equationSystem.createEquation(dcBus, AcEquationType.DC_BUS_GROUND)
+                    .addTerm(equationSystem.getVariable(dcBus.getNum(), AcVariableType.DC_BUS_V)
                             .createTerm());
         } else {
-            equationSystem.createEquation(dcNode, AcEquationType.DC_NODE_TARGET_I);
+            equationSystem.createEquation(dcBus, AcEquationType.DC_BUS_TARGET_I);
         }
     }
 
@@ -112,9 +112,9 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private void createDcNodesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (LfDcNode dcNode : network.getDcNodes()) {
-            createDcNodeEquation(dcNode, equationSystem);
+    private void createDcBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfDcBus dcBus : network.getDcBuses()) {
+            createDcBusEquation(dcBus, equationSystem);
         }
     }
 
@@ -791,7 +791,7 @@ public class AcEquationSystemCreator {
         createTransformerReactivePowerControlEquations(branch, equationSystem);
     }
 
-    protected void createDcLineEquations(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected void createDcLineEquations(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // effective equations, could be closed one or open one
         Evaluable p1 = null;
         Evaluable p2 = null;
@@ -804,15 +804,15 @@ public class AcEquationSystemCreator {
         SingleEquationTerm<AcVariableType, AcEquationType> closedP2 = null;
         SingleEquationTerm<AcVariableType, AcEquationType> closedI2 = null;
 
-        if (dcNode1 != null && dcNode2 != null) {
-            if (!dcNode1.isGrounded()) {
-                closedP1 = new ClosedDcLineSide1PowerEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
-                closedI1 = new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+        if (dcBus1 != null && dcBus2 != null) {
+            if (!dcBus1.isGrounded()) {
+                closedP1 = new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
+                closedI1 = new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
 
             }
-            if (!dcNode2.isGrounded()) {
-                closedP2 = new ClosedDcLineSide2PowerEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
-                closedI2 = new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcNode1, dcNode2, equationSystem.getVariableSet());
+            if (!dcBus2.isGrounded()) {
+                closedP2 = new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
+                closedI2 = new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
             }
             p1 = closedP1;
             i1 = closedI1;
@@ -820,7 +820,7 @@ public class AcEquationSystemCreator {
             i2 = closedI2;
         }
 
-        createDcLineEquations(dcLine, dcNode1, dcNode2, equationSystem,
+        createDcLineEquations(dcLine, dcBus1, dcBus2, equationSystem,
                 p1, i1,
                 p2, i2,
                 closedP1, closedI1,
@@ -936,21 +936,21 @@ public class AcEquationSystemCreator {
         }
     }
 
-    protected static void createDcLineEquations(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                        Evaluable p1, Evaluable i1,
-                                                        Evaluable p2, Evaluable i2,
-                                                        SingleEquationTerm<AcVariableType, AcEquationType> closedP1, SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
-                                                        SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
+    protected static void createDcLineEquations(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                Evaluable p1, Evaluable i1,
+                                                Evaluable p2, Evaluable i2,
+                                                SingleEquationTerm<AcVariableType, AcEquationType> closedP1, SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
+                                                SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
 
         if (closedI1 != null) {
-            equationSystem.getEquation(dcNode1.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+            equationSystem.getEquation(dcBus1.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
         }
         if (i1 != null) {
             dcLine.setI1(i1);
         }
         if (closedI2 != null) {
-            equationSystem.getEquation(dcNode2.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+            equationSystem.getEquation(dcBus2.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI2);
         }
         if (i2 != null) {
@@ -974,20 +974,20 @@ public class AcEquationSystemCreator {
 
     protected static void createVoltageSourceConverterEquations(LfVoltageSourceConverter converter, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBus bus = converter.getBus1();
-        LfDcNode dcNode1 = converter.getDcNode1();
-        LfDcNode dcNode2 = converter.getDcNode2();
+        LfDcBus dcBus1 = converter.getDcBus1();
+        LfDcBus dcBus2 = converter.getDcBus2();
         if (converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
             // if a converter is in PCC Mode, we add an equation to set Pac injected into the converter
             equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
                     .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
                             .createTerm());
         } else {
-            // if a converter is in V Mode, we add an equation to set V = v1 - v2 the tension of the two dc nodes connected to the converter
-            EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcNode1.getNum(), AcVariableType.DC_NODE_V)
+            // if a converter is in V Mode, we add an equation to set V = v1 - v2 the tension of the two dc buses connected to the converter
+            EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
                     .createTerm();
-            EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcNode2.getNum(), AcVariableType.DC_NODE_V)
+            EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
                     .createTerm();
-            equationSystem.createEquation(converter, AcEquationType.DC_NODE_TARGET_V_REF)
+            equationSystem.createEquation(converter, AcEquationType.DC_BUS_TARGET_V_REF)
                     .addTerm(v1)
                     .addTerm(v2.minus());
         }
@@ -1006,21 +1006,21 @@ public class AcEquationSystemCreator {
                 .addTerm(qAc);
 
         // DC current equations
-        SingleEquationTerm<AcVariableType, AcEquationType> iConv1 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode1.getNominalV(), equationSystem.getVariableSet());
-        SingleEquationTerm<AcVariableType, AcEquationType> iConv2 = new ConverterDcCurrentEquationTerm(converter, dcNode1, dcNode2, dcNode2.getNominalV(), equationSystem.getVariableSet()).minus();
+        SingleEquationTerm<AcVariableType, AcEquationType> iConv1 = new ConverterDcCurrentEquationTerm(converter, dcBus1, dcBus2, dcBus1.getNominalV(), equationSystem.getVariableSet());
+        SingleEquationTerm<AcVariableType, AcEquationType> iConv2 = new ConverterDcCurrentEquationTerm(converter, dcBus1, dcBus2, dcBus2.getNominalV(), equationSystem.getVariableSet()).minus();
         equationSystem.attach(iConv1);
         converter.setCalculatedIconv1(iConv1);
         equationSystem.attach(iConv2);
         converter.setCalculatedIconv2(iConv2);
 
-        // The converter is injecting current Iconv into DcNode, so we add Iconv to current balance
-        if (!dcNode1.isGrounded()) {
-            equationSystem.getEquation(dcNode1.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+        // The converter is injecting current Iconv into DcBus, so we add Iconv to current balance
+        if (!dcBus1.isGrounded()) {
+            equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(iConv1);
         }
 
-        if (!dcNode2.isGrounded()) {
-            equationSystem.getEquation(dcNode2.getNum(), AcEquationType.DC_NODE_TARGET_I).orElseThrow()
+        if (!dcBus2.isGrounded()) {
+            equationSystem.getEquation(dcBus2.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(iConv2);
         }
 
@@ -1160,7 +1160,7 @@ public class AcEquationSystemCreator {
 
     private void createDcLinesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfDcLine dcLine : network.getDcLines()) {
-            createDcLineEquations(dcLine, dcLine.getDcNode1(), dcLine.getDcNode2(), equationSystem);
+            createDcLineEquations(dcLine, dcLine.getDcBus1(), dcLine.getDcBus2(), equationSystem);
         }
     }
 
@@ -1249,7 +1249,7 @@ public class AcEquationSystemCreator {
         createBusesEquations(equationSystem);
         createMultipleSlackBusesEquations(equationSystem);
         createBranchesEquations(equationSystem);
-        createDcNodesEquations(equationSystem);
+        createDcBusesEquations(equationSystem);
         createDcLinesEquations(equationSystem);
         createVoltageSourceConvertersEquations(equationSystem);
         for (LfHvdc hvdc : network.getHvdcs()) {

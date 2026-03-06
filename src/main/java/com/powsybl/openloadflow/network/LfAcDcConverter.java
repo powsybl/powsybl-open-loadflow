@@ -27,9 +27,9 @@ public interface LfAcDcConverter extends LfElement {
 
     LfBus getBus1();
 
-    LfDcNode getDcNode1();
+    LfDcBus getDcBus1();
 
-    LfDcNode getDcNode2();
+    LfDcBus getDcBus2();
 
     double getTargetP();
 

@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public interface LfDcNode extends LfElement {
+public interface LfDcBus extends LfElement {
 
     double getV();
 

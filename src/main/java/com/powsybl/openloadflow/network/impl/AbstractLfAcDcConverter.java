@@ -41,23 +41,23 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final AcDcConverter.ControlMode controlMode;
 
-    protected final LfDcNode dcNode1;
+    protected final LfDcBus dcBus1;
 
-    protected final LfDcNode dcNode2;
+    protected final LfDcBus dcBus2;
 
     protected final LfBus bus1;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1) {
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
-        this.dcNode1 = dcNode1;
-        this.dcNode2 = dcNode2;
-        //By convention, the dcNode2 is supposed to be the neutral layer, it is just needed for voltage initialization
-        dcNode2.setNeutralPole(true);
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
+        // By convention, the dcBus2 is supposed to be the neutral layer, it is just needed for voltage initialization
+        dcBus2.setNeutralPole(true);
         this.bus1 = bus1;
         this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        targetVdc = dcNode1.isGrounded() ? converter.getTargetVdc() / dcNode2.getNominalV() : converter.getTargetVdc() / dcNode1.getNominalV();
+        targetVdc = dcBus1.isGrounded() ? converter.getTargetVdc() / dcBus2.getNominalV() : converter.getTargetVdc() / dcBus1.getNominalV();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -68,13 +68,13 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
-    public LfDcNode getDcNode1() {
-        return dcNode1;
+    public LfDcBus getDcBus1() {
+        return dcBus1;
     }
 
     @Override
-    public LfDcNode getDcNode2() {
-        return dcNode2;
+    public LfDcBus getDcBus2() {
+        return dcBus2;
     }
 
     @Override

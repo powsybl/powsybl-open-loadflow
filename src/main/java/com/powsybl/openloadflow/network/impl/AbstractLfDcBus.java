@@ -7,12 +7,15 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.AbstractElement;
+import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfDcBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNode {
+public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus {
 
     protected double v;
 
@@ -20,7 +23,7 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
 
     protected boolean isNeutralPole = false;
 
-    protected AbstractLfDcNode(LfNetwork network, double nominalV, double v) {
+    protected AbstractLfDcBus(LfNetwork network, double nominalV, double v) {
         super(network);
         this.nominalV = nominalV;
         this.v = v;
@@ -28,7 +31,7 @@ public abstract class AbstractLfDcNode extends AbstractElement implements LfDcNo
 
     @Override
     public ElementType getType() {
-        return ElementType.DC_NODE;
+        return ElementType.DC_BUS;
     }
 
     @Override

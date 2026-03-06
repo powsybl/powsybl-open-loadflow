@@ -1,7 +1,7 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfAcDcConverter;
-import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 
 public interface AcDcNetworkInitializer {
@@ -9,5 +9,5 @@ public interface AcDcNetworkInitializer {
 
     double getActivePower(LfAcDcConverter converter);
 
-    double getMagnitude(LfDcNode dcNode);
+    double getMagnitude(LfDcBus dcBus);
 }

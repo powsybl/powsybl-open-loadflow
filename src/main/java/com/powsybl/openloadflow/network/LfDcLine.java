@@ -14,9 +14,9 @@ import com.powsybl.openloadflow.util.Evaluable;
  */
 public interface LfDcLine extends LfElement {
 
-    LfDcNode getDcNode1();
+    LfDcBus getDcBus1();
 
-    LfDcNode getDcNode2();
+    LfDcBus getDcBus2();
 
     double getR();
 

@@ -24,9 +24,9 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
     protected double targetQ;
 
-    public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1,
+    public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
                                         LfNetworkParameters parameters) {
-        super(converter, network, dcNode1, dcNode2, bus1);
+        super(converter, network, dcBus1, dcBus2, bus1);
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
         this.isVoltageRegulatorOn = converter.isVoltageRegulatorOn();
@@ -37,14 +37,14 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         }
     }
 
-    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, LfBus bus1, LfNetworkParameters parameters) {
+    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(acDcConverter);
-        Objects.requireNonNull(dcNode1);
-        Objects.requireNonNull(dcNode2);
+        Objects.requireNonNull(dcBus1);
+        Objects.requireNonNull(dcBus2);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(parameters);
-        return new LfVoltageSourceConverterImpl(acDcConverter, network, dcNode1, dcNode2, bus1, parameters);
+        return new LfVoltageSourceConverterImpl(acDcConverter, network, dcBus1, dcBus2, bus1, parameters);
 
     }
 
@@ -79,11 +79,11 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     @Override
     public void updateFlows(double iConv1, double iConv2, double pAc, double qAc) {
         var converter = getConverter();
-        double v1 = converter.getDcTerminal1().getDcNode().getV() / dcNode1.getNominalV();
-        double v2 = converter.getDcTerminal2().getDcNode().getV() / dcNode2.getNominalV();
-        // iConv1 is the current going from dcNode1 to dcNode2
-        converter.getDcTerminal1().setI(iConv1 * PerUnit.ibDc(dcNode1.getNominalV()));
-        converter.getDcTerminal2().setI(iConv2 * PerUnit.ibDc(dcNode2.getNominalV()));
+        double v1 = converter.getDcTerminal1().getDcBus().getV() / dcBus1.getNominalV();
+        double v2 = converter.getDcTerminal2().getDcBus().getV() / dcBus2.getNominalV();
+        // iConv1 is the current going from dcBus1 to dcBus2
+        converter.getDcTerminal1().setI(iConv1 * PerUnit.ibDc(dcBus1.getNominalV()));
+        converter.getDcTerminal2().setI(iConv2 * PerUnit.ibDc(dcBus2.getNominalV()));
         // Active power injected by the DC network in the converter
         converter.getDcTerminal1().setP(iConv1 * v1 * PerUnit.SB);
         converter.getDcTerminal2().setP(iConv2 * v2 * PerUnit.SB);

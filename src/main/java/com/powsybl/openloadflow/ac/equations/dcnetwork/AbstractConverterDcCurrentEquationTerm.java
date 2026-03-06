@@ -12,7 +12,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfDcNode;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -43,37 +43,37 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected double dcNominalV;
 
-    protected LfDcNode dcNode1;
+    protected LfDcBus dcBus1;
 
-    protected LfDcNode dcNode2;
+    protected LfDcBus dcBus2;
 
-    protected AbstractConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcNode dcNode1, LfDcNode dcNode2, double nominalV, VariableSet<AcVariableType> variableSet) {
+    protected AbstractConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, double nominalV, VariableSet<AcVariableType> variableSet) {
         super(converter);
         Objects.requireNonNull(converter);
         Objects.requireNonNull(variableSet);
-        AcVariableType vType = AcVariableType.DC_NODE_V;
+        AcVariableType vType = AcVariableType.DC_BUS_V;
         AcVariableType pType = AcVariableType.CONV_P_AC;
-        v1Var = variableSet.getVariable(dcNode1.getNum(), vType);
-        v2Var = variableSet.getVariable(dcNode2.getNum(), vType);
+        v1Var = variableSet.getVariable(dcBus1.getNum(), vType);
+        v2Var = variableSet.getVariable(dcBus2.getNum(), vType);
         pAcVar = variableSet.getVariable(converter.getNum(), pType);
         variables.add(v1Var);
         variables.add(v2Var);
         variables.add(pAcVar);
         lossFactors = converter.getLossFactors();
         dcNominalV = nominalV;
-        this.dcNode1 = dcNode1;
-        this.dcNode2 = dcNode2;
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
         this.idleLoss = lossFactors.get(0) / PerUnit.SB;
         this.switchingLoss = lossFactors.get(1) * 1000d / nominalV;
         this.resistiveLoss = lossFactors.get(2) / PerUnit.zb(nominalV);
     }
 
     protected double v1() {
-        return sv.get(v1Var.getRow()) * dcNode1.getNominalV() / dcNominalV;
+        return sv.get(v1Var.getRow()) * dcBus1.getNominalV() / dcNominalV;
     }
 
     protected double v2() {
-        return sv.get(v2Var.getRow()) * dcNode2.getNominalV() / dcNominalV;
+        return sv.get(v2Var.getRow()) * dcBus2.getNominalV() / dcNominalV;
     }
 
     protected double pAc() {

@@ -10,8 +10,8 @@ package com.powsybl.openloadflow.ac.equations.dcnetwork;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfDcLine;
-import com.powsybl.openloadflow.network.LfDcNode;
 
 import java.util.Objects;
 
@@ -20,8 +20,8 @@ import java.util.Objects;
  */
 public class ClosedDcLineSide1PowerEquationTerm extends AbstractClosedDcLineFlowEquationTerm {
 
-    public ClosedDcLineSide1PowerEquationTerm(LfDcLine dcLine, LfDcNode dcNode1, LfDcNode dcNode2, VariableSet<AcVariableType> variableSet) {
-        super(dcLine, dcNode1, dcNode2, variableSet);
+    public ClosedDcLineSide1PowerEquationTerm(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
+        super(dcLine, dcBus1, dcBus2, variableSet);
     }
 
     public static double p1(double v1, double v2, double r) {

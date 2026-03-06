@@ -19,9 +19,9 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLine {
 
-    protected final LfDcNode dcNode1;
+    protected final LfDcBus dcBus1;
 
-    protected final LfDcNode dcNode2;
+    protected final LfDcBus dcBus2;
 
     protected Evaluable p1 = NAN;
 
@@ -33,21 +33,21 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     private final double r;
 
-    protected AbstractLfDcLine(LfNetwork network, LfDcNode dcNode1, LfDcNode dcNode2, double r) {
+    protected AbstractLfDcLine(LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
         super(network);
-        this.dcNode1 = dcNode1;
-        this.dcNode2 = dcNode2;
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
         this.r = r;
     }
 
     @Override
-    public LfDcNode getDcNode1() {
-        return dcNode1;
+    public LfDcBus getDcBus1() {
+        return dcBus1;
     }
 
     @Override
-    public LfDcNode getDcNode2() {
-        return dcNode2;
+    public LfDcBus getDcBus2() {
+        return dcBus2;
     }
 
     @Override

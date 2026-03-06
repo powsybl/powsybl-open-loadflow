@@ -35,7 +35,7 @@ public class LfAcDcNetwork extends LfNetwork {
             network.getHvdcs().forEach(this::addHvdc);
         }
         for (LfNetwork network : dcNetworks) {
-            network.getDcNodes().forEach(this::addDcNode);
+            network.getDcBuses().forEach(this::addDcBus);
             network.getDcLines().forEach(this::addDcLine);
         }
         acSubNetworks = acNetworks;

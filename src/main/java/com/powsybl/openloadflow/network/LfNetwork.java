@@ -86,9 +86,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
 
-    private final List<LfDcNode> dcNodesByIndex = new ArrayList<>();
+    private final List<LfDcBus> dcBusByIndex = new ArrayList<>();
 
-    private final Map<String, LfDcNode> dcNodesById = new LinkedHashMap<>();
+    private final Map<String, LfDcBus> dcBusById = new LinkedHashMap<>();
 
     private final List<LfDcLine> dcLinesByIndex = new ArrayList<>();
 
@@ -210,7 +210,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
-            case DC_NODE -> getDcNode(num);
+            case DC_BUS -> getDcBus(num);
             case DC_LINE -> getDcLine(num);
             case CONVERTER -> getVoltageSourceConverter(num);
         };
@@ -464,8 +464,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
 
-        for (LfDcNode dcNode : dcNodesById.values()) {
-            dcNode.updateState(parameters);
+        for (LfDcBus dcBus : dcBusById.values()) {
+            dcBus.updateState(parameters);
         }
 
         branches.forEach(branch -> branch.updateState(parameters, updateReport));
@@ -1004,24 +1004,24 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return getId();
     }
 
-    public void addDcNode(LfDcNode dcNode) {
-        Objects.requireNonNull(dcNode);
-        dcNode.setNum(dcNodesByIndex.size());
-        dcNodesByIndex.add(dcNode);
-        dcNodesById.put(dcNode.getId(), dcNode);
+    public void addDcBus(LfDcBus dcBus) {
+        Objects.requireNonNull(dcBus);
+        dcBus.setNum(dcBusByIndex.size());
+        dcBusByIndex.add(dcBus);
+        dcBusById.put(dcBus.getId(), dcBus);
     }
 
-    public LfDcNode getDcNodeById(String id) {
+    public LfDcBus getDcBusById(String id) {
         Objects.requireNonNull(id);
-        return dcNodesById.get(id);
+        return dcBusById.get(id);
     }
 
-    public LfDcNode getDcNode(int num) {
-        return dcNodesByIndex.get(num);
+    public LfDcBus getDcBus(int num) {
+        return dcBusByIndex.get(num);
     }
 
-    public List<LfDcNode> getDcNodes() {
-        return dcNodesByIndex;
+    public List<LfDcBus> getDcBuses() {
+        return dcBusByIndex;
     }
 
     public void addDcLine(LfDcLine dcLine) {
