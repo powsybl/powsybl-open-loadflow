@@ -52,6 +52,9 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected static double rawP(double p0, double k, double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
+        // Since open-loadflow v2.2.0, saturation support is removed from this equation term (it is now managed by the HVDC AC emulation limits outer loop)
+        // This change enables the possibility to have a very high active power flow through the HVDC in the Newton Raphson (before the outer loop applies saturation)
+        // The risk of having this high active power flow causing Newton Raphson divergence is negligible
     }
 
     protected double ph1() {
