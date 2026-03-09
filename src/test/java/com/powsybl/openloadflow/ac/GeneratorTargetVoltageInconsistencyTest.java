@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -359,7 +360,7 @@ class GeneratorTargetVoltageInconsistencyTest {
     }
 
     @Test
-    void remoteAndLocalTestWithInconsistentTargetVoltage() {
+    void remoteAndLocalTestWithInconsistentTargetVoltage() throws IOException {
         Network network = createLocalInconsistentTargetVoltageNetwork();
         Generator g2 = network.getGenerator("g2");
         g2.setRegulatingTerminal(network.getLoad("ld2").getTerminal()).setTargetV(400.0);
@@ -380,6 +381,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setGeneratorVoltageRemoteControl(true);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
                 .build();
         List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
@@ -387,11 +389,17 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfBus lfBus = lfNetwork.getBusById("vl1_0");
         Optional<GeneratorVoltageControl> sharedVoltageControl = lfBus.getGeneratorVoltageControl();
         assertTrue(sharedVoltageControl.isPresent());
-        LoadFlowAssert.assertReportContains(
-                ".*Generators \\[g1\\, g2\\, g3\\] are connected to the same bus vl1\\_0 but control the voltage of different buses: vl1\\_0 \\(kept\\) and vl2\\_0 \\(rejected\\).*",
-                reportNode);
-        LoadFlowAssert.assertReportContains(
-                ".*Generators \\[g1\\, g2\\, g3\\] are connected to the same bus vl1\\_0 with different target voltages: 23\\.0 kV \\(kept\\) and 24\\.0 kV \\(rejected\\).*",
+        LoadFlowAssert.assertTxtReportEquals("""
+                        + Test Report
+                           + Network CC0 SC0
+                              Generators [g1, g2, g3] are connected to the same bus vl1_0 but control the voltage of different buses: vl1_0 (kept) and vl2_0 (rejected)
+                              Generators [g1, g2, g3] are connected to the same bus vl1_0 with different target voltages: 23 kV (kept) and 24 kV (rejected)
+                              + Network info
+                                 Network has 2 buses and 1 branches
+                                 Network balance: active generation=300 MW, active load=99.9 MW, reactive generation=0 MVar, reactive load=80 MVar
+                                 Angle reference bus: vl1_0
+                                 Slack bus: vl1_0
+                        """,
                 reportNode);
         assertEquals(23.0, sharedVoltageControl.get().getTargetValue() * lfBus.getNominalV());
     }
