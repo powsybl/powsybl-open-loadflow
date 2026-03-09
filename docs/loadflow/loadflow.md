@@ -289,8 +289,8 @@ It is computed like this:
 $Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $  
 Then factors are normalized to have sum of factors equal to 1.
 
-The distribution is iterative (inside teh same outer loop iteration). 
-Each area distributes its share, it some areas cannot fully distribute it, they are excluded from this distribution and the remaining slack is distributed among other areas at next iteration.
+The distribution is iterative (inside the same outer loop iteration). 
+Each area distributes its share, if some areas cannot fully distribute it, they are excluded from this distribution and the remaining slack is distributed among other areas at next iteration.
 The distribution iterates until all the mismatch have been distributed and fails if all areas cannot distribute anymore but some mismatch remains.
 
 ### Zero impedance boundary branches
