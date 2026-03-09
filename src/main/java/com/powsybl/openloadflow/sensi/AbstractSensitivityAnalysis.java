@@ -792,19 +792,19 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeDanglingLine(Network network, SensitivityFunctionType functionType, String functionId) {
+    private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeBoundaryLine(Network network, SensitivityFunctionType functionType, String functionId) {
         if (isFlowFunction(functionType) || isReactivePowerFunctionType(functionType)) {
-            DanglingLine danglingLine = network.getDanglingLine(functionId);
-            if (danglingLine != null && danglingLine.isPaired()) {
+            BoundaryLine boundaryLine = network.getBoundaryLine(functionId);
+            if (boundaryLine != null && boundaryLine.isPaired()) {
                 if (functionType.getSide().orElseThrow() != 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
                     throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
                 }
-                TieLine tieLine = danglingLine.getTieLine().orElseThrow();
-                TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
+                TieLine tieLine = boundaryLine.getTieLine().orElseThrow();
+                TwoSides boundaryLineSide = tieLine.getBoundaryLine(TwoSides.ONE) == boundaryLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
                 if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
+                    LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), boundaryLineSide.getNum());
                 }
-                return Pair.of(updateFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
+                return Pair.of(updateFunctionTypeSide(functionType, boundaryLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
             }
         }
         return Pair.of(functionType, functionId); // Returning input as it is
@@ -815,8 +815,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         if (branch != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        DanglingLine danglingLine = network.getDanglingLine(branchId);
-        if (danglingLine != null && !danglingLine.isPaired()) {
+        BoundaryLine boundaryLine = network.getBoundaryLine(branchId);
+        if (boundaryLine != null && !boundaryLine.isPaired()) {
             return lfNetwork.getBranchById(branchId);
         }
         ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
@@ -930,11 +930,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 injection = network.getLoad(injectionId);
             }
             if (injection == null) {
-                injection = network.getDanglingLine(injectionId);
-                if (injection != null && network.getDanglingLine(injectionId).isPaired()) {
+                injection = network.getBoundaryLine(injectionId);
+                if (injection != null && network.getBoundaryLine(injectionId).isPaired()) {
                     throw new PowsyblException("The dangling line " + injectionId + " is paired: it cannot be a sensitivity variable");
                 }
-                injection = network.getDanglingLine(injectionId);
+                injection = network.getBoundaryLine(injectionId);
             }
             if (injection == null) {
                 injection = network.getLccConverterStation(injectionId);
@@ -956,8 +956,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 if (bus == null) {
                     return null;
                 }
-                if (injection instanceof DanglingLine dl) {
-                    return LfDanglingLineBus.getId(dl);
+                if (injection instanceof BoundaryLine dl) {
+                    return LfBoundaryLineBus.getId(dl);
                 } else {
                     return bus.getId();
                 }
@@ -1013,9 +1013,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         factorReader.read((functionTypeToCheck, functionIdToCheck, variableType, variableId, variableSet, contingencyContext) -> {
             SensitivityFunctionType functionType = functionTypeToCheck;
             String functionId = functionIdToCheck;
-            if (network.getDanglingLine(functionIdToCheck) != null && network.getDanglingLine(functionIdToCheck).isPaired()) {
+            if (network.getBoundaryLine(functionIdToCheck) != null && network.getBoundaryLine(functionIdToCheck).isPaired()) {
                 //In case of dangling line associated to a tie line, we have to update the sensitivity function
-                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeDanglingLine(network, functionTypeToCheck, functionIdToCheck);
+                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeBoundaryLine(network, functionTypeToCheck, functionIdToCheck);
                 functionType = updatedFunction.getLeft();
                 functionId = updatedFunction.getRight();
             }

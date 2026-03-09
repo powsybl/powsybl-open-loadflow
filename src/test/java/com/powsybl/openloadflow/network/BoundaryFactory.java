@@ -15,13 +15,13 @@ import com.powsybl.iidm.network.*;
 public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
-     *  g1     dl1
+     *  g1     bl1
      *  |       |
      *  b1 ---- b2
      *      l1
      */
     public static Network create() {
-        Network network = Network.create("dl", "test");
+        Network network = Network.create("bl", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
                 .add();
@@ -54,8 +54,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
         vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        vl2.newDanglingLine()
-                .setId("dl1")
+        vl2.newBoundaryLine()
+                .setId("bl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
                 .setR(0.7)
@@ -82,7 +82,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
-     *  g1     dl1      load3
+     *  g1     bl1      load3
      *  |       |        |
      *  b1 ---- b2 ----- b3
      *      l1       l13
@@ -124,7 +124,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setX(10)
                 .add();
 
-        network.getDanglingLine("dl1").setP0(91);
+        network.getBoundaryLine("bl1").setP0(91);
 
         return network;
     }
@@ -322,7 +322,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(true)
                 .add();
 
-        DanglingLine dl1 = vl1.newDanglingLine()
+        BoundaryLine bl1 = vl1.newBoundaryLine()
                 .setBus("b1")
                 .setId("h1")
                 .setR(0.0)
@@ -331,7 +331,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
-        DanglingLine dl3 = vl3.newDanglingLine()
+        BoundaryLine bl3 = vl3.newBoundaryLine()
                 .setBus("b3")
                 .setId("h2")
                 .setR(0.0)
@@ -343,8 +343,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newTieLine()
                 .setId("t12")
-                .setDanglingLine1(dl1.getId())
-                .setDanglingLine2(dl3.getId())
+                .setBoundaryLine1(bl1.getId())
+                .setBoundaryLine2(bl3.getId())
                 .add();
 
         network.newLine()
@@ -362,7 +362,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         Network network = createWithTieLine();
 
-        DanglingLine dl1 = network.getVoltageLevel("vl1").newDanglingLine()
+        BoundaryLine bl1 = network.getVoltageLevel("vl1").newBoundaryLine()
                 .setBus("b1")
                 .setId("h1bis")
                 .setR(0.0)
@@ -371,7 +371,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
-        DanglingLine dl3 = network.getVoltageLevel("vl3").newDanglingLine()
+        BoundaryLine bl3 = network.getVoltageLevel("vl3").newBoundaryLine()
                 .setBus("b3")
                 .setId("h2bis")
                 .setR(0.0)
@@ -383,8 +383,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newTieLine()
                 .setId("t12bis")
-                .setDanglingLine1(dl1.getId())
-                .setDanglingLine2(dl3.getId())
+                .setBoundaryLine1(bl1.getId())
+                .setBoundaryLine2(bl3.getId())
                 .add();
 
         return network;
@@ -396,7 +396,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
      *   g1
      */
     public static Network createWithoutLoads() {
-        Network network = Network.create("dl", "test");
+        Network network = Network.create("bl", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
                 .add();

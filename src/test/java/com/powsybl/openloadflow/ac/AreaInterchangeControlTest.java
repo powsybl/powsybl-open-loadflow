@@ -73,7 +73,7 @@ class AreaInterchangeControlTest {
 
     @Test
     void twoAreasWithUnpairedDanglingLine() {
-        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithBoundaryLine();
         double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
         double interchangeTarget2 = 40;
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
@@ -83,9 +83,9 @@ class AreaInterchangeControlTest {
 
     @Test
     void zeroImpedanceBoundaryBranchesNetworkConversion() {
-        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithBoundaryLine();
         network.getLine("l23_A1").setX(0);          // boundary
-        network.getDanglingLine("dl1").setX(0);     // boundary
+        network.getBoundaryLine("dl1").setX(0);     // boundary
         network.getLine("l12").setX(0);             // not boundary
 
         LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setAreaInterchangeControl(false)).get(0);
@@ -104,11 +104,11 @@ class AreaInterchangeControlTest {
 
     @Test
     void twoAreasWithZeroImpedanceBoundaryBranches() {
-        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithBoundaryLine();
         double interchangeTarget1 = -40;
         double interchangeTarget2 = 20;
         network.getLine("l23_A1").setX(0);
-        network.getDanglingLine("dl1").setX(0);
+        network.getBoundaryLine("dl1").setX(0);
         parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 2);
         parameters.setDc(true);

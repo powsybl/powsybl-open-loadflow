@@ -263,9 +263,9 @@ In such cases the involved areas are not considered in the Area Interchange Cont
 
 In iIDM each area defines the boundary points to be considered in the interchange. iIDM supports two ways of modeling area boundaries:
 - either via an equipment terminal,
-- or via a DanglingLine boundary.
+- or via a BoundaryLine boundary.
 
-In the DanglingLine case, the flow at the boundary side is considered as it should be, for both unpaired DanglingLines and DanglingLines paired in a TieLine.
+In the BoundaryLine case, the flow at the boundary side is considered as it should be, for both unpaired BoundaryLines and BoundaryLines paired in a TieLine.
 
 ### Slack bus mismatch attribution
 Depending on the location of the slack bus(es), the role of distributing the active power mismatch will be attributed based on the following logic:

@@ -64,7 +64,7 @@ public final class Networks {
         resetInjectionsState(network.getLoads());
         resetInjectionsState(network.getLccConverterStations());
         resetInjectionsState(network.getBatteries());
-        resetInjectionsState(network.getDanglingLines());
+        resetInjectionsState(network.getBoundaryLines());
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {

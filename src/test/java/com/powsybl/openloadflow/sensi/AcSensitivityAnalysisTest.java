@@ -13,7 +13,7 @@ import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.DanglingLineContingency;
+import com.powsybl.contingency.BoundaryLineContingency;
 import com.powsybl.contingency.LineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
@@ -1434,7 +1434,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDanglingLineSensi() {
+    void testBoundaryLineSensi() {
         Network network = BoundaryFactory.createWithLoad();
         runAcLf(network);
 
@@ -1453,14 +1453,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(260.51, result.getBranchCurrent1FunctionReferenceValue("dl1"), LoadFlowAssert.DELTA_I);
 
         // dangling line is connected on base case but will be disconnected by a contingency => 0
-        List<Contingency> contingencies = List.of(new Contingency("c", new DanglingLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("dl1")));
         runParameters.setContingencies(contingencies);
         result = sensiRunner.run(network, factors, runParameters);
         assertEquals(-0.903d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("c", "dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
         // dangling line is disconnected on base case => 0
-        network.getDanglingLine("dl1").getTerminal().disconnect();
+        network.getBoundaryLine("dl1").getTerminal().disconnect();
         runParameters.setContingencies(Collections.emptyList());
         result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -2099,20 +2099,20 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testWithTieLinesSpecifiedByDanglingLines() {
+    void testWithTieLinesSpecifiedByBoundaryLines() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = BoundaryFactory.createWithTieLine();
         //BRANCH_ACTIVE_POWER
-        List<SensitivityFactor> factors = network.getDanglingLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).collect(Collectors.toList());
+        List<SensitivityFactor> factors = network.getBoundaryLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).collect(Collectors.toList());
         factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_ACTIVE_POWER_1
         factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", null, TwoSides.TWO)); // Adding tie line BRANCH_ACTIVE_POWER_2
         //BRANCH_CURRENT
-        factors.addAll(network.getDanglingLineStream().map(line -> createBranchIntensityPerInjectionIncrease(line.getId(), "g1")).toList());
+        factors.addAll(network.getBoundaryLineStream().map(line -> createBranchIntensityPerInjectionIncrease(line.getId(), "g1")).toList());
         factors.add(createBranchIntensityPerInjectionIncrease("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_CURRENT_1
         factors.add(createBranchIntensityPerInjectionIncrease("t12", "g1", TwoSides.TWO)); // Adding tie line BRANCH_CURRENT_2
         //BRANCH_REACTIVE_POWER
-        factors.addAll(network.getDanglingLineStream().map(line -> createBranchReactivePowerPerTargetV(line.getId(), "g1")).toList());
+        factors.addAll(network.getBoundaryLineStream().map(line -> createBranchReactivePowerPerTargetV(line.getId(), "g1")).toList());
         factors.add(createBranchReactivePowerPerTargetV("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_CURRENT_1
         factors.add(createBranchReactivePowerPerTargetV("t12", "g1", TwoSides.TWO)); // Adding tie line BRANCH_CURRENT_2
 
@@ -2187,7 +2187,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"),
             createBranchFlowPerInjectionIncrease("dl1", "load3"));
 
-        List<Contingency> contingencies = List.of(new Contingency("c", new DanglingLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("dl1")));
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);

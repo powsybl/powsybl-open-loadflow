@@ -477,7 +477,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testSaWithStateMonitorDanglingLine() {
+    void testSaWithStateMonitorBoundaryLine() {
         Network network = BoundaryFactory.createWithLoad();
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("dl1"), Collections.singleton("vl1"), emptySet()));
@@ -1878,10 +1878,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testDanglingLineContingency() {
+    void testBoundaryLineContingency() {
         Network network = BoundaryFactory.createWithLoad();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("dl1", new BoundaryLineContingency("dl1")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(75.18, result.getPreContingencyResult().getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -2608,7 +2608,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.002256, tieLineResultExt.getAngle1(), DELTA_ANGLE);
         assertEquals(0.0, tieLineResultExt.getAngle2(), DELTA_ANGLE);
 
-        Set<String> allBranchIds = network.getDanglingLineStream(DanglingLineFilter.PAIRED).map(Identifiable::getId).collect(Collectors.toSet());
+        Set<String> allBranchIds = network.getBoundaryLineStream(BoundaryLineFilter.PAIRED).map(Identifiable::getId).collect(Collectors.toSet());
         List<StateMonitor> monitors2 = List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors2, securityAnalysisParameters);
         BranchResult dl1Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h1");
@@ -2624,7 +2624,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = BoundaryFactory.createWithTieLine();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setCreateResultExtension(true));
-        Set<String> allBranchIds = network.getDanglingLineStream(DanglingLineFilter.PAIRED).map(Identifiable::getId).collect(Collectors.toSet());
+        Set<String> allBranchIds = network.getBoundaryLineStream(BoundaryLineFilter.PAIRED).map(Identifiable::getId).collect(Collectors.toSet());
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(Contingency.branch("l34"));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
@@ -2639,7 +2639,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testWithTieLineContingency2() {
         // using one of the two dangling line ids.
         Network network = BoundaryFactory.createWithTieLine();
-        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new DanglingLineContingency("h1"))));
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BoundaryLineContingency("h1"))));
         List<StateMonitor> monitors = createNetworkMonitors(network);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
@@ -2728,8 +2728,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         ContingenciesProvider contingencies = n -> ImmutableList.of(
                 new Contingency("contingency1", new BranchContingency("NHV1_NHV2_1")),
                 new Contingency("contingency2", new TieLineContingency("NHV1_NHV2_2")),
-                new Contingency("contingency3", new DanglingLineContingency("NHV1_XNODE1")),
-                new Contingency("contingency4", new DanglingLineContingency("XNODE2_NHV2")));
+                new Contingency("contingency3", new BoundaryLineContingency("NHV1_XNODE1")),
+                new Contingency("contingency4", new BoundaryLineContingency("XNODE2_NHV2")));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
 
         LimitViolation violation0 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "20'",

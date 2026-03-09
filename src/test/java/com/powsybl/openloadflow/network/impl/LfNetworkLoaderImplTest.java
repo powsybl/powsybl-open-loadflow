@@ -11,7 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
-import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
+import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
@@ -130,16 +130,16 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void networkWithDanglingLineTest() {
-        network = DanglingLineNetworkFactory.create();
+    void networkWithBoundaryLineTest() {
+        network = BoundaryLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);
-        LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
-        assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
-        assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
-        assertNull(lfDanglingLineBus.getViolationLocation());
+        LfBus lfBoundaryLineBus = mainNetwork.getBusById("BL_BUS");
+        assertTrue(lfBoundaryLineBus instanceof LfBoundaryLineBus);
+        assertEquals("VL", lfBoundaryLineBus.getVoltageLevelId());
+        assertNull(lfBoundaryLineBus.getViolationLocation());
     }
 
     @Test
@@ -234,8 +234,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);
-        LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
-        LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
+        LfBus lfBoundaryLineBus = mainNetwork.getBusById("dl1_BUS");
+        LfGenerator generator = lfBoundaryLineBus.getGenerators().get(0);
         assertEquals(0, generator.getDroop(), 10E-3);
         generator.setParticipating(true);
         assertFalse(generator.isParticipating());
@@ -284,7 +284,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     void validationLevelTest5() {
         network = BoundaryFactory.create();
         network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
-        network.getDanglingLine("dl1").setP0(Double.NaN).setQ0(Double.NaN);
+        network.getBoundaryLine("dl1").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }

@@ -684,7 +684,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testDanglingLineContingencyDistributedSlackOnLoads() {
+    void testBoundaryLineContingencyDistributedSlackOnLoads() {
         Network network = BoundaryFactory.createWithLoad();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl3_0", true);
@@ -692,7 +692,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "g1"));
 
-        List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("dl1", new BoundaryLineContingency("dl1")));
 
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
@@ -705,7 +705,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0.3695, result.getBranchFlow1SensitivityValue("dl1", "g1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
         assertEquals(36.794, result.getBranchFlow1FunctionReferenceValue("dl1", "l1"), LoadFlowAssert.DELTA_POWER);
 
-        network.getDanglingLine("dl1").getTerminal().disconnect();
+        network.getBoundaryLine("dl1").getTerminal().disconnect();
 
         LoadFlowParameters parameters = sensiParameters.getLoadFlowParameters();
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
@@ -725,7 +725,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testDanglingLineContingencyDistributedSlackOnGenerators() {
+    void testBoundaryLineContingencyDistributedSlackOnGenerators() {
         Network network = BoundaryFactory.createWithLoad();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
@@ -733,7 +733,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "load3"));
 
-        List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("dl1", new BoundaryLineContingency("dl1")));
 
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
@@ -746,7 +746,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(-0.3704, result.getBranchFlow1SensitivityValue("dl1", "load3", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
         assertEquals(3.0071, result.getBranchFlow1FunctionReferenceValue("dl1", "l1"), LoadFlowAssert.DELTA_POWER);
 
-        network.getDanglingLine("dl1").getTerminal().disconnect();
+        network.getBoundaryLine("dl1").getTerminal().disconnect();
 
         LoadFlowParameters parameters = sensiParameters.getLoadFlowParameters();
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);

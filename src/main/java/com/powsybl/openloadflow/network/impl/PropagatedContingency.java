@@ -196,13 +196,13 @@ public class PropagatedContingency {
                         topoConfig.getBranchIdsOpenableSide2().add(connectable.getId());
                     }
                     break;
-                case DANGLING_LINE:
-                    DanglingLine dl = (DanglingLine) connectable;
+                case BOUNDARY_LINE:
+                    BoundaryLine bl = (BoundaryLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
-                    if (dl.isPaired()) {
-                        addBranchToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                    if (bl.isPaired()) {
+                        addBranchToOpen(bl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     } else {
-                        addBranchToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                        addBranchToOpen(bl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     }
                     break;
 
@@ -274,7 +274,7 @@ public class PropagatedContingency {
             return List.of(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
         }
         if (identifiable instanceof TieLine line) {
-            return List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
+            return List.of(line.getBoundaryLine1().getTerminal(), line.getBoundaryLine2().getTerminal());
         }
         if (identifiable instanceof Switch) {
             return Collections.emptyList();
@@ -293,8 +293,8 @@ public class PropagatedContingency {
                 identifiable = network.getHvdcLine(element.getId());
                 yield "HVDC line";
             }
-            case DANGLING_LINE -> {
-                identifiable = network.getDanglingLine(element.getId());
+            case BOUNDARY_LINE -> {
+                identifiable = network.getBoundaryLine(element.getId());
                 yield "Dangling line";
             }
             case GENERATOR -> {

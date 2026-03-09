@@ -40,7 +40,7 @@ class OriginalIdsTest {
         assertEquals(List.of("l1"), lfNetwork.getBranchById("l1").getOriginalIds());
         assertEquals(LfBranch.BranchType.LINE, lfNetwork.getBranchById("l1").getBranchType());
         assertEquals(List.of("dl1"), lfNetwork.getBranchById("dl1").getOriginalIds());
-        assertEquals(LfBranch.BranchType.DANGLING_LINE, lfNetwork.getBranchById("dl1").getBranchType());
+        assertEquals(LfBranch.BranchType.BOUNDARY_LINE, lfNetwork.getBranchById("dl1").getBranchType());
         assertEquals(List.of("dl1"), lfNetwork.getBusById("dl1_BUS").getOriginalIds());
         assertEquals("dl1", lfNetwork.getGeneratorById("dl1_GEN").getOriginalId());
     }
