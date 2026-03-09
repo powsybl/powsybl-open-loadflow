@@ -928,28 +928,28 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"),
-                createBranchFlowPerInjectionIncrease("dl1", "load3"));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "bl1"),
+                createBranchFlowPerInjectionIncrease("bl1", "load3"));
 
         // boundary line is connected
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(-0.812d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(91.0, result.getBranchFlow1FunctionReferenceValue("dl1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.812d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(91.0, result.getBranchFlow1FunctionReferenceValue("bl1"), LoadFlowAssert.DELTA_POWER);
 
         // boundary line is connected on base case but will be disconnected by a contingency => 0
-        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("bl1")));
         runParameters.setContingencies(contingencies);
         result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(-0.812d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, result.getBranchFlow1SensitivityValue("c", "dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.812d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("c", "bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
         // boundary line is disconnected on base case => 0
-        network.getBoundaryLine("dl1").getTerminal().disconnect();
+        network.getBoundaryLine("bl1").getTerminal().disconnect();
         runParameters.setContingencies(Collections.emptyList());
         result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(0d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1327,10 +1327,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"),
-            createBranchFlowPerInjectionIncrease("dl1", "load3"));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "bl1"),
+            createBranchFlowPerInjectionIncrease("bl1", "load3"));
 
-        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("bl1")));
         DcSensitivityAnalysis analysis = new DcSensitivityAnalysis(new SparseMatrixFactory(),
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);

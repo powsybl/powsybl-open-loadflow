@@ -234,7 +234,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);
-        LfBus lfBoundaryLineBus = mainNetwork.getBusById("dl1_BUS");
+        LfBus lfBoundaryLineBus = mainNetwork.getBusById("bl1_BUS");
         LfGenerator generator = lfBoundaryLineBus.getGenerators().get(0);
         assertEquals(0, generator.getDroop(), 10E-3);
         generator.setParticipating(true);
@@ -284,7 +284,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     void validationLevelTest5() {
         network = BoundaryFactory.create();
         network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
-        network.getBoundaryLine("dl1").setP0(Double.NaN).setQ0(Double.NaN);
+        network.getBoundaryLine("bl1").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }

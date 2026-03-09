@@ -480,7 +480,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testSaWithStateMonitorBoundaryLine() {
         Network network = BoundaryFactory.createWithLoad();
         List<StateMonitor> monitors = new ArrayList<>();
-        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("dl1"), Collections.singleton("vl1"), emptySet()));
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("bl1"), Collections.singleton("vl1"), emptySet()));
         List<Contingency> contingencies = List.of(new Contingency("contingency", new LoadContingency("load3")));
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
@@ -488,7 +488,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         securityAnalysisParameters.getLoadFlowParameters().addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 Collections.emptyList(), Collections.emptyList(), ReportNode.NO_OP);
-        BranchResult preContingencyBranchResult = result.getPreContingencyResult().getNetworkResult().getBranchResult("dl1");
+        BranchResult preContingencyBranchResult = result.getPreContingencyResult().getNetworkResult().getBranchResult("bl1");
         assertEquals(Double.NaN, preContingencyBranchResult.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
         assertEquals(91.294, preContingencyBranchResult.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-91.000, preContingencyBranchResult.getP2(), LoadFlowAssert.DELTA_POWER);
@@ -496,7 +496,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(260.970, preContingencyBranchResult.getI2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(149.751, preContingencyBranchResult.getQ1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-150.000, preContingencyBranchResult.getQ2(), LoadFlowAssert.DELTA_POWER);
-        BranchResult postContingencyBranchResult = getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("dl1");
+        BranchResult postContingencyBranchResult = getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("bl1");
         assertEquals(Double.NaN, postContingencyBranchResult.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
         assertEquals(91.294, postContingencyBranchResult.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-91.000, postContingencyBranchResult.getP2(), LoadFlowAssert.DELTA_POWER);
@@ -1881,14 +1881,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testBoundaryLineContingency() {
         Network network = BoundaryFactory.createWithLoad();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        List<Contingency> contingencies = List.of(new Contingency("dl1", new BoundaryLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("bl1", new BoundaryLineContingency("bl1")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(75.18, result.getPreContingencyResult().getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        var postContingencyResult = getPostContingencyResult(result, "dl1");
+        var postContingencyResult = getPostContingencyResult(result, "bl1");
         assertEquals(3.333, postContingencyResult.getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Set.of("dl1"), postContingencyResult.getConnectivityResult().getDisconnectedElements());
+        assertEquals(Set.of("bl1"), postContingencyResult.getConnectivityResult().getDisconnectedElements());
     }
 
     @Test
@@ -2611,12 +2611,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Set<String> allBranchIds = network.getBoundaryLineStream(BoundaryLineFilter.PAIRED).map(Identifiable::getId).collect(Collectors.toSet());
         List<StateMonitor> monitors2 = List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors2, securityAnalysisParameters);
-        BranchResult dl1Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h1");
-        assertEquals(35.0, dl1Result.getP1(), DELTA_POWER);
-        assertEquals(Double.NaN, dl1Result.getP2());
-        BranchResult dl2Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h2");
-        assertEquals(-35.0, dl2Result.getP1(), DELTA_POWER);
-        assertEquals(Double.NaN, dl2Result.getP2());
+        BranchResult bl1Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h1");
+        assertEquals(35.0, bl1Result.getP1(), DELTA_POWER);
+        assertEquals(Double.NaN, bl1Result.getP2());
+        BranchResult bl2Result = result2.getPreContingencyResult().getNetworkResult().getBranchResult("h2");
+        assertEquals(-35.0, bl2Result.getP1(), DELTA_POWER);
+        assertEquals(Double.NaN, bl2Result.getP2());
     }
 
     @Test

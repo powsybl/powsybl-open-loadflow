@@ -31,7 +31,7 @@ class AcLoadFlowBoundaryTest {
     private Network network;
     private Bus bus1;
     private Bus bus2;
-    private BoundaryLine dl1;
+    private BoundaryLine bl1;
     private Generator g1;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -45,7 +45,7 @@ class AcLoadFlowBoundaryTest {
         network = BoundaryFactory.create();
         bus1 = network.getBusBreakerView().getBus("b1");
         bus2 = network.getBusBreakerView().getBus("b2");
-        dl1 = network.getBoundaryLine("dl1");
+        bl1 = network.getBoundaryLine("bl1");
         g1 = network.getGenerator("g1");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
@@ -64,18 +64,18 @@ class AcLoadFlowBoundaryTest {
         assertAngleEquals(0.058104, bus1);
         assertVoltageEquals(388.582864, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.302, dl1.getTerminal());
-        assertReactivePowerEquals(149.764, dl1.getTerminal());
+        assertActivePowerEquals(101.302, bl1.getTerminal());
+        assertReactivePowerEquals(149.764, bl1.getTerminal());
     }
 
     @Test
     void testWithVoltageRegulationOn() {
         g1.setTargetQ(0);
         g1.setVoltageRegulatorOn(false);
-        dl1.getGeneration().setVoltageRegulationOn(true);
-        dl1.getGeneration().setMinP(0);
-        dl1.getGeneration().setMaxP(10);
-        dl1.getGeneration().newMinMaxReactiveLimits()
+        bl1.getGeneration().setVoltageRegulationOn(true);
+        bl1.getGeneration().setMinP(0);
+        bl1.getGeneration().setMaxP(10);
+        bl1.getGeneration().newMinMaxReactiveLimits()
                 .setMinQ(-100)
                 .setMaxQ(100)
                 .add();
@@ -86,8 +86,8 @@ class AcLoadFlowBoundaryTest {
         assertAngleEquals(0.114371, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.2, dl1.getTerminal());
-        assertReactivePowerEquals(-0.202, dl1.getTerminal());
+        assertActivePowerEquals(101.2, bl1.getTerminal());
+        assertReactivePowerEquals(-0.202, bl1.getTerminal());
 
         parameters.setDistributedSlack(true)
                   .setUseReactiveLimits(true);
@@ -98,8 +98,8 @@ class AcLoadFlowBoundaryTest {
         assertAngleEquals(0.114371, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.2, dl1.getTerminal());
-        assertReactivePowerEquals(-0.202, dl1.getTerminal());
+        assertActivePowerEquals(101.2, bl1.getTerminal());
+        assertReactivePowerEquals(-0.202, bl1.getTerminal());
     }
 
     @Test
@@ -180,30 +180,30 @@ class AcLoadFlowBoundaryTest {
 
     @Test
     void testWithNonImpedantBoundaryLine() {
-        dl1.setR(0.0).setX(0.0);
+        bl1.setR(0.0).setX(0.0);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertActivePowerEquals(101.0, dl1.getTerminal());
-        assertReactivePowerEquals(150.0, dl1.getTerminal());
+        assertActivePowerEquals(101.0, bl1.getTerminal());
+        assertReactivePowerEquals(150.0, bl1.getTerminal());
 
-        dl1.getGeneration().setVoltageRegulationOn(true);
-        dl1.getGeneration().setTargetV(390.0);
-        dl1.getGeneration().setMinP(0);
-        dl1.getGeneration().setMaxP(10);
-        dl1.getGeneration().newMinMaxReactiveLimits()
+        bl1.getGeneration().setVoltageRegulationOn(true);
+        bl1.getGeneration().setTargetV(390.0);
+        bl1.getGeneration().setMinP(0);
+        bl1.getGeneration().setMaxP(10);
+        bl1.getGeneration().newMinMaxReactiveLimits()
                 .setMinQ(-100)
                 .setMaxQ(100)
                 .add();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
-        assertActivePowerEquals(101.0, dl1.getTerminal());
-        assertReactivePowerEquals(-33.888, dl1.getTerminal());
+        assertActivePowerEquals(101.0, bl1.getTerminal());
+        assertReactivePowerEquals(-33.888, bl1.getTerminal());
 
         parameters.setDc(true);
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isFullyConverged());
-        assertActivePowerEquals(101.0, dl1.getTerminal());
-        assertReactivePowerEquals(Double.NaN, dl1.getTerminal());
+        assertActivePowerEquals(101.0, bl1.getTerminal());
+        assertReactivePowerEquals(Double.NaN, bl1.getTerminal());
     }
 
     @Test
@@ -211,19 +211,19 @@ class AcLoadFlowBoundaryTest {
         // verify boundary line shunt admittance is correctly accounted to be completely on network side (and not split with boundary side)
 
         // setup zero flows flow at boundary line boundary side
-        dl1.setP0(0.0).setQ0(0.0).getGeneration().setTargetP(0.0).setTargetQ(0.0).setVoltageRegulationOn(false);
+        bl1.setP0(0.0).setQ0(0.0).getGeneration().setTargetP(0.0).setTargetQ(0.0).setVoltageRegulationOn(false);
 
         // set higher B and G shunt values, and also much higher series impedance, so we would get very different results if the shunt admittance were split
-        dl1.setB(1e-3).setG(1e-4).setR(3.).setX(30.);
+        bl1.setB(1e-3).setG(1e-4).setR(3.).setX(30.);
 
-        // set g1 to regulate dl1 terminal at 400.0 kV
-        g1.setRegulatingTerminal(dl1.getTerminal()).setTargetV(400.0);
+        // set g1 to regulate bl1 terminal at 400.0 kV
+        g1.setRegulatingTerminal(bl1.getTerminal()).setTargetV(400.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(400.0, bus2);
-        assertActivePowerEquals(16., dl1.getTerminal()); // v^2 * B_shunt
-        assertReactivePowerEquals(-160., dl1.getTerminal()); // - v^2 * G_shunt
+        assertActivePowerEquals(16., bl1.getTerminal()); // v^2 * B_shunt
+        assertReactivePowerEquals(-160., bl1.getTerminal()); // - v^2 * G_shunt
     }
 }

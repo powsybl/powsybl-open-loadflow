@@ -1439,31 +1439,31 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"),
-                createBranchFlowPerInjectionIncrease("dl1", "dl1"),
-                createBranchIntensityPerInjectionIncrease("dl1", "load3"));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "bl1"),
+                createBranchFlowPerInjectionIncrease("bl1", "bl1"),
+                createBranchIntensityPerInjectionIncrease("bl1", "load3"));
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setParameters(sensiParameters);
 
         // boundary line is connected
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(-0.903d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(91.293, result.getBranchFlow1FunctionReferenceValue("dl1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.001d, result.getBranchFlow1SensitivityValue("dl1", "dl1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(260.51, result.getBranchCurrent1FunctionReferenceValue("dl1"), LoadFlowAssert.DELTA_I);
+        assertEquals(-0.903d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(91.293, result.getBranchFlow1FunctionReferenceValue("bl1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.001d, result.getBranchFlow1SensitivityValue("bl1", "bl1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(260.51, result.getBranchCurrent1FunctionReferenceValue("bl1"), LoadFlowAssert.DELTA_I);
 
         // boundary line is connected on base case but will be disconnected by a contingency => 0
-        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("bl1")));
         runParameters.setContingencies(contingencies);
         result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(-0.903d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, result.getBranchFlow1SensitivityValue("c", "dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.903d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("c", "bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
 
         // boundary line is disconnected on base case => 0
-        network.getBoundaryLine("dl1").getTerminal().disconnect();
+        network.getBoundaryLine("bl1").getTerminal().disconnect();
         runParameters.setContingencies(Collections.emptyList());
         result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(0d, result.getBranchFlow1SensitivityValue("dl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -2184,10 +2184,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"),
-            createBranchFlowPerInjectionIncrease("dl1", "load3"));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "bl1"),
+            createBranchFlowPerInjectionIncrease("bl1", "load3"));
 
-        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("dl1")));
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("bl1")));
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);
