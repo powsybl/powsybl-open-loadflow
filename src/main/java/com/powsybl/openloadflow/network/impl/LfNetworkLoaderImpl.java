@@ -592,8 +592,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     /**
-     * Adds the active power of the terminal of the dangling line to the calculation of the Area's interchange (load convention) if it is a boundary.
-     * The equivalent injection of the dangling line lfBranch model is P2;
+     * Adds the active power of the terminal of the boundary line to the calculation of the Area's interchange (load convention) if it is a boundary.
+     * The equivalent injection of the boundary line lfBranch model is P2;
      */
     private static void addBoundaryLineAreaBoundary(BoundaryLine boundaryLine, LfBranch lfBoundaryLineBranch, LoadingContext loadingContext) {
         addAreaBoundary(boundaryLine.getTerminal(), lfBoundaryLineBranch, TwoSides.TWO, loadingContext);

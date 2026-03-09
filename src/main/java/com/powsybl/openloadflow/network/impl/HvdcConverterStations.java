@@ -44,7 +44,7 @@ public final class HvdcConverterStations {
                 && ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC;
     }
 
-    public static boolean isHvdcDanglingInIidm(HvdcConverterStation<?> station) {
+    public static boolean isHvdcBoundaryInIidm(HvdcConverterStation<?> station) {
 
         if (isIsolated(station.getTerminal())) {
             return true;

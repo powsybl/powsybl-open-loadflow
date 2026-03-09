@@ -208,9 +208,9 @@ class AcLoadFlowBoundaryTest {
 
     @Test
     void testBoundaryLineShuntAdmittance() {
-        // verify dangling line shunt admittance is correctly accounted to be completely on network side (and not split with boundary side)
+        // verify boundary line shunt admittance is correctly accounted to be completely on network side (and not split with boundary side)
 
-        // setup zero flows flow at dangling line boundary side
+        // setup zero flows flow at boundary line boundary side
         dl1.setP0(0.0).setQ0(0.0).getGeneration().setTargetP(0.0).setTargetQ(0.0).setVoltageRegulationOn(false);
 
         // set higher B and G shunt values, and also much higher series impedance, so we would get very different results if the shunt admittance were split

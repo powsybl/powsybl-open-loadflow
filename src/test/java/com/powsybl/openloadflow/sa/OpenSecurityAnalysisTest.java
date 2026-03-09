@@ -2637,7 +2637,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testWithTieLineContingency2() {
-        // using one of the two dangling line ids.
+        // using one of the two boundary line ids.
         Network network = BoundaryFactory.createWithTieLine();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BoundaryLineContingency("h1"))));
         List<StateMonitor> monitors = createNetworkMonitors(network);
@@ -4787,7 +4787,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .getBusbarSectionStream()
                 .map(bbs -> Contingency.busbarSection(bbs.getId())).toList();
 
-        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("twg2", "twg2_dangling"), Collections.emptySet(), Collections.emptySet()));
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("twg2", "twg2_boundary"), Collections.emptySet(), Collections.emptySet()));
 
         // The fact that a generators control voltage on a node that is disconneced should no longer trigger an exception
         SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors));
@@ -4797,7 +4797,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // g2 is PQ although supposed to be in voltage control - Q is determined by the sum of Q entering in the two transfomers connected to g2
         assertTrue(g2.isVoltageRegulatorOn());
         assertEquals(1.23,
-                result.getPreContingencyResult().getNetworkResult().getBranchResult("twg2").getQ2() + result.getPreContingencyResult().getNetworkResult().getBranchResult("twg2_dangling").getQ2(),
+                result.getPreContingencyResult().getNetworkResult().getBranchResult("twg2").getQ2() + result.getPreContingencyResult().getNetworkResult().getBranchResult("twg2_boundary").getQ2(),
                 DELTA_POWER);
 
         assertEquals(2, result.getPostContingencyResults().size());
@@ -4805,7 +4805,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         result.getPostContingencyResults().forEach(r -> {
             assertEquals(PostContingencyComputationStatus.CONVERGED, r.getStatus());
             assertEquals(1.23,
-                    r.getNetworkResult().getBranchResult("twg2").getQ2() + r.getNetworkResult().getBranchResult("twg2_dangling").getQ2(),
+                    r.getNetworkResult().getBranchResult("twg2").getQ2() + r.getNetworkResult().getBranchResult("twg2_boundary").getQ2(),
                     DELTA_POWER);
         });
     }

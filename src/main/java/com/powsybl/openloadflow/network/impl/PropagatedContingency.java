@@ -295,7 +295,7 @@ public class PropagatedContingency {
             }
             case BOUNDARY_LINE -> {
                 identifiable = network.getBoundaryLine(element.getId());
-                yield "Dangling line";
+                yield "Boundary line";
             }
             case GENERATOR -> {
                 identifiable = network.getGenerator(element.getId());
