@@ -48,7 +48,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         private final Set<Branch<?>> branchSet = new LinkedHashSet<>();
 
-        private final List<DanglingLine> danglingLines = new ArrayList<>();
+        private final List<BoundaryLine> boundaryLines = new ArrayList<>();
 
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
 
@@ -418,9 +418,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
 
             @Override
-            public void visitDanglingLine(DanglingLine danglingLine) {
-                loadingContext.danglingLines.add(danglingLine);
-                postProcessors.forEach(pp -> pp.onInjectionAdded(danglingLine, lfBus));
+            public void visitBoundaryLine(BoundaryLine boundaryLine) {
+                loadingContext.boundaryLines.add(boundaryLine);
+                postProcessors.forEach(pp -> pp.onInjectionAdded(boundaryLine, lfBus));
             }
 
             @Override
@@ -491,30 +491,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
-        Set<String> visitedDanglingLinesIds = new HashSet<>();
-        for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            danglingLine.getTieLine().ifPresentOrElse(tieLine -> {
-                if (!visitedDanglingLinesIds.contains(danglingLine.getId())) {
-                    LfBus lfBus1 = getLfBus(tieLine.getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBus lfBus2 = getLfBus(tieLine.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
+        Set<String> visitedBoundaryLinesIds = new HashSet<>();
+        for (BoundaryLine boundaryLine : loadingContext.boundaryLines) {
+            boundaryLine.getTieLine().ifPresentOrElse(tieLine -> {
+                if (!visitedBoundaryLinesIds.contains(boundaryLine.getId())) {
+                    LfBus lfBus1 = getLfBus(tieLine.getBoundaryLine1().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus2 = getLfBus(tieLine.getBoundaryLine2().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
                     addBranchAreaBoundaries(tieLine, lfBranch, loadingContext);
                     postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
-                    visitedDanglingLinesIds.add(tieLine.getDanglingLine1().getId());
-                    visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
+                    visitedBoundaryLinesIds.add(tieLine.getBoundaryLine1().getId());
+                    visitedBoundaryLinesIds.add(tieLine.getBoundaryLine2().getId());
                 }
             }, () -> {
-                    LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
+                    LfBoundaryLineBus lfBus2 = new LfBoundaryLineBus(lfNetwork, boundaryLine, parameters, report);
                     lfNetwork.addBus(lfBus2);
                     lfBuses.add(lfBus2);
-                    LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
+                    LfBus lfBus1 = getLfBus(boundaryLine.getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBranch lfBranch = LfBoundaryLineBranch.create(boundaryLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
-                    addDanglingLineAreaBoundary(danglingLine, lfBranch, loadingContext);
+                    addBoundaryLineAreaBoundary(boundaryLine, lfBranch, loadingContext);
                     postProcessors.forEach(pp -> {
-                        pp.onBusAdded(danglingLine, lfBus2);
-                        pp.onBranchAdded(danglingLine, lfBranch);
+                        pp.onBusAdded(boundaryLine, lfBus2);
+                        pp.onBranchAdded(boundaryLine, lfBranch);
                     });
             });
         }
@@ -573,7 +573,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 loadingContext.areaBusMap.computeIfAbsent(area, k -> {
                     area.getAreaBoundaryStream().forEach(boundary -> {
                         boundary.getTerminal().ifPresent(t -> loadingContext.areaTerminalMap.put(t, area));
-                        boundary.getBoundary().ifPresent(b -> loadingContext.areaTerminalMap.put(b.getDanglingLine().getTerminal(), area));
+                        boundary.getBoundary().ifPresent(b -> loadingContext.areaTerminalMap.put(b.getBoundaryLine().getTerminal(), area));
                     });
                     return new HashSet<>();
                 }).add(lfBus)
@@ -592,11 +592,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     /**
-     * Adds the active power of the terminal of the dangling line to the calculation of the Area's interchange (load convention) if it is a boundary.
-     * The equivalent injection of the dangling line lfBranch model is P2;
+     * Adds the active power of the terminal of the boundary line to the calculation of the Area's interchange (load convention) if it is a boundary.
+     * The equivalent injection of the boundary line lfBranch model is P2;
      */
-    private static void addDanglingLineAreaBoundary(DanglingLine danglingLine, LfBranch lfDanglingLineBranch, LoadingContext loadingContext) {
-        addAreaBoundary(danglingLine.getTerminal(), lfDanglingLineBranch, TwoSides.TWO, loadingContext);
+    private static void addBoundaryLineAreaBoundary(BoundaryLine boundaryLine, LfBranch lfBoundaryLineBranch, LoadingContext loadingContext) {
+        addAreaBoundary(boundaryLine.getTerminal(), lfBoundaryLineBranch, TwoSides.TWO, loadingContext);
     }
 
     private static void addAreaBoundary(Terminal terminal, LfBranch branch, TwoSides side, LoadingContext loadingContext) {
@@ -644,7 +644,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         final int numSC = network.getNumSC();
         List<Bus> boundaryBuses = area.getAreaBoundaryStream()
                 .map(areaBoundary -> areaBoundary.getTerminal()
-                        .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getDanglingLine().getTerminal()))
+                        .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getBoundaryLine().getTerminal()))
                 .map(t -> t.getBusView().getBus())
                 .filter(Objects::nonNull)
                 .toList();
