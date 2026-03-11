@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
@@ -57,5 +58,18 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
             }
         }
         return angle;
+    }
+
+    @Override
+    public double getMagnitude(LfDcBus dcBus) {
+        double v = dcBus.getV();
+        if (Double.isNaN(v)) {
+            if (defaultToUniformValue) {
+                return defaultVoltageInitializer.getMagnitude(dcBus);
+            } else {
+                throw new PowsyblException("Voltage is undefined for dcBus '" + dcBus.getId() + "'");
+            }
+        }
+        return v;
     }
 }
