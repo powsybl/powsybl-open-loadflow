@@ -41,11 +41,11 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
         this.enabledBranch.add(enabledBranch);
     }
 
-    public List<LfBranch> getDisabledBranch() {
+    public List<LfBranch> getDisabledBranches() {
         return this.disabledBranch;
     }
 
-    public List<LfBranch> getEnabledBranch() {
+    public List<LfBranch> getEnabledBranches() {
         return this.enabledBranch;
     }
 

@@ -371,10 +371,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     ComputedElement element;
                     if (lfAction instanceof AbstractLfTapChangerAction<?> abstractLfTapChangerAction) {
                         element = new ComputedTapPositionChangeElement(abstractLfTapChangerAction.getChange(), equationSystem);
-                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && !abstractLfBranchAction.getEnabledBranch().isEmpty()) {
-                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getEnabledBranch().getFirst(), true, equationSystem);
-                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && !abstractLfBranchAction.getDisabledBranch().isEmpty()) {
-                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getDisabledBranch().getFirst(), false, equationSystem);
+                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && !abstractLfBranchAction.getEnabledBranches().isEmpty()) {
+                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getEnabledBranches().getFirst(), true, equationSystem);
+                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && !abstractLfBranchAction.getDisabledBranches().isEmpty()) {
+                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getDisabledBranches().getFirst(), false, equationSystem);
                     } else {
                         throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
                     }
