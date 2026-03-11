@@ -133,7 +133,7 @@ public class WoodburyEngine {
                     .filter(AbstractLfBranchAction.class::isInstance)
                     .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch())
                     .filter(Objects::nonNull)
-                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .flatMap(lfBranches -> lfBranches.stream().flatMap(b -> loadFlowContext.getEquationSystem().getEquation(b.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream()))
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
         }

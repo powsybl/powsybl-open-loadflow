@@ -45,9 +45,9 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
     void applyEnabledDisabled(LfBranch branch, TerminalsConnectionAction action) {
         if (branch.getBus1() != null && branch.getBus2() != null) {
             if (action.isOpen()) {
-                setDisabledBranch(branch);
+                addDisabledBranch(branch);
             } else {
-                setEnabledBranch(branch);
+                addEnabledBranch(branch);
             }
         } else {
             LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} has one missing bus", action.getId(), action.getElementId());
