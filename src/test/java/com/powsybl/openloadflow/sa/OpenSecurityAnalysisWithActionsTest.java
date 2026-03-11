@@ -1854,15 +1854,19 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<Action> actions = List.of(new TerminalsConnectionAction("disconnect3WT", "T3wT", true));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("Strategy3WT", ContingencyContext.specificContingency("LOAD_4"), new TrueCondition(), List.of("disconnect3WT")));
 
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDistributedSlack(true);
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters,
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
             operatorStrategies, actions, ReportNode.NO_OP);
 
         assertTrue(result.getOperatorStrategyResults().stream().findAny().isPresent());
+
+        // Only flow related to G1 and LD2 should be present
+        assertEquals(11.226, result.getOperatorStrategyResults().getFirst().getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
