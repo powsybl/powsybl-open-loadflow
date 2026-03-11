@@ -8,10 +8,14 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
+import net.jafama.DoubleWrapper;
+import net.jafama.FastMath;
 
 import java.util.List;
 import java.util.Objects;
@@ -195,6 +199,36 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             branch.setP2(EvaluableConstants.NAN);
             branch.setQ2(EvaluableConstants.NAN);
             branch.setI2(EvaluableConstants.NAN);
+        }
+    }
+
+    private void updateAcClosedBranchEquationTerm(Evaluable branchTerm, PiModel piModel) {
+        if (branchTerm instanceof AbstractClosedBranchAcFlowEquationTerm closedBranchTerm) {
+            double y = piModel.getY();
+            closedBranchTerm.setY(y);
+            closedBranchTerm.setKsi(piModel.getKsi());
+            closedBranchTerm.setB1(piModel.getB1());
+            closedBranchTerm.setB2(piModel.getB2());
+            closedBranchTerm.setG1(piModel.getG1());
+            closedBranchTerm.setG2(piModel.getG2());
+            closedBranchTerm.setG12(piModel.getR() * y * y);
+            closedBranchTerm.setB12(-piModel.getX() * y * y);
+        }
+    }
+
+    @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        // TODO :
+        //  This code is not necessary with AcVectorizedEquationSystemCreator since values of closed branch terms are updated in AcBranchVector
+        //  It should be removed if vectorized parameter in AcLoadFlowParameters is removed
+        if (branch.isConnectedSide1() && branch.isConnectedSide2()) { // Transformers that can change tap position should only be closed branches
+            PiModel piModel = branch.getPiModel();
+            updateAcClosedBranchEquationTerm(branch.getClosedP1(), piModel);
+            updateAcClosedBranchEquationTerm(branch.getClosedQ1(), piModel);
+            updateAcClosedBranchEquationTerm(branch.getClosedI1(), piModel);
+            updateAcClosedBranchEquationTerm(branch.getClosedP2(), piModel);
+            updateAcClosedBranchEquationTerm(branch.getClosedQ2(), piModel);
+            updateAcClosedBranchEquationTerm(branch.getClosedI2(), piModel);
         }
     }
 

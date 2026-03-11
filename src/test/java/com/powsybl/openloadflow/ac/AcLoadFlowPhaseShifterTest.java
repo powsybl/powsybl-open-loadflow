@@ -701,13 +701,16 @@ class AcLoadFlowPhaseShifterTest {
 
     @ParameterizedTest
     @CsvSource(useHeadersInDisplayName = true, textBlock = """
-             twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2
-             false,                   19.640, -19.470, 51.597, -51.016, 95.497, -92.751
-             true,                    19.633, -19.464, 51.573, -50.995, 95.428, -92.693
+             twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2, vectorized
+             false,                   19.640, -19.470, 51.597, -51.016, 95.497, -92.751, false
+             true,                    19.633, -19.464, 51.573, -50.995, 95.428, -92.693, false
+             false,                   19.640, -19.470, 51.597, -51.016, 95.497, -92.751, true
+             true,                    19.633, -19.464, 51.573, -50.995, 95.428, -92.693, true
             """
     )
     void rxgbChangeOnPstControlTest(boolean twtSplitShuntAdmittance,
-                                    double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2) {
+                                                 double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2, boolean vectorized) {
+        AcLoadFlowParameters.VECTORIZED_DEFAULT_VALUE = vectorized; // Test with and without AcEquationSystem vectorization
         selectNetwork(PhaseControlFactory.createNetworkWithT2wtExaggerateRxgbTable());
 
         parameters
@@ -721,6 +724,7 @@ class AcLoadFlowPhaseShifterTest {
 
         // capture values, no regulation, tap 0
         t2wt.getPhaseTapChanger().setTapPosition(0).setRegulating(false);
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(tap0p1, t2wt.getTerminal1());
@@ -763,5 +767,7 @@ class AcLoadFlowPhaseShifterTest {
         assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
         assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
         assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+
+        AcLoadFlowParameters.VECTORIZED_DEFAULT_VALUE = true; // Restoring initial static value to avoid interference with other tests
     }
 }
