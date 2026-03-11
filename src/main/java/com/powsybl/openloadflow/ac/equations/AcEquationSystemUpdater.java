@@ -8,14 +8,11 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
-import net.jafama.DoubleWrapper;
-import net.jafama.FastMath;
 
 import java.util.List;
 import java.util.Objects;
