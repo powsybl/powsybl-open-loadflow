@@ -94,4 +94,9 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     public double getAngle(LfBus bus) {
         return bus.getAngle();
     }
+
+    @Override
+    public double getMagnitude(LfDcBus dcBus) {
+        throw new PowsyblException("DC initialization is not yet supported with AcDcNetwork");
+    }
 }
