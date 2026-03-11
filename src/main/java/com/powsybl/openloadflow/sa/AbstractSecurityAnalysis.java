@@ -22,6 +22,7 @@ import com.powsybl.contingency.strategy.condition.AnyViolationCondition;
 import com.powsybl.contingency.strategy.condition.AtLeastOneViolationCondition;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.contingency.violations.LimitViolation;
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -49,10 +50,6 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
-import com.powsybl.contingency.strategy.condition.AllViolationCondition;
-import com.powsybl.contingency.strategy.condition.AnyViolationCondition;
-import com.powsybl.contingency.strategy.condition.AtLeastOneViolationCondition;
-import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
@@ -362,158 +359,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     }
 
     protected abstract PostContingencyComputationStatus postContingencyStatusFromLoadFlowResult(R result);
-
-    protected static void checkActions(Network network, List<Action> actions) {
-        for (Action action : actions) {
-            switch (action.getType()) {
-                case SwitchAction.NAME: {
-                    SwitchAction switchAction = (SwitchAction) action;
-                    if (network.getSwitch(switchAction.getSwitchId()) == null) {
-                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + NOT_FOUND);
-                    }
-                    break;
-                }
-
-                case TerminalsConnectionAction.NAME: {
-                    TerminalsConnectionAction terminalsConnectionAction = (TerminalsConnectionAction) action;
-                    if (network.getBranch(terminalsConnectionAction.getElementId()) == null) {
-                        throw new PowsyblException("Branch '" + terminalsConnectionAction.getElementId() + NOT_FOUND);
-                    }
-                    break;
-                }
-
-                case PhaseTapChangerTapPositionAction.NAME,
-                     RatioTapChangerTapPositionAction.NAME: {
-                    String transformerId = action.getType().equals(PhaseTapChangerTapPositionAction.NAME) ?
-                            ((PhaseTapChangerTapPositionAction) action).getTransformerId() : ((RatioTapChangerTapPositionAction) action).getTransformerId();
-                    if (network.getTwoWindingsTransformer(transformerId) == null
-                            && network.getThreeWindingsTransformer(transformerId) == null) {
-                        throw new PowsyblException("Transformer '" + transformerId + NOT_FOUND);
-                    }
-                    break;
-                }
-
-                case LoadAction.NAME: {
-                    LoadAction loadAction = (LoadAction) action;
-                    if (network.getLoad(loadAction.getLoadId()) == null) {
-                        throw new PowsyblException("Load '" + loadAction.getLoadId() + NOT_FOUND);
-                    }
-                    break;
-                }
-
-                case GeneratorAction.NAME: {
-                    GeneratorAction generatorAction = (GeneratorAction) action;
-                    if (network.getGenerator(generatorAction.getGeneratorId()) == null) {
-                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + NOT_FOUND);
-                    }
-                    break;
-                }
-
-                case HvdcAction.NAME: {
-                    HvdcAction hvdcAction = (HvdcAction) action;
-                    if (network.getHvdcLine(hvdcAction.getHvdcId()) == null) {
-                        throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + NOT_FOUND);
-                    }
-                    break;
-                }
-
-                case ShuntCompensatorPositionAction.NAME: {
-                    ShuntCompensatorPositionAction shuntCompensatorPositionAction = (ShuntCompensatorPositionAction) action;
-                    if (network.getShuntCompensator(shuntCompensatorPositionAction.getShuntCompensatorId()) == null) {
-                        throw new PowsyblException("Shunt compensator '" + shuntCompensatorPositionAction.getShuntCompensatorId() + "' not found");
-                    }
-                    break;
-                }
-
-                case AreaInterchangeTargetAction.NAME: {
-                    AreaInterchangeTargetAction areaInterchangeAction = (AreaInterchangeTargetAction) action;
-                    if (network.getArea(areaInterchangeAction.getAreaId()) == null) {
-                        throw new PowsyblException("Area '" + areaInterchangeAction.getAreaId() + "' not found");
-                    }
-                    break;
-                }
-
-                default:
-                    throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
-            }
-        }
-    }
-
-    protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
-        return actions.stream()
-                .map(action -> LfActionUtils.createLfAction(action, network, parameters.isBreakers(), lfNetwork))
-                .collect(Collectors.toMap(LfAction::getId, Function.identity()));
-    }
-
-    protected static Map<String, Action> indexActionsById(List<Action> actions) {
-        return actions.stream()
-                .collect(Collectors.toMap(
-                        Action::getId,
-                        Function.identity(),
-                    (action1, action2) -> {
-                        throw new PowsyblException("An action '" + action1.getId() + "' already exist");
-                    }
-                ));
-    }
-
-    private static boolean hasValidContingency(OperatorStrategy operatorStrategy, Set<String> contingencyIds) {
-        return contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId());
-    }
-
-    private static Optional<String> findMissingActionId(OperatorStrategy operatorStrategy, Set<String> actionIds) {
-        for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            for (String actionId : conditionalActions.getActionIds()) {
-                if (!actionIds.contains(actionId)) {
-                    return Optional.of(actionId);
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
-    private static void throwMissingOperatorStrategyContingency(OperatorStrategy operatorStrategy) {
-        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
-                + operatorStrategy.getContingencyContext().getContingencyId() + "' but this contingency is not present in the list");
-
-    }
-
-    private static void throwMissingOperatorStrategyAction(OperatorStrategy operatorStrategy, String actionId) {
-        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
-                + actionId + "' but this action is not present in the list");
-    }
-
-    protected static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                                              List<OperatorStrategy> operatorStrategies,
-                                                                                              Map<String, Action> actionsById,
-                                                                                              Set<Action> neededActions,
-                                                                                              boolean checkOperatorStrategies) {
-
-        Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
-        Set<String> actionIds = actionsById.keySet();
-        for (OperatorStrategy operatorStrategy : operatorStrategies) {
-            if (hasValidContingency(operatorStrategy, contingencyIds)) {
-                if (checkOperatorStrategies) {
-                    findMissingActionId(operatorStrategy, actionIds)
-                            .ifPresent(id -> throwMissingOperatorStrategyAction(operatorStrategy, id));
-                }
-
-                for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-                    for (String actionId : conditionalActions.getActionIds()) {
-                        Action action = actionsById.get(actionId);
-                        neededActions.add(action);
-                    }
-                }
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
-                        .add(operatorStrategy);
-            } else {
-                if (checkOperatorStrategies) {
-                    throwMissingOperatorStrategyContingency(operatorStrategy);
-                }
-            }
-        }
-        return operatorStrategiesByContingencyId;
-    }
 
     private static boolean checkCondition(ConditionalActions conditionalActions, LimitViolationsResult limitViolationsResult) {
         switch (conditionalActions.getCondition().getType()) {
