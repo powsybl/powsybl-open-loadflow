@@ -269,8 +269,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generatorVoltageControlEnabled;
     }
 
-    @Override
-    public void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
+    private void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
         if (this.generatorVoltageControlEnabled != generatorVoltageControlEnabled) {
             this.generatorVoltageControlEnabled = generatorVoltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
@@ -280,8 +279,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void setGeneratorVoltageControlEnabledAndRecomputeTargetQ(boolean generatorVoltageControlEnabled) {
+        setGeneratorVoltageControlEnabled(generatorVoltageControlEnabled);
+        invalidateGenerationTargetQ();
+    }
+
+    @Override
     public void setVoltageControlEnabled(boolean enabled) {
-        setGeneratorVoltageControlEnabled(enabled);
+        setGeneratorVoltageControlEnabledAndRecomputeTargetQ(enabled);
     }
 
     private static LfLoadModel createLfLoadModel(LoadModel loadModel, LfNetworkParameters parameters) {
@@ -405,7 +410,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    public void invalidateGenerationTargetQ() {
+    private void invalidateGenerationTargetQ() {
         // If generationTargetQ was frozen, it is now freed. generationTargetQ is computed according to its definition in getGenerationTargetQ()
         invalidatedGenerationTargetQ = true;
         isGenerationTargetQFrozen = false;
@@ -449,14 +454,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void freezeGenerationTargetQ(double generationTargetQ) {
-        // This is only used in case of PV bus switched to PQ bus (Reactive limit outerloop) or in the transformer voltage control algorithm
-        if (!isGeneratorVoltageControlEnabled()) {
-            updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
-            isGenerationTargetQFrozen = true;
-        } else {
-            throw new PowsyblException("Generation targetQ cannot be frozen if generatorVoltageControl is enabled");
-        }
+    public void freezeGenerationTargetQAndDisableGeneratorVoltageControl(double generationTargetQ) {
+        // This is only used in case of PV bus switched to PQ bus
+        setGeneratorVoltageControlEnabled(false);
+        updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
+        isGenerationTargetQFrozen = true;
     }
 
     @Override
