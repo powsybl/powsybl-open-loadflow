@@ -45,6 +45,8 @@ public class LfAcDcNetwork extends LfNetwork {
 
     @Override
     protected void invalidateSlackAndReference() {
+        slackBuses.clear();
+        acDcReferenceBuses.clear();
         acNetworks.forEach(LfNetwork::invalidateSlackAndReference);
         dcNetworks.forEach(LfNetwork::invalidateSlackAndReference);
     }
@@ -52,18 +54,16 @@ public class LfAcDcNetwork extends LfNetwork {
     @Override
     public void updateSlackBusesAndReferenceBus() {
         if (!acNetworks.isEmpty()) {
-            for (LfNetwork acSubNetwork : acNetworks) {
-                acSubNetwork.updateSlackBusesAndReferenceBus();
-                for (LfBus bus : acSubNetwork.slackBuses) {
+            for (LfNetwork acNetwork : acNetworks) {
+                acNetwork.updateSlackBusesAndReferenceBus();
+                for (LfBus bus : acNetwork.slackBuses) {
                     LfBus slackBus = this.getBusById(bus.getId());
                     if (!this.slackBuses.contains(slackBus)) {
-                        slackBus.setSlack(true);
                         this.slackBuses.add(slackBus);
                     }
                 }
-                LfBus referenceBus = this.getBusById(acSubNetwork.referenceBus.getId());
+                LfBus referenceBus = this.getBusById(acNetwork.referenceBus.getId());
                 if (!acDcReferenceBuses.contains(referenceBus)) {
-                    referenceBus.setReference(true);
                     this.acDcReferenceBuses.add(referenceBus);
                 }
             }
