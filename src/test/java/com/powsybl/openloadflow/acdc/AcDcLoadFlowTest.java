@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletionException;
@@ -31,6 +32,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class AcDcLoadFlowTest {
 
     Network network;
+
+    private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
+
+    @BeforeEach
+    void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters();
+        parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+    }
 
     @Test
     void testConverterIdleLoss() {
@@ -72,11 +84,8 @@ class AcDcLoadFlowTest {
                 .setReactivePowerSetpoint(0.0)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -127,11 +136,7 @@ class AcDcLoadFlowTest {
                 .setReactivePowerSetpoint(0.0)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -183,11 +188,7 @@ class AcDcLoadFlowTest {
                 .setReactivePowerSetpoint(0.0)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -219,12 +220,8 @@ class AcDcLoadFlowTest {
                 .setX(5)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-                .setSlackBusId("BUS-FR")
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("BUS-FR");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -307,12 +304,8 @@ class AcDcLoadFlowTest {
                 .setX(5)
                 .add();
 
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-                .setSlackBusId("BUS-FR")
-                .setAcDcNetwork(true);
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("BUS-FR");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
@@ -376,11 +369,7 @@ class AcDcLoadFlowTest {
     void testAcDcExample() {
         //2 converters, 1 AC Network, the first converter controls Pac, and the second one Vdc
         network = AcDcNetworkFactory.createAcDcNetwork1();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -425,11 +414,7 @@ class AcDcLoadFlowTest {
     void testAcDcExampleWithOtherControl() {
         //2 converters, 1 AC Network, the first converter controls Vdc, and the second one Pac
         network = AcDcNetworkFactory.createAcDcNetwork2();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -475,11 +460,7 @@ class AcDcLoadFlowTest {
     void testThreeConverters() {
         //3 converters, 1 AC Network, conv23 controls Vdc, conv45 and conv67 control Pac
         network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -531,11 +512,7 @@ class AcDcLoadFlowTest {
     void testAcVoltageControl() {
         //2 converters, 1 AC Network, conv23 controls Pac, conv45 controls Vdc and Vac
         network = AcDcNetworkFactory.createAcDcNetworkWithAcVoltageControl();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -577,11 +554,7 @@ class AcDcLoadFlowTest {
     void testAcSubNetworks() {
         // Network with 2 synchronous components. An exception should be thrown
         network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR);
 
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("AC-DC load flow does not support multiple synchronous components for the moment", e.getCause().getMessage());
@@ -591,11 +564,7 @@ class AcDcLoadFlowTest {
     void testDcSubNetworks() {
         // 1 AC Network, 2 DC Networks
         network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -664,7 +633,6 @@ class AcDcLoadFlowTest {
         network = AcDcNetworkFactory.createAcDcNetwork1();
 
         // Uniform values initializer
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters1 = new LoadFlowParameters()
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
         OpenLoadFlowParameters.create(parameters1)
@@ -751,11 +719,6 @@ class AcDcLoadFlowTest {
                 .add();
 
         // Run load flow
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setAcDcNetwork(true);
-
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Open Load Flow does not support AC/DC converters with two AC terminals", e5.getCause().getMessage());
     }
@@ -785,11 +748,6 @@ class AcDcLoadFlowTest {
                 .add();
 
         // Run load flow
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setAcDcNetwork(true);
-
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Open Load Flow does not currently support LCC converters", e5.getCause().getMessage());
     }
@@ -804,11 +762,6 @@ class AcDcLoadFlowTest {
                 .setControlMode(AcDcConverter.ControlMode.P_PCC);
 
         // Run load flow
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setAcDcNetwork(true);
-
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("At least one AC/DC converter control mode must be V_DC", e5.getCause().getMessage());
     }
@@ -819,11 +772,6 @@ class AcDcLoadFlowTest {
         network = DcDetailedNetworkFactory.createVscSymmetricalMonopole();
 
         // Run load flow
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setAcDcNetwork(true);
-
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Open Load Flow does not support DC networks without a DC ground", e5.getCause().getMessage());
     }

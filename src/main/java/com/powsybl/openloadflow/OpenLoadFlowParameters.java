@@ -22,10 +22,10 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalShuntVoltageControlOuterLoop;
-import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalShuntVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
@@ -34,14 +34,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
-import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.AbstractDcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.DcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.DefaultDcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.ExplicitDcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.outerloop.config.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -1806,7 +1799,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = LinkedHashMap.newLinkedHashMap(80);
+        Map<String, Object> map = LinkedHashMap.newLinkedHashMap(81);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);

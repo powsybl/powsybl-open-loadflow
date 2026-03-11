@@ -17,8 +17,8 @@ import java.util.List;
  */
 public class LfAcDcNetwork extends LfNetwork {
     private final List<LfBus> acDcReferenceBuses = new ArrayList<>();
-    private List<LfNetwork> acSubNetworks = new ArrayList<>();
-    private List<LfNetwork> dcSubNetworks = new ArrayList<>();
+    private final List<LfNetwork> acNetworks;
+    private final List<LfNetwork> dcNetworks;
 
     public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
         // TODO : find a better way to implement super class
@@ -27,6 +27,8 @@ public class LfAcDcNetwork extends LfNetwork {
         if (acNetworks.size() > 1) {
             throw new PowsyblException("AC-DC load flow does not support multiple synchronous components for the moment");
         }
+        this.acNetworks = List.copyOf(acNetworks);
+        this.dcNetworks = List.copyOf(dcNetworks);
 
         for (LfNetwork network : acNetworks) {
             network.getBuses().forEach(this::addBus);
@@ -38,20 +40,19 @@ public class LfAcDcNetwork extends LfNetwork {
             network.getDcBuses().forEach(this::addDcBus);
             network.getDcLines().forEach(this::addDcLine);
         }
-        acSubNetworks = acNetworks;
-        dcSubNetworks = dcNetworks;
+
     }
 
     @Override
     protected void invalidateSlackAndReference() {
-        acSubNetworks.forEach(LfNetwork::invalidateSlackAndReference);
-        dcSubNetworks.forEach(LfNetwork::invalidateSlackAndReference);
+        acNetworks.forEach(LfNetwork::invalidateSlackAndReference);
+        dcNetworks.forEach(LfNetwork::invalidateSlackAndReference);
     }
 
     @Override
     public void updateSlackBusesAndReferenceBus() {
-        if (!acSubNetworks.isEmpty()) {
-            for (LfNetwork acSubNetwork : acSubNetworks) {
+        if (!acNetworks.isEmpty()) {
+            for (LfNetwork acSubNetwork : acNetworks) {
                 acSubNetwork.updateSlackBusesAndReferenceBus();
                 for (LfBus bus : acSubNetwork.slackBuses) {
                     LfBus slackBus = this.getBusById(bus.getId());
@@ -80,9 +81,5 @@ public class LfAcDcNetwork extends LfNetwork {
         updateSlackBusesAndReferenceBus();
         // FIXME: which bus do we return ?
         return acDcReferenceBuses.getFirst();
-    }
-
-    public List<LfNetwork> getAcSubNetworks() {
-        return acSubNetworks;
     }
 }

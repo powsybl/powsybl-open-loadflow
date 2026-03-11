@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -28,15 +29,23 @@ class AcDcBipolarTest {
 
     Network network;
 
+    private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
+
+    @BeforeEach
+    void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters();
+        parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+    }
+
     @Test
     void testBipolarModel() {
         // Bipolar Model with metallic return, conv23p and conv23n control Pac, and conv45p and 45n control Vdc
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -95,11 +104,7 @@ class AcDcBipolarTest {
     void testBipolarModelWithOtherControl() {
         // Bipolar Model with metallic return, conv23p and conv23n control Vdc, and conv45p and conv45n control Pac
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithOtherControl();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -154,11 +159,7 @@ class AcDcBipolarTest {
     void testBipolarModelAcVoltageControl() {
         // Bipolar Model with metallic return, conv23p and conv23n control Pac, and conv45p and conv45n control Vdc, and conv45p control Vac
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithAcVoltageControl();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -207,11 +208,8 @@ class AcDcBipolarTest {
     void testBipolarModelGridForming() {
         // Bipolar Model with metallic return, the converters conv45p and conv45n control Vac
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelGridForming();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR);
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
@@ -291,11 +289,7 @@ class AcDcBipolarTest {
     void testBipolarModelThreeConverters() {
         // Bipolar Model with metallic return, with 3 converters but 1 Ac Network
         network = AcDcNetworkFactory.createAcDcNetworkBipolarModelWithThreeConverters();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -352,11 +346,8 @@ class AcDcBipolarTest {
     void testBipolarModelWithoutMetallicReturn() {
         // Bipolar Model without metallic return
         network = AcDcNetworkFactory.createBipolarModelWithoutMetallicReturn();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAcDcNetwork(true);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
