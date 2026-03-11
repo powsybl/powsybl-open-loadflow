@@ -3,7 +3,7 @@
 ## Grid modeling
 
 Open Load Flow computes power flows from IIDM grid model in bus/view topology. From the view, a very simple network, composed
-of only buses and branches is created. In the graph vision, we rely on a $\Pi$ model for branches (lines, transformers, dangling lines, etc.):
+of only buses and branches is created. In the graph vision, we rely on a $\Pi$ model for branches (lines, transformers, boundary lines, etc.):
 
 - $R$ and $X$ are respectively the real part (resistance) and the imaginary part (reactance) of the complex impedance ;  
 - $G_1$ and $G_2$ are the real parts (conductance) on respectively side 1 and side 2 of the branch ;
@@ -263,9 +263,9 @@ In such cases the involved areas are not considered in the Area Interchange Cont
 
 In iIDM each area defines the boundary points to be considered in the interchange. iIDM supports two ways of modeling area boundaries:
 - either via an equipment terminal,
-- or via a DanglingLine boundary.
+- or via a BoundaryLine boundary.
 
-In the DanglingLine case, the flow at the boundary side is considered as it should be, for both unpaired DanglingLines and DanglingLines paired in a TieLine.
+In the BoundaryLine case, the flow at the boundary side is considered as it should be, for both unpaired BoundaryLines and BoundaryLines paired in a TieLine.
 
 ### Slack bus mismatch attribution
 Depending on the location of the slack bus(es), the role of distributing the active power mismatch will be attributed based on the following logic:
