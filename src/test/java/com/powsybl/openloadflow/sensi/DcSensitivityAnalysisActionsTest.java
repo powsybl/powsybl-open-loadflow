@@ -111,7 +111,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true)
-                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.ALL_CONTINGENCIES);
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
         List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
@@ -189,7 +189,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true)
-                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.ALL_CONTINGENCIES);
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
         List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));

@@ -1352,7 +1352,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("l12", "g1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l12", "l46"), LoadFlowAssert.DELTA_POWER);
-        assertTrue(result.getValues(null).isEmpty()); // nothing because invalid factor in pre contingency state.
+        assertTrue(result.getValues(SensitivityState.PRE_CONTINGENCY).isEmpty()); // nothing because invalid factor in pre contingency state.
     }
 
     @Test
