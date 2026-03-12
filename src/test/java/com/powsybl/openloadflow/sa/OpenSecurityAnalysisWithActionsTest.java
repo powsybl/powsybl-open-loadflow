@@ -1996,4 +1996,58 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             assertEquals(75, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         }
     }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            isDc,  expectedPre, expectedPost, expectedOpStrat
+            false, 21.203,      102.650,      -30.321
+            true,  20.000,      102.500,      -30.000
+        """)
+    void testDistributedActivePower(boolean isDc, double expectedPre, double expectedPost, double expectedOpStrat) {
+        Network network = DistributedSlackNetworkFactory.create();
+        // with below load change network has initial imbalance (ignoring losses) of 20 MW (lack of generation)
+        network.getLoad("l1").setP0(500.);
+        // make network a bit resistive so we have different results in AC or DC
+        network.getLineStream().forEach(l -> l.setR(0.6));
+        // put all generators on voltage control so the network is solvable on g1 contingency
+        network.getGeneratorStream().forEach(g -> g.setTargetV(g.getTerminal().getVoltageLevel().getNominalV()).setVoltageRegulatorOn(true));
+
+        // note that g1 has targetP 100 MW but solves in N at ~102.5 MW because of slack distribution
+        Contingency g1contingency = Contingency.generator("g1");
+
+        // action to increase g2 by 30 MW in relative
+        Action g2action = new GeneratorActionBuilder().withId("g2action")
+                .withGeneratorId("g2")
+                .withActivePowerRelativeValue(true).withActivePowerValue(30)
+                .build();
+
+        OperatorStrategy opStrat = new OperatorStrategy(
+                "opStrat",
+                ContingencyContext.specificContingency(g1contingency.getId()),
+                new TrueCondition(),
+                List.of(g2action.getId()));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Contingency> contingencies = List.of(g1contingency);
+        List<Action> actions = List.of(g2action);
+        List<OperatorStrategy> operatorStrategies = List.of(opStrat);
+
+        // run the security analysis
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(isDc);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // pre-contingency
+        assertEquals(expectedPre, result.getPreContingencyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, g1contingency.getId());
+        assertEquals(expectedPost, postContingencyResult.getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // operator strategy
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, opStrat.getId());
+        assertEquals(expectedOpStrat, strategyResult.getFinalOperatorStrategyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
 }
