@@ -1003,4 +1003,11 @@ public final class Reports {
                 .add();
     }
 
+    public static ReportNode reportVoltageInitializer(ReportNode reportNode, String initializerName) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.voltageInitializer")
+                .withUntypedValue("initializerName", initializerName)
+                .add();
+    }
+
 }

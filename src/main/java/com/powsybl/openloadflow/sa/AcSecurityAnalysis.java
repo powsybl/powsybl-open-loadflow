@@ -93,6 +93,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == acParameters.getSlackDistributionFailureBehavior()) {
             acParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         }
+        acParameters.setVoltageInitReport(false); // there is no point in reporting the PreviousVoltageValue initializer
     }
 
     public static PostContingencyComputationStatus postContingencyStatusFromAcLoadFlowResult(AcLoadFlowResult result) {

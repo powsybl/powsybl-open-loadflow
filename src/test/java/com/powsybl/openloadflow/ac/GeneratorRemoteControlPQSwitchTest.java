@@ -232,6 +232,7 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Value
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
@@ -281,6 +282,7 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Value
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
@@ -332,6 +334,7 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Value
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)
@@ -382,6 +385,7 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Value
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)

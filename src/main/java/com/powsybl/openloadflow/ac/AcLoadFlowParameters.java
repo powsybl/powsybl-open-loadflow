@@ -64,6 +64,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean vectorized = VECTORIZED_DEFAULT_VALUE;
 
+    private boolean voltageInitReport = true;
+
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
     }
@@ -186,6 +188,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public boolean isVoltageInitReport() {
+        return voltageInitReport;
+    }
+
+    public AcLoadFlowParameters setVoltageInitReport(boolean voltageInitReport) {
+        this.voltageInitReport = voltageInitReport;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -206,6 +217,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
                 ", fixVoltageTargets=" + fixVoltageTargets +
                 ", vectorized=" + vectorized +
+                ", voltageInitReport=" + voltageInitReport +
                 ')';
     }
 }

@@ -305,6 +305,7 @@ class AreaInterchangeControlTest {
                             Network balance: active generation=140 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
                             Angle reference bus: bx1_vl_0
                             Slack bus: bx1_vl_0
+                         Voltage initialization with method Uniform Value
                          + Outer loop AreaInterchangeControl
                             + Outer loop iteration 1
                                Area a1 interchange mismatch (10.168852 MW) distributed in 1 distribution iteration(s)
@@ -352,6 +353,7 @@ class AreaInterchangeControlTest {
                             Network balance: active generation=110.4 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
                             Angle reference bus: vl1_0
                             Slack bus: vl1_0
+                         Voltage initialization with method Uniform Value
                          + Outer loop AreaInterchangeControl
                             + Outer loop iteration 1
                                Area a1 slack distribution share (-0.395604 MW) distributed in 1 distribution iteration(s)

@@ -226,6 +226,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                             Network balance: active generation=300 MW, active load=300 MW, reactive generation=0 MVar, reactive load=200 MVar
                             Angle reference bus: vl4_0
                             Slack bus: vl4_0
+                         Voltage initialization with method Uniform Value
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 2 buses switched PV -> PQ (1 buses remain PV)

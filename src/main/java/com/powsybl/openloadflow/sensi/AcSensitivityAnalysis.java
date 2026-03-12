@@ -315,6 +315,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             runLoadFlow(context, true);
 
+            acParameters.setVoltageInitReport(false);
+
             // index factors by variable group to compute a minimal number of states
             SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
                     .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
