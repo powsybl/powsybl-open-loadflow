@@ -520,7 +520,11 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
         double flowTransfer = Double.NaN;
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
-            flowTransfer = (flowP1 - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+            if (preContingencyBranchOfContingencyP1 != 0. && (flowP1 - preContingencyBranchP1) != 0.) {
+                flowTransfer = (flowP1 - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
+            } else {
+                flowTransfer = 0.;
+            }
         }
         return new BranchResult(getId(), flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowTransfer);
     }

@@ -4931,7 +4931,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
             false, TWO,  0.336
             true,  TWO,  0.333
         """)
-    void testContingencyDisconnectingZeroImpedanteBranchConnectedOneSide(boolean dc, TwoSides side, double expectedL12P1) {
+    void testContingencyDisconnectingZeroImpedanceBranchConnectedOneSide(boolean dc, TwoSides side, double expectedL12P1) {
         Network network = FourBusNetworkFactory.create();
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
@@ -4951,5 +4951,28 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters));
         assertEquals(expectedL12P1, result.getPreContingencyResult().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
         assertEquals(expectedL12P1, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
+    }
+
+    @ParameterizedTest(name = "DC = {0}")
+    @ValueSource(booleans = {false, true})
+    void testZeroFlowTransfer(boolean dc) {
+        Network network = FourBusNetworkFactory.create();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDc(dc);
+        OpenLoadFlowParameters.create(loadFlowParameters);
+
+        // disconnect l14 on side 2, used as contingency
+        Line l14 = network.getLine("l14");
+        l14.getTerminal2().disconnect();
+
+        List<Contingency> contingencies = List.of(Contingency.line("l14"));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters);
+        NetworkResult networkResult = result.getPostContingencyResults().getFirst().getNetworkResult();
+        assertEquals(4, networkResult.getBranchResults().size());
+        networkResult.getBranchResults()
+            .forEach(br -> assertEquals(0., br.getFlowTransfer(), DELTA_POWER));
     }
 }
