@@ -34,7 +34,12 @@ public enum AcEquationType implements Quantity {
     BUS_TARGET_IX_ZERO("bus_target_ix_zero", ElementType.BUS), // bus real part current target for zero sequence
     BUS_TARGET_IY_ZERO("bus_target_iy_zero", ElementType.BUS), // bus imaginary part current target for zero sequence
     BUS_TARGET_IX_NEGATIVE("bus_target_ix_negative", ElementType.BUS), // bus real part current target for negative sequence
-    BUS_TARGET_IY_NEGATIVE("bus_target_iy_negative", ElementType.BUS); // bus imaginary part current target for negative sequence
+    BUS_TARGET_IY_NEGATIVE("bus_target_iy_negative", ElementType.BUS), // bus imaginary part current target for negative sequence
+    DC_BUS_TARGET_I("dc_bus_target_i", ElementType.DC_BUS), // dcBus current target
+    DC_BUS_GROUND("dc_bus_ground", ElementType.DC_BUS), // magnitude control for grounded DC buses
+    AC_CONV_TARGET_P_REF("bus_target_p_ref", ElementType.CONVERTER), // AC active power control
+    AC_CONV_TARGET_Q_REF("bus_target_q_ref", ElementType.CONVERTER), // AC reactive power control
+    DC_BUS_TARGET_V_REF("dc_bus_target_v_ref", ElementType.CONVERTER); // DC magnitude control
 
     private final String symbol;
 
