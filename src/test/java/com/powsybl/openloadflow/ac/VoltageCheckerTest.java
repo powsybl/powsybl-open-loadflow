@@ -159,7 +159,7 @@ class VoltageCheckerTest {
                 .setReportNode(testReport);
         List<Contingency> contingencies = List.of(Contingency.line("l1"), Contingency.line("l2"));
         ContingenciesProvider provider = n -> contingencies;
-        SecurityAnalysisReport result = saRunner.run(network, network.getVariantManager().getWorkingVariantId(), provider, runParameters).join();
+        saRunner.run(network, network.getVariantManager().getWorkingVariantId(), provider, runParameters).join();
         // For high values, indicator values is hardware sensitive (based on small differences between large numbers)
         // So we remove them from the tests
         String reportString = TestUtil.normalizeLineSeparator(LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)"));
@@ -211,7 +211,7 @@ class VoltageCheckerTest {
                 .setContingencies(contingencies)
                 .setReportNode(testReport);
         SensitivityFactor factor = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER, "g1", false, ContingencyContext.all());
-        SensitivityAnalysisResult result = sensiRunner.run(network, List.of(factor), runParameters);
+        sensiRunner.run(network, List.of(factor), runParameters);
         // For high values, indicator values is hardware sensitive (based on small differences between large numbers)
         // So we remove them from the tests
         String reportString = TestUtil.normalizeLineSeparator(LoadFlowAssert.reportToString(testReport).replaceAll("indicator:.*\\)", "indicator: ***)"));
