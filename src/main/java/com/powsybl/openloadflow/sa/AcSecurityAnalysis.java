@@ -144,8 +144,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
             genericContingencyOpenLoadFlowParameters.setStartWithFrozenACEmulation(true);
             outerLoops = OpenLoadFlowParameters.createAcOuterLoops(loadFlowParameters, genericContingencyOpenLoadFlowParameters);
         }
-        parameters.setOuterLoops(outerLoops);
-        parameters.setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+        parameters.setOuterLoops(outerLoops)
+                .setVoltageInitializer(new PreviousValueVoltageInitializer(true))
+                .setFixVoltageTargets(false); // Checking voltage targets in contingency cases is unnecessary in most cases
         return genericContingencyOpenLoadFlowParameters;
     }
 }
