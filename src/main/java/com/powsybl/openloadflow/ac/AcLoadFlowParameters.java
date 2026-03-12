@@ -66,6 +66,29 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean voltageInitReport = true;
 
+    public AcLoadFlowParameters() {
+    }
+
+    public AcLoadFlowParameters(AcLoadFlowParameters other) {
+        super(new LfNetworkParameters(other.networkParameters), other.matrixFactory);
+        this.slackDistributionFailureBehavior = other.slackDistributionFailureBehavior;
+        this.equationSystemCreationParameters = other.equationSystemCreationParameters;
+        this.acSolverParameters = other.acSolverParameters;
+        this.outerLoops = other.outerLoops;
+        this.maxOuterLoopIterations = other.maxOuterLoopIterations;
+        this.voltageInitializer = other.voltageInitializer;
+        this.asymmetrical = other.asymmetrical;
+        this.solverFactory = other.solverFactory;
+        this.detailedReport = other.detailedReport;
+        this.voltageRemoteControlRobustMode = other.voltageRemoteControlRobustMode;
+        this.minRealisticVoltage = other.minRealisticVoltage;
+        this.maxRealisticVoltage = other.maxRealisticVoltage;
+        this.minNominalVoltageRealisticVoltageCheck = other.minNominalVoltageRealisticVoltageCheck;
+        this.fixVoltageTargets = other.fixVoltageTargets;
+        this.vectorized = other.vectorized;
+        this.voltageInitReport = other.voltageInitReport;
+    }
+
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
     }

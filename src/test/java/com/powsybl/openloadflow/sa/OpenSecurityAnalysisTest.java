@@ -3911,7 +3911,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // The report should be the same with one or two threads
         // Let's just check the size here
-        assertEquals(7425, reportString.length());
+        assertEquals(7486, reportString.length());
         // Check also that the preCont report is before the postContResults in the second CC
         String expected =
                 """
@@ -3928,7 +3928,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                                     AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)\
                         """;
 
-        assertTrue(reportString.contains(expected)); // FIXME
+        assertTrue(reportString.contains(expected));
     }
 
     @ParameterizedTest
