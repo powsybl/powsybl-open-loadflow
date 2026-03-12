@@ -46,6 +46,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     public static final boolean FIX_VOLTAGE_TARGETS_DEFAULT_VALUE = false;
 
+    static boolean VECTORIZED_DEFAULT_VALUE = true; // package-private value for test purpose (TODO : to remove)
+
     private AcSolverFactory solverFactory = new NewtonRaphsonFactory();
 
     private boolean detailedReport = false;
@@ -60,7 +62,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean fixVoltageTargets = FIX_VOLTAGE_TARGETS_DEFAULT_VALUE;
 
-    private boolean vectorized = true;
+    private boolean vectorized = VECTORIZED_DEFAULT_VALUE;
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
