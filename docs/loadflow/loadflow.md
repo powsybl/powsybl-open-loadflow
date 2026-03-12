@@ -21,6 +21,15 @@ equal to zero and $1$. In case of a branch with voltage or phase control, the $\
 
 Open Load Flow also supports networks with HVDC lines (High Voltage Direct Current lines). An HVDC line is connected to the rest of the AC network through HVDC converter stations, that can be either LCC (Line-Commutated Converter) or VSC (Voltage-Source Converter).
 
+### DC detailed model
+
+Additionally, Open Load Flow supports AC-DC load flow formulation with detailed model of DC elements.  
+However, it is currently restricted to embedded DC components, meaning that all converters of a given DC component must be connected to the same synchronous component. 
+In other words, a DC component cannot be used to connect two different synchronous components. Consequently, a single connected component should only contain one synchronous component.
+However, the number of DC components within a connected component is not restricted.  
+Yet, it is possible to run a load flow on a network with several synchronous components (with their own embedded DC components) as long
+as they do not belong to the same connected component.
+
 (ac-flow-computing)=
 ## AC flows computing
 
@@ -334,3 +343,123 @@ When the Fast-Decoupled algorithm is used, we recommend these values for some co
 - [`maxNewtonRaphsonIterations`](parameters.md): 75,
 - [`lineSearchStateVectorScalingMaxIteration`](parameters.md): 4,
 - [`lineSearchStateVectorScalingStepFold`](parameters.md): `3/2 = 1.5`.
+
+## AC DC flows computing
+
+AC DC flows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
+The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC bus, and active/reactive 
+power for each voltage source converter.   
+Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
+components are the followings:
+
+### DC bus
+
+At least one DC bus must be connected to the ground in each DC network, its potential is therefore set to 0. 
+Therefore, symmetrical configuration are currently not supported.  
+For the others DC buses, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
+These terms are introduced by the DC components connected to the DC bus.
+
+### DC Line
+
+Each DC line adds one term in both of its two connected DC buses current balance:
+
+$\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
+
+$\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcBus2
+
+
+### Line Commutated Converter
+
+Line commutated converters are not supported yet by Open Load Flow.
+
+### Voltage source converters
+
+Let consider a network that is composed of one AC network, and one DC network.
+The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
+DC buses at the other side.   
+Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
+
+The converter can control either the power received by the AC network (`P_PCC` control mode) 
+or the voltage between its two DC buses (`V_DC` control mode).
+At least one of the voltage source converters of the DC network must be in `V_DC` mode. Otherwise, an exception will be thrown.
+
+In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
+- Reactive power control mode, in which it imposes the reactive power received from AC to DC, which is 0 by default.
+  In this case, the AC voltage is not fixed.
+- Voltage regulator control mode, in which it imposes the voltage at its AC Bus. In this case the reactive power is not
+  fixed.
+
+**Warning:** At the moment, the active and reactive power control and the AC voltage control are enforced at the converter AC terminal, not at its PCC terminal.
+
+We note $P_{AC}$ the power flow injected by AC network into the converter. 
+So $P_{AC}>0$ if the power flows from AC to DC and $P_{AC}<0$ otherwise.
+
+If the converter is in `P_PCC` control mode, we add an equation to impose $P_{AC}$ :
+
+$P_{AC}$ = $P_{Ref}$
+
+Else the converter is in `V_DC` control mode, and we add an equation to impose the voltage between its two DC buses :
+
+$V_{1} - V_{2} = V_{Ref}$
+
+Similarly, if the converter controls reactive power, we add an equation to impose $Q_{AC}$ :
+
+$Q_{AC}$ = $Q_{Ref}$
+
+Else the converter controls the AC voltage, and we add an equation to impose $V_{AC}$:
+
+$V_{AC}= V_{Ref}$
+
+On the AC bus, the active and reactive power injected into the converter is added to its power balance.  
+On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcBus1 to dcBus2.
+It is added to the current balances of dcBus1 and dcBus2
+
+$\sum_{i} I_i + I_{Conv} = 0$ for dcBus1
+
+$\sum_{i} I_i - I_{Conv}= 0$ for dcBus2
+
+#### Power Equations
+
+The last equation of converters ensures the conservation of power between AC and DC.
+
+$$P_{DC} + P_{AC} = P_{Loss}$$
+
+with:
+- $P_{AC}$ the power injected by the AC network into the converter
+- $P_{Loss}>=0$ the converter losses depending on AC current. Its computation is detailed below.
+- $P_{DC} = I_{Conv}*(V_1-V_2)$ the power injected by the DC network into the converter.
+
+If the converter acts as rectifier, AC injects power in DC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
+
+$$
+-|P_{DC}| + P_{AC} = P_{Loss}
+$$
+$$
+|P_{DC}| = |P_{AC}| - P_{Loss}
+$$
+
+And if the converter acts as inverter, DC injects power in AC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
+
+$$
+P_{DC} - |P_{AC}| = P_{Loss}
+$$
+$$
+|P_{AC}| = |P_{DC}| - P_{Loss}
+$$
+
+In both cases, there is a loss of power when passing through the converter.
+
+
+$P_{Loss}$ is defined as :  
+$
+P_{Loss} = IdleLoss + SwitchingLoss * |I_{Conv}| + ResistiveLoss * I_{Conv}^{2}
+$
+
+
+Idle loss, switching loss and resistive loss are loss factors that depend on the converter.
+
+Using the previous equation of power conservation between AC and DC, we have
+$$
+I_{Conv}*(V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss*|I_{Conv}| + ResistiveLoss*I_{Conv}^{2}
+$$
+

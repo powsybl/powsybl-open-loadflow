@@ -245,4 +245,9 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     public double getAngle(LfBus bus) {
         return 0;
     }
+
+    @Override
+    public double getMagnitude(LfDcBus dcBus) {
+        throw new PowsyblException("Voltage magnitude initialization is not yet supported with AcDcNetwork");
+    }
 }

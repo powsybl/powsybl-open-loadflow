@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
@@ -29,4 +30,12 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
     public double getAngle(LfBus bus) {
         return 0;
     }
+
+    public double getMagnitude(LfDcBus dcBus) {
+        if (dcBus.isNeutralPole()) {
+            return 0.0;
+        }
+        return 1.0;
+    }
 }
+
