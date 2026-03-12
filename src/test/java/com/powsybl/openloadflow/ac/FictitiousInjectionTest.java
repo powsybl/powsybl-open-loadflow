@@ -57,6 +57,7 @@ class FictitiousInjectionTest {
                             Network has a total absolute sum of 30 MW and 50 MVar fictitious injection across 3 buses
                             Angle reference bus: b4_vl_0
                             Slack bus: b4_vl_0
+                         Voltage initialization with method Uniform Value
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-30 MW) distributed in 1 distribution iteration(s)
@@ -94,6 +95,7 @@ class FictitiousInjectionTest {
                             Network balance: active generation=300 MW, active load=240 MW, reactive generation=300 MVar, reactive load=405 MVar
                             Angle reference bus: b4_vl_0
                             Slack bus: b4_vl_0
+                         Voltage initialization with method Uniform Value
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-60 MW) distributed in 1 distribution iteration(s)

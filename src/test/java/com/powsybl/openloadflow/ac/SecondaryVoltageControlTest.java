@@ -235,6 +235,7 @@ class SecondaryVoltageControlTest {
                             Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
+                         Voltage initialization with method Uniform Value
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits
@@ -323,6 +324,7 @@ class SecondaryVoltageControlTest {
                             Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
+                         Voltage initialization with method Uniform Value
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits

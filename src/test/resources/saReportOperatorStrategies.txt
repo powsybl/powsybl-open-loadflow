@@ -7,6 +7,7 @@
             Angle reference bus: VL2_0
             Slack bus: VL2_0
          + Pre-contingency simulation
+            Voltage initialization with method Uniform Value
             Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'L1'

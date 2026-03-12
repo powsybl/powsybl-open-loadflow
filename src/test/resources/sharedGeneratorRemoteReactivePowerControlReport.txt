@@ -7,4 +7,5 @@
             Network balance: active generation=3 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
             Angle reference bus: b1_vl_0
             Slack bus: b1_vl_0
+         Voltage initialization with method Uniform Value
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
