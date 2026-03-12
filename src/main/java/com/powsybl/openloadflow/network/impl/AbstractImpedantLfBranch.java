@@ -26,6 +26,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
+    private static final double P_EPSILON_SI = 1e-6; // in MW
+
     protected boolean connectedSide1;
 
     protected boolean connectedSide2;
@@ -521,7 +523,7 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
         double flowTransfer = Double.NaN;
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
             double flowChange = flowP1 - preContingencyBranchP1;
-            if (flowChange != 0. && preContingencyBranchOfContingencyP1 != 0.) {
+            if (Math.abs(preContingencyBranchOfContingencyP1) > P_EPSILON_SI) {
                 flowTransfer = flowChange / preContingencyBranchOfContingencyP1;
             } else {
                 flowTransfer = 0.;
