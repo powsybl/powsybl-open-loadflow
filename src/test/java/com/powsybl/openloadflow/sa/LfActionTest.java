@@ -78,8 +78,8 @@ class LfActionTest extends AbstractSerDeTest {
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
                 lfSwitchAction.apply(lfNetwork, lfContingency, networkParameters);
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());
-                assertEquals("C", ((LfSwitchAction) lfSwitchAction).getDisabledBranch().getId());
-                assertNull(((LfSwitchAction) lfSwitchAction).getEnabledBranch());
+                assertEquals("C", ((LfSwitchAction) lfSwitchAction).getDisabledBranches().getFirst().getId());
+                assertTrue(((LfSwitchAction) lfSwitchAction).getEnabledBranches().isEmpty());
             });
 
             LfAction lfInvalidSwitchAction = LfActionUtils.createLfAction(new SwitchAction("switchAction", "S", true),

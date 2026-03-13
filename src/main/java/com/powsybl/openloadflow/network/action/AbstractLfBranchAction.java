@@ -12,7 +12,9 @@ import com.powsybl.action.Action;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -22,28 +24,28 @@ import java.util.Set;
  */
 public abstract class AbstractLfBranchAction<A extends Action> extends AbstractLfAction<A> {
 
-    private LfBranch disabledBranch = null; // switch to open
+    private List<LfBranch> disabledBranch = new ArrayList<>(); // switch to open
 
-    private LfBranch enabledBranch = null; // switch to close
+    private List<LfBranch> enabledBranch = new ArrayList<>(); // switch to close
 
     AbstractLfBranchAction(String id, A action, LfNetwork lfNetwork) {
         super(id, action);
         findEnabledDisabledBranches(lfNetwork);
     }
 
-    protected void setDisabledBranch(LfBranch disabledBranch) {
-        this.disabledBranch = disabledBranch;
+    protected void addDisabledBranch(LfBranch disabledBranch) {
+        this.disabledBranch.add(disabledBranch);
     }
 
-    protected void setEnabledBranch(LfBranch enabledBranch) {
-        this.enabledBranch = enabledBranch;
+    protected void addEnabledBranch(LfBranch enabledBranch) {
+        this.enabledBranch.add(enabledBranch);
     }
 
-    public LfBranch getDisabledBranch() {
+    public List<LfBranch> getDisabledBranches() {
         return this.disabledBranch;
     }
 
-    public LfBranch getEnabledBranch() {
+    public List<LfBranch> getEnabledBranches() {
         return this.enabledBranch;
     }
 
@@ -54,7 +56,7 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
      */
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        boolean found = disabledBranch != null || enabledBranch != null;
+        boolean found = !disabledBranch.isEmpty() || !enabledBranch.isEmpty();
         if (!found) {
             return false;
         }
@@ -82,18 +84,22 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
      * Optimized apply on an existing connectivity (to apply several branch actions at the same time)
      */
     public boolean applyOnConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        boolean found = disabledBranch != null || enabledBranch != null;
+        boolean found = !disabledBranch.isEmpty() || !enabledBranch.isEmpty();
         updateConnectivity(connectivity);
         return found;
     }
 
     private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        if (disabledBranch != null && disabledBranch.getBus1() != null && disabledBranch.getBus2() != null) {
-            connectivity.removeEdge(disabledBranch);
-        }
-        if (enabledBranch != null) {
-            connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
-        }
+        disabledBranch.forEach(branch -> {
+            if (branch != null && branch.getBus1() != null && branch.getBus2() != null) {
+                connectivity.removeEdge(branch);
+            }
+        });
+        enabledBranch.forEach(branch -> {
+            if (branch != null) {
+                connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch);
+            }
+        });
     }
 
     public static void updateBusesAndBranchStatus(GraphConnectivity<LfBus, LfBranch> connectivity) {

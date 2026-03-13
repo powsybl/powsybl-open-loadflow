@@ -701,7 +701,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies2, actions2, ReportNode.NO_OP));
-        assertEquals("Branch 'line' not found in the network", exception.getCause().getMessage());
+        assertEquals("Branch or three windings transformer 'line' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions3 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst1", false, 1));
         List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
@@ -1840,6 +1840,77 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(1.445, acStrategyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.445, acStrategyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1.666, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testTerminalsConnectionActionWith3WindingsTransformer() {
+
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        List<Contingency> contingencies = Stream.of("LOAD_4")
+            .map(id -> new Contingency(id, new LoadContingency(id)))
+            .toList();
+
+        List<Action> actions = List.of(new TerminalsConnectionAction("disconnect3WT", "T3wT", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("Strategy3WT", ContingencyContext.specificContingency("LOAD_4"), new TrueCondition(), List.of("disconnect3WT")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(true);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+
+        assertTrue(result.getOperatorStrategyResults().stream().findAny().isPresent());
+
+        // Only flow related to G1 and LD2 should be present
+        assertEquals(11.226, result.getOperatorStrategyResults().getFirst().getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testTerminalsConnectionActionWith3WindingsTransformerAc() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(true);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        testTerminalsConnectionActionWith3WindingsTransformer(securityAnalysisParameters);
+    }
+
+    @Test
+    void testTerminalsConnectionActionWith3WindingsTransformerFastDc() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(true);
+        parameters.setDc(true);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        OpenSecurityAnalysisParameters ext = new OpenSecurityAnalysisParameters()
+            .setDcFastMode(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, ext);
+        testTerminalsConnectionActionWith3WindingsTransformer(securityAnalysisParameters);
+    }
+
+    void testTerminalsConnectionActionWith3WindingsTransformer(SecurityAnalysisParameters parameters) {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        List<Contingency> contingencies = Stream.of("LOAD_4")
+            .map(id -> new Contingency(id, new LoadContingency(id)))
+            .toList();
+
+        List<Action> actions = List.of(new TerminalsConnectionAction("disconnect3WT", "T3wT", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("Strategy3WT", ContingencyContext.specificContingency("LOAD_4"), new TrueCondition(), List.of("disconnect3WT")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+
+        assertTrue(result.getOperatorStrategyResults().stream().findAny().isPresent());
+
+        // Only flow related to G1 and LD2 should be present
+        assertEquals(11.2, result.getOperatorStrategyResults().getFirst().getNetworkResult().getBranchResult("LINE_12").getP1(), 1e-1);
     }
 
     @Test

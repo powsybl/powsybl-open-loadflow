@@ -131,9 +131,9 @@ public class WoodburyEngine {
             // set transformer phase shift to 0 for disabled phase tap changers by actions
             lfActions.stream()
                     .filter(AbstractLfBranchAction.class::isInstance)
-                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch())
+                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranches())
                     .filter(Objects::nonNull)
-                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .flatMap(lfBranches -> lfBranches.stream().flatMap(b -> loadFlowContext.getEquationSystem().getEquation(b.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream()))
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
         }

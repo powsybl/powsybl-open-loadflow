@@ -151,7 +151,7 @@ public final class ConnectivityBreakAnalysis {
      */
     private static boolean isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(LfNetwork lfNetwork, States states, PropagatedContingency contingency,
                                                                                              Map<String, ComputedContingencyElement> contingencyElementByBranch, List<LfAction> operatorStrategyLfActions,
-                                                                                             Map<LfAction, ComputedElement> actionElementByBranch, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                                             Map<LfAction, List<ComputedElement>> actionElementByBranch, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .map(contingencyElementByBranch::get)
                 .collect(Collectors.toList());
@@ -161,8 +161,9 @@ public final class ConnectivityBreakAnalysis {
         // it is not necessary to consider them to ensure that there is no loss of connectivity.
         List<ComputedElement> actionElements = operatorStrategyLfActions.stream()
                 .map(actionElementByBranch::get)
+                .flatMap(Collection::stream)
                 .filter(actionElement -> actionElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && !computedSwitchBranchElement.isEnabled())
-                .collect(Collectors.toList());
+                .toList();
         return isGroupOfElementsBreakingConnectivity(lfNetwork, states.contingencyStates(), contingencyElements, states.actionStates(), actionElements, equationSystem);
     }
 
@@ -221,13 +222,13 @@ public final class ConnectivityBreakAnalysis {
      */
     private static ConnectivityAnalysisResult computeConnectivityAnalysisResult(LfNetwork lfNetwork,
                                                                                           PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                                          List<LfAction> lfActions, Map<LfAction, ComputedElement> actionElementByBranch) {
+                                                                                          List<LfAction> lfActions, Map<LfAction, List<ComputedElement>> actionElementByBranch) {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
         // concatenate all computed elements, to apply them on the connectivity
         List<ComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get),
-                lfActions.stream().map(actionElementByBranch::get)
+                lfActions.stream().map(actionElementByBranch::get).flatMap(Collection::stream)
         ).sorted(Comparator.comparing(element -> element.getLfBranch().getId())).toList();
 
         // we confirm the breaking of connectivity by network connectivity
@@ -354,7 +355,7 @@ public final class ConnectivityBreakAnalysis {
      */
     public static ConnectivityAnalysisResult processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(DcLoadFlowContext loadFlowContext, ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
                                                                                                                      Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
-                                                                                                                     List<LfAction> lfActions, Map<LfAction, ComputedElement> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
+                                                                                                                     List<LfAction> lfActions, Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
         // if there is no topological action, no need to process anything as the connectivity has not changed from post contingency result
         boolean hasAnyTopologicalAction = lfActions.stream().anyMatch(lfAction -> lfAction instanceof AbstractLfBranchAction<?>);
         if (!hasAnyTopologicalAction) {
