@@ -199,13 +199,13 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         }
 
         // Test invalid ids
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork,
             new InjectionThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
                 AbstractThresholdCondition.ComparisonType.EQUALS, 0.0)));
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork,
             new BranchThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
                 AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE)));
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork,
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork,
             new ThreeWindingsTransformerThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
                 AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, ThreeSides.ONE)));
 
@@ -213,29 +213,29 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             AbstractThresholdCondition.ComparisonType.EQUALS, 0.0);
         var badBranchCondition = new BranchThresholdCondition("LINE_12", AbstractThresholdCondition.Variable.TARGET_P,
             AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE);
-        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(network, lfNetwork, badInjectionCondition),
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(lfNetwork, badInjectionCondition),
             "Unsupported variable CURRENT for threshold condition on generator GEN_1");
-        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(network, lfNetwork, badBranchCondition),
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(lfNetwork, badBranchCondition),
             "Unsupported variable TARGET_P for threshold condition on branch LINE_12");
     }
 
     void testWithAllComparisonType(Network network, LfNetwork lfNetwork, double value,
                                    BiFunction<AbstractThresholdCondition.ComparisonType, Double, Condition> conditionBuilder) {
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value)));
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value - 1.0)));
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value - 1.0)));
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value)));
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value + 1.0)));
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value + 1.0)));
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value)));
-        assertTrue(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value - 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value - 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value - 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value + 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value + 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value - 1.0)));
 
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value - 1.0)));
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value + 1.0)));
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value + 1.0)));
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value - 1.0)));
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value - 1.0)));
-        assertFalse(ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value + 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value + 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value)));
     }
 
     @Test

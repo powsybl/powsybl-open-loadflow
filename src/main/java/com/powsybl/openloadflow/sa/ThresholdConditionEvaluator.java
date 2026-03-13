@@ -11,6 +11,8 @@ import com.powsybl.security.condition.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 public final class ThresholdConditionEvaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThresholdConditionEvaluator.class);
@@ -18,7 +20,7 @@ public final class ThresholdConditionEvaluator {
     private ThresholdConditionEvaluator() {
     }
 
-    public static boolean evaluate(Network network, LfNetwork lfNetwork, Condition condition) {
+    public static boolean evaluate(LfNetwork lfNetwork, Condition condition) {
         AbstractThresholdCondition abstractThresholdCondition = (AbstractThresholdCondition) condition;
         // Check the contingency ?
         switch (condition.getType()) {
@@ -26,7 +28,7 @@ public final class ThresholdConditionEvaluator {
                 return evaluateBranchCondition((BranchThresholdCondition) condition, lfNetwork);
             }
             case ThreeWindingsTransformerThresholdCondition.NAME -> {
-                return evaluateThreeWindingsTransformerCondition((ThreeWindingsTransformerThresholdCondition) condition, network, lfNetwork);
+                return evaluateThreeWindingsTransformerCondition((ThreeWindingsTransformerThresholdCondition) condition, lfNetwork);
             }
             case InjectionThresholdCondition.NAME -> {
                 return evaluateGeneratorCondition((InjectionThresholdCondition) condition, lfNetwork);
@@ -87,25 +89,27 @@ public final class ThresholdConditionEvaluator {
         }
     }
 
-    private static boolean evaluateThreeWindingsTransformerCondition(ThreeWindingsTransformerThresholdCondition condition, Network network, LfNetwork lfNetwork) {
+    private static boolean evaluateThreeWindingsTransformerCondition(ThreeWindingsTransformerThresholdCondition condition, LfNetwork lfNetwork) {
         double value;
-        ThreeSides side = condition.getSide();
-        ThreeWindingsTransformer transformer = network.getThreeWindingsTransformer(condition.getEquipmentId());
-        if (transformer == null) {
+        List<LfBranch> legs = lfNetwork.getBranchesByOriginalId(condition.getEquipmentId());
+        if (legs == null || legs.isEmpty()) {
             LOGGER.warn("Three windings transformer with id {} not found for condition evaluation", condition.getEquipmentId());
             return false;
         }
-        String legBranchId = LfLegBranch.getId(transformer.getId(), side.getNum());
-        LfBranch lfBranch = lfNetwork.getBranchById(legBranchId);
+        LfBranch lfBranch = legs.stream().filter(l ->
+                l.getOriginalSide().isPresent() && l.getOriginalSide().get().equals(condition.getSide()))
+            .findFirst().orElse(null);
         if (lfBranch == null) {
-            LOGGER.warn("Leg branch {} not found for three windings transformer with id {} necessary for condition evaluation", legBranchId, condition.getEquipmentId());
+            LOGGER.warn("Leg branch not found for three windings transformer with id {} and side {} necessary for condition evaluation", condition.getEquipmentId(), condition.getSide());
             return false;
         }
+
+        LfLegBranch leg = (LfLegBranch) lfBranch;
         switch (condition.getVariable()) {
-            case ACTIVE_POWER -> value = lfBranch.getP1().eval() * PerUnit.SB;
-            case REACTIVE_POWER -> value = lfBranch.getQ1().eval() * PerUnit.SB;
-            case CURRENT -> value = lfBranch.getI1().eval() * PerUnit.ib(transformer.getLeg(condition.getSide()).getTerminal().getVoltageLevel().getNominalV());
-            default -> throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on transformer %s", condition.getVariable().name(), transformer.getId()));
+            case ACTIVE_POWER -> value = leg.getP1().eval() * PerUnit.SB;
+            case REACTIVE_POWER -> value = leg.getQ1().eval() * PerUnit.SB;
+            case CURRENT -> value = leg.getI1().eval() * PerUnit.ib(leg.getTwt().getLeg(condition.getSide()).getTerminal().getVoltageLevel().getNominalV());
+            default -> throw new PowsyblException(String.format("Unsupported variable %s for threshold condition on transformer %s", condition.getVariable().name(), condition.getEquipmentId()));
         }
         return evaluateThreshold(value, condition.getThreshold(), condition.getComparisonType());
     }

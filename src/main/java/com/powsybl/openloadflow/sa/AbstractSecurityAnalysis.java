@@ -506,7 +506,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return operatorStrategiesByContingencyId;
     }
 
-    private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds, LfNetwork lfNetwork, Network network) {
+    private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds, LfNetwork lfNetwork) {
         switch (conditionalActions.getCondition().getType()) {
             case TrueCondition.NAME:
                 return true;
@@ -529,7 +529,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
             }
             case BranchThresholdCondition.NAME, ThreeWindingsTransformerThresholdCondition.NAME, InjectionThresholdCondition.NAME: {
-                return ThresholdConditionEvaluator.evaluate(network, lfNetwork, conditionalActions.getCondition());
+                return ThresholdConditionEvaluator.evaluate(lfNetwork, conditionalActions.getCondition());
             }
             default:
                 throw new UnsupportedOperationException("Unsupported condition type: " + conditionalActions.getCondition().getType());
@@ -542,7 +542,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .collect(Collectors.toSet());
         List<String> actionsIds = new ArrayList<>();
         for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            if (checkCondition(conditionalActions, limitViolationEquipmentIds, postContingencyState, network)) {
+            if (checkCondition(conditionalActions, limitViolationEquipmentIds, postContingencyState)) {
                 actionsIds.addAll(conditionalActions.getActionIds());
             }
         }

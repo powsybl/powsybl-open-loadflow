@@ -68,6 +68,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final Map<String, LfBranch> branchesById = new HashMap<>();
 
+    private final Map<String, List<LfBranch>> branchesByOriginalId = new HashMap<>();
+
     private int shuntCount = 0;
 
     private final List<LfShunt> shuntsByIndex = new ArrayList<>();
@@ -260,6 +262,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
+        branch.getOriginalIds().forEach(originalId ->
+            branchesByOriginalId.computeIfAbsent(originalId, k -> new ArrayList<>()).add(branch));
         invalidateSlackAndReference();
         connectivity = null;
         invalidateZeroImpedanceNetworks();
@@ -284,6 +288,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public LfBranch getBranchById(String branchId) {
         Objects.requireNonNull(branchId);
         return branchesById.get(branchId);
+    }
+
+    public List<LfBranch> getBranchesByOriginalId(String equipmentId) {
+        Objects.requireNonNull(equipmentId);
+        return branchesByOriginalId.get(equipmentId);
     }
 
     private void addShunt(LfShunt shunt) {
