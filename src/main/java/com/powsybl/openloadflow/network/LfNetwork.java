@@ -56,9 +56,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
-    private LfBus referenceBus;
+    protected LfBus referenceBus;
 
-    private List<LfBus> slackBuses;
+    protected List<LfBus> slackBuses = new ArrayList<>();
 
     private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
@@ -87,6 +87,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
+
+    private final List<LfDcBus> dcBusByIndex = new ArrayList<>();
+
+    private final Map<String, LfDcBus> dcBusById = new LinkedHashMap<>();
+
+    private final List<LfDcLine> dcLinesByIndex = new ArrayList<>();
+
+    private final List<LfVoltageSourceConverter> voltageSourceConvertersByIndex = new ArrayList<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -175,6 +183,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
     }
 
+    public LfNetwork(LfNetwork network) {
+        this(network.numCC, network.numSC, network.slackBusSelector, network.maxSlackBusCount,
+                network.connectivityFactory, network.referenceBusSelector, ReportNode.NO_OP);
+    }
+
     public int getNumCC() {
         return numCC;
     }
@@ -199,10 +212,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
+            case DC_BUS -> getDcBus(num);
+            case DC_LINE -> getDcLine(num);
+            case CONVERTER -> getVoltageSourceConverter(num);
         };
     }
 
-    private void invalidateSlackAndReference() {
+    protected void invalidateSlackAndReference() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
@@ -222,8 +238,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
             List<LfBus> selectableBuses =
-                excludedSlackBuses.isEmpty() ? busesByIndex :
-                    busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
+                    excludedSlackBuses.isEmpty() ? busesByIndex :
+                            busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
@@ -434,6 +450,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return hvdcs.get(num);
     }
 
+    public LfVoltageSourceConverter getVoltageSourceConverter(int num) {
+        return voltageSourceConvertersByIndex.get(num);
+    }
+
     public LfHvdc getHvdcById(String id) {
         Objects.requireNonNull(id);
         return hvdcsById.get(id);
@@ -452,7 +472,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
+
+        for (LfDcBus dcBus : dcBusById.values()) {
+            dcBus.updateState(parameters);
+        }
+
         branches.forEach(branch -> branch.updateState(parameters, updateReport));
+        dcLinesByIndex.forEach(dcLine -> dcLine.updateState(parameters, updateReport));
+        voltageSourceConvertersByIndex.forEach(converter -> converter.updateState(parameters, updateReport));
         hvdcs.forEach(LfHvdc::updateState);
 
         if (updateReport.closedSwitchCount + updateReport.openedSwitchCount > 0) {
@@ -693,9 +720,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
                 branch.setMinZ(lowImpedanceThreshold);
             }
         } else {
-            // zero impedance phase shifter controller or controlled branch is not supported
+            // zero impedance controlling or controlled branch is not supported
             branches.stream()
                     .filter(b -> b.isPhaseController() || b.isPhaseControlled()
+                            || b.isVoltageController()
                             || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
                             || b.getGeneratorReactivePowerControl().isPresent())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
@@ -984,5 +1012,47 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     @Override
     public String toString() {
         return getId();
+    }
+
+    public void addDcBus(LfDcBus dcBus) {
+        Objects.requireNonNull(dcBus);
+        dcBus.setNum(dcBusByIndex.size());
+        dcBusByIndex.add(dcBus);
+        dcBusById.put(dcBus.getId(), dcBus);
+    }
+
+    public LfDcBus getDcBusById(String id) {
+        Objects.requireNonNull(id);
+        return dcBusById.get(id);
+    }
+
+    public LfDcBus getDcBus(int num) {
+        return dcBusByIndex.get(num);
+    }
+
+    public List<LfDcBus> getDcBuses() {
+        return dcBusByIndex;
+    }
+
+    public void addDcLine(LfDcLine dcLine) {
+        dcLine.setNum(dcLinesByIndex.size());
+        dcLinesByIndex.add(dcLine);
+    }
+
+    public List<LfDcLine> getDcLines() {
+        return dcLinesByIndex;
+    }
+
+    public LfDcLine getDcLine(int num) {
+        return dcLinesByIndex.get(num);
+    }
+
+    public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {
+        voltageSourceConverter.setNum(voltageSourceConvertersByIndex.size());
+        voltageSourceConvertersByIndex.add(voltageSourceConverter);
+    }
+
+    public List<LfVoltageSourceConverter> getVoltageSourceConverters() {
+        return voltageSourceConvertersByIndex;
     }
 }

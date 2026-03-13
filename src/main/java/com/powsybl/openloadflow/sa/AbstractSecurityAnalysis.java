@@ -506,15 +506,19 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return operatorStrategiesByContingencyId;
     }
 
-    private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds, LfNetwork lfNetwork) {
+    private static boolean checkCondition(ConditionalActions conditionalActions, LimitViolationsResult limitViolationsResult, LfNetwork lfNetwork) {
         switch (conditionalActions.getCondition().getType()) {
             case TrueCondition.NAME:
                 return true;
-            case AnyViolationCondition.NAME:
+            case AnyViolationCondition.NAME: {
+                AnyViolationCondition anyCondition = (AnyViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(anyCondition.getFilters(), limitViolationsResult);
                 return !limitViolationEquipmentIds.isEmpty();
+            }
             case AtLeastOneViolationCondition.NAME: {
-                AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) conditionalActions.getCondition();
-                Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
+                AtLeastOneViolationCondition atLeastOneCondition = (AtLeastOneViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(atLeastOneCondition.getFilters(), limitViolationsResult);
+                Set<String> commonEquipmentIds = atLeastOneCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
                         .collect(Collectors.toSet());
@@ -522,6 +526,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             }
             case AllViolationCondition.NAME: {
                 AllViolationCondition allCondition = (AllViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(allCondition.getFilters(), limitViolationsResult);
                 Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
@@ -536,13 +541,17 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
+    private static Set<String> filterLimitViolationEquipmentIds(Set<LimitViolationType> filters, LimitViolationsResult limitViolationsResult) {
+        return limitViolationsResult.getLimitViolations().stream()
+            .filter(violation -> filters.isEmpty() || filters.contains(violation.getLimitType()))
+            .map(LimitViolation::getSubjectId)
+            .collect(Collectors.toSet());
+    }
+
     protected List<String> checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult, LfNetwork postContingencyState) {
-        Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
-                .map(LimitViolation::getSubjectId)
-                .collect(Collectors.toSet());
         List<String> actionsIds = new ArrayList<>();
         for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            if (checkCondition(conditionalActions, limitViolationEquipmentIds, postContingencyState)) {
+            if (checkCondition(conditionalActions, limitViolationsResult, postContingencyState)) {
                 actionsIds.addAll(conditionalActions.getActionIds());
             }
         }
