@@ -126,7 +126,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      */
     private double[] calculatePostContingencyAndOperatorStrategyStates(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
                                                                        ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                       Map<LfAction, ComputedElement> actionElementByLfAction, DenseMatrix actionsStates, ReportNode reportNode) {
+                                                                       Map<LfAction, List<ComputedElement>> actionElementByLfAction, DenseMatrix actionsStates, ReportNode reportNode) {
         PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
@@ -145,6 +145,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .collect(Collectors.toList());
         List<ComputedElement> actionElements = operatorStrategyLfActions.stream()
                 .map(actionElementByLfAction::get)
+                .flatMap(Collection::stream)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
                 .collect(Collectors.toList());
 
@@ -365,29 +366,31 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         });
     }
 
-    private static Map<LfAction, ComputedElement> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        Map<LfAction, ComputedElement> computedElements = lfActionById.values().stream()
-                .map(lfAction -> {
-                    ComputedElement element;
-                    if (lfAction instanceof AbstractLfTapChangerAction<?> abstractLfTapChangerAction) {
-                        element = new ComputedTapPositionChangeElement(abstractLfTapChangerAction.getChange(), equationSystem);
-                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && !abstractLfBranchAction.getEnabledBranches().isEmpty()) {
-                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getEnabledBranches().getFirst(), true, equationSystem);
-                    } else if (lfAction instanceof AbstractLfBranchAction<?> abstractLfBranchAction && !abstractLfBranchAction.getDisabledBranches().isEmpty()) {
-                        element = new ComputedSwitchBranchElement(abstractLfBranchAction.getDisabledBranches().getFirst(), false, equationSystem);
-                    } else {
-                        throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
-                    }
-                    return Map.entry(lfAction, element);
-                })
-                .filter(e -> e.getValue().getLfBranchEquation() != null)
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (existing, replacement) -> existing,
-                        LinkedHashMap::new
-                ));
-        ComputedElement.setComputedElementIndexes(computedElements.values());
+    private static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<LfAction, List<ComputedElement>> computedElements = new HashMap<>();
+        lfActionById.values().forEach(lfAction -> {
+            List<ComputedElement> elements = new ArrayList<>();
+            switch (lfAction) {
+                case AbstractLfTapChangerAction<?> abstractLfTapChangerAction -> {
+                    elements.add(new ComputedTapPositionChangeElement(abstractLfTapChangerAction.getChange(), equationSystem));
+                }
+                case
+                    AbstractLfBranchAction<?> abstractLfBranchAction when !abstractLfBranchAction.getEnabledBranches().isEmpty() -> {
+                    elements.addAll(abstractLfBranchAction.getEnabledBranches().stream().map(
+                        e -> new ComputedSwitchBranchElement(e, true, equationSystem)).toList());
+                }
+                case
+                    AbstractLfBranchAction<?> abstractLfBranchAction when !abstractLfBranchAction.getDisabledBranches().isEmpty() -> {
+                    elements.addAll(abstractLfBranchAction.getDisabledBranches().stream().map(
+                        e -> new ComputedSwitchBranchElement(e, false, equationSystem)).toList());
+                }
+                default -> {
+                    throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
+                }
+            }
+            computedElements.put(lfAction, elements.stream().filter(e -> e.getLfBranchEquation() != null).toList());
+        });
+        ComputedElement.setComputedElementIndexes(computedElements.values().stream().flatMap(Collection::stream).toList());
         return computedElements;
     }
 
@@ -449,11 +452,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // the map is indexed by lf actions as different kind of actions can be given on the same branch
-            Map<LfAction, ComputedElement> actionElementsIndexByLfAction = createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem());
+            Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem());
 
             // compute states with +1 -1 to model the actions in Woodbury engine
             // note that the number of columns in the matrix depends on the number of distinct branches affected by the action elements
-            DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElementsIndexByLfAction.values());
+            DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElementsIndexByLfAction.values().stream().flatMap(Collection::stream).toList());
 
             // save base state for later restoration after each contingency/action
             NetworkState networkState = NetworkState.save(lfNetwork);

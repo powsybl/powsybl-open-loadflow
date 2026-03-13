@@ -1870,6 +1870,50 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testTerminalsConnectionActionWith3WindingsTransformerAc() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(true);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        testTerminalsConnectionActionWith3WindingsTransformer(securityAnalysisParameters);
+    }
+
+    @Test
+    void testTerminalsConnectionActionWith3WindingsTransformerFastDc() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(true);
+        parameters.setDc(true);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        OpenSecurityAnalysisParameters ext = new OpenSecurityAnalysisParameters()
+            .setDcFastMode(true);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, ext);
+        testTerminalsConnectionActionWith3WindingsTransformer(securityAnalysisParameters);
+    }
+
+    void testTerminalsConnectionActionWith3WindingsTransformer(SecurityAnalysisParameters parameters) {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        List<Contingency> contingencies = Stream.of("LOAD_4")
+            .map(id -> new Contingency(id, new LoadContingency(id)))
+            .toList();
+
+        List<Action> actions = List.of(new TerminalsConnectionAction("disconnect3WT", "T3wT", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("Strategy3WT", ContingencyContext.specificContingency("LOAD_4"), new TrueCondition(), List.of("disconnect3WT")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+
+        assertTrue(result.getOperatorStrategyResults().stream().findAny().isPresent());
+
+        // Only flow related to G1 and LD2 should be present
+        assertEquals(11.2, result.getOperatorStrategyResults().getFirst().getNetworkResult().getBranchResult("LINE_12").getP1(), 1e-1);
+    }
+
+    @Test
     void testOperatorStrategyNoMoreBusVoltageControlled() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         // trip one of the two parallel lines
