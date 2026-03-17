@@ -317,6 +317,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             stopwatch.stop();
             logPostContingencyEnd(lfNetwork, lfContingency, stopwatch);
             securityAnalysisSimulationResults.postContingencyResults.add(postContingencyResult);
+            //TODO ? notifyInterceptorsOnPostContingency(postContingencyResult);
 
             // restore pre contingency states for next calculation
             restorePreContingencyStates.run();

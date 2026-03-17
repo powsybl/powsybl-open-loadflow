@@ -91,6 +91,8 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
             securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, runParameters.getMonitors(), runParameters.getReportNode());
         }
 
+        // TODO real API
+        securityAnalysis.interceptors = runParameters.getInterceptors();
         return securityAnalysis.run(workingVariantId, runParameters.getSecurityAnalysisParameters(), contingenciesProvider,
                 runParameters.getComputationManager(), runParameters.getOperatorStrategies(), runParameters.getActions(), runParameters.getLimitReductions());
     }
