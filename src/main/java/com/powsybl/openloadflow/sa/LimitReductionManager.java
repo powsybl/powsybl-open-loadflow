@@ -144,6 +144,10 @@ public class LimitReductionManager {
             LOGGER.warn("When two duration criteria are provided, they cannot be of the same type");
             return false;
         }
+        if (!limitReduction.getOperationalLimitsGroupIdsSelection().isEmpty()) {
+            LOGGER.warn("Selecting operational limits groups to apply limit reductions to is not yet supported");
+            return false;
+        }
         return true;
     }
 }

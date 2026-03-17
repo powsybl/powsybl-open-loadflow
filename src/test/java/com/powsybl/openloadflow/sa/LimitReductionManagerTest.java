@@ -236,4 +236,15 @@ class LimitReductionManagerTest {
         List<LimitReductionManager.TerminalLimitReduction> terminalLimitReductions = limitReductionManager.getTerminalLimitReductions();
         assertEquals(0, terminalLimitReductions.size());
     }
+
+    @Test
+    void noSelectionOfOperationalLimitsGroupTest() {
+        LimitReduction limitReduction = LimitReduction.builder(LimitType.CURRENT, 0.95)
+            .withOperationalLimitsGroupIdSelection("group1")
+            .build();
+        LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(limitReduction));
+        assertTrue(limitReductionManager.isEmpty());
+        List<LimitReductionManager.TerminalLimitReduction> terminalLimitReductions = limitReductionManager.getTerminalLimitReductions();
+        assertTrue(terminalLimitReductions.isEmpty());
+    }
 }
