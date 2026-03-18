@@ -44,6 +44,17 @@ public class LfAcDcNetwork extends LfNetwork {
     }
 
     @Override
+    public void addListener(LfNetworkListener listener) {
+        super.addListener(listener);
+        for (LfNetwork acNetwork : acNetworks) {
+            acNetwork.addListener(listener);
+        }
+        for (LfNetwork dcNetwork : dcNetworks) {
+            dcNetwork.addListener(listener);
+        }
+    }
+
+    @Override
     protected void invalidateSlackAndReference() {
         slackBuses.clear();
         acDcReferenceBuses.clear();
