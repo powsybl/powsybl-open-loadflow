@@ -594,13 +594,211 @@ class AcDcLoadFlowTest {
     }
 
     @Test
-    void testAcSubNetworks() {
-        // Network with 2 synchronous components. An exception should be thrown
-        network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
-        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR);
+    void testTwoAcZones() {
+        // A network with 2 synchronous components.
+        network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        parameters.setDistributedSlack(false);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
-        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("AC-DC load flow does not support multiple synchronous components for the moment", e.getCause().getMessage());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertReactivePowerEquals(0, ld1.getTerminal());
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-90, g1.getTerminal());
+        assertReactivePowerEquals(0, g1.getTerminal());
+
+        VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
+        assertActivePowerEquals(70, conv13.getTerminal1());
+        assertReactivePowerEquals(0, conv13.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertReactivePowerEquals(0, ld2.getTerminal());
+
+        Generator g2 = network.getGenerator("g2");
+        assertActivePowerEquals(-30, g2.getTerminal());
+        assertReactivePowerEquals(0, g2.getTerminal());
+
+        VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
+        assertActivePowerEquals(-70, conv24.getTerminal1());
+        assertReactivePowerEquals(0, conv24.getTerminal1());
+    }
+
+    @Test
+    void testTwoAcZonesNoGenerator() {
+        // A network with 2 synchronous components. The second zone has no generator to compensate slack mismatch
+        // Expected behavior is yet to define TODO
+        network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        network.getGenerator("g2").remove();
+        network.getVoltageSourceConverter("conv24").setVoltageSetpoint(400).setVoltageRegulatorOn(true);
+
+        parameters.setDistributedSlack(false);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+    }
+
+    @Test
+    void testThreeAcZones() {
+        // A network with 3 synchronous components. The purpose is to validate the extension of slack mismatch
+        // distribution to larger networks
+        network = AcDcNetworkFactory.createMtDcNetworkWithThreeAcZones();
+        parameters.setDistributedSlack(false);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertReactivePowerEquals(0, ld1.getTerminal());
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-90, g1.getTerminal());
+        assertReactivePowerEquals(0, g1.getTerminal());
+
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+        assertActivePowerEquals(70, conv14.getTerminal1());
+        assertReactivePowerEquals(0, conv14.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertReactivePowerEquals(0, ld2.getTerminal());
+
+        Generator g2 = network.getGenerator("g2");
+        assertActivePowerEquals(-50, g2.getTerminal());
+        assertReactivePowerEquals(0, g2.getTerminal());
+
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        assertActivePowerEquals(-50, conv25.getTerminal1());
+        assertReactivePowerEquals(0, conv25.getTerminal1());
+
+        // Synchronous component 3
+        Load ld3 = network.getLoad("ld3");
+        assertActivePowerEquals(50, ld3.getTerminal());
+        assertReactivePowerEquals(0, ld3.getTerminal());
+
+        Generator g3 = network.getGenerator("g3");
+        assertActivePowerEquals(-30, g3.getTerminal());
+        assertReactivePowerEquals(0, g3.getTerminal());
+
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        assertActivePowerEquals(-20, conv36.getTerminal1());
+        assertReactivePowerEquals(0, conv36.getTerminal1());
+    }
+
+    @Test
+    void testMtDcTwoAcZones() {
+        // A network with 2 synchronous components but 2 P_PCC converters are in the same synchronous component.
+        // Slack distribution should behave similarly
+        network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZones();
+        parameters.setDistributedSlack(false);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertReactivePowerEquals(0, ld1.getTerminal());
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-90, g1.getTerminal());
+        assertReactivePowerEquals(0, g1.getTerminal());
+
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+        assertActivePowerEquals(70, conv14.getTerminal1());
+        assertReactivePowerEquals(0, conv14.getTerminal1());
+
+        Load ld3 = network.getLoad("ld3");
+        assertActivePowerEquals(50, ld3.getTerminal());
+        assertReactivePowerEquals(0, ld3.getTerminal());
+
+        Generator g3 = network.getGenerator("g3");
+        assertActivePowerEquals(-30, g3.getTerminal());
+        assertReactivePowerEquals(0, g3.getTerminal());
+
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        assertActivePowerEquals(-20, conv36.getTerminal1());
+        assertReactivePowerEquals(0, conv36.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertReactivePowerEquals(0, ld2.getTerminal());
+
+        Generator g2 = network.getGenerator("g2");
+        assertActivePowerEquals(-50, g2.getTerminal());
+        assertReactivePowerEquals(0, g2.getTerminal());
+
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        assertActivePowerEquals(-50, conv25.getTerminal1());
+        assertReactivePowerEquals(0, conv25.getTerminal1());
+    }
+
+    @Test
+    void testMtDcTwoAcZones2() {
+        // A network with 2 synchronous components but 2 converters (one P_PCC and one V_DC) are in the same synchronous component.
+        // Slack distribution should behave similarly
+        network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZonesV2();
+        parameters.setDistributedSlack(false);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertReactivePowerEquals(0, ld1.getTerminal());
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-90, g1.getTerminal());
+        assertReactivePowerEquals(0, g1.getTerminal());
+
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+        assertActivePowerEquals(70, conv14.getTerminal1());
+        assertReactivePowerEquals(0, conv14.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertReactivePowerEquals(0, ld2.getTerminal());
+
+        Generator g2 = network.getGenerator("g2");
+        assertActivePowerEquals(-50, g2.getTerminal());
+        assertReactivePowerEquals(0, g2.getTerminal());
+
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        assertActivePowerEquals(-50, conv25.getTerminal1());
+        assertReactivePowerEquals(0, conv25.getTerminal1());
+
+        Load ld3 = network.getLoad("ld3");
+        assertActivePowerEquals(50, ld3.getTerminal());
+        assertReactivePowerEquals(0, ld3.getTerminal());
+
+        Generator g3 = network.getGenerator("g3");
+        assertActivePowerEquals(-30, g3.getTerminal());
+        assertReactivePowerEquals(0, g3.getTerminal());
+
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        assertActivePowerEquals(-20, conv36.getTerminal1());
+        assertReactivePowerEquals(0, conv36.getTerminal1());
     }
 
     @Test

@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,9 +22,6 @@ public class LfAcDcNetwork extends LfNetwork {
         // TODO : find a better way to implement super class
         super(acNetworks.getFirst());
 
-        if (acNetworks.size() > 1) {
-            throw new PowsyblException("AC-DC load flow does not support multiple synchronous components for the moment");
-        }
         this.acNetworks = List.copyOf(acNetworks);
         this.dcNetworks = List.copyOf(dcNetworks);
 
@@ -98,5 +93,9 @@ public class LfAcDcNetwork extends LfNetwork {
         updateSlackBusesAndReferenceBus();
         // FIXME: which bus do we return ?
         return acDcReferenceBuses.getFirst();
+    }
+
+    public int getSynchronousComponentCount() {
+        return acNetworks.size();
     }
 }
