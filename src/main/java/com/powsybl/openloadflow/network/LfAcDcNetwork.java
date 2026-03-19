@@ -30,6 +30,10 @@ public class LfAcDcNetwork extends LfNetwork {
         this.acNetworks = List.copyOf(acNetworks);
         this.dcNetworks = List.copyOf(dcNetworks);
 
+        // Add LfElements in the LfAcDcNetwork. Their number is therefore updated to match the global LfAcDcNetwork object.
+        // However their getNetwork() method still returns the original LfNetwork they belong to.
+        // Having all elements in the LfAcDcNetwork allows to simulate load flow the whole connected network
+        // The attributes acNetworks and dcNetworks also allow to access a "child" etwork individually.
         for (LfNetwork network : acNetworks) {
             network.getBuses().forEach(this::addBus);
             network.getBranches().forEach(this::addBranch);
@@ -40,11 +44,13 @@ public class LfAcDcNetwork extends LfNetwork {
             network.getDcBuses().forEach(this::addDcBus);
             network.getDcLines().forEach(this::addDcLine);
         }
-
     }
 
     @Override
     public void addListener(LfNetworkListener listener) {
+        // LfElements getNetwork() method returns the original LfNetwork they belong to.
+        // Therefore, any listener attached to the LfAcDcNetwork should be attached to the "children" LfNetworks in order
+        // to be triggered when accessing the original LfNetwork listeners through an LfElement via the method getNetwork()
         super.addListener(listener);
         for (LfNetwork acNetwork : acNetworks) {
             acNetwork.addListener(listener);
