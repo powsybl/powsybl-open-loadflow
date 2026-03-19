@@ -60,7 +60,7 @@ public class LfContingency {
         for (LfBus bus : disabledNetwork.getBuses()) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += getBusLostGenerationTargetP(bus);
-            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).toList());
+            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getOriginalId).toList());
             disconnectedElementIds.addAll(bus.getLoads().stream().flatMap(l -> l.getOriginalIds().stream()).toList());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
@@ -78,7 +78,7 @@ public class LfContingency {
             }
             disconnectedElementIds.add(generator.getOriginalId());
         }
-        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().map(LfBranch::getId).toList());
+        disconnectedElementIds.addAll(disabledNetwork.getBranches().stream().flatMap(lfBranch -> lfBranch.getOriginalIds().stream()).toList());
         // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 
@@ -214,8 +214,6 @@ public class LfContingency {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                 bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
                 bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
-            } else {
-                bus.invalidateGenerationTargetQ();
             }
             if (generator instanceof LfStaticVarCompensator svc) {
                 svc.getStandByAutomatonShunt().ifPresent(svcShunt -> {
@@ -233,7 +231,7 @@ public class LfContingency {
         // Only AC quantities
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                bus.setGeneratorVoltageControlEnabled(false);
+                bus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
             }
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER)) {
                 bus.setGeneratorReactivePowerControlEnabled(false);
