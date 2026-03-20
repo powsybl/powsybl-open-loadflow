@@ -137,6 +137,45 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testMultipleSelectedCurrentLimitViolations() {
+        Network network = createNodeBreakerNetwork();
+        network.getLine("L1").getCurrentLimits1().ifPresent(limits -> limits.setPermanentLimit(200));
+        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup1("ADDITIONAL_OPERATIONAL_LIMITS_GROUP").newCurrentLimits()
+                .setPermanentLimit(300)
+                .beginTemporaryLimit()
+                .setName("60")
+                .setAcceptableDuration(60)
+                .setValue(450)
+                .endTemporaryLimit()
+                .add();
+        network.getLine("L1").addSelectedOperationalLimitsGroups(TwoSides.ONE, "DEFAULT"); // also selects DEFAULT operational limits group
+        List<Contingency> contingencies = List.of(new Contingency("L2", new BranchContingency("L2")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(2, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        LimitViolation limitViolation0 = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0);
+        LimitViolation limitViolation1 = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(1);
+        assertEquals("ADDITIONAL_OPERATIONAL_LIMITS_GROUP", limitViolation0.getOperationalLimitsGroupId());
+        assertEquals("permanent", limitViolation0.getLimitName());
+        assertEquals("DEFAULT", limitViolation1.getOperationalLimitsGroupId());
+        assertEquals("permanent", limitViolation1.getLimitName());
+        assertEquals(1, result.getPostContingencyResults().size());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        limitViolation0 = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations().get(0);
+        limitViolation1 = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations().get(1);
+        LimitViolation limitViolation2 = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations().get(2);
+        assertEquals("ADDITIONAL_OPERATIONAL_LIMITS_GROUP", limitViolation0.getOperationalLimitsGroupId());
+        assertEquals("60", limitViolation0.getLimitName());
+        assertEquals("DEFAULT", limitViolation1.getOperationalLimitsGroupId());
+        assertEquals("permanent", limitViolation1.getLimitName());
+        assertEquals("DEFAULT", limitViolation2.getOperationalLimitsGroupId());
+        assertEquals("permanent", limitViolation2.getLimitName());
+    }
+
+    @Test
     void testLowVoltageLimitViolations() {
         Network network = createNodeBreakerNetwork();
         network.getGenerator("G").setTargetV(393);

@@ -40,7 +40,7 @@ public class LimitViolationManager {
 
     private SecurityAnalysisParameters.IncreasedViolationsParameters parameters;
 
-    private final Map<Object, LimitViolation> violations = new LinkedHashMap<>();
+    private final Map<Pair<Object, String>, LimitViolation> violations = new LinkedHashMap<>(); // All limit violations indexed by network element and OperationalLimitsGroup (if it exists)
 
     public LimitViolationManager(LimitViolationManager reference, List<LimitReduction> limitReductions,
                                  SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
@@ -91,7 +91,7 @@ public class LimitViolationManager {
         return Pair.of(limitViolation.getSubjectId(), limitViolation.getSide());
     }
 
-    private void addLimitViolation(LimitViolation limitViolation, Object key) {
+    private void addLimitViolation(LimitViolation limitViolation, Pair<Object, String> key) {
         if (reference != null) {
             var referenceLimitViolation = reference.violations.get(key);
             if (referenceLimitViolation == null || !violationWeakenedOrEquivalent(referenceLimitViolation, limitViolation, parameters)) {
@@ -103,15 +103,15 @@ public class LimitViolationManager {
     }
 
     private void addBranchLimitViolation(LimitViolation limitViolation) {
-        addLimitViolation(limitViolation, getSubjectIdSide(limitViolation));
+        addLimitViolation(limitViolation, Pair.of(getSubjectIdSide(limitViolation), limitViolation.getOperationalLimitsGroupId()));
     }
 
     private void addBusLimitViolation(LimitViolation limitViolation, LfBus bus) {
-        addLimitViolation(limitViolation, bus.getId());
+        addLimitViolation(limitViolation, Pair.of(bus.getId(), limitViolation.getOperationalLimitsGroupId()));
     }
 
     private void addVoltageAngleLimitViolation(LimitViolation limitViolation, LfNetwork.LfVoltageAngleLimit voltageAngleLimit) {
-        addLimitViolation(limitViolation, voltageAngleLimit.getId());
+        addLimitViolation(limitViolation, Pair.of(voltageAngleLimit.getId(), limitViolation.getOperationalLimitsGroupId()));
     }
 
     private void detectBranchCurrentViolations(LfBranch branch, LfBus bus, Function<LfBranch, Evaluable> iGetter, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
