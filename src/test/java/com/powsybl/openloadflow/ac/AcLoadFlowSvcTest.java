@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * SVC test case.
@@ -41,6 +41,7 @@ class AcLoadFlowSvcTest {
     private Bus bus1;
     private Bus bus2;
     private Line l1;
+    private Generator g1;
     private StaticVarCompensator svc1;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -50,12 +51,13 @@ class AcLoadFlowSvcTest {
     private OpenLoadFlowParameters parametersExt;
 
     private Network createNetwork() {
-        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
-        bus1 = network.getBusBreakerView().getBus("b1");
-        bus2 = network.getBusBreakerView().getBus("b2");
-        svc1 = network.getStaticVarCompensator("svc1");
-        l1 = network.getLine("l1");
-        return network;
+        Network net = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        bus1 = net.getBusBreakerView().getBus("b1");
+        bus2 = net.getBusBreakerView().getBus("b2");
+        svc1 = net.getStaticVarCompensator("svc1");
+        l1 = net.getLine("l1");
+        g1 = net.getGenerator("g1");
+        return net;
     }
 
     @BeforeEach
@@ -348,7 +350,7 @@ class AcLoadFlowSvcTest {
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setRegulating(true);
-        network.getGenerator("g1").setTargetV(405);
+        g1.setTargetV(405);
 
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)
@@ -444,5 +446,39 @@ class AcLoadFlowSvcTest {
         assertAngleEquals(0.116346, bus2);
         assertReactivePowerEquals(599.51, svc1.getTerminal()); // same behaviour as classical voltage control.
         assertReactivePowerEquals(599.51, svc2.getTerminal()); // same behaviour as classical voltage control.
+    }
+
+    @Test
+    void testSharedVoltageControl() {
+        // setup plausible reactive limits on g1
+        g1.newMinMaxReactiveLimits().setMinQ(-100.).setMaxQ(100.).add();
+
+        // SVC regulating voltage with g1
+        svc1.setVoltageSetpoint(g1.getTargetV())
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulatingTerminal(g1.getRegulatingTerminal())
+                .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(389.657, bus2);
+        assertAngleEquals(-0.1102126, bus2);
+        assertReactivePowerEquals(-10.884, g1.getTerminal());
+        assertReactivePowerEquals(-139.319, svc1.getTerminal());
+
+        // Verify reactive power keys distribution - keys are reactive power range of g1 and svc1
+        double rangeQg1 = g1.getReactiveLimits().getMaxQ(0) - g1.getReactiveLimits().getMinQ(0);
+        // Reactive keys for SVCs are always from nominal voltage, not solved voltage.
+        double vBus2 = bus2.getVoltageLevel().getNominalV();
+        double rangeQSvc1 = (svc1.getBmax() - svc1.getBmin()) * vBus2 * vBus2;
+        double rangeQTotal = rangeQg1 + rangeQSvc1;
+        double qG1 = g1.getTerminal().getQ();
+        double qSvc1 = svc1.getTerminal().getQ();
+        double qTot = qG1 + qSvc1;
+        assertEquals(rangeQg1 / rangeQTotal, qG1 / qTot, 1e-3);
+        assertEquals(rangeQSvc1 / rangeQTotal, qSvc1 / qTot, 1e-3);
     }
 }
