@@ -171,7 +171,7 @@ public class LimitViolationManager {
 
         limitsGroups = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
         for (LfBranch.LfLimitsGroup limitsGroup : limitsGroups) {
-                detectBranchApparentPowerViolations(branch, sGetter, limitsGroup, side);
+            detectBranchApparentPowerViolations(branch, sGetter, limitsGroup, side);
         }
     }
 
