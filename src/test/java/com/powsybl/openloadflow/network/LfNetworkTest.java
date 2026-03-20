@@ -175,7 +175,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         assertTrue(result.isFullyConverged());
 
-        //Default is only compute load flow on the main component
+        // Default is only compute load flow on the main component
         assertEquals(1, result.getComponentResults().size());
         assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getConnectedComponentNum());
     }
