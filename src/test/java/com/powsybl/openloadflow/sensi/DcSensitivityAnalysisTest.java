@@ -1335,7 +1335,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
-        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies);
+        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies, List.of());
 
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()

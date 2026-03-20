@@ -7,11 +7,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.contingency.violations.ViolationLocation;
 import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.security.ViolationLocation;
 
 import java.util.List;
 

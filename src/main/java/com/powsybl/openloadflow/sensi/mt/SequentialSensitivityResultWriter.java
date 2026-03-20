@@ -39,7 +39,7 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     }
 
     @Override
-    public void writeSensitivityValue(int factorIndex, int contingencyIndex, double value, double functionReference) {
+    public void writeSensitivityValue(int factorIndex, int contingencyIndex, int operatorStrategyIndex, double value, double functionReference) {
         List<SensitivityRecord> records = localBatch.get();
         if (contingencyIndex == -1) {
             // Write the base case only once
@@ -59,15 +59,15 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
         List<SensitivityRecord> records = localBatch.get();
         localBatch.set(new ArrayList<>(VALUE_BATCH_SIZE));
         executor.execute(() -> records.stream().forEach(r ->
-                sensitivityResultWriter.writeSensitivityValue(r.factorIndex, r.contigencyIndex, r.value, r.functionReference)));
+                sensitivityResultWriter.writeSensitivityValue(r.factorIndex, r.contigencyIndex, -1, r.value, r.functionReference)));
     }
 
     @Override
-    public void writeContingencyStatus(int contingencyIndex, SensitivityAnalysisResult.Status status) {
+    public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status) {
         flush(); // send all previous values to the writer in case it expects ordered data
 
         // Not called for the base case. No need to manage duplicate calls.
-        executor.execute(() -> sensitivityResultWriter.writeContingencyStatus(contingencyIndex, status));
+        executor.execute(() -> sensitivityResultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, status));
     }
 
     @Override
