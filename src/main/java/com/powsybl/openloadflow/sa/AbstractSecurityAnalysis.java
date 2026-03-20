@@ -16,6 +16,14 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.strategy.ConditionalActions;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.condition.AllViolationCondition;
+import com.powsybl.contingency.strategy.condition.AnyViolationCondition;
+import com.powsybl.contingency.strategy.condition.AtLeastOneViolationCondition;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.contingency.violations.LimitViolation;
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -36,19 +44,19 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.*;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
-import com.powsybl.security.strategy.ConditionalActions;
-import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -260,7 +268,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         PreContingencyResult mergedPrecontingencyResult =
             new PreContingencyResult(result.getPreContingencyResult().getStatus(),
                 new LimitViolationsResult(preContingencyViolations),
-                mergedPreContingencyNetworkResult);
+                mergedPreContingencyNetworkResult, Double.NaN);
         return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
     }
 
@@ -289,7 +297,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                 PostContingencyResult mergedPostContingencyResult =
                         new PostContingencyResult(originalResult.getContingency(), originalResult.getStatus(),
-                                new LimitViolationsResult(violations), mergedNetworkResult, originalResult.getConnectivityResult());
+                                new LimitViolationsResult(violations), mergedNetworkResult, originalResult.getConnectivityResult(), Double.NaN);
 
                 postContingencyResults.put(contingencyId, mergedPostContingencyResult);
             } else {
@@ -315,7 +323,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                         OperatorStrategyResult.ConditionalActionsResult mergedConditionalActionResult
                                 = new OperatorStrategyResult.ConditionalActionsResult(conditionalActionsResult.getConditionalActionsId(),
-                                conditionalActionsResult.getStatus(), new LimitViolationsResult(violations), mergedNetworkResult);
+                                conditionalActionsResult.getStatus(), new LimitViolationsResult(violations), mergedNetworkResult, Double.NaN);
                         conditionalActionsResults.add(mergedConditionalActionResult);
 
                     } else {
@@ -816,8 +824,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     new PreContingencyResult(
                             preContingencyLoadFlowResult.toComponentResultStatus().status(),
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
-                            preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                            new NetworkResult(preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
+                            preContingencyNetworkResult.getThreeWindingsTransformerResults()), Double.NaN),
                     postContingencyResults, operatorStrategyResults);
         }
     }
@@ -893,10 +901,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         return new PostContingencyResult(contingency, status,
                 new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
-                postContingencyNetworkResult.getBranchResults(),
+                new NetworkResult(postContingencyNetworkResult.getBranchResults(),
                 postContingencyNetworkResult.getBusResults(),
-                postContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                connectivityResult);
+                postContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                connectivityResult, Double.NaN);
     }
 
     protected void logPostContingencyStart(LfNetwork network, LfContingency lfContingency) {
@@ -950,11 +958,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         logActionEnd(network, operatorStrategy, stopwatch);
 
-        return new OperatorStrategyResult(operatorStrategy, status,
+        return new OperatorStrategyResult(operatorStrategy,
+                List.of(new OperatorStrategyResult.ConditionalActionsResult(operatorStrategy.getId(), status,
                                           new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
                                           new NetworkResult(postActionsNetworkResult.getBranchResults(),
                                                             postActionsNetworkResult.getBusResults(),
-                                                            postActionsNetworkResult.getThreeWindingsTransformerResults()));
+                                                            postActionsNetworkResult.getThreeWindingsTransformerResults()),
+                        Double.NaN)
+                ));
     }
 
     protected void logActionStart(LfNetwork network, OperatorStrategy operatorStrategy) {
