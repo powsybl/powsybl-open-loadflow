@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.TwoSides;
@@ -23,46 +23,46 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
+public class LfBoundaryLineBranch extends AbstractImpedantLfBranch {
 
-    private final Ref<DanglingLine> danglingLineRef;
+    private final Ref<BoundaryLine> boundaryLineRef;
 
-    protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine,
+    protected LfBoundaryLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, BoundaryLine boundaryLine,
                                    LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
-        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
+        this.boundaryLineRef = Ref.create(boundaryLine, parameters.isCacheEnabled());
     }
 
-    public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2,
+    public static LfBoundaryLineBranch create(BoundaryLine boundaryLine, LfNetwork network, LfBus bus1, LfBus bus2,
                                               LfNetworkParameters parameters) {
-        Objects.requireNonNull(danglingLine);
+        Objects.requireNonNull(boundaryLine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(parameters);
-        double zb = PerUnit.zb(danglingLine.getTerminal().getVoltageLevel().getNominalV());
-        // iIDM DanglingLine shunt admittance is network side only which is always side 1 (boundary is side 2).
+        double zb = PerUnit.zb(boundaryLine.getTerminal().getVoltageLevel().getNominalV());
+        // iIDM BoundaryLine shunt admittance is network side only which is always side 1 (boundary is side 2).
         PiModel piModel = new SimplePiModel()
-                .setR(danglingLine.getR() / zb)
-                .setX(danglingLine.getX() / zb)
-                .setG1(danglingLine.getG() * zb)
+                .setR(boundaryLine.getR() / zb)
+                .setX(boundaryLine.getX() / zb)
+                .setG1(boundaryLine.getG() * zb)
                 .setG2(0)
-                .setB1(danglingLine.getB() * zb)
+                .setB1(boundaryLine.getB() * zb)
                 .setB2(0);
-        return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine, parameters);
+        return new LfBoundaryLineBranch(network, bus1, bus2, piModel, boundaryLine, parameters);
     }
 
-    private DanglingLine getDanglingLine() {
-        return danglingLineRef.get();
+    private BoundaryLine getBoundaryLine() {
+        return boundaryLineRef.get();
     }
 
     @Override
     public String getId() {
-        return getDanglingLine().getId();
+        return getBoundaryLine().getId();
     }
 
     @Override
     public BranchType getBranchType() {
-        return BranchType.DANGLING_LINE;
+        return BranchType.BOUNDARY_LINE;
     }
 
     @Override
@@ -76,7 +76,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
                                                  LoadFlowModel loadFlowModel) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
         // we follow the convention side 1 for network side and side 2 for boundary side.
-        double currentScale = PerUnit.ib(getDanglingLine().getTerminal().getVoltageLevel().getNominalV());
+        double currentScale = PerUnit.ib(getBoundaryLine().getTerminal().getVoltageLevel().getNominalV());
         return List.of(buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale, currentScale, Double.NaN, Double.NaN));
     }
 
@@ -84,11 +84,11 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, () -> getDanglingLine().getAllSelectedActivePowerLimits(), limitReductionManager);
+                return getLimits1(type, () -> getBoundaryLine().getAllSelectedActivePowerLimits(), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, () -> getDanglingLine().getAllSelectedApparentPowerLimits(), limitReductionManager);
+                return getLimits1(type, () -> getBoundaryLine().getAllSelectedApparentPowerLimits(), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, () -> getDanglingLine().getAllSelectedCurrentLimits(), limitReductionManager);
+                return getLimits1(type, () -> getBoundaryLine().getAllSelectedCurrentLimits(), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -108,7 +108,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
         // Network side is always on side 1.
-        getDanglingLine().getTerminal().setP(p1 * PerUnit.SB)
+        getBoundaryLine().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
     }
 }

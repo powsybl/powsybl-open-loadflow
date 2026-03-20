@@ -16,6 +16,11 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.strategy.condition.*;
+import com.powsybl.contingency.strategy.ConditionalActions;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.violations.LimitViolation;
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -36,16 +41,10 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
-import com.powsybl.security.strategy.ConditionalActions;
-import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -263,7 +262,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         PreContingencyResult mergedPrecontingencyResult =
             new PreContingencyResult(result.getPreContingencyResult().getStatus(),
                 new LimitViolationsResult(preContingencyViolations),
-                mergedPreContingencyNetworkResult);
+                mergedPreContingencyNetworkResult, Double.NaN);
         return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
     }
 
@@ -292,7 +291,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                 PostContingencyResult mergedPostContingencyResult =
                         new PostContingencyResult(originalResult.getContingency(), originalResult.getStatus(),
-                                new LimitViolationsResult(violations), mergedNetworkResult, originalResult.getConnectivityResult());
+                                new LimitViolationsResult(violations), mergedNetworkResult, originalResult.getConnectivityResult(), Double.NaN);
 
                 postContingencyResults.put(contingencyId, mergedPostContingencyResult);
             } else {
@@ -318,7 +317,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                         OperatorStrategyResult.ConditionalActionsResult mergedConditionalActionResult
                                 = new OperatorStrategyResult.ConditionalActionsResult(conditionalActionsResult.getConditionalActionsId(),
-                                conditionalActionsResult.getStatus(), new LimitViolationsResult(violations), mergedNetworkResult);
+                                conditionalActionsResult.getStatus(), new LimitViolationsResult(violations), mergedNetworkResult, Double.NaN);
                         conditionalActionsResults.add(mergedConditionalActionResult);
 
                     } else {
@@ -509,15 +508,19 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return operatorStrategiesByContingencyId;
     }
 
-    private static boolean checkCondition(ConditionalActions conditionalActions, Set<String> limitViolationEquipmentIds) {
+    private static boolean checkCondition(ConditionalActions conditionalActions, LimitViolationsResult limitViolationsResult) {
         switch (conditionalActions.getCondition().getType()) {
             case TrueCondition.NAME:
                 return true;
-            case AnyViolationCondition.NAME:
+            case AnyViolationCondition.NAME: {
+                AnyViolationCondition anyCondition = (AnyViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(anyCondition.getFilters(), limitViolationsResult);
                 return !limitViolationEquipmentIds.isEmpty();
+            }
             case AtLeastOneViolationCondition.NAME: {
-                AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) conditionalActions.getCondition();
-                Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
+                AtLeastOneViolationCondition atLeastOneCondition = (AtLeastOneViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(atLeastOneCondition.getFilters(), limitViolationsResult);
+                Set<String> commonEquipmentIds = atLeastOneCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
                         .collect(Collectors.toSet());
@@ -525,6 +528,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             }
             case AllViolationCondition.NAME: {
                 AllViolationCondition allCondition = (AllViolationCondition) conditionalActions.getCondition();
+                var limitViolationEquipmentIds = filterLimitViolationEquipmentIds(allCondition.getFilters(), limitViolationsResult);
                 Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
@@ -536,13 +540,17 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
     }
 
+    private static Set<String> filterLimitViolationEquipmentIds(Set<LimitViolationType> filters, LimitViolationsResult limitViolationsResult) {
+        return limitViolationsResult.getLimitViolations().stream()
+            .filter(violation -> filters.isEmpty() || filters.contains(violation.getLimitType()))
+            .map(LimitViolation::getSubjectId)
+            .collect(Collectors.toSet());
+    }
+
     protected List<String> checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
-        Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
-                .map(LimitViolation::getSubjectId)
-                .collect(Collectors.toSet());
         List<String> actionsIds = new ArrayList<>();
         for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            if (checkCondition(conditionalActions, limitViolationEquipmentIds)) {
+            if (checkCondition(conditionalActions, limitViolationsResult)) {
                 actionsIds.addAll(conditionalActions.getActionIds());
             }
         }
@@ -810,8 +818,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     new PreContingencyResult(
                             preContingencyLoadFlowResult.toComponentResultStatus().status(),
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
-                            preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                            new NetworkResult(preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
+                            preContingencyNetworkResult.getThreeWindingsTransformerResults()), Double.NaN),
                     postContingencyResults, operatorStrategyResults);
         }
     }
@@ -887,10 +895,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         return new PostContingencyResult(contingency, status,
                 new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
-                postContingencyNetworkResult.getBranchResults(),
+                new NetworkResult(postContingencyNetworkResult.getBranchResults(),
                 postContingencyNetworkResult.getBusResults(),
-                postContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                connectivityResult);
+                postContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                connectivityResult, Double.NaN);
     }
 
     protected void logPostContingencyStart(LfNetwork network, LfContingency lfContingency) {
@@ -944,11 +952,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         logActionEnd(network, operatorStrategy, stopwatch);
 
-        return new OperatorStrategyResult(operatorStrategy, status,
+        return new OperatorStrategyResult(operatorStrategy,
+                List.of(new OperatorStrategyResult.ConditionalActionsResult(operatorStrategy.getId(), status,
                                           new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
                                           new NetworkResult(postActionsNetworkResult.getBranchResults(),
                                                             postActionsNetworkResult.getBusResults(),
-                                                            postActionsNetworkResult.getThreeWindingsTransformerResults()));
+                                                            postActionsNetworkResult.getThreeWindingsTransformerResults()),
+                        Double.NaN)
+                ));
     }
 
     protected void logActionStart(LfNetwork network, OperatorStrategy operatorStrategy) {

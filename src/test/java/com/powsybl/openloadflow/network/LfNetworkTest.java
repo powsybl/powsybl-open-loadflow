@@ -12,7 +12,7 @@ import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
-import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
+import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
@@ -121,13 +121,13 @@ class LfNetworkTest extends AbstractSerDeTest {
     }
 
     @Test
-    void testDanglingLine() {
-        Network network = DanglingLineNetworkFactory.create();
+    void testBoundaryLine() {
+        Network network = BoundaryLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
-        assertTrue(lfNetwork.getBusById("DL_BUS").createBusResults().isEmpty());
+        assertFalse(lfNetwork.getBusById("BL_BUS").isDisabled());
+        assertTrue(lfNetwork.getBusById("BL_BUS").createBusResults().isEmpty());
     }
 
     @Test
@@ -175,7 +175,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         assertTrue(result.isFullyConverged());
 
-        //Default is only compute load flow on the main component
+        // Default is only compute load flow on the main component
         assertEquals(1, result.getComponentResults().size());
         assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getConnectedComponentNum());
     }

@@ -22,16 +22,16 @@ import java.util.Objects;
  */
 public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
-    private final Ref<DanglingLine> danglingLine1Ref;
+    private final Ref<BoundaryLine> boundaryLine1Ref;
 
-    private final Ref<DanglingLine> danglingLine2Ref;
+    private final Ref<BoundaryLine> boundaryLine2Ref;
 
     private final String id;
 
     protected LfTieLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, TieLine tieLine, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
-        this.danglingLine1Ref = Ref.create(tieLine.getDanglingLine1(), parameters.isCacheEnabled());
-        this.danglingLine2Ref = Ref.create(tieLine.getDanglingLine2(), parameters.isCacheEnabled());
+        this.boundaryLine1Ref = Ref.create(tieLine.getBoundaryLine1(), parameters.isCacheEnabled());
+        this.boundaryLine2Ref = Ref.create(tieLine.getBoundaryLine2(), parameters.isCacheEnabled());
         this.id = tieLine.getId();
     }
 
@@ -39,7 +39,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(line);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getBoundaryLine2().getTerminal().getVoltageLevel().getNominalV();
         double zb = PerUnit.zb(nominalV2);
         PiModel piModel = new SimplePiModel()
                 .setR1(1 / Transformers.getRatioPerUnitBase(line))
@@ -59,7 +59,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<String> getOriginalIds() {
-        return List.of(id, danglingLine1Ref.get().getId(), danglingLine2Ref.get().getId());
+        return List.of(id, boundaryLine1Ref.get().getId(), boundaryLine2Ref.get().getId());
     }
 
     @Override
@@ -67,12 +67,12 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         return BranchType.TIE_LINE;
     }
 
-    public DanglingLine getHalf1() {
-        return danglingLine1Ref.get();
+    public BoundaryLine getHalf1() {
+        return boundaryLine1Ref.get();
     }
 
-    public DanglingLine getHalf2() {
-        return danglingLine2Ref.get();
+    public BoundaryLine getHalf2() {
+        return boundaryLine2Ref.get();
     }
 
     @Override
