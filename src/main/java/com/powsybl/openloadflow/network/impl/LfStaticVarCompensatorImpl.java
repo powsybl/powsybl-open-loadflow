@@ -245,4 +245,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         // never selected
         return -1;
     }
+
+    @Override
+    public double getRangeQ(ReactiveRangeMode rangeMode) {
+        // rangeQ is used for shared voltage control reactive distribution keys.
+        // Note that rangeQ of SVCs is always calculated assuming nominal voltage
+        // and is not re-evaluated during calculation with solved voltage.
+        return (svcRef.get().getBmax() - svcRef.get().getBmin())
+                * nominalV * nominalV / PerUnit.SB;
+    }
 }

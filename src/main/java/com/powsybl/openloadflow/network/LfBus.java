@@ -179,6 +179,8 @@ public interface LfBus extends LfElement {
 
     List<LfGenerator> getGenerators();
 
+    List<LfVoltageSourceConverter> getConverters();
+
     Optional<LfShunt> getShunt();
 
     Optional<LfShunt> getControllerShunt();
@@ -212,6 +214,14 @@ public interface LfBus extends LfElement {
     void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
 
     boolean isShuntVoltageControlled();
+
+    // Voltage source converter voltage control
+
+    Optional<VoltageSourceConverterVoltageControl> getVoltageSourceConverterVoltageControl();
+
+    void setVoltageSourceConverterVoltageControl(VoltageSourceConverterVoltageControl voltageSourceConverterVoltageControl);
+
+    boolean isVoltageSourceConverterVoltageControlled();
 
     void setP(Evaluable p);
 
@@ -261,4 +271,6 @@ public interface LfBus extends LfElement {
     void setArea(LfArea area);
 
     ViolationLocation getViolationLocation();
+
+    void addConverter(LfVoltageSourceConverter converter);
 }
