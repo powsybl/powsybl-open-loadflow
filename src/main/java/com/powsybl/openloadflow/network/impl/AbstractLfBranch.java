@@ -130,16 +130,25 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits1(LimitType type, Supplier<Collection<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
+    private <T extends LoadingLimits> List<LfLimitsGroup> createLimits(Supplier<Map<String, T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager, TwoSides side) {
+        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
+        Map<String, T> allSelectedLoadingLimits = loadingLimitsSupplier.get(); // Map of all selected loading limits indexed by their operational limits group id
+        List<LfLimitsGroup> limits = new ArrayList<>();
+        for (Map.Entry<String, T> loadingLimitsEntry : allSelectedLoadingLimits.entrySet()) {
+            T loadingLimits = loadingLimitsEntry.getValue();
+            String operationalLimitsGroupId = loadingLimitsEntry.getKey();
+            limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits,
+                    operationalLimitsGroupId,
+                    side == TwoSides.ONE ? bus1 : bus2,
+                    getLimitReductions(side, limitReductionManager, loadingLimits)));
+        }
+        return limits;
+    }
+
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits1(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
         List<LfLimitsGroup> limits = getLimits1(type);
         if (limits == null) {
-            // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-            Collection<T> allSelectedLoadingLimits = loadingLimitsSupplier.get();
-            limits = new ArrayList<>();
-            for (T loadingLimits : allSelectedLoadingLimits) {
-                limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits, bus1,
-                        getLimitReductions(TwoSides.ONE, limitReductionManager, loadingLimits)));
-            }
+            limits = createLimits(loadingLimitsSupplier, limitReductionManager, TwoSides.ONE);
             setLimits1(type, limits);
         }
         return limits;
@@ -169,16 +178,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits2(LimitType type, Supplier<Collection<T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits2(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
         var limits = getLimits2(type);
         if (limits == null) {
-            // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
-            Collection<T> allSelectedLoadingLimits = loadingLimitsSupplier.get();
-            limits = new ArrayList<>();
-            for (T loadingLimits : allSelectedLoadingLimits) {
-                limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits, bus2,
-                        getLimitReductions(TwoSides.TWO, limitReductionManager, loadingLimits)));
-            }
+            limits = createLimits(loadingLimitsSupplier, limitReductionManager, TwoSides.TWO);
             setLimits2(type, limits);
         }
         return limits;

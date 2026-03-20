@@ -41,10 +41,17 @@ public interface LfBranch extends LfElement {
 
     class LfLimitsGroup {
 
-        private List<LfLimit> sortedLimits;
+        private final List<LfLimit> sortedLimits;
 
-        public LfLimitsGroup(List<LfLimit> sortedLimits) {
+        private final String operationalLimitsGroupId;
+
+        public LfLimitsGroup(List<LfLimit> sortedLimits, String operationalLimitsGroupId) {
             this.sortedLimits = sortedLimits;
+            this.operationalLimitsGroupId = operationalLimitsGroupId;
+        }
+
+        public String getOperationalLimitsGroupId() {
+            return operationalLimitsGroupId;
         }
 
         public List<LfLimit> getSortedLimits() {
@@ -65,7 +72,7 @@ public interface LfBranch extends LfElement {
          * The resulting list will contain the permanent limit
          * This list is returned in a LfLimitsGroup object
          */
-        public static LfLimitsGroup createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus, double[] limitReductions) {
+        public static LfLimitsGroup createSortedLimitsList(LoadingLimits loadingLimits, String operationalLimitsGroupId, LfBus bus, double[] limitReductions) {
             List<LfLimit> sortedLimits = new ArrayList<>(3);
             if (loadingLimits != null) {
                 double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
@@ -94,7 +101,7 @@ public interface LfBranch extends LfElement {
                 }
                 sortedLimits.get(0).setAcceptableDuration(0);
             }
-            return new LfLimitsGroup(sortedLimits);
+            return new LfLimitsGroup(sortedLimits, operationalLimitsGroupId);
         }
 
     }
