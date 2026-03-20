@@ -15,6 +15,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.commons.test.TestUtil;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.contingency.*;
 import com.powsybl.contingency.violations.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
