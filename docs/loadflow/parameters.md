@@ -383,7 +383,7 @@ small reactive power ranger means limited to zero voltage control capability. Th
 - Generators
 - Batteries
 - Voltage Source Converters
-- The optional generation part of a Dangling Line
+- The optional generation part of a Boundary Line
 - Static VAR compensators
 
 For a given active power output, the reactive power range is defined as $MaxQ - MinQ$ (always a positive value).  

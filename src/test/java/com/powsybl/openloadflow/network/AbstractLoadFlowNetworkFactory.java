@@ -174,8 +174,8 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .add();
     }
 
-    protected static DanglingLine createDanglingLine(Bus b, String id, double x, double p0, double q0) {
-        return b.getVoltageLevel().newDanglingLine()
+    protected static BoundaryLine createBoundaryLine(Bus b, String id, double x, double p0, double q0) {
+        return b.getVoltageLevel().newBoundaryLine()
             .setId(id)
             .setBus(b.getId())
             .setConnectableBus(b.getId())
