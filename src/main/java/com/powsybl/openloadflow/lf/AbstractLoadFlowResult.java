@@ -50,6 +50,7 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
         return outerLoopResult;
     }
 
+    @Override
     public double getDistributedActivePower() {
         return distributedActivePower;
     }
