@@ -21,6 +21,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.list.ContingencyList;
 import com.powsybl.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.serde.NetworkSerDe;
@@ -54,7 +55,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 
@@ -206,6 +207,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         ComputationManager computationManager = Objects.requireNonNull(runParameters.getComputationManager());
         ReportNode reportNode = Objects.requireNonNull(runParameters.getReportNode());
 
+        if (sensitivityAnalysisParameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+            throw new UnsupportedOperationException("Unsupported operator strategies calculation mode: " + sensitivityAnalysisParameters.getOperatorStrategiesCalculationMode());
+        }
+
         return CompletableFutureTask.runAsync(() -> runSync(network,
             workingVariantId,
             factorReader,
@@ -220,7 +225,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, ReportNode reportNode) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, BiFunction<List<Contingency>, List<OperatorStrategy>, T> resultWriterProvider, ReportNode reportNode) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
@@ -262,7 +267,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             sensiParametersExt.setDebugDir(null);
         }
 
-        var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies));
+        var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies, List.of()));
 
         run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), resultWriter,
                 new SensitivityAnalysisRunParameters()
@@ -275,7 +280,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return new ReplayResult<>(resultWriter, factors, contingencies);
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, BiFunction<List<Contingency>, List<OperatorStrategy>, T> resultWriterProvider) {
         return replay(date, debugDir, resultWriterProvider, ReportNode.NO_OP);
     }
 
