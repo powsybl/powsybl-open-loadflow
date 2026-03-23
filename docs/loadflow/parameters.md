@@ -378,16 +378,22 @@ and 100 kV for **minNominalVoltageRealisticVoltageCheck**.
 The default value is 0 kV.
 
 **reactiveRangeCheckMode**  
-Open Load Flow discards voltage control for generators with a too small reactive power range, because in practice a too
-small reactive power ranger means limited to zero voltage control capability.
+Open Load Flow discards voltage control for network elements with a too small reactive power range, because in practice a too
+small reactive power ranger means limited to zero voltage control capability. The involved network element types are:
+- Generators
+- Batteries
+- Voltage Source Converters
+- The optional generation part of a Boundary Line
+- Static VAR compensators
 
 For a given active power output, the reactive power range is defined as $MaxQ - MinQ$ (always a positive value).  
-The *maximum* and *minimum* reactive range of a generator is:
-- for generators without reactive limits: infinity 
-- for generators with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
-- for generators with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
+The *maximum* and *minimum* reactive range of a network element is:
+- for network elements without reactive limits: infinity 
+- for network elements with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
+- for network elements with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
+- In the case of Static VAR compensators, the reactive power range is derived from maximum and minimum susceptance assuming nominal voltage: $(B_{\text{max}} - B_{\text{min}}) \cdot \text{nominalV}^2$
 
-The `reactiveRangeCheckMode` parameter defines how generator reactive power range is to be tested. If the test does not pass,
+The `reactiveRangeCheckMode` parameter defines how network elements reactive power range is to be tested. If the test does not pass,
 meaning the reactive power range is too small, then the voltage control is disabled:
 - `MIN_MAX` mode tests if the minimum reactive range is not `0 MVAr` and if the maximum reactive range is above `1 MVAr`.
 - `MAX` mode tests if the maximum reactive range is above `1 MVAr`.
@@ -451,15 +457,15 @@ Above this voltage level, voltage targets that are, in pu, outside 'minPlausible
 The default value is `20 kV`. It must be greater or equal to `0 kV`.
 
 **reactivePowerDispatchMode**  
-This parameter defines how reactive power is split among generators with controls (voltage or reactive power).
-It tries to divide reactive power among generators in the order described below.
+This parameter defines how reactive power is split among network elements with controls (voltage or reactive power).
+It tries to divide reactive power among network elements in the order described below.
 `reactivePowerDispatchMode` can be one of:
 - `Q_EQUAL_PROPORTION`
-    1. If all concerned generators have pre-defined reactive keys via the [Coordinated Reactive Control extension](inv:powsyblcore:*:*:#coordinated-reactive-control-extension), then it splits `Q` proportional to reactive keys
-    2. If they don't, but they have plausible reactive limits, split proportionally to the maximum reactive power range
+    1. If all concerned network elements are generators having pre-defined reactive keys via the [Coordinated Reactive Control extension](inv:powsyblcore:*:*:#coordinated-reactive-control-extension), then it splits `Q` proportional to reactive keys
+    2. If they don't, but they have plausible reactive limits, split proportionally to the maximum reactive power range (see `reactiveRangeCheckMode` parameter for definition)
     3. If they don't, split `Q` equally
 - `K_EQUAL_PROPORTION`
-    1. If generators have plausible reactive limits, split `Q` proportionally to `k`, where `k` is defined by
+    1. If network elements have plausible reactive limits, split `Q` proportionally to `k`, where `k` is defined by
        $ k = \frac{2 qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...}{qmax1 - qmin1 + qmax2 - qmin2 + ...} $
     2. If they don't, split `Q` equally
 
