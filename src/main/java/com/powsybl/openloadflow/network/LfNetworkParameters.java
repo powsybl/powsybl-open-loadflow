@@ -164,6 +164,8 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
+    private boolean isAcDcNetwork;
+
     private boolean includeElementsReconnectingSmallComponents = INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
@@ -218,6 +220,7 @@ public class LfNetworkParameters {
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
+        this.isAcDcNetwork = other.isAcDcNetwork;
         this.includeElementsReconnectingSmallComponents = other.includeElementsReconnectingSmallComponents;
     }
 
@@ -658,6 +661,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
+        this.isAcDcNetwork = isAcDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return isAcDcNetwork;
+    }
+
     public boolean isIncludeElementsReconnectingSmallComponents() {
         return includeElementsReconnectingSmallComponents;
     }
@@ -712,6 +724,7 @@ public class LfNetworkParameters {
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
+                ", isAcDcNetwork=" + isAcDcNetwork +
                 ", includeElementsReconnectingSmallComponents=" + includeElementsReconnectingSmallComponents +
                 ')';
     }

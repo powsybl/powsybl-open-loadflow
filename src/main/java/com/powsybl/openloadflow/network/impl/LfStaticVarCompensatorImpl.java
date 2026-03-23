@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -76,6 +77,41 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
             @Override
             public double getMaxQ(double p) {
                 return getMaxQ();
+            }
+
+            @Override
+            public boolean hasProperty() {
+                throw new UnsupportedOperationException("No property management");
+            }
+
+            @Override
+            public String getProperty(String key) {
+                throw new UnsupportedOperationException("No property management");
+            }
+
+            @Override
+            public String setProperty(String key, String value) {
+                throw new UnsupportedOperationException("No property management");
+            }
+
+            @Override
+            public Set<String> getPropertyNames() {
+                throw new UnsupportedOperationException("No property management");
+            }
+
+            @Override
+            public String getProperty(String key, String defaultValue) {
+                throw new UnsupportedOperationException("No property management");
+            }
+
+            @Override
+            public boolean hasProperty(String key) {
+                throw new UnsupportedOperationException("No property management");
+            }
+
+            @Override
+            public boolean removeProperty(String key) {
+                throw new UnsupportedOperationException("No property management");
             }
         };
 
@@ -208,5 +244,14 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public int getReferencePriority() {
         // never selected
         return -1;
+    }
+
+    @Override
+    public double getRangeQ(ReactiveRangeMode rangeMode) {
+        // rangeQ is used for shared voltage control reactive distribution keys.
+        // Note that rangeQ of SVCs is always calculated assuming nominal voltage
+        // and is not re-evaluated during calculation with solved voltage.
+        return (svcRef.get().getBmax() - svcRef.get().getBmin())
+                * nominalV * nominalV / PerUnit.SB;
     }
 }
