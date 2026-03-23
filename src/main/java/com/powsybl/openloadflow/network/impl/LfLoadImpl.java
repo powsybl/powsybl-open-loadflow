@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.LoadType;
@@ -120,9 +120,9 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         targetQ += HvdcUtils.getLccConverterStationLoadTargetQ(lccCs) / PerUnit.SB;
     }
 
-    public void add(DanglingLine danglingLine) {
-        targetP += danglingLine.getP0() / PerUnit.SB;
-        targetQ += danglingLine.getQ0() / PerUnit.SB;
+    public void add(BoundaryLine boundaryLine) {
+        targetP += boundaryLine.getP0() / PerUnit.SB;
+        targetQ += boundaryLine.getQ0() / PerUnit.SB;
     }
 
     @Override

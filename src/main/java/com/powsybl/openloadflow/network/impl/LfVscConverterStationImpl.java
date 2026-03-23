@@ -33,11 +33,11 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private LfHvdc hvdc;
 
-    private final boolean hvdcDandlingInIidm;
+    private final boolean hvdcDanglingInIidm;
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB, parameters);
-        this.hvdcDandlingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station);
+        this.hvdcDanglingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
@@ -66,7 +66,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public double getTargetP() {
         if (hvdc == null) {
             // Because in case one node is not in the LfNetwork, the connectivity of that node is given by IIDM
-            return hvdcDandlingInIidm ? 0 : super.getTargetP();
+            return hvdcDanglingInIidm ? 0 : super.getTargetP();
         } else {
             if (hvdc.isAcEmulation()) {
                 if (hvdc.isDisabled() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled()) {

@@ -64,7 +64,7 @@ public final class Networks {
         resetInjectionsState(network.getLoads());
         resetInjectionsState(network.getLccConverterStations());
         resetInjectionsState(network.getBatteries());
-        resetInjectionsState(network.getDanglingLines());
+        resetInjectionsState(network.getBoundaryLines());
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
@@ -262,9 +262,17 @@ public final class Networks {
                        : network.getBusView().getBuses();
     }
 
+    public static Iterable<DcBus> getDcBuses(Network network) {
+        return network.getDcBuses();
+    }
+
     public static Bus getBus(Terminal terminal, boolean breakers) {
         return breakers ? terminal.getBusBreakerView().getBus()
                         : terminal.getBusView().getBus();
+    }
+
+    public static DcBus getDcBus(DcTerminal terminal) {
+        return terminal.getDcNode().getDcBus();
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
