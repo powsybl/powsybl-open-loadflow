@@ -30,7 +30,7 @@ public interface LfBranch extends LfElement {
         TRANSFO_3_LEG_1,
         TRANSFO_3_LEG_2,
         TRANSFO_3_LEG_3,
-        DANGLING_LINE,
+        BOUNDARY_LINE,
         SWITCH,
         TIE_LINE
     }

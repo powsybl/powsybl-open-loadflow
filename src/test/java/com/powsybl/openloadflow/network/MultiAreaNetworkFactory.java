@@ -242,10 +242,10 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *    <-------------------------------->    <------------------->
      *                Area 1                            Area 2
      */
-    public static Network createTwoAreasWithDanglingLine() {
+    public static Network createTwoAreasWithBoundaryLine() {
         Network network = createTwoAreasWithXNode();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
-        vl2.newDanglingLine()
+        vl2.newBoundaryLine()
                 .setId("dl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -264,7 +264,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
         Area a1 = network.getArea("a1");
         a1.newAreaBoundary()
-                .setBoundary(network.getDanglingLine("dl1").getBoundary())
+                .setBoundary(network.getBoundaryLine("dl1").getBoundary())
                 .setAc(true)
                 .add();
         return network;
@@ -282,7 +282,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
     public static Network createTwoAreasWithTieLine() {
         Network network = createTwoAreasBase();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
-        DanglingLine dl1 = vl2.newDanglingLine()
+        BoundaryLine dl1 = vl2.newBoundaryLine()
                 .setId("dl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -295,7 +295,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setPairingKey("tlA1A2")
                 .add();
         VoltageLevel vl3 = network.getVoltageLevel("vl3");
-        DanglingLine dl2 = vl3.newDanglingLine()
+        BoundaryLine dl2 = vl3.newBoundaryLine()
                 .setId("dl2")
                 .setConnectableBus("b3")
                 .setBus("b3")
@@ -310,8 +310,8 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.newTieLine()
                 .setId("tl1")
                 .setName("Tie Line A1-A2")
-                .setDanglingLine1("dl1")
-                .setDanglingLine2("dl2")
+                .setBoundaryLine1("dl1")
+                .setBoundaryLine2("dl2")
                 .add();
         network.getArea("a1")
                 .newAreaBoundary()
@@ -346,7 +346,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
     public static Network createTwoAreasWithUnconsideredTieLine() {
         Network network = createTwoAreasWithTieLine();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
-        vl2.newDanglingLine()
+        vl2.newBoundaryLine()
                 .setId("dlA1_1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -371,7 +371,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setMaxP(30)
                 .setVoltageRegulatorOn(true)
                 .add();
-        vl5.newDanglingLine()
+        vl5.newBoundaryLine()
                 .setId("dlA1_2")
                 .setConnectableBus("b5")
                 .setBus("b5")
@@ -386,8 +386,8 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.newTieLine()
                 .setId("tl2")
                 .setName("Tie Line A1-A2 2")
-                .setDanglingLine1("dlA1_1")
-                .setDanglingLine2("dlA1_2")
+                .setBoundaryLine1("dlA1_1")
+                .setBoundaryLine2("dlA1_2")
                 .add();
         network.getArea("a2")
                         .addVoltageLevel(vl5);
@@ -511,8 +511,8 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         for (int i = 0; i < 10; i++) {
             Bus b = createBus(network, "b" + i);
 
-            DanglingLine dl0 = createDanglingLine(b, "dlb" + i + "_0", 0.1, 0, 0);
-            DanglingLine dl1 = createDanglingLine(b, "dlb" + i + "_1", 0.1, 0, 0);
+            BoundaryLine dl0 = createBoundaryLine(b, "dlb" + i + "_0", 0.1, 0, 0);
+            BoundaryLine dl1 = createBoundaryLine(b, "dlb" + i + "_1", 0.1, 0, 0);
             dl0.setPairingKey("key_" + i);
             int key1 = i == 9 ? 0 : i + 1;
             dl1.setPairingKey("key_" + key1);
@@ -537,12 +537,12 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                     .add();
         }
 
-        network.getDanglingLineStream()
-                .collect(Collectors.groupingBy(DanglingLine::getPairingKey))
+        network.getBoundaryLineStream()
+                .collect(Collectors.groupingBy(BoundaryLine::getPairingKey))
                 .forEach((key, value) -> network.newTieLine()
                         .setId(key).setName(key)
-                        .setDanglingLine1(value.get(0).getId())
-                        .setDanglingLine2(value.get(1).getId())
+                        .setBoundaryLine1(value.get(0).getId())
+                        .setBoundaryLine2(value.get(1).getId())
                         .add());
 
         return network;
