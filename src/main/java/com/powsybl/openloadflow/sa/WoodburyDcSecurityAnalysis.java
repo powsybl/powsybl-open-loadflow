@@ -218,13 +218,16 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
                 lfContingency.getDisconnectedElementIds());
 
-        return new PostContingencyResult(contingency,
+        return new PostContingencyResult(
+                contingency,
                 PostContingencyComputationStatus.CONVERGED,
                 new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                 new NetworkResult(postContingencyNetworkResult.getBranchResults(),
                 postContingencyNetworkResult.getBusResults(),
                 postContingencyNetworkResult.getThreeWindingsTransformerResults()),
-                connectivityResult, Double.NaN);
+                connectivityResult,
+                Double.NaN  // TODO: report distributed active power in Fast DC SA
+        );
     }
 
     /**
@@ -261,7 +264,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     new NetworkResult(postActionsNetworkResult.getBranchResults(),
                         postActionsNetworkResult.getBusResults(),
                         postActionsNetworkResult.getThreeWindingsTransformerResults()),
-                    Double.NaN)
+                    Double.NaN) // TODO: report distributed active power in Fast DC SA
             )
         );
     }
@@ -466,7 +469,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED,
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             new NetworkResult(preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-                            preContingencyNetworkResult.getThreeWindingsTransformerResults()), Double.NaN),
+                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                            Double.NaN), // TODO: report distributed active power in Fast DC SA
                             postContingencyResults, operatorStrategyResults);
         }
     }
