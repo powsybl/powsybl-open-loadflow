@@ -10,7 +10,7 @@ package com.powsybl.openloadflow;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
+import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -77,15 +77,19 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     private double getLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, TwoSides side, LimitType type) {
-        return (side == TwoSides.ONE ? branch.getLimits1(type, null) : branch.getLimits2(type, null)).stream()
-                                                                                             .filter(l -> l.getAcceptableDuration() == acceptableDuration)
-                                                                                             .map(LfBranch.LfLimit::getReducedValue)
-                                                                                             .findFirst().orElse(Double.NaN);
+        List<LfBranch.LfLimitsGroup> limitsGroups = side == TwoSides.ONE ? branch.getLimits1(type, null) : branch.getLimits2(type, null);
+        if (limitsGroups.isEmpty()) {
+            return Double.NaN;
+        }
+        return limitsGroups.getFirst().getSortedLimits().stream()
+                .filter(l -> l.getAcceptableDuration() == acceptableDuration)
+                .map(LfBranch.LfLimit::getReducedValue)
+                .findFirst().orElse(Double.NaN);
     }
 
     @Test
-    void testDanglingLineCurrentLimits() {
-        Network network = DanglingLineNetworkFactory.create();
+    void testBoundaryLineCurrentLimits() {
+        Network network = BoundaryLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -94,7 +98,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
             new AcloadFlowEngine(context)
                     .run();
         }
-        LfBranch branch = lfNetwork.getBranchById("DL");
+        LfBranch branch = lfNetwork.getBranchById("BL");
         assertEquals(0.626, branch.getI1().eval(), DELTA);
         assertEquals(0.618, branch.getI2().eval(), DELTA);
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch, Integer.MAX_VALUE, TwoSides.TWO, LimitType.CURRENT), DELTA);
@@ -165,9 +169,9 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void testDanglingLineActivePowerLimits() {
+    void testBoundaryLineActivePowerLimits() {
         //FIXME: to be completed with new operational limits design.
-        Network network = DanglingLineNetworkFactory.create();
+        Network network = BoundaryLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -176,7 +180,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
             new AcloadFlowEngine(context)
                     .run();
         }
-        LfBranch branch = lfNetwork.getBranchById("DL");
+        LfBranch branch = lfNetwork.getBranchById("BL");
         assertEquals(54.815, branch.getP1().eval() * PerUnit.SB, 10E-3);
         assertEquals(-50.0, branch.getP2().eval() * PerUnit.SB, 10E-3);
     }

@@ -50,7 +50,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                 ContingencyElement contingencyElement = contingency.getElements().get(0);
                 if (contingencyElement.getType() == ContingencyElementType.BRANCH
                         || contingencyElement.getType() == ContingencyElementType.LINE
-                        || contingencyElement.getType() == ContingencyElementType.DANGLING_LINE
+                        || contingencyElement.getType() == ContingencyElementType.BOUNDARY_LINE
                         || contingencyElement.getType() == ContingencyElementType.TWO_WINDINGS_TRANSFORMER) {
                     BranchResult preContingencyBranchOfContingencyResult = preContingencyMonitorInfos.getBranchResult(contingencyElement.getId());
                     if (preContingencyBranchOfContingencyResult != null) {
