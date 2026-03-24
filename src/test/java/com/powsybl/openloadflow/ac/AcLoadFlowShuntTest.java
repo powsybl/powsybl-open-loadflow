@@ -749,7 +749,7 @@ class AcLoadFlowShuntTest {
                             Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=20 MVar
                             Angle reference bus: b2_vl_0
                             Slack bus: b2_vl_0
-                         Voltage initialization with method Uniform Value
+                         Voltage initialization with method Uniform Values
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          + Outer loop IncrementalShuntVoltageControl
@@ -790,7 +790,7 @@ class AcLoadFlowShuntTest {
                             Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=20 MVar
                             Angle reference bus: b2_vl_0
                             Slack bus: b2_vl_0
-                         Voltage initialization with method Uniform Value
+                         Voltage initialization with method Uniform Values
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          + Outer loop IncrementalShuntVoltageControl

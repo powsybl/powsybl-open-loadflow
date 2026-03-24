@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.util.Reports;
  */
 public class UniformValueVoltageInitializer implements VoltageInitializer {
 
-    public static final String NAME = "Uniform Value";
+    public static final String NAME = "Uniform Values";
 
     @Override
     public void prepare(LfNetwork network, ReportNode reportNode) {

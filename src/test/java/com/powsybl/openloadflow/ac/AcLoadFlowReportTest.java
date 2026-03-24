@@ -296,7 +296,7 @@ class AcLoadFlowReportTest {
                                     Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
                                     Angle reference bus: VLHV1_0
                                     Slack bus: VLHV1_0
-                                 Voltage initialization with method Uniform Value
+                                 Voltage initialization with method Uniform Values
                                  + Outer loop DistributedSlack
                                     + Outer loop iteration 1
                                        Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
