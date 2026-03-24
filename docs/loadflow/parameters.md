@@ -402,9 +402,12 @@ meaning the reactive power range is too small, then the voltage control is disab
 The default value is `MAX`.
 
 **reportedFeatures**  
-This parameter is used when **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
 This parameter allows to define a set of features which should generate additional reports (as an array, or as a comma or semicolon separated string).
-In current version this parameter can be used to request AC solver iterations report:
+
+This parameter can be used to request details about data inconsistency at network loading through the value :
+- `NETWORK_LOADING`: currently, this feature adds information at network loading step, about generators that are discarded from voltage control or active power control
+
+This parameter can also be used to request AC solver iterations report (if **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`) :
 - `NEWTON_RAPHSON_LOAD_FLOW`: report AC solver iteration log for load flow calculations.
 - `NEWTON_RAPHSON_SECURITY_ANALYSIS`: report AC solver iteration log for security analysis calculations.
 - `NEWTON_RAPHSON_SENSITIVITY_ANALYSIS`: report AC solver iteration log for sensitivity analysis calculations.
