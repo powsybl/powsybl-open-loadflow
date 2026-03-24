@@ -7,7 +7,7 @@ import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.condition.*;
+import com.powsybl.contingency.strategy.condition.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
