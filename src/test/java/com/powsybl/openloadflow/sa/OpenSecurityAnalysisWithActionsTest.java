@@ -163,40 +163,40 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             // Branch Condition
             var branch = network.getBranch("LINE_12");
             double currentSide1 = lfNetwork.getBranchById(branch.getId()).getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
-            testWithAllComparisonType(network, lfNetwork, currentSide1, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, currentSide1, (comparisonType, value) ->
                 new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.ONE));
             double currentSide2 = lfNetwork.getBranchById(branch.getId()).getI2().eval() * PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
-            testWithAllComparisonType(network, lfNetwork, currentSide2, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, currentSide2, (comparisonType, value) ->
                 new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.TWO));
 
             double activePowerSide1 = lfNetwork.getBranchById(branch.getId()).getP1().eval() * PerUnit.SB;
-            testWithAllComparisonType(network, lfNetwork, activePowerSide1, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, activePowerSide1, (comparisonType, value) ->
                 new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value, TwoSides.ONE));
 
             double reactivePowerSide1 = lfNetwork.getBranchById(branch.getId()).getQ1().eval() * PerUnit.SB;
-            testWithAllComparisonType(network, lfNetwork, reactivePowerSide1, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, reactivePowerSide1, (comparisonType, value) ->
                 new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.REACTIVE_POWER, comparisonType, value, TwoSides.ONE));
 
             // 3WT Condition
             var transformer = network.getThreeWindingsTransformer("T3wT");
             LfBranch lfLegBranch = lfNetwork.getBranchById(transformer.getId() + "_leg_1");
             double current3WtSide1 = lfLegBranch.getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
-            testWithAllComparisonType(network, lfNetwork, current3WtSide1, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, current3WtSide1, (comparisonType, value) ->
                 new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, ThreeSides.ONE));
             double activePower3WtSide1 = lfLegBranch.getP1().eval() * PerUnit.SB;
-            testWithAllComparisonType(network, lfNetwork, activePower3WtSide1, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, activePower3WtSide1, (comparisonType, value) ->
                 new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value, ThreeSides.ONE));
             double reactivePower3WtSide1 = lfLegBranch.getQ1().eval() * PerUnit.SB;
-            testWithAllComparisonType(network, lfNetwork, reactivePower3WtSide1, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, reactivePower3WtSide1, (comparisonType, value) ->
                 new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.REACTIVE_POWER, comparisonType, value, ThreeSides.ONE));
 
             // Injection condition
             var gen = network.getGenerator("GEN_1");
             double targetP = lfNetwork.getGeneratorById(gen.getId()).getInitialTargetP();
             double p = lfNetwork.getGeneratorById(gen.getId()).getTargetP();
-            testWithAllComparisonType(network, lfNetwork, p, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, p, (comparisonType, value) ->
                 new InjectionThresholdCondition(gen.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value));
-            testWithAllComparisonType(network, lfNetwork, targetP, (comparisonType, value) ->
+            testWithAllComparisonType(lfNetwork, targetP, (comparisonType, value) ->
                 new InjectionThresholdCondition(gen.getId(), AbstractThresholdCondition.Variable.TARGET_P, comparisonType, value));
         }
 
@@ -221,7 +221,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             "Unsupported variable TARGET_P for threshold condition on branch LINE_12");
     }
 
-    void testWithAllComparisonType(Network network, LfNetwork lfNetwork, double value,
+    void testWithAllComparisonType(LfNetwork lfNetwork, double value,
                                    BiFunction<AbstractThresholdCondition.ComparisonType, Double, Condition> conditionBuilder) {
         assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value)));
         assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value - 1.0)));
