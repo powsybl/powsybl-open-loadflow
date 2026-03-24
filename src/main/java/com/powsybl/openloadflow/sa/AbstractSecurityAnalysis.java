@@ -513,7 +513,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return operatorStrategiesByContingencyId;
     }
 
-    private static boolean checkCondition(ConditionalActions conditionalActions, LimitViolationsResult limitViolationsResult) {
+    private static boolean checkCondition(ConditionalActions conditionalActions, LimitViolationsResult limitViolationsResult, LfNetwork lfNetwork) {
         switch (conditionalActions.getCondition().getType()) {
             case TrueCondition.NAME:
                 return true;
@@ -540,6 +540,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                         .collect(Collectors.toSet());
                 return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
             }
+            case BranchThresholdCondition.NAME, ThreeWindingsTransformerThresholdCondition.NAME, InjectionThresholdCondition.NAME: {
+                return ThresholdConditionEvaluator.evaluate(lfNetwork, conditionalActions.getCondition());
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported condition type: " + conditionalActions.getCondition().getType());
         }
@@ -552,10 +555,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             .collect(Collectors.toSet());
     }
 
-    protected List<String> checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
+    protected List<String> checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult, LfNetwork postContingencyState) {
         List<String> actionsIds = new ArrayList<>();
         for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-            if (checkCondition(conditionalActions, limitViolationsResult)) {
+            if (checkCondition(conditionalActions, limitViolationsResult, postContingencyState)) {
                 actionsIds.addAll(conditionalActions.getActionIds());
             }
         }
@@ -858,7 +861,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                                  List<LimitReduction> limitReductions) {
         OperatorStrategyResult operatorStrategyResult = null;
 
-        List<String> actionIds = checkCondition(operatorStrategy, postContingencyLimitViolations);
+        List<String> actionIds = checkCondition(operatorStrategy, postContingencyLimitViolations, network);
         if (!actionIds.isEmpty()) {
             operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, actionIds, preContingencyLimitViolationManager,
                     securityAnalysisParameters, lfActionById, createResultExtension, contingency, networkParameters, limitReductions);
