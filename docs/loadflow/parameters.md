@@ -401,7 +401,7 @@ meaning the reactive power range is too small, then the voltage control is disab
 
 The default value is `MAX`.
 
-**reportedFeatures**
+**reportedFeatures**  
 This parameter allows to define a set of features which should generate additional reports (as an array, or as a comma or semicolon separated string).
 
 This parameter can be used to request details about data inconsistency at network loading through the value :
