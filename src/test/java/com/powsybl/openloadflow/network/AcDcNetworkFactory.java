@@ -725,7 +725,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1                                    g2
      * |                                      |
-     * b1 conv13-dn3--------------dn4-conv24-b2
+     * b1-conv13-dn3--------------dn4-conv24-b2
      * |                dl34                  |
      * ld1                                   ld2
      * </pre>
@@ -737,7 +737,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLoad(b1, "ld1", 20);
 
         Bus b2 = createBus(network, "b2", 400);
-        createGenerator(b2, "g2", 10, 400);
+        createGenerator(b2, "g2", 50, 400);
         createLoad(b2, "ld2", 100);
 
         DcNode dn3p = createDcNode(network, "dn3p", 400);
@@ -756,7 +756,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1                                               g2
      * |              dl47           dl57               |
-     * b1 conv14-dn4-----------dn7----------dn5-conv25-b2
+     * b1-conv14-dn4-----------dn7----------dn5-conv25-b2
      * |                        |                       |
      * ld1                      | dl67                 ld2
      *                         dn6
@@ -771,11 +771,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLoad(b1, "ld1", 20);
 
         Bus b2 = createBus(network, "b2", 400);
-        createGenerator(b2, "g2", 10, 400);
+        createGenerator(b2, "g2", 50, 400);
         createLoad(b2, "ld2", 100);
 
         Bus b3 = createBus(network, "b3", 400);
-        createGenerator(b3, "g3", 10, 400);
+        createGenerator(b3, "g3", 50, 400);
         createLoad(b3, "ld3", 50);
 
         DcNode dn4p = createDcNode(network, "dn4p", 400);
@@ -795,13 +795,12 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-
     /**
      * ACDC test case with MTDC and 2 AC networks (2 PCC converter in the first AC zone).
      * <pre>
-     *      g1                                               g2
-     *      |              dl47           dl57               |
-     * ld1-b1 conv14-dn4-----------dn7----------dn5-conv25-b2
+     *      g1                                              g2
+     *      |              dl47           dl57              |
+     * ld1-b1-conv14-dn4-----------dn7----------dn5-conv25-b2
      *      |                       |                       |
      *      |                       | dl67                 ld2
      *      |                      dn6
@@ -821,7 +820,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * <pre>
      * g1                                               g2
      * |              dl47           dl57               |
-     * b1 conv14-dn4-----------dn7----------dn5-conv25-b2-ld2
+     * b1-conv14-dn4-----------dn7----------dn5-conv25-b2-ld2
      * |                        |                       |
      * ld1                      | dl67                  |
      *                         dn6                      |

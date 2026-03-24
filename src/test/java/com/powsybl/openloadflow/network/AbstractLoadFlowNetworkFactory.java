@@ -204,14 +204,14 @@ public abstract class AbstractLoadFlowNetworkFactory {
 
     protected static BoundaryLine createBoundaryLine(Bus b, String id, double x, double p0, double q0) {
         return b.getVoltageLevel().newBoundaryLine()
-            .setId(id)
-            .setBus(b.getId())
-            .setConnectableBus(b.getId())
-            .setR(0)
-            .setX(x)
-            .setP0(p0)
-            .setQ0(q0)
-            .add();
+                .setId(id)
+                .setBus(b.getId())
+                .setConnectableBus(b.getId())
+                .setR(0)
+                .setX(x)
+                .setP0(p0)
+                .setQ0(q0)
+                .add();
     }
 
     protected static LccConverterStation createLcc(Bus b, String id) {
@@ -259,11 +259,11 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static VoltageSourceConverter createVoltageSourceConverterVdcQac(Bus b, DcNode dn1, DcNode dn2, String id, double targetVdc, double targetQ) {
-        return createVoltageSourceConverterVdcQac(b, dn1, dn2, id, 0., 0.,0., targetVdc, targetQ);
+        return createVoltageSourceConverterVdcQac(b, dn1, dn2, id, 0., 0., 0., targetVdc, targetQ);
     }
 
     protected static VoltageSourceConverter createVoltageSourceConverterVdcVac(Bus b, DcNode dn1, DcNode dn2, String id, double targetVdc, double targetVac) {
-        return createVoltageSourceConverterVdcVac(b, dn1, dn2, id, 0., 0., 0., targetVdc,  targetVac);
+        return createVoltageSourceConverterVdcVac(b, dn1, dn2, id, 0., 0., 0., targetVdc, targetVac);
     }
 
     protected static VoltageSourceConverter createVoltageSourceConverterPccQac(Bus b, DcNode dn1, DcNode dn2, String id, double idle, double sw, double r, double targetP, double targetQ) {

@@ -19,6 +19,8 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -295,8 +297,8 @@ public class FastDecoupled extends AbstractAcSolver {
         MutableInt iterations = new MutableInt();
 
         try (
-            JacobianMatrixFastDecoupled jPhiRes = initPhiJacobianMatrix(rangeIndex);
-            JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
+                JacobianMatrixFastDecoupled jPhiRes = initPhiJacobianMatrix(rangeIndex);
+                JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
         ) {
             // initialize state vector
             AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
@@ -337,6 +339,6 @@ public class FastDecoupled extends AbstractAcSolver {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(status, iterations.intValue(), slackBusActivePowerMismatch);
+        return new AcSolverResult(status, iterations.intValue(), new HashMap<>(Collections.singletonMap(network.getNumSC(), slackBusActivePowerMismatch)));
     }
 }

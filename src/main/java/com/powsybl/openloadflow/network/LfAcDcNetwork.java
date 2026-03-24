@@ -98,4 +98,8 @@ public class LfAcDcNetwork extends LfNetwork {
     public int getSynchronousComponentCount() {
         return acNetworks.size();
     }
+
+    public List<LfNetwork> getAcNetworks() {
+        return acNetworks;
+    }
 }
