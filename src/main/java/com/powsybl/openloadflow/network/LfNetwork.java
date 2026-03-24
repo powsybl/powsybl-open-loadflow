@@ -98,7 +98,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
-    private Validity validity = Validity.VALID;
+    protected Validity validity = Validity.VALID;
 
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
@@ -697,7 +697,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     private void reportSize(ReportNode reportNode) {
         Reports.reportNetworkSize(reportNode, busesById.values().size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
-            this, busesById.values().size(), branches.size());
+                this, busesById.values().size(), branches.size());
     }
 
     /**
@@ -737,7 +737,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
         Reports.reportNetworkBalance(reportNode, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
-            this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+                this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
     public void fix(boolean minImpedance, double lowImpedanceThreshold) {
@@ -765,7 +765,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         // DC or AC, if no generator, network is dead
         boolean hasAtLeastOneBusGenerator = false;
         for (LfBus bus : busesByIndex) {
-            if (!bus.getGenerators().isEmpty()) {
+            if (!bus.getGenerators().isEmpty() || !bus.getConverters().isEmpty()) {
                 hasAtLeastOneBusGenerator = true;
                 break;
             }
@@ -780,7 +780,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         if (loadFlowModel == LoadFlowModel.AC) {
             boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
             for (LfBus bus : busesByIndex) {
-                if (bus.isGeneratorVoltageControlEnabled()) {
+                if (bus.isGeneratorVoltageControlEnabled() || bus.isVoltageSourceConverterVoltageControlled()) {
                     hasAtLeastOneBusGeneratorVoltageControlEnabled = true;
                     break;
                 }
@@ -921,8 +921,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
                 continue;
             }
             boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
-                k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
-                        .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
+                    k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
+                            .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
             if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",

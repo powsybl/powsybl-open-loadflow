@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.report.ReportNode;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +54,19 @@ public class LfAcDcNetwork extends LfNetwork {
         }
         for (LfNetwork dcNetwork : dcNetworks) {
             dcNetwork.addListener(listener);
+        }
+    }
+
+    @Override
+    public void validate(LoadFlowModel loadFlowModel, ReportNode reportNode) {
+        validity = Validity.VALID;
+        for (LfNetwork acNetwork : acNetworks) {
+            acNetwork.validate(loadFlowModel, reportNode);
+            Validity acNetworkValidity = acNetwork.getValidity();
+            if (acNetworkValidity != Validity.VALID) {
+                validity = acNetworkValidity;
+                break;
+            }
         }
     }
 

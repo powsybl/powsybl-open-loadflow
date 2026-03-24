@@ -631,9 +631,25 @@ class AcDcLoadFlowTest {
     }
 
     @Test
-    void testTwoAcZonesNoGenerator() {
+    void testTwoAcZonesNoGeneratorNorVscVoltageControl() {
         // A network with 2 synchronous components. The second zone has no generator to compensate slack mismatch
-        // Expected behavior is yet to define TODO
+        // As the Voltage Source Converter conv24 does not control AC voltage, this AC zone is not valid.
+        // No calculation should be performed.
+        network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        network.getGenerator("g2").remove();
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().getFirst().getStatus());
+    }
+
+    @Test
+    void testTwoAcZonesNoGeneratorButVscVoltageControl() {
+        // A network with 2 synchronous components. The second zone has no generator to compensate slack mismatch
+        // The Voltage Source Converter conv24 controls AC voltage, so the AC zone is valid.
+        // However, it cannot modify its target active power, so the DistributedSlacOuterLoop cannot converge.
         network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
         network.getGenerator("g2").remove();
         network.getVoltageSourceConverter("conv24").setVoltageSetpoint(400).setVoltageRegulatorOn(true);
@@ -641,8 +657,9 @@ class AcDcLoadFlowTest {
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
+        assertEquals("Outer loop failed: FAILED", result.getComponentResults().getFirst().getStatusText());
     }
 
     @Test
