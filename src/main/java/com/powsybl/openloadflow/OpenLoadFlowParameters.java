@@ -2163,7 +2163,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
                 .setAcDcNetwork(parametersExt.isAcDcNetwork())
-.setDetailedReport(parametersExt.reportedFeatures.contains(ReportedFeatures.NETWORK_LOADING));
+                .setDetailedReport(parametersExt.reportedFeatures.contains(ReportedFeatures.NETWORK_LOADING));
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
