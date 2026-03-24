@@ -227,7 +227,7 @@ class AcDcLoadFlowTest {
 
         Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
         assertVoltageEquals(150.043375, busGb150);
-        assertAngleEquals(2.976066, busGb150);
+        assertAngleEquals(2.977430, busGb150);
 
         Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
         assertVoltageEquals(399.551518, busFr400);
@@ -239,7 +239,7 @@ class AcDcLoadFlowTest {
 
         Bus busGb = network.getBusBreakerView().getBus("BUS-GB");
         assertVoltageEquals(400.000000, busGb);
-        assertAngleEquals(-0.00061, busGb);
+        assertAngleEquals(0.000754, busGb);
 
         DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
         assertVoltageEquals(0.000000, dcNodeGbNeg);
@@ -255,7 +255,7 @@ class AcDcLoadFlowTest {
 
         Generator genFr = network.getGenerator("GEN-FR");
         assertActivePowerEquals(-2000.732810, genFr.getTerminal());
-        assertReactivePowerEquals(-10.470861, genFr.getTerminal());
+        assertReactivePowerEquals(-10.617409, genFr.getTerminal());
 
         VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
         assertActivePowerEquals(200.806464, vscFr.getTerminal1());
@@ -274,10 +274,10 @@ class AcDcLoadFlowTest {
         assertDcPowerEquals(-200.000000, dcLinePos.getDcTerminal2());
 
         Line acLine = network.getLine("acLine");
-        assertActivePowerEquals(0.327588, acLine.getTerminal1());
-        assertActivePowerEquals(-0.327588, acLine.getTerminal2());
-        assertReactivePowerEquals(-0.065519, acLine.getTerminal1());
-        assertReactivePowerEquals(0.065519, acLine.getTerminal2());
+        assertActivePowerEquals(-0.405145, acLine.getTerminal1());
+        assertActivePowerEquals(0.405145, acLine.getTerminal2());
+        assertReactivePowerEquals(0.081032, acLine.getTerminal1());
+        assertReactivePowerEquals(-0.081032, acLine.getTerminal2());
     }
 
     @Test
@@ -312,7 +312,7 @@ class AcDcLoadFlowTest {
 
         Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
         assertVoltageEquals(150.043375, busGb150);
-        assertAngleEquals(2.976065, busGb150);
+        assertAngleEquals(2.978183, busGb150);
 
         Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
         assertVoltageEquals(399.557158, busFr400);
@@ -329,8 +329,8 @@ class AcDcLoadFlowTest {
         assertVoltageEquals(-250.000000, dcNodeFrPos);
 
         Generator genGb = network.getGenerator("GEN-GB");
-        assertActivePowerEquals(-2001.713011, genGb.getTerminal());
-        assertReactivePowerEquals(-10.448402, genGb.getTerminal());
+        assertActivePowerEquals(-2001.137135, genGb.getTerminal());
+        assertReactivePowerEquals(-10.220984, genGb.getTerminal());
 
         VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
         assertActivePowerEquals(201.626136, vscFr.getTerminal1());
@@ -359,10 +359,10 @@ class AcDcLoadFlowTest {
         assertDcPowerEquals(0.000013, dlGroundPos.getDcTerminal1());
 
         Line acLine = network.getLine("acLine");
-        assertActivePowerEquals(0.327588, acLine.getTerminal1());
-        assertActivePowerEquals(-0.327588, acLine.getTerminal2());
-        assertReactivePowerEquals(-0.065519, acLine.getTerminal1());
-        assertReactivePowerEquals(0.065519, acLine.getTerminal2());
+        assertActivePowerEquals(-0.809547, acLine.getTerminal1());
+        assertActivePowerEquals(0.809547, acLine.getTerminal2());
+        assertReactivePowerEquals(0.161920, acLine.getTerminal1());
+        assertReactivePowerEquals(-0.161920, acLine.getTerminal2());
     }
 
     @Test
@@ -403,6 +403,49 @@ class AcDcLoadFlowTest {
         assertActivePowerEquals(101.349665, l12.getTerminal1());
         assertReactivePowerEquals(20.212180, l12.getTerminal1());
         assertActivePowerEquals(-101.2794467, l12.getTerminal2());
+        assertReactivePowerEquals(-20.002003, l12.getTerminal2());
+
+        DcLine dl34 = network.getDcLine("dl34");
+        assertDcPowerEquals(49.361372, dl34.getDcTerminal1());
+        assertDcPowerEquals(-49.359850, dl34.getDcTerminal2());
+    }
+
+    @Test
+    void testAcDcExampleOtherSlack() {
+        // 2 converters, 1 AC Network, the first converter controls Pac, and the second one Vdc
+        // The slack bus is located to another AC bus
+        network = AcDcNetworkFactory.createAcDcNetwork1();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("vl2_0");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        DcNode dn3 = network.getDcNode("dn3");
+        assertVoltageEquals(400.012374, dn3);
+
+        DcNode dn4 = network.getDcNode("dn4");
+        assertVoltageEquals(400.000000, dn4);
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-101.35133, g1.getTerminal());
+        assertReactivePowerEquals(-20.212180, g1.getTerminal());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(50.000000, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcPowerEquals(-49.361373, conv23.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv23.getDcTerminal2());
+
+        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
+        assertActivePowerEquals(-48.721223, conv45.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv45.getTerminal1());
+        assertDcPowerEquals(49.359850, conv45.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
+
+        Line l12 = network.getLine("l12");
+        assertActivePowerEquals(101.35133, l12.getTerminal1());
+        assertReactivePowerEquals(20.212180, l12.getTerminal1());
+        assertActivePowerEquals(-101.28111, l12.getTerminal2());
         assertReactivePowerEquals(-20.002003, l12.getTerminal2());
 
         DcLine dl34 = network.getDcLine("dl34");

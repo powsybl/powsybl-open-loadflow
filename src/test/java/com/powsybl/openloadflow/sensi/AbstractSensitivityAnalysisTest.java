@@ -513,7 +513,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                 .setParameters(sensiParameters);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Branch, tie line, dangling line or leg of 'b' not found", e.getCause().getMessage());
+        assertEquals("Branch, tie line, boundary line or leg of 'b' not found", e.getCause().getMessage());
     }
 
     protected void testEmptyFactors(boolean dc) {

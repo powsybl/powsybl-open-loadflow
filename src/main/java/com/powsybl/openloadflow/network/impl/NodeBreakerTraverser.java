@@ -92,7 +92,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
                 || connectableAfter == IdentifiableType.STATIC_VAR_COMPENSATOR
                 || connectableAfter == IdentifiableType.BATTERY
                 || connectableAfter == IdentifiableType.SHUNT_COMPENSATOR
-                || connectableAfter == IdentifiableType.DANGLING_LINE
+                || connectableAfter == IdentifiableType.BOUNDARY_LINE
                 || connectableAfter == IdentifiableType.LINE
                 || connectableAfter == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 || connectableAfter == IdentifiableType.THREE_WINDINGS_TRANSFORMER;
