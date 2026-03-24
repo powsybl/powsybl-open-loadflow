@@ -487,6 +487,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public enum ReportedFeatures {
+        NETWORK_LOADING,
         NEWTON_RAPHSON_LOAD_FLOW,
         NEWTON_RAPHSON_SECURITY_ANALYSIS,
         NEWTON_RAPHSON_SENSITIVITY_ANALYSIS,
@@ -2043,7 +2044,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
-                .setAcDcNetwork(parametersExt.isAcDcNetwork());
+                .setAcDcNetwork(parametersExt.isAcDcNetwork())
+                .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NETWORK_LOADING));
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2159,7 +2161,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
-                .setAcDcNetwork(parametersExt.isAcDcNetwork());
+                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
+                .setAcDcNetwork(parametersExt.isAcDcNetwork())
+                .setDetailedReport(parametersExt.reportedFeatures.contains(ReportedFeatures.NETWORK_LOADING));
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
