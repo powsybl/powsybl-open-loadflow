@@ -16,6 +16,10 @@ import com.powsybl.security.results.BranchResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -99,15 +103,23 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         return List.of(branchResult, half1Result, half2Result);
     }
 
+    private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter, TwoSides side) {
+        return () -> (side == TwoSides.ONE ? getHalf1() : getHalf2())
+                .getAllSelectedOperationalLimitsGroups()
+                .stream()
+                .filter(o -> limitsGetter.apply(o).isPresent())
+                .collect(Collectors.toMap(OperationalLimitsGroup::getId, o -> limitsGetter.apply(o).orElseThrow()));
+    }
+
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, getHalf1()::getActivePowerLimits, limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.ONE), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, getHalf1()::getApparentPowerLimits, limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.ONE), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, getHalf1()::getCurrentLimits, limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.ONE), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -115,14 +127,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, getHalf2()::getActivePowerLimits, limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.TWO), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, getHalf2()::getApparentPowerLimits, limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.TWO), limitReductionManager);
             case CURRENT:
-                return getLimits2(type, getHalf2()::getCurrentLimits, limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.TWO), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
