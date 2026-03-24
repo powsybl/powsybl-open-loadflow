@@ -7,16 +7,36 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.report.ReportNode;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkLoadingReport {
 
+    public LfNetworkLoadingReport(ReportNode firstRootReportNode, boolean detailed) {
+        this.firstRootReportNode = firstRootReportNode;
+        this.detailed = detailed;
+    }
+
+    ReportNode firstRootReportNode;
+
+    boolean detailed;
+
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted = new ArrayList<>();
 
     int generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = new ArrayList<>();
+
     int generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits = new ArrayList<>();
 
     int generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages = 0;
 
@@ -24,19 +44,31 @@ public class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = new ArrayList<>();
+
     int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = new ArrayList<>();
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP = new ArrayList<>();
+
     int generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = 0;
 
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = new ArrayList<>();
+
     int generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP = new ArrayList<>();
 
     int branchesDiscardedBecauseConnectedToSameBusAtBothEnds = 0;
 
     int nonImpedantBranches = 0;
 
-    int generatorsWithImplausibleTargetVoltage = 0;
+    int generatorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage = 0;
+
+    List<ReportNode> reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage = new ArrayList<>();
 
     int generatorsWithZeroRemoteVoltageControlReactivePowerKey = 0;
 
