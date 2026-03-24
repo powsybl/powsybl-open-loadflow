@@ -176,7 +176,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 .anyMatch(lfGenerator -> !checkUniqueControlledBus(controlledBus, lfGenerator.getControlledBus(), controllerBus, parameters.isDisableInconsistentVoltageControls()));
 
         // Check if target voltage is the same for the generators of current controller bus which have voltage control on
-        boolean inconsistentTargetVoltages = !inconsistentControlledBus && voltageControlGenerators.stream().skip(1)
+        boolean inconsistentTargetVoltages = voltageControlGenerators.stream().skip(1)
+                .filter(lfGenerator -> Objects.equals(lfGenerator.getControlledBus(), controlledBus))
                 .anyMatch(lfGenerator -> !checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, lfGenerator.getControlledBus(), parameters.isDisableInconsistentVoltageControls()));
 
         if (parameters.isDisableInconsistentVoltageControls() && (inconsistentControlledBus || inconsistentTargetVoltages)) {
@@ -248,10 +249,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
             String busesId = vc.getControllerElements().stream().map(LfBus::getId).collect(Collectors.joining(", "));
             LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
-                    controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
-                    voltageControlTargetV * controlledBus.getNominalV());
-            Reports.reportBusAlreadyControlledWithDifferentTargetV(controllerBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
-                    voltageControlTargetV * controlledBus.getNominalV());
+                    controllerBus.getId(), controlledBus.getId(), busesId, voltageControlTargetV * controlledBus.getNominalV(),
+                    controllerTargetV * controlledBus.getNominalV());
+            Reports.reportBusAlreadyControlledWithDifferentTargetV(controllerBus.getNetwork().getReportNode(), controllerBus.getId(), controlledBus.getId(), busesId, voltageControlTargetV * controlledBus.getNominalV(),
+                    controllerTargetV * controlledBus.getNominalV());
         }
     }
 
