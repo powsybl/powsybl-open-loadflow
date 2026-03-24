@@ -12,6 +12,13 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
+import com.powsybl.contingency.strategy.condition.AllViolationCondition;
+import com.powsybl.contingency.strategy.condition.AnyViolationCondition;
+import com.powsybl.contingency.strategy.condition.AtLeastOneViolationCondition;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.violations.LimitViolation;
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -27,16 +34,11 @@ import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
-import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -1995,5 +1997,59 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             assertEquals(40, acStrategyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
             assertEquals(75, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            isDc,  expectedPre, expectedPost, expectedOpStrat
+            false, 21.203,      102.650,      -30.321
+            true,  20.000,      102.500,      -30.000
+        """)
+    void testDistributedActivePower(boolean isDc, double expectedPre, double expectedPost, double expectedOpStrat) {
+        Network network = DistributedSlackNetworkFactory.create();
+        // with below load change network has initial imbalance (ignoring losses) of 20 MW (lack of generation)
+        network.getLoad("l1").setP0(500.);
+        // make network a bit resistive so we have different results in AC or DC
+        network.getLineStream().forEach(l -> l.setR(0.6));
+        // put all generators on voltage control so the network is solvable on g1 contingency
+        network.getGeneratorStream().forEach(g -> g.setTargetV(g.getTerminal().getVoltageLevel().getNominalV()).setVoltageRegulatorOn(true));
+
+        // note that g1 has targetP 100 MW but solves in N at ~102.5 MW because of slack distribution
+        Contingency g1contingency = Contingency.generator("g1");
+
+        // action to increase g2 by 30 MW in relative
+        Action g2action = new GeneratorActionBuilder().withId("g2action")
+                .withGeneratorId("g2")
+                .withActivePowerRelativeValue(true).withActivePowerValue(30)
+                .build();
+
+        OperatorStrategy opStrat = new OperatorStrategy(
+                "opStrat",
+                ContingencyContext.specificContingency(g1contingency.getId()),
+                new TrueCondition(),
+                List.of(g2action.getId()));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Contingency> contingencies = List.of(g1contingency);
+        List<Action> actions = List.of(g2action);
+        List<OperatorStrategy> operatorStrategies = List.of(opStrat);
+
+        // run the security analysis
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(isDc);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // pre-contingency
+        assertEquals(expectedPre, result.getPreContingencyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, g1contingency.getId());
+        assertEquals(expectedPost, postContingencyResult.getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // operator strategy
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, opStrat.getId());
+        assertEquals(expectedOpStrat, strategyResult.getFinalOperatorStrategyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
     }
 }

@@ -164,6 +164,8 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
+    private boolean isAcDcNetwork;
+
     private boolean detailedReport = DETAILED_REPORT_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
@@ -216,6 +218,9 @@ public class LfNetworkParameters {
         this.disableInconsistentVoltageControls = other.disableInconsistentVoltageControls;
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
+        this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
+        this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
+        this.isAcDcNetwork = other.isAcDcNetwork;
         this.detailedReport = other.detailedReport;
     }
 
@@ -656,6 +661,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
+        this.isAcDcNetwork = isAcDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return isAcDcNetwork;
+    }
+
     public boolean isDetailedReport() {
         return detailedReport;
     }
@@ -710,6 +724,7 @@ public class LfNetworkParameters {
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
+                ", isAcDcNetwork=" + isAcDcNetwork +
                 ", detailedReport=" + detailedReport +
                 ')';
     }

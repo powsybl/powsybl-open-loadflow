@@ -16,22 +16,26 @@ import com.powsybl.security.results.BranchResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
-    private final Ref<DanglingLine> danglingLine1Ref;
+    private final Ref<BoundaryLine> boundaryLine1Ref;
 
-    private final Ref<DanglingLine> danglingLine2Ref;
+    private final Ref<BoundaryLine> boundaryLine2Ref;
 
     private final String id;
 
     protected LfTieLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, TieLine tieLine, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
-        this.danglingLine1Ref = Ref.create(tieLine.getDanglingLine1(), parameters.isCacheEnabled());
-        this.danglingLine2Ref = Ref.create(tieLine.getDanglingLine2(), parameters.isCacheEnabled());
+        this.boundaryLine1Ref = Ref.create(tieLine.getBoundaryLine1(), parameters.isCacheEnabled());
+        this.boundaryLine2Ref = Ref.create(tieLine.getBoundaryLine2(), parameters.isCacheEnabled());
         this.id = tieLine.getId();
     }
 
@@ -39,7 +43,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(line);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getBoundaryLine2().getTerminal().getVoltageLevel().getNominalV();
         double zb = PerUnit.zb(nominalV2);
         PiModel piModel = new SimplePiModel()
                 .setR1(1 / Transformers.getRatioPerUnitBase(line))
@@ -59,7 +63,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<String> getOriginalIds() {
-        return List.of(id, danglingLine1Ref.get().getId(), danglingLine2Ref.get().getId());
+        return List.of(id, boundaryLine1Ref.get().getId(), boundaryLine2Ref.get().getId());
     }
 
     @Override
@@ -67,12 +71,12 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         return BranchType.TIE_LINE;
     }
 
-    public DanglingLine getHalf1() {
-        return danglingLine1Ref.get();
+    public BoundaryLine getHalf1() {
+        return boundaryLine1Ref.get();
     }
 
-    public DanglingLine getHalf2() {
-        return danglingLine2Ref.get();
+    public BoundaryLine getHalf2() {
+        return boundaryLine2Ref.get();
     }
 
     @Override
@@ -99,15 +103,23 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         return List.of(branchResult, half1Result, half2Result);
     }
 
+    private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter, TwoSides side) {
+        return () -> (side == TwoSides.ONE ? getHalf1() : getHalf2())
+                .getAllSelectedOperationalLimitsGroups()
+                .stream()
+                .filter(o -> limitsGetter.apply(o).isPresent())
+                .collect(Collectors.toMap(OperationalLimitsGroup::getId, o -> limitsGetter.apply(o).orElseThrow()));
+    }
+
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, getHalf1()::getActivePowerLimits, limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.ONE), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, getHalf1()::getApparentPowerLimits, limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.ONE), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, getHalf1()::getCurrentLimits, limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.ONE), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -115,14 +127,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, getHalf2()::getActivePowerLimits, limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.TWO), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, getHalf2()::getApparentPowerLimits, limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.TWO), limitReductionManager);
             case CURRENT:
-                return getLimits2(type, getHalf2()::getCurrentLimits, limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.TWO), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
