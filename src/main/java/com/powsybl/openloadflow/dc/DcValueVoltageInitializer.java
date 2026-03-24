@@ -26,7 +26,7 @@ import java.util.Objects;
  */
 public class DcValueVoltageInitializer implements VoltageInitializer {
 
-    public static final String NAME = "DC value";
+    public static final String NAME = "DC Values";
 
     private final LfNetworkParameters networkParameters;
 

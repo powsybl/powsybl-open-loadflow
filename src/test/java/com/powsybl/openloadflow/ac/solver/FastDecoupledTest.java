@@ -389,7 +389,7 @@ class FastDecoupledTest {
                             Slack bus: VL1_0
                          + Voltage initialization with method Full Voltage
                             Voltage initialization with method Voltage Magnitude
-                            + Voltage initialization with method DC value
+                            + Voltage initialization with method DC Values
                                Slack bus active power (-4.64102 MW) distributed in 1 distribution iteration(s)
                                DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
                          + Fast-Decoupled on Network CC0 SC0
