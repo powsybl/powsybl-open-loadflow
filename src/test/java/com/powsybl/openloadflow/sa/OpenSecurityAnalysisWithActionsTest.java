@@ -42,7 +42,6 @@ import com.powsybl.contingency.strategy.condition.AllViolationCondition;
 import com.powsybl.contingency.strategy.condition.AnyViolationCondition;
 import com.powsybl.contingency.strategy.condition.AtLeastOneViolationCondition;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
-import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.OperatorStrategyResult;
