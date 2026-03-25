@@ -74,6 +74,8 @@ public class LfNetworkParameters {
 
     public static final boolean GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE = true;
 
+    public static final boolean DETAILED_REPORT_DEFAULT_VALUE = false;
+
     public static final boolean INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE = true;
 
     private boolean generatorVoltageRemoteControl = true;
@@ -166,6 +168,8 @@ public class LfNetworkParameters {
 
     private boolean isAcDcNetwork;
 
+    private boolean detailedReport = DETAILED_REPORT_DEFAULT_VALUE;
+
     private boolean includeElementsReconnectingSmallComponents = INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
@@ -221,6 +225,7 @@ public class LfNetworkParameters {
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
         this.isAcDcNetwork = other.isAcDcNetwork;
+        this.detailedReport = other.detailedReport;
         this.includeElementsReconnectingSmallComponents = other.includeElementsReconnectingSmallComponents;
     }
 
@@ -670,6 +675,15 @@ public class LfNetworkParameters {
         return isAcDcNetwork;
     }
 
+    public boolean isDetailedReport() {
+        return detailedReport;
+    }
+
+    public LfNetworkParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
+        return this;
+    }
+
     public boolean isIncludeElementsReconnectingSmallComponents() {
         return includeElementsReconnectingSmallComponents;
     }
@@ -725,6 +739,7 @@ public class LfNetworkParameters {
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
                 ", isAcDcNetwork=" + isAcDcNetwork +
+                ", detailedReport=" + detailedReport +
                 ", includeElementsReconnectingSmallComponents=" + includeElementsReconnectingSmallComponents +
                 ')';
     }

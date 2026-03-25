@@ -313,7 +313,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     lfNetwork.setReportNode(osSimReportNode);
 
                     // get the actions associated to the operator strategy
-                    List<String> actionIds = checkCondition(operatorStrategy.value(), postContingencyResult.getLimitViolationsResult());
+                    List<String> actionIds = checkCondition(operatorStrategy.value(), postContingencyResult.getLimitViolationsResult(), lfNetwork);
                     List<LfAction> operatorStrategyLfActions = actionIds.stream()
                             .map(woodburyContext.lfActionById::get)
                             .filter(Objects::nonNull)
