@@ -494,7 +494,7 @@ class DcLoadFlowTest {
     @Test
     void outerLoopMaxTotalIterationTest() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
-        parameters.setPhaseShifterRegulationOn(true);
+        parameters.setPhaseShifterRegulationOn(true).setHvdcAcEmulation(false);
         parametersExt.setAreaInterchangeControl(true);
 
         // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.

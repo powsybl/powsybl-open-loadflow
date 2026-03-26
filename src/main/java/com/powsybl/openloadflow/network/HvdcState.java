@@ -13,14 +13,23 @@ package com.powsybl.openloadflow.network;
 public class HvdcState extends ElementState<LfHvdc> {
 
     private final boolean acEmulation;
-    private final double angleDifferenceToFreeze;
-    private final boolean acEmulationFrozen;
+    private final LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus;
+    private final double vsc1TargetP;
+    private final double vsc2TargetP;
 
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
         this.acEmulation = hvdc.isAcEmulation();
-        this.acEmulationFrozen = hvdc.isAcEmulationFrozen();
-        this.angleDifferenceToFreeze = hvdc.getAngleDifferenceToFreeze();
+        if (this.acEmulation) {
+            acEmulationStatus = hvdc.getAcEmulationControl().getAcEmulationStatus();
+            // VSCs targetP are stored to be used if the AC emulation is in saturated mode
+            vsc1TargetP = hvdc.getConverterStation1().getTargetP();
+            vsc2TargetP = hvdc.getConverterStation2().getTargetP();
+        } else {
+            vsc1TargetP = Double.NaN;
+            vsc2TargetP = Double.NaN;
+            acEmulationStatus = null;
+        }
     }
 
     public static HvdcState save(LfHvdc hvdc) {
@@ -31,7 +40,10 @@ public class HvdcState extends ElementState<LfHvdc> {
     public void restore() {
         super.restore();
         element.setAcEmulation(acEmulation);
-        element.setAcEmulationFrozen(acEmulationFrozen);
-        element.setAngleDifferenceToFreeze(angleDifferenceToFreeze);
+        if (acEmulation) {
+            element.getConverterStation1().setTargetP(vsc1TargetP);
+            element.getConverterStation2().setTargetP(vsc2TargetP);
+            element.updateAcEmulationStatus(acEmulationStatus);
+        }
     }
 }
