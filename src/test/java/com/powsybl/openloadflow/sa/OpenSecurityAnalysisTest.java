@@ -53,6 +53,7 @@ import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
+import com.powsybl.security.comparator.LimitViolationComparator;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
@@ -79,9 +80,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
-    // TO DO : use powsybl-core LimitViolations.comparator() instead when it'll compare also OperationalLimitsGroupId
-    Comparator<LimitViolation> limitViolationComparator = LimitViolations.comparator()
-            .thenComparing(LimitViolation::getOperationalLimitsGroupId);
+    LimitViolationComparator limitViolationComparator = new LimitViolationComparator();
 
     @Test
     void testCurrentLimitViolations() {
