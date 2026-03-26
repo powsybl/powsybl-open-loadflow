@@ -33,61 +33,71 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
     protected static boolean checkAcEmulationMode(LfHvdc hvdc, boolean computeLoss, Logger logger, ReportNode reportNode) {
         LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
 
-        if (acEmulationControl.getAcEmulationStatus() == LINEAR_MODE) {
-            // If the HVDC was in linear mode but overpasses P_max -> switching to saturated mode
-            double p1 = hvdc.getP1().eval();
-            if (p1 >= 0) {
-                if (p1 > hvdc.getAcEmulationControl().getPMaxFromCS1toCS2()) {
-                    hvdc.getAcEmulationControl().switchToSaturationFromCS1toCS2(computeLoss);
-                    Reports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
-                            hvdc.getConverterStation1().getId(),
-                            hvdc.getConverterStation2().getId(),
-                            hvdc.getAcEmulationControl().getPMaxFromCS1toCS2() * PerUnit.SB,
-                            logger);
-                    return true;
-                }
-            } else {
-                double p2 = hvdc.getP2().eval();
-                if (p2 > hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {
-                    hvdc.getAcEmulationControl().switchToSaturationFromCS2toCS1(computeLoss);
-                    Reports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
-                            hvdc.getConverterStation2().getId(),
-                            hvdc.getConverterStation1().getId(),
-                            hvdc.getAcEmulationControl().getPMaxFromCS2toCS1() * PerUnit.SB,
-                            logger);
-                    return true;
-                }
-            }
-        } else if (acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS1_TO_CS2
-                || acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS2_TO_CS1) {
-            double p1 = hvdc.getP1().eval();
-            double p2 = hvdc.getP2().eval();
+        return switch (acEmulationControl.getAcEmulationStatus()) {
+            case LINEAR_MODE -> checkLinearMode(hvdc, computeLoss, logger, reportNode);
+            case SATURATION_MODE_FROM_CS1_TO_CS2, SATURATION_MODE_FROM_CS2_TO_CS1 ->
+                checkSaturationMode(hvdc, computeLoss, logger, reportNode);
+            default -> false;
+        };
+    }
 
-            if (p1 > 0 && p1 < hvdc.getAcEmulationControl().getPMaxFromCS1toCS2()
-                    || p2 > 0 && p2 < hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {
-                // If the HVDC was in saturation mode but goes back within active power limits -> switching to linear mode
-                hvdc.getAcEmulationControl().switchToLinearMode();
-                Reports.reportAcEmulationBackToLinear(reportNode, hvdc.getId(), logger);
-                return true;
-            } else if (p1 < 0 && acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS1_TO_CS2) {
-                // If the HVDC was in saturation mode CS1toCS2 but goes over opposite Pmax -> switching to saturation mode CS2toCS1
-                hvdc.getAcEmulationControl().switchToSaturationFromCS2toCS1(computeLoss);
-                Reports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
-                        hvdc.getConverterStation2().getId(),
-                        hvdc.getConverterStation1().getId(),
-                        hvdc.getAcEmulationControl().getPMaxFromCS2toCS1() * PerUnit.SB,
-                        logger);
-                return true;
-            } else if (p2 < 0 && acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS2_TO_CS1) {
-                // If the HVDC was in saturation mode CS2toCS1 but goes over opposite Pmax -> switching to saturation mode CS1toCS2
+    private static boolean checkLinearMode(LfHvdc hvdc, boolean computeLoss, Logger logger, ReportNode reportNode) {
+        // If the HVDC was in linear mode but overpasses P_max -> switching to saturated mode
+        double p1 = hvdc.getP1().eval();
+        if (p1 >= 0) {
+            if (p1 > hvdc.getAcEmulationControl().getPMaxFromCS1toCS2()) {
                 hvdc.getAcEmulationControl().switchToSaturationFromCS1toCS2(computeLoss);
-                Reports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
+                Reports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
                         hvdc.getConverterStation1().getId(),
                         hvdc.getConverterStation2().getId(),
                         hvdc.getAcEmulationControl().getPMaxFromCS1toCS2() * PerUnit.SB,
                         logger);
                 return true;
             }
+        } else {
+            double p2 = hvdc.getP2().eval();
+            if (p2 > hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {
+                hvdc.getAcEmulationControl().switchToSaturationFromCS2toCS1(computeLoss);
+                Reports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
+                        hvdc.getConverterStation2().getId(),
+                        hvdc.getConverterStation1().getId(),
+                        hvdc.getAcEmulationControl().getPMaxFromCS2toCS1() * PerUnit.SB,
+                        logger);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean checkSaturationMode(LfHvdc hvdc, boolean computeLoss, Logger logger, ReportNode reportNode) {
+        LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
+        double p1 = hvdc.getP1().eval();
+        double p2 = hvdc.getP2().eval();
+
+        if (p1 > 0 && p1 < hvdc.getAcEmulationControl().getPMaxFromCS1toCS2()
+                || p2 > 0 && p2 < hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {
+            // If the HVDC was in saturation mode but goes back within active power limits -> switching to linear mode
+            hvdc.getAcEmulationControl().switchToLinearMode();
+            Reports.reportAcEmulationBackToLinear(reportNode, hvdc.getId(), logger);
+            return true;
+        } else if (p1 < 0 && acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS1_TO_CS2) {
+            // If the HVDC was in saturation mode CS1toCS2 but goes over opposite Pmax -> switching to saturation mode CS2toCS1
+            hvdc.getAcEmulationControl().switchToSaturationFromCS2toCS1(computeLoss);
+            Reports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
+                    hvdc.getConverterStation2().getId(),
+                    hvdc.getConverterStation1().getId(),
+                    hvdc.getAcEmulationControl().getPMaxFromCS2toCS1() * PerUnit.SB,
+                    logger);
+            return true;
+        } else if (p2 < 0 && acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS2_TO_CS1) {
+            // If the HVDC was in saturation mode CS2toCS1 but goes over opposite Pmax -> switching to saturation mode CS1toCS2
+            hvdc.getAcEmulationControl().switchToSaturationFromCS1toCS2(computeLoss);
+            Reports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
+                    hvdc.getConverterStation1().getId(),
+                    hvdc.getConverterStation2().getId(),
+                    hvdc.getAcEmulationControl().getPMaxFromCS1toCS2() * PerUnit.SB,
+                    logger);
+            return true;
         }
         return false;
     }

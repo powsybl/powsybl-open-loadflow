@@ -102,12 +102,12 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         ContextData contextData = (ContextData) context.getData();
         return switch (contextData.step) {
-            case UNFREEZE -> unfreezeHvdcs(context, contextData, reportNode);
+            case UNFREEZE -> unfreezeHvdcs(context, reportNode);
             case COMPLETE -> new OuterLoopResult(this, OuterLoopStatus.STABLE);
         };
     }
 
-    private OuterLoopResult unfreezeHvdcs(AcOuterLoopContext context, ContextData contextData, ReportNode reportNode) {
+    private OuterLoopResult unfreezeHvdcs(AcOuterLoopContext context, ReportNode reportNode) {
 
         List<LfHvdc> frozenHvdc = context.getNetwork().getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
