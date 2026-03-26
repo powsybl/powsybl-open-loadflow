@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.math.graph.GraphUtil;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.util.*;
@@ -107,5 +108,26 @@ public class JGraphTModelWithAdjacencyList<V, E> implements GraphModel<V, E> {
 
     public Map<V, TIntArrayList> getAdjacencyList() {
         return adjacencyList;
+    }
+
+    @Override
+    public List<Set<V>> calculateConnectedSets() {
+        TIntArrayList[] adjacencyListArray = new TIntArrayList[adjacencyList.size()];
+        for (Map.Entry<V, TIntArrayList> entry : this.adjacencyList.entrySet()) {
+            V vertex = entry.getKey();
+            TIntArrayList adj = entry.getValue();
+            adjacencyListArray[numGetter.applyAsInt(vertex)] = adj;
+        }
+        GraphUtil.ConnectedComponentsComputationResult result = GraphUtil.computeConnectedComponents(adjacencyListArray);
+        List<Set<V>> connectedSets = new ArrayList<>();
+        for (int size : result.getComponentSize()) {
+            connectedSets.add(HashSet.newHashSet(size));
+        }
+        int[] componentNum = result.getComponentNumber();
+        for (V vertex : this.adjacencyList.keySet()) {
+            int v = numGetter.applyAsInt(vertex);
+            connectedSets.get(componentNum[v]).add(vertex);
+        }
+        return connectedSets;
     }
 }
