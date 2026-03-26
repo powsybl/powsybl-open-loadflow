@@ -21,7 +21,7 @@ public interface LfAction {
 
     boolean isValid();
 
-    boolean checkError(Network network);
+    boolean checkErrorForWoodbury(Network network);
 
     boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters);
 }

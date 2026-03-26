@@ -45,7 +45,7 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
     }
 
     @Override
-    public boolean checkError(Network network) {
+    public boolean checkErrorForWoodbury(Network network) {
         Branch<?> branch = network.getBranch(action.getElementId());
         boolean branchOpen1 = !branch.getTerminal1().isConnected();
         boolean branchOpen2 = !branch.getTerminal2().isConnected();
@@ -55,8 +55,8 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
             if (branchOpen1 ^ branchOpen2) {
                 LOGGER.error("Branch '{}' is open at one side in the network: unsupported in Woodbury", action.getId());
             } else {
-                LOGGER.trace("Branch '{}' is {} in the network and action is to {}", action.getId(), branchOpen ? "open" : "closed",
-                        action.isOpen() ? "open" : "closed");
+                LOGGER.trace("Branch '{}' is {} in the network and action is to {}", action.getId(), branchOpen ? "opened" : "closed",
+                        action.isOpen() ? "open" : "close");
             }
         }
         return error;

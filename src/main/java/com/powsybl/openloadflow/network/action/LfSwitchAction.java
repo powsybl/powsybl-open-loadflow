@@ -44,7 +44,7 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
     }
 
     @Override
-    public boolean checkError(Network network) {
+    public boolean checkErrorForWoodbury(Network network) {
         Switch sw = network.getSwitch(action.getSwitchId());
         boolean error;
         error = false;
@@ -55,8 +55,8 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
             if (bus1 == bus2) {
                 LOGGER.error("Switch '{}' connected at both sides to same bus", action.getId());
             } else {
-                LOGGER.trace("Switch '{}' is {} in the network and action is to {}", action.getId(), sw.isOpen() ? "open" : "closed",
-                        action.isOpen() ? "open" : "closed");
+                LOGGER.trace("Switch '{}' is {} in the network and action is to {}", action.getId(), sw.isOpen() ? "opened" : "closed",
+                        action.isOpen() ? "open" : "close");
                 error = true;
             }
         }

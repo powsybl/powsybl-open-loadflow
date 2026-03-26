@@ -34,7 +34,7 @@ public abstract class AbstractLfAction<A extends Action> implements LfAction {
     }
 
     @Override
-    public boolean checkError(Network network) {
+    public boolean checkErrorForWoodbury(Network network) {
         return false;
     }
 }

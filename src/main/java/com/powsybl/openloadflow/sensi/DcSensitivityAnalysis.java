@@ -490,8 +490,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
             for (LfAction lfAction : lfActionById.values()) {
                 if (!lfAction.isValid()) {
-                    if (lfAction.checkError(network)) {
-                        LOGGER.error("Action '{}' is unexplicably invalid", lfAction.getId());
+                    if (lfAction.checkErrorForWoodbury(network)) {
+                        LOGGER.error("Action '{}' is invalid", lfAction.getId());
                     }
                 }
             }
