@@ -86,13 +86,19 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void afterPreContingencySimulation(AcLoadFlowParameters acParameters) {
+    protected AcLoadFlowParameters copyParameters(AcLoadFlowParameters parameters) {
+        return new AcLoadFlowParameters(parameters);
+    }
+
+    @Override
+    protected void afterPreContingencySimulation(AcLoadFlowParameters parameters) {
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, no exception should be thrown. If parameters were configured to throw, reconfigure to FAIL.
         // (the contingency will be marked as not converged)
-        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == acParameters.getSlackDistributionFailureBehavior()) {
-            acParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == parameters.getSlackDistributionFailureBehavior()) {
+            parameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         }
+        parameters.setVoltageInitReport(false); // there is no point in reporting the PreviousVoltageValue initializer
     }
 
     public static PostContingencyComputationStatus postContingencyStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
