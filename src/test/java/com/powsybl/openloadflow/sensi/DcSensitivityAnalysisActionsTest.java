@@ -279,7 +279,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
                 network.getBranchStream().toList());
 
-        // the operator strategy is to reconnect the contingency line l23
+        // the operator strategy is to reconnect the contingency line l35
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("reclose l35",
                 ContingencyContext.all(),
                 new TrueCondition(), List.of("reclose l35")));
@@ -290,5 +290,33 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setOperatorStrategies(operatorStrategies)
                 .setActions(actions));
 
+        assertEquals(8, result.getPreContingencyValues().size());
+        assertEquals(8, result.getValues(SensitivityState.postContingency("l23")).size());
+        assertEquals(3, result.getValues(new SensitivityState("l23", "reclose l35")).size()); // FIXME should be 8 with NaN?
+
+        var contSimpleState = SensitivityState.postContingency("l23");
+        var contAndOpStratState = new SensitivityState("l23", "reclose l35");
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+
+        // sensi N-1
+        assertEquals(-0.4d, result.getSensitivityValue(contSimpleState, "g2", "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0.4d, result.getSensitivityValue(contSimpleState, "g2", "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0d, result.getSensitivityValue(contSimpleState, "g2", "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+
+        // reference flow N-1
+        assertEquals(-2.4d, result.getFunctionReferenceValue(contSimpleState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.4d, result.getFunctionReferenceValue(contSimpleState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(contSimpleState, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+
+        // sensi curative
+        assertEquals(-0.4d, result.getSensitivityValue(contAndOpStratState, "g2", "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0.4d, result.getSensitivityValue(contAndOpStratState, "g2", "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0d, result.getSensitivityValue(contAndOpStratState, "g2", "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+
+        // reference flow curative
+        assertEquals(-2.4d, result.getFunctionReferenceValue(contAndOpStratState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.4d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(contAndOpStratState, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
     }
 }

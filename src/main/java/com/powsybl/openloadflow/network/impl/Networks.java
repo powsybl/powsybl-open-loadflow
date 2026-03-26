@@ -165,7 +165,7 @@ public final class Networks {
         if (!networkParameters.isIncludeElementsReconnectingSmallComponents()) {
             // remove branches that reconnect a bus to main connected component
             for (LfBranch branch : removedBranches) {
-                if (branch.isConnectedAtBothSides() && connectivity.getComponentNumber(branch.getBus1()) != connectivity.getComponentNumber(branch.getBus2())) {
+                if (branch.isConnectedAtBothSides() && (connectivity.getComponentNumber(branch.getBus1()) != 0 || connectivity.getComponentNumber(branch.getBus2()) != 0)) {
                     network.removeBranch(branch.getId());
                 }
             }
