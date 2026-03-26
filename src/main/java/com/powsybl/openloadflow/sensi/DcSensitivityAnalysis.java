@@ -521,7 +521,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters, lfParametersExt);
 
             // next we only work with valid factors
-            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, propagatedContingencies);
+            var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, propagatedContingencies, operatorStrategiesByContingencyId, parameters);
             var validLfFactors = validFactorHolder.getAllFactors();
             LOGGER.info("{}/{} factors are valid", validLfFactors.size(), allLfFactors.size());
 

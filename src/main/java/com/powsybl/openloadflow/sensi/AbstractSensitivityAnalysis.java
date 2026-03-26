@@ -34,6 +34,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
@@ -722,12 +723,17 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      * on post contingency if factor is already invalid (skip o zero) on base case. Except for factors with specific
      * contingency context, we output the invalid status found during base case analysis.
      */
-    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityResultWriter resultWriter,
-                                                                List<PropagatedContingency> contingencies) {
+    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder,
+                                                                SensitivityResultWriter resultWriter,
+                                                                List<PropagatedContingency> contingencies,
+                                                                Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
+                                                                SensitivityAnalysisParameters parameters) {
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
-        Map<String, Integer> contingencyIndexById = new HashMap<>();
-        contingencies.forEach(contingency -> contingencyIndexById.put(contingency.getContingency().getId(), contingency.getIndex()));
+        Map<String, Integer> contingencyIndexById = contingencies.stream().collect(Collectors.toMap(
+                c -> c.getContingency().getId(),
+                PropagatedContingency::getIndex
+        ));
         for (var factor : factorHolder.getAllFactors()) {
             Optional<Double> sensitivityVariableToWrite = Optional.empty();
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
@@ -742,20 +748,32 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             } else {
                 validFactorHolder.addFactor(factor);
             }
-            if (sensitivityVariableToWrite.isPresent()) {
+            sensitivityVariableToWrite.ifPresent(value -> {
                 // directly write output for zero and invalid factors
-                double value = sensitivityVariableToWrite.get();
                 if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
                 } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
                         // If run in batch of contingencies, the contingency may not be part of this result
                         contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndexById.get(factor.getContingencyContext().getContingencyId()), -1, value, Double.NaN);
+                    int contingencyIndex = contingencyIndexById.get(factor.getContingencyContext().getContingencyId());
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+                    if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                        for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(factor.getContingencyContext().getContingencyId(), Collections.emptyList())) {
+                            resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+                        }
+                    }
                 } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
                     resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
-                    contingencyIndexById.values().forEach(index -> resultWriter.writeSensitivityValue(factor.getIndex(), index, -1, value, Double.NaN));
+                    contingencyIndexById.forEach((contingencyId, contingencyIndex) -> {
+                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+                        if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                            for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingencyId, Collections.emptyList())) {
+                                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+                            }
+                        }
+                    });
                 }
-            }
+            });
         }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
             LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",

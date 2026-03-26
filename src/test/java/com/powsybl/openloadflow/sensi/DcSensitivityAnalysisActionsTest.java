@@ -292,7 +292,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(8, result.getPreContingencyValues().size());
         assertEquals(8, result.getValues(SensitivityState.postContingency("l23")).size());
-        assertEquals(3, result.getValues(new SensitivityState("l23", "reclose l35")).size()); // FIXME should be 8 with NaN?
+        assertEquals(8, result.getValues(new SensitivityState("l23", "reclose l35")).size());
 
         var contSimpleState = SensitivityState.postContingency("l23");
         var contAndOpStratState = new SensitivityState("l23", "reclose l35");
