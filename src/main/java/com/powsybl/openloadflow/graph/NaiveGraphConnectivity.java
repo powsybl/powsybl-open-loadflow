@@ -7,10 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.math.graph.GraphUtil;
-import gnu.trove.list.array.TIntArrayList;
-
-import java.util.*;
 import java.util.Deque;
 import java.util.Objects;
 import java.util.Set;
