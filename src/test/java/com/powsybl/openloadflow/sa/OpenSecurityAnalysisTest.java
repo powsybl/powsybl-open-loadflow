@@ -80,7 +80,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
-    LimitViolationComparator limitViolationComparator = new LimitViolationComparator();
+    private final LimitViolationComparator limitViolationComparator = new LimitViolationComparator();
 
     @Test
     void testCurrentLimitViolations() {
