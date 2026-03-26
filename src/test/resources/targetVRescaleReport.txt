@@ -7,6 +7,7 @@
             Network balance: active generation=100 MW, active load=99.9 MW, reactive generation=0 MVar, reactive load=80 MVar
             Angle reference bus: vl2_0
             Slack bus: vl2_0
+         Voltage initialization with method Uniform Values
          Outer loop DistributedSlack
          Outer loop ReactiveLimits
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

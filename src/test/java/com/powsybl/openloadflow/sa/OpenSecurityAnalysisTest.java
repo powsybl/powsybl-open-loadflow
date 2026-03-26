@@ -3958,7 +3958,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // The report should be the same with one or two threads
         // Let's just check the size here
-        assertEquals(7364, reportString.length());
+        assertEquals(7488, reportString.length());
         // Check also that the preCont report is before the postContResults in the second CC
         String expected =
                 """
@@ -3969,6 +3969,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                                     Angle reference bus: c1_vl_0
                                     Slack bus: c1_vl_0
                                  + Pre-contingency simulation
+                                    Voltage initialization with method Uniform Values
                                     Outer loop DistributedSlack
                                     Outer loop ReactiveLimits
                                     AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)\

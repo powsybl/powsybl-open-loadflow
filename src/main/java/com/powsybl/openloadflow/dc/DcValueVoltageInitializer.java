@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -15,6 +16,7 @@ import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 
 import java.util.List;
 import java.util.Objects;
@@ -23,6 +25,8 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DcValueVoltageInitializer implements VoltageInitializer {
+
+    public static final String NAME = "DC Values";
 
     private final LfNetworkParameters networkParameters;
 
@@ -50,7 +54,9 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network) {
+    public void prepare(LfNetwork network, ReportNode reportNode) {
+        ReportNode originalReportNode = network.getReportNode();
+        network.setReportNode(Reports.reportVoltageInitializer(reportNode, NAME));
         // in case of distributed slack, we need to save and restore generators and loads target p which might have been
         // modified by slack distribution, so that AC load flow can restart from original state
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;
@@ -83,6 +89,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         if (busStates != null) {
             ElementState.restore(busStates);
         }
+        network.setReportNode(originalReportNode);
     }
 
     @Override
