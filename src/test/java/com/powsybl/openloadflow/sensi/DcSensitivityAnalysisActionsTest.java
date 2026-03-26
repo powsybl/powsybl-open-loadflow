@@ -16,6 +16,7 @@ import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
@@ -260,5 +261,34 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(1.25d, result.getFunctionReferenceValue(contAndOpStratState, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1.25d, result.getFunctionReferenceValue(contAndOpStratState, "l34", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(1.5d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testReconnectingSmallComponent() {
+        // this case is not supported yet by Woodbury DC Sensitivity
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLinesWithAdditionnalGens();
+        network.getLine("l24").disconnect();
+        network.getLine("l35").disconnect();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters()
+                .setLoadFlowParameters(new LoadFlowParameters().setDc(true))
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                network.getBranchStream().toList());
+
+        // the operator strategy is to reconnect the contingency line l23
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("reclose l35",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("reclose l35")));
+        List<Action> actions = List.of(new TerminalsConnectionAction("reclose l35", "l35", false));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
     }
 }
