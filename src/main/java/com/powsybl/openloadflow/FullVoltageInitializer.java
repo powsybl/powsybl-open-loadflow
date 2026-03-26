@@ -8,12 +8,14 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 
 import java.util.Objects;
 
@@ -25,6 +27,8 @@ import java.util.Objects;
  */
 public class FullVoltageInitializer implements VoltageInitializer {
 
+    public static final String NAME = "Full Voltage";
+
     private final VoltageMagnitudeInitializer magnitudeInitializer;
 
     private final DcValueVoltageInitializer angleInitializer;
@@ -35,9 +39,10 @@ public class FullVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network) {
-        magnitudeInitializer.prepare(network);
-        angleInitializer.prepare(network);
+    public void prepare(LfNetwork network, ReportNode reportNode) {
+        ReportNode initReportNode = Reports.reportVoltageInitializer(reportNode, NAME);
+        magnitudeInitializer.prepare(network, initReportNode);
+        angleInitializer.prepare(network, initReportNode);
     }
 
     @Override

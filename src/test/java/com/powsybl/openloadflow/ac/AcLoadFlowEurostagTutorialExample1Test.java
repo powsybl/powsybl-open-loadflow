@@ -503,6 +503,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                             Network balance: active generation=1000 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
                             Angle reference bus: VLGEN_0
                             Slack bus: VLGEN_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-394.444523 MW) distributed in 1 distribution iteration(s)
