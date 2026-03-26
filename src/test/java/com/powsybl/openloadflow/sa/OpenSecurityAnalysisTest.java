@@ -1492,7 +1492,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
-        assertEquals(-2.783, g1ContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.781, g1ContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
 
         List<Contingency> contingencies2 = new ArrayList<>();
         contingencies2.add(Contingency.hvdcLine("hvdc34"));
@@ -1504,7 +1504,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(-2.000, hvdcContingencyResult.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
 
         PostContingencyResult g1ContingencyResult2 = getPostContingencyResult(result, "g1");
-        assertEquals(-2.783, g1ContingencyResult2.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2.781, g1ContingencyResult2.getNetworkResult().getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1537,7 +1537,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         r = loadFlowRunner.run(n, n.getVariantManager().getWorkingVariantId(), runParameters);
         assertFalse(r.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, r.getComponentResults().get(0).getStatus());
-        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620\\.15[0-9]* MW at station cs2.", report);
+        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint: 620\\.15[0-9]* MW from station cs2 to station cs3", report);
+        n.getLineStream().forEach(l -> {
+            System.out.println(l.getId() + " " + l.getTerminal1().getP() + " MW " + l.getTerminal2().getP() + " MW");
+        });
 
         // The same network would converge with a DC init
         params.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
@@ -1559,7 +1562,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(n, List.of(c), Collections.emptyList(), asParams, report);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED, result.getPostContingencyResults().get(0).getStatus());
-        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint 620.1584837694868 MW at station cs2.", report);
+        assertReportContains("Freezing HVDC hvdc23 at previous active setPoint: 620\\.15[0-9]* MW from station cs2 to station cs3", report);
 
         // Test in security analysis with warm start off
         asParams.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setStartWithFrozenACEmulation(false));
@@ -3954,7 +3957,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // The report should be the same with one or two threads
         // Let's just check the size here
-        assertEquals(7364, reportString.length());
+        assertEquals(7488, reportString.length());
         // Check also that the preCont report is before the postContResults in the second CC
         String expected =
                 """
@@ -3965,6 +3968,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                                     Angle reference bus: c1_vl_0
                                     Slack bus: c1_vl_0
                                  + Pre-contingency simulation
+                                    Voltage initialization with method Uniform Values
                                     Outer loop DistributedSlack
                                     Outer loop ReactiveLimits
                                     AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)\

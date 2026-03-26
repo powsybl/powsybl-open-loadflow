@@ -131,7 +131,7 @@ class AcLoadFlowReportTest {
         // CC2 SC2 has no generator connected. Ignored in for DC and AC.
         network.getGenerator("g10").disconnect();
 
-        var lfParameters = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        var lfParameters = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED).setHvdcAcEmulation(false);
 
         LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
@@ -240,6 +240,7 @@ class AcLoadFlowReportTest {
                             Network balance: active generation=292.4 MW, active load=259 MW, reactive generation=55.1 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-22.20996 MW) distributed in 1 distribution iteration(s)
@@ -397,6 +398,7 @@ class AcLoadFlowReportTest {
                                     Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
                                     Angle reference bus: VLHV1_0
                                     Slack bus: VLHV1_0
+                                 Voltage initialization with method Uniform Values
                                  + Outer loop DistributedSlack
                                     + Outer loop iteration 1
                                        Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
