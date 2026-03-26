@@ -7,6 +7,7 @@
             Network balance: active generation=25 MW, active load=16.2 MW, reactive generation=0 MVar, reactive load=7.5 MVar
             Angle reference bus: VL_2_0
             Slack bus: VL_2_0
+         Voltage initialization with method Uniform Values
          + Outer loop DistributedSlack
             + Outer loop iteration 1
                Slack bus active power (-2.888261 MW) distributed in 1 distribution iteration(s)

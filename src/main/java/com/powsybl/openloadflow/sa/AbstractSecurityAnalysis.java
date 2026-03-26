@@ -465,7 +465,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return zeroImpedanceStateMonitors;
     }
 
-    protected void afterPreContingencySimulation(P acParameters) {
+    protected P copyParameters(P parameters) {
+        return parameters;
+    }
+
+    protected void afterPreContingencySimulation(P parameters) {
     }
 
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
@@ -488,7 +492,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
-        try (C context = createLoadFlowContext(lfNetwork, acParameters)) {
+        P p = copyParameters(acParameters);
+
+        try (C context = createLoadFlowContext(lfNetwork, p)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();
             ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
             lfNetwork.setReportNode(preContSimReportNode);
@@ -509,7 +515,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
             // only run post-contingency simulations if pre-contingency simulation is ok
             if (preContingencyComputationOk) {
-                afterPreContingencySimulation(acParameters);
+                afterPreContingencySimulation(p);
 
                 // update network result
                 preContingencyNetworkResult.update();
@@ -521,13 +527,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 NetworkState networkState = NetworkState.save(lfNetwork);
 
                 // Reset parameters for next component
-                Consumer<P> componentParametersResetter = createParametersResetter(acParameters);
+                Consumer<P> componentParametersResetter = createParametersResetter(p);
 
-                // openLoadFlow parameters can be overriden by security analys parameters - may modify acParameters
-                OpenLoadFlowParameters contingencyOpenLoadFlowParameters = applyGenericContingencyParameters(acParameters, loadFlowParameters, openLoadFlowParameters, openSecurityAnalysisParameters);
+                // openLoadFlow parameters can be overriden by security analys parameters - may modify p
+                OpenLoadFlowParameters contingencyOpenLoadFlowParameters = applyGenericContingencyParameters(p, loadFlowParameters, openLoadFlowParameters, openSecurityAnalysisParameters);
 
                 // Reset parameters between contingencies
-                Consumer<P> contingencyParametersResetter = createParametersResetter(acParameters);
+                Consumer<P> contingencyParametersResetter = createParametersResetter(p);
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
@@ -573,7 +579,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                 operatorStrategy, preContingencyLimitViolationManager,
                                                 securityAnalysisParameters, lfActionById,
                                                 createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-                                                acParameters.getNetworkParameters(), limitReductions)
+                                                p.getNetworkParameters(), limitReductions)
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         // multiple operator strategies, save post contingency state for later restoration after action
@@ -585,7 +591,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                     operatorStrategy.value(), preContingencyLimitViolationManager,
                                                     securityAnalysisParameters, lfActionById,
                                                     createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
-                                                    acParameters.getNetworkParameters(), limitReductions)
+                                                    p.getNetworkParameters(), limitReductions)
                                                     .ifPresent(result -> {
                                                         operatorStrategyResults.add(result);
                                                         postContingencyNetworkState.restore();
@@ -606,7 +612,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 }
 
                 // Restore parameters in case they are used for another component
-                componentParametersResetter.accept(acParameters);
+                componentParametersResetter.accept(p);
             }
 
             return new SecurityAnalysisResult(

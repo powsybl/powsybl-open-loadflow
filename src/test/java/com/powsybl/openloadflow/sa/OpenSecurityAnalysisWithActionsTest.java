@@ -589,6 +589,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                             Network balance: active generation=1540 MW, active load=960 MW, reactive generation=0 MVar, reactive load=14.400001 MVar
                             Angle reference bus: NE_poste_0
                             Slack bus: NE_poste_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-67.604687 MW) distributed in 1 distribution iteration(s)
