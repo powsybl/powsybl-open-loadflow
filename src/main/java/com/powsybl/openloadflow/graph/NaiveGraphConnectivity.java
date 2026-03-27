@@ -15,14 +15,14 @@ import java.util.function.ToIntFunction;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
+public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModelWithAdjacencyList<V, E>> {
 
     private int[] components;
 
     private final ToIntFunction<V> numGetter;
 
     public NaiveGraphConnectivity(ToIntFunction<V> vertexNumGetter) {
-        super(new JGraphTModelFasterConnectivity<>(vertexNumGetter));
+        super(new JGraphTModelWithAdjacencyList<>(vertexNumGetter));
         this.numGetter = Objects.requireNonNull(vertexNumGetter);
     }
 

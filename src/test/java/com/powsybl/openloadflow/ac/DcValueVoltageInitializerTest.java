@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -60,7 +61,7 @@ class DcValueVoltageInitializerTest {
                 DcApproximationType.IGNORE_R,
                 matrixFactory,
                 1);
-        initializer.prepare(lfNetwork);
+        initializer.prepare(lfNetwork, ReportNode.NO_OP);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", -0.025);
         assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.15);
@@ -79,7 +80,7 @@ class DcValueVoltageInitializerTest {
                 DcApproximationType.IGNORE_R,
                 matrixFactory,
                 1);
-        initializer.prepare(lfNetwork);
+        initializer.prepare(lfNetwork, ReportNode.NO_OP);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.025);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.125);
@@ -98,7 +99,7 @@ class DcValueVoltageInitializerTest {
                 DcApproximationType.IGNORE_R,
                 matrixFactory,
                 1);
-        initializer.prepare(lfNetwork);
+        initializer.prepare(lfNetwork, ReportNode.NO_OP);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.14);
@@ -117,7 +118,7 @@ class DcValueVoltageInitializerTest {
                 DcApproximationType.IGNORE_R,
                 matrixFactory,
                 1);
-        initializer.prepare(lfNetwork);
+        initializer.prepare(lfNetwork, ReportNode.NO_OP);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.14);

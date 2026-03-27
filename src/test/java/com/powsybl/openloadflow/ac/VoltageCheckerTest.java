@@ -174,6 +174,7 @@ class VoltageCheckerTest {
                                         Angle reference bus: ***
                                         Slack bus: ***
                                      + Pre-contingency simulation
+                                        Voltage initialization with method Uniform Values
                                         + Checking voltage targets
                                            Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
                                            Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
@@ -228,6 +229,7 @@ class VoltageCheckerTest {
                             Network balance: active generation=300 MW, active load=299.6 MW, reactive generation=0 MVar, reactive load=200 MVar
                             Angle reference bus: ***
                             Slack bus: ***
+                         Voltage initialization with method Uniform Values
                          + Checking voltage targets
                             Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
                             Controlled buses '***' and '***' have incompatible voltage targets (plausibility indicator: ***): disabling controller elements [***]
