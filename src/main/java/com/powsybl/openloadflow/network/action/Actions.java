@@ -65,8 +65,9 @@ public final class Actions {
 
                 case TerminalsConnectionAction.NAME: {
                     TerminalsConnectionAction terminalsConnectionAction = (TerminalsConnectionAction) action;
-                    if (network.getBranch(terminalsConnectionAction.getElementId()) == null) {
-                        throw new PowsyblException("Branch '" + terminalsConnectionAction.getElementId() + NOT_FOUND);
+                    if (network.getBranch(terminalsConnectionAction.getElementId()) == null &&
+                        network.getThreeWindingsTransformer(terminalsConnectionAction.getElementId()) == null) {
+                        throw new PowsyblException("Branch or three windings transformer '" + terminalsConnectionAction.getElementId() + NOT_FOUND);
                     }
                     break;
                 }

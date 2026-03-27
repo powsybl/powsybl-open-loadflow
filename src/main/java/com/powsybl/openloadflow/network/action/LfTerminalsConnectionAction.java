@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -32,15 +34,23 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
 
     @Override
     void findEnabledDisabledBranches(LfNetwork lfNetwork) {
-        LfBranch branch = lfNetwork.getBranchById(action.getElementId());
-        if (branch != null && branch.getBus1() != null && branch.getBus2() != null) {
+        List<LfBranch> branches = lfNetwork.getBranchesByOriginalId(action.getElementId());
+        if (branches != null) {
+            branches.forEach(b -> applyEnabledDisabled(b, action));
+        } else {
+            LOGGER.warn("TerminalsConnectionAction action {}: branch or three windings transformer matching element id {} not found", action.getId(), action.getElementId());
+        }
+    }
+
+    void applyEnabledDisabled(LfBranch branch, TerminalsConnectionAction action) {
+        if (branch.getBus1() != null && branch.getBus2() != null) {
             if (action.isOpen()) {
-                setDisabledBranch(branch);
+                addDisabledBranch(branch);
             } else {
-                setEnabledBranch(branch);
+                addEnabledBranch(branch);
             }
         } else {
-            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} not found", action.getId(), action.getElementId());
+            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} has one missing bus", action.getId(), action.getElementId());
         }
     }
 }

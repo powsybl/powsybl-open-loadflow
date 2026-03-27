@@ -125,7 +125,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      */
     private double[] calculatePostContingencyAndOperatorStrategyStates(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
                                                                        ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                                       Map<LfAction, ComputedElement> actionElementByLfAction, DenseMatrix actionsStates, ReportNode reportNode) {
+                                                                       Map<LfAction, List<ComputedElement>> actionElementByLfAction, DenseMatrix actionsStates, ReportNode reportNode) {
         PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
         Set<LfBranch> partialDisabledBranches = connectivityAnalysisResult.getPartialDisabledBranches();
@@ -144,6 +144,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .toList();
         List<ComputedElement> actionElements = operatorStrategyLfActions.stream()
                 .map(actionElementByLfAction::get)
+                .flatMap(Collection::stream)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
                 .toList();
 
@@ -412,11 +413,11 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // the map is indexed by lf actions as different kind of actions can be given on the same branch
-            Map<LfAction, ComputedElement> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem());
+            Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem());
 
             // compute states with +1 -1 to model the actions in Woodbury engine
             // note that the number of columns in the matrix depends on the number of distinct branches affected by the action elements
-            DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElementsIndexByLfAction.values());
+            DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElementsIndexByLfAction.values().stream().flatMap(Collection::stream).toList());
 
             // save base state for later restoration after each contingency/action
             NetworkState networkState = NetworkState.save(lfNetwork);
