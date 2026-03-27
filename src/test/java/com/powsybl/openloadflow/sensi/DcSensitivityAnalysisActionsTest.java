@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.action.Action;
+import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
@@ -18,6 +19,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
@@ -318,5 +320,81 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(-2.4d, result.getFunctionReferenceValue(contAndOpStratState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(1.4d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertTrue(Double.isNaN(result.getFunctionReferenceValue(contAndOpStratState, "l23", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+    }
+
+    @Test
+    void testSwitchAction() {
+        Network network = NodeBreakerNetworkFactory.create();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newBreaker()
+                .setId("B19")
+                .setNode1(1)
+                .setNode2(9)
+                .add();
+        network.getVoltageLevel("VL2").getNodeBreakerView().newBreaker()
+                .setId("B29")
+                .setNode1(0)
+                .setNode2(9)
+                .add();
+        network.newLine()
+                .setId("L2_bis")
+                .setVoltageLevel1("VL1")
+                .setNode1(9)
+                .setVoltageLevel2("VL2")
+                .setNode2(9)
+                .setR(3.0)
+                .setX(33.0)
+                .setB1(386E-6 / 2)
+                .setB2(386E-6 / 2)
+                .add();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = List.of(new Contingency("L2_bis", new BranchContingency("L2_bis")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("G")),
+                network.getBranchStream().toList());
+
+        // the operator strategy is to open breaker C
+        OperatorStrategy osOpenC = new OperatorStrategy("open C",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("open C"));
+        OperatorStrategy osCloseC = new OperatorStrategy("close C",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("close C"));
+        List<OperatorStrategy> operatorStrategies = List.of(osOpenC, osCloseC);
+        List<Action> actions = List.of(new SwitchAction("open C", "C", true),
+                new SwitchAction("close C", "C", false));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+        var contState = SensitivityState.postContingency("L2_bis");
+        var contAndOpenCState = new SensitivityState("L2_bis", "open C");
+        var contAndCloseCState = new SensitivityState("L2_bis", "close C");
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contState));
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpenCState));
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndCloseCState));
+
+        // reference flow N, 200MW on each
+        assertEquals(200d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(200d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(200d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L2_bis", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+
+        // reference flow N-K, without L2_bus, 300MW on each remaining lines
+        assertEquals(300d, result.getFunctionReferenceValue(contState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300d, result.getFunctionReferenceValue(contState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(contState, "L2_bis", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+
+        // reference flow on curative C opened, all the flow goes though L2: 600 MW
+        assertEquals(0, result.getFunctionReferenceValue(contAndOpenCState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(600d, result.getFunctionReferenceValue(contAndOpenCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(contAndOpenCState, "L2_bis", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+
+        // reference flow on curative C closed, nothing happen same state as on N-K state
+        assertEquals(300d, result.getFunctionReferenceValue(contAndCloseCState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300d, result.getFunctionReferenceValue(contAndCloseCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(contAndCloseCState, "L2_bis", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
     }
 }
