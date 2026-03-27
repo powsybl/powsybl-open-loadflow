@@ -36,7 +36,7 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
     void findEnabledDisabledBranches(LfNetwork lfNetwork) {
         List<LfBranch> branches = lfNetwork.getBranchesByOriginalId(action.getElementId());
         if (branches != null) {
-            branches.forEach(b -> applyEnabledDisabled(b, action));
+            branches.stream().filter(b -> lfNetwork.getBranchById(b.getId()) != null).forEach(b -> applyEnabledDisabled(b, action));
         } else {
             LOGGER.warn("TerminalsConnectionAction action {}: branch or three windings transformer matching element id {} not found", action.getId(), action.getElementId());
         }

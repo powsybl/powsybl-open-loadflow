@@ -162,6 +162,7 @@ public final class ConnectivityBreakAnalysis {
         // it is not necessary to consider them to ensure that there is no loss of connectivity.
         List<ComputedElement> actionElements = operatorStrategyLfActions.stream()
                 .map(actionElementByBranch::get)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(actionElement -> actionElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && !computedSwitchBranchElement.isEnabled())
                 .toList();
