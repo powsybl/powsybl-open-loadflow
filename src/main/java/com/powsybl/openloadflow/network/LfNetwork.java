@@ -318,6 +318,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             throw new PowsyblException("Branch " + branchId + " not found in network " + this);
         }
         branches.remove(branch);
+        branch.getOriginalIds().forEach(branchesByOriginalId::remove);
         invalidateSlackAndReference();
         if (connectivity != null) {
             connectivity.removeEdge(branch);
