@@ -50,13 +50,16 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
 
     abstract void findEnabledDisabledBranches(LfNetwork lfNetwork);
 
+    private boolean found() {
+        return !disabledBranch.isEmpty() || !enabledBranch.isEmpty();
+    }
+
     /**
      * Standalone apply
      */
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        boolean found = !disabledBranch.isEmpty() || !enabledBranch.isEmpty();
-        if (!found) {
+        if (!found()) {
             return false;
         }
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -83,9 +86,8 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
      * Optimized apply on an existing connectivity (to apply several branch actions at the same time)
      */
     public boolean applyOnConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        boolean found = !disabledBranch.isEmpty() || !enabledBranch.isEmpty();
         updateConnectivity(connectivity);
-        return found;
+        return found();
     }
 
     private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
