@@ -488,13 +488,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
             Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
             Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
-            for (LfAction lfAction : lfActionById.values()) {
-                if (!lfAction.isValid()) {
-                    if (lfAction.checkErrorForWoodbury(network)) {
-                        LOGGER.error("Action '{}' is invalid", lfAction.getId());
-                    }
-                }
-            }
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
             SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);

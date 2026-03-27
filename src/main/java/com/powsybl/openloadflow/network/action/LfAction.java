@@ -7,8 +7,9 @@
  */
 package com.powsybl.openloadflow.network.action;
 
-import com.powsybl.iidm.network.Network;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -20,8 +21,6 @@ public interface LfAction {
     String getType();
 
     boolean isValid();
-
-    boolean checkErrorForWoodbury(Network network);
 
     boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters);
 }

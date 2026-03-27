@@ -9,8 +9,6 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.TerminalsConnectionAction;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.slf4j.Logger;
@@ -41,24 +39,8 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
             } else {
                 setEnabledBranch(branch);
             }
+        } else {
+            LOGGER.warn("TerminalsConnectionAction action {}: branch matching element id {} not found", action.getId(), action.getElementId());
         }
-    }
-
-    @Override
-    public boolean checkErrorForWoodbury(Network network) {
-        Branch<?> branch = network.getBranch(action.getElementId());
-        boolean branchOpen1 = !branch.getTerminal1().isConnected();
-        boolean branchOpen2 = !branch.getTerminal2().isConnected();
-        boolean branchOpen = branchOpen1 || branchOpen2;
-        boolean error = action.isOpen() != branchOpen;
-        if (error) {
-            if (branchOpen1 ^ branchOpen2) {
-                LOGGER.error("Branch '{}' is open at one side in the network: unsupported in Woodbury", action.getId());
-            } else {
-                LOGGER.trace("Branch '{}' is {} in the network and action is to {}", action.getId(), branchOpen ? "opened" : "closed",
-                        action.isOpen() ? "open" : "close");
-            }
-        }
-        return error;
     }
 }

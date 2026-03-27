@@ -9,10 +9,6 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.SwitchAction;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.slf4j.Logger;
@@ -40,26 +36,8 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
             } else {
                 setEnabledBranch(branch);
             }
+        } else {
+            LOGGER.warn("Switch action {}: branch matching switch id {} not found", action.getId(), action.getSwitchId());
         }
-    }
-
-    @Override
-    public boolean checkErrorForWoodbury(Network network) {
-        Switch sw = network.getSwitch(action.getSwitchId());
-        boolean error;
-        error = false;
-        if (action.isOpen() != sw.isOpen()) {
-            VoltageLevel vl = sw.getVoltageLevel();
-            Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
-            Bus bus2 = vl.getBusBreakerView().getBus1(sw.getId());
-            if (bus1 == bus2) {
-                LOGGER.error("Switch '{}' connected at both sides to same bus", action.getId());
-            } else {
-                LOGGER.trace("Switch '{}' is {} in the network and action is to {}", action.getId(), sw.isOpen() ? "opened" : "closed",
-                        action.isOpen() ? "open" : "close");
-                error = true;
-            }
-        }
-        return error;
     }
 }
