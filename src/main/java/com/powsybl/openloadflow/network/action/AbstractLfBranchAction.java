@@ -12,10 +12,7 @@ import com.powsybl.action.Action;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -24,9 +21,9 @@ import java.util.Set;
  */
 public abstract class AbstractLfBranchAction<A extends Action> extends AbstractLfAction<A> {
 
-    private List<LfBranch> disabledBranch = new ArrayList<>(); // switch to open
+    private final List<LfBranch> disabledBranch = new ArrayList<>(); // switch to open
 
-    private List<LfBranch> enabledBranch = new ArrayList<>(); // switch to close
+    private final List<LfBranch> enabledBranch = new ArrayList<>(); // switch to close
 
     AbstractLfBranchAction(String id, A action, LfNetwork lfNetwork) {
         super(id, action);
@@ -34,10 +31,12 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
     }
 
     protected void addDisabledBranch(LfBranch disabledBranch) {
+        Objects.requireNonNull(disabledBranch);
         this.disabledBranch.add(disabledBranch);
     }
 
     protected void addEnabledBranch(LfBranch enabledBranch) {
+        Objects.requireNonNull(enabledBranch);
         this.enabledBranch.add(enabledBranch);
     }
 
@@ -91,15 +90,11 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
 
     private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         disabledBranch.forEach(branch -> {
-            if (branch != null && branch.getBus1() != null && branch.getBus2() != null) {
+            if (branch.getBus1() != null && branch.getBus2() != null) {
                 connectivity.removeEdge(branch);
             }
         });
-        enabledBranch.forEach(branch -> {
-            if (branch != null) {
-                connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch);
-            }
-        });
+        enabledBranch.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
     }
 
     public static void updateBusesAndBranchStatus(GraphConnectivity<LfBus, LfBranch> connectivity) {
