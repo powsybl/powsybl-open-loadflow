@@ -130,30 +130,6 @@ public interface ComputedElement {
     }
 
     static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        Map<LfAction, List<ComputedElement>> computedElements = new HashMap<>();
-        lfActionById.values().forEach(lfAction -> {
-            List<ComputedElement> elements = new ArrayList<>();
-            switch (lfAction) {
-                case AbstractLfTapChangerAction<?> abstractLfTapChangerAction ->
-                    elements.add(new ComputedTapPositionChangeElement(abstractLfTapChangerAction.getChange(), equationSystem));
-                case
-                    AbstractLfBranchAction<?> abstractLfBranchAction when !abstractLfBranchAction.getEnabledBranches().isEmpty() ->
-                    elements.addAll(abstractLfBranchAction.getEnabledBranches().stream().map(
-                        e -> ComputedSwitchBranchElement.create(e, true, equationSystem)).toList());
-                case
-                    AbstractLfBranchAction<?> abstractLfBranchAction when !abstractLfBranchAction.getDisabledBranches().isEmpty() ->
-                    elements.addAll(abstractLfBranchAction.getDisabledBranches().stream().map(
-                        e -> ComputedSwitchBranchElement.create(e, false, equationSystem)).toList());
-                default ->
-                    throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
-            }
-            computedElements.put(lfAction, elements.stream().filter(e -> e.getLfBranchEquation() != null).toList());
-        });
-        ComputedElement.setComputedElementIndexes(computedElements.values().stream().flatMap(Collection::stream).toList());
-        return computedElements;
-    }
-
-    static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction2(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         Map<LfAction, List<ComputedElement>> computedElements = lfActionById.values().stream()
             .flatMap(lfAction -> {
                 List<ComputedElement> elements = new ArrayList<>();
