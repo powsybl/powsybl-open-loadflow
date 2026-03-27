@@ -6,6 +6,7 @@
             Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
             Angle reference bus: VLHV1_0
             Slack bus: VLHV1_0
+         Voltage initialization with method Uniform Values
          + Newton-Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
@@ -64,6 +65,5 @@
                   Bus Id: VLGEN_0 (nominalVoltage=24kV)
                   Bus V: 1.020833 pu, 0.040694 rad
                   Bus injection: 607.000156 MW, 225.40357 MVar
-         Outer loop VoltageMonitoring
          Outer loop ReactiveLimits
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

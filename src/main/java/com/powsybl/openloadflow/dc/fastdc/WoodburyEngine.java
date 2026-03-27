@@ -302,21 +302,38 @@ public class WoodburyEngine {
     /**
      * Calculate post-contingency and post-actions states values by modifying pre-contingency states values, using some flow transfer factors (alphas).
      */
+    public void toPostContingencyAndOperatorStrategyStates(DenseMatrix preContingencyStates) {
+        Objects.requireNonNull(preContingencyStates);
+        for (int columnIndex = 0; columnIndex < preContingencyStates.getColumnCount(); columnIndex++) {
+            setAlphas(preContingencyStates, columnIndex);
+            for (int rowIndex = 0; rowIndex < preContingencyStates.getRowCount(); rowIndex++) {
+                double postContingencyAndOperatorStrategyValue = preContingencyStates.get(rowIndex, columnIndex);
+                postContingencyAndOperatorStrategyValue = addToPostContingencyAndOperatorStrategyValue(postContingencyAndOperatorStrategyValue, rowIndex);
+                preContingencyStates.set(rowIndex, columnIndex, postContingencyAndOperatorStrategyValue);
+            }
+        }
+    }
+
     public void toPostContingencyAndOperatorStrategyStates(double[] preContingencyStates) {
         Objects.requireNonNull(preContingencyStates);
         setAlphas(new DenseMatrix(preContingencyStates.length, 1, preContingencyStates), 0);
         for (int rowIndex = 0; rowIndex < preContingencyStates.length; rowIndex++) {
             double postContingencyAndOperatorStrategyValue = preContingencyStates[rowIndex];
-            for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                postContingencyAndOperatorStrategyValue += contingencyElement.getAlphaForWoodburyComputation()
-                        * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
-            }
-            for (ComputedElement actionElement : actionElements) {
-                postContingencyAndOperatorStrategyValue += actionElement.getAlphaForWoodburyComputation()
-                        * actionsStates.get(rowIndex, actionElement.getComputedElementIndex());
-            }
+            postContingencyAndOperatorStrategyValue = addToPostContingencyAndOperatorStrategyValue(postContingencyAndOperatorStrategyValue, rowIndex);
             preContingencyStates[rowIndex] = postContingencyAndOperatorStrategyValue;
         }
     }
-}
 
+    private double addToPostContingencyAndOperatorStrategyValue(double postContingencyAndOperatorStrategyValue, int rowIndex) {
+        double updatedPostContingencyAndOperatorStrategyValue = postContingencyAndOperatorStrategyValue;
+        for (ComputedContingencyElement contingencyElement : contingencyElements) {
+            updatedPostContingencyAndOperatorStrategyValue += contingencyElement.getAlphaForWoodburyComputation()
+                    * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
+        }
+        for (ComputedElement actionElement : actionElements) {
+            updatedPostContingencyAndOperatorStrategyValue += actionElement.getAlphaForWoodburyComputation()
+                    * actionsStates.get(rowIndex, actionElement.getComputedElementIndex());
+        }
+        return updatedPostContingencyAndOperatorStrategyValue;
+    }
+}

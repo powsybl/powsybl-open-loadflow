@@ -8,35 +8,41 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.*;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
+import com.powsybl.contingency.strategy.condition.*;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.violations.LimitViolation;
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
-import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -46,6 +52,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -100,6 +107,137 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 saParameters, Collections.emptyList(), Collections.emptyList(), reportNode);
 
         assertReportEquals("/detailedNrReportSecurityAnalysis.txt", reportNode);
+    }
+
+    @Test
+    void testThresholdAction() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getSwitch("C2").setOpen(true);
+        List<Contingency> contingencies = List.of(new Contingency("L3", new BranchContingency("L3")));
+        List<Action> actions = List.of(
+            new SwitchAction("action1", "C1", false),
+            new SwitchAction("action2", "C2", false));
+
+        // This condition should trigger (current goes above 600.0 after contingency)
+        BranchThresholdCondition condition1 = new BranchThresholdCondition(
+            "L1", AbstractThresholdCondition.Variable.CURRENT, AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS,
+            600.0, TwoSides.ONE);
+
+        // This condition should not trigger (current is under 650.0 after contingency)
+        BranchThresholdCondition condition2 = new BranchThresholdCondition(
+            "L1", AbstractThresholdCondition.Variable.CURRENT, AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS,
+            650.0, TwoSides.ONE);
+
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategyL3_1", ContingencyContext.specificContingency("L3"), condition1, List.of("action1")),
+            new OperatorStrategy("strategyL3_2", ContingencyContext.specificContingency("L3"), condition2, List.of("action2")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        // L1 current goes from 578 to 602
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Only a single operator strategy result : strategyL3_1, the other is not triggered
+        assertEquals(1, result.getOperatorStrategyResults().size());
+        assertEquals("strategyL3_1", result.getOperatorStrategyResults().getFirst().getOperatorStrategy().getId());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getOperatorStrategyResults().getFirst().getStatus());
+    }
+
+    @Test
+    void testThresholdConditionEvaluator() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wtAndT2wt();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+
+        AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
+            .setMatrixFactory(new DenseMatrixFactory());
+        try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            new AcloadFlowEngine(context).run();
+
+            // Branch Condition
+            var branch = network.getBranch("LINE_12");
+            double currentSide1 = lfNetwork.getBranchById(branch.getId()).getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
+            testWithAllComparisonType(lfNetwork, currentSide1, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.ONE));
+            double currentSide2 = lfNetwork.getBranchById(branch.getId()).getI2().eval() * PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+            testWithAllComparisonType(lfNetwork, currentSide2, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, TwoSides.TWO));
+
+            double activePowerSide1 = lfNetwork.getBranchById(branch.getId()).getP1().eval() * PerUnit.SB;
+            testWithAllComparisonType(lfNetwork, activePowerSide1, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value, TwoSides.ONE));
+
+            double reactivePowerSide1 = lfNetwork.getBranchById(branch.getId()).getQ1().eval() * PerUnit.SB;
+            testWithAllComparisonType(lfNetwork, reactivePowerSide1, (comparisonType, value) ->
+                new BranchThresholdCondition(branch.getId(), AbstractThresholdCondition.Variable.REACTIVE_POWER, comparisonType, value, TwoSides.ONE));
+
+            // 3WT Condition
+            var transformer = network.getThreeWindingsTransformer("T3wT");
+            LfBranch lfLegBranch = lfNetwork.getBranchById(transformer.getId() + "_leg_1");
+            double current3WtSide1 = lfLegBranch.getI1().eval() * PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
+            testWithAllComparisonType(lfNetwork, current3WtSide1, (comparisonType, value) ->
+                new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.CURRENT, comparisonType, value, ThreeSides.ONE));
+            double activePower3WtSide1 = lfLegBranch.getP1().eval() * PerUnit.SB;
+            testWithAllComparisonType(lfNetwork, activePower3WtSide1, (comparisonType, value) ->
+                new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value, ThreeSides.ONE));
+            double reactivePower3WtSide1 = lfLegBranch.getQ1().eval() * PerUnit.SB;
+            testWithAllComparisonType(lfNetwork, reactivePower3WtSide1, (comparisonType, value) ->
+                new ThreeWindingsTransformerThresholdCondition(transformer.getId(), AbstractThresholdCondition.Variable.REACTIVE_POWER, comparisonType, value, ThreeSides.ONE));
+
+            // Injection condition
+            var gen = network.getGenerator("GEN_1");
+            double targetP = lfNetwork.getGeneratorById(gen.getId()).getInitialTargetP();
+            double p = lfNetwork.getGeneratorById(gen.getId()).getTargetP();
+            testWithAllComparisonType(lfNetwork, p, (comparisonType, value) ->
+                new InjectionThresholdCondition(gen.getId(), AbstractThresholdCondition.Variable.ACTIVE_POWER, comparisonType, value));
+            testWithAllComparisonType(lfNetwork, targetP, (comparisonType, value) ->
+                new InjectionThresholdCondition(gen.getId(), AbstractThresholdCondition.Variable.TARGET_P, comparisonType, value));
+        }
+
+        // Test invalid ids
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork,
+            new InjectionThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork,
+            new BranchThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork,
+            new ThreeWindingsTransformerThresholdCondition("dummy", AbstractThresholdCondition.Variable.CURRENT,
+                AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, ThreeSides.ONE)));
+
+        var badInjectionCondition = new InjectionThresholdCondition("GEN_1", AbstractThresholdCondition.Variable.CURRENT,
+            AbstractThresholdCondition.ComparisonType.EQUALS, 0.0);
+        var badBranchCondition = new BranchThresholdCondition("LINE_12", AbstractThresholdCondition.Variable.TARGET_P,
+            AbstractThresholdCondition.ComparisonType.EQUALS, 0.0, TwoSides.ONE);
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(lfNetwork, badInjectionCondition),
+            "Unsupported variable CURRENT for threshold condition on generator GEN_1");
+        assertThrows(PowsyblException.class, () -> ThresholdConditionEvaluator.evaluate(lfNetwork, badBranchCondition),
+            "Unsupported variable TARGET_P for threshold condition on branch LINE_12");
+    }
+
+    void testWithAllComparisonType(LfNetwork lfNetwork, double value,
+                                   BiFunction<AbstractThresholdCondition.ComparisonType, Double, Condition> conditionBuilder) {
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value - 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value - 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value + 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value + 1.0)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value)));
+        assertTrue(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value - 1.0)));
+
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.EQUALS, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN, value + 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.GREATER_THAN_OR_EQUALS, value + 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.LESS_THAN_OR_EQUALS, value - 1.0)));
+        assertFalse(ThresholdConditionEvaluator.evaluate(lfNetwork, conditionBuilder.apply(AbstractThresholdCondition.ComparisonType.NOT_EQUAL, value)));
     }
 
     @Test
@@ -265,6 +403,47 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testFilteredCondition() {
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getSwitch("C2").setOpen(true);
+        network.getLine("L1").getCurrentLimits1().orElseThrow().setPermanentLimit(580.0);
+        network.getLine("L1").getCurrentLimits2().orElseThrow().setPermanentLimit(580.0);
+
+        List<Contingency> contingencies = Stream.of("L2")
+            .map(id -> new Contingency(id, new BranchContingency(id)))
+            .toList();
+
+        List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
+            new SwitchAction("action3", "C2", false));
+
+        List<OperatorStrategy> operatorStrategies = List.of(
+            new OperatorStrategy("strategyL2_Current", ContingencyContext.specificContingency("L2"), new AtLeastOneViolationCondition(List.of("L1"), Set.of(LimitViolationType.CURRENT)), List.of("action1", "action3")),
+            new OperatorStrategy("strategyL2_Voltage", ContingencyContext.specificContingency("L2"), new AtLeastOneViolationCondition(List.of("L1"), Set.of(LimitViolationType.HIGH_VOLTAGE)), List.of("action1", "action3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+        // L2 contingency
+        assertEquals(583.624, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        // Operator strategy with filter on current, we have one current violation on L2
+        assertEquals(441.539, getOperatorStrategyResult(result, "strategyL2_Current").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+
+        // Operator strategy with filter on voltage, no violation, operator strategy not triggered
+        assertTrue(getOptionalOperatorStrategyResult(result, "strategyL2_Voltage").isEmpty());
+    }
+
+    @Test
     void testSecurityAnalysisWithOperatorStrategy3() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
@@ -406,6 +585,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                             Network balance: active generation=1540 MW, active load=960 MW, reactive generation=0 MVar, reactive load=14.400001 MVar
                             Angle reference bus: NE_poste_0
                             Slack bus: NE_poste_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-67.604687 MW) distributed in 1 distribution iteration(s)
@@ -413,7 +593,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                                Slack bus active power (12.547029 MW) distributed in 1 distribution iteration(s)
                             + Outer loop iteration 3
                                Slack bus active power (-2.479879 MW) distributed in 1 distribution iteration(s)
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 4
                                All PV buses should switch PQ, strongest one will stay PV: SO_poste_0
@@ -432,10 +611,8 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                                Slack bus active power (-499.788814 MW) distributed in 1 distribution iteration(s)
                             + Outer loop iteration 8
                                Slack bus active power (-6.481646 MW) distributed in 1 distribution iteration(s)
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          Outer loop DistributedSlack
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
@@ -1503,6 +1680,12 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(193.799, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(193.799, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // The connectivity result should not report any lost generation active power because both ends of the HVDC belong to the same synchrnous network
+        assertEquals(0, getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedGenerationActivePower());
+        // However, the VSC station should be reported as disconnected
+        assertTrue(getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedElements().contains("cs2"));
+
     }
 
     @Test
@@ -1650,6 +1833,44 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(-200.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-200.0, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // The connectivity result should not report any lost generation active power because both ends of the HVDC belong to the same synchrnous network
+        assertEquals(0, getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedGenerationActivePower());
+        // However, the VSC station should be reported as disconnected
+        assertTrue(getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedElements().contains("cs2"));
+
+    }
+
+    @Test
+    void testVSCLossSetpointSeparated() {
+        // HVDC links to separate components
+        // Contingency leads to loss of HVDC that should be counted as a generation loss
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
+
+        // Disconnect the two sides of the HVDC and add a load on the main side
+        network.getLine("l14").disconnect();
+        network.getVoltageLevel("b2_vl").newLoad().setQ0(0).setP0(220).setId("l2").setBus("b2").add();
+
+        List<Contingency> contingencies = List.of(new Contingency("contingency", new LineContingency("l12")));
+        List<Action> actions = List.of(new SwitchAction("action", "s2", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy",
+                ContingencyContext.specificContingency("contingency"),
+                new TrueCondition(),
+                List.of("action")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.getLoadFlowParameters().setHvdcAcEmulation(false);
+        securityAnalysisParameters.getLoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // The connectivity result should report the injection loss of the HVDC since the other side of the HVDC is in a different synchronous component
+        assertEquals(195.6, getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedGenerationActivePower(), 0.1);
+        // However, the VSC station should be reported as disconnected
+        assertTrue(getPostContingencyResult(result, "contingency").getConnectivityResult().getDisconnectedElements().contains("cs2"));
+        // No injection from g1
+        assertEquals(0.0, getPostContingencyResult(result, "contingency").getNetworkResult().getBranchResult("l12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @ParameterizedTest
@@ -1913,5 +2134,59 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             assertEquals(40, acStrategyResult.getNetworkResult().getBranchResult("tl1").getP1(), LoadFlowAssert.DELTA_POWER);
             assertEquals(75, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            isDc,  expectedPre, expectedPost, expectedOpStrat
+            false, 21.203,      102.650,      -30.321
+            true,  20.000,      102.500,      -30.000
+        """)
+    void testDistributedActivePower(boolean isDc, double expectedPre, double expectedPost, double expectedOpStrat) {
+        Network network = DistributedSlackNetworkFactory.create();
+        // with below load change network has initial imbalance (ignoring losses) of 20 MW (lack of generation)
+        network.getLoad("l1").setP0(500.);
+        // make network a bit resistive so we have different results in AC or DC
+        network.getLineStream().forEach(l -> l.setR(0.6));
+        // put all generators on voltage control so the network is solvable on g1 contingency
+        network.getGeneratorStream().forEach(g -> g.setTargetV(g.getTerminal().getVoltageLevel().getNominalV()).setVoltageRegulatorOn(true));
+
+        // note that g1 has targetP 100 MW but solves in N at ~102.5 MW because of slack distribution
+        Contingency g1contingency = Contingency.generator("g1");
+
+        // action to increase g2 by 30 MW in relative
+        Action g2action = new GeneratorActionBuilder().withId("g2action")
+                .withGeneratorId("g2")
+                .withActivePowerRelativeValue(true).withActivePowerValue(30)
+                .build();
+
+        OperatorStrategy opStrat = new OperatorStrategy(
+                "opStrat",
+                ContingencyContext.specificContingency(g1contingency.getId()),
+                new TrueCondition(),
+                List.of(g2action.getId()));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Contingency> contingencies = List.of(g1contingency);
+        List<Action> actions = List.of(g2action);
+        List<OperatorStrategy> operatorStrategies = List.of(opStrat);
+
+        // run the security analysis
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(isDc);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // pre-contingency
+        assertEquals(expectedPre, result.getPreContingencyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, g1contingency.getId());
+        assertEquals(expectedPost, postContingencyResult.getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+
+        // operator strategy
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, opStrat.getId());
+        assertEquals(expectedOpStrat, strategyResult.getFinalOperatorStrategyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
     }
 }

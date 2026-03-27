@@ -74,6 +74,8 @@ public class LfNetworkParameters {
 
     public static final boolean GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE = true;
 
+    public static final boolean DETAILED_REPORT_DEFAULT_VALUE = false;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -162,6 +164,10 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
+    private boolean isAcDcNetwork;
+
+    private boolean detailedReport = DETAILED_REPORT_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -214,6 +220,8 @@ public class LfNetworkParameters {
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
+        this.isAcDcNetwork = other.isAcDcNetwork;
+        this.detailedReport = other.detailedReport;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -653,6 +661,24 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
+        this.isAcDcNetwork = isAcDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return isAcDcNetwork;
+    }
+
+    public boolean isDetailedReport() {
+        return detailedReport;
+    }
+
+    public LfNetworkParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -698,6 +724,8 @@ public class LfNetworkParameters {
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
+                ", isAcDcNetwork=" + isAcDcNetwork +
+                ", detailedReport=" + detailedReport +
                 ')';
     }
 }

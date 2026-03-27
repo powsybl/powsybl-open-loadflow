@@ -18,6 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -210,16 +213,14 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                                 boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
+                                                 LoadFlowModel loadFlowModel) {
         var branch = getBranch();
-        double flowTransfer = Double.NaN;
-        if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
-            flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
-        }
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
-        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                                            p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
+
+        var branchResult = buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale1, currentScale2, preContingencyBranchP1, preContingencyBranchOfContingencyP1);
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     getV1() * branch.getTerminal1().getVoltageLevel().getNominalV(),
@@ -230,15 +231,23 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return List.of(branchResult);
     }
 
+    private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter, TwoSides side) {
+        return () -> getBranch()
+                .getAllSelectedOperationalLimitsGroups(side)
+                .stream()
+                .filter(o -> limitsGetter.apply(o).isPresent())
+                .collect(Collectors.toMap(OperationalLimitsGroup::getId, o -> limitsGetter.apply(o).orElseThrow()));
+    }
+
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, () -> getBranch().getActivePowerLimits1(), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.ONE), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, () -> getBranch().getApparentPowerLimits1(), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.ONE), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, () -> getBranch().getCurrentLimits1(), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.ONE), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -246,14 +255,14 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, () -> getBranch().getActivePowerLimits2(), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.TWO), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits2(type, () -> getBranch().getApparentPowerLimits2(), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.TWO), limitReductionManager);
             case CURRENT:
-                return getLimits2(type, () -> getBranch().getCurrentLimits2(), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.TWO), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));

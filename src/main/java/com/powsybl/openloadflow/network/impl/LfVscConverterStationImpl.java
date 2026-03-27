@@ -33,11 +33,11 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private LfHvdc hvdc;
 
-    private final boolean hvdcDandlingInIidm;
+    private final boolean hvdcDanglingInIidm;
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcUtils.getConverterStationTargetP(station) / PerUnit.SB, parameters);
-        this.hvdcDandlingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station);
+        this.hvdcDanglingInIidm = HvdcConverterStations.isHvdcDanglingInIidm(station);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
@@ -66,10 +66,21 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public double getTargetP() {
         if (hvdc == null) {
             // Because in case one node is not in the LfNetwork, the connectivity of that node is given by IIDM
-            return hvdcDandlingInIidm ? 0 : super.getTargetP();
+            return hvdcDanglingInIidm ? 0 : super.getTargetP();
         } else {
-            // Because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
-            return hvdc.isAcEmulation() ? 0 : super.getTargetP();
+            if (hvdc.isAcEmulation()) {
+                if (hvdc.isDisabled() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled()) {
+                    return 0;
+                }
+                return switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
+                    // Because in case of AC emulation in saturated mode or frozen, active power target is specified in the target vector
+                    case FROZEN, SATURATION_MODE_FROM_CS1_TO_CS2, SATURATION_MODE_FROM_CS2_TO_CS1 -> super.getTargetP();
+                    // Because in case of AC emulation in linear mode active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
+                    case LINEAR_MODE -> 0;
+                };
+            }
+            // Because in case of fixed set point, active power target is specified in the target vector
+            return super.getTargetP();
         }
     }
 

@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 /**
@@ -65,6 +66,19 @@ public final class AcSolverUtil {
                     x[v.getRow()] = 0.1;
                     break;
 
+                case DC_BUS_V:
+                    x[v.getRow()] = initializer.getMagnitude(network.getDcBus(v.getElementNum()));
+                    break;
+
+                case CONV_P_AC:
+                    double p = network.getVoltageSourceConverter(v.getElementNum()).getPac();
+                    x[v.getRow()] = Double.isNaN(p) || !(initializer instanceof PreviousValueVoltageInitializer) ? 0.0 : p;
+                    break;
+
+                case CONV_Q_AC:
+                    double q = network.getVoltageSourceConverter(v.getElementNum()).getQac();
+                    x[v.getRow()] = Double.isNaN(q) || !(initializer instanceof PreviousValueVoltageInitializer) ? 0.0 : q;
+                    break;
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());
             }
@@ -116,6 +130,18 @@ public final class AcSolverUtil {
                 case DUMMY_P,
                      DUMMY_Q:
                     // nothing to do
+                    break;
+
+                case DC_BUS_V:
+                    network.getDcBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
+                    break;
+
+                case CONV_P_AC:
+                    network.getVoltageSourceConverter(v.getElementNum()).setPac(stateVector.get(v.getRow()));
+                    break;
+
+                case CONV_Q_AC:
+                    network.getVoltageSourceConverter(v.getElementNum()).setQac(stateVector.get(v.getRow()));
                     break;
 
                 default:

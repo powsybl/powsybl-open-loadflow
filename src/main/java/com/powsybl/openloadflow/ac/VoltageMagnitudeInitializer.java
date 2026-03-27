@@ -9,10 +9,12 @@ package com.powsybl.openloadflow.ac;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,8 @@ import java.util.concurrent.TimeUnit;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class VoltageMagnitudeInitializer implements VoltageInitializer {
+
+    public static final String NAME = "Voltage Magnitude";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VoltageMagnitudeInitializer.class);
 
@@ -185,7 +189,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network) {
+    public void prepare(LfNetwork network, ReportNode reportNode) {
+        Reports.reportVoltageInitializer(reportNode, NAME);
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the equation system:
@@ -244,5 +249,10 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     @Override
     public double getAngle(LfBus bus) {
         return 0;
+    }
+
+    @Override
+    public double getMagnitude(LfDcBus dcBus) {
+        throw new PowsyblException("Voltage magnitude initialization is not yet supported with AcDcNetwork");
     }
 }

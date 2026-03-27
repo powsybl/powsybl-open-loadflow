@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 
@@ -63,7 +64,7 @@ public final class Networks {
         resetInjectionsState(network.getLoads());
         resetInjectionsState(network.getLccConverterStations());
         resetInjectionsState(network.getBatteries());
-        resetInjectionsState(network.getDanglingLines());
+        resetInjectionsState(network.getBoundaryLines());
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
@@ -261,9 +262,17 @@ public final class Networks {
                        : network.getBusView().getBuses();
     }
 
+    public static Iterable<DcBus> getDcBuses(Network network) {
+        return network.getDcBuses();
+    }
+
     public static Bus getBus(Terminal terminal, boolean breakers) {
         return breakers ? terminal.getBusBreakerView().getBus()
                         : terminal.getBusView().getBus();
+    }
+
+    public static DcBus getDcBus(DcTerminal terminal) {
+        return terminal.getDcNode().getDcBus();
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
@@ -310,6 +319,9 @@ public final class Networks {
                 yield Optional.empty();
             }
             case GENERATOR -> Optional.of(((Generator) identifiable).getRegulatingTerminal());
+            case BATTERY -> ((Battery) identifiable).getExtension(VoltageRegulation.class) != null
+                    ? Optional.of(((Battery) identifiable).getExtension(VoltageRegulation.class).getRegulatingTerminal())
+                    : Optional.empty();
             case SHUNT_COMPENSATOR -> Optional.of(((ShuntCompensator) identifiable).getRegulatingTerminal());
             case STATIC_VAR_COMPENSATOR -> Optional.of(((StaticVarCompensator) identifiable).getRegulatingTerminal());
             case HVDC_CONVERTER_STATION -> ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC

@@ -7,5 +7,5 @@
             Network balance: active generation=608 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
             Angle reference bus: VLGEN_0
             Slack bus: VLGEN_0
-         Outer loop VoltageMonitoring
+         Voltage initialization with method Uniform Values
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

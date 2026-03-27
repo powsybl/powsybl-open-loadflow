@@ -7,9 +7,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.contingency.violations.ViolationLocation;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.security.ViolationLocation;
 import com.powsybl.security.results.BusResult;
 
 import java.util.*;
@@ -87,7 +87,7 @@ public interface LfBus extends LfElement {
 
     boolean isGeneratorVoltageControlEnabled();
 
-    void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled);
+    void setGeneratorVoltageControlEnabledAndRecomputeTargetQ(boolean generatorVoltageControlEnabled);
 
     // generator reactive power control
 
@@ -133,15 +133,13 @@ public interface LfBus extends LfElement {
 
     void invalidateGenerationTargetP();
 
-    void invalidateGenerationTargetQ();
-
     double getGenerationTargetP();
 
     double getMaxP();
 
     double getGenerationTargetQ();
 
-    void freezeGenerationTargetQ(double generationTargetQ);
+    void freezeGenerationTargetQAndDisableGeneratorVoltageControl(double generationTargetQ);
 
     boolean isGenerationTargetQFrozen();
 
@@ -181,6 +179,8 @@ public interface LfBus extends LfElement {
 
     List<LfGenerator> getGenerators();
 
+    List<LfVoltageSourceConverter> getConverters();
+
     Optional<LfShunt> getShunt();
 
     Optional<LfShunt> getControllerShunt();
@@ -214,6 +214,14 @@ public interface LfBus extends LfElement {
     void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
 
     boolean isShuntVoltageControlled();
+
+    // Voltage source converter voltage control
+
+    Optional<VoltageSourceConverterVoltageControl> getVoltageSourceConverterVoltageControl();
+
+    void setVoltageSourceConverterVoltageControl(VoltageSourceConverterVoltageControl voltageSourceConverterVoltageControl);
+
+    boolean isVoltageSourceConverterVoltageControlled();
 
     void setP(Evaluable p);
 
@@ -263,4 +271,6 @@ public interface LfBus extends LfElement {
     void setArea(LfArea area);
 
     ViolationLocation getViolationLocation();
+
+    void addConverter(LfVoltageSourceConverter converter);
 }
