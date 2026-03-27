@@ -139,7 +139,7 @@ public interface ComputedElement {
                         if (!lfBranchAction.getEnabledBranches().isEmpty()) {
                             elements.addAll(lfBranchAction.getEnabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, true, equationSystem)).toList());
                         } else if (!lfBranchAction.getDisabledBranches().isEmpty()) {
-                            elements.addAll(lfBranchAction.getDisabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, true, equationSystem)).toList());
+                            elements.addAll(lfBranchAction.getDisabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, false, equationSystem)).toList());
                         }
                     }
                     case PhaseTapChangerTapPositionAction.NAME ->
