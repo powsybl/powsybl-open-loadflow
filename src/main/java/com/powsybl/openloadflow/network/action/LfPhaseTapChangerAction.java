@@ -22,13 +22,13 @@ public class LfPhaseTapChangerAction extends AbstractLfTapChangerAction<PhaseTap
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfPhaseTapChangerAction.class);
 
-    public LfPhaseTapChangerAction(String id, PhaseTapChangerTapPositionAction action, LfNetwork network) {
-        super(id, action, network);
+    public LfPhaseTapChangerAction(PhaseTapChangerTapPositionAction action, LfNetwork network) {
+        super(action, network);
     }
 
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        if (branch != null) {
+        if (isValid()) {
             if (branch.getPhaseControl().isPresent()) {
                 LOGGER.warn("Phase tap changer tap position action: phase control is present on the tap changer, tap position could be overriden.");
             }

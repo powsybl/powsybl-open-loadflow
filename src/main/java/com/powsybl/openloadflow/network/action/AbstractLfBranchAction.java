@@ -25,8 +25,8 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
 
     private final List<LfBranch> enabledBranch = new ArrayList<>(); // switch to close
 
-    AbstractLfBranchAction(String id, A action, LfNetwork lfNetwork) {
-        super(id, action);
+    AbstractLfBranchAction(A action, LfNetwork lfNetwork) {
+        super(action);
         findEnabledDisabledBranches(lfNetwork);
     }
 
@@ -50,7 +50,8 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
 
     abstract void findEnabledDisabledBranches(LfNetwork lfNetwork);
 
-    private boolean found() {
+    @Override
+    public boolean isValid() {
         return !disabledBranch.isEmpty() || !enabledBranch.isEmpty();
     }
 
@@ -59,7 +60,7 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
      */
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        if (!found()) {
+        if (!isValid()) {
             return false;
         }
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -87,7 +88,7 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
      */
     public boolean applyOnConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
-        return found();
+        return isValid();
     }
 
     private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {

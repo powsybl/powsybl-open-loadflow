@@ -38,6 +38,10 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.*;
+import com.powsybl.contingency.strategy.condition.AllViolationCondition;
+import com.powsybl.contingency.strategy.condition.AnyViolationCondition;
+import com.powsybl.contingency.strategy.condition.AtLeastOneViolationCondition;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -819,7 +823,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
-    void testCheckActions(int threadCount) {
+    void testCheckValidityActions(int threadCount) {
         Network network = MetrixTutorialSixBusesFactory.create();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 

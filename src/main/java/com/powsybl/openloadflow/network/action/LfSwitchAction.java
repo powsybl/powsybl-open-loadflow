@@ -23,8 +23,8 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfSwitchAction.class);
 
-    public LfSwitchAction(String id, SwitchAction action, LfNetwork lfNetwork) {
-        super(id, action, lfNetwork);
+    public LfSwitchAction(SwitchAction action, LfNetwork lfNetwork) {
+        super(action, lfNetwork);
     }
 
     @Override
