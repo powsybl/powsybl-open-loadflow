@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.dc.fastdc;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -22,8 +24,8 @@ abstract class AbstractComputedElement {
     private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
 
     protected AbstractComputedElement(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm branchEquation) {
-        this.lfBranch = lfBranch;
-        this.branchEquation = branchEquation;
+        this.lfBranch = Objects.requireNonNull(lfBranch);
+        this.branchEquation = Objects.requireNonNull(branchEquation);
     }
 
     public int getComputedElementIndex() {

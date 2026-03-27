@@ -193,6 +193,8 @@ public interface LfBus extends LfElement {
 
     void addBranch(LfBranch branch);
 
+    void removeBranch(LfBranch branch);
+
     List<LfHvdc> getHvdcs();
 
     void addHvdc(LfHvdc hvdc);

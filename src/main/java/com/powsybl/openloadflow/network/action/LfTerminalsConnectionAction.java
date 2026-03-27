@@ -23,8 +23,8 @@ public class LfTerminalsConnectionAction extends AbstractLfBranchAction<Terminal
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfTerminalsConnectionAction.class);
 
-    public LfTerminalsConnectionAction(String id, TerminalsConnectionAction action, LfNetwork lfNetwork) {
-        super(id, action, lfNetwork);
+    public LfTerminalsConnectionAction(TerminalsConnectionAction action, LfNetwork lfNetwork) {
+        super(action, lfNetwork);
         if (action.getSide().isPresent()) {
             throw new UnsupportedOperationException("Terminals connection action: only open or close branch at both sides is supported yet.");
         }
