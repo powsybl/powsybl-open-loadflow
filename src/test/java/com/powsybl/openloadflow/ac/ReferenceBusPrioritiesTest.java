@@ -56,7 +56,7 @@ class ReferenceBusPrioritiesTest {
                 .setReadSlackBus(true)
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(true)
-                .setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+                .setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
     }

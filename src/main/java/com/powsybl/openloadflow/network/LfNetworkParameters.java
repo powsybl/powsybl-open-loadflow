@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -74,6 +74,10 @@ public class LfNetworkParameters {
 
     public static final boolean GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE = true;
 
+    public static final boolean DETAILED_REPORT_DEFAULT_VALUE = false;
+
+    public static final boolean INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE = true;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -88,7 +92,7 @@ public class LfNetworkParameters {
 
     private boolean disableVoltageControlOfGeneratorsOutsideActivePowerLimits = DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE;
 
-    private boolean computeMainConnectedComponentOnly = true;
+    private LoadFlowParameters.ComponentMode componentMode = LoadFlowParameters.ComponentMode.MAIN_CONNECTED;
 
     private Set<Country> countriesToBalance = Collections.emptySet();
 
@@ -162,6 +166,12 @@ public class LfNetworkParameters {
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
 
+    private boolean isAcDcNetwork;
+
+    private boolean detailedReport = DETAILED_REPORT_DEFAULT_VALUE;
+
+    private boolean includeElementsReconnectingSmallComponents = INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -176,7 +186,7 @@ public class LfNetworkParameters {
         this.plausibleActivePowerLimit = other.plausibleActivePowerLimit;
         this.useActiveLimits = other.useActiveLimits;
         this.disableVoltageControlOfGeneratorsOutsideActivePowerLimits = other.disableVoltageControlOfGeneratorsOutsideActivePowerLimits;
-        this.computeMainConnectedComponentOnly = other.computeMainConnectedComponentOnly;
+        this.componentMode = other.componentMode;
         this.countriesToBalance = new HashSet<>(other.countriesToBalance);
         this.distributedOnConformLoad = other.distributedOnConformLoad;
         this.phaseControl = other.phaseControl;
@@ -209,7 +219,14 @@ public class LfNetworkParameters {
         this.areaInterchangeControl = other.areaInterchangeControl;
         this.areaInterchangeControlAreaType = other.areaInterchangeControlAreaType;
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+        this.disableInconsistentVoltageControls = other.disableInconsistentVoltageControls;
+        this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
         this.generatorsWithZeroMwTargetAreNotStarted = other.generatorsWithZeroMwTargetAreNotStarted;
+        this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
+        this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
+        this.isAcDcNetwork = other.isAcDcNetwork;
+        this.detailedReport = other.detailedReport;
+        this.includeElementsReconnectingSmallComponents = other.includeElementsReconnectingSmallComponents;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -293,12 +310,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isComputeMainConnectedComponentOnly() {
-        return computeMainConnectedComponentOnly;
+    public LoadFlowParameters.ComponentMode getComponentMode() {
+        return componentMode;
     }
 
-    public LfNetworkParameters setComputeMainConnectedComponentOnly(boolean computeMainConnectedComponentOnly) {
-        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
+    public LfNetworkParameters setComponentMode(LoadFlowParameters.ComponentMode componentMode) {
+        this.componentMode = componentMode;
         return this;
     }
 
@@ -649,6 +666,33 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LfNetworkParameters setAcDcNetwork(boolean isAcDcNetwork) {
+        this.isAcDcNetwork = isAcDcNetwork;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return isAcDcNetwork;
+    }
+
+    public boolean isDetailedReport() {
+        return detailedReport;
+    }
+
+    public LfNetworkParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
+        return this;
+    }
+
+    public boolean isIncludeElementsReconnectingSmallComponents() {
+        return includeElementsReconnectingSmallComponents;
+    }
+
+    public LfNetworkParameters setIncludeElementsReconnectingSmallComponents(boolean includeElementsReconnectingSmallComponents) {
+        this.includeElementsReconnectingSmallComponents = includeElementsReconnectingSmallComponents;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -659,7 +703,7 @@ public class LfNetworkParameters {
                 ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
                 ", breakers=" + breakers +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
+                ", componentMode=" + componentMode +
                 ", countriesToBalance=" + countriesToBalance +
                 ", distributedOnConformLoad=" + distributedOnConformLoad +
                 ", phaseControl=" + phaseControl +
@@ -694,6 +738,9 @@ public class LfNetworkParameters {
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
+                ", isAcDcNetwork=" + isAcDcNetwork +
+                ", detailedReport=" + detailedReport +
+                ", includeElementsReconnectingSmallComponents=" + includeElementsReconnectingSmallComponents +
                 ')';
     }
 }

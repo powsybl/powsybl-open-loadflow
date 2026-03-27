@@ -174,8 +174,8 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .add();
     }
 
-    protected static DanglingLine createDanglingLine(Bus b, String id, double x, double p0, double q0) {
-        return b.getVoltageLevel().newDanglingLine()
+    protected static BoundaryLine createBoundaryLine(Bus b, String id, double x, double p0, double q0) {
+        return b.getVoltageLevel().newBoundaryLine()
             .setId(id)
             .setBus(b.getId())
             .setConnectableBus(b.getId())
@@ -223,19 +223,22 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection) {
-        ShuntCompensator sh = bus.getVoltageLevel()
+        return createFixedShuntCompensator(bus, id, gPerSection, bPersection, 1);
+    }
+
+    protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection, int maximumSectionCount) {
+        return bus.getVoltageLevel()
             .newShuntCompensator()
             .setId(id)
             .setBus(bus.getId())
             .setConnectableBus(bus.getId())
-            .setSectionCount(1)
+            .setSectionCount(maximumSectionCount)
             .newLinearModel()
             .setGPerSection(gPerSection)
             .setBPerSection(bPersection)
-            .setMaximumSectionCount(1)
+            .setMaximumSectionCount(maximumSectionCount)
             .add()
             .add();
-        return sh;
     }
 
     protected static ShuntCompensator createShuntCompensator(Bus bus, String id, double g, double b, double v,

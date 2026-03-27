@@ -12,7 +12,7 @@ import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
-import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
+import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
@@ -121,13 +121,13 @@ class LfNetworkTest extends AbstractSerDeTest {
     }
 
     @Test
-    void testDanglingLine() {
-        Network network = DanglingLineNetworkFactory.create();
+    void testBoundaryLine() {
+        Network network = BoundaryLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
-        assertTrue(lfNetwork.getBusById("DL_BUS").createBusResults().isEmpty());
+        assertFalse(lfNetwork.getBusById("BL_BUS").isDisabled());
+        assertTrue(lfNetwork.getBusById("BL_BUS").createBusResults().isEmpty());
     }
 
     @Test
@@ -158,7 +158,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
@@ -175,7 +175,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         assertTrue(result.isFullyConverged());
 
-        //Default is only compute load flow on the main component
+        // Default is only compute load flow on the main component
         assertEquals(1, result.getComponentResults().size());
         assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getConnectedComponentNum());
     }
@@ -185,13 +185,42 @@ class LfNetworkTest extends AbstractSerDeTest {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
         assertEquals(2, result.getComponentResults().size());
+    }
+
+    @Test
+    void testMultipleConnectedComponentsMainSynchronousMode() {
+        // Network initially has two one connected component and two synchronous components
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        // Splitting the connected components in two connected components, it now has 3 synchronous components
+        network.getLine("l12").disconnect();
+        network.getLine("l13").disconnect();
+        network.getGenerator("g2").setMaxP(3); // Increasing MaxP to allow slack bus distribution
+        network.getGenerator("g6").setMaxP(3); // Increasing MaxP to allow slack bus distribution
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(3, result.getComponentResults().size());
+
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, result.getComponentResults().size());
+
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, result.getComponentResults().size());
     }
 
     private static void testGraphViz(Network network, boolean breakers, String ref) throws IOException {

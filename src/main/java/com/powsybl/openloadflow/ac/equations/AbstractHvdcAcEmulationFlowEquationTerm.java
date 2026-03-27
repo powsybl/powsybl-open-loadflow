@@ -38,37 +38,23 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected final double lossFactor2;
 
-    protected final double pMaxFromCS1toCS2;
-
-    protected final double pMaxFromCS2toCS1;
-
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
         variables = List.of(ph1Var, ph2Var);
-        k = hvdc.getDroop() * 180 / Math.PI;
-        p0 = hvdc.getP0();
+        k = hvdc.getAcEmulationControl().getDroop() * 180 / Math.PI;
+        p0 = hvdc.getAcEmulationControl().getP0();
         r = hvdc.getR();
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
         lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
-        pMaxFromCS1toCS2 = hvdc.getPMaxFromCS1toCS2();
-        pMaxFromCS2toCS1 = hvdc.getPMaxFromCS2toCS1();
     }
 
-    protected double rawP(double ph1, double ph2) {
+    protected static double rawP(double p0, double k, double ph1, double ph2) {
         return p0 + k * (ph1 - ph2);
-    }
-
-    protected double boundedP(double rawP) {
-        // If there is a maximal active power
-        // it is applied at the entry of the controller VSC station
-        // on the AC side of the network.
-        if (rawP >= 0) {
-            return Math.min(rawP, pMaxFromCS1toCS2);
-        } else {
-            return Math.max(rawP, -pMaxFromCS2toCS1);
-        }
+        // Since open-loadflow v2.2.0, saturation support is removed from this equation term (it is now managed by the HVDC AC emulation limits outer loop)
+        // This change enables the possibility to have a very high active power flow through the HVDC in the Newton Raphson (before the outer loop applies saturation)
+        // The risk of having this high active power flow causing Newton Raphson divergence is negligible
     }
 
     protected double ph1() {
@@ -79,12 +65,12 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
         return sv.get(ph2Var.getRow());
     }
 
-    protected double getVscLossMultiplier() {
+    protected static double getVscLossMultiplier(double lossFactor1, double lossFactor2) {
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
-    protected double getAbsActivePowerWithLosses(double boundedP, double lossController, double lossNonController) {
-        double lineInputPower = (1 - lossController) * Math.abs(boundedP);
+    public static double getAbsActivePowerWithLosses(double pController, double lossController, double lossNonController, double r) {
+        double lineInputPower = (1 - lossController) * Math.abs(pController);
         return (1 - lossNonController) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
     }
 

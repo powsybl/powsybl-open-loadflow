@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,10 +7,13 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
+import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -31,6 +34,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
@@ -39,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -336,7 +342,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 switch (variableType) {
                     case INJECTION_ACTIVE_POWER,
                          HVDC_LINE_ACTIVE_POWER:
-                        // a load, a generator, a dangling line, an LCC or a VSC converter station.
+                        // a load, a generator, a boundary line, an LCC or a VSC converter station.
                         return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getLoadIdsToLose().containsKey(variableId);
                     case BUS_TARGET_VOLTAGE:
                         // a generator or a two windings transformer.
@@ -635,7 +641,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
         // otherwise, defining the rhs matrix will result in integer overflow
-        int equationCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int equationCount = equationSystem.getIndex().getColumnCount();
         int factorsGroupCount = factorsGroups.getList().size();
         int maxFactorsGroups = Integer.MAX_VALUE / (equationCount * Double.BYTES);
         if (factorsGroupCount > maxFactorsGroups) {
@@ -717,12 +723,17 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
      * on post contingency if factor is already invalid (skip o zero) on base case. Except for factors with specific
      * contingency context, we output the invalid status found during base case analysis.
      */
-    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityResultWriter resultWriter,
-                                                                List<PropagatedContingency> contingencies) {
+    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder,
+                                                                SensitivityResultWriter resultWriter,
+                                                                List<PropagatedContingency> contingencies,
+                                                                Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
+                                                                SensitivityAnalysisParameters parameters) {
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
-        Map<String, Integer> contingencyIndexById = new HashMap<>();
-        contingencies.stream().forEach(contingency -> contingencyIndexById.put(contingency.getContingency().getId(), contingency.getIndex()));
+        Map<String, Integer> contingencyIndexById = contingencies.stream().collect(Collectors.toMap(
+                c -> c.getContingency().getId(),
+                PropagatedContingency::getIndex
+        ));
         for (var factor : factorHolder.getAllFactors()) {
             Optional<Double> sensitivityVariableToWrite = Optional.empty();
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
@@ -737,18 +748,32 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             } else {
                 validFactorHolder.addFactor(factor);
             }
-            if (sensitivityVariableToWrite.isPresent()) {
+            sensitivityVariableToWrite.ifPresent(value -> {
                 // directly write output for zero and invalid factors
-                double value = sensitivityVariableToWrite.get();
                 if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
-                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndexById.get(factor.getContingencyContext().getContingencyId()), value, Double.NaN);
+                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
+                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
+                        // If run in batch of contingencies, the contingency may not be part of this result
+                        contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
+                    int contingencyIndex = contingencyIndexById.get(factor.getContingencyContext().getContingencyId());
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+                    if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                        for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(factor.getContingencyContext().getContingencyId(), Collections.emptyList())) {
+                            resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+                        }
+                    }
                 } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, value, Double.NaN);
-                    contingencyIndexById.values().forEach(index -> resultWriter.writeSensitivityValue(factor.getIndex(), index, value, Double.NaN));
+                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
+                    contingencyIndexById.forEach((contingencyId, contingencyIndex) -> {
+                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+                        if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                            for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingencyId, Collections.emptyList())) {
+                                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+                            }
+                        }
+                    });
                 }
-            }
+            });
         }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
             LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
@@ -757,15 +782,25 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return validFactorHolder;
     }
 
-    protected void checkContingencies(List<PropagatedContingency> contingencies) {
-        Set<String> contingenciesIds = new HashSet<>();
-        for (PropagatedContingency contingency : contingencies) {
-            // check ID are unique because, later contingency are indexed by their IDs
-            String contingencyId = contingency.getContingency().getId();
-            if (contingenciesIds.contains(contingencyId)) {
-                throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
+    protected void checkVariableSet(List<SensitivityVariableSet> variableSets) {
+        Set<String> variableSetIds = new HashSet<>();
+        for (SensitivityVariableSet variableSet : variableSets) {
+            // check ID are unique because, later sensitivityVariableSet are indexed by their IDs
+            String variableSetId = variableSet.getId();
+            if (!variableSetIds.add(variableSetId)) {
+                throw new PowsyblException("Variable set ID '" + variableSetId + "' is duplicated");
             }
-            contingenciesIds.add(contingencyId);
+        }
+    }
+
+    protected void checkContingencies(List<Contingency> contingencies) {
+        Set<String> contingenciesIds = new HashSet<>();
+        for (Contingency contingency : contingencies) {
+            // check ID are unique because, later contingency are indexed by their IDs
+            String contingencyId = contingency.getId();
+            if (!contingenciesIds.add(contingencyId)) {
+                throw new PowsyblException("Contingency ID '" + contingencyId + "' is duplicated");
+            }
         }
     }
 
@@ -777,19 +812,19 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeDanglingLine(Network network, SensitivityFunctionType functionType, String functionId) {
+    private Pair<SensitivityFunctionType, String> checkAndUpdateFunctionTypeBoundaryLine(Network network, SensitivityFunctionType functionType, String functionId) {
         if (isFlowFunction(functionType) || isReactivePowerFunctionType(functionType)) {
-            DanglingLine danglingLine = network.getDanglingLine(functionId);
-            if (danglingLine != null && danglingLine.isPaired()) {
-                if (functionType.getSide().orElseThrow() != 1) { // Check that user wants side 1 of the dangling line (i.e. network side value and not boundary side)
-                    throw new PowsyblException("Dangling line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
+            BoundaryLine boundaryLine = network.getBoundaryLine(functionId);
+            if (boundaryLine != null && boundaryLine.isPaired()) {
+                if (functionType.getSide().orElseThrow() != 1) { // Check that user wants side 1 of the boundary line (i.e. network side value and not boundary side)
+                    throw new PowsyblException("Boundary line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
                 }
-                TieLine tieLine = danglingLine.getTieLine().orElseThrow();
-                TwoSides danglingLineSide = tieLine.getDanglingLine(TwoSides.ONE) == danglingLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied dangling line
+                TieLine tieLine = boundaryLine.getTieLine().orElseThrow();
+                TwoSides boundaryLineSide = tieLine.getBoundaryLine(TwoSides.ONE) == boundaryLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied boundary line
                 if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info("Dangling line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), danglingLineSide.getNum());
+                    LOGGER.info("Boundary line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), boundaryLineSide.getNum());
                 }
-                return Pair.of(updateFunctionTypeSide(functionType, danglingLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
+                return Pair.of(updateFunctionTypeSide(functionType, boundaryLineSide), tieLine.getId()); // Conversion to the corresponding tie line sensitivity function
             }
         }
         return Pair.of(functionType, functionId); // Returning input as it is
@@ -800,8 +835,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         if (branch != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        DanglingLine danglingLine = network.getDanglingLine(branchId);
-        if (danglingLine != null && !danglingLine.isPaired()) {
+        BoundaryLine boundaryLine = network.getBoundaryLine(branchId);
+        if (boundaryLine != null && !boundaryLine.isPaired()) {
             return lfNetwork.getBranchById(branchId);
         }
         ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
@@ -812,7 +847,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         if (line != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + NOT_FOUND);
+        throw new PowsyblException("Branch, tie line, boundary line or leg of '" + branchId + NOT_FOUND);
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
@@ -915,11 +950,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 injection = network.getLoad(injectionId);
             }
             if (injection == null) {
-                injection = network.getDanglingLine(injectionId);
-                if (injection != null && network.getDanglingLine(injectionId).isPaired()) {
-                    throw new PowsyblException("The dangling line " + injectionId + " is paired: it cannot be a sensitivity variable");
+                injection = network.getBoundaryLine(injectionId);
+                if (injection != null && network.getBoundaryLine(injectionId).isPaired()) {
+                    throw new PowsyblException("The boundary line " + injectionId + " is paired: it cannot be a sensitivity variable");
                 }
-                injection = network.getDanglingLine(injectionId);
+                injection = network.getBoundaryLine(injectionId);
             }
             if (injection == null) {
                 injection = network.getLccConverterStation(injectionId);
@@ -941,8 +976,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 if (bus == null) {
                     return null;
                 }
-                if (injection instanceof DanglingLine dl) {
-                    return LfDanglingLineBus.getId(dl);
+                if (injection instanceof BoundaryLine dl) {
+                    return LfBoundaryLineBus.getId(dl);
                 } else {
                     return bus.getId();
                 }
@@ -998,9 +1033,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         factorReader.read((functionTypeToCheck, functionIdToCheck, variableType, variableId, variableSet, contingencyContext) -> {
             SensitivityFunctionType functionType = functionTypeToCheck;
             String functionId = functionIdToCheck;
-            if (network.getDanglingLine(functionIdToCheck) != null && network.getDanglingLine(functionIdToCheck).isPaired()) {
-                //In case of dangling line associated to a tie line, we have to update the sensitivity function
-                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeDanglingLine(network, functionTypeToCheck, functionIdToCheck);
+            if (network.getBoundaryLine(functionIdToCheck) != null && network.getBoundaryLine(functionIdToCheck).isPaired()) {
+                //In case of boundary line associated to a tie line, we have to update the sensitivity function
+                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeBoundaryLine(network, functionTypeToCheck, functionIdToCheck);
                 functionType = updatedFunction.getLeft();
                 functionId = updatedFunction.getRight();
             }
@@ -1200,7 +1235,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         throw new IllegalArgumentException("Illegal function type side switching");
     }
 
-    protected Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+    protected record VariablesTargetVoltageInfo(boolean hasBusTargetVoltage, boolean hasTransformerTargetVoltage) {
+    }
+
+    protected VariablesTargetVoltageInfo getVariableTargetVoltageInfo(SensitivityFactorReader factorReader, Network network) {
         // Left value if we find a BUS_TARGET_VOLTAGE factor and right value if it is linked to a transformer.
         AtomicBoolean hasBusTargetVoltage = new AtomicBoolean(false);
         AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean(false);
@@ -1213,7 +1251,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 }
             }
         });
-        return Pair.of(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
+        return new VariablesTargetVoltageInfo(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
     }
 
     protected static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
@@ -1289,8 +1327,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
     }
 
-    public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
-                                 SensitivityResultWriter resultWriter, ReportNode reportNode, LfTopoConfig topoConfig, boolean startWithFrozenACEmulation);
+    public abstract void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> operatorStrategies,
+                                 List<Action> actions, PropagatedContingencyCreationParameters creationParameters,
+                                 List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
+                                 SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
+                                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
+                                 Executor executor) throws ExecutionException;
 
     protected static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {

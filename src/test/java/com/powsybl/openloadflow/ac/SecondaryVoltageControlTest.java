@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
-import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.PilotPoint;
@@ -19,14 +19,19 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
+import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.SecurityAnalysisRunParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +59,8 @@ class SecondaryVoltageControlTest {
 
     private LoadFlow.Runner loadFlowRunner;
 
+    private LoadFlowRunParameters loadFlowRunParameters;
+
     private LoadFlowParameters parameters;
 
     private OpenLoadFlowParameters parametersExt;
@@ -78,6 +85,7 @@ class SecondaryVoltageControlTest {
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMaxPlausibleTargetVoltage(1.6);
+        loadFlowRunParameters = new LoadFlowRunParameters().setParameters(parameters);
     }
 
     private static double qToK(Generator g) {
@@ -176,8 +184,7 @@ class SecondaryVoltageControlTest {
         assertReactivePowerEquals(6, g8.getTerminal()); // [-6, 200] => qmin
     }
 
-    @Test
-    void testUnblockGeneratorFromLimit() throws IOException {
+    void modifyNetworkToUnblockGeneratorFromLimit() {
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .newControlZone()
                 .withName("z1")
@@ -190,7 +197,11 @@ class SecondaryVoltageControlTest {
         // to put g6 and g8 at q min
         g6.setTargetV(11.8);
         g8.setTargetV(19.5);
+    }
 
+    @Test
+    void testUnblockGeneratorFromLimit() throws IOException {
+        modifyNetworkToUnblockGeneratorFromLimit();
         // This scenario works if the slack distribution fails and an injection is added at the slack bus
         parametersExt.setPlausibleActivePowerLimit(5000); // Remove large generators from slack distribution
         parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
@@ -203,7 +214,8 @@ class SecondaryVoltageControlTest {
                 .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
-        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
+        loadFlowRunParameters.setReportNode(node);
+        var result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(14, result.getComponentResults().get(0).getIterationCount());
 
@@ -218,14 +230,15 @@ class SecondaryVoltageControlTest {
                 + test
                    + Load flow on network 'ieee14cdf'
                       + Network CC0 SC0
+                         2 generators have been discarded from active power control because of maxP not plausible
                          + Network info
                             Network has 14 buses and 20 branches
                             Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 3
                                + 3 buses switched PV -> PQ (2 buses remain PV)
@@ -242,7 +255,6 @@ class SecondaryVoltageControlTest {
                             + Outer loop iteration 6
                                Failed to distribute slack bus active power mismatch, 3.011164 MW remains
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 8
                                + 2 buses switched PV -> PQ (1 buses remain PV)
@@ -252,7 +264,6 @@ class SecondaryVoltageControlTest {
                             + Outer loop iteration 9
                                Failed to distribute slack bus active power mismatch, 3.016519 MW remains
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
@@ -261,19 +272,29 @@ class SecondaryVoltageControlTest {
     }
 
     @Test
-    void testCannotUnblockGeneratorFromLimit() throws IOException {
-        network.newExtension(SecondaryVoltageControlAdder.class)
-                .newControlZone()
-                .withName("z1")
-                .newPilotPoint().withTargetV(15).withBusbarSectionsOrBusesIds(List.of("B10")).add()
-                .newControlUnit().withId("B6-G").add()
-                .newControlUnit().withId("B8-G").add()
-                .add()
-                .add();
+    void testSecurityAnalysisWithUnblockedGenerator() {
+        modifyNetworkToUnblockGeneratorFromLimit();
 
-        // to put g6 and g8 at q min
-        g6.setTargetV(11.8);
-        g8.setTargetV(19.5);
+        // Pilot point is set to test unblocking of generators without them turning back PQ
+        network.getExtension(SecondaryVoltageControl.class)
+                .getControlZone("z1").orElseThrow().getPilotPoint().setTargetV(14.95);
+
+        parametersExt.setPlausibleActivePowerLimit(5000); // Remove large generators from slack distribution
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSecondaryVoltageControl(true);
+
+        List<Contingency> contingencies = List.of(Contingency.branch("L1-2-1"), Contingency.branch("L1-5-1"));
+        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        assertDoesNotThrow(() -> securityAnalysisProvider.run(network,
+                network.getVariantManager().getWorkingVariantId(),
+                n -> contingencies,
+                new SecurityAnalysisRunParameters().
+                        setSecurityAnalysisParameters(new SecurityAnalysisParameters().setLoadFlowParameters(parameters))).join());
+    }
+
+    @Test
+    void testCannotUnblockGeneratorFromLimit() throws IOException {
+        modifyNetworkToUnblockGeneratorFromLimit();
 
         parametersExt.setSecondaryVoltageControl(true);
         parametersExt.setReactiveLimitsMaxPqPvSwitch(0); // Will block PQ->PV move
@@ -284,7 +305,8 @@ class SecondaryVoltageControlTest {
                 .build();
 
         // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
-        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, node);
+        loadFlowRunParameters.setReportNode(node);
+        var result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(11, result.getComponentResults().get(0).getIterationCount());
 
@@ -303,9 +325,9 @@ class SecondaryVoltageControlTest {
                             Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 3
                                + 3 buses switched PV -> PQ (2 buses remain PV)
@@ -322,14 +344,12 @@ class SecondaryVoltageControlTest {
                             + Outer loop iteration 5
                                Slack bus active power (3.013536 MW) distributed in 1 distribution iteration(s)
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 6
                                + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)
                                   Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
-                         Outer loop VoltageMonitoring
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 6
                                + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)

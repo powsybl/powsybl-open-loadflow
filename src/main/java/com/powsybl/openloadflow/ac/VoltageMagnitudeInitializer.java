@@ -9,10 +9,12 @@ package com.powsybl.openloadflow.ac;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,8 @@ import java.util.concurrent.TimeUnit;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class VoltageMagnitudeInitializer implements VoltageInitializer {
+
+    public static final String NAME = "Voltage Magnitude";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VoltageMagnitudeInitializer.class);
 
@@ -185,7 +189,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network) {
+    public void prepare(LfNetwork network, ReportNode reportNode) {
+        Reports.reportVoltageInitializer(reportNode, NAME);
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the equation system:
@@ -197,9 +202,9 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         // so the aim is to find a voltage plan that respect voltage set points and that computes other voltages
         // magnitude by interpolating neighbors bus values proportionally to branch susceptance and voltage ratio
         //
-        EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>(InitVmEquationType.class, network);
         for (LfBus bus : network.getBuses()) {
-            EquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
+            SingleEquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
                     .createTerm();
             if (bus.isGeneratorVoltageControlled() || transformerVoltageControlOn && bus.isTransformerVoltageControlled()) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
@@ -212,7 +217,17 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
-            double[] targets = TargetVector.createArray(network, equationSystem, VoltageMagnitudeInitializer::initTarget);
+            double[] targets = TargetVector.createArray(network, equationSystem, new TargetVector.Initializer<InitVmVariableType, InitVmEquationType>() {
+                @Override
+                public void initialize(SingleEquation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
+                    VoltageMagnitudeInitializer.initTarget(equation, network, targets);
+                }
+
+                @Override
+                public void initialize(EquationArray<InitVmVariableType, InitVmEquationType> equationArray, LfNetwork network, double[] targets) {
+                    throw new UnsupportedOperationException("Equation array not implemented for VoltageMagnitudeInitializer");
+                }
+            });
 
             j.solveTransposed(targets);
 
@@ -234,5 +249,10 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     @Override
     public double getAngle(LfBus bus) {
         return 0;
+    }
+
+    @Override
+    public double getMagnitude(LfDcBus dcBus) {
+        throw new PowsyblException("Voltage magnitude initialization is not yet supported with AcDcNetwork");
     }
 }

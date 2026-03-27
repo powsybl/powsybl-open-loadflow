@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -36,7 +36,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
+public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfElementContainer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
@@ -56,9 +56,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
-    private LfBus referenceBus;
+    protected LfBus referenceBus;
 
-    private List<LfBus> slackBuses;
+    protected List<LfBus> slackBuses = new ArrayList<>();
 
     private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
@@ -67,6 +67,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final List<LfBranch> branches = new ArrayList<>();
 
     private final Map<String, LfBranch> branchesById = new HashMap<>();
+
+    private final Map<String, List<LfBranch>> branchesByOriginalId = new HashMap<>();
 
     private int shuntCount = 0;
 
@@ -85,6 +87,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
     private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
+
+    private final List<LfDcBus> dcBusByIndex = new ArrayList<>();
+
+    private final Map<String, LfDcBus> dcBusById = new LinkedHashMap<>();
+
+    private final List<LfDcLine> dcLinesByIndex = new ArrayList<>();
+
+    private final List<LfVoltageSourceConverter> voltageSourceConvertersByIndex = new ArrayList<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -173,6 +183,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
     }
 
+    public LfNetwork(LfNetwork network) {
+        this(network.numCC, network.numSC, network.slackBusSelector, network.maxSlackBusCount,
+                network.connectivityFactory, network.referenceBusSelector, ReportNode.NO_OP);
+    }
+
     public int getNumCC() {
         return numCC;
     }
@@ -189,6 +204,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         this.reportNode = Objects.requireNonNull(reportNode);
     }
 
+    @Override
     public LfElement getElement(ElementType elementType, int num) {
         return switch (elementType) {
             case BUS -> getBus(num);
@@ -196,10 +212,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             case SHUNT_COMPENSATOR -> getShunt(num);
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
+            case DC_BUS -> getDcBus(num);
+            case DC_LINE -> getDcLine(num);
+            case CONVERTER -> getVoltageSourceConverter(num);
         };
     }
 
-    private void invalidateSlackAndReference() {
+    protected void invalidateSlackAndReference() {
         if (slackBuses != null) {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
@@ -219,8 +238,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void updateSlackBusesAndReferenceBus() {
         if (slackBuses == null && referenceBus == null) {
             List<LfBus> selectableBuses =
-                excludedSlackBuses.isEmpty() ? busesByIndex :
-                    busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
+                    excludedSlackBuses.isEmpty() ? busesByIndex :
+                            busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
             if (slackBuses.isEmpty()) { // ultimate fallback
@@ -259,6 +278,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
+        branch.getOriginalIds().forEach(originalId ->
+            branchesByOriginalId.computeIfAbsent(originalId, k -> new ArrayList<>()).add(branch));
         invalidateSlackAndReference();
         connectivity = null;
         invalidateZeroImpedanceNetworks();
@@ -283,6 +304,36 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public LfBranch getBranchById(String branchId) {
         Objects.requireNonNull(branchId);
         return branchesById.get(branchId);
+    }
+
+    public List<LfBranch> getBranchesByOriginalId(String equipmentId) {
+        Objects.requireNonNull(equipmentId);
+        return branchesByOriginalId.get(equipmentId);
+    }
+
+    public void removeBranch(String branchId) {
+        Objects.requireNonNull(branchId);
+        LfBranch branch = branchesById.remove(branchId);
+        if (branch == null) {
+            throw new PowsyblException("Branch " + branchId + " not found in network " + this);
+        }
+        branches.remove(branch);
+        invalidateSlackAndReference();
+        if (connectivity != null) {
+            connectivity.removeEdge(branch);
+        }
+        invalidateZeroImpedanceNetworks();
+
+        // renumber all branches
+        for (int i = 0; i < branches.size(); i++) {
+            branches.get(i).setNum(i);
+        }
+        if (branch.getBus1() != null) {
+            branch.getBus1().removeBranch(branch);
+        }
+        if (branch.getBus2() != null) {
+            branch.getBus2().removeBranch(branch);
+        }
     }
 
     private void addShunt(LfShunt shunt) {
@@ -424,6 +475,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return hvdcs.get(num);
     }
 
+    public LfVoltageSourceConverter getVoltageSourceConverter(int num) {
+        return voltageSourceConvertersByIndex.get(num);
+    }
+
     public LfHvdc getHvdcById(String id) {
         Objects.requireNonNull(id);
         return hvdcsById.get(id);
@@ -442,7 +497,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
             bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
+
+        for (LfDcBus dcBus : dcBusById.values()) {
+            dcBus.updateState(parameters);
+        }
+
         branches.forEach(branch -> branch.updateState(parameters, updateReport));
+        dcLinesByIndex.forEach(dcLine -> dcLine.updateState(parameters, updateReport));
+        voltageSourceConvertersByIndex.forEach(converter -> converter.updateState(parameters, updateReport));
         hvdcs.forEach(LfHvdc::updateState);
 
         if (updateReport.closedSwitchCount + updateReport.openedSwitchCount > 0) {
@@ -637,6 +699,29 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             this, busesById.values().size(), branches.size());
     }
 
+    /**
+     * Reports the fictitious injection total if not null
+     */
+    public void reportFictitiousInjectionTotal(ReportNode reportNode) {
+        double fictitiousTargetPNormInf = 0;
+        double fictitiousTargetQNormInf = 0;
+        long busCount = 0;
+        for (LfBus bus : getBuses()) {
+            fictitiousTargetPNormInf += Math.abs(bus.getFictitiousInjectionTargetP());
+            fictitiousTargetQNormInf += Math.abs(bus.getFictitiousInjectionTargetQ());
+            if (Math.abs(bus.getFictitiousInjectionTargetP()) + Math.abs(bus.getFictitiousInjectionTargetQ()) > 0) {
+                busCount += 1;
+            }
+        }
+        if (fictitiousTargetPNormInf + fictitiousTargetQNormInf > 0) {
+            Reports.reportFictitiousInjectionTotal(reportNode,
+                    fictitiousTargetPNormInf * PerUnit.SB,
+                    fictitiousTargetQNormInf * PerUnit.SB,
+                    busCount,
+                    LOGGER);
+        }
+    }
+
     public void reportBalance(ReportNode reportNode) {
         double activeGeneration = 0;
         double reactiveGeneration = 0;
@@ -660,9 +745,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 branch.setMinZ(lowImpedanceThreshold);
             }
         } else {
-            // zero impedance phase shifter controller or controlled branch is not supported
+            // zero impedance controlling or controlled branch is not supported
             branches.stream()
                     .filter(b -> b.isPhaseController() || b.isPhaseControlled()
+                            || b.isVoltageController()
                             || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
                             || b.getGeneratorReactivePowerControl().isPresent())
                     .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
@@ -739,6 +825,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 case VALID -> {
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
+                    lfNetwork.reportFictitiousInjectionTotal(networkReport);
                     Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfNetwork.getReferenceBus().getId(), lfNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
                     lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
@@ -936,7 +1023,61 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     @Override
+    public int getElementCount(ElementType elementType) {
+        Objects.requireNonNull(elementType);
+        return switch (elementType) {
+            case BUS -> busesByIndex.size();
+            case BRANCH -> branches.size();
+            case SHUNT_COMPENSATOR -> shuntsByIndex.size();
+            case HVDC -> hvdcs.size();
+            default -> throw new IllegalArgumentException("Unknown element type: " + elementType);
+        };
+    }
+
+    @Override
     public String toString() {
         return getId();
+    }
+
+    public void addDcBus(LfDcBus dcBus) {
+        Objects.requireNonNull(dcBus);
+        dcBus.setNum(dcBusByIndex.size());
+        dcBusByIndex.add(dcBus);
+        dcBusById.put(dcBus.getId(), dcBus);
+    }
+
+    public LfDcBus getDcBusById(String id) {
+        Objects.requireNonNull(id);
+        return dcBusById.get(id);
+    }
+
+    public LfDcBus getDcBus(int num) {
+        return dcBusByIndex.get(num);
+    }
+
+    public List<LfDcBus> getDcBuses() {
+        return dcBusByIndex;
+    }
+
+    public void addDcLine(LfDcLine dcLine) {
+        dcLine.setNum(dcLinesByIndex.size());
+        dcLinesByIndex.add(dcLine);
+    }
+
+    public List<LfDcLine> getDcLines() {
+        return dcLinesByIndex;
+    }
+
+    public LfDcLine getDcLine(int num) {
+        return dcLinesByIndex.get(num);
+    }
+
+    public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {
+        voltageSourceConverter.setNum(voltageSourceConvertersByIndex.size());
+        voltageSourceConvertersByIndex.add(voltageSourceConverter);
+    }
+
+    public List<LfVoltageSourceConverter> getVoltageSourceConverters() {
+        return voltageSourceConvertersByIndex;
     }
 }

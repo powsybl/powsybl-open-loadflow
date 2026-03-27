@@ -15,7 +15,11 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Reports;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.action.AbstractLfBranchAction.updateBusesAndBranchStatus;
 
@@ -29,27 +33,33 @@ public final class LfActionUtils {
     private LfActionUtils() {
     }
 
-    public static LfAction createLfAction(Action action, Network network, boolean breakers, LfNetwork lfNetwork) {
+    public static LfAction createLfAction(Action action, Network network, LfNetwork lfNetwork) {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         return switch (action.getType()) {
-            case SwitchAction.NAME -> new LfSwitchAction(action.getId(), (SwitchAction) action, lfNetwork);
+            case SwitchAction.NAME -> new LfSwitchAction((SwitchAction) action, lfNetwork);
             case TerminalsConnectionAction.NAME ->
-                new LfTerminalsConnectionAction(action.getId(), (TerminalsConnectionAction) action, lfNetwork);
+                new LfTerminalsConnectionAction((TerminalsConnectionAction) action, lfNetwork);
             case PhaseTapChangerTapPositionAction.NAME ->
-                new LfPhaseTapChangerAction(action.getId(), (PhaseTapChangerTapPositionAction) action, lfNetwork);
+                new LfPhaseTapChangerAction((PhaseTapChangerTapPositionAction) action, lfNetwork);
             case RatioTapChangerTapPositionAction.NAME ->
-                new LfRatioTapChangerAction(action.getId(), (RatioTapChangerTapPositionAction) action, lfNetwork);
+                new LfRatioTapChangerAction((RatioTapChangerTapPositionAction) action, lfNetwork);
             case LoadAction.NAME ->
-                new LfLoadAction(action.getId(), (LoadAction) action, network, breakers);
-            case GeneratorAction.NAME -> new LfGeneratorAction(action.getId(), (GeneratorAction) action, lfNetwork);
-            case HvdcAction.NAME -> new LfHvdcAction(action.getId(), (HvdcAction) action);
+                new LfLoadAction((LoadAction) action, network, lfNetwork);
+            case GeneratorAction.NAME -> new LfGeneratorAction((GeneratorAction) action, lfNetwork);
+            case HvdcAction.NAME -> new LfHvdcAction((HvdcAction) action, lfNetwork);
             case ShuntCompensatorPositionAction.NAME ->
-                new LfShuntCompensatorPositionAction(action.getId(), (ShuntCompensatorPositionAction) action);
+                new LfShuntCompensatorPositionAction((ShuntCompensatorPositionAction) action, lfNetwork);
             case AreaInterchangeTargetAction.NAME ->
-                new LfAreaInterchangeTargetAction(action.getId(), (AreaInterchangeTargetAction) action);
+                new LfAreaInterchangeTargetAction((AreaInterchangeTargetAction) action, lfNetwork);
             default -> throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         };
+    }
+
+    public static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network) {
+        return actions.stream()
+                .map(action -> LfActionUtils.createLfAction(action, network, lfNetwork))
+                .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
     public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {

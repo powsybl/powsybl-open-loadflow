@@ -31,7 +31,7 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
 
     private final List<Variable<AcVariableType>> variables;
 
-    protected AbstractLoadModelEquationTerm(LfBus bus, LfLoadModel loadModel, LfLoad load, VariableSet<AcVariableType> variableSet) {
+    protected AbstractLoadModelEquationTerm(LfBus bus, LfLoad load, LfLoadModel loadModel, VariableSet<AcVariableType> variableSet) {
         super(bus);
         this.loadModel = Objects.requireNonNull(loadModel);
         this.load = Objects.requireNonNull(load);
@@ -48,31 +48,37 @@ public abstract class AbstractLoadModelEquationTerm extends AbstractElementEquat
         return sv.get(vVar.getRow());
     }
 
-    protected abstract Collection<LfLoadModel.ExpTerm> getExpTerms();
+    public abstract Collection<LfLoadModel.ExpTerm> getExpTerms();
 
-    protected abstract double getTarget();
+    public abstract double getTarget();
 
-    @Override
-    public double eval() {
+    public static double f(double v, double target, Collection<LfLoadModel.ExpTerm> expTerms) {
         double value = 0;
-        double v = v();
-        for (LfLoadModel.ExpTerm expTerm : getExpTerms()) {
+        for (LfLoadModel.ExpTerm expTerm : expTerms) {
             if (expTerm.n() != 0) {
                 value += expTerm.c() * Math.pow(v, expTerm.n());
             }
         }
-        return value * getTarget();
+        return value * target;
     }
 
-    @Override
-    public double der(Variable<AcVariableType> variable) {
+    public static double dfdv(double v, double target, Collection<LfLoadModel.ExpTerm> expTerms) {
         double value = 0;
-        double v = v();
-        for (LfLoadModel.ExpTerm expTerm : getExpTerms()) {
+        for (LfLoadModel.ExpTerm expTerm : expTerms) {
             if (expTerm.n() != 0) {
                 value += expTerm.c() * expTerm.n() * Math.pow(v, expTerm.n() - 1);
             }
         }
-        return value * getTarget();
+        return value * target;
+    }
+
+    @Override
+    public double eval() {
+        return f(v(), getTarget(), getExpTerms());
+    }
+
+    @Override
+    public double der(Variable<AcVariableType> variable) {
+        return dfdv(v(), getTarget(), getExpTerms());
     }
 }

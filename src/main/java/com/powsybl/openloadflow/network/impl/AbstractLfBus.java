@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -60,6 +60,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
+    protected final List<LfVoltageSourceConverter> converters = new ArrayList<>();
+
     protected LfShunt shunt;
 
     protected LfShunt controllerShunt;
@@ -83,6 +85,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     private GeneratorReactivePowerControl generatorReactivePowerControl;
 
     protected TransformerVoltageControl transformerVoltageControl;
+
+    protected VoltageSourceConverterVoltageControl voltageSourceConverterVoltageControl;
 
     protected ShuntVoltageControl shuntVoltageControl;
 
@@ -159,7 +163,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public List<VoltageControl<?>> getVoltageControls() {
-        List<VoltageControl<?>> voltageControls = new ArrayList<>(3);
+        List<VoltageControl<?>> voltageControls = new ArrayList<>(4);
+        getVoltageSourceConverterVoltageControl().ifPresent(voltageControls::add);
         getGeneratorVoltageControl().ifPresent(voltageControls::add);
         getTransformerVoltageControl().ifPresent(voltageControls::add);
         getShuntVoltageControl().ifPresent(voltageControls::add);
@@ -168,12 +173,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isVoltageControlled() {
-        return isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
+        return isVoltageSourceConverterVoltageControlled() || isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
     }
 
     @Override
     public boolean isVoltageControlled(VoltageControl.Type type) {
         return switch (type) {
+            case VOLTAGE_SOURCE_CONVERTER -> isVoltageSourceConverterVoltageControlled();
             case GENERATOR -> isGeneratorVoltageControlled();
             case TRANSFORMER -> isTransformerVoltageControlled();
             case SHUNT -> isShuntVoltageControlled();
@@ -269,14 +275,24 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return generatorVoltageControlEnabled;
     }
 
-    @Override
-    public void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
+    private void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
         if (this.generatorVoltageControlEnabled != generatorVoltageControlEnabled) {
             this.generatorVoltageControlEnabled = generatorVoltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onGeneratorVoltageControlChange(this, generatorVoltageControlEnabled);
             }
         }
+    }
+
+    @Override
+    public void setGeneratorVoltageControlEnabledAndRecomputeTargetQ(boolean generatorVoltageControlEnabled) {
+        setGeneratorVoltageControlEnabled(generatorVoltageControlEnabled);
+        invalidateGenerationTargetQ();
+    }
+
+    @Override
+    public void setVoltageControlEnabled(boolean enabled) {
+        setGeneratorVoltageControlEnabledAndRecomputeTargetQ(enabled);
     }
 
     private static LfLoadModel createLfLoadModel(LoadModel loadModel, LfNetworkParameters parameters) {
@@ -400,7 +416,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    public void invalidateGenerationTargetQ() {
+    private void invalidateGenerationTargetQ() {
         // If generationTargetQ was frozen, it is now freed. generationTargetQ is computed according to its definition in getGenerationTargetQ()
         invalidatedGenerationTargetQ = true;
         isGenerationTargetQFrozen = false;
@@ -444,14 +460,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void freezeGenerationTargetQ(double generationTargetQ) {
-        // This is only used in case of PV bus switched to PQ bus (Reactive limit outerloop) or in the transformer voltage control algorithm
-        if (!isGeneratorVoltageControlEnabled()) {
-            updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
-            isGenerationTargetQFrozen = true;
-        } else {
-            throw new PowsyblException("Generation targetQ cannot be frozen if generatorVoltageControl is enabled");
-        }
+    public void freezeGenerationTargetQAndDisableGeneratorVoltageControl(double generationTargetQ) {
+        // This is only used in case of PV bus switched to PQ bus
+        setGeneratorVoltageControlEnabled(false);
+        updateGenerationTargetQ(generationTargetQ, this.generationTargetQ);
+        isGenerationTargetQFrozen = true;
     }
 
     @Override
@@ -472,7 +485,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 loadTargetP += load.getTargetP() * load.getLoadModel().flatMap(lm -> lm.getExpTermP(0).map(LfLoadModel.ExpTerm::c)).orElse(1d);
             }
         }
-        return loadTargetP;
+        return loadTargetP + getFictitiousInjectionTargetP();
     }
 
     @Override
@@ -496,7 +509,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             }
             loadTargetQ = sum;
         }
-        return loadTargetQ;
+        return loadTargetQ + getFictitiousInjectionTargetQ();
     }
 
     @Override
@@ -583,6 +596,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<LfVoltageSourceConverter> getConverters() {
+        return converters;
+    }
+
+    @Override
     public List<LfLoad> getLoads() {
         return loads;
     }
@@ -595,6 +613,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void addBranch(LfBranch branch) {
         branches.add(Objects.requireNonNull(branch));
+    }
+
+    @Override
+    public void removeBranch(LfBranch branch) {
+        branches.remove(Objects.requireNonNull(branch));
     }
 
     @Override
@@ -816,6 +839,21 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Optional<VoltageSourceConverterVoltageControl> getVoltageSourceConverterVoltageControl() {
+        return Optional.ofNullable(voltageSourceConverterVoltageControl);
+    }
+
+    @Override
+    public boolean isVoltageSourceConverterVoltageControlled() {
+        return voltageSourceConverterVoltageControl != null && voltageSourceConverterVoltageControl.getControlledBus() == this;
+    }
+
+    @Override
+    public void setVoltageSourceConverterVoltageControl(VoltageSourceConverterVoltageControl voltageSourceConverterVoltageControl) {
+        this.voltageSourceConverterVoltageControl = voltageSourceConverterVoltageControl;
+    }
+
+    @Override
     public void setDisabled(boolean disabled) {
         super.setDisabled(disabled);
         if (shunt != null) {
@@ -912,6 +950,21 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setArea(LfArea area) {
         this.area = area;
+    }
+
+    @Override
+    public double getFictitiousInjectionTargetP() {
+        return 0;
+    }
+
+    @Override
+    public double getFictitiousInjectionTargetQ() {
+        return 0;
+    }
+
+    @Override
+    public void addConverter(LfVoltageSourceConverter converter) {
+        converters.add(converter);
     }
 
 }
