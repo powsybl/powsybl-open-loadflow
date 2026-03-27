@@ -52,7 +52,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     private VoltageLevel vlload;
     private VoltageLevel vlhv1;
     private VoltageLevel vlhv2;
-    private LoadFlow.Runner loadFlowRunner;
+    LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
@@ -522,18 +522,18 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(true);
         OpenLoadFlowParameters openLoadFlowParameters =
                 OpenLoadFlowParameters.create(parameters).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-        LoadFlowResult result = LoadFlow.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         SlackTerminal slackTerminal = network.getVoltageLevel("VLGEN").getExtension(SlackTerminal.class);
         assertNotNull(slackTerminal);
         assertNotNull(slackTerminal.getTerminal());
         openLoadFlowParameters.setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        LoadFlowResult result2 = LoadFlow.run(network, "newVariant", LocalComputationManager.getDefault(), parameters);
+        LoadFlowResult result2 = loadFlowRunner.run(network, "newVariant", LocalComputationManager.getDefault(), parameters);
         assertTrue(result2.isFullyConverged());
         assertEquals("VLHV1_0", result2.getComponentResults().get(0).getSlackBusResults().get(0).getId());
         network.getVariantManager().setWorkingVariant("newVariant");
         assertNull(slackTerminal.getTerminal());
-        LoadFlowResult result3 = LoadFlow.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters);
+        LoadFlowResult result3 = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters);
         assertTrue(result3.isFullyConverged());
         assertEquals("VLGEN_0", result3.getComponentResults().get(0).getSlackBusResults().get(0).getId());
     }

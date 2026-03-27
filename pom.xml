@@ -114,6 +114,12 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Override powsybl-math to pick up RLUSparseMatrixFactory and SparseRLUDecomposition -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-math</artifactId>
+                <version>7.3.0-SNAPSHOT</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -239,6 +245,12 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-psse-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-rte-math-native</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
