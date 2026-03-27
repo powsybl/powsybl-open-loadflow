@@ -139,7 +139,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reportNode)
                     .run();
         } else {
-            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), reportNode)) {
+            try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), reportNode)) {
                 results = AcloadFlowEngine.run(lfNetworkList.getList(), acParameters);
             }
         }

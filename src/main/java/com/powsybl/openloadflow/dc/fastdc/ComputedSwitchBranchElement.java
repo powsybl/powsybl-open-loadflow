@@ -16,6 +16,8 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
+import java.util.Objects;
+
 /**
  * @author Pierre Arvy {@literal <pierre.arvy@artelys.com>}
  */
@@ -23,8 +25,15 @@ public final class ComputedSwitchBranchElement extends AbstractComputedElement i
 
     private final boolean enabled; // indicates whether the action opens or closes the branch
 
-    public ComputedSwitchBranchElement(LfBranch lfBranch, boolean enabled, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(lfBranch, equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
+    public static ComputedSwitchBranchElement create(LfBranch lfBranch, boolean enabled, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Objects.requireNonNull(lfBranch);
+        Objects.requireNonNull(equationSystem);
+        ClosedBranchSide1DcFlowEquationTerm branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+        return new ComputedSwitchBranchElement(lfBranch, enabled, branchEquation);
+    }
+
+    private ComputedSwitchBranchElement(LfBranch lfBranch, boolean enabled, ClosedBranchSide1DcFlowEquationTerm branchEquation) {
+        super(lfBranch, branchEquation);
         this.enabled = enabled;
     }
 
