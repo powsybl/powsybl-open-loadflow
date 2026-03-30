@@ -17,7 +17,7 @@ The next section details the parameters that are specific to PowSyBl Open Load F
 **contingencyPropagation**  
 The `contingencyPropagation` property is applicable only to the portions of the network modeled with a Node/Breaker representation.
 
-Node: In iIDM, the topology modeling style Node/Breaker or Bus/Breaker is defined on a voltage level basis.
+Node: In IIDM, the topology modeling style Node/Breaker or Bus/Breaker is defined on a voltage level basis.
 For most users, all a network is of same topology style, but hybrid representation is also supported.
 
 For Bus/Breaker portions of the network, Security Analysis simulates the outage of only the equipment(s) defined in the contingency.
@@ -117,13 +117,13 @@ A specific set of load flow parameters can be configured for each contingency in
 These parameters correspond directly to the parameters in the [`LoadFlowParameters`](inv:powsyblcore:*:*#simulation/loadflow/configuration) from powsybl-core API and
 the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) specific parameters:
 - `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
-- `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+- `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#areainterchangecontrol)
 - `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
-- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#outerloopnames)
 
 To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
 
-The behaviour is as follows:
+The behavior is as follows:
 - When the extension is added: The specified parameters override the corresponding SA input parameters.
 - When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
 
