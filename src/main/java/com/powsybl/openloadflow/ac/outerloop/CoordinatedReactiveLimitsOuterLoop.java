@@ -29,8 +29,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.powsybl.openloadflow.ac.outerloop.SecondaryVoltageControlOuterLoop.buildBusIndex;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -181,7 +179,7 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
                         .distinct()
                         .toList();
 
-                var allControlledBusIndex = buildBusIndex(allControlledBuses);
+                var allControlledBusIndex = LfBus.buildIndex(allControlledBuses);
                 SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBuses,
                         allControlledBusIndex,
                         context.getLoadFlowContext());
