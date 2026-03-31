@@ -61,11 +61,11 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
             double minQ = controllerBus.getMinQ();
             double maxQ = controllerBus.getMaxQ();
             double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
-            if (q < minQ + Q_LIMIT_EPSILON) {
+            if (q < minQ - Q_LIMIT_EPSILON) {
                 LOGGER.debug("Need to adjust controller bus '{}' from {} to min limit {}",
                         controllerBus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
                 outerLoopStatus = OuterLoopStatus.UNSTABLE;
-            } else if (q > maxQ - Q_LIMIT_EPSILON) {
+            } else if (q > maxQ + Q_LIMIT_EPSILON) {
                 LOGGER.debug("Need to adjust controller bus '{}' from {} to max limit {}",
                         controllerBus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
                 outerLoopStatus = OuterLoopStatus.UNSTABLE;
@@ -83,7 +83,8 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
                         .map(b -> {
                             var controllerBuses = b.getGeneratorVoltageControl().orElseThrow().getControllerElements();
                             if (controllerBuses.size() > 1) {
-                                throw new PowsyblException("Shared voltage control not supported");
+                                throw new PowsyblException("Shared remote voltage control not supported: "
+                                        + controllerBuses.stream().map(LfBus::getId).toList());
                             }
                             return controllerBuses.getFirst();
                         })
