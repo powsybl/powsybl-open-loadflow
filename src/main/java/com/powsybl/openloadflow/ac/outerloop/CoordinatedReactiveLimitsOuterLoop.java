@@ -23,6 +23,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,7 +37,8 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
     public static final String NAME = "CoordinatedReactiveLimits";
 
     private static final double Q_LIMIT_EPSILON = 1E-6; // 10-3 MVar in PU
-    private static final double SENSI_EPS = 1e-9;
+    private static final double SENSI_EPS = 1e-6;
+    private static final double DV_EPS = 1e-8;
 
     private final MatrixFactory matrixFactory;
 
@@ -55,24 +57,27 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
-        // check if some controller buses are out of their limits
         var outerLoopStatus = OuterLoopStatus.STABLE;
+
+        // check if some controller buses are out of their limits
+        List<String> controllerBusIdsToAdjust = new ArrayList<>();
         for (LfBus controllerBus : context.getNetwork().<LfBus>getControllerElements(VoltageControl.Type.GENERATOR)) {
             double minQ = controllerBus.getMinQ();
             double maxQ = controllerBus.getMaxQ();
             double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
             if (q < minQ - Q_LIMIT_EPSILON) {
-                LOGGER.debug("Need to adjust controller bus '{}' from {} to min limit {}",
+                LOGGER.trace("Need to adjust controller bus '{}' from {} to min limit {}",
                         controllerBus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
-                outerLoopStatus = OuterLoopStatus.UNSTABLE;
+                controllerBusIdsToAdjust.add(controllerBus.getId());
             } else if (q > maxQ + Q_LIMIT_EPSILON) {
-                LOGGER.debug("Need to adjust controller bus '{}' from {} to max limit {}",
+                LOGGER.trace("Need to adjust controller bus '{}' from {} to max limit {}",
                         controllerBus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
-                outerLoopStatus = OuterLoopStatus.UNSTABLE;
+                controllerBusIdsToAdjust.add(controllerBus.getId());
             }
         }
+        LOGGER.debug("{} controller buses need to be adjusted", controllerBusIdsToAdjust.size());
 
-        if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
+        if (!controllerBusIdsToAdjust.isEmpty()) {
             List<LfBus> controlledBuses = context.getNetwork().<LfBus>getControlledBuses(VoltageControl.Type.GENERATOR)
                     .stream()
                     .filter(LfBus::isGeneratorVoltageControlEnabled)
@@ -131,19 +136,24 @@ public class CoordinatedReactiveLimitsOuterLoop implements AcOuterLoop {
                     luDecomposition.solve(dq);
                 }
 
+                List<String> controlledBusIdsToAdjust = new ArrayList<>();
                 for (LfBus controlledBus : controlledBuses) {
                     int row = controlledBusIndex.get(controlledBus.getNum());
                     double dv = dq[row];
-                    if (Math.abs(dv) > 0) {
+                    if (Math.abs(dv) > DV_EPS) {
                         var vc = controlledBus.getGeneratorVoltageControl().orElseThrow();
                         var newTargetValue = vc.getTargetValue() + dv;
-                        LOGGER.debug("Adjust target voltage of controlled bus '{}': {} -> {}",
+                        LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
                                 controlledBus.getId(), vc.getTargetValue() * controlledBus.getNominalV(),
                                 newTargetValue * controlledBus.getNominalV());
                         vc.setTargetValue(newTargetValue);
+                        controlledBusIdsToAdjust.add(controlledBus.getId());
                     }
                 }
+                LOGGER.debug("{} controlled buses have been adjusted", controlledBusIdsToAdjust.size());
             }
+
+            outerLoopStatus = OuterLoopStatus.UNSTABLE;
         }
         return new OuterLoopResult(NAME, outerLoopStatus);
     }
