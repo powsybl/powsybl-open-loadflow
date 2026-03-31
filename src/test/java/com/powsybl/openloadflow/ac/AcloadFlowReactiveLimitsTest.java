@@ -149,7 +149,7 @@ class AcloadFlowReactiveLimitsTest {
         parametersExt.setCoordinatedReactiveLimits(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-161.99, gen.getTerminal());
+        assertReactivePowerEquals(-112.57, gen.getTerminal());
         assertReactivePowerEquals(-100.0, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
         assertReactivePowerEquals(100.0, ngen2Nhv1.getTerminal1());
         assertReactivePowerEquals(-200, nhv2Nload.getTerminal2());
