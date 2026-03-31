@@ -16,6 +16,9 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -33,7 +36,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         this.legRef = Ref.create(leg, parameters.isCacheEnabled());
     }
 
-    private ThreeWindingsTransformer getTwt() {
+    public ThreeWindingsTransformer getTwt() {
         return twtRef.get();
     }
 
@@ -139,19 +142,29 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+    public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
+                                                 boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
+                                                 LoadFlowModel loadFlowModel) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
+    private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter) {
+        return () -> getLeg()
+                .getAllSelectedOperationalLimitsGroups()
+                .stream()
+                .filter(o -> limitsGetter.apply(o).isPresent())
+                .collect(Collectors.toMap(OperationalLimitsGroup::getId, o -> limitsGetter.apply(o).orElseThrow()));
+    }
+
     @Override
-    public List<LfLimit> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, () -> getLeg().getActivePowerLimits(), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits), limitReductionManager);
             case APPARENT_POWER:
-                return getLimits1(type, () -> getLeg().getApparentPowerLimits(), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits), limitReductionManager);
             case CURRENT:
-                return getLimits1(type, () -> getLeg().getCurrentLimits(), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits), limitReductionManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -201,7 +214,12 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
                 .setQ(q1 * PerUnit.SB);
     }
 
-    public static ThreeWindingsTransformerResult createThreeWindingsTransformerResult(LfNetwork network, String threeWindingsTransformerId, boolean createResultExtension) {
+    private static LfBranchResults extractLegBranchResults(LfLegBranch leg) {
+        return new LfBranchResults(leg.p1.eval(), Double.NaN, leg.q1.eval(), Double.NaN, leg.i1.eval(), Double.NaN);
+    }
+
+    public static ThreeWindingsTransformerResult createThreeWindingsTransformerResult(LfNetwork network, String threeWindingsTransformerId, boolean createResultExtension,
+                                                                                      Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows, LoadFlowModel loadFlowModel) {
         LfLegBranch leg1 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
         LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
         LfLegBranch leg3 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
@@ -209,10 +227,26 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         double i1Base = PerUnit.ib(leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV());
         double i2Base = PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
         double i3Base = PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+
+        LfBranchResults legBranchResults1 = leg1.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg1.getId())
+                : extractLegBranchResults(leg1);
+        LfBranchResults legBranchResults2 = leg2.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg2.getId())
+                : extractLegBranchResults(leg2);
+        LfBranchResults legBranchResults3 = leg3.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg3.getId())
+                : extractLegBranchResults(leg3);
+
+        double flowP1 = legBranchResults1.p1() * PerUnit.SB;
+        double flowP2 = legBranchResults2.p1() * PerUnit.SB;
+        double flowP3 = legBranchResults3.p1() * PerUnit.SB;
+        double flowQ1 = legBranchResults1.q1() * PerUnit.SB;
+        double flowQ2 = legBranchResults2.q1() * PerUnit.SB;
+        double flowQ3 = legBranchResults3.q1() * PerUnit.SB;
+        double currentI1 = legBranchResults1.i1() * i1Base;
+        double currentI2 = legBranchResults2.i1() * i2Base;
+        double currentI3 = legBranchResults3.i1() * i3Base;
+
         ThreeWindingsTransformerResult result = new ThreeWindingsTransformerResult(threeWindingsTransformerId,
-                leg1.getP1().eval() * PerUnit.SB, leg1.getQ1().eval() * PerUnit.SB, leg1.getI1().eval() * i1Base,
-                leg2.getP1().eval() * PerUnit.SB, leg2.getQ1().eval() * PerUnit.SB, leg2.getI1().eval() * i2Base,
-                leg3.getP1().eval() * PerUnit.SB, leg3.getQ1().eval() * PerUnit.SB, leg3.getI1().eval() * i3Base);
+                flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowP3, flowQ3, currentI3);
 
         if (createResultExtension) {
             result.addExtension(OlfThreeWindingsTransformerResult.class, new OlfThreeWindingsTransformerResult(

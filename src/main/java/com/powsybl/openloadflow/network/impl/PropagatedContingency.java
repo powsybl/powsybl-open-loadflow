@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2021-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -86,11 +86,16 @@ public class PropagatedContingency {
 
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, LfTopoConfig topoConfig,
                                                          PropagatedContingencyCreationParameters creationParameters) {
+        return createList(network, contingencies, topoConfig, creationParameters, 0);
+    }
+
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, LfTopoConfig topoConfig,
+                                                         PropagatedContingencyCreationParameters creationParameters, int startIndex) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, topoConfig, creationParameters);
+                    PropagatedContingency.create(network, contingency, index + startIndex, topoConfig, creationParameters);
             propagatedContingencies.add(propagatedContingency);
             topoConfig.getSwitchesToOpen().addAll(propagatedContingency.switchesToOpen);
             topoConfig.getBusIdsToLose().addAll(propagatedContingency.busIdsToLose);
@@ -191,13 +196,13 @@ public class PropagatedContingency {
                         topoConfig.getBranchIdsOpenableSide2().add(connectable.getId());
                     }
                     break;
-                case DANGLING_LINE:
-                    DanglingLine dl = (DanglingLine) connectable;
+                case BOUNDARY_LINE:
+                    BoundaryLine bl = (BoundaryLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
-                    if (dl.isPaired()) {
-                        addBranchToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                    if (bl.isPaired()) {
+                        addBranchToOpen(bl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     } else {
-                        addBranchToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                        addBranchToOpen(bl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     }
                     break;
 
@@ -269,7 +274,7 @@ public class PropagatedContingency {
             return List.of(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
         }
         if (identifiable instanceof TieLine line) {
-            return List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
+            return List.of(line.getBoundaryLine1().getTerminal(), line.getBoundaryLine2().getTerminal());
         }
         if (identifiable instanceof Switch) {
             return Collections.emptyList();
@@ -288,9 +293,9 @@ public class PropagatedContingency {
                 identifiable = network.getHvdcLine(element.getId());
                 yield "HVDC line";
             }
-            case DANGLING_LINE -> {
-                identifiable = network.getDanglingLine(element.getId());
-                yield "Dangling line";
+            case BOUNDARY_LINE -> {
+                identifiable = network.getBoundaryLine(element.getId());
+                yield "Boundary line";
             }
             case GENERATOR -> {
                 identifiable = network.getGenerator(element.getId());

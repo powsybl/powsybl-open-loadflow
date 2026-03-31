@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
@@ -15,9 +17,12 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface VoltageInitializer {
 
-    void prepare(LfNetwork network);
+    void prepare(LfNetwork network, ReportNode reportNode);
 
     double getMagnitude(LfBus bus);
 
     double getAngle(LfBus bus);
+
+    double getMagnitude(LfDcBus dcBus);
+
 }

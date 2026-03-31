@@ -92,7 +92,7 @@ public interface LfShunt extends LfElement {
             double smallestDistance = Math.abs(deltaB);
             for (int p = positionRange.getMinimum(); p <= positionRange.getMaximum(); p++) {
                 if (Math.abs(p - oldSection) > maxSectionShift) {
-                    // we are not allowed in one outer loop run to go further than maxSectionShift sections
+                    // we are not allowed to go further than maxSectionShift sections
                     continue;
                 }
                 double distance = Math.abs(newB - sectionsB.get(p));

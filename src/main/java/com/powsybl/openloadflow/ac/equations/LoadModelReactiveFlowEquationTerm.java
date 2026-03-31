@@ -19,17 +19,17 @@ import java.util.Collection;
  */
 public class LoadModelReactiveFlowEquationTerm extends AbstractLoadModelEquationTerm {
 
-    public LoadModelReactiveFlowEquationTerm(LfBus bus, LfLoadModel loadModel, LfLoad load, VariableSet<AcVariableType> variableSet) {
-        super(bus, loadModel, load, variableSet);
+    public LoadModelReactiveFlowEquationTerm(LfBus bus, LfLoad load, LfLoadModel loadModel, VariableSet<AcVariableType> variableSet) {
+        super(bus, load, loadModel, variableSet);
     }
 
     @Override
-    protected Collection<LfLoadModel.ExpTerm> getExpTerms() {
+    public Collection<LfLoadModel.ExpTerm> getExpTerms() {
         return loadModel.getExpTermsQ();
     }
 
     @Override
-    protected double getTarget() {
+    public double getTarget() {
         return load.getTargetQ();
     }
 

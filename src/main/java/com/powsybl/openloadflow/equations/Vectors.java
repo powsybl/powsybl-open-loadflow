@@ -24,7 +24,11 @@ public final class Vectors {
         if (a.length != b.length) {
             throw new IllegalArgumentException("a and b have different length");
         }
-        for (int i = 0; i < a.length; i++) {
+        minusWithRange(a, b, 0, a.length);
+    }
+
+    public static void minusWithRange(double[] a, double[] b, int begin, int end) {
+        for (int i = begin; i < end; i++) {
             a[i] -= b[i];
         }
     }

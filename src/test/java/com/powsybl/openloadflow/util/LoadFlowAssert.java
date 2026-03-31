@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.util;
 import com.google.common.io.ByteStreams;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.DcNode;
+import com.powsybl.iidm.network.DcTerminal;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
 
@@ -44,6 +46,10 @@ public final class LoadFlowAssert {
         assertEquals(v, bus.getV(), DELTA_V);
     }
 
+    public static void assertVoltageEquals(double v, DcNode dcNode) {
+        assertEquals(v, dcNode.getV(), DELTA_V);
+    }
+
     public static void assertAngleEquals(double a, Bus bus) {
         assertEquals(a, bus.getAngle(), DELTA_ANGLE);
     }
@@ -52,11 +58,19 @@ public final class LoadFlowAssert {
         assertEquals(p, terminal.getP(), DELTA_POWER);
     }
 
+    public static void assertDcPowerEquals(double p, DcTerminal terminal) {
+        assertEquals(p, terminal.getP(), DELTA_POWER);
+    }
+
     public static void assertReactivePowerEquals(double q, Terminal terminal) {
         assertEquals(q, terminal.getQ(), DELTA_POWER);
     }
 
     public static void assertCurrentEquals(double i, Terminal terminal) {
+        assertEquals(i, terminal.getI(), DELTA_I);
+    }
+
+    public static void assertDcCurrentEquals(double i, DcTerminal terminal) {
         assertEquals(i, terminal.getI(), DELTA_I);
     }
 
@@ -101,16 +115,22 @@ public final class LoadFlowAssert {
         assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reportNode);
     }
 
-    private static String reportToString(ReportNode reportNode) throws IOException {
+    public static String reportToString(ReportNode reportNode) throws IOException {
         StringWriter sw = new StringWriter();
         DecimalFormatSymbols symbols = new DecimalFormatSymbols();
         symbols.setDecimalSeparator('.');
         DecimalFormat decimalFormat = new DecimalFormat("#.######", symbols);
         reportNode.print(sw, typedValue -> {
+            String typedValueStr;
             if (typedValue.getValue() instanceof Double) {
-                return decimalFormat.format(typedValue.getValue());
+                typedValueStr = decimalFormat.format(typedValue.getValue());
+            } else {
+                typedValueStr = typedValue.toString();
             }
-            return typedValue.toString();
+            if (typedValueStr.equals("-0")) {
+                return "0";
+            }
+            return typedValueStr;
         });
         return sw.toString();
     }
@@ -147,5 +167,14 @@ public final class LoadFlowAssert {
             String txtReport = normalizeLineSeparator(sw.toString());
             return "Report does not contain '" + regex + "': \n-----\n" + txtReport;
         });
+    }
+
+    public static void assertReportContainsMultiline(String extract, ReportNode reportNode) throws IOException {
+        String normalizedExtract = normalizeLineSeparator(extract);
+        String logExport = normalizeLineSeparator(reportToString(reportNode));
+        if (!logExport.contains(normalizedExtract)) {
+            // Then make an assertEquals Exception to facilitate debug
+            assertEquals(normalizedExtract, logExport, "Report extract not found");
+        }
     }
 }

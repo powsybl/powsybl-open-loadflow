@@ -318,8 +318,8 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void threeBusesZeroImpedanceDanglingLineTest() {
-        Network network = Network.create("ThreeBusesWithZeroImpedanceDanglingLine", "code");
+    void threeBusesZeroImpedanceBoundaryLineTest() {
+        Network network = Network.create("ThreeBusesWithZeroImpedanceBoundaryLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
         Bus b3 = createBus(network, "b3");
@@ -327,7 +327,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLoad(b3, "l1", 1.9, 1);
         createLine(network, b1, b2, "l12", 0.01);
         createLine(network, b2, b3, "l23", 0.01);
-        DanglingLine dl3 = createDanglingLine(b3, "d3", 0.0, 1.5, 0.5);
+        BoundaryLine dl3 = createBoundaryLine(b3, "d3", 0.0, 1.5, 0.5);
 
         parametersExt.setSlackBusId("b1_vl_0")
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
@@ -454,8 +454,8 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void threeBusesZeroImpedanceDanglingLineDcTest() {
-        Network network = Network.create("ThreeBusesWithZeroImpedanceDanglingLineDc", "code");
+    void threeBusesZeroImpedanceBoundaryLineDcTest() {
+        Network network = Network.create("ThreeBusesWithZeroImpedanceBoundaryLineDc", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
         Bus b3 = createBus(network, "b3");
@@ -463,7 +463,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLoad(b3, "l1", 1.9, 1);
         createLine(network, b1, b2, "l12", 0.01);
         createLine(network, b2, b3, "l23", 0.01);
-        DanglingLine dl3 = createDanglingLine(b3, "d3", 0.0, 1.5, 0.5);
+        BoundaryLine dl3 = createBoundaryLine(b3, "d3", 0.0, 1.5, 0.5);
 
         parametersExt.setSlackBusId("b1_vl_0")
             .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
@@ -527,7 +527,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
             assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
@@ -569,7 +569,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
             assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());

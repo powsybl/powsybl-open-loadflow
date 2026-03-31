@@ -184,8 +184,8 @@ class LimitReductionManagerTest {
         LimitReduction lineCriterionReduction = LimitReduction.builder(LimitType.CURRENT, 0.9)
                 .withNetworkElementCriteria(lineCriterion)
                 .build();
-        LimitReduction danglingLineCriterionReduction = LimitReduction.builder(LimitType.CURRENT, 0.9)
-                .withNetworkElementCriteria(new DanglingLineCriterion(new SingleCountryCriterion(List.of(Country.BE)), null))
+        LimitReduction boundaryLineCriterionReduction = LimitReduction.builder(LimitType.CURRENT, 0.9)
+                .withNetworkElementCriteria(new BoundaryLineCriterion(new SingleCountryCriterion(List.of(Country.BE)), null))
                 .build();
         LimitReduction networkElementIdListCriterionReduction = LimitReduction.builder(LimitType.CURRENT, 0.9)
                 .withNetworkElementCriteria(new NetworkElementIdListCriterion(Set.of("Id1", "Id2")))
@@ -203,7 +203,7 @@ class LimitReductionManagerTest {
                 .withNetworkElementCriteria(identifiableCriterion, lineCriterion)
                 .build();
         LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(lineCriterionReduction,
-                danglingLineCriterionReduction, networkElementIdListCriterionReduction,
+                boundaryLineCriterionReduction, networkElementIdListCriterionReduction,
                 threeWindingsTransformerCriterionReduction, tieLineCriterionReduction,
                 twoWindingsTransformerCriterionReduction,
                 reductionWithALineCriterion));
@@ -235,5 +235,18 @@ class LimitReductionManagerTest {
         assertTrue(limitReductionManager.isEmpty());
         List<LimitReductionManager.TerminalLimitReduction> terminalLimitReductions = limitReductionManager.getTerminalLimitReductions();
         assertEquals(0, terminalLimitReductions.size());
+    }
+
+    @Test
+    void limitReductionsSpecifiedOperationalLimitsGroupNotSupportedTest() {
+        String limitGroup1 = "limitGroup1";
+        LimitReduction limitReduction = LimitReduction.builder(LimitType.CURRENT, 0.9)
+                .withNetworkElementCriteria(new IdentifiableCriterion(
+                        new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
+                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(0, 300, true, false))
+                .withOperationalLimitsGroupIdSelection(limitGroup1)
+                .build();
+        LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(limitReduction));
+        assertTrue(limitReductionManager.isEmpty());
     }
 }

@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,19 +8,24 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -330,7 +335,7 @@ class AcLoadFlowTransformerVoltageControlTest {
     }
 
     @Test
-    void voltageControlT2wtTestRationAtLimit() {
+    void voltageControlT2wtTestRationAtLimit() throws IOException {
         LoadFlowParameters stableParams = parameters.copy();
         stableParams.setTransformerVoltageControlOn(true);
         stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlUseInitialTapPosition(true);
@@ -353,7 +358,15 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setTargetV(26.0);
 
         System.out.println("build on server fails here");
-        LoadFlowResult result = loadFlowRunner.run(network, stableParams);
+        ReportNode rootReport = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters loadFlowRunParameters = new LoadFlowRunParameters()
+                .setParameters(stableParams)
+                .setReportNode(rootReport);
+
+        LoadFlowResult result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(134.283, bus2);
         assertVoltageEquals(28.71, t2wt.getTerminal2().getBusView().getBus());
@@ -361,6 +374,13 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+        String expected = """
+                         + Outer loop TransformerVoltageControl
+                            + 2 transformers reached their tap maximum position
+                               Transformer T2wT1 reached a tap extreme position
+                               Transformer T2wT2 reached a tap extreme position
+                """;
+        assertReportContainsMultiline(expected, rootReport);
     }
 
     @Test
@@ -963,13 +983,14 @@ class AcLoadFlowTransformerVoltageControlTest {
 
     /**
      * A very small network to test with a T2wt.
-     *
+     * <pre>
      *     G1        LD2
      *     |    L12   |
      *     |  ------- |
      *     B1         B2 - T2WT2 - B4 - L43 - B3
      *                  \                      \
      *                   T2WT - B5 - L53 - B3 - LD3
+     * </pre>
      */
     private Network createNetworkWithSharedControl() {
 
@@ -997,7 +1018,7 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setId("BUS_5")
                 .add();
 
-        Line line43 = network.newLine()
+        network.newLine()
                 .setId("LINE_43")
                 .setBus1("BUS_4")
                 .setBus2("BUS_3")
@@ -1005,7 +1026,7 @@ class AcLoadFlowTransformerVoltageControlTest {
                 .setX(0.)
                 .add();
 
-        Line line53 = network.newLine()
+        network.newLine()
                 .setId("LINE_53")
                 .setBus1("BUS_5")
                 .setBus2("BUS_3")
@@ -1166,7 +1187,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
         assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().getFirst().getIterationCount());
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);
         // we force the min nominal voltage control to 225kV...
@@ -1183,7 +1204,7 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(6, result2.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result2.getComponentResults().getFirst().getIterationCount());
         assertVoltageEquals(276.072, b4);
         assertVoltageEquals(110.460, b6);
         // we force the min nominal voltage control to 20k...
@@ -1199,8 +1220,94 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
         assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(8, result3.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result3.getComponentResults().getFirst().getIterationCount());
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);
+    }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+             twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2,  tap0v,  tap1v,  tap2v
+             false,                    5.073,    -5.0,  5.159,    -5.0,  5.440,    -5.0, 30.002, 33.152, 35.610
+             true,                     5.073,    -5.0,  5.158,    -5.0,  5.456,    -5.0, 30.084, 33.483, 38.000
+            """
+    )
+    void rxgbChangeOnRtcControlTest(boolean twtSplitShuntAdmittance,
+                                    double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2,
+                                    double tap0v, double tap1v, double tap2v) {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        t2wt.setR(2.).setX(20.).setG(1e-4).setB(1e-3);
+
+        t2wt.newRatioTapChanger()
+                .beginStep().setRho(0.9).setR(-50.).setX(-50.).setG(-50.).setB(-50.).endStep()
+                .beginStep().setRho(1.0).setR(0.).setX(0.).setG(0.).setB(0.).endStep()
+                .beginStep().setRho(1.1).setR(150.).setX(150.).setG(150.).setB(150.).endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(false)
+                .setTargetV(33.0)
+                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .add();
+
+        t2wt.getRatioTapChanger().setTapPosition(0).setRegulating(false);
+
+        parameters
+                .setDistributedSlack(true)
+                .setTransformerVoltageControlOn(true)
+                .setTwtSplitShuntAdmittance(twtSplitShuntAdmittance);
+        parametersExt
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-3)
+                .setMaxReactivePowerMismatch(1e-3);
+
+        // capture values, no regulation, tap 0
+        t2wt.getRatioTapChanger().setTapPosition(0).setRegulating(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap0p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap0p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap0v, bus3);
+
+        // capture values, no regulation, tap 1
+        t2wt.getRatioTapChanger().setTapPosition(1);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap1v, bus3);
+
+        // capture values, no regulation, tap 2
+        t2wt.getRatioTapChanger().setTapPosition(2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap2v, bus3);
+
+        // set at tap 0, enable regulation to have RTC moving to tap 1
+        t2wt.getRatioTapChanger().setTapPosition(0)
+                .setRegulationValue(33.5)
+                .setTargetDeadband(1.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap1v, bus3);
+
+        // set at tap 0, enable regulation to have RTC moving to tap 2
+        t2wt.getRatioTapChanger().setTapPosition(0)
+                .setRegulationValue(37.)
+                .setTargetDeadband(2.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap2v, bus3);
     }
 }

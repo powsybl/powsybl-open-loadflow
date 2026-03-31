@@ -16,14 +16,15 @@ import com.powsybl.openloadflow.network.PiModel;
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
-    protected final double b1;
-    protected final double b2;
-    protected final double g1;
-    protected final double g2;
-    protected final double y;
-    protected final double ksi;
-    protected final double g12;
-    protected final double b12;
+    // These values are not final because they can be modified by tap position changes
+    protected double b1;
+    protected double b2;
+    protected double g1;
+    protected double g2;
+    protected double y;
+    protected double ksi;
+    protected double g12;
+    protected double b12;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         super(branch);
@@ -40,5 +41,61 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         // y12 = g12+j.b12 = 1/(r+j.x)
         g12 = piModel.getR() * y * y;
         b12 = -piModel.getX() * y * y;
+    }
+
+    public void setB1(double b1) {
+        this.b1 = b1;
+    }
+
+    public void setB2(double b2) {
+        this.b2 = b2;
+    }
+
+    public void setG1(double g1) {
+        this.g1 = g1;
+    }
+
+    public void setG2(double g2) {
+        this.g2 = g2;
+    }
+
+    public void setB12(double b12) {
+        this.b12 = b12;
+    }
+
+    public void setG12(double g12) {
+        this.g12 = g12;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public void setKsi(double ksi) {
+        this.ksi = ksi;
+    }
+
+    public double b1() {
+        return b1;
+    }
+
+    public double b2() {
+        return b2;
+    }
+
+    public double g1() {
+        return g1;
+    }
+
+    public double g2() {
+        return g2;
+    }
+
+    public double y() {
+        return y;
+    }
+
+    public double ksi() {
+        return ksi;
     }
 }

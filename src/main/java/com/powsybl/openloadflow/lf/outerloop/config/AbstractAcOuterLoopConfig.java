@@ -52,6 +52,13 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
+    protected static Optional<AcOuterLoop> createAcHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
+        if (parameters.isHvdcAcEmulation()) {
+            return Optional.of(new AcHvdcAcEmulationLimitsOuterLoop());
+        }
+        return Optional.empty();
+    }
+
     protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         if (loadFlowParametersOverride.isAreaInterchangeControl(parametersExt)) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParametersOverride.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
@@ -124,11 +131,11 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode) {
+    protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode, int maxSectionShift) {
         if (parameters.isShuntCompensatorVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new ShuntVoltageControlOuterLoop();
-                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalShuntVoltageControlOuterLoop();
+                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalShuntVoltageControlOuterLoop(maxSectionShift);
             };
             return Optional.of(outerLoop);
         }
@@ -136,7 +143,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode());
+        return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode(), parametersExt.getIncrementalShuntControlOuterLoopMaxSectionShift());
     }
 
     protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.PhaseShifterControlMode controlMode) {

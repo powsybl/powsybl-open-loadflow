@@ -232,10 +232,10 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Values
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
@@ -243,10 +243,8 @@ class GeneratorRemoteControlPQSwitchTest {
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
                                    Slack bus active power (-21.141636 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;
@@ -284,10 +282,10 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Values
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (22.147061 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
@@ -295,10 +293,8 @@ class GeneratorRemoteControlPQSwitchTest {
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
                                    Slack bus active power (-22.091658 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;
@@ -338,10 +334,10 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Values
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
@@ -349,10 +345,8 @@ class GeneratorRemoteControlPQSwitchTest {
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
                                    Slack bus active power (-18.01229 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;
@@ -391,10 +385,10 @@ class GeneratorRemoteControlPQSwitchTest {
                                 Network balance: active generation=200 MW, active load=200 MW, reactive generation=0 MVar, reactive load=0 MVar
                                 Angle reference bus: vl2_0
                                 Slack bus: vl2_0
+                             Voltage initialization with method Uniform Values
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 1
                                    Slack bus active power (18.066373 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              + Outer loop ReactiveLimits
                                 + Outer loop iteration 2
                                    + 1 buses switched PV -> PQ (1 buses remain PV)
@@ -402,10 +396,8 @@ class GeneratorRemoteControlPQSwitchTest {
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
                                    Slack bus active power (-17.327551 MW) distributed in 1 distribution iteration(s)
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              Outer loop DistributedSlack
-                             Outer loop VoltageMonitoring
                              Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;

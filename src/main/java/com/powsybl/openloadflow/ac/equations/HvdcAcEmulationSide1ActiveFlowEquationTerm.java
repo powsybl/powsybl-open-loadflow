@@ -17,54 +17,44 @@ import java.util.Objects;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
+@SuppressWarnings("squid:S00107")
 public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm {
 
     public HvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet);
     }
 
-    private double p1(double ph1, double ph2) {
-        double rawP = rawP(ph1, ph2);
+    public static double p1(double p0, double k, double lossFactor1, double lossFactor2, double r, double ph1, double ph2) {
+        double rawP = rawP(p0, k, ph1, ph2);
         // if converterStation1 is controller, then p1 is positive, otherwise it is negative
-        return isController(rawP) ? boundedP(rawP) : -getAbsActivePowerWithLosses(boundedP(rawP), lossFactor1, lossFactor2);
+        return isController(rawP) ? rawP : -getAbsActivePowerWithLosses(rawP, lossFactor1, lossFactor2, r);
     }
 
     private static boolean isController(double rawP) {
         return rawP >= 0;
     }
 
-    private boolean isInOperatingRange(double rawP) {
-        return rawP < pMaxFromCS1toCS2 && rawP > -pMaxFromCS2toCS1;
+    public static double dp1dph1(double p0, double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
+        double rawP = rawP(p0, k, ph1, ph2);
+        return isController(rawP) ? k : k * getVscLossMultiplier(lossFactor1, lossFactor2); // derivative of cable loss is neglected
     }
 
-    protected double dp1dph1(double ph1, double ph2) {
-        double rawP = rawP(ph1, ph2);
-        if (isInOperatingRange(rawP)) {
-            return (isController(rawP) ? 1 : getVscLossMultiplier()) * k; // derivative of cable loss is neglected
-        } else {
-            return 0;
-        }
-    }
-
-    protected double dp1dph2(double ph1, double ph2) {
-        return -dp1dph1(ph1, ph2);
+    public static double dp1dph2(double p0, double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
+        return -dp1dph1(p0, k, lossFactor1, lossFactor2, ph1, ph2);
     }
 
     @Override
     public double eval() {
-        return element.isAcEmulationFrozen() ? p1(element.getAngleDifferenceToFreeze(), 0) : p1(ph1(), ph2());
+        return p1(p0, k, lossFactor1, lossFactor2, r, ph1(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        if (element.isAcEmulationFrozen()) {
-            return 0;
-        }
         if (variable.equals(ph1Var)) {
-            return dp1dph1(ph1(), ph2());
+            return dp1dph1(p0, k, lossFactor1, lossFactor2, ph1(), ph2());
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2(ph1(), ph2());
+            return dp1dph2(p0, k, lossFactor1, lossFactor2, ph1(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

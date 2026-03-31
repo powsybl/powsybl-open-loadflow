@@ -289,7 +289,7 @@ class DcLoadFlowTest {
         }
 
         // bus 12 and 13 are out of main connected component
-        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         loadFlowRunner.run(network, parameters);
 
         // check angle is zero for the 2 slack buses
@@ -378,7 +378,7 @@ class DcLoadFlowTest {
                 .setMaxOuterLoopIterations(1);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(c1);
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, topoConfig, ReportNode.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, ReportNode.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {
@@ -488,13 +488,13 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
 
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute interchange active power mismatch", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
     void outerLoopMaxTotalIterationTest() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
-        parameters.setPhaseShifterRegulationOn(true);
+        parameters.setPhaseShifterRegulationOn(true).setHvdcAcEmulation(false);
         parametersExt.setAreaInterchangeControl(true);
 
         // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.
@@ -527,7 +527,7 @@ class DcLoadFlowTest {
                             Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
-                         Slack bus active power (-0 MW) distributed in 0 distribution iteration(s)
+                         Slack bus active power (0 MW) distributed in 0 distribution iteration(s)
                          + Outer loop IncrementalPhaseControl
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1

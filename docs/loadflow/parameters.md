@@ -137,8 +137,8 @@ The default value is `2 MW` and it must be greater than `0 MW`.
 
 **voltageRemoteControl**  
 The `voltageRemoteControl` property is an optional property that defines if the remote control for voltage controllers has to be modeled.
-If set to false, any existing voltage remote control is converted to a local control, rescaling the target voltage
-according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.  
+If set to false, any existing voltage remote control is converted to a local control, using the generator's _equivalentLocalTargetV_ if available,
+or rescaling the target voltage according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.  
 The default value is `true`.
 
 **voltageRemoteControlRobustMode**  
@@ -203,7 +203,7 @@ capability curve limits (if it is below lowest P value or above highest P value)
 The default value is `false`.
 
 **phaseShifterControlMode**  
-- `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the Newton-Raphson inner-loop.
+- `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the AC solver inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
 
 The default value is `CONTINUOUS_WITH_DISCRETISATION`.
@@ -232,10 +232,19 @@ Applies when `transformerVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONT
 
 **shuntVoltageControlMode**  
 This parameter defines which kind of outer loops is used for the shunt voltage control. We have two kinds of outer loops:
-- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control. Susceptance is finally rounded to the closest section for shunt that are controlling voltage. The control deadband is not taken into account.
-- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. Susceptance always corresponds to a section. Section changes using sensitivity computations. The control deadband is taken into account.
+- `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control.
+Susceptance is finally rounded to the closest section for shunt that are controlling voltage.
+The control deadband is not taken into account.
+- `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used.
+Susceptance always corresponds to a section. Section changes using sensitivity computations. The control deadband is taken into account.
+This mode can be further configured with parameter **incrementalShuntControlOuterLoopMaxSectionShift**
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
+
+**incrementalShuntControlOuterLoopMaxSectionShift**  
+Maximum number of section position change during a single iteration of the incremental shunt voltage control outer loop.
+Applies when `shuntVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONTROL` and when `shuntVoltageControl` is enabled (`true`).  
+The default value is `3`.
 
 **svcVoltageMonitoring**  
 Whether simulation of static VAR compensators voltage monitoring should be enabled.  
@@ -244,16 +253,17 @@ The default value is `true`.
 **acSolverType**  
 AC load flow solver engine. Currently, it can be one of:
 - `NEWTON_RAPHSON` is the standard Newton-Raphson algorithm for load flow. Solves linear systems via Sparse LU decomposition (by [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html));
-- `NEWTON_KRYLOV` is also the standard Newton-Raphson algorithm for load flow. Solves linear systems via Krylov subspace methods for indefinite non-symmetric matrices (by [Kinsol](https://computing.llnl.gov/projects/sundials/kinsol)).
+- `NEWTON_KRYLOV` is also the standard Newton-Raphson algorithm for load flow. Solves linear systems via Krylov subspace methods for indefinite non-symmetric matrices (by [Kinsol](https://computing.llnl.gov/projects/sundials/kinsol));
+- `FAST_DECOUPLED` solves the load flow equation system decoupling angles from magnitudes and active from reactive power. For more information see [`Fast-Decoupled Algorithm`](loadflow.md/#fast-decoupled-algorithm).
 
 The default value is `NEWTON_RAPHSON`.
 
 **maxOuterLoopIterations**  
-Maximum number of iterations for Newton-Raphson outer loop.  
+Maximum number of iterations for the AC solver outer loop.  
 The default value is `20` and it must be greater or equal to `1`.
 
 **newtonRaphsonStoppingCriteriaType**  
-Stopping criteria for Newton-Raphson algorithm.
+Stopping criteria used for Newton-Raphson and Fast-Decoupled algorithms.
 - `UNIFORM_CRITERIA`: stop when quadratic norm of all mismatches vector is below quadratic norm of mismatches of value `newtonRaphsonConvEpsPerEq`. This criteria is defined by the following formula (for $n$ equations):
 
 $$\sqrt {mismatch_1^2 + mismatch_2^2 + ... + mismatch_n^2} < \sqrt{n * newtonRaphsonConvEpsPerEq^2}$$
@@ -270,8 +280,8 @@ $$\sqrt {mismatch_1^2 + mismatch_2^2 + ... + mismatch_n^2} < \sqrt{n * newtonRap
 The default value is `UNIFORM_CRITERIA`.
 
 **maxNewtonRaphsonIterations**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON`.
-Maximum number of iterations for Newton-Raphson inner loop.  
+Only applies if **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
+Maximum number of iterations for solver inner loop.  
 The default value is `15` and it must be greater or equal to `1`.
 
 **maxNewtonKrylovIterations**  
@@ -289,22 +299,34 @@ This parameter 'slows down' the Newton-Raphson by scaling the state vector betwe
 The default value is `NONE`.
 
 **lineSearchStateVectorScalingMaxIteration**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`.  
+Only applies: 
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 Maximum iterations for a vector scaling when applying a line search strategy.  
 The default value is `10` and it must be greater or equal to `1`.
 
 **lineSearchStateVectorScalingStepFold**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`.  
+Only applies:
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 At the iteration $i$ of vector scaling with the line search strategy, with this parameter having the value $s$ , the step size will be $ \mu  = \frac{1}{s^i}$ .   
 The default value is `4/3 = 1.333` and it must be greater than `1`.
 
 **maxVoltageChangeStateVectorScalingMaxDv**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`.  
+Only applies:
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 Maximum amplitude p.u. for a voltage change.  
 The default value is `0.1 p.u.` and it must be greater than `0`.
 
 **maxVoltageChangeStateVectorScalingMaxDphi**  
-Only applies if **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`.  
+Only applies:
+- If **acSolverType** is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
+- Or if **acSolverType** is `FAST_DECOUPLED`.
+
 Maximum angle for a voltage change.  
 The default value is `0.174533 radians` (`10°`) and it must be greater than `0`.
 
@@ -341,7 +363,7 @@ their reactive diagram.
 The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
 **minNominalVoltageRealisticVoltageCheck**
-This parameter defines the minimal nominal voltage, in kV, for which a bus oustide of **minRealisticVoltage**
+This parameter defines the minimal nominal voltage, in kV, for which a bus outside of **minRealisticVoltage**
 and **maxRealisticVoltage** will stop the simulation.
 
 Unrealistic voltages -particularly in high-voltage substations- can trigger automated protections or other 
@@ -356,16 +378,22 @@ and 100 kV for **minNominalVoltageRealisticVoltageCheck**.
 The default value is 0 kV.
 
 **reactiveRangeCheckMode**  
-Open Load Flow discards voltage control for generators with a too small reactive power range, because in practice a too
-small reactive power ranger means limited to zero voltage control capability.
+Open Load Flow discards voltage control for network elements with a too small reactive power range, because in practice a too
+small reactive power ranger means limited to zero voltage control capability. The involved network element types are:
+- Generators
+- Batteries
+- Voltage Source Converters
+- The optional generation part of a Boundary Line
+- Static VAR compensators
 
 For a given active power output, the reactive power range is defined as $MaxQ - MinQ$ (always a positive value).  
-The *maximum* and *minimum* reactive range of a generator is:
-- for generators without reactive limits: infinity 
-- for generators with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
-- for generators with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
+The *maximum* and *minimum* reactive range of a network element is:
+- for network elements without reactive limits: infinity 
+- for network elements with reactive limits defined by a pair of [min/max values](inv:powsyblcore:*:*:#min-max-reactive-limits), both minimum and maximum reactive range are equal to $MaxQ - MinQ$ 
+- for network elements with reactive limits defined by a [reactive capability curve](inv:powsyblcore:*:*:#reactive-capability-curve), the minimum (resp. maximum) reactive range is obtained by finding the curve point having the minimum (resp. maximum) $MaxQ - MinQ$.
+- In the case of Static VAR compensators, the reactive power range is derived from maximum and minimum susceptance assuming nominal voltage: $(B_{\text{max}} - B_{\text{min}}) \cdot \text{nominalV}^2$
 
-The `reactiveRangeCheckMode` parameter defines how generator reactive power range is to be tested. If the test does not pass,
+The `reactiveRangeCheckMode` parameter defines how network elements reactive power range is to be tested. If the test does not pass,
 meaning the reactive power range is too small, then the voltage control is disabled:
 - `MIN_MAX` mode tests if the minimum reactive range is not `0 MVAr` and if the maximum reactive range is above `1 MVAr`.
 - `MAX` mode tests if the maximum reactive range is above `1 MVAr`.
@@ -375,15 +403,19 @@ The default value is `MAX`.
 
 **reportedFeatures**  
 This parameter allows to define a set of features which should generate additional reports (as an array, or as a comma or semicolon separated string).
-In current version this parameter can be used to request Newton-Raphson iterations report:
-- `NEWTON_RAPHSON_LOAD_FLOW`: report Newton-Raphson iteration log for load flow calculations.
-- `NEWTON_RAPHSON_SECURITY_ANALYSIS`: report Newton-Raphson iteration log for security analysis calculations.
-- `NEWTON_RAPHSON_SENSITIVITY_ANALYSIS`: report Newton-Raphson iteration log for sensitivity analysis calculations.
 
-Newton-Raphson iterations report consist in reporting:
+This parameter can be used to request details about data inconsistency at network loading through the value :
+- `NETWORK_LOADING`: currently, this feature adds information at network loading step, about generators that are discarded from voltage control or active power control
+
+This parameter can also be used to request AC solver iterations report (if **acSolverType** is `NEWTON_RAPHSON` or `FAST_DECOUPLED`) :
+- `NEWTON_RAPHSON_LOAD_FLOW`: report AC solver iteration log for load flow calculations.
+- `NEWTON_RAPHSON_SECURITY_ANALYSIS`: report AC solver iteration log for security analysis calculations.
+- `NEWTON_RAPHSON_SENSITIVITY_ANALYSIS`: report AC solver iteration log for sensitivity analysis calculations.
+
+AC solver iterations report consist in reporting:
 - the involved synchronous component
-- the involved Newton-Raphson outer loop iteration
-- for each Newton-Raphson inner loop iteration:
+- the involved AC solver outer loop iteration
+- for each AC solver inner loop iteration:
     - maximum active power mismatch, the related bus Id with current solved voltage magnitude and angle.
     - maximum reactive power mismatch, the related bus Id with current solved voltage magnitude and angle.
     - maximum voltage control mismatch, the related bus Id with current solved voltage magnitude and angle.
@@ -428,15 +460,15 @@ Above this voltage level, voltage targets that are, in pu, outside 'minPlausible
 The default value is `20 kV`. It must be greater or equal to `0 kV`.
 
 **reactivePowerDispatchMode**  
-This parameter defines how reactive power is split among generators with controls (voltage or reactive power).
-It tries to divide reactive power among generators in the order described below.
+This parameter defines how reactive power is split among network elements with controls (voltage or reactive power).
+It tries to divide reactive power among network elements in the order described below.
 `reactivePowerDispatchMode` can be one of:
 - `Q_EQUAL_PROPORTION`
-    1. If all concerned generators have pre-defined reactive keys via the [Coordinated Reactive Control extension](inv:powsyblcore:*:*:#coordinated-reactive-control-extension), then it splits `Q` proportional to reactive keys
-    2. If they don't, but they have plausible reactive limits, split proportionally to the maximum reactive power range
+    1. If all concerned network elements are generators having pre-defined reactive keys via the [Coordinated Reactive Control extension](inv:powsyblcore:*:*:#coordinated-reactive-control-extension), then it splits `Q` proportional to reactive keys
+    2. If they don't, but they have plausible reactive limits, split proportionally to the maximum reactive power range (see `reactiveRangeCheckMode` parameter for definition)
     3. If they don't, split `Q` equally
 - `K_EQUAL_PROPORTION`
-    1. If generators have plausible reactive limits, split `Q` proportionally to `k`, where `k` is defined by
+    1. If network elements have plausible reactive limits, split `Q` proportionally to `k`, where `k` is defined by
        $ k = \frac{2 qToDispatch - qmax1 - qmin1 - qmax2 - qmin2 - ...}{qmax1 - qmin1 + qmax2 - qmin2 + ...} $
     2. If they don't, split `Q` equally
 
@@ -519,12 +551,12 @@ Works only when `referenceBusSelectionMode` is set to `GENERATOR_REFERENCE_PRIOR
 When multiple equipment regulate the same bus with different voltage targets,
 this parameter enables configuring priority to resolve inconsistencies by aligning the voltage targets.
 Priority is determined by equipment type order; the voltage target of the equipment type listed first takes precedence over those listed later.
-By default, the order is `["GENERATOR", "TRANSFORMER", "SHUNT"]`.  
+By default, the order is `["VOLTAGE_SOURCE_CONVERTER", "GENERATOR", "TRANSFORMER", "SHUNT"]`.  
 Note that `"GENERATOR"` indistinctively includes generators, batteries, static var compensators, and VSC HVDC converters.
 
 If the user specifies only a sub-list of priorities, this sub-list is completed by the
 order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
-it will be completed to `["TRANSFORMER", "GENERATOR", "SHUNT"]`.
+it will be completed to `["TRANSFORMER", "VOLTAGE_SOURCE_CONVERTER", "GENERATOR", "SHUNT"]`.
 
 **transformerVoltageControlUseInitialTapPosition**  
 This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
@@ -582,6 +614,49 @@ When set to `false`:
 
 The default value is `true`.
 
+**fixVoltageTargets**  
+If true, runs a preprocessing algorithm to identify voltage control settings that may cause convergence issues and 
+removes them automatically from voltage control. This incompatibility is determined by estimating an indicator dv/dz (the 
+difference of target divided by an estimation of the impedance separating the buses). In some situations, in particular when 
+remote voltage control is activated, this could lead to a failure in the Newton-Rapshon convergence.
+
+Note that for small impedances, the indicator value might be affected by the precision limit of double precision computation 
+and, while it always remains high in case of voltage target difference, its precise value may depend on the processor type 
+(for example i686 vs ARM).
+
+**Note** : In situations where the network configuration can be modified (for example when preparing a forecast network configuration) a preferred 
+solution is to identify problematic voltage settings using the VoltageTargetChecker.findElementsToDiscardFromVoltageControl
+that can be run on a Network. This java method returns the problematic voltage settings and the reason. Users can then use this result
+to fix the network data.
+
+The default value is `false`.
+
+**acDcNetwork**
+
+Defines if the loadflow uses DC detailed equipment and computes an AC DC loadflow 
+
+If `true`, the network supports DC detailed equipments, and the loadflow is computed on the whole connected network, 
+AC and DC sides in the same Jacobian matrix. Currently, the network shall contain only one synchronous component, but the number of 
+embedded DC components is not restricted.
+
+If `false`, the loadflow is the classic one, without DC detailed components.
+
+The default value is `false`.
+
+**Note:** With AC-DC network load flow, the following parameters are restricted:
+- Generic parameters
+  - `dc`: must be set to false.
+  - `voltageInitMode` cannot be set to `DC_VALUES`.
+  - `componentMode` cannot be set to `MAIN_SYNCHRONOUS`.
+- Specific parameters
+  - `voltageInitModeOverride` must be set to `NONE`.
+  - `acSolverType` must be set to `NEWTON_RAPHSON`.
+
+Moreover, network with the following characteristics are not supported:
+- A network containing detailed AC/DC converters with two AC terminals
+- A network containing detailed LCC converters
+
+If any of these cases occurs, an exception describing the problem is thrown.
 
 ## Configuration file example
 See below an extract of a config file that could help:

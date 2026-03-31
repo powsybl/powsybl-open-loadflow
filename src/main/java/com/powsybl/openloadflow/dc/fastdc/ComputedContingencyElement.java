@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
-public final class ComputedContingencyElement extends AbstractComputedElement {
+public final class ComputedContingencyElement extends AbstractComputedElement implements ComputedElement {
 
     private final ContingencyElement element;
 

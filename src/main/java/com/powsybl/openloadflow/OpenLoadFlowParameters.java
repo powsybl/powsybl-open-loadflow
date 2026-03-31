@@ -22,24 +22,19 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalShuntVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.solver.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
-import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.AbstractDcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.DcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.DefaultDcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
-import com.powsybl.openloadflow.lf.outerloop.config.ExplicitDcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.outerloop.config.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -152,6 +147,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
     public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+
+    public static final boolean AC_DC_NETWORK_DEFAULT_VALUE = false;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -309,6 +306,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME = "generatorsWithZeroMwTargetAreNotStarted";
 
+    public static final String INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME = "incrementalShuntControlOuterLoopMaxSectionShift";
+
+    public static final String FIX_VOLTAGE_TARGETS_PARAM_NAME = "fixVoltageTargets";
+
+    public static final String AC_DC_NETWORK_PARAM_NAME = "acDcNetwork";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -376,7 +379,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .put("phaseShifterRegulationOn", PHASE_CONTROL_CATEGORY_KEY)
             .put("voltageInitMode", VOLTAGE_INIT_CATEGORY_KEY)
             .put("hvdcAcEmulation", HVDC_CATEGORY_KEY)
-            .put("computedConnectedComponentScope", PERFORMANCE_CATEGORY_KEY)
+            .put("computedComponentScope", PERFORMANCE_CATEGORY_KEY)
             .build();
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
@@ -457,7 +460,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
-        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
+        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental shunt control maximum section shift per outer loop", IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(FIX_VOLTAGE_TARGETS_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix problematic voltage targets", AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(AC_DC_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "AC DC simultaneous loadflow", AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -483,6 +489,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public enum ReportedFeatures {
+        NETWORK_LOADING,
         NEWTON_RAPHSON_LOAD_FLOW,
         NEWTON_RAPHSON_SECURITY_ANALYSIS,
         NEWTON_RAPHSON_SENSITIVITY_ANALYSIS,
@@ -654,6 +661,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean startWithFrozenACEmulation = START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE;
 
     private boolean generatorsWithZeroMwTargetAreNotStarted = LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE;
+
+    private int incrementalShuntControlOuterLoopMaxSectionShift = IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE;
+
+    private boolean fixVoltageTargets = AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE;
+
+    private boolean acDcNetwork = AC_DC_NETWORK_DEFAULT_VALUE;
 
     private boolean coordinatedReactiveLimits = COORDINATED_REACTIVE_LIMITS_DEFAULT_VALUE;
 
@@ -1445,6 +1458,35 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public int getIncrementalShuntControlOuterLoopMaxSectionShift() {
+        return incrementalShuntControlOuterLoopMaxSectionShift;
+    }
+
+    public OpenLoadFlowParameters setIncrementalShuntControlOuterLoopMaxSectionShift(int incrementalShuntControlOuterLoopMaxSectionShift) {
+        this.incrementalShuntControlOuterLoopMaxSectionShift = checkParameterValue(incrementalShuntControlOuterLoopMaxSectionShift,
+                incrementalShuntControlOuterLoopMaxSectionShift >= 1,
+                INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME);
+        return this;
+    }
+
+    public boolean isFixVoltageTargets() {
+        return fixVoltageTargets;
+    }
+
+    public OpenLoadFlowParameters setFixVoltageTargets(boolean fixVoltageTargets) {
+        this.fixVoltageTargets = fixVoltageTargets;
+        return this;
+    }
+
+    public boolean isAcDcNetwork() {
+        return acDcNetwork;
+    }
+
+    public OpenLoadFlowParameters setAcDcNetwork(boolean acDcNetwork) {
+        this.acDcNetwork = acDcNetwork;
+        return this;
+    }
+
     public boolean isCoordinatedReactiveLimits() {
         return coordinatedReactiveLimits;
     }
@@ -1460,7 +1502,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static OpenLoadFlowParameters load(PlatformConfig platformConfig) {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
-
         return parameters.update(platformConfig);
     }
 
@@ -1588,6 +1629,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
                     config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
                     config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
+                    config.getOptionalIntProperty(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME)
+                            .ifPresent(this::setIncrementalShuntControlOuterLoopMaxSectionShift);
+                    config.getOptionalBooleanProperty(FIX_VOLTAGE_TARGETS_PARAM_NAME).ifPresent(this::setFixVoltageTargets);
+                    config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
                 });
         return this;
     }
@@ -1758,11 +1803,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setStartWithFrozenACEmulation(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorsWithZeroMwTargetAreNotStarted(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME))
+                .ifPresent(prop -> this.setIncrementalShuntControlOuterLoopMaxSectionShift(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(FIX_VOLTAGE_TARGETS_PARAM_NAME))
+                .ifPresent(prop -> this.setFixVoltageTargets(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(AC_DC_NETWORK_PARAM_NAME))
+                .ifPresent(prop -> this.setAcDcNetwork(Boolean.parseBoolean(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(72);
+        Map<String, Object> map = LinkedHashMap.newLinkedHashMap(81);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1841,6 +1892,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
         map.put(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, startWithFrozenACEmulation);
         map.put(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, generatorsWithZeroMwTargetAreNotStarted);
+        map.put(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, incrementalShuntControlOuterLoopMaxSectionShift);
+        map.put(FIX_VOLTAGE_TARGETS_PARAM_NAME, fixVoltageTargets);
+        map.put(AC_DC_NETWORK_PARAM_NAME, acDcNetwork);
         return map;
     }
 
@@ -1955,7 +2009,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                    SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                    SlackBusSelector slackBusSelector,
+                                                    GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                     boolean breakers) {
         return new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
@@ -1967,7 +2022,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
-                .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
+                .setComponentMode(parameters.getComponentMode())
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
@@ -2001,7 +2056,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setForceTargetQInReactiveLimits(parametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
-                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted());
+                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
+                .setAcDcNetwork(parametersExt.isAcDcNetwork())
+                .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NETWORK_LOADING));
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2047,6 +2104,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         List<AcOuterLoop> outerLoops = createAcOuterLoops(parameters, parametersExt);
 
         AcSolverFactory solverFactory = AcSolverFactory.find(parametersExt.getAcSolverType());
+        solverFactory.checkSolverAndParameterConsistency(parameters, parametersExt);
 
         return new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
@@ -2058,6 +2116,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAsymmetrical(parametersExt.isAsymmetrical())
                 .setSlackDistributionFailureBehavior(parametersExt.getSlackDistributionFailureBehavior())
                 .setSolverFactory(solverFactory, parameters)
+                .setFixVoltageTargets(parametersExt.isFixVoltageTargets())
                 .setVoltageRemoteControlRobustMode(parametersExt.isVoltageRemoteControlRobustMode())
                 .setMinRealisticVoltage(parametersExt.minRealisticVoltage)
                 .setMaxRealisticVoltage(parametersExt.maxRealisticVoltage)
@@ -2081,6 +2140,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
                 parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), parametersExt.getSlackBusCountryFilter());
 
+        if (parametersExt.isAcDcNetwork()) {
+            throw new PowsyblException("DC load flow is not supported for AC-DC network yet");
+        }
+
         var networkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
@@ -2091,7 +2154,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
                 .setUseActiveLimits(parametersExt.isUseActiveLimits())
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
-                .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
+                .setComponentMode(parameters.getComponentMode())
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
@@ -2110,7 +2173,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReferenceBusSelector(ReferenceBusSelector.fromMode(parametersExt.getReferenceBusSelectionMode()))
                 .setAreaInterchangeControl(parametersExt.isAreaInterchangeControl())
                 .setAreaInterchangeControlAreaType(parametersExt.getAreaInterchangeControlAreaType())
-                .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls());
+                .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
+                .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
+                .setAcDcNetwork(parametersExt.isAcDcNetwork())
+                .setDetailedReport(parametersExt.reportedFeatures.contains(ReportedFeatures.NETWORK_LOADING));
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
@@ -2133,6 +2199,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangePMaxMismatch(parametersExt.getAreaInterchangePMaxMismatch());
     }
 
+    static GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt,
+                                                                            GraphConnectivityFactory<LfBus, LfBranch> defaultConnectivityFactory) {
+        return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+                || parametersExt.isSimulateAutomationSystems()
+                ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
+                : defaultConnectivityFactory;
+    }
+
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
         Objects.requireNonNull(parameters1);
         Objects.requireNonNull(parameters2);
@@ -2149,7 +2223,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 parameters1.getBalanceType() == parameters2.getBalanceType() &&
                 parameters1.isDcUseTransformerRatio() == parameters2.isDcUseTransformerRatio() &&
                 parameters1.getCountriesToBalance().equals(parameters2.getCountriesToBalance()) &&
-                parameters1.getConnectedComponentMode() == parameters2.getConnectedComponentMode() &&
+                parameters1.getComponentMode() == parameters2.getComponentMode() &&
                 parameters1.isHvdcAcEmulation() == parameters2.isHvdcAcEmulation() &&
                 parameters1.getDcPowerFactor() == parameters2.getDcPowerFactor();
         if (!equals) {
@@ -2246,6 +2320,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
                 extension1.isStartWithFrozenACEmulation() == extension2.isStartWithFrozenACEmulation() &&
                 extension1.isGeneratorsWithZeroMwTargetAreNotStarted() == extension2.isGeneratorsWithZeroMwTargetAreNotStarted() &&
+                extension1.getIncrementalShuntControlOuterLoopMaxSectionShift() == extension2.getIncrementalShuntControlOuterLoopMaxSectionShift() &&
+                extension1.isFixVoltageTargets() == extension2.isFixVoltageTargets() &&
+                extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
                 extension1.isCoordinatedReactiveLimits() == extension2.isCoordinatedReactiveLimits();
     }
 
@@ -2329,6 +2406,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted())
                 .setStartWithFrozenACEmulation(extension.isStartWithFrozenACEmulation())
+                .setIncrementalShuntControlOuterLoopMaxSectionShift(extension.getIncrementalShuntControlOuterLoopMaxSectionShift())
+                .setFixVoltageTargets(extension.isFixVoltageTargets())
+                .setAcDcNetwork(extension.isAcDcNetwork())
                 .setCoordinatedReactiveLimits(extension.isCoordinatedReactiveLimits());
     }
 
@@ -2348,7 +2428,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setBalanceType(parameters.getBalanceType())
                 .setDcUseTransformerRatio(parameters.isDcUseTransformerRatio())
                 .setCountriesToBalance(new HashSet<>(parameters.getCountriesToBalance()))
-                .setConnectedComponentMode(parameters.getConnectedComponentMode())
+                .setComponentMode(parameters.getComponentMode())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setDcPowerFactor(parameters.getDcPowerFactor());
 
@@ -2360,4 +2440,3 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return parameters2;
     }
 }
-
