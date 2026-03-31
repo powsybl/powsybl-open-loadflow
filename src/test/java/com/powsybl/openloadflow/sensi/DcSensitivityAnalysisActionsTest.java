@@ -397,4 +397,32 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(300d, result.getFunctionReferenceValue(contAndCloseCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertTrue(Double.isNaN(result.getFunctionReferenceValue(contAndCloseCState, "L2_bis", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
     }
+
+    @Test
+    void testPreventiveAction() {
+        Network network = NodeBreakerNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("G")),
+                network.getBranchStream().toList());
+
+        // the operator strategy is to open breaker C
+        OperatorStrategy osOpenC = new OperatorStrategy("open C",
+                ContingencyContext.none(),
+                new TrueCondition(), List.of("open C"));
+        List<OperatorStrategy> operatorStrategies = List.of(osOpenC);
+        List<Action> actions = List.of(new SwitchAction("open C", "C", true));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+        for (var s : result.getStateStatuses()) {
+            System.out.println(s);
+        }
+    }
 }

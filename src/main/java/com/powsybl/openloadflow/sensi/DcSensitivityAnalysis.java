@@ -609,6 +609,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // process operator strategies
                 if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                    // pre-contingency operator strategies (preventive actions)
+                    for (Indexed<OperatorStrategy> operatorStrategyForBaseCase : operatorStrategiesByContingencyId.getOrDefault(null, Collections.emptyList())) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            stopwatch.stop();
+                            throw new PowsyblException("Computation was interrupted");
+                        }
+                        workingFlowStates.copyValuesFrom(baseFlowStates);
+                        workingFactorStates.copyValuesFrom(baseFactorStates);
+
+                        // TODO
+                    }
+
                     LOGGER.info("Running operator strategies connectivity analysis...");
                     Stopwatch operatorStrategyStopwatch = Stopwatch.createStarted();
                     List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> postActionsConnectivityAnalysisResults = new ArrayList<>();
