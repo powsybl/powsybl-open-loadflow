@@ -42,15 +42,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private static final SlackBusSelector SLACK_BUS_SELECTOR_FALLBACK = new MostMeshedSlackBusSelector();
 
-    private final int numCC;
+    protected final int numCC;
 
     private final int numSC;
 
-    private final SlackBusSelector slackBusSelector;
+    protected final SlackBusSelector slackBusSelector;
 
-    private final ReferenceBusSelector referenceBusSelector;
+    protected final ReferenceBusSelector referenceBusSelector;
 
-    private final int maxSlackBusCount;
+    protected final int maxSlackBusCount;
 
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
@@ -100,7 +100,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     protected Validity validity = Validity.VALID;
 
-    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    protected final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
@@ -181,11 +181,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector) {
         this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
-    }
-
-    public LfNetwork(LfNetwork network) {
-        this(network.numCC, network.numSC, network.slackBusSelector, network.maxSlackBusCount,
-                network.connectivityFactory, network.referenceBusSelector, ReportNode.NO_OP);
     }
 
     public int getNumCC() {

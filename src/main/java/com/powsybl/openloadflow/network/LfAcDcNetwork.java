@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 
 import java.util.ArrayList;
@@ -20,9 +21,16 @@ public class LfAcDcNetwork extends LfNetwork {
     private final List<LfNetwork> acNetworks;
     private final List<LfNetwork> dcNetworks;
 
+    private static final int DEFAULT_NUM_SC = -1;
+
     public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
-        // TODO : find a better way to implement super class
-        super(acNetworks.getFirst());
+        super(acNetworks.getFirst().numCC,
+                DEFAULT_NUM_SC,
+                acNetworks.getFirst().slackBusSelector,
+                acNetworks.getFirst().maxSlackBusCount,
+                acNetworks.getFirst().connectivityFactory,
+                acNetworks.getFirst().referenceBusSelector,
+                ReportNode.NO_OP);
 
         this.acNetworks = List.copyOf(acNetworks);
         this.dcNetworks = List.copyOf(dcNetworks);
@@ -68,6 +76,16 @@ public class LfAcDcNetwork extends LfNetwork {
                 break;
             }
         }
+    }
+
+    @Override
+    public int getNumSC() {
+        throw new PowsyblException("A LfAcDcNetwork does not have a numSC");
+    }
+
+    @Override
+    public String getId() {
+        return "{CC" + numCC + '}';
     }
 
     @Override

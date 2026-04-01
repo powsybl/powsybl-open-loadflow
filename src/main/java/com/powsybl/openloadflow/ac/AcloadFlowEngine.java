@@ -91,12 +91,20 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
                 ReportNode reportNode = context.getNetwork().getReportNode();
                 if (context.getParameters().isDetailedReport()) {
-                    reportNode = Reports.createDetailedSolverReporterOuterLoop(reportNode,
-                            solver.getName(),
-                            context.getNetwork().getNumCC(),
-                            context.getNetwork().getNumSC(),
-                            runningContext.outerLoopTotalIterations + 1,
-                            outerLoop.getName());
+                    if (context.getParameters().getNetworkParameters().isAcDcNetwork()) {
+                        reportNode = Reports.createDetailedSolverReporterOuterLoopAcDc(reportNode,
+                                solver.getName(),
+                                context.getNetwork().getNumCC(),
+                                runningContext.outerLoopTotalIterations + 1,
+                                outerLoop.getName());
+                    } else {
+                        reportNode = Reports.createDetailedSolverReporterOuterLoop(reportNode,
+                                solver.getName(),
+                                context.getNetwork().getNumCC(),
+                                context.getNetwork().getNumSC(),
+                                runningContext.outerLoopTotalIterations + 1,
+                                outerLoop.getName());
+                    }
                 }
 
                 // if not yet stable, restart solver
@@ -232,10 +240,16 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         if (context.getParameters().isDetailedReport()) {
-            reportNode = Reports.createDetailedSolverReporter(reportNode,
-                    solver.getName(),
-                    context.getNetwork().getNumCC(),
-                    context.getNetwork().getNumSC());
+            if (context.getParameters().getNetworkParameters().isAcDcNetwork()) {
+                reportNode = Reports.createDetailedSolverReporterAcDcNetwork(reportNode,
+                        solver.getName(),
+                        context.getNetwork().getNumCC());
+            } else {
+                reportNode = Reports.createDetailedSolverReporter(reportNode,
+                        solver.getName(),
+                        context.getNetwork().getNumCC(),
+                        context.getNetwork().getNumSC());
+            }
         }
 
         // If in remote voltage control robust mode, find the latest outerloop that can fix unrealistic state
