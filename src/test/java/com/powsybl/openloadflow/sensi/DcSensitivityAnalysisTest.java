@@ -506,6 +506,32 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testPhilippe() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", false);
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("g1", 50f),
+                                                              new WeightedSensitivityVariable("g2", 25f),
+                                                              new WeightedSensitivityVariable("g4", 25f));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+            .setVariableSets(variableSets)
+            .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(5, result.getValues().size());
+        // sensi g1 -> l14 : 1/4
+        // sensi g2 -> l14 : 1/8
+        // sensi g4 -> l14 : 3/8
+        // 50% / 25% / 25% => 1/8 + 1/32 - 3/32 = 1/16
+        assertEquals(1d / 16d, result.getBranchFlow1SensitivityValue("glsk", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testGlskOnSlackBusDistributed() {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
