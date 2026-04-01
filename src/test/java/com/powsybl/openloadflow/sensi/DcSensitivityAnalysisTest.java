@@ -524,9 +524,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
-        // sensi g1 -> l14 : 1/2
-        // sensi g2 -> l14 : 1/4
-        // sensi g4 -> l14 : 1/4
+        // sensi g1 -> l13 : 1/2
+        // sensi g2 -> l13 : 1/4
+        // sensi g4 -> l13 : 1/4
         // 50% / 25% / 25% => 1/4 + 1/16 + 1/16 = 3/8
         assertEquals(3d / 8d, result.getBranchFlow1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
@@ -550,12 +550,12 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(5, result.getValues().size());
-        // sensi g1 -> l14 : 1/2
-        // sensi g2 -> l14 : 1/4
-        // sensi g4 -> l14 : 1/4
+        // sensi g1 -> l13 : 1/2
+        // sensi g2 -> l13 : 1/4
+        // sensi g4 -> l13 : 1/4
         // sans normaliser : 50% / 25% / -25% => 1/4 + 1/16 - 1/16 = 1/4
         // en normalisant : 50% / 25% / -25% => 100% / 50% / -50% => 1/2 + 1/4 - 1/4 = 1/2
-        assertEquals(1d / 4d, result.getBranchFlow1SensitivityValue("glsk", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 4d, result.getBranchFlow1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
