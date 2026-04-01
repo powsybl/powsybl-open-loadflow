@@ -152,10 +152,10 @@ We can always increase or improves features and implementations. We have thought
 For more details, to report bugs or if you need more features, visit our [github](https://github.com/powsybl/powsybl-open-loadflow/issues) and do not hesitate to write new issues.
 
 
-Read [Contributing.md](https://github.com/powsybl/.github/blob/main/CONTRIBUTING.md) for explanations
+See [Contributing.md](https://github.com/powsybl/.github/blob/main/CONTRIBUTING.md) for explanations
 on how to contribute to the code.
 
-Read [Security.md](https://github.com/powsybl/.github/blob/main/SECURITY.md) for explanations and "how to" about the security policy.
+See [Security.md](https://github.com/powsybl/.github/blob/main/SECURITY.md) to read about the security policy.
 
 
 ## Using Maven Wrapper
