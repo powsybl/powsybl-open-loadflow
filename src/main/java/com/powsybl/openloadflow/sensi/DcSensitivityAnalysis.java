@@ -212,7 +212,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      */
     private void calculateSensitivityValuesForContingencyAndOperatorStrategy(DcLoadFlowContext loadFlowContext, OpenLoadFlowParameters lfParametersExt, SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder,
                                                                              SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates, DenseMatrix actionsStates,
-                                                                             DenseMatrix flowStates, PropagatedContingency contingency, LfOperatorStrategy operatorStrategy, Map<String, ComputedContingencyElement> contingencyElementByBranch, Map<LfAction, ComputedElement> actionElementByLfAction,
+                                                                             DenseMatrix flowStates, PropagatedContingency contingency, LfOperatorStrategy operatorStrategy, Map<String, ComputedContingencyElement> contingencyElementByBranch, Map<LfAction, List<ComputedElement>> actionElementByLfAction,
                                                                              Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements, Set<String> elementsToReconnect,
                                                                              SensitivityResultWriter resultWriter, ReportNode reportNode, Set<LfBranch> partialDisabledBranches, boolean rhsChangedAfterConnectivityBreak) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = validFactorHolder.getFactorsForContingency(contingency.getContingency().getId());
@@ -226,6 +226,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         List<ComputedElement> actionElements = actions.stream()
                 .map(actionElementByLfAction::get)
+                .flatMap(Collection::stream)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
                 .toList();
 
@@ -322,8 +323,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         disableBranchIds.addAll(contingency.getBranchIdsToOpen().keySet());
         for (LfAction action : actions) {
             if (action instanceof AbstractLfBranchAction<?> branchAction) {
-                if (branchAction.getDisabledBranch() != null) {
-                    disableBranchIds.add(branchAction.getDisabledBranch().getId());
+                if (!branchAction.getDisabledBranches().isEmpty()) {
+                    disableBranchIds.addAll(branchAction.getDisabledBranches().stream().map(LfBranch::getId).toList());
                 }
             } else {
                 throw new PowsyblException("Unexpected action type: " + action.getClass().getSimpleName());
@@ -331,8 +332,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
         for (LfAction action : actions) {
             if (action instanceof AbstractLfBranchAction<?> branchAction) {
-                if (branchAction.getEnabledBranch() != null) {
-                    disableBranchIds.remove(branchAction.getEnabledBranch().getId());
+                if (!branchAction.getEnabledBranches().isEmpty()) {
+                    disableBranchIds.removeAll(branchAction.getEnabledBranches().stream().map(LfBranch::getId).toList());
                 }
             }
         }
@@ -350,7 +351,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                        SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder,
                                                        SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
                                                        List<ParticipatingElement> participatingElements,
-                                                       Map<String, ComputedContingencyElement> contingencyElementByBranch, Map<LfAction, ComputedElement> actionElementByLfAction,
+                                                       Map<String, ComputedContingencyElement> contingencyElementByBranch, Map<LfAction, List<ComputedElement>> actionElementByLfAction,
                                                        DenseMatrix flowStates, DenseMatrix factorsStates, DenseMatrix contingenciesStates, DenseMatrix actionsStates,
                                                        SensitivityResultWriter resultWriter,
                                                        ReportNode reportNode) {
@@ -566,11 +567,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(loadFlowContext, contingenciesWithFactors);
 
                 // the map is indexed by lf actions as different kind of actions can be given on the same branch
-                Map<LfAction, ComputedElement> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, loadFlowContext.getEquationSystem());
+                Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, loadFlowContext.getEquationSystem());
 
                 // compute states with +1 -1 to model the actions in Woodbury engine
                 // note that the number of columns in the matrix depends on the number of distinct branches affected by the action elements
-                DenseMatrix actionsStates = ComputedElement.calculateElementsStates(loadFlowContext, actionElementsIndexByLfAction.values());
+                DenseMatrix actionsStates = ComputedElement.calculateElementsStates(loadFlowContext, actionElementsIndexByLfAction.values().stream().flatMap(Collection::stream).toList());
 
                 if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
                     LOGGER.info("Processing contingencies with no connectivity break");

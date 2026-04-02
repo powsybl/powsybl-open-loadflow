@@ -844,7 +844,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies2, actions2, ReportNode.NO_OP));
-        assertEquals("Branch 'line' not found in the network", exception.getCause().getMessage());
+        assertEquals("Branch or three windings transformer 'line' not found in the network", exception.getCause().getMessage());
 
         List<Action> actions3 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst1", false, 1));
         List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
@@ -1983,6 +1983,47 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(1.445, acStrategyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.445, acStrategyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1.666, acStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+             dc,    fastDc, expectedPre, expectedPost, expectedOpStrat
+             false, false,  21.246,      16.230,       11.220
+             true,  false,  21.200,      16.200,       11.200
+             true,  true,   21.200,      16.200,       11.200
+            """
+    )
+    void testTerminalsConnectionActionWith3WindingsTransformer(boolean dc, boolean fastDc, double expectedPre, double expectedPost, double expectedOpStrat) {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters
+            .setDistributedSlack(true)
+            .setDc(dc);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusPMaxMismatch(LoadFlowAssert.DELTA_POWER)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(LoadFlowAssert.DELTA_POWER)
+                .setMaxReactivePowerMismatch(LoadFlowAssert.DELTA_POWER);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(parameters);
+        OpenSecurityAnalysisParameters ext = new OpenSecurityAnalysisParameters()
+                .setDcFastMode(fastDc);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, ext);
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        List<Contingency> contingencies = List.of(Contingency.load("LOAD_4"));
+
+        List<Action> actions = List.of(new TerminalsConnectionAction("disconnect3WT", "T3wT", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("Strategy3WT", ContingencyContext.specificContingency("LOAD_4"), new TrueCondition(), List.of("disconnect3WT")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+            operatorStrategies, actions, ReportNode.NO_OP);
+
+        assertTrue(result.getOperatorStrategyResults().stream().findAny().isPresent());
+
+        assertEquals(expectedPre, result.getPreContingencyResult().getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedPost, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(expectedOpStrat, result.getOperatorStrategyResults().getFirst().getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

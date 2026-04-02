@@ -28,11 +28,7 @@ import com.powsybl.openloadflow.network.action.LfAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -133,36 +129,36 @@ public interface ComputedElement {
         return elementsStates;
     }
 
-    static Map<LfAction, ComputedElement> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        Map<LfAction, ComputedElement> computedElements = lfActionById.values().stream()
-                .flatMap(lfAction -> {
-                    ComputedElement element = switch (lfAction.getType()) {
-                        case SwitchAction.NAME, TerminalsConnectionAction.NAME -> {
-                            AbstractLfBranchAction<?> lfBranchAction = (AbstractLfBranchAction<?>) lfAction;
-                            if (lfBranchAction.getEnabledBranch() != null) {
-                                yield ComputedSwitchBranchElement.create(lfBranchAction.getEnabledBranch(), true, equationSystem);
-                            } else if (lfBranchAction.getDisabledBranch() != null) {
-                                yield ComputedSwitchBranchElement.create(lfBranchAction.getDisabledBranch(), false, equationSystem);
-                            }
-                            yield null;
+    static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<LfAction, List<ComputedElement>> computedElements = lfActionById.values().stream()
+            .flatMap(lfAction -> {
+                List<ComputedElement> elements = new ArrayList<>();
+                switch (lfAction.getType()) {
+                    case SwitchAction.NAME, TerminalsConnectionAction.NAME -> {
+                        AbstractLfBranchAction<?> lfBranchAction = (AbstractLfBranchAction<?>) lfAction;
+                        if (!lfBranchAction.getEnabledBranches().isEmpty()) {
+                            elements.addAll(lfBranchAction.getEnabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, true, equationSystem)).toList());
+                        } else if (!lfBranchAction.getDisabledBranches().isEmpty()) {
+                            elements.addAll(lfBranchAction.getDisabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, false, equationSystem)).toList());
                         }
-                        case PhaseTapChangerTapPositionAction.NAME ->
-                            new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem);
-                        default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
-                    };
-                    if (element == null) {
-                        return Stream.empty();
                     }
-                    return Stream.of(Map.entry(lfAction, element));
-                })
-                .filter(e -> e.getValue().getLfBranchEquation() != null)
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (existing, replacement) -> existing,
-                        LinkedHashMap::new
-                ));
-        ComputedElement.setComputedElementIndexes(computedElements.values());
+                    case PhaseTapChangerTapPositionAction.NAME ->
+                        elements.add(new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem));
+                    default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
+                }
+                if (elements.isEmpty()) {
+                    return Stream.empty();
+                }
+                return Stream.of(Map.entry(lfAction, elements));
+            })
+            .filter(e -> e.getValue().stream().filter(b -> b.getLfBranchEquation() == null).findAny().isEmpty())
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (existing, replacement) -> existing,
+                LinkedHashMap::new
+            ));
+        ComputedElement.setComputedElementIndexes(computedElements.values().stream().flatMap(Collection::stream).toList());
         return computedElements;
     }
 
