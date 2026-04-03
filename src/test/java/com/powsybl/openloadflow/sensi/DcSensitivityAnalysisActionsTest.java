@@ -404,7 +404,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
-                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES);
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
 
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("G")),
@@ -421,8 +421,17 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters)
                 .setOperatorStrategies(operatorStrategies)
                 .setActions(actions));
-        for (var s : result.getStateStatuses()) {
-            System.out.println(s);
-        }
+
+        var openCState = new SensitivityState(null, "open C");
+        assertEquals(1, result.getStateStatuses().size());
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(openCState));
+
+        // reference flow N, 300MW on each
+        assertEquals(300d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+
+        // reference flow on curative C opened, all the flow goes though L2: 600 MW
+        assertEquals(0, result.getFunctionReferenceValue(openCState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(600d, result.getFunctionReferenceValue(openCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
     }
 }
