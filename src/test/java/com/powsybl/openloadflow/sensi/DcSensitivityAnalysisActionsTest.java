@@ -113,7 +113,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
 
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true)
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true)
                 .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 

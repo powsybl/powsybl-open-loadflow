@@ -8,14 +8,15 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.action.Action;
-import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.contingency.*;
+import com.powsybl.contingency.BoundaryLineContingency;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.LineContingency;
 import com.powsybl.contingency.strategy.OperatorStrategy;
-import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
@@ -38,11 +39,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -2176,25 +2173,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setMaxOuterLoopIterations(1);
         e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
         assertEquals("Initial load flow of base situation ended with outer loop status UNSTABLE", e.getCause().getMessage());
-    }
-
-    @Test
-    void testUnsupportedSensitivityOperatorStrategy() {
-        Network network = FourBusNetworkFactory.create();
-        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters()
-                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
-
-        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
-        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")), network.getBranchStream().toList());
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("open l14", ContingencyContext.all(), new TrueCondition(), List.of("open l14")));
-        List<Action> actions = List.of(new TerminalsConnectionAction("open l14", "l14", true));
-
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
-                .setContingencies(contingencies)
-                .setParameters(sensiParameters)
-                .setOperatorStrategies(operatorStrategies)
-                .setActions(actions)));
-        assertEquals("AC sensitivity analysis does not support operator strategies", e.getCause().getMessage());
     }
 
     @Test
