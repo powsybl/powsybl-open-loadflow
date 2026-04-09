@@ -28,6 +28,10 @@ import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.Actions;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
+import com.powsybl.openloadflow.network.action.OperatorStrategies;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -37,6 +41,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.sensi.mt.BufferedFactorReader;
 import com.powsybl.openloadflow.sensi.mt.SequentialSensitivityResultWriter;
+import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
@@ -179,8 +184,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
     @Override
-    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> operatorStrategies,
-                        List<Action> actions, PropagatedContingencyCreationParameters creationParameters,
+    public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> configuredOperatorStrategies,
+                        List<Action> configuredActions, PropagatedContingencyCreationParameters creationParameters,
                         List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                         SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
                         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt,
@@ -190,10 +195,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(sensiReportNode);
-
-        if (!operatorStrategies.isEmpty()) {
-            throw new PowsyblException("AC sensitivity analysis does not support operator strategies");
-        }
+        Objects.requireNonNull(sensitivityAnalysisParametersExt);
+        Objects.requireNonNull(executor);
 
         network.getVariantManager().setWorkingVariant(workingVariantId);
 
@@ -213,28 +216,44 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         checkContingencies(contingencies);
         checkLoadFlowParameters(lfParameters);
 
+        List<OperatorStrategy> operatorStrategies;
+        List<Action> actions;
+        if (parameters.getOperatorStrategiesCalculationMode() == SensitivityOperatorStrategiesCalculationMode.NONE) {
+            operatorStrategies = Collections.emptyList();
+            actions = Collections.emptyList();
+        } else {
+            operatorStrategies = configuredOperatorStrategies;
+            actions = configuredActions;
+        }
+
+        LfTopoConfig topoConfig = new LfTopoConfig();
+
+        // update topo config with supported actions
+        Actions.addAllSwitchesToOperate(topoConfig, network, actions);
+        Actions.addAllBranchesToClose(topoConfig, network, actions);
+        Actions.addAllPtcToOperate(topoConfig, actions);
+
         if (sensitivityAnalysisParametersExt.getThreadCount() == 1) {
-            LfTopoConfig topoConfig = new LfTopoConfig();
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
             AcLoadFlowParameters acParameters = makeAcLoadFlowParameters(network, slackBusSelector, lfParameters, lfParametersExt, topoConfig.isBreaker());
             try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, acParameters.getNetworkParameters(), sensiReportNode)) {
 
-                analyzeContingencySet(network, lfNetworks, propagatedContingencies, acParameters, lfParameters, lfParametersExt, variableSets, factorReader,
+                analyzeContingencySet(network, lfNetworks, propagatedContingencies, operatorStrategies, actions, acParameters, lfParameters, lfParametersExt, variableSets, factorReader,
                         topoConfig.isBreaker(), resultWriter, variablesTargetVoltageInfo, sensitivityAnalysisParametersExt);
             }
         } else {
             try (SequentialSensitivityResultWriter sequentialSensitivityResultWriter = new SequentialSensitivityResultWriter(resultWriter)) {
                 BufferedFactorReader bufferedFactorReader = new BufferedFactorReader(factorReader);
                 var contingenciesPartitions = Lists2.partition(contingencies, sensitivityAnalysisParametersExt.getThreadCount());
-                ContingencyMultiThreadHelper.ParameterProvider<AcLoadFlowParameters> parameterProvider = topoConfig -> makeAcLoadFlowParameters(network, slackBusSelector, lfParameters, lfParametersExt, topoConfig.isBreaker());
+                ContingencyMultiThreadHelper.ParameterProvider<AcLoadFlowParameters> parameterProvider = tc -> makeAcLoadFlowParameters(network, slackBusSelector, lfParameters, lfParametersExt, tc.isBreaker());
                 ContingencyMultiThreadHelper.ContingencyRunner<AcLoadFlowParameters> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, acParameters) -> {
-                    analyzeContingencySet(network, lfNetworks, propagatedContingencies, acParameters, lfParameters, lfParametersExt, variableSets, bufferedFactorReader,
+                    analyzeContingencySet(network, lfNetworks, propagatedContingencies, operatorStrategies, actions, acParameters, lfParameters, lfParametersExt, variableSets, bufferedFactorReader,
                         acParameters.getNetworkParameters().isBreakers(), sequentialSensitivityResultWriter, variablesTargetVoltageInfo, sensitivityAnalysisParametersExt);
                     sequentialSensitivityResultWriter.flush(); // flush the batch of data kept in this thread
                 };
                 ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
 
-                ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
+                ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
                         parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
             }
         }
@@ -295,7 +314,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         return acParameters;
     }
 
-    private void analyzeContingencySet(Network network, LfNetworkList lfNetworks, List<PropagatedContingency> contingencies, AcLoadFlowParameters acParameters,
+    private void analyzeContingencySet(Network network, LfNetworkList lfNetworks, List<PropagatedContingency> propagatedContingencies,
+                                       List<OperatorStrategy> operatorStrategies, List<Action> actions, AcLoadFlowParameters acParameters,
                                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, List<SensitivityVariableSet> variableSets,
                                        SensitivityFactorReader factorReader, boolean breakers, SensitivityResultWriter resultWriter,
                                        VariablesTargetVoltageInfo variablesTargetVoltageInfo, OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt) {
@@ -312,13 +332,20 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         ReportNode networkReportNode = lfNetwork.getReportNode();
 
+        Map<String, Action> actionsById = Actions.indexById(actions);
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
+                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
+        Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
+        Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
+
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
         SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
         List<LfSensitivityFactor<AcVariableType, AcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
-        LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies", allLfFactors.size(), contingencies.size());
+        LOGGER.info("Running AC sensitivity analysis with {} factors, {} contingencies and {} operator strategies",
+                allLfFactors.size(), propagatedContingencies.size(), operatorStrategies.size());
 
         // next we only work with valid and valid only for function factors
-        var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, contingencies, new HashMap<>(), parameters);
+        var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, propagatedContingencies, new HashMap<>(), parameters);
         var validLfFactors = validFactorHolder.getAllFactors();
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
@@ -377,7 +404,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             OpenLoadFlowParameters contingencylfParametersExt = applyGenericContingencyParameters(context, lfParameters, lfParametersExt,
                     sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
 
-            contingencies.forEach(contingency -> {
+            propagatedContingencies.forEach(contingency -> {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new PowsyblException("Computation was interrupted");
                 }
