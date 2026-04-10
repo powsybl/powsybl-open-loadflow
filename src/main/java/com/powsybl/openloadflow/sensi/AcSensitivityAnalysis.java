@@ -392,35 +392,53 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // solve system
             context.getJacobianMatrix().solveTransposed(factorsStates);
 
+            OpenLoadFlowParameters contingencylfParametersExt = applyGenericContingencyParameters(context, lfParameters, lfParametersExt,
+                    sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
+
             // calculate sensitivity values
             setFunctionReferences(validLfFactors);
-            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, -1, resultWriter);
+            if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
+                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, -1, resultWriter);
+            }
 
             NetworkState networkState = NetworkState.save(lfNetwork);
 
+            if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                List<Indexed<OperatorStrategy>> preContingencyOperatorStrategies = operatorStrategiesByContingencyId.getOrDefault(null, Collections.emptyList());
+                if (!preContingencyOperatorStrategies.isEmpty()) {
+                    for (Indexed<OperatorStrategy> operatorStrategy : preContingencyOperatorStrategies) {
+                        LOGGER.info("Simulate operator strategy '{}'", operatorStrategy.value().getId());
+                        LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
+                        LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, null, null, lfOperatorStrategy);
+                        processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, null, lfNetworkChange, networkReportNode,
+                                lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                    }
+                }
+            }
+
             // we always restart from base case voltages for contingency simulation
             context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-
-            OpenLoadFlowParameters contingencylfParametersExt = applyGenericContingencyParameters(context, lfParameters, lfParametersExt,
-                    sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
 
             propagatedContingencies.forEach(propagatedContingency -> {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new PowsyblException("Computation was interrupted");
                 }
-                LOGGER.info("Simulate contingency '{}'", propagatedContingency.getContingency().getId());
                 LfContingency lfContingency = propagatedContingency.toLfContingency(lfNetwork).orElse(null);
-                LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, null);
-                processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
-                        lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
+                    LOGGER.info("Simulate contingency '{}'", propagatedContingency.getContingency().getId());
+                    LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, null);
+                    processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
+                            lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                }
 
                 if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
                     List<Indexed<OperatorStrategy>> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId
                             .getOrDefault(propagatedContingency.getContingency().getId(), Collections.emptyList());
 
                     for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesForThisContingency) {
+                        LOGGER.info("Simulate contingency '{}' and operator strategy '{}'", propagatedContingency.getContingency().getId(), operatorStrategy.value().getId());
                         LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
-                        lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, lfOperatorStrategy);
+                        LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, lfOperatorStrategy);
                         processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
                                 lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
                     }
@@ -452,11 +470,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             boolean hasChanged = false;
             if (lfNetworkChange.getDisabledNetwork().getBuses().isEmpty()) {
                 // contingency not breaking connectivity
-                LOGGER.debug("Contingency '{}' without loss of connectivity", lfNetworkChange.getContingencyId());
+                LOGGER.debug("Contingency '{}' and operator strategy '{}' without loss of connectivity",
+                        lfNetworkChange.getContingencyId(), lfNetworkChange.getOperatorStrategyId());
                 slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
             } else {
                 // contingency breaking connectivity
-                LOGGER.debug("Contingency '{}' with loss of connectivity", lfNetworkChange.getContingencyId());
+                LOGGER.debug("Contingency '{}' and operator strategy '{}' with loss of connectivity",
+                        lfNetworkChange.getContingencyId(), lfNetworkChange.getOperatorStrategyId());
                 // we check if factors are still in the main component
                 slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfNetworkChange.getDisabledNetwork().getBuses()::contains)).collect(Collectors.toSet());
                 // we recompute GLSK weights if needed

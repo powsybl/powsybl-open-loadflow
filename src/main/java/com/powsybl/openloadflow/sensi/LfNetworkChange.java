@@ -31,7 +31,7 @@ public class LfNetworkChange {
 
     public LfNetworkChange(LfNetwork lfNetwork, PropagatedContingency propagatedContingency, LfContingency lfContingency, LfOperatorStrategy lfOperatorStrategy) {
         Objects.requireNonNull(lfNetwork);
-        this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
+        this.propagatedContingency = propagatedContingency;
         this.lfContingency = lfContingency;
         this.lfOperatorStrategy = lfOperatorStrategy;
         Set<LfBus> disabledBuses = new HashSet<>();
@@ -57,7 +57,11 @@ public class LfNetworkChange {
     }
 
     public String getContingencyId() {
-        return propagatedContingency.getContingency().getId();
+        return propagatedContingency != null ? propagatedContingency.getContingency().getId() : "";
+    }
+
+    public String getOperatorStrategyId() {
+        return lfOperatorStrategy != null ? lfOperatorStrategy.getIndexedOperatorStrategy().value().getId() : null;
     }
 
     public boolean hasImpact() {
@@ -76,7 +80,7 @@ public class LfNetworkChange {
     }
 
     public int getContingencyIndex() {
-        return propagatedContingency.getIndex();
+        return propagatedContingency != null ? propagatedContingency.getIndex() : -1;
     }
 
     public int getOperatorStrategyIndex() {
