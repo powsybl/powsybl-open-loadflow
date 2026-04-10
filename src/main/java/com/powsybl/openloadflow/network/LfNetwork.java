@@ -112,6 +112,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
 
+    private boolean networkUpdated = false; // Used for network cache
+
     public enum Validity {
         VALID("Valid"),
         INVALID_NO_GENERATOR("Network has no generator"),
@@ -216,6 +218,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             case DC_LINE -> getDcLine(num);
             case CONVERTER -> getVoltageSourceConverter(num);
         };
+    }
+
+    public void setNetworkUpdated(boolean networkUpdated) {
+        this.networkUpdated = networkUpdated;
+    }
+
+    public boolean isNetworkUpdated() {
+        return networkUpdated;
     }
 
     protected void invalidateSlackAndReference() {

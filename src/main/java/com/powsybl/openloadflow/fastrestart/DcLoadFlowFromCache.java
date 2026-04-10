@@ -5,16 +5,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow;
+package com.powsybl.openloadflow.fastrestart;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
+import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfTopoConfig;
@@ -31,9 +31,9 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class AcLoadFlowFromCache {
+public class DcLoadFlowFromCache {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AcLoadFlowFromCache.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowFromCache.class);
 
     private final Network network;
 
@@ -41,16 +41,16 @@ public class AcLoadFlowFromCache {
 
     private final OpenLoadFlowParameters parametersExt;
 
-    private final AcLoadFlowParameters acParameters;
+    private final DcLoadFlowParameters dcParameters;
 
     private final ReportNode reportNode;
 
-    public AcLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                               AcLoadFlowParameters acParameters, ReportNode reportNode) {
+    public DcLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                               DcLoadFlowParameters dcParameters, ReportNode reportNode) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
         this.parametersExt = Objects.requireNonNull(parametersExt);
-        this.acParameters = Objects.requireNonNull(acParameters);
+        this.dcParameters = Objects.requireNonNull(dcParameters);
         this.reportNode = Objects.requireNonNull(reportNode);
     }
 
@@ -84,22 +84,22 @@ public class AcLoadFlowFromCache {
             }
         }
         if (topoConfig.isBreaker()) {
-            acParameters.getNetworkParameters().setBreakers(true);
+            dcParameters.getNetworkParameters().setBreakers(true);
         }
     }
 
-    private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
-        List<AcLoadFlowContext> contexts;
+    private List<DcLoadFlowContext> initContexts(NetworkCache.Entry<DcLoadFlowContext> entry) {
+        List<DcLoadFlowContext> contexts;
         LfTopoConfig topoConfig = new LfTopoConfig();
         configureTopoConfig(topoConfig);
 
         // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
-        try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, acParameters.getNetworkParameters(),
+        try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, dcParameters.getNetworkParameters(),
                 LfNetworkList.WorkingVariantReverter::new, reportNode)) {
             contexts = lfNetworkList.getList()
                     .stream()
-                    .map(n -> new AcLoadFlowContext(n, acParameters))
+                    .map(n -> new DcLoadFlowContext(n, dcParameters))
                     .collect(Collectors.toList());
             entry.setContexts(contexts);
             LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
@@ -110,27 +110,27 @@ public class AcLoadFlowFromCache {
         return contexts;
     }
 
-    private static AcLoadFlowResult run(AcLoadFlowContext context) {
+    private static DcLoadFlowResult run(DcLoadFlowContext context) {
         if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
-            return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
+            return DcLoadFlowResult.createNoCalculationResult(context.getNetwork());
         }
-        if (context.isNetworkUpdated()) {
-            AcLoadFlowResult result = new AcloadFlowEngine(context)
+        if (context.getNetwork().isNetworkUpdated()) {
+            DcLoadFlowResult result = new DcLoadFlowEngine(context)
                     .run();
-            context.setNetworkUpdated(false);
+            context.getNetwork().setNetworkUpdated(false);
             return result;
         }
-        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
+        return new DcLoadFlowResult(context.getNetwork(), 0, true, OuterLoopResult.stable(), 0d, 0d);
     }
 
-    public List<AcLoadFlowResult> run() {
-        NetworkCache.Entry entry = NetworkCache.INSTANCE.get(network, parameters);
-        List<AcLoadFlowContext> contexts = entry.getContexts();
+    public List<DcLoadFlowResult> run() {
+        NetworkCache.Entry<DcLoadFlowContext> entry = NetworkCache.INSTANCE.getDc(network, parameters);
+        List<DcLoadFlowContext> contexts = entry.getContexts();
         if (contexts == null) {
             contexts = initContexts(entry);
         }
         return contexts.stream()
-                .map(AcLoadFlowFromCache::run)
+                .map(DcLoadFlowFromCache::run)
                 .collect(Collectors.toList());
     }
 }

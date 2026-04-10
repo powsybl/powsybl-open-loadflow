@@ -31,6 +31,9 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.fastrestart.AcLoadFlowFromCache;
+import com.powsybl.openloadflow.fastrestart.DcLoadFlowFromCache;
+import com.powsybl.openloadflow.fastrestart.NetworkCache;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
@@ -95,7 +98,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private void updateAcState(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                AcLoadFlowResult result, AcLoadFlowParameters acParameters, boolean atLeastOneComponentHasToBeUpdated) {
         if (parametersExt.isNetworkCacheEnabled()) {
-            NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(true);
+            NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().setPause(true);
         }
         try {
             // update network state
@@ -120,7 +123,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
         } finally {
             if (parametersExt.isNetworkCacheEnabled()) {
-                NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(false);
+                NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().setPause(false);
             }
         }
     }
@@ -210,7 +213,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         dcParameters.getNetworkParameters()
                 .setCacheEnabled(false); // force not caching as not supported in DC LF
 
-        List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reportNode);
+        List<DcLoadFlowResult> results;
+        if (parametersExt.isNetworkCacheEnabled()) {
+            results = new DcLoadFlowFromCache(network, parameters, parametersExt, dcParameters, reportNode)
+                    .run();
+        } else {
+            results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reportNode);
+        }
 
         Networks.resetState(network);
 

@@ -31,6 +31,7 @@ public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E e
     protected AbstractLoadFlowContext(LfNetwork network, P parameters) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
+        network.setNetworkUpdated(true); // Used for network cache
     }
 
     public P getParameters() {

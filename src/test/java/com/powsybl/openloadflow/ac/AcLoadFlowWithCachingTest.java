@@ -18,7 +18,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.NetworkCache;
+import com.powsybl.openloadflow.fastrestart.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
@@ -59,9 +59,9 @@ class AcLoadFlowWithCachingTest {
         var ngen = network.getBusBreakerView().getBus("NGEN");
         var nload = network.getBusBreakerView().getBus("NLOAD");
 
-        assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
+        assertEquals(0, NetworkCache.INSTANCE.getAcEntryCount());
         var result = loadFlowRunner.run(network, parameters);
-        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
+        assertEquals(1, NetworkCache.INSTANCE.getAcEntryCount());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(24.5, ngen);
@@ -70,14 +70,14 @@ class AcLoadFlowWithCachingTest {
         gen.setTargetV(24.1);
 
         result = loadFlowRunner.run(network, parameters);
-        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
+        assertEquals(1, NetworkCache.INSTANCE.getAcEntryCount());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(24.1, ngen);
         assertVoltageEquals(144.402, nload);
 
         result = loadFlowRunner.run(network, parameters);
-        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
+        assertEquals(1, NetworkCache.INSTANCE.getAcEntryCount());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
     }
@@ -109,7 +109,7 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(-120.0, g4.getTerminal()); // 90 -> 120
 
         g1.setTargetP(120); // 100 -> 120
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -145,7 +145,7 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(2.983, b2.getTerminal());
 
         b1.setTargetP(4);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -158,20 +158,20 @@ class AcLoadFlowWithCachingTest {
     void testParameterChange() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
-        assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
+        assertEquals(0, NetworkCache.INSTANCE.getAcEntryCount());
         loadFlowRunner.run(network, parameters);
-        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
-        NetworkCache.Entry entry = NetworkCache.INSTANCE.findEntry(network).orElseThrow();
+        assertEquals(1, NetworkCache.INSTANCE.getAcEntryCount());
+        NetworkCache.Entry entry = NetworkCache.INSTANCE.findEntryAc(network).orElseThrow();
         loadFlowRunner.run(network, parameters);
-        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
-        NetworkCache.Entry entry2 = NetworkCache.INSTANCE.findEntry(network).orElseThrow();
+        assertEquals(1, NetworkCache.INSTANCE.getAcEntryCount());
+        NetworkCache.Entry entry2 = NetworkCache.INSTANCE.findEntryAc(network).orElseThrow();
         assertSame(entry, entry2); // reuse same cache
 
         // run with different parameters
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         loadFlowRunner.run(network, parameters);
-        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
-        NetworkCache.Entry entry3 = NetworkCache.INSTANCE.findEntry(network).orElseThrow();
+        assertEquals(1, NetworkCache.INSTANCE.getAcEntryCount());
+        NetworkCache.Entry entry3 = NetworkCache.INSTANCE.findEntryAc(network).orElseThrow();
         assertNotSame(entry, entry3); // cache has been evicted and recreated
     }
 
@@ -184,7 +184,7 @@ class AcLoadFlowWithCachingTest {
             loadFlowRunner.run(network, parameters);
             System.gc();
         }
-        assertTrue(NetworkCache.INSTANCE.getEntryCount() < runCount);
+        assertTrue(NetworkCache.INSTANCE.getAcEntryCount() < runCount);
     }
 
     @Test
@@ -197,7 +197,7 @@ class AcLoadFlowWithCachingTest {
             loadFlowRunner.run(network, parameters);
             System.gc();
         }
-        assertTrue(NetworkCache.INSTANCE.getEntryCount() < runCount);
+        assertTrue(NetworkCache.INSTANCE.getAcEntryCount() < runCount);
     }
 
     @Test
@@ -220,9 +220,9 @@ class AcLoadFlowWithCachingTest {
         var gen = network.getGenerator("GEN");
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         gen.setTargetQ(10);
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -231,13 +231,13 @@ class AcLoadFlowWithCachingTest {
         var gen = network.getGenerator("GEN");
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         gen.setProperty("foo", "bar");
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         gen.setProperty("foo", "baz");
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         gen.removeProperty("foo");
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -245,22 +245,22 @@ class AcLoadFlowWithCachingTest {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v");
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v", true);
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         network.getVariantManager().removeVariant("v");
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -268,7 +268,7 @@ class AcLoadFlowWithCachingTest {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         network.getVoltageLevel("VLLOAD").newLoad()
                 .setId("NEWLOAD")
@@ -278,7 +278,7 @@ class AcLoadFlowWithCachingTest {
                 .setQ0(10)
                 .add();
 
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -286,11 +286,11 @@ class AcLoadFlowWithCachingTest {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         network.getLoad("LOAD").remove();
 
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -298,14 +298,14 @@ class AcLoadFlowWithCachingTest {
         var network = ShuntNetworkFactory.create();
         var shunt = network.getShuntCompensator("SHUNT");
 
-        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        assertTrue(NetworkCache.INSTANCE.findEntryAc(network).isEmpty());
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(0, shunt.getTerminal());
 
         shunt.setSectionCount(1);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has not been invalidated but updated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // cache has not been invalidated but updated
 
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
@@ -317,10 +317,10 @@ class AcLoadFlowWithCachingTest {
         var network = ShuntNetworkFactory.create();
         var shunt = network.getShuntCompensator("SHUNT");
 
-        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        assertTrue(NetworkCache.INSTANCE.findEntryAc(network).isEmpty());
         loadFlowRunner.run(network, parameters); // Run a first LF before changing a parameter.
         parameters.setShuntCompensatorVoltageControlOn(true);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
@@ -328,7 +328,7 @@ class AcLoadFlowWithCachingTest {
         assertEquals(0, shunt.getSectionCount());
 
         shunt.setSolvedSectionCount(0);
-        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
+        assertNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // cache has been invalidated
     }
 
     @Test
@@ -336,10 +336,10 @@ class AcLoadFlowWithCachingTest {
         var network = ShuntNetworkFactory.createWithTwoShuntCompensators();
         var shunt = network.getShuntCompensator("SHUNT"); // with voltage control capabilities.
 
-        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        assertTrue(NetworkCache.INSTANCE.findEntryAc(network).isEmpty());
         loadFlowRunner.run(network, parameters);
         parameters.setShuntCompensatorVoltageControlOn(true);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
@@ -347,7 +347,7 @@ class AcLoadFlowWithCachingTest {
         assertEquals(0, shunt.getSectionCount());
 
         shunt.setSolvedSectionCount(1);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -358,7 +358,7 @@ class AcLoadFlowWithCachingTest {
 
         parametersExt.setActionableSwitchesIds(Set.of("C"));
 
-        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        assertTrue(NetworkCache.INSTANCE.findEntryAc(network).isEmpty());
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -366,11 +366,11 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(301.884, l1.getTerminal1());
         assertActivePowerEquals(301.884, l2.getTerminal1());
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         network.getSwitch("C").setOpen(true);
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -390,7 +390,7 @@ class AcLoadFlowWithCachingTest {
         var c = network.getSwitch("C");
         c.setOpen(true);
 
-        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        assertTrue(NetworkCache.INSTANCE.findEntryAc(network).isEmpty());
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -398,11 +398,11 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(0.0994, l1.getTerminal1());
         assertActivePowerEquals(607.681, l2.getTerminal1());
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         network.getSwitch("C").setOpen(false);
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -416,7 +416,7 @@ class AcLoadFlowWithCachingTest {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var result = loadFlowRunner.run(network, parameters);
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         var gen = network.getGenerator("GEN");
         gen.setTargetV(1000);
@@ -433,7 +433,7 @@ class AcLoadFlowWithCachingTest {
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         gen.setTargetV(24);
         result = loadFlowRunner.run(network, parameters);
@@ -462,7 +462,7 @@ class AcLoadFlowWithCachingTest {
 
         parametersExt.setActionableSwitchesIds(Set.of("BR"));
 
-        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        assertTrue(NetworkCache.INSTANCE.findEntryAc(network).isEmpty());
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -524,7 +524,7 @@ class AcLoadFlowWithCachingTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -559,7 +559,7 @@ class AcLoadFlowWithCachingTest {
 
         // update pilot point target voltage
         pilotPoint.setTargetV(12.5);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -570,7 +570,7 @@ class AcLoadFlowWithCachingTest {
 
         ControlUnit b6g = z1.getControlUnit("B6-G").orElseThrow();
         b6g.setParticipate(false);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -582,7 +582,7 @@ class AcLoadFlowWithCachingTest {
         assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
 
         pilotPoint.setTargetV(12.7);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
@@ -592,7 +592,7 @@ class AcLoadFlowWithCachingTest {
 
         // get b6 generator back
         b6g.setParticipate(true);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
@@ -620,13 +620,13 @@ class AcLoadFlowWithCachingTest {
         assertEquals(0, twt.getRatioTapChanger().getTapPosition());
 
         twt.getRatioTapChanger().setTargetV(32);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, twt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getRatioTapChanger().getTapPosition());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
     }
 
     @Test
@@ -649,13 +649,13 @@ class AcLoadFlowWithCachingTest {
         assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
 
         twt.getLeg2().getRatioTapChanger().setTargetV(26);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, twt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
     }
 
     @Test
@@ -668,15 +668,15 @@ class AcLoadFlowWithCachingTest {
         parametersExt.setActionableTransformersIds(Set.of("T2wT"));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         twt.getRatioTapChanger().setTapPosition(1);
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -689,15 +689,15 @@ class AcLoadFlowWithCachingTest {
         parametersExt.setActionableTransformersIds(Set.of("T3wT"));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
 
         twt.getLeg2().getRatioTapChanger().setTapPosition(1);
 
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
     }
 
     @Test
@@ -717,13 +717,13 @@ class AcLoadFlowWithCachingTest {
                 .setMinP(0)
                 .setMaxP(1000)
                 .add();
-        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        assertTrue(NetworkCache.INSTANCE.findEntryAc(network).isEmpty());
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts());
         gen.setTargetV(gen.getTargetV() + 0.1);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
         newGen.setTargetV(newGen.getTargetV() + 0.1);
-        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // check cache has not been invalidated
+        assertNotNull(NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().getContexts()); // check cache has not been invalidated
     }
 }
