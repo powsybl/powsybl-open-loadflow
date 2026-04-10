@@ -104,7 +104,7 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
     }
 
     public static NetworkActivations getNetworkActivations(LfNetwork network, LfContingency contingency,
-                                                                              List<AbstractLfBranchAction<?>> actions) {
+                                                           List<AbstractLfBranchAction<?>> actions) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(actions);
 

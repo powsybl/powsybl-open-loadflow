@@ -15,10 +15,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.Reports;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -61,26 +58,32 @@ public final class LfActionUtils {
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
-    @SuppressWarnings("unchecked")
-    public static AbstractLfBranchAction<?> asBranchAction(LfAction action) {
-        return (AbstractLfBranchAction<?>) action;
+    public static void split(List<LfAction> actions, List<AbstractLfBranchAction<?>> branchActions, List<LfAction> otherActions) {
+        Objects.requireNonNull(actions);
+        Objects.requireNonNull(branchActions);
+        Objects.requireNonNull(otherActions);
+        for (LfAction action : actions) {
+            if (action instanceof AbstractLfBranchAction<?>) {
+                branchActions.add((AbstractLfBranchAction<?>) action);
+            } else {
+                otherActions.add(action);
+            }
+        }
     }
 
     public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
+        List<AbstractLfBranchAction<?>> branchActions = new ArrayList<>();
+        List<LfAction> otherActions = new ArrayList<>();
+        split(actions, branchActions, otherActions);
+
         // first apply action modifying connectivity
-        List<AbstractLfBranchAction<?>> branchActions = actions.stream()
-                .filter(AbstractLfBranchAction.class::isInstance)
-                .map(LfActionUtils::asBranchAction)
-            .collect(Collectors.toList());
         AbstractLfBranchAction.getNetworkActivations(network, contingency, branchActions).apply();
 
         // then process remaining changes of actions
-        actions.stream()
-            .filter(action -> !(action instanceof AbstractLfBranchAction<?>))
-            .forEach(action -> {
+        otherActions.forEach(action -> {
                 if (!action.apply(network, contingency, networkParameters)) {
                     Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
                 }

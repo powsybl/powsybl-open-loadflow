@@ -7,15 +7,16 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
+import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.action.LfOperatorStrategy;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -24,11 +25,31 @@ public class LfNetworkChange {
     private final PropagatedContingency propagatedContingency;
     private final LfContingency lfContingency;
     private final LfOperatorStrategy lfOperatorStrategy;
+    private final DisabledNetwork disabledNetwork;
 
-    public LfNetworkChange(PropagatedContingency propagatedContingency, LfContingency lfContingency, LfOperatorStrategy lfOperatorStrategy) {
+    public LfNetworkChange(LfNetwork lfNetwork, PropagatedContingency propagatedContingency, LfContingency lfContingency, LfOperatorStrategy lfOperatorStrategy) {
+        Objects.requireNonNull(lfNetwork);
         this.propagatedContingency = Objects.requireNonNull(propagatedContingency);
         this.lfContingency = lfContingency;
         this.lfOperatorStrategy = lfOperatorStrategy;
+        Set<LfBus> disabledBuses = new HashSet<>();
+        Set<LfBranch> disabledBranches = new HashSet<>();
+        if (lfContingency != null) {
+            disabledBuses.addAll(lfContingency.getDisabledNetwork().getBuses());
+            disabledBranches.addAll(lfContingency.getDisabledNetwork().getBranches());
+        }
+        if (lfOperatorStrategy != null) {
+            List<AbstractLfBranchAction<?>> branchActions = new ArrayList<>();
+            List<LfAction> otherActions = new ArrayList<>();
+            LfActionUtils.split(lfOperatorStrategy.getActions(), branchActions, otherActions);
+            NetworkActivations networkActivations = AbstractLfBranchAction.getNetworkActivations(lfNetwork, lfContingency, branchActions);
+            disabledBuses.addAll(networkActivations.getDisabledNetwork().getBuses());
+            disabledBranches.addAll(networkActivations.getDisabledNetwork().getBranches());
+            if (!networkActivations.getEnabledNetwork().getBuses().isEmpty()) {
+                throw new PowsyblException("Network change should not add new buses");
+            }
+        }
+        disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
     }
 
     public String getContingencyId() {
@@ -40,7 +61,7 @@ public class LfNetworkChange {
     }
 
     public DisabledNetwork getDisabledNetwork() {
-        return lfContingency != null ? lfContingency.getDisabledNetwork() : new DisabledNetwork();
+        return disabledNetwork;
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {

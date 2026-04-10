@@ -411,7 +411,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 LOGGER.info("Simulate contingency '{}'", propagatedContingency.getContingency().getId());
                 LfContingency lfContingency = propagatedContingency.toLfContingency(lfNetwork).orElse(null);
                 LfOperatorStrategy lfOperatorStrategy = null;
-                LfNetworkChange lfNetworkChange = new LfNetworkChange(propagatedContingency, lfContingency, lfOperatorStrategy);
+                LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, lfOperatorStrategy);
                 processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
                         lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
             });
