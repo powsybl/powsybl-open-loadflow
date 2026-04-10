@@ -84,9 +84,9 @@ public final class LfActionUtils {
 
         // then process remaining changes of actions
         otherActions.forEach(action -> {
-                if (!action.apply(network, contingency, networkParameters)) {
-                    Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
-                }
-            });
+            if (!action.apply(network, contingency, networkParameters)) {
+                Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
+            }
+        });
     }
 }

@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import java.util.*;
 
 /**
+ * A generic wrapper for network changes that abstract from a contingency or an operator strategy.
+ *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkChange {
@@ -33,10 +35,12 @@ public class LfNetworkChange {
         this.lfContingency = lfContingency;
         this.lfOperatorStrategy = lfOperatorStrategy;
         Set<LfBus> disabledBuses = new HashSet<>();
-        Set<LfBranch> disabledBranches = new HashSet<>();
+        Map<LfBranch, DisabledBranchStatus> branchesStatus = new HashMap<>();
+        Set<LfHvdc> disabledHvdcs = new HashSet<>();
         if (lfContingency != null) {
             disabledBuses.addAll(lfContingency.getDisabledNetwork().getBuses());
-            disabledBranches.addAll(lfContingency.getDisabledNetwork().getBranches());
+            branchesStatus.putAll(lfContingency.getDisabledNetwork().getBranchesStatus());
+            disabledHvdcs.addAll(lfContingency.getDisabledNetwork().getHvdcs());
         }
         if (lfOperatorStrategy != null) {
             List<AbstractLfBranchAction<?>> branchActions = new ArrayList<>();
@@ -44,12 +48,12 @@ public class LfNetworkChange {
             LfActionUtils.split(lfOperatorStrategy.getActions(), branchActions, otherActions);
             NetworkActivations networkActivations = AbstractLfBranchAction.getNetworkActivations(lfNetwork, lfContingency, branchActions);
             disabledBuses.addAll(networkActivations.getDisabledNetwork().getBuses());
-            disabledBranches.addAll(networkActivations.getDisabledNetwork().getBranches());
+            branchesStatus.putAll(networkActivations.getDisabledNetwork().getBranchesStatus());
             if (!networkActivations.getEnabledNetwork().getBuses().isEmpty()) {
                 throw new PowsyblException("Network change should not add new buses");
             }
         }
-        disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
+        disabledNetwork = new DisabledNetwork(disabledBuses, branchesStatus, disabledHvdcs);
     }
 
     public String getContingencyId() {
@@ -65,8 +69,9 @@ public class LfNetworkChange {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
+        disabledNetwork.apply();
         if (lfContingency != null) {
-            lfContingency.apply(balanceType);
+            lfContingency.processLostPowerChanges(balanceType, true);
         }
     }
 

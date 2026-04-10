@@ -128,12 +128,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         if (!runLoadFlow(context, false)) {
             // write contingency status
-            resultWriter.writeStateStatus(contingencyIndex, -1, SensitivityAnalysisResult.Status.FAILURE);
+            resultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, SensitivityAnalysisResult.Status.FAILURE);
             return;
         }
 
         // write contingency status
-        resultWriter.writeStateStatus(contingencyIndex, -1, SensitivityAnalysisResult.Status.SUCCESS);
+        resultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -410,13 +410,23 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 }
                 LOGGER.info("Simulate contingency '{}'", propagatedContingency.getContingency().getId());
                 LfContingency lfContingency = propagatedContingency.toLfContingency(lfNetwork).orElse(null);
-                LfOperatorStrategy lfOperatorStrategy = null;
-                LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, lfOperatorStrategy);
+                LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, null);
                 processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
                         lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+
+                if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                    List<Indexed<OperatorStrategy>> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId
+                            .getOrDefault(propagatedContingency.getContingency().getId(), Collections.emptyList());
+
+                    for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesForThisContingency) {
+                        LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
+                        lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, lfOperatorStrategy);
+                        processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
+                                lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                    }
+                }
             });
         }
-
     }
 
     private void processNetworkChange(LoadFlowParameters lfParameters, SensitivityResultWriter resultWriter, VariablesTargetVoltageInfo variablesTargetVoltageInfo,
