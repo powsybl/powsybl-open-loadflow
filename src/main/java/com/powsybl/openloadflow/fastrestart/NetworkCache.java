@@ -43,7 +43,7 @@ public enum NetworkCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
-    public static class Entry<C extends AbstractLoadFlowContext> extends DefaultNetworkListener {
+    public static class Entry<C extends AbstractLoadFlowContext<?, ?, ?>> extends DefaultNetworkListener {
 
         private final WeakReference<Network> networkRef;
 
@@ -302,7 +302,9 @@ public enum NetworkCache {
                      "p2",
                      "q2",
                      "p3",
-                     "q3" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
+                     "q3",
+                     "ratioTapChanger.solvedTapPosition",
+                     "phaseTapChanger.solvedTapPosition" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
