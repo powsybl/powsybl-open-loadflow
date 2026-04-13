@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.VoltageControl;
 
 /**
- * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class ContinuousTransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
