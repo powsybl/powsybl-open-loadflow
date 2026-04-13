@@ -1,0 +1,22 @@
++ Test security analysis report
+   + DC security analysis on network 'sim1'
+      + Network CC0 SC0
+         + Network info
+            Network has 4 buses and 4 branches
+            Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
+            Angle reference bus: VLHV1_0
+            Slack bus: VLHV1_0
+         + Pre-contingency simulation
+            Slack bus active power (-7 MW) distributed in 1 distribution iteration(s)
+            DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
+         + Post-contingency simulation 'NHV1_NHV2_1'
+            DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
+         + Post-contingency simulation 'NHV1_NHV2_2'
+            DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
+         + Post-contingency simulation 'NGEN_NHV1'
+            Contingency caused the loss of 600 MW injection: 0 MW distributed, 600 MW remaining.
+            Failed to distribute slack bus active power mismatch, 600 MW remains
+            DC load flow completed (solverSuccess=false, outerloopStatus=FAILED)
+         + Post-contingency simulation 'NHV2_NLOAD'
+            Contingency caused the loss of -600 MW injection: -600 MW distributed, 0 MW remaining.
+            DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
