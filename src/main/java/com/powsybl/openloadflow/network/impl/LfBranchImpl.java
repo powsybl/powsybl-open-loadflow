@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
 public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
+
+    public static final String RTC_CONTINUOUS_RATIO = "continuousRatio";
 
     private final Ref<Branch<?>> branchRef;
 
@@ -370,10 +373,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     rtc.unsetSolvedTapPosition();
                 } else if (parameters.isTransformerVoltageControlOn() && isVoltageController()
                         || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
-                    double baseRatio = Transformers.getRatioPerUnitBase(twt);
-                    double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
-                    double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
-                    updateSolvedTapPosition(rtc, ptcRho, rho);
+                    if (parameters.getTransformerVoltageControlMode() == OpenLoadFlowParameters.TransformerVoltageControlMode.CONTINUOUS_VOLTAGE_CONTROL) {
+                        rtc.unsetSolvedTapPosition();
+                        rtc.setProperty(RTC_CONTINUOUS_RATIO, Double.toString(getPiModel().getR1()));
+                    } else {
+                        double baseRatio = Transformers.getRatioPerUnitBase(twt);
+                        double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
+                        double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
+                        updateSolvedTapPosition(rtc, ptcRho, rho);
+                    }
                 } else {
                     rtc.setSolvedTapPosition(rtc.getTapPosition());
                 }
