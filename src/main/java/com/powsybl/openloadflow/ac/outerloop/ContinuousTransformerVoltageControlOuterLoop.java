@@ -19,23 +19,13 @@ import com.powsybl.openloadflow.network.VoltageControl;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class ContinuousTransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
+public class ContinuousTransformerVoltageControlOuterLoop extends AbstractSimpleTransformerVoltageControlOuterLoop {
 
     public static final String NAME = "ContinuousTransformerVoltageControl";
 
     @Override
     public String getName() {
         return NAME;
-    }
-
-    @Override
-    public void initialize(AcOuterLoopContext context) {
-        for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-            if (controllerBranch.isConnectedAtBothSides()) {
-                controllerBranch.setVoltageControlEnabled(true);
-            }
-        }
-        context.getNetwork().fixTransformerVoltageControls();
     }
 
     @Override
