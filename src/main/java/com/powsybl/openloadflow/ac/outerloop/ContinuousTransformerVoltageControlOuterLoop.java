@@ -48,10 +48,10 @@ public class ContinuousTransformerVoltageControlOuterLoop extends AbstractTransf
 
                 // clip the rho shift to min or max if needed
                 PiModel piModel = controllerBranch.getPiModel();
-                double r1Value = piModel.getR1();
+                double initialR1 = piModel.getR1();
                 if (piModel.clipR1()) {
                     status = OuterLoopStatus.UNSTABLE;
-                    LOGGER.trace("Clip voltage ratio of '{}': {} -> {}", controllerBranch.getId(), r1Value, piModel.getContinuousR1());
+                    LOGGER.trace("Clip voltage ratio of '{}': {} -> {}", controllerBranch.getId(), initialR1, piModel.getR1());
                 }
             }
         }
