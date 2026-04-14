@@ -13,16 +13,20 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.AreaInterchangeControlContextData;
+import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public class AcAreaInterchangeControlOuterLoop
-        extends AbstractAreaInterchangeControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
-        implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
+    extends AbstractAreaInterchangeControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+    implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcAreaInterchangeControlOuterLoop.class);
 
@@ -35,4 +39,16 @@ public class AcAreaInterchangeControlOuterLoop
         return context.getLastSolverResult().getSlackBusActivePowerMismatch().values().stream().reduce(0., Double::sum);
     }
 
+    @Override
+    public double getDistributedActivePower(AcOuterLoopContext context, int numSC) {
+        if (context.getData() instanceof AreaInterchangeControlContextData contextData) {
+            // This corresponds to AcAreaInterchangeControl outer loop.
+            return contextData.getDistributedActivePower();
+        } else {
+            // This corresponds to the fallback without areas: the DistributedSlack outer loop
+            // in this case, the context data is a HashMap matching the numSC to the DistributedSlackContextData object
+            DistributedSlackContextData contextData = (DistributedSlackContextData) ((HashMap<?, ?>) context.getData()).get(numSC);
+            return contextData.getDistributedActivePower();
+        }
+    }
 }

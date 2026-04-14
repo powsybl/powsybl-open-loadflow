@@ -195,7 +195,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         );
 
         RunningContext runningContext = new RunningContext();
-        double distributedActivePower = 0.0;
+        List<Integer> synchronousComponentsNumbers = context.getNetwork() instanceof LfAcDcNetwork acDcNetwork
+            ? acDcNetwork.getAcNetworks().stream().map(LfNetwork::getNumSC).toList()
+            : List.of(context.getNetwork().getNumSC());
+        HashMap<Integer, Double> distributedActivePowerPerSc = new HashMap<>() {
+            {
+                synchronousComponentsNumbers.forEach(numSc -> put(numSc, 0.0));
+            }
+        };
 
         // Verify whether a regulated bus voltage exists.
         // If not, then fail immediately with SOLVER_FAILED status.
@@ -216,7 +223,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 nonInitializedSlackMismatch.put(context.getNetwork().getNumSC(), Double.NaN);
             }
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, nonInitializedSlackMismatch);
-            return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
+            return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePowerPerSc);
         }
 
         AcSolver solver = solverFactory.create(context.getNetwork(),
@@ -310,7 +317,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
             if (outerLoop instanceof AcActivePowerDistributionOuterLoop activePowerDistributionOuterLoop) {
-                distributedActivePower = activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext);
+                for (int numSC : synchronousComponentsNumbers) {
+                    distributedActivePowerPerSc.put(numSC, activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext, numSC));
+                }
             }
             outerLoop.cleanup(outerLoopContext);
         }
@@ -328,17 +337,17 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
         }
 
-        return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower);
+        return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePowerPerSc);
     }
 
-    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, double distributedActivePower) {
+    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, HashMap<Integer, Double> distributedActivePower) {
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
-                runningContext.outerLoopTotalIterations,
-                runningContext.nrTotalIterations.getValue(),
-                runningContext.lastSolverResult.getStatus(),
-                outerLoopFinalResult,
-                runningContext.lastSolverResult.getSlackBusActivePowerMismatch().values().stream().reduce(0., Double::sum),
-                distributedActivePower
+            runningContext.outerLoopTotalIterations,
+            runningContext.nrTotalIterations.getValue(),
+            runningContext.lastSolverResult.getStatus(),
+            outerLoopFinalResult,
+            runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
+            distributedActivePower
         );
 
         LOGGER.info("AC loadflow complete on network {} (result={})", context.getNetwork(), result);

@@ -15,9 +15,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.commons.test.TestUtil;
+import com.powsybl.contingency.*;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
-import com.powsybl.contingency.*;
 import com.powsybl.contingency.violations.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
@@ -70,7 +70,8 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.*;
+import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
+import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWithNonImpedantThreeWindingsTransformer;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1999,7 +2000,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     private AcLoadFlowResult buildTestAcLoadFlowResult(AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus) {
         LfNetwork lfNetwork = Mockito.mock(LfNetwork.class);
-        return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, new OuterLoopResult("", outerLoopStatus), 0d, 0d);
+        return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, new OuterLoopResult("", outerLoopStatus), Collections.singletonMap(0, 0d), Collections.singletonMap(0, 0d));
     }
 
     @Test

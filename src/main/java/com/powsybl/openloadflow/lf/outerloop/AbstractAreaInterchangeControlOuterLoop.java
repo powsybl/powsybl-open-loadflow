@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
@@ -75,6 +74,9 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
     @Override
     public void initialize(O context) {
         LfNetwork network = context.getNetwork();
+        if (network instanceof LfAcDcNetwork acDcNetwork && acDcNetwork.getSynchronousComponentCount() > 1) {
+            throw new PowsyblException("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components");
+        }
         if (!network.hasArea() && noAreaOuterLoop != null) {
             noAreaOuterLoop.initialize(context);
             return;
@@ -85,27 +87,11 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
 
     @Override
     public OuterLoopResult check(O context, ReportNode reportNode) {
-        if (context.getNetwork() instanceof LfAcDcNetwork acDcNetwork) {
-            HashMap<Integer, Double> slackMismatchPerSynchronousComponent = ((AcOuterLoopContext) context).getLastSolverResult().getSlackBusActivePowerMismatch();
-            OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
-            for (LfNetwork acNetwork : acDcNetwork.getAcNetworks()) {
-                OuterLoopResult result = check(acNetwork, slackMismatchPerSynchronousComponent.get(acNetwork.getNumSC()), context, reportNode);
-                if (result.status() == OuterLoopStatus.FAILED) {
-                    return new OuterLoopResult(this, OuterLoopStatus.FAILED); // We do not wait for the outer loops on other synchronous components
-                } else if (result.status() == OuterLoopStatus.UNSTABLE) {
-                    globalStatus = OuterLoopStatus.UNSTABLE;
-                }
-            }
-            return new OuterLoopResult(this, globalStatus);
-        } else {
-            return check(context.getNetwork(), getSlackBusActivePowerMismatch(context), context, reportNode);
-        }
-    }
-
-    public OuterLoopResult check(LfNetwork network, double slackBusActivePowerMismatch, O context, ReportNode reportNode) {
+        LfNetwork network = context.getNetwork();
         if (!network.hasArea() && noAreaOuterLoop != null) {
             return noAreaOuterLoop.check(context, reportNode);
         }
+        double slackBusActivePowerMismatch = getSlackBusActivePowerMismatch(context);
         AreaInterchangeControlContextData contextData = (AreaInterchangeControlContextData) context.getData();
         Map<String, Double> slackDistributionFactorByAreaId = contextData.getSlackDistributionFactorByAreaId();
 

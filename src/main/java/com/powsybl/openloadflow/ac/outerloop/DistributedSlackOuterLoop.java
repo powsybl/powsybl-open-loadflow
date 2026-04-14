@@ -26,14 +26,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DistributedSlackOuterLoop
-        extends AbstractActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
-        implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
+    extends AbstractActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+    implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
 
@@ -55,7 +57,11 @@ public class DistributedSlackOuterLoop
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        var contextData = new DistributedSlackContextData();
+        List<Integer> synchronousComponentsNumbers = context.getNetwork() instanceof LfAcDcNetwork acDcNetwork
+            ? acDcNetwork.getAcNetworks().stream().map(LfNetwork::getNumSC).toList()
+            : List.of(context.getNetwork().getNumSC());
+        Map<Integer, DistributedSlackContextData> contextData = new HashMap<>();
+        synchronousComponentsNumbers.forEach(numSc -> contextData.put(numSc, new DistributedSlackContextData()));
         context.setData(contextData);
     }
 
@@ -105,7 +111,7 @@ public class DistributedSlackOuterLoop
             }
             ActivePowerDistribution.reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, resultWbh);
         }
-        DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
+        DistributedSlackContextData contextData = (DistributedSlackContextData) ((HashMap<?, ?>) context.getData()).get(network.getNumSC());
         contextData.addDistributedActivePower(distributedActivePower);
         if (resultWbh.failed()) {
             contextData.addDistributedActivePower(-resultWbh.failedDistributedActivePower());
@@ -120,4 +126,9 @@ public class DistributedSlackOuterLoop
         return context.getLastSolverResult().getSlackBusActivePowerMismatch().values().stream().reduce(0., Double::sum);
     }
 
+    @Override
+    public double getDistributedActivePower(AcOuterLoopContext context, int numSC) {
+        DistributedSlackContextData contextData = (DistributedSlackContextData) ((HashMap<?, ?>) context.getData()).get(numSC);
+        return contextData.getDistributedActivePower();
+    }
 }

@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.lf;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -19,12 +20,12 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
 
     protected final LfNetwork network;
 
-    protected final double slackBusActivePowerMismatch;
+    protected final Map<Integer, Double> slackBusActivePowerMismatch;
     protected final int outerLoopIterations;
     protected final OuterLoopResult outerLoopResult;
-    protected final double distributedActivePower;
+    protected final Map<Integer, Double> distributedActivePower;
 
-    protected AbstractLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, int outerLoopIterations, OuterLoopResult outerLoopResult, double distributedActivePower) {
+    protected AbstractLoadFlowResult(LfNetwork network, Map<Integer, Double> slackBusActivePowerMismatch, int outerLoopIterations, OuterLoopResult outerLoopResult, Map<Integer, Double> distributedActivePower) {
         this.network = Objects.requireNonNull(network);
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
         this.outerLoopIterations = outerLoopIterations;
@@ -39,7 +40,11 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
 
     @Override
     public double getSlackBusActivePowerMismatch() {
-        return slackBusActivePowerMismatch;
+        return slackBusActivePowerMismatch.values().stream().reduce(0.0, Double::sum);
+    }
+
+    public double getSlackBusActivePowerMismatch(int numSc) {
+        return slackBusActivePowerMismatch.get(numSc);
     }
 
     public int getOuterLoopIterations() {
@@ -52,6 +57,10 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
 
     @Override
     public double getDistributedActivePower() {
-        return distributedActivePower;
+        return distributedActivePower.values().stream().reduce(0.0, Double::sum);
+    }
+
+    public double getDistributedActivePower(int numSc) {
+        return distributedActivePower.get(numSc);
     }
 }
