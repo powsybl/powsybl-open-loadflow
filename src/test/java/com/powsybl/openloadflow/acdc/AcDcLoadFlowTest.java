@@ -207,9 +207,7 @@ class AcDcLoadFlowTest {
         network.getDcNode("dcNodeFrNeg").setNominalV(500.0F);
         network.getDcNode("dcNodeGbNeg").setNominalV(500.0F);
 
-        // TODO: adapt slack distribution for AC subnetworks
-        // For now, AC-DC load flow with multiple synchronous components is not possible. Therefore, we add an AC line to connect the
-        // two synchronous components
+        // We add an AC line to connect the two synchronous components
         network.newLine()
                 .setId("acLine")
                 .setBus1("BUS-FR")
@@ -291,9 +289,7 @@ class AcDcLoadFlowTest {
         subnetwork.newDcLine().setId("dlGroundPos").setR(1e10).setDcNode1("dcNodeGbPos").setDcNode2("dnGround").add();
         subnetwork.newDcGround().setDcNode("dnGround").setId("dcGround").add();
 
-        // TODO: adapt slack distribution for AC subnetworks
-        // For now, AC-DC load flow with multiple synchronous components is not possible. Therefore, we add an AC line to connect the
-        // two synchronous components
+        // We add an AC line to connect the two synchronous components
         network.newLine()
                 .setId("acLine")
                 .setBus1("BUS-FR")
