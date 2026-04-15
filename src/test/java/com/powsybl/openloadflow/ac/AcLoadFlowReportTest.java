@@ -226,7 +226,7 @@ class AcLoadFlowReportTest {
                          + 1 generators have been discarded from voltage control because targetV is implausible
                             Discard generator B2-G from voltage control because of implausible target voltage: 0.074074 p.u
                 """ : // not detailed version
-                """
+            """
                          1 generators have been discarded from voltage control because of a too small reactive range
                          2 generators have been discarded from voltage control because targetP is outside active power limits
                          1 generators have been discarded from active power control because of a targetP > maxP
@@ -412,4 +412,81 @@ class AcLoadFlowReportTest {
                         """, reportNode);
 
     }
+
+    @Test
+    void testAcDcNetworkReportsDoNotIncludeNumSc() throws IOException {
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+            .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+            .withMessageTemplate("testReport")
+            .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+            .setAcDcNetwork(true)
+            .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+            .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertTxtReportEquals("""
+            + Test Report
+               + Load flow on network '2ACzones'
+                  + Network CC0 SC0
+                     + Network info
+                        Network has 2 buses and 0 branches
+                        Network balance: active generation=100 MW, active load=120 MW, reactive generation=0 MVar, reactive load=0 MVar
+                        Angle reference bus: b1_vl_0
+                        Slack bus: b1_vl_0
+                        Slack bus: b2_vl_0
+                     Voltage initialization with method Uniform Values
+                     + Newton-Raphson on Network CC0
+                        No outer loops have been launched
+                        + Initial mismatch
+                           Newton-Raphson norm |f(x)|=0.766587
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 0 MW, 0 MVar
+                        + Iteration 1 mismatch
+                           Newton-Raphson norm |f(x)|=0.235715
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                        + Iteration 2 mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                     + Outer loop DistributedSlack
+                        + Outer loop iteration 1
+                           Slack bus active power (40 MW) distributed in 1 distribution iteration(s)
+                        + Outer loop iteration 1
+                           Slack bus active power (-19.998222 MW) distributed in 1 distribution iteration(s)
+                     + Newton-Raphson on Network CC0
+                        Newton-Raphson of outer loop iteration 1 of type DistributedSlack
+                        + Initial mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                        + Iteration 1 mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                     Outer loop ReactiveLimits
+                     Outer loop DistributedSlack
+                     Outer loop ReactiveLimits
+                     AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+            """, reportNode);
+    }
+
 }

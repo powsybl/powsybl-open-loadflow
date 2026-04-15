@@ -25,12 +25,13 @@ public class LfAcDcNetwork extends LfNetwork {
 
     public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
         super(acNetworks.getFirst().numCC,
-                DEFAULT_NUM_SC,
-                acNetworks.getFirst().slackBusSelector,
-                acNetworks.getFirst().maxSlackBusCount,
-                acNetworks.getFirst().connectivityFactory,
-                acNetworks.getFirst().referenceBusSelector,
-                ReportNode.NO_OP);
+            DEFAULT_NUM_SC,
+            acNetworks.getFirst().slackBusSelector,
+            acNetworks.getFirst().maxSlackBusCount,
+            acNetworks.getFirst().connectivityFactory,
+            acNetworks.getFirst().referenceBusSelector,
+            acNetworks.getFirst().getReportNode() // FIXME: Create its own ReportNode ?
+        );
 
         this.acNetworks = List.copyOf(acNetworks);
         this.dcNetworks = List.copyOf(dcNetworks);
