@@ -373,14 +373,12 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     rtc.unsetSolvedTapPosition();
                 } else if (parameters.isTransformerVoltageControlOn() && isVoltageController()
                         || parameters.isTransformerReactivePowerControlOn() && isTransformerReactivePowerController()) { // it means there is a regulating ratio tap changer
+                    double baseRatio = Transformers.getRatioPerUnitBase(twt);
+                    double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
                     if (parameters.getTransformerVoltageControlMode() == OpenLoadFlowParameters.TransformerVoltageControlMode.CONTINUOUS_VOLTAGE_CONTROL) {
                         rtc.unsetSolvedTapPosition();
-                        double baseRatio = Transformers.getRatioPerUnitBase(twt);
-                        double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
                         twt.setProperty(RTC_CONTINUOUS_RATIO, Double.toString(rho));
                     } else {
-                        double baseRatio = Transformers.getRatioPerUnitBase(twt);
-                        double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
                         double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
                         updateSolvedTapPosition(rtc, ptcRho, rho);
                     }
