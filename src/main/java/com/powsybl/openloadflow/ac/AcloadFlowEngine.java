@@ -198,11 +198,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         List<Integer> synchronousComponentsNumbers = context.getNetwork() instanceof LfAcDcNetwork acDcNetwork
             ? acDcNetwork.getAcNetworks().stream().map(LfNetwork::getNumSC).toList()
             : List.of(context.getNetwork().getNumSC());
-        HashMap<Integer, Double> distributedActivePowerPerSc = new HashMap<>() {
-            {
-                synchronousComponentsNumbers.forEach(numSc -> put(numSc, 0.0));
-            }
-        };
+        HashMap<Integer, Double> distributedActivePowerPerSc = new HashMap<>();
+        synchronousComponentsNumbers.forEach(numSc -> distributedActivePowerPerSc.put(numSc, 0.0));
 
         // Verify whether a regulated bus voltage exists.
         // If not, then fail immediately with SOLVER_FAILED status.
