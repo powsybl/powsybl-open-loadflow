@@ -636,8 +636,8 @@ The default value is `false`.
 Defines if the loadflow uses DC detailed equipment and computes an AC DC loadflow 
 
 If `true`, the network supports DC detailed equipments, and the loadflow is computed on the whole connected network, 
-AC and DC sides in the same Jacobian matrix. Currently, the network shall contain only one synchronous component, but the number of 
-embedded DC components is not restricted.
+AC and DC sides in the same Jacobian matrix. Currently, the number of synchronous components and DC components is not restricted, except if the `AreaInterchangeControl` outer loop is used or if the parameter `maxSlackBusCount` is greater than one. 
+In these cases, a connected component shall contain only one synchronous component, but the number of embedded DC components is not restricted.
 
 If `false`, the loadflow is the classic one, without DC detailed components.
 

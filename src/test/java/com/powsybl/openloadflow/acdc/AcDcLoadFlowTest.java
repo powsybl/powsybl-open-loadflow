@@ -1024,4 +1024,22 @@ class AcDcLoadFlowTest {
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Open Load Flow does not support DC networks without a DC ground", e5.getCause().getMessage());
     }
+
+    @Test
+    void testMultipleSlackBusIsAllowedForAcDcNetworkWithOneSynchronousComponent() {
+        network = AcDcNetworkFactory.createAcDcNetwork1();
+        parametersExt.setMaxSlackBusCount(2).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testMultipleSlackBusIsForbiddenForAcDcNetworkWithSeveralSynchronousComponents() {
+        network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
+        parametersExt.setMaxSlackBusCount(2).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("multiple slack buses equations not supported for AC DC networks yet", e5.getCause().getMessage());
+    }
 }
