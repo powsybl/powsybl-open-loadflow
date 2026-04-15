@@ -1334,18 +1334,18 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(34, t2wt.getTerminal2().getBusView().getBus());
         assertNull(t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(1.088171, Double.parseDouble(t2wt.getRatioTapChanger().getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
+        assertEquals(1.088171, Double.parseDouble(t2wt.getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
 
         // max ratio
         t2wt.getRatioTapChanger().setTargetV(35);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(1.1, Double.parseDouble(t2wt.getRatioTapChanger().getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
+        assertEquals(1.1, Double.parseDouble(t2wt.getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
 
         // min ratio
         t2wt.getRatioTapChanger().setTargetV(27);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertEquals(0.9, Double.parseDouble(t2wt.getRatioTapChanger().getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
+        assertEquals(0.9, Double.parseDouble(t2wt.getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
     }
 }
