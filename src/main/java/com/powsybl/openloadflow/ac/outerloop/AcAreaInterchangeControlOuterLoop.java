@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
@@ -46,8 +46,8 @@ public class AcAreaInterchangeControlOuterLoop
             return contextData.getDistributedActivePower();
         } else {
             // This corresponds to the fallback without areas: the DistributedSlack outer loop
-            // in this case, the context data is a HashMap matching the numSC to the DistributedSlackContextData object
-            DistributedSlackContextData contextData = (DistributedSlackContextData) ((HashMap<?, ?>) context.getData()).get(numSC);
+            // in this case, the context data is a Map matching the numSC to the DistributedSlackContextData object
+            DistributedSlackContextData contextData = (DistributedSlackContextData) ((Map<?, ?>) context.getData()).get(numSC);
             return contextData.getDistributedActivePower();
         }
     }

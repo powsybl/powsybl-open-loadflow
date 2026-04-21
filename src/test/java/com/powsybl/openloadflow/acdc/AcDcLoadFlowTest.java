@@ -591,7 +591,8 @@ class AcDcLoadFlowTest {
 
     @Test
     void testTwoAcZones() {
-        // A network with 2 synchronous components.
+        // A network with 2 synchronous components. The active power mismatch at the slack bus of each synchronous
+        // component is compensated by each synchronous component individually.
         network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
@@ -712,7 +713,8 @@ class AcDcLoadFlowTest {
     @Test
     void testMtDcTwoAcZones() {
         // A network with 2 synchronous components but 2 P_PCC converters are in the same synchronous component.
-        // Slack distribution should behave similarly
+        // Slack distribution should behave similarly to the case with two AC zones and a simple DC link.
+        // Indeed, slack mismatch distribution should be agnostic to the DC network topology.
         network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZones();
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
@@ -762,7 +764,8 @@ class AcDcLoadFlowTest {
     @Test
     void testMtDcTwoAcZones2() {
         // A network with 2 synchronous components but 2 converters (one P_PCC and one V_DC) are in the same synchronous component.
-        // Slack distribution should behave similarly
+        // Slack distribution should behave similarly to the test `testMtDcTwoAcZones`.
+        // Indeed, slack mismatch distribution should be agnostic to the AC-DC converter control mode. FIXME : correct explanation
         network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZonesV2();
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 

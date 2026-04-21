@@ -337,7 +337,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePowerPerSc);
     }
 
-    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, HashMap<Integer, Double> distributedActivePower) {
+    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, Map<Integer, Double> distributedActivePower) {
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
             runningContext.outerLoopTotalIterations,
             runningContext.nrTotalIterations.getValue(),

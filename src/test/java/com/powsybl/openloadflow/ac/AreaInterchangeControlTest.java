@@ -464,6 +464,7 @@ class AreaInterchangeControlTest {
 
     @Test
     void testTwoAreasWithEmbeddedDcNetworkDetailedModel() {
+        // Validate that AreaInterchangeControl outer loop supports AC-DC networks with only one synchronous component
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNodeAndEmbeddedDcDetailed();
         parametersExt.setSlackBusPMaxMismatch(1e-2) // Mismatch is between 1e-2 and 1e-3
             .setAcDcNetwork(true);

@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -339,6 +338,6 @@ public class FastDecoupled extends AbstractAcSolver {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(status, iterations.intValue(), new HashMap<>(Collections.singletonMap(network.getNumSC(), slackBusActivePowerMismatch)));
+        return new AcSolverResult(status, iterations.intValue(), Collections.singletonMap(network.getNumSC(), slackBusActivePowerMismatch));
     }
 }

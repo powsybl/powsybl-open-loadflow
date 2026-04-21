@@ -20,5 +20,13 @@ import com.powsybl.openloadflow.lf.outerloop.ActivePowerDistributionOuterLoop;
  */
 public interface AcActivePowerDistributionOuterLoop extends ActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext> {
 
+    /**
+     * Return the active power that has been redistributed between generators or loads by the outer loop in a given
+     * synchronous component.
+     *
+     * @param context Outer loop context, storing data about the last load flow iteration.
+     * @param numSC The number of the synchronous component whose distributed active power should be returned.
+     * @return The active power redistributed within the synchronous component by the outer loop. In pu.
+     */
     double getDistributedActivePower(AcOuterLoopContext context, int numSC);
 }

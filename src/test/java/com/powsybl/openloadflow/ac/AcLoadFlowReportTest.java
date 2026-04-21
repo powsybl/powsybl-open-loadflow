@@ -420,7 +420,7 @@ class AcLoadFlowReportTest {
             .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
             .withMessageTemplate("testReport")
             .build();
-        var lfParameters = new LoadFlowParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(lfParameters)
             .setAcDcNetwork(true)
             .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
