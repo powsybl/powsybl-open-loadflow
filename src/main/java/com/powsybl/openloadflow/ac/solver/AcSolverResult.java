@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.solver;
 
+import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -18,9 +19,9 @@ public class AcSolverResult {
 
     private final AcSolverStatus status;
 
-    private final double slackBusActivePowerMismatch;
+    private final HashMap<Integer, Double> slackBusActivePowerMismatch;
 
-    public AcSolverResult(AcSolverStatus status, int iterations, double slackBusActivePowerMismatch) {
+    public AcSolverResult(AcSolverStatus status, int iterations, HashMap<Integer, Double> slackBusActivePowerMismatch) {
         if (iterations < 0) {
             throw new IllegalArgumentException("Invalid iteration value: " + iterations);
         }
@@ -37,7 +38,7 @@ public class AcSolverResult {
         return iterations;
     }
 
-    public double getSlackBusActivePowerMismatch() {
+    public HashMap<Integer, Double> getSlackBusActivePowerMismatch() {
         return slackBusActivePowerMismatch;
     }
 }

@@ -19,11 +19,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowProvider;
-import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.loadflow.LoadFlowResultImpl;
-import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.loadflow.*;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -163,33 +159,40 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (AcLoadFlowResult result : results) {
             updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
-            ReferenceBusAndSlackBusesResults referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
             final var status = result.toComponentResultStatus();
-            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
-                    result.getNetwork().getNumSC(),
+            List<LfNetwork> acNetworks = result.getNetwork() instanceof LfAcDcNetwork acDcNetwork ? acDcNetwork.getAcNetworks() : List.of(result.getNetwork());
+
+            for (LfNetwork acNetwork : acNetworks) {
+                ReferenceBusAndSlackBusesResults referenceBusAndSlackBusResults = buildReferenceBusAndSlackBusesResults(result, acNetwork);
+                componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(
+                    acNetwork.getNumCC(),
+                    acNetwork.getNumSC(),
                     status.status(),
                     status.statusText(),
                     Collections.emptyMap(), // metrics: can do better later on
                     result.getSolverIterations(),
-                    referenceBusAndSlackBusesResults.referenceBusId(),
-                    referenceBusAndSlackBusesResults.slackBusResultList(),
-                    result.getDistributedActivePower() * PerUnit.SB));
+                    referenceBusAndSlackBusResults.referenceBusId(),
+                    referenceBusAndSlackBusResults.slackBusResultList(),
+                    result.getDistributedActivePower(acNetwork.getNumSC()) * PerUnit.SB));
+            }
         }
 
         boolean ok = results.stream().anyMatch(AcLoadFlowResult::isSuccess);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result) {
+    private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result, LfNetwork acNetwork) {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
-        double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
-        if (result.getNetwork().getValidity() == LfNetwork.Validity.VALID) {
-            referenceBusId = result.getNetwork().getReferenceBus().getId();
-            List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
+        assert !(acNetwork instanceof LfAcDcNetwork);
+
+        if (acNetwork.getValidity() == LfNetwork.Validity.VALID) {
+            double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch(acNetwork.getNumSC()) * PerUnit.SB;
+            referenceBusId = acNetwork.getReferenceBus().getId();
+            List<LfBus> slackBuses = acNetwork.getSlackBuses();
             slackBusResultList = slackBuses.stream().map(
-                    b -> (LoadFlowResult.SlackBusResult) new LoadFlowResultImpl.SlackBusResultImpl(b.getId(),
-                            slackBusActivePowerMismatch / slackBuses.size())).toList();
+                b -> (LoadFlowResult.SlackBusResult) new LoadFlowResultImpl.SlackBusResultImpl(b.getId(),
+                    slackBusActivePowerMismatch / slackBuses.size())).toList();
         }
         return new ReferenceBusAndSlackBusesResults(referenceBusId, slackBusResultList);
     }
@@ -243,7 +246,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC, parameters.getDcPowerFactor());
         }
 
-        var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
+        var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result, result.getNetwork());
         final var status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),

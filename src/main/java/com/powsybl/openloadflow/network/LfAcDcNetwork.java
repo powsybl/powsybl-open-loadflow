@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,13 +21,18 @@ public class LfAcDcNetwork extends LfNetwork {
     private final List<LfNetwork> acNetworks;
     private final List<LfNetwork> dcNetworks;
 
-    public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
-        // TODO : find a better way to implement super class
-        super(acNetworks.getFirst());
+    private static final int DEFAULT_NUM_SC = -1;
 
-        if (acNetworks.size() > 1) {
-            throw new PowsyblException("AC-DC load flow does not support multiple synchronous components for the moment");
-        }
+    public LfAcDcNetwork(List<LfNetwork> acNetworks, List<LfNetwork> dcNetworks) {
+        super(acNetworks.getFirst().numCC,
+            DEFAULT_NUM_SC,
+            acNetworks.getFirst().slackBusSelector,
+            acNetworks.getFirst().maxSlackBusCount,
+            acNetworks.getFirst().connectivityFactory,
+            acNetworks.getFirst().referenceBusSelector,
+            acNetworks.getFirst().getReportNode() // FIXME: Create its own ReportNode ?
+        );
+
         this.acNetworks = List.copyOf(acNetworks);
         this.dcNetworks = List.copyOf(dcNetworks);
 
@@ -58,6 +64,29 @@ public class LfAcDcNetwork extends LfNetwork {
         for (LfNetwork dcNetwork : dcNetworks) {
             dcNetwork.addListener(listener);
         }
+    }
+
+    @Override
+    public void validate(LoadFlowModel loadFlowModel, ReportNode reportNode) {
+        validity = Validity.VALID;
+        for (LfNetwork acNetwork : acNetworks) {
+            acNetwork.validate(loadFlowModel, reportNode);
+            Validity acNetworkValidity = acNetwork.getValidity();
+            if (acNetworkValidity != Validity.VALID) {
+                validity = acNetworkValidity;
+                break;
+            }
+        }
+    }
+
+    @Override
+    public int getNumSC() {
+        throw new PowsyblException("A LfAcDcNetwork does not have a numSC");
+    }
+
+    @Override
+    public String getId() {
+        return "{CC" + numCC + '}';
     }
 
     @Override
@@ -98,5 +127,13 @@ public class LfAcDcNetwork extends LfNetwork {
         updateSlackBusesAndReferenceBus();
         // FIXME: which bus do we return ?
         return acDcReferenceBuses.getFirst();
+    }
+
+    public int getSynchronousComponentCount() {
+        return acNetworks.size();
+    }
+
+    public List<LfNetwork> getAcNetworks() {
+        return acNetworks;
     }
 }

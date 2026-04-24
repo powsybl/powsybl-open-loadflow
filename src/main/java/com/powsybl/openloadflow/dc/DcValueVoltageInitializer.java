@@ -57,6 +57,12 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     public void prepare(LfNetwork network, ReportNode reportNode) {
         ReportNode originalReportNode = network.getReportNode();
         network.setReportNode(Reports.reportVoltageInitializer(reportNode, NAME));
+
+        if (network instanceof LfAcDcNetwork) {
+            // Throw exception here, otherwise DC load flow will run anyway
+            throw new PowsyblException("DC initialization is not yet supported with AcDcNetwork");
+        }
+
         // in case of distributed slack, we need to save and restore generators and loads target p which might have been
         // modified by slack distribution, so that AC load flow can restart from original state
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;

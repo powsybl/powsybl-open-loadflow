@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
+import com.powsybl.openloadflow.network.LfAcDcNetwork;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfTopoConfig;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
@@ -24,6 +25,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -120,7 +122,17 @@ public class AcLoadFlowFromCache {
             context.setNetworkUpdated(false);
             return result;
         }
-        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
+
+        List<Integer> synchronousComponentsNumbers = context.getNetwork() instanceof LfAcDcNetwork acDcNetwork
+            ? acDcNetwork.getAcNetworks().stream().map(LfNetwork::getNumSC).toList()
+            : List.of(context.getNetwork().getNumSC());
+        HashMap<Integer, Double> slackBusActivePowerMismatch = new HashMap<>();
+        HashMap<Integer, Double> distributedActivePower = new HashMap<>();
+        synchronousComponentsNumbers.forEach(synchronousComponentNumber -> {
+            slackBusActivePowerMismatch.put(synchronousComponentNumber, 0d);
+            distributedActivePower.put(synchronousComponentNumber, 0d);
+        });
+        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), slackBusActivePowerMismatch, distributedActivePower);
     }
 
     public List<AcLoadFlowResult> run() {

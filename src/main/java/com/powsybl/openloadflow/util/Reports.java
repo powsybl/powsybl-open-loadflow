@@ -921,6 +921,15 @@ public final class Reports {
 
     public static ReportNode createDetailedSolverReporter(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc) {
         ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
+        return createDetailedSolverReporter(subReportNode);
+    }
+
+    public static ReportNode createDetailedSolverReporterAcDcNetwork(ReportNode reportNode, String solverName, int networkNumCc) {
+        ReportNode subReportNode = createSolverReportAcDc(reportNode, solverName, networkNumCc);
+        return createDetailedSolverReporter(subReportNode);
+    }
+
+    public static ReportNode createDetailedSolverReporter(ReportNode subReportNode) {
         subReportNode.newReportNode()
                 .withMessageTemplate("olf.solverNoOuterLoops")
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -931,6 +940,16 @@ public final class Reports {
     public static ReportNode createDetailedSolverReporterOuterLoop(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc,
                                                                    int outerLoopIteration, String outerLoopType) {
         ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
+        return createDetailedSolverReporterOuterLoopAcDc(subReportNode, solverName, outerLoopIteration, outerLoopType);
+    }
+
+    public static ReportNode createDetailedSolverReporterOuterLoopAcDc(ReportNode reportNode, String solverName, int networkNumCc,
+                                                                       int outerLoopIteration, String outerLoopType) {
+        ReportNode subReportNode = createSolverReportAcDc(reportNode, solverName, networkNumCc);
+        return createDetailedSolverReporterOuterLoopAcDc(subReportNode, solverName, outerLoopIteration, outerLoopType);
+    }
+
+    public static ReportNode createDetailedSolverReporterOuterLoopAcDc(ReportNode subReportNode, String solverName, int outerLoopIteration, String outerLoopType) {
         subReportNode.newReportNode()
                 .withMessageTemplate("olf.solverOuterLoopCurrentType")
                 .withUntypedValue(SOLVER_NAME, solverName)
@@ -946,6 +965,14 @@ public final class Reports {
                 .withMessageTemplate("olf.solver")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .withUntypedValue(SOLVER_NAME, solverName)
+                .add();
+    }
+
+    public static ReportNode createSolverReportAcDc(ReportNode reportNode, String solverName, int networkNumCc) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.solverAcDc")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(SOLVER_NAME, solverName)
                 .add();
     }
@@ -1055,11 +1082,11 @@ public final class Reports {
                 .add();
 
         busesOutOfRealisticVoltageRange.forEach((id, voltage) -> voltageOutOfRangeReport.newReportNode()
-            .withMessageTemplate("olf.newtonRaphsonBusesOutOfRealisticVoltageRangeDetails")
-            .withUntypedValue(BUS_ID, id)
-            .withUntypedValue("voltage", voltage)
-            .withSeverity(TypedValue.TRACE_SEVERITY)
-            .add());
+                .withMessageTemplate("olf.newtonRaphsonBusesOutOfRealisticVoltageRangeDetails")
+                .withUntypedValue(BUS_ID, id)
+                .withUntypedValue("voltage", voltage)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .add());
     }
 
     public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {

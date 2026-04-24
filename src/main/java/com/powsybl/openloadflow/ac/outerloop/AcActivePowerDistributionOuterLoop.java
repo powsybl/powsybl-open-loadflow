@@ -19,4 +19,6 @@ import com.powsybl.openloadflow.lf.outerloop.ActivePowerDistributionOuterLoop;
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public interface AcActivePowerDistributionOuterLoop extends ActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext> {
+
+    double getDistributedActivePower(AcOuterLoopContext context, int numSC);
 }

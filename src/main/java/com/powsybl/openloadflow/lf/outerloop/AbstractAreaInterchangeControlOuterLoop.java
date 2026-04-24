@@ -12,25 +12,14 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
-import com.powsybl.openloadflow.network.LfArea;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,11 +27,11 @@ import java.util.stream.Stream;
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public abstract class AbstractAreaInterchangeControlOuterLoop<
-            V extends Enum<V> & Quantity,
-            E extends Enum<E> & Quantity,
-            P extends AbstractLoadFlowParameters<P>,
-            C extends LoadFlowContext<V, E, P>,
-            O extends AbstractOuterLoopContext<V, E, P, C>>
+        V extends Enum<V> & Quantity,
+        E extends Enum<E> & Quantity,
+        P extends AbstractLoadFlowParameters<P>,
+        C extends LoadFlowContext<V, E, P>,
+        O extends AbstractOuterLoopContext<V, E, P, C>>
         extends AbstractActivePowerDistributionOuterLoop<V, E, P, C, O> {
 
     public static final String NAME = "AreaInterchangeControl";
@@ -85,6 +74,9 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
     @Override
     public void initialize(O context) {
         LfNetwork network = context.getNetwork();
+        if (network instanceof LfAcDcNetwork acDcNetwork && acDcNetwork.getSynchronousComponentCount() > 1) {
+            throw new PowsyblException("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components");
+        }
         if (!network.hasArea() && noAreaOuterLoop != null) {
             noAreaOuterLoop.initialize(context);
             return;
@@ -286,8 +278,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
         if (!remainingMismatches.isEmpty()) {
             reportAndLogAreaActivePowerDistributionFailure(iterationReportNode, remainingMismatches);
             switch (context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior()) {
-                case THROW ->
-                    throw new PowsyblException(FAILED_TO_DISTRIBUTE_ACTIVE_POWER_MISMATCH);
+                case THROW -> throw new PowsyblException(FAILED_TO_DISTRIBUTE_ACTIVE_POWER_MISMATCH);
                 case LEAVE_ON_SLACK_BUS -> {
                     return new OuterLoopResult(this, movedBuses ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
                 }
