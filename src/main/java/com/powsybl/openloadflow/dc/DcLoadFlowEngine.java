@@ -204,7 +204,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         double distributedActivePower = 0.0;
 
         boolean isAreaInterchangeControl = outerLoops.stream().anyMatch(DcAreaInterchangeControlOuterLoop.class::isInstance);
-        if (parameters.isDistributedSlack() || isAreaInterchangeControl) {
+        // In DC LoadFlow slack mismatch is distributed when mismatch is above epsilon (P_RESIDUE_EPS 1e-3 MW).
+        // This is different from AC LoadFlow distributing slack when mismatch is above OLF parameter slackBusPMaxMismatch (default 1 MW).
+        // The reason of the difference is that in DC we can eliminate completely (within epsilon) the slack mismatch
+        // in a single distribution (unless all generator are hitting limits), whereas in AC reaching epsilon would require too many solver iterations.
+        if ((parameters.isDistributedSlack() || isAreaInterchangeControl) &&
+                Math.abs(initialSlackBusActivePowerMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
             LoadFlowParameters.BalanceType balanceType = parameters.getBalanceType();
             boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
@@ -228,6 +233,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             );
             double remainingMismatch = resultWbh.remainingMismatch();
             distributedActivePower = initialSlackBusActivePowerMismatch - remainingMismatch;
+            // In the case of slack mismatch not being fully distributed due to e.g. all generators hitting limits, the remaining mismatch is
+            // checked against OLF parameter slackBusPMaxMismatch (and not epsilon) for appropriate reporting of distribution success or failure.
             if (Math.abs(remainingMismatch) > context.getParameters().getSlackBusPMaxMismatch() / PerUnit.SB) {
                 Reports.reportMismatchDistributionFailure(reportNode, remainingMismatch * PerUnit.SB);
             } else {

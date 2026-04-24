@@ -1955,7 +1955,28 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setLoadFlowParameters(loadFlowParameters);
         runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNode);
 
-        assertReportEquals("/saReport.txt", reportNode);
+        assertReportEquals("/saReportAC.txt", reportNode);
+    }
+
+    @Test
+    void reportTestDc() throws IOException {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("TestSecurityAnalysis")
+                .build();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDc(true)
+                .setHvdcAcEmulation(false);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNode);
+
+        assertReportEquals("/saReportDC.txt", reportNode);
     }
 
     @Test
