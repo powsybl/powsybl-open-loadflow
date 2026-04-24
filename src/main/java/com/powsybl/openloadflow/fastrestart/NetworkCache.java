@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow;
+package com.powsybl.openloadflow.fastrestart;
 
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.iidm.network.*;
@@ -14,15 +14,19 @@ import com.powsybl.iidm.network.extensions.ControlZone;
 import com.powsybl.iidm.network.extensions.PilotPoint;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.function.TriFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +34,6 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiFunction;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -40,7 +43,7 @@ public enum NetworkCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
-    public static class Entry extends DefaultNetworkListener {
+    public static class Entry<C extends AbstractLoadFlowContext<?, ?, ?>> extends DefaultNetworkListener {
 
         private final WeakReference<Network> networkRef;
 
@@ -49,7 +52,8 @@ public enum NetworkCache {
 
         private final LoadFlowParameters parameters;
 
-        private List<AcLoadFlowContext> contexts;
+        private HashMap<LfNetwork, LfNetworkParameters> lfNetworksAndParameters;
+        private List<C> contexts;
 
         private boolean pause = false;
 
@@ -72,12 +76,16 @@ public enum NetworkCache {
             this.tmpVariantId = tmpVariantId;
         }
 
-        public List<AcLoadFlowContext> getContexts() {
+        public List<C> getContexts() {
             return contexts;
         }
 
-        public void setContexts(List<AcLoadFlowContext> contexts) {
+        public void setContexts(List<C> contexts) {
+            lfNetworksAndParameters = new HashMap<>();
             this.contexts = contexts;
+            for (C context : contexts) {
+                lfNetworksAndParameters.put(context.getNetwork(), context.getParameters().getNetworkParameters());
+            }
         }
 
         public LoadFlowParameters getParameters() {
@@ -90,7 +98,7 @@ public enum NetworkCache {
 
         private void reset() {
             if (contexts != null) {
-                for (AcLoadFlowContext context : contexts) {
+                for (C context : contexts) {
                     context.close();
                 }
                 contexts = null;
@@ -112,15 +120,15 @@ public enum NetworkCache {
             onStructureChange();
         }
 
-        private static Optional<Bus> getBus(Injection<?> injection, AcLoadFlowContext context) {
-            return Optional.ofNullable(context.getParameters().getNetworkParameters().isBreakers()
+        private static Optional<Bus> getBus(Injection<?> injection, boolean isBreakers) {
+            return Optional.ofNullable(isBreakers
                     ? injection.getTerminal().getBusBreakerView().getBus()
                     : injection.getTerminal().getBusView().getBus());
         }
 
-        private static Optional<LfBus> getLfBus(Injection<?> injection, AcLoadFlowContext context) {
-            return getBus(injection, context)
-                    .map(bus -> context.getNetwork().getBusById(bus.getId()));
+        private static Optional<LfBus> getLfBus(Injection<?> injection, LfNetwork lfNetwork, boolean isBreakers) {
+            return getBus(injection, isBreakers)
+                    .map(bus -> lfNetwork.getBusById(bus.getId()));
         }
 
         enum CacheUpdateStatus {
@@ -130,13 +138,13 @@ public enum NetworkCache {
             ELEMENT_NOT_FOUND
         }
 
-        record CacheUpdateResult(CacheUpdateStatus status, AcLoadFlowContext context) {
+        record CacheUpdateResult(CacheUpdateStatus status, LfNetwork lfNetwork) {
             static CacheUpdateResult unsupportedUpdate() {
                 return new CacheUpdateResult(CacheUpdateStatus.UNSUPPORTED_UPDATE, null);
             }
 
-            static CacheUpdateResult elementUpdated(AcLoadFlowContext context) {
-                return new CacheUpdateResult(CacheUpdateStatus.ELEMENT_UPDATED, context);
+            static CacheUpdateResult elementUpdated(LfNetwork lfNetwork) {
+                return new CacheUpdateResult(CacheUpdateStatus.ELEMENT_UPDATED, lfNetwork);
             }
 
             static CacheUpdateResult ignoreUpdate() {
@@ -148,67 +156,68 @@ public enum NetworkCache {
             }
         }
 
-        private CacheUpdateResult onInjectionUpdate(Injection<?> injection, BiFunction<AcLoadFlowContext, LfBus, CacheUpdateResult> handler) {
-            for (AcLoadFlowContext context : contexts) {
-                LfBus lfBus = getLfBus(injection, context).orElse(null);
+        private CacheUpdateResult onInjectionUpdate(Injection<?> injection, TriFunction<LfNetwork, LfNetworkParameters, LfBus, CacheUpdateResult> handler) {
+            for (Map.Entry<LfNetwork, LfNetworkParameters> lfNetworkAndParam : lfNetworksAndParameters.entrySet()) {
+                LfNetwork lfNetwork = lfNetworkAndParam.getKey();
+                LfNetworkParameters params = lfNetworkAndParam.getValue();
+                LfBus lfBus = getLfBus(injection, lfNetwork, params.isBreakers()).orElse(null);
                 if (lfBus != null) {
-                    return handler.apply(context, lfBus);
+                    return handler.apply(lfNetwork, params, lfBus);
                 }
             }
             return CacheUpdateResult.elementNotFound();
         }
 
-        private static CacheUpdateResult updateLfGeneratorTargetP(String id, double oldValue, double newValue, AcLoadFlowContext context, LfBus lfBus) {
+        private static CacheUpdateResult updateLfGeneratorTargetP(String id, double oldValue, double newValue, LfNetwork network, LfNetworkParameters networkParameters, LfBus lfBus) {
             double valueShift = newValue - oldValue;
             LfGenerator lfGenerator = lfBus.getNetwork().getGeneratorById(id);
             double newTargetP = lfGenerator.getInitialTargetP() + valueShift / PerUnit.SB;
             lfGenerator.setTargetP(newTargetP);
             lfGenerator.setInitialTargetP(newTargetP);
-            lfGenerator.reApplyActivePowerControlChecks(context.getParameters().getNetworkParameters(), null);
-            return CacheUpdateResult.elementUpdated(context);
+            lfGenerator.reApplyActivePowerControlChecks(networkParameters, null);
+            return CacheUpdateResult.elementUpdated(network);
         }
 
         private CacheUpdateResult onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
-            return onInjectionUpdate(generator, (context, lfBus) -> {
+            return onInjectionUpdate(generator, (lfNetwork, networkParameters, lfBus) -> {
                 if (attribute.equals("targetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                     double nominalV = voltageControl.getControlledBus().getNominalV();
                     double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
-                    LfNetworkParameters networkParameters = context.getParameters().getNetworkParameters();
                     if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
                         voltageControl.setTargetValue(newTargetV);
                     } else {
-                        context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                        lfNetwork.getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                         if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                             lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
                         }
                     }
-                    context.getNetwork().validate(LoadFlowModel.AC, null);
-                    return CacheUpdateResult.elementUpdated(context);
+                    lfNetwork.validate(LoadFlowModel.AC, null);
+                    return CacheUpdateResult.elementUpdated(lfNetwork);
                 } else if (attribute.equals("targetP")) {
-                    return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, context, lfBus);
+                    return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, lfNetwork, networkParameters, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate();
             });
         }
 
         private CacheUpdateResult onBatteryUpdate(Battery battery, String attribute, Object oldValue, Object newValue) {
-            return onInjectionUpdate(battery, (context, lfBus) -> {
+            return onInjectionUpdate(battery, (lfNetwork, networkParameters, lfBus) -> {
                 if (attribute.equals("targetP")) {
-                    return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, context, lfBus);
+                    return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, lfNetwork, networkParameters, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate();
             });
         }
 
         private CacheUpdateResult onShuntUpdate(ShuntCompensator shunt, String attribute) {
-            return onInjectionUpdate(shunt, (context, lfBus) -> {
+            return onInjectionUpdate(shunt, (lfNetwork, networkParameters, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
                     if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
-                        return CacheUpdateResult.elementUpdated(context);
+                        return CacheUpdateResult.elementUpdated(lfNetwork);
                     } else {
                         LOGGER.info("Shunt compensator {} is controlling voltage or connected to a bus containing a shunt compensator" +
                                 "with an active voltage control: not supported", shunt.getId());
@@ -220,12 +229,11 @@ public enum NetworkCache {
         }
 
         private CacheUpdateResult onSwitchUpdate(String switchId, boolean open) {
-            for (AcLoadFlowContext context : contexts) {
-                LfNetwork lfNetwork = context.getNetwork();
+            for (LfNetwork lfNetwork : lfNetworksAndParameters.keySet()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
                     updateSwitch(open, lfNetwork, lfBranch);
-                    return CacheUpdateResult.elementUpdated(context);
+                    return CacheUpdateResult.elementUpdated(lfNetwork);
                 }
             }
             return CacheUpdateResult.elementNotFound();
@@ -247,25 +255,23 @@ public enum NetworkCache {
         }
 
         private CacheUpdateResult onTransformerTargetVoltageUpdate(String twtId, double newValue) {
-            for (AcLoadFlowContext context : contexts) {
-                LfNetwork lfNetwork = context.getNetwork();
+            for (LfNetwork lfNetwork : lfNetworksAndParameters.keySet()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(twtId);
                 if (lfBranch != null) {
                     var vc = lfBranch.getVoltageControl().orElseThrow();
                     vc.setTargetValue(newValue / vc.getControlledBus().getNominalV());
-                    return CacheUpdateResult.elementUpdated(context);
+                    return CacheUpdateResult.elementUpdated(lfNetwork);
                 }
             }
             return CacheUpdateResult.elementNotFound();
         }
 
         private CacheUpdateResult onTransformerTapPositionUpdate(String twtId, int newTapPosition) {
-            for (AcLoadFlowContext context : contexts) {
-                LfNetwork lfNetwork = context.getNetwork();
+            for (LfNetwork lfNetwork : lfNetworksAndParameters.keySet()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(twtId);
                 if (lfBranch != null) {
                     lfBranch.getPiModel().setTapPosition(newTapPosition);
-                    return CacheUpdateResult.elementUpdated(context);
+                    return CacheUpdateResult.elementUpdated(lfNetwork);
                 }
             }
             return CacheUpdateResult.elementNotFound();
@@ -274,7 +280,7 @@ public enum NetworkCache {
         void processUpdateResult(Identifiable<?> identifiable, String attribute, CacheUpdateResult result) {
             switch (result.status) {
                 case UNSUPPORTED_UPDATE -> reset();
-                case ELEMENT_UPDATED -> result.context.setNetworkUpdated(true);
+                case ELEMENT_UPDATED -> result.lfNetwork.setNetworkUpdated(true);
                 case IGNORE_UPDATE -> { /* nothing to do */ }
                 case ELEMENT_NOT_FOUND -> LOGGER.warn("Cannot update attribute '{}' of element '{}' (type={})", attribute, identifiable.getId(), identifiable.getType());
             }
@@ -296,7 +302,9 @@ public enum NetworkCache {
                      "p2",
                      "q2",
                      "p3",
-                     "q3" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
+                     "q3",
+                     "ratioTapChanger.solvedTapPosition",
+                     "phaseTapChanger.solvedTapPosition" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
@@ -335,7 +343,6 @@ public enum NetworkCache {
                     }
                 }
             }
-
             processUpdateResult(identifiable, attribute, result);
         }
 
@@ -358,20 +365,18 @@ public enum NetworkCache {
             if ("pilotPointTargetV".equals(attribute)) {
                 PilotPoint.TargetVoltageEvent event = (PilotPoint.TargetVoltageEvent) newValue;
                 ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
-                for (AcLoadFlowContext context : contexts) {
-                    LfNetwork lfNetwork = context.getNetwork();
+                for (LfNetwork lfNetwork : lfNetworksAndParameters.keySet()) {
                     var lfSvc = lfNetwork.getSecondaryVoltageControl(controlZone.getName()).orElse(null);
                     if (lfSvc != null) {
                         lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
-                        return CacheUpdateResult.elementUpdated(context);
+                        return CacheUpdateResult.elementUpdated(lfNetwork);
                     }
                 }
                 return CacheUpdateResult.elementNotFound();
             } else if ("controlUnitParticipate".equals(attribute)) {
                 ControlUnit.ParticipateEvent event = (ControlUnit.ParticipateEvent) newValue;
                 ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
-                for (AcLoadFlowContext context : contexts) {
-                    LfNetwork lfNetwork = context.getNetwork();
+                for (LfNetwork lfNetwork : lfNetworksAndParameters.keySet()) {
                     var lfSvc = lfNetwork.getSecondaryVoltageControl(controlZone.getName()).orElse(null);
                     if (lfSvc != null) {
                         if (event.value()) {
@@ -379,7 +384,7 @@ public enum NetworkCache {
                         } else {
                             lfSvc.removeParticipatingControlUnit(event.controlUnitId());
                         }
-                        return CacheUpdateResult.elementUpdated(context);
+                        return CacheUpdateResult.elementUpdated(lfNetwork);
                     }
                 }
                 return CacheUpdateResult.elementNotFound();
@@ -436,41 +441,70 @@ public enum NetworkCache {
         }
     }
 
-    private final List<Entry> entries = new ArrayList<>();
+    private final List<Entry<AcLoadFlowContext>> acEntries = new ArrayList<>();
+
+    private final List<Entry<DcLoadFlowContext>> dcEntries = new ArrayList<>();
 
     private final Lock lock = new ReentrantLock();
 
     private void evictDeadEntries() {
-        Iterator<Entry> it = entries.iterator();
-        while (it.hasNext()) {
-            Entry entry = it.next();
+        Iterator<Entry<AcLoadFlowContext>> itAc = acEntries.iterator();
+        while (itAc.hasNext()) {
+            Entry<AcLoadFlowContext> entry = itAc.next();
             if (entry.getNetworkRef().get() == null) {
                 // release all resources
                 entry.close();
-                it.remove();
-                LOGGER.info("Dead network removed from cache ({} remains)", entries.size());
+                itAc.remove();
+                LOGGER.info("Dead network removed from AC load flow cache ({} remains)", acEntries.size());
+            }
+        }
+        Iterator<Entry<DcLoadFlowContext>> itDc = dcEntries.iterator();
+        while (itDc.hasNext()) {
+            Entry<DcLoadFlowContext> entry = itDc.next();
+            if (entry.getNetworkRef().get() == null) {
+                // release all resources
+                entry.close();
+                itDc.remove();
+                LOGGER.info("Dead network removed from DC load flow cache ({} remains)", dcEntries.size());
             }
         }
     }
 
-    public int getEntryCount() {
+    public int getAcEntryCount() {
         lock.lock();
         try {
             evictDeadEntries();
-            return entries.size();
+            return acEntries.size();
         } finally {
             lock.unlock();
         }
     }
 
-    public Optional<Entry> findEntry(Network network) {
+    public int getDcEntryCount() {
+        lock.lock();
+        try {
+            evictDeadEntries();
+            return dcEntries.size();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public Optional<Entry<AcLoadFlowContext>> findEntryAc(Network network) {
         String variantId = network.getVariantManager().getWorkingVariantId();
-        return entries.stream()
+        return acEntries.stream()
                 .filter(e -> e.getNetworkRef().get() == network && e.getWorkingVariantId().equals(variantId))
                 .findFirst();
     }
 
-    public Entry get(Network network, LoadFlowParameters parameters) {
+    public Optional<Entry<DcLoadFlowContext>> findEntryDc(Network network) {
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        return dcEntries.stream()
+                .filter(e -> e.getNetworkRef().get() == network && e.getWorkingVariantId().equals(variantId))
+                .findFirst();
+    }
+
+    private Entry get(Network network, LoadFlowParameters parameters, boolean isDc) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -479,23 +513,30 @@ public enum NetworkCache {
         try {
             evictDeadEntries();
 
-            entry = findEntry(network).orElse(null);
+            entry = isDc ? findEntryDc(network).orElse(null) : findEntryAc(network).orElse(null);
 
             // invalid cache if parameters have changed
             // TODO to refine later by comparing in detail parameters that have changed
             if (entry != null && !OpenLoadFlowParameters.equals(parameters, entry.getParameters())) {
                 // release all resources
                 entry.close();
-                entries.remove(entry);
+                if (isDc) {
+                    dcEntries.remove(entry);
+                } else {
+                    acEntries.remove(entry);
+                }
                 entry = null;
                 LOGGER.info("Network cache evicted because of parameters change");
             }
 
             if (entry == null) {
-                entry = new Entry(network, OpenLoadFlowParameters.clone(parameters));
-                entries.add(entry);
+                entry = new Entry<>(network, OpenLoadFlowParameters.clone(parameters));
+                if (isDc) {
+                    dcEntries.add(entry);
+                } else {
+                    acEntries.add(entry);
+                }
                 network.addListener(entry);
-
                 LOGGER.info("Network cache created for network '{}' and variant '{}'",
                         network.getId(), network.getVariantManager().getWorkingVariantId());
 
@@ -505,19 +546,38 @@ public enum NetworkCache {
             lock.unlock();
         }
 
+        return entry;
+    }
+
+    public Entry<AcLoadFlowContext> getAc(Network network, LoadFlowParameters parameters) {
+        Entry<AcLoadFlowContext> entry = get(network, parameters, false);
+
         // restart from previous state
         if (entry.getContexts() != null) {
-            LOGGER.info("Network cache reused for network '{}' and variant '{}'",
+            LOGGER.info("Network cache for AC load flow reused for network '{}' and variant '{}'",
                     network.getId(), network.getVariantManager().getWorkingVariantId());
 
-            for (AcLoadFlowContext context : entry.getContexts()) {
-                AcLoadFlowResult result = context.getResult();
+            for (AcLoadFlowContext acContext : entry.getContexts()) {
+                AcLoadFlowResult result = acContext.getResult();
                 if (result != null && result.getSolverStatus() == AcSolverStatus.CONVERGED) {
-                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+                    acContext.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
                 }
             }
         } else {
-            LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
+            LOGGER.info("Network cache for AC load flow cannot be reused for network '{}' because invalided", network.getId());
+        }
+
+        return entry;
+    }
+
+    public Entry<DcLoadFlowContext> getDc(Network network, LoadFlowParameters parameters) {
+        Entry<DcLoadFlowContext> entry = get(network, parameters, true);
+
+        if (entry.getContexts() != null) {
+            LOGGER.info("Network cache for DC load flow reused for network '{}' and variant '{}'",
+                    network.getId(), network.getVariantManager().getWorkingVariantId());
+        } else {
+            LOGGER.info("Network cache for DC load flow cannot be reused for network '{}' because invalided", network.getId());
         }
 
         return entry;
@@ -526,10 +586,14 @@ public enum NetworkCache {
     public void clear() {
         lock.lock();
         try {
-            for (var entry : entries) {
+            for (var entry : acEntries) {
                 entry.close();
             }
-            entries.clear();
+            acEntries.clear();
+            for (var entry : dcEntries) {
+                entry.close();
+            }
+            dcEntries.clear();
         } finally {
             lock.unlock();
         }
