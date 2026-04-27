@@ -8,19 +8,20 @@
 package com.powsybl.openloadflow.dc.fastdc;
 
 import com.powsybl.action.PhaseTapChangerTapPositionAction;
+import com.powsybl.action.SwitchAction;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
+import com.powsybl.contingency.SwitchContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfSwitchAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,8 @@ class WoodburyEngineTest {
     private Network fourBusNetwork;
     private Network pstNetworkRef;
     private Network pstNetwork;
+    private Network nbNetworkRef;
+    private Network nbNetwork;
 
     @BeforeEach
     void setUp() {
@@ -52,6 +55,9 @@ class WoodburyEngineTest {
 
         pstNetworkRef = PhaseControlFactory.createWithOneT2wtTwoLines();
         pstNetwork = PhaseControlFactory.createWithOneT2wtTwoLines();
+
+        nbNetworkRef = NodeBreakerNetworkFactory.create();
+        nbNetwork = NodeBreakerNetworkFactory.create();
     }
 
     private static double[] calculateFlows(LfNetwork lfNetwork, DenseMatrix flowStates, Set<String> disconnectedBranchIds) {
@@ -60,9 +66,9 @@ class WoodburyEngineTest {
             if (disconnectedBranchIds.contains(branch.getId())) {
                 flows[branch.getNum()] = Double.NaN;
             } else {
-                @SuppressWarnings("unchecked")
-                var p1 = (EquationTerm<DcVariableType, DcEquationType>) branch.getP1();
-                flows[branch.getNum()] = p1.calculateSensi(flowStates, 0);
+                if (branch.getP1() instanceof EquationTerm<?, ?> p1) {
+                    flows[branch.getNum()] = p1.calculateSensi(flowStates, 0);
+                }
             }
         }
         return Arrays.stream(flows)
@@ -192,6 +198,71 @@ class WoodburyEngineTest {
             // calculateSensi in calculateFlows gives the correct value
             lfNetwork.getBranchById("PS1").getPiModel().setTapPosition(newTapPosition);
             var flows = calculateFlows(lfNetwork, flowStates, Set.of("L1"));
+            assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    @Test
+    void testSwitchContingency() {
+        nbNetworkRef.getSwitch("C").setOpen(true);
+        double[] flowsRef = calculateFlows(nbNetworkRef);
+
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        dcParameters.getNetworkParameters()
+                .setBreakers(true)
+                .setMinImpedance(true);
+        LfNetwork lfNetwork = LfNetwork.load(nbNetwork, new LfNetworkLoaderImpl(), topoConfig, dcParameters.getNetworkParameters(), ReportNode.NO_OP).getFirst();
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            new DcLoadFlowEngine(context)
+                    .run();
+
+            List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new SwitchContingency("C"), lfNetwork, context.getEquationSystem()));
+            ComputedElement.setComputedElementIndexes(contingencyElements);
+
+            List<LfAction> actions = List.of();
+            List<ComputedElement> actionElements = List.of();
+            ComputedElement.setComputedElementIndexes(actionElements);
+
+            DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
+            DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
+            WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
+            DisabledNetwork disabledNetwork = new DisabledNetwork();
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, actions, ReportNode.NO_OP);
+            var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
+            engine.toPostContingencyAndOperatorStrategyStates(flowStates);
+            var flows = calculateFlows(lfNetwork, flowStates, Set.of("C", "B3"));
+            assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    @Test
+    void testActionOpenSwitch() {
+        nbNetworkRef.getSwitch("C").setOpen(true);
+        double[] flowsRef = calculateFlows(nbNetworkRef);
+
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        dcParameters.getNetworkParameters()
+                .setBreakers(true)
+                .setMinImpedance(true);
+        LfNetwork lfNetwork = LfNetwork.load(nbNetwork, new LfNetworkLoaderImpl(), topoConfig, dcParameters.getNetworkParameters(), ReportNode.NO_OP).getFirst();
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            new DcLoadFlowEngine(context)
+                    .run();
+
+            List<ComputedContingencyElement> contingencyElements = Collections.emptyList();
+
+            List<LfAction> actions = List.of(new LfSwitchAction(new SwitchAction("open C", "C", true), lfNetwork));
+            List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("C"), false, context.getEquationSystem()));
+            ComputedElement.setComputedElementIndexes(actionElements);
+
+            DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
+            DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
+            WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
+            DisabledNetwork disabledNetwork = new DisabledNetwork();
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, actions, ReportNode.NO_OP);
+            var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
+            engine.toPostContingencyAndOperatorStrategyStates(flowStates);
+            var flows = calculateFlows(lfNetwork, flowStates, Set.of("C", "B3"));
             assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
         }
     }

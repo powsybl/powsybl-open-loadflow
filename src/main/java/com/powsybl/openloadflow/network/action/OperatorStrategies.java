@@ -82,9 +82,9 @@ public final class OperatorStrategies {
                     case SPECIFIC ->
                         operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
                                 .add(indexedOperatorStrategy);
-                    case NONE -> {
-                        // nothing to do
-                    }
+                    case NONE ->
+                        operatorStrategiesByContingencyId.computeIfAbsent(null, key -> new ArrayList<>())
+                                .add(indexedOperatorStrategy);
                 }
             } else {
                 if (checkOperatorStrategies) {
