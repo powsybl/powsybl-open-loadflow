@@ -72,7 +72,7 @@ public class LfNetworkChange {
     }
 
     public String getContingencyId() {
-        return propagatedContingency != null ? propagatedContingency.getContingency().getId() : "";
+        return propagatedContingency != null ? propagatedContingency.getContingency().getId() : null;
     }
 
     public String getOperatorStrategyId() {
