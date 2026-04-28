@@ -221,4 +221,44 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.099, result.getFunctionReferenceValue(openCState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(607.681d, result.getFunctionReferenceValue(openCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testIsolatedBusReconnection() {
+        Network network = NodeBreakerNetworkFactory.create();
+        network.getSwitch("B3").setOpen(true);
+        network.getSwitch("C").setOpen(true);
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL1_1", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("G")),
+                network.getBranchStream().toList());
+
+        // the operator strategy is to close breaker B3 and C to reconnect the component containing L1
+        OperatorStrategy osReconnect = new OperatorStrategy("reconnect",
+                ContingencyContext.none(),
+                new TrueCondition(), List.of("close B3", "close C"));
+        List<OperatorStrategy> operatorStrategies = List.of(osReconnect);
+        List<Action> actions = List.of(new SwitchAction("close B3", "B3", false),
+                                       new SwitchAction("close C", "C", false));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        var reconnectState = new SensitivityState(null, "reconnect");
+        assertEquals(1, result.getStateStatuses().size());
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(reconnectState));
+
+        // reference flow N, 600 MW on L2
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+        assertEquals(608.334d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+
+        // reference flow on curative C closed, 300MW on each
+        assertEquals(301.884d, result.getFunctionReferenceValue(reconnectState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(301.884d, result.getFunctionReferenceValue(reconnectState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+    }
 }
