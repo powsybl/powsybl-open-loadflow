@@ -75,9 +75,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         enum Status {
             VALID,
-            SKIP,
-            VALID_ONLY_FOR_FUNCTION,
-            ZERO
+            SKIP, // variable element and function element are not in the network
+            VALID_ONLY_FOR_FUNCTION, // variable element is not in the network but function element is
+            ZERO // variable element is in the network but function element is not
         }
 
         int getIndex();
@@ -110,7 +110,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         Status getStatus();
 
-        void setStatus(Status status);
+        void updateStatus();
+
+        boolean couldBeValid();
 
         boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
@@ -159,9 +161,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             this.functionType = Objects.requireNonNull(functionType);
             this.variableType = Objects.requireNonNull(variableType);
             this.contingencyContext = Objects.requireNonNull(contingencyContext);
-            if (functionElement == null) {
-                status = Status.ZERO;
-            }
         }
 
         @Override
@@ -269,11 +268,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             return status;
         }
 
-        @Override
-        public void setStatus(Status status) {
-            this.status = status;
-        }
-
         protected boolean isElementConnectedToSlackComponent(LfElement element, DisabledNetwork disabledNetwork) {
             if (element instanceof LfBus) {
                 return !disabledNetwork.getBuses().contains(element);
@@ -304,9 +298,21 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                     ContingencyContext contingencyContext) {
             super(index, variableId, functionId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
-            if (variableElement == null) {
-                status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
+            updateStatus();
+        }
+
+        @Override
+        public void updateStatus() {
+            if (variableElement == null || variableElement.isDisabled()) {
+                status = functionElement == null || functionElement.isDisabled() ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
+            } else {
+                status = functionElement == null || functionElement.isDisabled() ? Status.ZERO : Status.VALID;
             }
+        }
+
+        @Override
+        public boolean couldBeValid() {
+            return variableElement != null && functionElement != null;
         }
 
         protected LfElement getVariableElement() {
@@ -317,7 +323,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             switch (variableType) {
                 case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     LfBranch lfBranch = (LfBranch) variableElement;
-                    return ((EquationTerm<V, E>) lfBranch.getA1()).getEquation();
+                    return lfBranch != null ? ((EquationTerm<V, E>) lfBranch.getA1()).getEquation() : null;
                 case BUS_TARGET_VOLTAGE:
                     LfBus lfBus = (LfBus) variableElement;
                     return ((EquationTerm<V, E>) lfBus.getCalculatedV()).getEquation();
@@ -373,10 +379,22 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                     ContingencyContext contingencyContext, Set<String> originalVariableSetIds) {
             super(index, variableId, functionId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
-            if (weightedVariableElements.isEmpty()) {
-                status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
-            }
             this.originalVariableSetIds = originalVariableSetIds;
+            updateStatus();
+        }
+
+        @Override
+        public void updateStatus() {
+            if (weightedVariableElements.isEmpty()) {
+                status = functionElement == null || functionElement.isDisabled() ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
+            } else {
+                status = functionElement == null || functionElement.isDisabled() ? Status.ZERO : Status.VALID;
+            }
+        }
+
+        @Override
+        public boolean couldBeValid() {
+            return functionElement != null && !weightedVariableElements.isEmpty();
         }
 
         protected Map<LfElement, Double> getWeightedVariableElements() {
@@ -492,12 +510,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         protected SingleVariableFactorGroup(LfElement variableElement, Equation<V, E> variableEquation, SensitivityVariableType variableType) {
             super(variableType);
-            this.variableElement = Objects.requireNonNull(variableElement);
+            this.variableElement = variableElement;
             this.variableEquation = variableEquation;
         }
 
         @Override
         public void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus) {
+            if (variableEquation == null) {
+                return;
+            }
             switch (variableType) {
                 case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     if (variableEquation.isActive()) {
@@ -662,8 +683,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
     protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, DisabledNetwork disabledNetwork,
                                         PropagatedContingency propagatedContingency) {
+        System.out.println("setPredefinedResults");
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledNetwork, propagatedContingency);
+            System.out.println("    " + factor + " " + predefinedResults);
             predefinedResults.getLeft().ifPresent(factor::setSensitivityValuePredefinedResult);
             predefinedResults.getRight().ifPresent(factor::setFunctionPredefinedResult);
         }
@@ -699,6 +722,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (!factor.isFunctionConnectedToSlackComponent(disabledNetwork)) {
                 functionPredefinedResult = Double.NaN;
             }
+        } else if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
+            sensitivityValuePredefinedResult = 0.0;
+            functionPredefinedResult = 0.0;
+        }  else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
+            sensitivityValuePredefinedResult = Double.NaN;
+            functionPredefinedResult = Double.NaN;
         } else {
             throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
         }
@@ -749,30 +778,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 validFactorHolder.addFactor(factor);
             }
             sensitivityVariableToWrite.ifPresent(value -> {
-                // directly write output for zero and invalid factors
-                if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
-                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
-                        // If run in batch of contingencies, the contingency may not be part of this result
-                        contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
-                    int contingencyIndex = contingencyIndexById.get(factor.getContingencyContext().getContingencyId());
-                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
-                    if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
-                        for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(factor.getContingencyContext().getContingencyId(), Collections.emptyList())) {
-                            resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
-                        }
-                    }
-                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
-                    contingencyIndexById.forEach((contingencyId, contingencyIndex) -> {
-                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
-                        if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
-                            for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingencyId, Collections.emptyList())) {
-                                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
-                            }
-                        }
-                    });
-                }
+                toto(resultWriter, operatorStrategiesByContingencyId, parameters, factor, value, contingencyIndexById);
             });
         }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
@@ -780,6 +786,38 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     String.join(", ", skippedVariables));
         }
         return validFactorHolder;
+    }
+
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void toto(SensitivityResultWriter resultWriter,
+                                                                                          Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
+                                                                                          SensitivityAnalysisParameters parameters,
+                                                                                          LfSensitivityFactor<V, E> factor,
+                                                                                          Double value,
+                                                                                          Map<String, Integer> contingencyIndexById) {
+        // directly write output for zero and invalid factors
+        if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
+            resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
+        } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
+                // If run in batch of contingencies, the contingency may not be part of this result
+                contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
+            int contingencyIndex = contingencyIndexById.get(factor.getContingencyContext().getContingencyId());
+            resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+            if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(factor.getContingencyContext().getContingencyId(), Collections.emptyList())) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+                }
+            }
+        } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
+            resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
+            contingencyIndexById.forEach((contingencyId, contingencyIndex) -> {
+                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+                if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                    for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingencyId, Collections.emptyList())) {
+                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+                    }
+                }
+            });
+        }
     }
 
     protected void checkVariableSet(List<SensitivityVariableSet> variableSets) {

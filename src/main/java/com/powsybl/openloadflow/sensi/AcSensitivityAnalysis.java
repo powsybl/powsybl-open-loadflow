@@ -64,6 +64,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     private void calculateSensitivityValues(List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors, SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups, DenseMatrix factorsState,
                                             int contingencyIndex, int operatorStrategyIndex, SensitivityResultWriter resultWriter) {
         Set<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactorsSet = new HashSet<>(lfFactors);
+        System.out.println("SIZE " + lfFactors.size());
 
         // VALID_ONLY_FOR_FUNCTION status is for factors where variable element is not in the main connected component but reference element is.
         // Therefore, the sensitivity is known to value 0 and the reference value can be computed.
@@ -79,6 +80,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 if (!lfFactorsSet.contains(factor)) {
                     continue;
                 }
+//                System.out.println(factor.getFunctionId() + " " + factor.getVariableId() + " " + factor.getFunctionElement().isDisabled() + " " + factor.getStatus());
                 double sensi;
                 double ref;
                 if (factor.getSensitivityValuePredefinedResult() != null) {
@@ -87,16 +89,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     if (!factor.getFunctionEquationTerm().isActive()) {
                         throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                     }
-                    sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
+                    sensi = unscaleSensitivity(factor, factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex()));
                 }
                 if (factor.getFunctionPredefinedResult() != null) {
                     ref = factor.getFunctionPredefinedResult();
                 } else {
-                    ref = factor.getFunctionReference();
+                    ref = unscaleFunction(factor, factor.getFunctionReference());
                 }
-                double unscaledSensi = unscaleSensitivity(factor, sensi);
-                if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategyIndex, unscaledSensi, unscaleFunction(factor, ref));
+                if (!filterSensitivityValue(sensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategyIndex, sensi, ref);
                 }
             }
         }
@@ -104,6 +105,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
     private void setFunctionReferences(List<LfSensitivityFactor<AcVariableType, AcEquationType>> factors) {
         for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factors) {
+//            System.out.println("setFunctionReferences " + factor.getFunctionId() + " " + factor.getVariableId() + " " + factor.getFunctionPredefinedResult()
+//                    + " " + factor.getFunctionEquationTerm().eval());
             if (factor.getFunctionPredefinedResult() != null) {
                 factor.setFunctionReference(factor.getFunctionPredefinedResult());
             } else {
@@ -345,8 +348,24 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 allLfFactors.size(), propagatedContingencies.size(), operatorStrategies.size());
 
         // next we only work with valid and valid only for function factors
-        var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, propagatedContingencies, new HashMap<>(), parameters);
-        var validLfFactors = validFactorHolder.getAllFactors();
+
+
+        //writeInvalidFactors(allFactorHolder, resultWriter, propagatedContingencies, new HashMap<>(), parameters);
+        for (var factor : allFactorHolder.getAllFactors()) {
+            System.out.println("ALL " + factor.getFunctionId() + " " + factor.getVariableId());
+        }
+        List<LfSensitivityFactor<AcVariableType, AcEquationType>> couldBeValidLfFactors = new ArrayList<>();
+        Map<String, Integer> contingencyIndexById = propagatedContingencies.stream().collect(Collectors.toMap(
+                c -> c.getContingency().getId(),
+                PropagatedContingency::getIndex
+        ));
+//        for (var factor : allFactorHolder.getAllFactors()) {
+//            if (factor.couldBeValid()) {
+//                couldBeValidLfFactors.add(factor);
+//            } else {
+//                toto(resultWriter, operatorStrategiesByContingencyId, parameters, factor, 0.0, contingencyIndexById);
+//            }
+//        }
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
@@ -355,8 +374,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             acParameters.setVoltageInitReport(false);
 
             // index factors by variable group to compute a minimal number of states
-            SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
-                    .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
+            SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(allLfFactors);
 
             // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
             // buses that contain elements participating to slack distribution
@@ -395,10 +413,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             OpenLoadFlowParameters contingencylfParametersExt = applyGenericContingencyParameters(context, lfParameters, lfParametersExt,
                     sensitivityAnalysisParametersExt.isStartWithFrozenACEmulation());
 
+            setPredefinedResults(allLfFactors, new DisabledNetwork(), null);
+
             // calculate sensitivity values
-            setFunctionReferences(validLfFactors);
+            setFunctionReferences(allLfFactors);
             if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
-                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, -1, resultWriter);
+                calculateSensitivityValues(allFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, -1, resultWriter);
             }
 
             NetworkState networkState = NetworkState.save(lfNetwork);
@@ -411,7 +431,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
                         LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, null, null, lfOperatorStrategy);
                         processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, null, lfNetworkChange, networkReportNode,
-                                lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                                lfNetwork, allFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
                     }
                 }
             }
@@ -428,7 +448,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     LOGGER.info("Simulate contingency '{}'", propagatedContingency.getContingency().getId());
                     LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, null);
                     processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
-                            lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                            lfNetwork, allFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
                 }
 
                 if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
@@ -440,7 +460,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
                         LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, lfOperatorStrategy);
                         processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
-                                lfNetwork, validFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                                lfNetwork, allFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
                     }
                 }
             });
@@ -451,17 +471,19 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                       PropagatedContingency propagatedContingency, LfNetworkChange lfNetworkChange, ReportNode networkReportNode, LfNetwork lfNetwork,
                                       SensitivityFactorHolder<AcVariableType, AcEquationType> validFactorHolder, SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
                                       OpenLoadFlowParameters contingencylfParametersExt, AcLoadFlowContext context, NetworkState networkState, DenseMatrix factorsStates) {
+        System.out.println("processNetworkChange");
         if (lfNetworkChange.hasImpact()) {
             ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfNetworkChange.getContingencyId());
             lfNetwork.setReportNode(postContSimReportNode);
+
+            lfNetworkChange.apply(lfParameters.getBalanceType());
 
             List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfNetworkChange.getContingencyId());
             contingencyFactors.forEach(lfFactor -> {
                 lfFactor.setSensitivityValuePredefinedResult(null);
                 lfFactor.setFunctionPredefinedResult(null);
+                lfFactor.updateStatus();
             });
-
-            lfNetworkChange.apply(lfParameters.getBalanceType());
 
             setPredefinedResults(contingencyFactors, lfNetworkChange.getDisabledNetwork(), propagatedContingency);
 

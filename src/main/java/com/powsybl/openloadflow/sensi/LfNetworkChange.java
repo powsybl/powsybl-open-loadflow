@@ -28,6 +28,7 @@ public class LfNetworkChange {
     private final LfContingency lfContingency;
     private final LfOperatorStrategy lfOperatorStrategy;
     private final DisabledNetwork disabledNetwork;
+    private final EnabledNetwork enabledNetwork;
 
     public LfNetworkChange(LfNetwork lfNetwork, PropagatedContingency propagatedContingency, LfContingency lfContingency, LfOperatorStrategy lfOperatorStrategy) {
         Objects.requireNonNull(lfNetwork);
@@ -37,6 +38,8 @@ public class LfNetworkChange {
         Set<LfBus> disabledBuses = new HashSet<>();
         Map<LfBranch, DisabledBranchStatus> branchesStatus = new HashMap<>();
         Set<LfHvdc> disabledHvdcs = new HashSet<>();
+        Set<LfBus> enabledBuses = new HashSet<>();
+        Set<LfBranch> enabledBranches = new HashSet<>();
         if (lfContingency != null) {
             disabledBuses.addAll(lfContingency.getDisabledNetwork().getBuses());
             branchesStatus.putAll(lfContingency.getDisabledNetwork().getBranchesStatus());
@@ -49,11 +52,23 @@ public class LfNetworkChange {
             NetworkActivations networkActivations = AbstractLfBranchAction.getNetworkActivations(lfNetwork, lfContingency, branchActions);
             disabledBuses.addAll(networkActivations.getDisabledNetwork().getBuses());
             branchesStatus.putAll(networkActivations.getDisabledNetwork().getBranchesStatus());
-            if (!networkActivations.getEnabledNetwork().getBuses().isEmpty()) {
-                throw new PowsyblException("Network change should not add new buses");
+            // check we don't re-enable a bus or a branch disabled by the contingency
+            // TODO to support later
+            for (LfBus bus : networkActivations.getEnabledNetwork().getBuses()) {
+                if (disabledBuses.contains(bus)) {
+                    throw new PowsyblException("Network change should not enable a bus already disabled by the contingency");
+                }
             }
+            for (LfBranch branch : networkActivations.getEnabledNetwork().getBranches()) {
+                if (branchesStatus.containsKey(branch)) {
+                    throw new PowsyblException("Network change should not enable a branch already disabled by the contingency");
+                }
+            }
+            enabledBuses.addAll(networkActivations.getEnabledNetwork().getBuses());
+            enabledBranches.addAll(networkActivations.getEnabledNetwork().getBranches());
         }
         disabledNetwork = new DisabledNetwork(disabledBuses, branchesStatus, disabledHvdcs);
+        enabledNetwork = new EnabledNetwork(enabledBuses, enabledBranches);
     }
 
     public String getContingencyId() {
@@ -72,8 +87,13 @@ public class LfNetworkChange {
         return disabledNetwork;
     }
 
+    public EnabledNetwork getEnabledNetwork() {
+        return enabledNetwork;
+    }
+
     public void apply(LoadFlowParameters.BalanceType balanceType) {
         disabledNetwork.apply();
+        enabledNetwork.apply();
         if (lfContingency != null) {
             lfContingency.processLostPowerChanges(balanceType, true);
         }
