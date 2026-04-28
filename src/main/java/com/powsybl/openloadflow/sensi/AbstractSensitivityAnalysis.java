@@ -540,9 +540,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         @Override
         public void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus) {
-            double weightSum = mainComponentWeights.values().stream().mapToDouble(Math::abs).sum();
             switch (variableType) {
                 case INJECTION_ACTIVE_POWER:
+                    double weightSum = mainComponentWeights.values().stream().mapToDouble(Double::valueOf).sum();
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
                         LfBus lfBus = lfBusAndParticipationFactor.getKey();
                         double injection = lfBusAndParticipationFactor.getValue();

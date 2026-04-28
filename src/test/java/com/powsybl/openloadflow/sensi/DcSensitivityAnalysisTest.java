@@ -506,23 +506,20 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testPhilippe() {
+    void testGlskWithPositiveWeights() {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", false);
-
         List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("g1", 50f),
                                                               new WeightedSensitivityVariable("g2", 25f),
                                                               new WeightedSensitivityVariable("g4", 25f));
         List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
-
         List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
             .setVariableSets(variableSets)
             .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-
         assertEquals(5, result.getValues().size());
         // sensi g1 -> l13 : 1/2
         // sensi g2 -> l13 : 1/4
@@ -532,7 +529,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testPhilippeBis() {
+    void testGlskWithNegativeWeight() {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
 
@@ -553,9 +550,8 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // sensi g1 -> l13 : 1/2
         // sensi g2 -> l13 : 1/4
         // sensi g4 -> l13 : 1/4
-        // sans normaliser : 50% / 25% / -25% => 1/4 + 1/16 - 1/16 = 1/4
-        // en normalisant : 50% / 25% / -25% => 100% / 50% / -50% => 1/2 + 1/4 - 1/4 = 1/2
-        assertEquals(1d / 4d, result.getBranchFlow1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        // 50% / 25% / -25% => normalizing weights : 100% / 50% / -50% => 1/2 + 1/4 - 1/4 = 1/2
+        assertEquals(1d / 2d, result.getBranchFlow1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
