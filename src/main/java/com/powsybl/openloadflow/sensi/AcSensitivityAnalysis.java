@@ -444,7 +444,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             lfNetworkChange.apply(lfParameters.getBalanceType());
 
-            List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfNetworkChange.getContingencyId());
+            String contingencyId = lfNetworkChange.getContingencyId();
+            List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = contingencyId != null
+                    ? validFactorHolder.getFactorsForContingency(contingencyId)
+                    : validFactorHolder.getFactorsForBaseNetwork();
             contingencyFactors.forEach(lfFactor -> {
                 lfFactor.setSensitivityValuePredefinedResult(null);
                 lfFactor.setFunctionPredefinedResult(null);
