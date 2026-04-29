@@ -2218,4 +2218,200 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
         return network;
     }
+
+    /**
+     * <pre>
+     *  g1                                                  ld2
+     *  |    conv3 DC1----dl14----DC4----dl47----DC7 conv7   |
+     *  |    conv1-|                               |-conv5   |
+     *  AC1 -|     DC2----dl25----DC5----dl58----DC8     |- AC2
+     *  |    conv2-|               g               |-conv6   |
+     *  |    conv4 DC3----dl36----DC6----dl69----DC9 conv8   |
+     *  |                                                    |
+     *  |--------------l12-----------------------------------|
+     * </pre>
+     * @param id: Name of the network test case
+     * @param swapOrder1 : Whether converter conv1 DC nodes should be DC1 and DC2 or DC2 and DC1
+     * @param swapOrder2 : Whether converter conv2 DC nodes should be DC2 and DC3 or DC3 and DC2
+     * @param swapOrder3 : Whether converter conv3 DC nodes should be DC1 and DC2 or DC2 and DC1
+     * @param swapOrder4 : Whether converter conv4 DC nodes should be DC2 and DC3 or DC3 and DC2
+     *
+     */
+    public static Network createFourConvertersBipole(String id, boolean swapOrder1, boolean swapOrder2, boolean swapOrder3, boolean swapOrder4) {
+
+        // Create AC network
+        Network net = Network.create(id, "test");
+        Bus b1 = createBus(net, "AC1", 400);
+        Bus b2 = createBus(net, "AC2", 400);
+        createGenerator(b1, "g1", 100, 400);
+        createLoad(b2, "ld2", 85);
+        createLine(net, b1, b2, "l12", 1, 1);
+
+        // Create DC network
+        DcNode dc1 = createDcNode(net, "DC1", 500);
+        DcNode dc2 = createDcNode(net, "DC2", 500);
+        DcNode dc3 = createDcNode(net, "DC3", 500);
+        DcNode dc4 = createDcNode(net, "DC4", 500);
+        DcNode dc5 = createDcNode(net, "DC5", 500, true);
+        DcNode dc6 = createDcNode(net, "DC6", 500);
+        DcNode dc7 = createDcNode(net, "DC7", 500);
+        DcNode dc8 = createDcNode(net, "DC8", 500);
+        DcNode dc9 = createDcNode(net, "DC9", 500);
+
+        createDcLine(net, dc1, dc4, "dl14", 1);
+        createDcLine(net, dc2, dc5, "dl25", 1);
+        createDcLine(net, dc3, dc6, "dl36", 1);
+        createDcLine(net, dc4, dc7, "dl47", 1);
+        createDcLine(net, dc5, dc8, "dl58", 1);
+        createDcLine(net, dc6, dc9, "dl69", 1);
+
+        // Create voltage source converters.
+        // For converters on the left side, we check the swap order parameter, which also impact targetVdc parameter
+        if (swapOrder1) {
+            createVoltageSourceConverterVdcQac(b1, dc2, dc1, "conv1", -500, 0);
+        } else {
+            createVoltageSourceConverterVdcQac(b1, dc1, dc2, "conv1", 500, 0);
+        }
+        if (swapOrder2) {
+            createVoltageSourceConverterVdcQac(b1, dc3, dc2, "conv2", -500, 0);
+        } else {
+            createVoltageSourceConverterVdcQac(b1, dc2, dc3, "conv2", 500, 0);
+        }
+        if (swapOrder3) {
+            createVoltageSourceConverterPccQac(b1, dc2, dc1, "conv3", -20, 0);
+        } else {
+            createVoltageSourceConverterPccQac(b1, dc1, dc2, "conv3", -20, 0);
+        }
+        if (swapOrder4) {
+            createVoltageSourceConverterPccQac(b1, dc3, dc2, "conv4", -20, 0);
+        } else {
+            createVoltageSourceConverterPccQac(b1, dc2, dc3, "conv4", -20, 0);
+        }
+
+        createVoltageSourceConverterPccQac(b2, dc7, dc8, "conv5", 20, 0);
+        createVoltageSourceConverterPccQac(b2, dc8, dc9, "conv6", 20, 0);
+        createVoltageSourceConverterPccQac(b2, dc8, dc7, "conv7", 20, 0);
+        createVoltageSourceConverterPccQac(b2, dc9, dc8, "conv8", 20, 0);
+
+        return net;
+    }
+
+    /**
+     * Like {@link #createAcDcNetwork1()} but with a configurable DC line resistance.
+     * Used as oracle for DC switch tests.
+     * <pre>
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 ------b2-conv23-dn3--dl34(r)--dn4-conv45--b5
+     *            |                           |
+     *        (dnDummy3,dg3)           (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithCustomDcLineR(double r) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").setR(r);
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) replacing the DC line between dn3 and dn4.
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
+     * because the switch contributes no resistance.
+     * <pre>
+     * g1       ld2                                     ld5
+     * |         |                                       |
+     * b1 ------b2-conv23-dn3--sw34(rSwitch)--dn4-conv45-b5
+     *            |                               |
+     *        (dnDummy3,dg3)               (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchOnly(double rSwitch) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) in series with a DC line (resistance {@code rLine}).
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn3b, so only {@code rLine} remains.
+     * <pre>
+     * g1       ld2                                                ld5
+     * |         |                                                  |
+     * b1 ------b2-conv23-dn3--sw3b(rSwitch)--dn3b--dl3b4(rLine)--dn4-conv45-b5
+     *            |                                                     |
+     *        (dnDummy3,dg3)                                    (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchAndDcLine(double rSwitch, double rLine) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcNode()
+                .setId("dn3b")
+                .setNominalV(400.)
+                .add();
+        network.newDcSwitch()
+                .setId("sw3b")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn3b")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcLine()
+                .setId("dl3b4")
+                .setDcNode1("dn3b")
+                .setDcNode2("dn4")
+                .setR(rLine)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    private static void addStandardConverters(Network network) {
+        // Ideal converters (zero losses) to simplify analytical solutions.
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+        // Rectifier (target P > 0)
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+        // Inverter (by power balance law)
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+    }
 }
