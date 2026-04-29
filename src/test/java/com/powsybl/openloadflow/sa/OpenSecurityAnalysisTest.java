@@ -24,6 +24,7 @@ import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
 import com.powsybl.iidm.criteria.IdentifiableCriterion;
 import com.powsybl.iidm.criteria.VoltageInterval;
 import com.powsybl.iidm.criteria.duration.AllTemporaryDurationCriterion;
+import com.powsybl.iidm.criteria.duration.EqualityTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.PermanentDurationCriterion;
 import com.powsybl.iidm.network.*;
@@ -195,11 +196,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LimitReduction limitReduction2 = LimitReduction.builder(LimitType.CURRENT, 0.9)
                 .withLimitDurationCriteria(new AllTemporaryDurationCriterion())
                 .build();
-        List<StateMonitor> no_monitors = Collections.emptyList();
         List<LimitReduction> limitReductions = List.of(limitReduction1, limitReduction2);
         SecurityAnalysisResult result = runSecurityAnalysis(network,
                 contingencies,
-                no_monitors,
+                Collections.emptyList(),
                 limitReductions,
                 new SecurityAnalysisParameters());
 
@@ -223,6 +223,66 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("permanent", limitViolation1.getLimitName());
         assertEquals("DEFAULT", limitViolation2.getOperationalLimitsGroupId());
         assertEquals("permanent", limitViolation2.getLimitName());
+    }
+
+    @Test
+    voidgit testWithSingleTempLimitIncrease() {
+        Network network = EurostagTutorialExample1Factory.createWithMultipleSelectedFixedCurrentLimits();
+        String idLine1 = EurostagTutorialExample1Factory.NHV1_NHV2_1;
+        String idLine2 = EurostagTutorialExample1Factory.NHV1_NHV2_2;
+        network.getLine(idLine1).setSelectedOperationalLimitsGroup1(EurostagTutorialExample1Factory.ACTIVATED_ONE_ONE);
+        network.getLine(idLine1).setSelectedOperationalLimitsGroup2(EurostagTutorialExample1Factory.ACTIVATED_TWO_ONE);
+        network.getLine(idLine2).setSelectedOperationalLimitsGroup2(EurostagTutorialExample1Factory.ACTIVATED_TWO_ONE);
+        List<Contingency> contingencies = List.of(new Contingency(idLine2, new BranchContingency(idLine2)));
+        SecurityAnalysisResult result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new SecurityAnalysisParameters());
+        // post-contingency value NHV1_NHV2_1 : 1047.8
+        // the permanent limit is at 200, the "10" limit is at 1000
+        List<LimitViolation> postContingencyLimitViolations = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations();
+        assertEquals(1, postContingencyLimitViolations.size());
+        assertEquals("NHV1_NHV2_1", postContingencyLimitViolations.getFirst().getSubjectId());
+        assertEquals(1.0, postContingencyLimitViolations.getFirst().getLimitReduction());
+        assertEquals("10'", postContingencyLimitViolations.getFirst().getLimitName());
+
+        List<LimitReduction> limitReductions = List.of(LimitReduction.builder(LimitType.CURRENT, 1.1)
+                .withLimitDurationCriteria(new AllTemporaryDurationCriterion())
+                .build());
+        result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                limitReductions,
+                new SecurityAnalysisParameters());
+        postContingencyLimitViolations = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations();
+        // the permanent limit is at 200, the "10" limit is at 1100
+        assertEquals(1, postContingencyLimitViolations.size());
+        assertEquals("NHV1_NHV2_1", postContingencyLimitViolations.getFirst().getSubjectId());
+        assertEquals("permanent", postContingencyLimitViolations.getFirst().getLimitName());
+    }
+
+    @Test
+    void testTempLimitIntervertedWithIncrease() {
+        Network network = EurostagTutorialExample1Factory.createWithMultipleSelectedFixedCurrentLimits();
+        Line line = network.getLine(EurostagTutorialExample1Factory.NHV1_NHV2_1);
+        String idLine1 = EurostagTutorialExample1Factory.NHV1_NHV2_1;
+        String idLine2 = EurostagTutorialExample1Factory.NHV1_NHV2_2;
+        network.getLine(idLine1).setSelectedOperationalLimitsGroup1(EurostagTutorialExample1Factory.ACTIVATED_ONE_ONE);
+        network.getLine(idLine2).setSelectedOperationalLimitsGroup2(EurostagTutorialExample1Factory.ACTIVATED_TWO_ONE);
+        List<LimitReduction> limitReductions = List.of(LimitReduction.builder(LimitType.CURRENT, 1.3)
+                        .withOperationalLimitsGroupIdSelection(List.of(EurostagTutorialExample1Factory.ACTIVATED_ONE_ONE))
+                        .withLimitDurationCriteria(new EqualityTemporaryDurationCriterion(600))
+                        .build()
+                );
+        List<Contingency> contingencies = List.of(new Contingency(idLine2, new BranchContingency(idLine2)));
+        SecurityAnalysisResult result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new SecurityAnalysisParameters());
+        //Check detection between the original at 1200 (now raised to 1560) and the IT1 at 1500
+
     }
 
     @Test
