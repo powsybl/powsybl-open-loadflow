@@ -68,6 +68,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Set<DcLine> dcLineSet = new LinkedHashSet<>();
 
         private final Set<AcDcConverter<?>> acDcConverterSet = new LinkedHashSet<>();
+
+        private final Set<DcSwitch> dcSwitchSet = new LinkedHashSet<>();
     }
 
     private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
@@ -100,7 +102,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createDcGrounds(LfNetwork lfNetwork, List<DcGround> dcGrounds) {
         for (DcGround dcGround : dcGrounds) {
-            Objects.requireNonNull(getLfDcBus(dcGround.getDcTerminal(), lfNetwork)).setGround(true);
+            Objects.requireNonNull(getLfDcBusFromDcTerminal(dcGround.getDcTerminal(), lfNetwork)).setGround(true);
         }
     }
 
@@ -623,10 +625,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createDcLines(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
         for (DcLine dcLine : loadingContext.dcLineSet) {
-            LfDcBus lfDcBus1 = getLfDcBus(dcLine.getDcTerminal1(), lfNetwork);
-            LfDcBus lfDcBus2 = getLfDcBus(dcLine.getDcTerminal2(), lfNetwork);
+            LfDcBus lfDcBus1 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal1(), lfNetwork);
+            LfDcBus lfDcBus2 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal2(), lfNetwork);
             LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcBus1, lfDcBus2, parameters);
             addDcLine(lfNetwork, lfDcLine);
+        }
+
+        for (DcSwitch dcSwitch : loadingContext.dcSwitchSet) {
+            LfDcBus lfDcBus1 = getLfDcBusFromDcNode(dcSwitch.getDcNode1(), lfNetwork);
+            LfDcBus lfDcBus2 = getLfDcBusFromDcNode(dcSwitch.getDcNode2(), lfNetwork);
+            if (lfDcBus1 == null || lfDcBus2 == null) {
+                continue;
+            }
+            LfDcSwitchImpl lfDcSwitch = LfDcSwitchImpl.create(dcSwitch, lfNetwork, lfDcBus1, lfDcBus2, parameters);
+            addDcLine(lfNetwork, lfDcSwitch);
         }
     }
 
@@ -636,12 +648,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
         }
 
-        LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-        if (lfBus1 != null) {
-            LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
-            LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
-            if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
-                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters);
+            LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
+            if (lfBus1 != null) {
+                LfDcBus lfDcBus1 = getLfDcBusFromDcTerminal(acDcConverter.getDcTerminal1(), lfNetwork);
+                LfDcBus lfDcBus2 = getLfDcBusFromDcTerminal(acDcConverter.getDcTerminal2(), lfNetwork);
+                if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
+                    LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters);
 
                 if (voltageSourceConverterImpl.isVoltageRegulatorOn()) {
                     VoltageSourceConverterVoltageControl voltageControl = new VoltageSourceConverterVoltageControl(lfBus1,
@@ -1056,8 +1068,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfDcBus getLfDcBus(DcTerminal terminal, LfNetwork lfNetwork) {
+    private static LfDcBus getLfDcBusFromDcTerminal(DcTerminal terminal, LfNetwork lfNetwork) {
         DcBus dcBus = Networks.getDcBus(terminal);
+        return dcBus != null ? lfNetwork.getDcBusById(dcBus.getId()) : null;
+    }
+
+    private static LfDcBus getLfDcBusFromDcNode(DcNode dcNode, LfNetwork lfNetwork) {
+        DcBus dcBus = dcNode.getDcBus();
         return dcBus != null ? lfNetwork.getDcBusById(dcBus.getId()) : null;
     }
 
@@ -1356,6 +1373,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<LfDcBus> lfDcBuses = new ArrayList<>();
         createDcBuses(dcBuses, parameters, lfNetwork, lfDcBuses, loadingContext);
+        network.getDcSwitches().forEach(loadingContext.dcSwitchSet::add);
         createDcGrounds(lfNetwork, dcGrounds);
         createDcLines(lfNetwork, loadingContext, parameters);
 
@@ -1588,6 +1606,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
+        // (connected component, DC component) --> all DC buses
         Map<Pair<Integer, Integer>, List<DcBus>> dcBusesByCc = new TreeMap<>();
         Iterable<DcBus> dcBuses = Networks.getDcBuses(network);
         for (DcBus dcBus : dcBuses) {
