@@ -22,8 +22,11 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
@@ -32,8 +35,10 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
+import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
@@ -41,6 +46,7 @@ import org.mockito.Mockito;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
@@ -803,7 +809,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setParameters(sensiParameters);
         CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
-        assertTrue(exception.getCause() instanceof UnsupportedOperationException);
+        assertInstanceOf(UnsupportedOperationException.class, exception.getCause());
         assertEquals("Unsupported balance type mode: PROPORTIONAL_TO_CONFORM_LOAD", exception.getCause().getMessage());
     }
 
@@ -869,7 +875,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setParameters(sensiParameters);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
-        assertTrue(e.getCause() instanceof PowsyblException);
+        assertInstanceOf(PowsyblException.class, e.getCause());
         assertEquals("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC", e.getCause().getMessage());
     }
 
@@ -1364,5 +1370,71 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2, operatorStrategies, actions,
                 creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
+    }
+
+    @Test
+    void testFailingDcLf() throws Exception {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l14", "g1"));
+        SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
+
+        AtomicInteger valueCallCount = new AtomicInteger(0);
+        AtomicInteger syncStatusCallCount = new AtomicInteger(0);
+        AtomicInteger computationCompleteCallCount = new AtomicInteger(0);
+        List<LoadFlowResult.ComponentResult.Status> syncStatuses = new ArrayList<>();
+        SensitivityResultWriter resultWriter = new SensitivityResultWriter() {
+            @Override
+            public void writeSensitivityValue(int factorIndex, int contingencyIndex, int operatorStrategyIndex, double value, double functionReference) {
+                valueCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status,
+                                         SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus, int numCC, int numCS) {
+                if (contingencyIndex == -1 && operatorStrategyIndex == -1 && loadFlowStatus != null) {
+                    syncStatusCallCount.incrementAndGet();
+                    syncStatuses.add(loadFlowStatus.status());
+                }
+            }
+
+            @Override
+            public void computationComplete() {
+                computationCompleteCallCount.incrementAndGet();
+            }
+        };
+
+        // Subclass that forces calculateFlowStates to throw, simulating a DC solver failure.
+        // With an empty contingency list, only the base-case call to calculateFlowStates is reached.
+        DcSensitivityAnalysis failingAnalysis = new DcSensitivityAnalysis(new SparseMatrixFactory(),
+                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParameters) {
+            @Override
+            DenseMatrix calculateFlowStates(DcLoadFlowContext loadFlowContext, List<ParticipatingElement> participatingElements,
+                                            DisabledNetwork disabledNetwork, List<LfAction> actions, ReportNode reportNode) {
+                throw new PowsyblException("DC solver failed");
+            }
+        };
+
+        LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+                .setContingencyPropagation(false)
+                .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+                .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        Executor executor = LocalComputationManager.getDefault().getExecutor();
+
+        // DC base case solve fails: computation should gracefully report the failure
+        // via writeSynchronousComponentStatus rather than propagating the exception
+        failingAnalysis.analyse(network, variantId, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                creationParameters, Collections.emptyList(), factorReader, resultWriter, ReportNode.NO_OP,
+                openSensitivityAnalysisParameters, executor);
+
+        assertEquals(1, syncStatusCallCount.get());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, syncStatuses.getFirst());
+        assertEquals(0, valueCallCount.get());
+        assertEquals(1, computationCompleteCallCount.get());
     }
 }
