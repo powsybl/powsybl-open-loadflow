@@ -11,6 +11,8 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.security.SecurityAnalysisParameters.ModifiedMonitoredElementsParameters;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 
@@ -28,11 +30,15 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Contingency contingency;
 
+    private final ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters;
+
     public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension,
-                                        PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+                                        PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor,
+                                        ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
         super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
         this.preContingencyMonitorInfos = Objects.requireNonNull(preContingencyMonitorInfos);
         this.contingency = Objects.requireNonNull(contingency);
+        this.modifiedMonitoredElementsParameters = modifiedMonitoredElementsParameters;
     }
 
     @Override
@@ -57,6 +63,10 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                         preContingencyBranchOfContingencyP1 = preContingencyBranchOfContingencyResult.getP1();
                     }
                 }
+            }
+            if (preContingencyBranchResult != null && Math.abs((preContingencyBranchResult.getP1() / PerUnit.SB) - branch.getP1().eval())
+                    < modifiedMonitoredElementsParameters.getPowerModificationThreshold()) {
+                return;
             }
             branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel));
         }, isBranchDisabled, zeroImpedanceFlows);

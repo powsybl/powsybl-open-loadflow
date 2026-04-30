@@ -63,7 +63,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private record WoodburyContext(DcLoadFlowContext dcLoadFlowContext, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId, Map<String, LfAction> lfActionById,
                                    boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                   List<LimitReduction> limitReductions) {
+                                   List<LimitReduction> limitReductions, SecurityAnalysisParameters.ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
     }
 
     private record ToFastDcResults(Function<ConnectivityAnalysisResult, double[]> toPostContingencyStates,
@@ -205,7 +205,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // update post contingency network result
         var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), woodburyContext.createResultExtension,
-                preContingencyNetworkResult, contingency, LoadFlowModel.DC, woodburyContext.dcLoadFlowContext().getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
+                preContingencyNetworkResult, contingency, LoadFlowModel.DC, woodburyContext.dcLoadFlowContext().getParameters().getEquationSystemCreationParameters().getDcPowerFactor(),
+                woodburyContext.modifiedMonitoredElementsParameters());
         postContingencyNetworkResult.update(isBranchDisabledDueToContingency);
 
         // detect violations
@@ -407,7 +408,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             var preContingencyLimitViolationManager = new LimitViolationManager(limitReductions);
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
             WoodburyContext woodburyContext = new WoodburyContext(context, operatorStrategiesByContingencyId, lfActionById, createResultExtension,
-                    securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions);
+                    securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions,
+                    securityAnalysisParameters.getModifiedMonitoredElementsParameters());
 
             // compute states with +1 -1 to model the contingencies and run connectivity analysis
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
