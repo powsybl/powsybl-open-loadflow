@@ -14,6 +14,7 @@ The next section details the parameters that are specific to PowSyBl Open LoadFL
 
 ## Specific parameters
 
+(param-lf-voltage-init-mode-override)=
 ### voltageInitModeOverride
 Additional voltage init modes of PowSyBl Open Load Flow that are not present in
 [PowSyBl LoadFlow `voltageInitMode` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration):
@@ -24,6 +25,7 @@ Additional voltage init modes of PowSyBl Open Load Flow that are not present in
 
 The default value is `NONE`.
 
+(param-lf-low-impedance-branch-mode)=
 ### lowImpedanceBranchMode
 The `lowImpedanceBranchMode` parameter defines how to deal with low impedance branches
 (when $Z$ is less than the per-unit [`lowImpedanceThreshold`](#lowimpedancethreshold)).
@@ -33,11 +35,13 @@ Possible values are:
 
 The default value is `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
 
+(param-lf-low-impedance-threshold)=
 ### lowImpedanceThreshold
 The `lowImpedanceThreshold` parameter defines in per-unit the threshold used to identify
 low impedance branches (when $Z$ is less than the `lowImpedanceThreshold` per-unit threshold).<br>
 The default value is $10^{-8}$ and it must be greater than `0`.
 
+(param-lf-slack-distribution-failure-behavior)=
 ### slackDistributionFailureBehavior
 This option defines the behavior in case the slack distribution fails. Available options are:
 - `THROW` if you want an exception to be thrown in case of failure
@@ -53,6 +57,7 @@ The default value is `FAIL`.
 In version 1.16.0 and before, the default value was `LEAVE_ON_SLACK_BUS`.
 ```
 
+(param-lf-slack-bus-selection-mode)=
 ### slackBusSelectionMode
 The `slackBusSelectionMode` parameter defines how to select the slack bus. The three options are available through the configuration file:
 - `FIRST` if you want to choose the first bus of all the network buses.
@@ -70,24 +75,29 @@ When `readSlackBus` is set to true, [`slackBusSelectionMode`](#slackbusselection
 - for e.g. synchronous components where no slack terminal extension is present.
 - for e.g. synchronous components where more than [`maxSlackBusCount`](#maxslackbuscount) slack terminal extensions are present.
 
+(param-lf-most-meshed-slack-bus-selector-max-nominal-voltage-percentile)=
 ### mostMeshedSlackBusSelectorMaxNominalVoltagePercentile
 This option is used when [`slackBusSelectionMode`](#slackbusselectionmode) is set to `MOST_MESHED`. It sets the maximum nominal voltage percentile.
 The default value is `95` and it must be inside the interval [`0`, `100`].
 
+(param-lf-max-slack-bus-count)=
 ### maxSlackBusCount
 Number of slack buses to be selected. Setting a value above 1 can help convergence on very large networks with large initial imbalances,
 where it might be difficult to find a single slack with sufficient branches connected and able to absorb or evacuate the slack power.<br>
 The default value is `1`.
 
+(param-lf-slack-buses-ids)=
 ### slackBusesIds
 The `slackBusesIds` property is a required property if you choose `NAME` for property [`slackBusSelectionMode`](#slackbusselectionmode).
 It defines a prioritized list of buses or voltage levels to be chosen for slack bus selection (as an array, or as a comma or semicolon separated string).
 
+(param-lf-slack-bus-country-filter)=
 ### slackBusCountryFilter
 The `slackBusCountryFilter` defines a list of countries where slack bus should be selected (as an array, or as a comma or semicolon separated string).<br>
 Countries are specified by their alpha-2 code (e.g. `FR`, `BE`, `DE`, ...).<br>
 The default value is an empty list (any country can be used for slack bus selection).
 
+(param-lf-load-power-factor-constant)=
 ### loadPowerFactorConstant
 The `loadPowerFactorConstant ` property is an optional boolean property. This property is used in the outer loop that distributes slack on loads if :
 - `distributedSlack` property is set to true in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration),
@@ -121,32 +131,38 @@ In both cases, slack is not distributed to fictitious loads. A load can be ficti
 
 The default value for `loadPowerFactorConstant` property is `false`.
 
+(param-lf-slack-bus-p-max-mismatch)=
 ### slackBusPMaxMismatch
 When slack distribution is enabled (`distributedSlack` set to `true` in LoadFlowParameters),
 this is the threshold below which slack power is considered to be distributed.<br>
 The default value is `1 MW` and it must be greater or equal to `0 MW`.
 
+(param-lf-area-interchange-control)=
 ### areaInterchangeControl
 The `areaInterchangeControl` parameter defines if the
 [area interchange control](loadflow.md#area-interchange-control) outer loop is enabled.
 If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.<br>
 The default value is `false`.
 
+(param-lf-area-interchange-control-area-type)=
 ### areaInterchangeControlAreaType
 Defines the `areaType` of the areas on which the [area interchange control](loadflow.md#area-interchange-control) is applied.
 Only the areas of the input network that have this type will be considered.<br>
 The default value is `ControlArea`.
 
+(param-lf-area-interchange-p-max-mismatch)=
 ### areaInterchangePMaxMismatch
 Defines the maximum interchange mismatch tolerance for [area interchange control](loadflow.md#area-interchange-control).
 The default value is `2 MW` and it must be greater than `0 MW`.
 
+(param-lf-voltage-remote-control)=
 ### voltageRemoteControl
 The `voltageRemoteControl` parameter defines if the remote control for voltage controllers has to be modeled.
 If set to false, any existing voltage remote control is converted to a local control, using the generator's _equivalentLocalTargetV_ if available,
 or rescaling the target voltage according to the nominal voltage ratio between the remote regulated bus and the equipment terminal bus.<br>
 The default value is `true`.
 
+(param-lf-voltage-remote-control-robust-mode)=
 ### voltageRemoteControlRobustMode
 When set to true, the algorithm for remote voltage control is more robust to inconsistent voltage targets that might otherwise cause unrealistic
 voltage exceptions and cause a loadflow failure. The control of unrealistic voltage is performed after the reactive limit outerloop. 
@@ -159,22 +175,26 @@ may produce a solution where a voltage controlled bus does not reach the target 
 have reactive power margin available.<br>
 The default value is `true`.
 
+(param-lf-voltage-per-reactive-power-control)=
 ### voltagePerReactivePowerControl
 Whether simulation of static VAR compensators with voltage control enabled and a slope defined should be enabled
 (See [voltage per reactive power control extension](inv:powsyblcore:*:*:#voltage-per-reactive-power-control-extension)).<br>
 The default value is `false`.
 
+(param-lf-generator-reactive-power-remote-control)=
 ### generatorReactivePowerRemoteControl
 Whether simulation of generators reactive power remote control should be enabled
 (See [remote reactive power control](inv:powsyblcore:*:*:#remote-reactive-power-control-extension)).<br>
 The default value is `false`.
 
+(param-lf-disable-inconsistent-voltage-control)=
 ### disableInconsistentVoltageControl
 If multiple generators (or batteries, or VSC converters, or static VAR compensators) are connected to the same bus but either control different buses,
 either have different target voltages, then their voltage control is disabled if `disableInconsistentVoltageControl` is set to `true`. If the parameter is
 set to `false`, then only the control of the first generator is kept and applied to all the other generators.<br>
 The default value is `false`.
 
+(param-lf-secondary-voltage-control)=
 ### secondaryVoltageControl
 Whether simulation of secondary voltage control should be enabled.<br>
 Modeling of secondary voltage control has been designed to provide a fast, static, approximation of the equilibrium state of the generator reactive power 
@@ -187,17 +207,20 @@ Generators that belongs to a secondary voltage control zone should be in local v
 If secondaryVoltageControl is set to `true`, generators that belongs to a secondary voltage control zone and that are configured 
 for remote voltage control are switched to local voltage control with an initial local target equals to remoteTarget / remoteNominalV * localNominalV.
 
+(param-lf-reactive-limits-max-pq-pv-switch)=
 ### reactiveLimitsMaxPqPvSwitch
 When `useReactiveLimits` is set to `true`, this parameter is used to limit the number of times an equipment performing voltage control
 is switching from PQ to PV type. After this number of PQ/PV type switch, the equipment will not change PV/PQ type anymore.<br>
 The default value is `3` and it must be greater or equal to `0`.
 
+(param-lf-force-target-q-in-reactive-limits)=
 ### forceTargetQInReactiveLimits
 When `useReactiveLimits` is set to `true`, this parameter is used to prioritize the reactive power limits over the input target Q when target Q is
 outside these limits. If set to `true`, if any generator has a target Q which is outside its reactive power limits (for its given target P), then its target Q 
 is overridden by the value of the exceeded limit (minQ or maxQ).<br>
 The default value is `false`.
 
+(param-lf-extrapolate-reactive-limits)=
 ### extrapolateReactiveLimits
 When `useReactiveLimits` is set to `true`, this parameter is used for equipment with reactive limits defined by reactive capability curves. If the target P value is outside the reactive
 capability curve limits (if it is below lowest P value or above highest P value), the behavior depends on the parameter `extrapolateReactiveLimit` :
@@ -207,12 +230,14 @@ capability curve limits (if it is below lowest P value or above highest P value)
 
 The default value is `false`.
 
+(param-lf-phase-shifter-control-mode)=
 ### phaseShifterControlMode
 - `CONTINUOUS_WITH_DISCRETISATION`: phase shifter control is solved by the AC solver inner-loop.
 - `INCREMENTAL`: phase shifter control is solved in the outer-loop
 
 The default value is `CONTINUOUS_WITH_DISCRETISATION`.
 
+(param-lf-transformer-voltage-control-mode)=
 ### transformerVoltageControlMode
 This parameter defines which kind of outer loops is used for transformer voltage controls. We have three kinds of outer loops:
 - `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the first generator voltage control outerloop. 
@@ -231,15 +256,18 @@ The default value is `INCREMENTAL_VOLTAGE_CONTROL`.
 For OpenLoadFlow 1.16.0 and before, the default value was `WITH_GENERATOR_VOLTAGE_CONTROL`.
 ```
 
+(param-lf-transformer-reactive-power-control)=
 ### transformerReactivePowerControl
 This parameter enables the reactive power control of transformer through a dedicated incremental reactive power control outer loop.<br>
 The default value is `false`.
 
+(param-lf-incremental-transformer-ratio-tap-control-outer-loop-max-tap-shift)=
 ### incrementalTransformerRatioTapControlOuterLoopMaxTapShift
 Maximum number of tap position change during a single iteration of the incremental voltage and or reactive power control outer loop.
 Applies when `transformerVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONTROL` and when `transformerReactivePowerControl` is enabled (`true`).<br>
 The default value is `3`.
 
+(param-lf-shunt-voltage-control-mode)=
 ### shuntVoltageControlMode
 This parameter defines which kind of outer loops is used for the shunt voltage control. We have two kinds of outer loops:
 - `WITH_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed in the same time as the generator voltage control.
@@ -251,15 +279,18 @@ This mode can be further configured with parameter **incrementalShuntControlOute
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
+(param-lf-incremental-shunt-control-outer-loop-max-section-shift)=
 ### incrementalShuntControlOuterLoopMaxSectionShift
 Maximum number of section position change during a single iteration of the incremental shunt voltage control outer loop.
 Applies when `shuntVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONTROL` and when `shuntVoltageControl` is enabled (`true`).<br>
 The default value is `3`.
 
+(param-lf-svc-voltage-monitoring)=
 ### svcVoltageMonitoring
 Whether simulation of static VAR compensators voltage monitoring should be enabled.<br>
 The default value is `true`.
 
+(param-lf-ac-solver-type)=
 ### acSolverType
 AC load flow solver engine. Currently, it can be one of:
 - `NEWTON_RAPHSON` is the standard Newton-Raphson algorithm for load flow. Solves linear systems via Sparse LU decomposition (by [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html));
@@ -268,10 +299,12 @@ AC load flow solver engine. Currently, it can be one of:
 
 The default value is `NEWTON_RAPHSON`.
 
+(param-lf-max-outer-loop-iterations)=
 ### maxOuterLoopIterations
 Maximum number of iterations for the AC solver outer loop.<br>
 The default value is `20` and it must be greater or equal to `1`.
 
+(param-lf-newton-raphson-stopping-criteria-type)=
 ### newtonRaphsonStoppingCriteriaType
 Stopping criteria used for Newton-Raphson and Fast-Decoupled algorithms.
 - `UNIFORM_CRITERIA`: stop when quadratic norm of all mismatches vector is below quadratic norm of mismatches of value `newtonRaphsonConvEpsPerEq`. This criteria is defined by the following formula (for $n$ equations):
@@ -289,16 +322,19 @@ $$\sqrt {mismatch_1^2 + mismatch_2^2 + ... + mismatch_n^2} < \sqrt{n * newtonRap
 
 The default value is `UNIFORM_CRITERIA`.
 
+(param-lf-max-newton-raphson-iterations)=
 ### maxNewtonRaphsonIterations
 Only applies if [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` or `FAST_DECOUPLED`.
 Maximum number of iterations for solver inner loop.<br>
 The default value is `15` and it must be greater or equal to `1`.
 
+(param-lf-max-newton-krylov-iterations)=
 ### maxNewtonKrylovIterations
 Only applies if [`acSolverType`](#acsolvertype) is `NEWTON_KRYLOV`.
 Maximum number of iterations for Newton-Raphson inner loop.
 The default value is `100` and it must be greater or equal to `1`.
 
+(param-lf-state-vector-scaling-mode)=
 ### stateVectorScalingMode
 Only applies if [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON`.
 This parameter 'slows down' the Newton-Raphson by scaling the state vector between iterations. Can help convergence in some cases.
@@ -308,6 +344,7 @@ This parameter 'slows down' the Newton-Raphson by scaling the state vector betwe
 
 The default value is `NONE`.
 
+(param-lf-line-search-state-vector-scaling-max-iteration)=
 ### lineSearchStateVectorScalingMaxIteration
 Only applies: 
 - If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
@@ -316,6 +353,7 @@ Only applies:
 Maximum iterations for a vector scaling when applying a line search strategy.<br>
 The default value is `10` and it must be greater or equal to `1`.
 
+(param-lf-line-search-state-vector-scaling-step-fold)=
 ### lineSearchStateVectorScalingStepFold
 Only applies:
 - If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
@@ -324,6 +362,7 @@ Only applies:
 At the iteration $i$ of vector scaling with the line search strategy, with this parameter having the value $s$ , the step size will be $ \mu  = \frac{1}{s^i}$ .<br>
 The default value is `4/3 = 1.333` and it must be greater than `1`.
 
+(param-lf-max-voltage-change-state-vector-scaling-max-dv)=
 ### maxVoltageChangeStateVectorScalingMaxDv
 Only applies:
 - If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
@@ -332,6 +371,7 @@ Only applies:
 Maximum amplitude p.u. for a voltage change.<br>
 The default value is `0.1 p.u.` and it must be greater than `0`.
 
+(param-lf-max-voltage-change-state-vector-scaling-max-dphi)=
 ### maxVoltageChangeStateVectorScalingMaxDphi
 Only applies:
 - If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
@@ -340,11 +380,13 @@ Only applies:
 Maximum angle for a voltage change.<br>
 The default value is `0.174533 radians` (`10°`) and it must be greater than `0`.
 
+(param-lf-newton-krylov-line-search)=
 ### newtonKrylovLineSearch
 Only applies if [`acSolverType`](#acsolvertype) is `NEWTON_KRYLOV`.
 Activates or deactivates line search for the Newton-Raphson Kinsol solver.
 The default value is `false`.
 
+(param-lf-plausible-active-power-limit)=
 ### plausibleActivePowerLimit
 The `plausibleActivePowerLimit` parameter defines a maximal active power limit for generators to be considered as participating elements for:
 - slack distribution (if `balanceType` equals to any of the `PROPORTIONAL_TO_GENERATION_<any>` types)
@@ -356,11 +398,13 @@ The default value is $10000 MW$.
 In version 1.16.0 and before the default value was $5000 MW$.
 ```
 
+(param-lf-min-plausible-target-voltage and max-plausible-target-voltage)=
 ### minPlausibleTargetVoltage and maxPlausibleTargetVoltage
 Equipments with voltage regulation target voltage outside these per-unit thresholds
 are considered suspect and are discarded from regulation prior to load flow resolution.<br>
 The default values are `0.8` and `1.2` p.u. and they must be greater or equal to `0`.
 
+(param-lf-min-realistic-voltage and max-realistic-voltage)=
 ### minRealisticVoltage and maxRealisticVoltage
 These parameters are used to identify if the AC Solver has converged to an unrealistic state.
 
@@ -375,6 +419,7 @@ their reactive diagram.
 
 The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
+(param-lf-min-nominal-voltage-realistic-voltage-check)=
 ### minNominalVoltageRealisticVoltageCheck
 This parameter defines the minimal nominal voltage, in kV, for which a bus outside **minRealisticVoltage**
 and **maxRealisticVoltage** will stop the simulation.
@@ -390,6 +435,7 @@ and 100 kV for **minNominalVoltageRealisticVoltageCheck**.
 
 The default value is 0 kV.
 
+(param-lf-reactive-range-check-mode)=
 ### reactiveRangeCheckMode
 Open Load Flow discards voltage control for network elements with a too small reactive power range, because in practice a too
 small reactive power ranger means limited to zero voltage control capability. The involved network element types are:
@@ -414,6 +460,7 @@ meaning the reactive power range is too small, then the voltage control is disab
 
 The default value is `MAX`.
 
+(param-lf-reported-features)=
 ### reportedFeatures
 This parameter allows to define a set of features which should generate additional reports (as an array, or as a comma or semicolon separated string).
 
@@ -436,6 +483,7 @@ AC solver iterations report consist in reporting:
 
 The default value is an empty set of features to report.
 
+(param-lf-network-cache-enabled)=
 ### networkCacheEnabled
 This parameter is used to run fast simulations by applying incremental modifications on the network directly to the Open Load Flow internal modeling.
 The cache mode allows faster runs when modifications on the network are light.
@@ -445,29 +493,36 @@ Not all modifications types are supported yet, currently supported modifications
 
 The default value is `false`.
 
+(param-lf-actionable-switches-ids)=
 ### actionableSwitchesIds
 This parameter list is used if `networkCachedEnabled` is activated. It defines a list of switches that might be modified (as an array, or as a comma or semicolon separated string). When one of the switches changes its status (open/close) and a load flow is run just after, the cache will be used to a faster resolution. Note that in the implementation, all the switches of that list will be considered as retained, leading to a size increase of the Jacobian matrix. The list should have a reasonable size, otherwise the simulation without cache use should be preferred.
 
+(param-lf-always-update-network)=
 ### alwaysUpdateNetwork
 Update the IIDM network state even in case of non-convergence.<br>
 The default value is `false`.
 
+(param-lf-debug-dir)=
 ### debugDir
 Allows to dump debug files to a specific directory.<br>
 The default value is undefined (`null`), disabling any debug files writing.
 
+(param-lf-asymmetrical)=
 ### asymmetrical
 Allows to run asymmetrical calculations.<br>
 The default value is `false`.
 
+(param-lf-use-active-limits)=
 ### useActiveLimits
 Allows to ignore active power limits during calculations. Active power limits are mainly involved in slack distribution on generators.<br>
 The default value is `true`.
 
+(param-lf-disable-voltage-control-of-generators-outside-active-power-limits)=
 ### disableVoltageControlOfGeneratorsOutsideActivePowerLimits
 Disables voltage control for generators with `targetP` outside the interval [`minP`, `maxP`].<br>
 The default value is `false`.
 
+(param-lf-min-nominal-voltage-target-voltage-check)=
 ### minNominalVoltageTargetVoltageCheck
 This parameter defines the minimal nominal voltage, in kV, for which the plausible voltage target checks are applied.
  
@@ -475,6 +530,7 @@ Above this voltage level, voltage targets that are, in p.u., outside 'minPlausib
 
 The default value is `20 kV`. It must be greater or equal to `0 kV`.
 
+(param-lf-reactive-power-dispatch-mode)=
 ### reactivePowerDispatchMode
 This parameter defines how reactive power is split among network elements with controls (voltage or reactive power).
 It tries to divide reactive power among network elements in the order described below.
@@ -490,6 +546,7 @@ It tries to divide reactive power among network elements in the order described 
 
 The default value is `Q_EQUAL_PROPORTION`.
 
+(param-lf-outer-loop-names)=
 ### outerLoopNames
 
 ```{note}
@@ -527,6 +584,7 @@ And for DC load flow:
 1. `IncrementalPhaseControl` (parameter: `phaseShifterRegulationOn`)
 2. `AreaInterchangeControl` (parameter: `areaInterchangeControl`)
 
+(param-lf-line-per-unit-mode)=
 ### linePerUnitMode
 This parameter defines how lines ending in different nominal voltages at both sides are per unit-ed.
 `linePerUnitMode` can be one of:
@@ -535,10 +593,12 @@ This parameter defines how lines ending in different nominal voltages at both si
 
 The default value is `IMPEDANCE`.
 
+(param-lf-use-load-model)=
 ### useLoadModel
 When set to `true`, this parameter enables the modeling of the `ZIP` or `EXPONENTIAL` response characteristic of a [Load](inv:powsyblcore:*:*:#load).<br>
 The default value is `false`.
 
+(param-lf-dc-approximation-type)=
 ### dcApproximationType
 This parameter defines how resistance is neglected compared to inductance in DC approximation.
 `dcApproximationType` can be one of:
@@ -547,10 +607,12 @@ This parameter defines how resistance is neglected compared to inductance in DC 
 
 The default value is `IGNORE_R`.
 
+(param-lf-simulate-automation-systems)=
 ### simulateAutomationSystems
 Allows to simulate automation systems that are modeled in the network. For the moment, the grid model only supports overload management systems.<br>
 The default value is `false`.
 
+(param-lf-reference-bus-selection-mode)=
 ### referenceBusSelectionMode
 The reference bus is the bus where the angle is equal to zero. There are several mode of selection:
 - `FIRST_SLACK`: the angle reference bus is selected as the first slack bus among potentially multiple slacks (in case [`maxSlackBusCount`](#maxslackbuscount) > 1).
@@ -558,12 +620,14 @@ The reference bus is the bus where the angle is equal to zero. There are several
 
 The default value is `FIRST_SLACK`.
 
+(param-lf-write-reference-terminals)=
 ### writeReferenceTerminals
 This parameter allows to write to the IIDM network the [Reference Terminals extension](inv:powsyblcore:*:*:#reference-terminals-extension)
 containing the generator terminals used as angle reference in the load flow calculation.
 There is one Terminal created/added in the extension for each calculated Synchronous Component.
 Works only when [`referenceBusSelectionMode`](#referencebusselectionmode) is set to `GENERATOR_REFERENCE_PRIORITY`.
 
+(param-lf-voltage-target-priorities)=
 ### voltageTargetPriorities
 When multiple equipment regulate the same bus with different voltage targets,
 this parameter enables configuring priority to resolve inconsistencies by aligning the voltage targets.
@@ -575,6 +639,7 @@ If the user specifies only a sub-list of priorities, this sub-list is completed 
 order defined by default. Thus, if the user specifies only `["TRANSFORMER"]`,
 it will be completed to `["TRANSFORMER", "VOLTAGE_SOURCE_CONVERTER", "GENERATOR", "SHUNT"]`.
 
+(param-lf-transformer-voltage-control-use-initial-tap-position)=
 ### transformerVoltageControlUseInitialTapPosition
 This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
 If this parameter is set to `true`, transformers of the same voltage control (meaning controlling the same bus) are merged
@@ -582,6 +647,7 @@ and the algorithm tries to maintain the initial difference between rhos. If the 
 target voltage at initial step of the outer loop, the algorithm blocks transformers at their initial tap positions.<br>
 The default value of this parameter is `false`.
 
+(param-lf-generator-voltage-control-min-nominal-voltage)=
 ### generatorVoltageControlMinNominalVoltage
 This parameter is only used if the transformer voltage control is enabled and of mode `AFTER_GENERATOR_VOLTAGE_CONTROL`.
 In this mode, at the first step of the outer loop, the transformers that controlled voltage are disabled, only generators
@@ -591,6 +657,7 @@ detection of the minimal nominal voltage based on an analysis of nominal voltage
 value of this parameter is $-1$: with this value the parameter is ignored and the outer loop relies only on the automatic
 detection.
 
+(param-lf-fictitious-generator-voltage-control-check-mode)=
 ### fictitiousGeneratorVoltageControlCheckMode
 Specifies the active power checks exemption for fictitious generators voltage control.
 
@@ -605,6 +672,7 @@ The `fictitiousGeneratorVoltageControlCheckMode` option controls whether the abo
  
 The default mode is `FORCED`.
 
+(param-lf-start-with-frozen-ac-emulation)=
 ### startWithFrozenACEmulation
 
 If `true`, simulation starts with HVDC links configured in AC emulation frozen at their previous active set point
@@ -617,6 +685,7 @@ The value 'true' is typically used to use a loadFlow to simulate an N-K continge
 
 The default value is `false`. This parameter can be overridden by the security analysis parameter with same name.
 
+(param-lf-generators-with-zero-mw-target-are-not-started)=
 ### generatorsWithZeroMwTargetAreNotStarted
 Defines if a generator must be considered as not started when its `targetP` is zero.
 
@@ -631,6 +700,7 @@ When set to `false`:
 
 The default value is `true`.
 
+(param-lf-fix-voltage-targets)=
 ### fixVoltageTargets
 If true, runs a preprocessing algorithm to identify voltage control settings that may cause convergence issues and 
 removes them automatically from voltage control. This incompatibility is determined by estimating an indicator dv/dz (the 
@@ -650,6 +720,7 @@ to fix the network data.
 
 The default value is `false`.
 
+(param-lf-ac-dc-network)=
 ### acDcNetwork
 
 Defines if the loadflow uses DC detailed equipment and computes an AC DC loadflow 
