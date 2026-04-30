@@ -270,7 +270,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         //
         // Line NHV1_NHV2_1 side ONE
         //     ---------------------------- Post-contingency state : 1008.9 A
-        //     40' limit (x 1.4)  : 700 A  -> 980 A (ignored because duration is higher than lower limit)
+        //     40' limit (x 1.4)  : 700 A  -> 980 A (ignored because duration is higher than limit with value below this limit)
         //     0.5' limit (x 0.5) : 1600 A -> 800 A
         //     ---------------------------- Pre-contingency state : 456.8 A
         //     permanent limit    : 300 A
