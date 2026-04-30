@@ -142,7 +142,7 @@ The HVDC line losses are described in a dedicated section further below.
 
 In both control modes (active power setpoint mode or in AC emulation mode), the target value $P$ is bounded by a maximum active power $P_{max}$ that can be either:
 - the `maxP` configured for the HVDC line,
-- or alternatively separate limit values for both directions using the [HVDC operator active power range iIDM extension](inv:powsyblcore:*:*:#hvdc-operator-active-power-range-extension)
+- or alternatively separate limit values for both directions using the [HVDC operator active power range IIDM extension](inv:powsyblcore:*:*:#hvdc-operator-active-power-range-extension)
 In AC Emulation, these boundaries are handled through the HVDC AC emulation limit outer loop. After solving the equation system, if the computed active power flow through the HVDC overpasses the limits, saturation is applied by the outer loop. 
 Note that this HVDC AC emulation outer loop is only available in AC calculation, and normal DC calculation (not available in DC Woodbury Security analysis and DC Woodbury Sensitivity Analysis).
 
@@ -217,13 +217,13 @@ Hence, by solving the system using LU decomposition, you can compute the voltage
 
 Area Interchange Control consists in having the Load Flow finding a solution where area interchanges are solved to match the input target interchange values. It is supported for both AC and DC Load Flow computations.
 
-The area interchange control feature is optional, can be activated via the [parameter `areaInterchangeControl`](parameters.md)
+The area interchange control feature is optional, can be activated via the [parameter `areaInterchangeControl`](parameters.md#areainterchangecontrol)
 and is performed by an outer loop.
 
 Area Interchange Control is performed using an outer loop, similar in principle to the traditional `SlackDistribution` outer loop.
 However unlike the `SlackDistribution` outer loop which distributes imbalance over the entire synchronous component (island),
 the Area Interchange Control outer loop performs an active power distribution over areas
-(filtered on areas having their type matching the configured [parameter `areaInterchangeControlAreaType`](parameters.md)),
+(filtered on areas having their type matching the configured [parameter `areaInterchangeControlAreaType`](parameters.md#areainterchangecontrolareatype)),
 in order to have all areas' active power interchanges matching their target interchanges.
 
 The Area Interchange Control outer loop can handle networks where part (or even all) of the buses are not in an area.
@@ -243,12 +243,12 @@ $$
 Area Total Mismatch = Interchange - Interchange Target + Slack Injection
 $$
 
-Where:  
-* "Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).  
-* "Interchange Target" is the interchange target parameter of the area.  
+Where:<br>
+* "Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).<br>
+* "Interchange Target" is the interchange target parameter of the area.<br>
 * "Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see [Slack bus mismatch attribution](#slack-bus-mismatch-attribution)). 
 
-The outer loop iterates until the absolute value of this mismatch is below the configured [parameter `areaInterchangePMaxMismatch`](parameters.md) for all areas.
+The outer loop iterates until the absolute value of this mismatch is below the configured [parameter `areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) for all areas.
 
 When it is the case, "interchange only" mismatch is computed for all areas:
 
@@ -256,11 +256,11 @@ $$
 Interchange Mismatch = Interchange - Interchange Target
 $$
 
-If the absolute value of this mismatch is below the [parameter `areaInterchangePMaxMismatch`](parameters.md) for all areas and the absolute value of slack bus active power mismatch is below the [parameter `slackBusPMaxMismatch`](parameters.md), then the outer loop declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
+If the absolute value of this mismatch is below the [parameter `areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) for all areas and the absolute value of slack bus active power mismatch is below the [parameter `slackBusPMaxMismatch`](parameters.md), then the outer loop declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
 
 If not, the remaining slack bus mismatch is first distributed over the buses that have no area.
 
-If some slack bus mismatch still remains, it is distributed over all the areas (see [Remaining slack bus mismatch distribution](#Remaining-slack-bus-mismatch-distribution)).
+If some slack bus mismatch still remains, it is distributed over all the areas (see [Remaining slack bus mismatch distribution](#remaining-slack-bus-mismatch-distribution)).
 
 ### Areas validation
 There are some cases where areas are considered invalid and will not be considered for the area interchange control:
@@ -272,7 +272,7 @@ In such cases the involved areas are not considered in the Area Interchange Cont
 
 ### Interchange flow calculation
 
-In iIDM each area defines the boundary points to be considered in the interchange. iIDM supports two ways of modeling area boundaries:
+In IIDM each area defines the boundary points to be considered in the interchange. IIDM supports two ways of modeling area boundaries:
 - either via an equipment terminal,
 - or via a BoundaryLine boundary.
 
@@ -289,15 +289,15 @@ Indeed, in this case the slack injection can be seen as an interchange to 'the v
         - Some connected branches are not declared as boundaries of the areas: Amount of mismatch to distribute is split equally among the areas (added to their "total mismatch")
 
 ### Remaining slack bus mismatch distribution
-This section covers the case where the "total mismatch" of all areas is in [-[`areaInterchangePMaxMismatch`](parameters.md);[`areaInterchangePMaxMismatch`](parameters.md)], but some slack bus active power mismatch remains (even after trying to distribute on buses with no area).
+This section covers the case where the "total mismatch" of all areas is in [-`areaInterchangePMaxMismatch`;`areaInterchangePMaxMismatch`], but some slack bus active power mismatch remains (even after trying to distribute on buses with no area).
 This remaining slack bus active power mismatch will be distributed by all areas, each one will get a share of this mismatch to distribute.
 
 This distribution will affect each area's interchange and will not necessarily make it closer to its target.
-The distribution factor of each area will be computed in a way that minimises chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](parameters.md) in absolute value.  
-So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.  
+The distribution factor of each area will be computed in a way that minimizes chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) in absolute value.<br>
+So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.<br>
 
-It is computed like this:  
-$Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $  
+It is computed like this:<br>
+$Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $<br>
 Then factors are normalized to have sum of factors equal to 1.
 
 The distribution is iterative (inside the same outer loop iteration). 
@@ -305,15 +305,15 @@ Each area distributes its share, if some areas cannot fully distribute it, they 
 The distribution iterates until all the mismatch has been distributed and fails if all areas cannot distribute anymore but some mismatch remains.
 
 ### Zero impedance boundary branches
-The following applies when the [`lowImpedanceBranchMode`](parameters.md) is set to `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
+The following applies when the [`lowImpedanceBranchMode`](parameters.md#lowimpedancebranchmode) is set to `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
 Currently, computations involving zero-impedance branches used as boundary branches are not supported.
-However, it is still possible to submit network models that include zero-impedance boundary branches.  
+However, it is still possible to submit network models that include zero-impedance boundary branches.<br>
 If a terminal of a zero-impedance branch is designated as a boundary, Open LoadFlow will internally assign the branch
-an impedance value equal to the [`lowImpedanceThreshold`](parameters.md) parameter.
+an impedance value equal to the [`lowImpedanceThreshold`](parameters.md#lowimpedancethreshold) parameter.
 
 ## Fast-Decoupled Algorithm
 Fast-Decoupled is an algorithm to solve the inner-loop of the load flow problem, like the Newton-Raphson one.
-It is activated giving the `FAST_DECOUPLED` value to the [`acSolverType`](parameters.md) parameter.
+It is activated giving the `FAST_DECOUPLED` value to the [`acSolverType`](parameters.md#acsolvertype) parameter.
 The solved equation system is the same as the one solved by Newton-Raphson method.
 However, the Jacobian matrix used is decomposed into two smaller matrices, decoupling the active power balance equations from voltage magnitudes variations and reactive power balance equations from voltage phases variations.
 
@@ -331,33 +331,33 @@ Thus, the LU decomposition of the two Jacobian matrices is done only once, at th
 
 Regarding state vector scaling, the Fast-Decoupled uses both personalized max voltage change and line-search routines.
 Without these routines, the algorithm struggles to converge on realistic large networks, as it has a simplified vision of the impact of the system variables.
-Note that [`stateVectorScalingMode`](parameters.md) is not taken into account.
+Note that [`stateVectorScalingMode`](parameters.md#statevectorscalingmode) is not taken into account.
 
 ### Limitations
 The current implemented version cannot compute when one of the following parameter is activated:
-- [`asymmetrical`](parameters.md),
+- [`asymmetrical`](parameters.md#asymmetrical),
 - [`hvdcAcEmulation`](inv:powsyblcore:*:*#simulation/loadflow/configuration)
 
 In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, an exception is triggered.
 
 Users should notice that default parameters are optimized for the Newton-Raphson algorithm, as it is the default one.
 When the Fast-Decoupled algorithm is used, we recommend these values for some convergence parameters:
-- [`maxNewtonRaphsonIterations`](parameters.md): 75,
-- [`lineSearchStateVectorScalingMaxIteration`](parameters.md): 4,
-- [`lineSearchStateVectorScalingStepFold`](parameters.md): `3/2 = 1.5`.
+- [`maxNewtonRaphsonIterations`](parameters.md#maxnewtonraphsoniterations): 75,
+- [`lineSearchStateVectorScalingMaxIteration`](parameters.md#linesearchstatevectorscalingmaxiteration): 4,
+- [`lineSearchStateVectorScalingStepFold`](parameters.md#linesearchstatevectorscalingstepfold): `3/2 = 1.5`.
 
 ## AC DC flows computing
 
 AC DC flows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
 The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC bus, and active/reactive 
-power for each voltage source converter.   
+power for each voltage source converter.<br>
 Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
 components are the followings:
 
 ### DC bus
 
 At least one DC bus must be connected to the ground in each DC network, its potential is therefore set to 0. 
-Therefore, symmetrical configuration are currently not supported.  
+Therefore, symmetrical configuration are currently not supported.<br>
 For the others DC buses, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
 These terms are introduced by the DC components connected to the DC bus.
 
@@ -378,7 +378,7 @@ Line commutated converters are not supported yet by Open Load Flow.
 
 Let consider a network that is composed of one AC network, and one DC network.
 The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
-DC buses at the other side.   
+DC buses at the other side.<br>
 Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
 
 The converter can control either the power received by the AC network (`P_PCC` control mode) 
@@ -412,7 +412,7 @@ Else the converter controls the AC voltage, and we add an equation to impose $V_
 
 $V_{AC}= V_{Ref}$
 
-On the AC bus, the active and reactive power injected into the converter is added to its power balance.  
+On the AC bus, the active and reactive power injected into the converter is added to its power balance.<br>
 On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcBus1 to dcBus2.
 It is added to the current balances of dcBus1 and dcBus2
 
@@ -452,7 +452,7 @@ $$
 In both cases, there is a loss of power when passing through the converter.
 
 
-$P_{Loss}$ is defined as :  
+$P_{Loss}$ is defined as :<br>
 $
 P_{Loss} = IdleLoss + SwitchingLoss * |I_{Conv}| + ResistiveLoss * I_{Conv}^{2}
 $

@@ -14,10 +14,11 @@ The next section details the parameters that are specific to PowSyBl Open Load F
 
 ## Specific parameters
 
-**contingencyPropagation**  
+(param-secu-contingency-propagation)=
+### contingencyPropagation
 The `contingencyPropagation` property is applicable only to the portions of the network modeled with a Node/Breaker representation.
 
-Node: In iIDM, the topology modeling style Node/Breaker or Bus/Breaker is defined on a voltage level basis.
+Node: In IIDM, the topology modeling style Node/Breaker or Bus/Breaker is defined on a voltage level basis.
 For most users, all a network is of same topology style, but hybrid representation is also supported.
 
 For Bus/Breaker portions of the network, Security Analysis simulates the outage of only the equipment(s) defined in the contingency.
@@ -31,7 +32,8 @@ this could lead to more equipments to be simulated as tripped, because disconnec
 
 The default value is `true`.
 
-**createResultExtension**  
+(param-secu-create-result-extension)=
+### createResultExtension
 The `createResultExtension` property defines whether Open Load Flow specific results extensions should be created
 in the security analysis results. Today the available extensions provide information about branches and three-windings
 transformers voltages (magnitude and angle):
@@ -40,7 +42,8 @@ transformers voltages (magnitude and angle):
 
 The default value is `false`.
 
-**threadCount**  
+(param-secu-thread-count)=
+### threadCount
 The `threadCount` property defines the number of threads used to run the security analysis (for both AC and DC). 
 The parallelization is implemented at the contingency level, so the contingency list is split into `threadCount` chunks
 and each chunk is ran by a different thread. 
@@ -50,7 +53,8 @@ The thread pool used for getting threads is the one provided by the `Computation
 
 The default value is 1.
 
-**dcFastMode**  
+(param-secu-dc-fast-mode)=
+### dcFastMode
 The `dcFastMode` property allows to use fast DC security analysis, based on Woodbury's formula for calculating post-contingency states, 
 when DC mode is activated.
 
@@ -66,7 +70,8 @@ As a result, security analysis is carried out only in slack component, and not n
 
 The default value is `false`.
 
-**contingencyActivePowerLossDistribution**
+(param-secu-contingency-active-power-loss-distribution)=
+### contingencyActivePowerLossDistribution
 
 > **Note**: This is an advanced parameter.
 > Unless you have specific needs, do not modify this parameter.
@@ -82,7 +87,8 @@ The `Default` plugin, when slack distribution or area interchange control is ena
 PowSyBl Open LoadFlow does not provide today additional plugins. To create your own plugin,
 see the [programming guide](../advanced_programming/contingency_active_power_loss.md).
 
-**startWithFrozenACEmulation**
+(param-secu-start-with-frozen-ac-emulation)=
+### startWithFrozenACEmulation
 
 If `true`, contingency simulation starts with HVDC links configured in AC emulation frozen at their previous active set point 
 defined by the angles at the HVDC extremities in the base case. If a solution is found then the simulator
@@ -117,13 +123,13 @@ A specific set of load flow parameters can be configured for each contingency in
 These parameters correspond directly to the parameters in the [`LoadFlowParameters`](inv:powsyblcore:*:*#simulation/loadflow/configuration) from powsybl-core API and
 the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) specific parameters:
 - `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
-- `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+- `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#areainterchangecontrol)
 - `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
-- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#specific-parameters)
+- `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#outerloopnames)
 
 To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
 
-The behaviour is as follows:
+The behavior is as follows:
 - When the extension is added: The specified parameters override the corresponding SA input parameters.
 - When the extension is absent: The load flow parameters provided in the SA input parameters are applied.
 
