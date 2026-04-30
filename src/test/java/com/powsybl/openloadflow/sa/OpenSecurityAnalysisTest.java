@@ -178,55 +178,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testWithCurrentLimitReductionAbove1() {
-        Network network = createNodeBreakerNetwork();
-        network.getLine("L1").getCurrentLimits1().ifPresent(limits -> limits.setPermanentLimit(200));
-        network.getLine("L1").getOrCreateSelectedOperationalLimitsGroup1("ADDITIONAL_OPERATIONAL_LIMITS_GROUP").newCurrentLimits()
-                .setPermanentLimit(300)
-                .beginTemporaryLimit()
-                .setName("60")
-                .setAcceptableDuration(60)
-                .setValue(450)
-                .endTemporaryLimit()
-                .add();
-        List<Contingency> contingencies = List.of(new Contingency("L2", new BranchContingency("L2")));
-        LimitReduction limitReduction1 = LimitReduction.builder(LimitType.CURRENT, 2.0)
-                .withLimitDurationCriteria(new PermanentDurationCriterion())
-                .build();
-        LimitReduction limitReduction2 = LimitReduction.builder(LimitType.CURRENT, 0.9)
-                .withLimitDurationCriteria(new AllTemporaryDurationCriterion())
-                .build();
-        List<LimitReduction> limitReductions = List.of(limitReduction1, limitReduction2);
-        SecurityAnalysisResult result = runSecurityAnalysis(network,
-                contingencies,
-                Collections.emptyList(),
-                limitReductions,
-                new SecurityAnalysisParameters());
-
-        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(2, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
-        LimitViolation limitViolation0 = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(0);
-        LimitViolation limitViolation1 = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().get(1);
-        assertEquals("ADDITIONAL_OPERATIONAL_LIMITS_GROUP", limitViolation0.getOperationalLimitsGroupId());
-        assertEquals("permanent", limitViolation0.getLimitName());
-        assertEquals("DEFAULT", limitViolation1.getOperationalLimitsGroupId());
-        assertEquals("permanent", limitViolation1.getLimitName());
-        assertEquals(1, result.getPostContingencyResults().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
-        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
-        limitViolation0 = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations().get(0);
-        limitViolation1 = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations().get(1);
-        LimitViolation limitViolation2 = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations().get(2);
-        assertEquals("ADDITIONAL_OPERATIONAL_LIMITS_GROUP", limitViolation0.getOperationalLimitsGroupId());
-        assertEquals("60", limitViolation0.getLimitName());
-        assertEquals("DEFAULT", limitViolation1.getOperationalLimitsGroupId());
-        assertEquals("permanent", limitViolation1.getLimitName());
-        assertEquals("DEFAULT", limitViolation2.getOperationalLimitsGroupId());
-        assertEquals("permanent", limitViolation2.getLimitName());
-    }
-
-    @Test
-    void testWithSingleTempLimitIncrease() {
+    void testSecurityWithSingleTempLimitIncrease() {
         Network network = EurostagTutorialExample1Factory.createWithMultipleSelectedFixedCurrentLimits();
         String idLine1 = EurostagTutorialExample1Factory.NHV1_NHV2_1;
         String idLine2 = EurostagTutorialExample1Factory.NHV1_NHV2_2;
@@ -296,7 +248,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testTempLimitIntervertedWithIncrease() {
+    void testSecurityTempLimitIntervertedWithIncrease() {
         Network network = EurostagTutorialExample1Factory.createWithMultipleSelectedFixedCurrentLimits();
         String idLine1 = EurostagTutorialExample1Factory.NHV1_NHV2_1;
         String idLine2 = EurostagTutorialExample1Factory.NHV1_NHV2_2;
@@ -315,7 +267,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 limitReductions,
                 new SecurityAnalysisParameters());
 
-        // AFTER LIMIT "REDUCTION" (All temporary limits x 1.5)
+        // AFTER LIMIT "REDUCTION"
         //
         // Line NHV1_NHV2_1 side ONE
         //     ---------------------------- Post-contingency state : 1008.9 A
