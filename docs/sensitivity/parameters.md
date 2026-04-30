@@ -14,8 +14,9 @@ The next section details the parameters that are specific to PowSyBl Open LoadFL
 
 ## Specific parameters
 
-**debugDir**  
-Allows to dump debug files to a specific directory.  
+(param-sensi-debug-dir)
+### debugDir
+Allows to dump debug files to a specific directory.<br>
 The default value is undefined (`null`), disabling any debug files writing.
 
 **startWithFrozenACEmulation**
@@ -28,7 +29,8 @@ If `false`, contingence simulation allows HVDC lines to immediatly adapt to the 
 
 The default value is `true`
 
-**threadCount**  
+(param-sensi-thread-count)
+### threadCount
 The `threadCount` property defines the number of threads used to run an AC sensitivity analysis (multi-threading is currently not 
 supported for DC sensitivity analysis).
 The parallelization is implemented at the contingency level, so the contingency list is split into `threadCount` chunks
