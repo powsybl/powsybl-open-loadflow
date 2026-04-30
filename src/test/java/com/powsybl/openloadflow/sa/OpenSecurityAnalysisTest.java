@@ -23,6 +23,8 @@ import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
 import com.powsybl.iidm.criteria.IdentifiableCriterion;
 import com.powsybl.iidm.criteria.VoltageInterval;
+import com.powsybl.iidm.criteria.duration.AllTemporaryDurationCriterion;
+import com.powsybl.iidm.criteria.duration.EqualityTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
@@ -173,6 +175,120 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("permanent", limitViolation1.getLimitName());
         assertEquals("DEFAULT", limitViolation2.getOperationalLimitsGroupId());
         assertEquals("permanent", limitViolation2.getLimitName());
+    }
+
+    @Test
+    void testSecurityWithSingleTempLimitIncrease() {
+        Network network = EurostagTutorialExample1Factory.createWithMultipleSelectedFixedCurrentLimits();
+        String idLine1 = EurostagTutorialExample1Factory.NHV1_NHV2_1;
+        String idLine2 = EurostagTutorialExample1Factory.NHV1_NHV2_2;
+        network.getLine(idLine1).setSelectedOperationalLimitsGroup1(EurostagTutorialExample1Factory.ACTIVATED_ONE_TWO);
+        network.getLine(idLine1).setSelectedOperationalLimitsGroup2(EurostagTutorialExample1Factory.ACTIVATED_TWO_ONE);
+        List<Contingency> contingencies = List.of(new Contingency(idLine2, new BranchContingency(idLine2)));
+        SecurityAnalysisResult result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new SecurityAnalysisParameters());
+
+        // WITHOUT LIMIT REDUCTION
+        //
+        // Line NHV1_NHV2_1 side ONE
+        //     0.5' limit        : 1600 A
+        //     ---------------------------- Post-contingency state : 1008.9 A
+        //     40' limit       : 700 A
+        //     ---------------------------- Pre-contingency state : 456.8 A
+        //     permanent limit : 300 A
+        //
+        // Line NHV1_NHV2_1 side TWO
+        //     ---------------------------- Post-contingency state : 1047.8 A
+        //     10' limit       : 1000 A
+        //     permanent limit : 600 A
+        //     ---------------------------- Pre-contingency state : 489.0 A
+        List<LimitViolation> postContingencyLimitViolations = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, postContingencyLimitViolations.size());
+        assertEquals(TwoSides.ONE, postContingencyLimitViolations.getFirst().getSideAsTwoSides());
+        assertEquals("40'", postContingencyLimitViolations.getFirst().getLimitName());
+        assertEquals(1008.9, postContingencyLimitViolations.getFirst().getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(TwoSides.TWO, postContingencyLimitViolations.get(1).getSideAsTwoSides());
+        assertEquals("10'", postContingencyLimitViolations.get(1).getLimitName());
+        assertEquals(1047.8, postContingencyLimitViolations.get(1).getValue(), LoadFlowAssert.DELTA_I);
+
+        List<LimitReduction> limitReductions = List.of(LimitReduction.builder(LimitType.CURRENT, 1.5)
+                .withLimitDurationCriteria(new AllTemporaryDurationCriterion())
+                .build());
+        result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                limitReductions,
+                new SecurityAnalysisParameters());
+
+        // WITH LIMIT "REDUCTION" (All temporary limits x 1.5)
+        //
+        // Line NHV1_NHV2_1 side ONE
+        //     0.5' limit (x 1.5)  : 1600 A -> 2400 A
+        //     40' limit (x 1.5)   : 700 A  -> 1050 A
+        //     ---------------------------- Post-contingency state : 1008.9 A
+        //     ---------------------------- Pre-contingency state : 456.8 A
+        //     permanent limit : 300 A
+        //
+        // Line NHV1_NHV2_1 side TWO
+        //     10' limit (x 1.5)   : 1000 A -> 1500 A
+        //     ---------------------------- Post-contingency state : 1047.8 A
+        //     permanent limit     : 600 A
+        //     ---------------------------- Pre-contingency state : 489.0 A
+        postContingencyLimitViolations = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, postContingencyLimitViolations.size());
+        assertEquals(TwoSides.ONE, postContingencyLimitViolations.getFirst().getSideAsTwoSides());
+        assertEquals("permanent", postContingencyLimitViolations.getFirst().getLimitName());
+        assertEquals(1008.9, postContingencyLimitViolations.getFirst().getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(TwoSides.TWO, postContingencyLimitViolations.get(1).getSideAsTwoSides());
+        assertEquals("permanent", postContingencyLimitViolations.get(1).getLimitName());
+        assertEquals(1047.8, postContingencyLimitViolations.get(1).getValue(), LoadFlowAssert.DELTA_I);
+    }
+
+    @Test
+    void testSecurityTempLimitIntervertedWithIncrease() {
+        Network network = EurostagTutorialExample1Factory.createWithMultipleSelectedFixedCurrentLimits();
+        String idLine1 = EurostagTutorialExample1Factory.NHV1_NHV2_1;
+        String idLine2 = EurostagTutorialExample1Factory.NHV1_NHV2_2;
+        network.getLine(idLine1).setSelectedOperationalLimitsGroup1(EurostagTutorialExample1Factory.ACTIVATED_ONE_TWO);
+        network.getLine(idLine1).setSelectedOperationalLimitsGroup2(EurostagTutorialExample1Factory.ACTIVATED_TWO_ONE);
+        List<Contingency> contingencies = List.of(new Contingency(idLine2, new BranchContingency(idLine2)));
+        List<LimitReduction> limitReductions = List.of(LimitReduction.builder(LimitType.CURRENT, 1.4)
+                        .withLimitDurationCriteria(new EqualityTemporaryDurationCriterion(2400))
+                        .build(),
+                LimitReduction.builder(LimitType.CURRENT, 0.5)
+                        .withLimitDurationCriteria(new EqualityTemporaryDurationCriterion(30))
+                        .build());
+        SecurityAnalysisResult result = runSecurityAnalysis(network,
+                contingencies,
+                Collections.emptyList(),
+                limitReductions,
+                new SecurityAnalysisParameters());
+
+        // AFTER LIMIT "REDUCTION"
+        //
+        // Line NHV1_NHV2_1 side ONE
+        //     ---------------------------- Post-contingency state : 1008.9 A
+        //     40' limit (x 1.4)  : 700 A  -> 980 A (ignored because duration is higher than limit with value below this limit)
+        //     0.5' limit (x 0.5) : 1600 A -> 800 A
+        //     ---------------------------- Pre-contingency state : 456.8 A
+        //     permanent limit    : 300 A
+        //
+        // Line NHV1_NHV2_1 side TWO
+        //     ---------------------------- Post-contingency state : 1047.8 A
+        //     10' limit          : 1000 A
+        //     permanent limit    : 600 A
+        //     ---------------------------- Pre-contingency state : 489.0 A
+        List<LimitViolation> postContingencyLimitViolations = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, postContingencyLimitViolations.size());
+        assertEquals(TwoSides.ONE, postContingencyLimitViolations.getFirst().getSideAsTwoSides());
+        assertEquals("0.5'", postContingencyLimitViolations.getFirst().getLimitName());
+        assertEquals(1008.9, postContingencyLimitViolations.getFirst().getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(TwoSides.TWO, postContingencyLimitViolations.get(1).getSideAsTwoSides());
+        assertEquals("10'", postContingencyLimitViolations.get(1).getLimitName());
+        assertEquals(1047.8, postContingencyLimitViolations.get(1).getValue(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
