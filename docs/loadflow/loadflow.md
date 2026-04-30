@@ -243,9 +243,9 @@ $$
 Area Total Mismatch = Interchange - Interchange Target + Slack Injection
 $$
 
-Where:  
-* "Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).  
-* "Interchange Target" is the interchange target parameter of the area.  
+Where:<br>
+* "Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).<br>
+* "Interchange Target" is the interchange target parameter of the area.<br>
 * "Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see [Slack bus mismatch attribution](#slack-bus-mismatch-attribution)). 
 
 The outer loop iterates until the absolute value of this mismatch is below the configured [parameter `areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) for all areas.
@@ -293,11 +293,11 @@ This section covers the case where the "total mismatch" of all areas is in [-`ar
 This remaining slack bus active power mismatch will be distributed by all areas, each one will get a share of this mismatch to distribute.
 
 This distribution will affect each area's interchange and will not necessarily make it closer to its target.
-The distribution factor of each area will be computed in a way that minimizes chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) in absolute value.  
-So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.  
+The distribution factor of each area will be computed in a way that minimizes chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) in absolute value.<br>
+So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.<br>
 
-It is computed like this:  
-$Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $  
+It is computed like this:<br>
+$Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $<br>
 Then factors are normalized to have sum of factors equal to 1.
 
 The distribution is iterative (inside the same outer loop iteration). 
@@ -307,7 +307,7 @@ The distribution iterates until all the mismatch has been distributed and fails 
 ### Zero impedance boundary branches
 The following applies when the [`lowImpedanceBranchMode`](parameters.md#lowimpedancebranchmode) is set to `REPLACE_BY_ZERO_IMPEDANCE_LINE`.
 Currently, computations involving zero-impedance branches used as boundary branches are not supported.
-However, it is still possible to submit network models that include zero-impedance boundary branches.  
+However, it is still possible to submit network models that include zero-impedance boundary branches.<br>
 If a terminal of a zero-impedance branch is designated as a boundary, Open LoadFlow will internally assign the branch
 an impedance value equal to the [`lowImpedanceThreshold`](parameters.md#lowimpedancethreshold) parameter.
 
@@ -350,14 +350,14 @@ When the Fast-Decoupled algorithm is used, we recommend these values for some co
 
 AC DC flows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
 The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC bus, and active/reactive 
-power for each voltage source converter.   
+power for each voltage source converter.<br>
 Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
 components are the followings:
 
 ### DC bus
 
 At least one DC bus must be connected to the ground in each DC network, its potential is therefore set to 0. 
-Therefore, symmetrical configuration are currently not supported.  
+Therefore, symmetrical configuration are currently not supported.<br>
 For the others DC buses, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
 These terms are introduced by the DC components connected to the DC bus.
 
@@ -378,7 +378,7 @@ Line commutated converters are not supported yet by Open Load Flow.
 
 Let consider a network that is composed of one AC network, and one DC network.
 The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
-DC buses at the other side.   
+DC buses at the other side.<br>
 Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
 
 The converter can control either the power received by the AC network (`P_PCC` control mode) 
@@ -412,7 +412,7 @@ Else the converter controls the AC voltage, and we add an equation to impose $V_
 
 $V_{AC}= V_{Ref}$
 
-On the AC bus, the active and reactive power injected into the converter is added to its power balance.  
+On the AC bus, the active and reactive power injected into the converter is added to its power balance.<br>
 On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcBus1 to dcBus2.
 It is added to the current balances of dcBus1 and dcBus2
 
@@ -452,7 +452,7 @@ $$
 In both cases, there is a loss of power when passing through the converter.
 
 
-$P_{Loss}$ is defined as :  
+$P_{Loss}$ is defined as :<br>
 $
 P_{Loss} = IdleLoss + SwitchingLoss * |I_{Conv}| + ResistiveLoss * I_{Conv}^{2}
 $
