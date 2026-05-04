@@ -11,29 +11,17 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.VoltageControl;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
+public class SimpleTransformerVoltageControlOuterLoop extends AbstractSimpleTransformerVoltageControlOuterLoop {
 
     public static final String NAME = "SimpleTransformerVoltageControl";
 
     @Override
     public String getName() {
         return NAME;
-    }
-
-    @Override
-    public void initialize(AcOuterLoopContext context) {
-        for (LfBranch controllerBranch : context.getNetwork().<LfBranch>getControllerElements(VoltageControl.Type.TRANSFORMER)) {
-            if (controllerBranch.isConnectedAtBothSides()) {
-                controllerBranch.setVoltageControlEnabled(true);
-            }
-        }
-        context.getNetwork().fixTransformerVoltageControls();
     }
 
     @Override

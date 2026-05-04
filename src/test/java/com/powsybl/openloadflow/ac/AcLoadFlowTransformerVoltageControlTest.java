@@ -19,7 +19,11 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.impl.LfBranchImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -1309,5 +1313,39 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
         assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
         assertVoltageEquals(tap2v, bus3);
+    }
+
+    @Test
+    void continuousVoltageControlT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.CONTINUOUS_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34, t2wt.getTerminal2().getBusView().getBus());
+        assertNull(t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1.088171, Double.parseDouble(t2wt.getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
+
+        // max ratio
+        t2wt.getRatioTapChanger().setTargetV(35);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1.1, Double.parseDouble(t2wt.getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
+
+        // min ratio
+        t2wt.getRatioTapChanger().setTargetV(27);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(0.9, Double.parseDouble(t2wt.getProperty(LfBranchImpl.RTC_CONTINUOUS_RATIO)), DELTA_RHO);
     }
 }
