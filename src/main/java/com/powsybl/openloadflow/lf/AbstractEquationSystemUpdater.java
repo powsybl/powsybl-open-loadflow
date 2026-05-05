@@ -15,6 +15,8 @@ import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.equations.EquationTerm.setActive;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -96,6 +98,33 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
             equationSystem.getEquation(bus.getNum(), getTypeBusTargetPhi())
                     .orElseThrow()
                     .setActive(false);
+        }
+    }
+
+    @Override
+    public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        updateHvdcAcEmulationEquations(hvdc);
+    }
+
+    public static void updateHvdcAcEmulationEquations(LfHvdc hvdc) {
+        if (hvdc.getBus1() != null && !hvdc.getBus1().isDisabled()
+                && hvdc.getBus2() != null && !hvdc.getBus2().isDisabled()
+                && !hvdc.isDisabled() && hvdc.isAcEmulation()) {
+            switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
+                case LINEAR_MODE -> {
+                    setActive(hvdc.getP1(), true);
+                    setActive(hvdc.getP2(), true);
+                }
+                case SATURATION_MODE_FROM_CS1_TO_CS2,
+                     SATURATION_MODE_FROM_CS2_TO_CS1,
+                     FROZEN -> {
+                    setActive(hvdc.getP1(), false);
+                    setActive(hvdc.getP2(), false);
+                }
+            }
+        } else {
+            setActive(hvdc.getP1(), false);
+            setActive(hvdc.getP2(), false);
         }
     }
 }
