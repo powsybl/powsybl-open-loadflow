@@ -1283,6 +1283,8 @@ public class AcEquationSystemCreator {
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
+        System.out.println(equationSystem.writeToString());
+
         network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, creationParameters)));
     }
 
