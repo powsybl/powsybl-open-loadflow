@@ -321,6 +321,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 case BUS_TARGET_VOLTAGE:
                     LfBus lfBus = (LfBus) variableElement;
                     return ((EquationTerm<V, E>) lfBus.getCalculatedV()).getEquation();
+                case SHUNT_B:
+                    LfShunt lfShunt = (LfShunt) variableElement;
+                    return ((EquationTerm<V, E>) lfShunt.getQ()).getEquation();
                 default:
                     return null;
             }
@@ -518,6 +521,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 case BUS_TARGET_VOLTAGE:
                     if (variableEquation.isActive()) {
                         rhs.set(variableEquation.getColumn(), getIndex(), 1d);
+                    }
+                    break;
+                case SHUNT_B:
+                    LfBus bus = ((LfShuntImpl) variableElement).getBus();
+                    double voltage = bus.getV();
+                    if (variableEquation.isActive()) {
+                        rhs.set(variableEquation.getColumn(), getIndex(), voltage * voltage);
                     }
                     break;
                 default:
@@ -1156,6 +1166,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
+                            case SHUNT_B:
+                                variableElement = lfNetwork.getShuntById(variableId);
+                                break;
                             default:
                                 throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
@@ -1300,6 +1313,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             case BUS_TARGET_VOLTAGE:
                 LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
                 return bus.getNominalV();
+            case SHUNT_B:
+                LfBus shuntBus = ((LfShuntImpl) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement()).getBus();
+                double nominalV = shuntBus.getNominalV();
+                return 1 / (PerUnit.zb(nominalV) / 1000); // sensi in kV/mS
             default:
                 throw new IllegalArgumentException("Unknown variable type " + factor.getVariableType());
         }

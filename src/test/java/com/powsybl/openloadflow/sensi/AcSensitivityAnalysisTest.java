@@ -38,11 +38,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -2239,5 +2236,25 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // Make sur that runSync is a Callable. Only CompletableFutureTask.runAsync(Callable) handles correctly thread cancel. Not CompletableFutureTask.runAsync(Runnable)
         Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null, null, null);
         assertFalse(t instanceof Runnable);
+    }
+
+    @Test
+    void testShuntBSensi() {
+        Network network = ShuntNetworkFactory.create();
+
+        SensitivityFactor sensib3 = new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, "b3", SensitivityVariableType.SHUNT_B, "SHUNT", false, ContingencyContext.all());
+        SensitivityFactor sensib2 = new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, "b2", SensitivityVariableType.SHUNT_B, "SHUNT", false, ContingencyContext.all());
+
+        List<SensitivityFactor> factors = Arrays.asList(sensib3, sensib2);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.00001).setNewtonRaphsonConvEpsPerEq(0.000001);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        // Sensi in kV/mS
+        assertEquals(2.3345860507862928, result.getSensitivityValue("SHUNT", "b3", SensitivityFunctionType.BUS_VOLTAGE, SensitivityVariableType.SHUNT_B), 1e-3);
+        assertEquals(1.1688417403194826, result.getSensitivityValue("SHUNT", "b2", SensitivityFunctionType.BUS_VOLTAGE, SensitivityVariableType.SHUNT_B), 1e-3);
     }
 }

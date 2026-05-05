@@ -55,6 +55,10 @@ public class LfShuntImpl extends AbstractLfShunt {
         }
     }
 
+    public LfBus getBus() {
+        return bus;
+    }
+
     private final List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
 
     private final LfBus bus;
