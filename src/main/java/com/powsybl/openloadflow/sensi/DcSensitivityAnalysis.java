@@ -631,9 +631,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             workingFlowStates.copyValuesFrom(baseFlowStates);
                             workingFactorStates.copyValuesFrom(baseFactorStates);
 
-                            List<String> operatorStrategyActionIds = operatorStrategyForBaseCase.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
-                            List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
-                            LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategyForBaseCase, operatorStrategyLfActions);
+                            LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategyForBaseCase, lfActionById);
                             var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                     ConnectivityBreakAnalysis.ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(null, lfOperatorStrategy, lfNetwork),
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(),
@@ -660,9 +658,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                 throw new PowsyblException("Computation was interrupted");
                             }
 
-                            List<String> operatorStrategyActionIds = operatorStrategy.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
-                            List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
-                            LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategy, operatorStrategyLfActions);
+                            LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
                             var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                     connectivityAnalysisResult,
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(),

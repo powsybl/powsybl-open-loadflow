@@ -13,7 +13,10 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfOverloadManagementSystem;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -82,7 +85,7 @@ public class AutomationSystemOuterLoop implements AcOuterLoop {
             GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
             branchesToOpen.forEach(connectivity::removeEdge);
             branchesToClose.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
-            AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
+            AbstractLfBranchAction.getNetworkActivations(connectivity).apply();
             network.getConnectivity().undoTemporaryChanges();
             // we have now to really change the network connectivity.
             branchesToOpen.forEach(connectivity::removeEdge);
