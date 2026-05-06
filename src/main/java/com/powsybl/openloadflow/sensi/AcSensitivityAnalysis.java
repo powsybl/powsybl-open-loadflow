@@ -397,8 +397,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         LOGGER.info("Simulate operator strategy '{}'", operatorStrategy.value().getId());
                         LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
                         LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, null, null, lfOperatorStrategy);
-                        processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, null, lfNetworkChange, networkReportNode,
-                                lfNetwork, allFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                        processNetworkChange(lfParameters, contingencylfParametersExt, acParameters, resultWriter, variablesTargetVoltageInfo, null, lfNetworkChange, networkReportNode,
+                                lfNetwork, allFactorHolder, factorGroups, context, networkState, factorsStates);
                     }
                 }
             }
@@ -414,8 +414,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
                     LOGGER.info("Simulate contingency '{}'", propagatedContingency.getContingency().getId());
                     LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, null);
-                    processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
-                            lfNetwork, allFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                    processNetworkChange(lfParameters, contingencylfParametersExt, acParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
+                            lfNetwork, allFactorHolder, factorGroups, context, networkState, factorsStates);
                 }
 
                 if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
@@ -426,23 +426,24 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         LOGGER.info("Simulate contingency '{}' and operator strategy '{}'", propagatedContingency.getContingency().getId(), operatorStrategy.value().getId());
                         LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategy, lfActionById);
                         LfNetworkChange lfNetworkChange = new LfNetworkChange(lfNetwork, propagatedContingency, lfContingency, lfOperatorStrategy);
-                        processNetworkChange(lfParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
-                                lfNetwork, allFactorHolder, factorGroups, contingencylfParametersExt, context, networkState, factorsStates);
+                        processNetworkChange(lfParameters, contingencylfParametersExt, acParameters, resultWriter, variablesTargetVoltageInfo, propagatedContingency, lfNetworkChange, networkReportNode,
+                                lfNetwork, allFactorHolder, factorGroups, context, networkState, factorsStates);
                     }
                 }
             });
         }
     }
 
-    private void processNetworkChange(LoadFlowParameters lfParameters, SensitivityResultWriter resultWriter, VariablesTargetVoltageInfo variablesTargetVoltageInfo,
+    private void processNetworkChange(LoadFlowParameters lfParameters, OpenLoadFlowParameters contingencylfParametersExt, AcLoadFlowParameters acParameters,
+                                      SensitivityResultWriter resultWriter, VariablesTargetVoltageInfo variablesTargetVoltageInfo,
                                       PropagatedContingency propagatedContingency, LfNetworkChange lfNetworkChange, ReportNode networkReportNode, LfNetwork lfNetwork,
                                       SensitivityFactorHolder<AcVariableType, AcEquationType> validFactorHolder, SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
-                                      OpenLoadFlowParameters contingencylfParametersExt, AcLoadFlowContext context, NetworkState networkState, DenseMatrix factorsStates) {
+                                      AcLoadFlowContext context, NetworkState networkState, DenseMatrix factorsStates) {
         if (lfNetworkChange.hasImpact()) {
             ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfNetworkChange.getContingencyId());
             lfNetwork.setReportNode(postContSimReportNode);
 
-            lfNetworkChange.apply(lfParameters.getBalanceType());
+            lfNetworkChange.apply(lfParameters.getBalanceType(), acParameters.getNetworkParameters());
 
             String contingencyId = lfNetworkChange.getContingencyId();
             List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = contingencyId != null

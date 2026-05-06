@@ -8,15 +8,21 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.action.Action;
+import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
+import com.powsybl.commons.datasource.ResourceDataSource;
+import com.powsybl.commons.datasource.ResourceSet;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -24,7 +30,9 @@ import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -260,5 +268,116 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         // reference flow on curative C closed, 300MW on each
         assertEquals(301.884d, result.getFunctionReferenceValue(reconnectState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(301.884d, result.getFunctionReferenceValue(reconnectState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void test2LinesReconnection() {
+        Network network = Network.read(new ResourceDataSource("3Nodes1LineOpen", new ResourceSet("/", "3Nodes1LineOpen.uct")));
+
+        Network refNetwork = NetworkSerDe.copy(network);
+        runAcLf(refNetwork);
+        Map<String, Double> preContRefValues = new HashMap<>();
+        for (Branch<?> branch : refNetwork.getBranchStream().toList()) {
+            preContRefValues.put(branch.getId(), branch.getTerminal1().getP());
+        }
+        refNetwork.getLine("FFR1AA1  FFR2AA1  1").connect();
+        refNetwork.getLine("FFR2AA1  FFR3AA1  1").connect();
+        runAcLf(refNetwork);
+        Map<String, Double> actionRefValues = new HashMap<>();
+        for (Branch<?> branch : refNetwork.getBranchStream().toList()) {
+            actionRefValues.put(branch.getId(), branch.getTerminal1().getP());
+        }
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("FFR1AA1 _generator")),
+                                                             network.getBranchStream().toList());
+
+        // the operator strategy is to close FFR1AA1  FFR2AA1  1 and FFR2AA1  FFR3AA1  1
+        OperatorStrategy reconnect = new OperatorStrategy("Close FR1 FR2 and FR2 FR3",
+                ContingencyContext.none(),
+                new TrueCondition(),
+                List.of("Close FR1 FR2", "Close FR2 FR3"));
+        List<OperatorStrategy> operatorStrategies = List.of(reconnect);
+        List<Action> actions = List.of(new TerminalsConnectionAction("Close FR1 FR2", "FFR1AA1  FFR2AA1  1", false),
+                                       new TerminalsConnectionAction("Close FR2 FR3", "FFR2AA1  FFR3AA1  1", false));
+
+        OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
+        SensitivityAnalysis.Runner sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        var reconnectState = new SensitivityState(null, reconnect.getId());
+        assertEquals(1, result.getStateStatuses().size());
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(reconnectState));
+
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR1AA1  FFR2AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+        assertTrue(Double.isNaN(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR2AA1  FFR3AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+        assertEquals(preContRefValues.get("FFR1AA1  FFR3AA1  1"), result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR1AA1  FFR3AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(actionRefValues.get("FFR1AA1  FFR2AA1  1"), result.getFunctionReferenceValue(reconnectState, "FFR1AA1  FFR2AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(actionRefValues.get("FFR2AA1  FFR3AA1  1"), result.getFunctionReferenceValue(reconnectState, "FFR2AA1  FFR3AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(actionRefValues.get("FFR1AA1  FFR3AA1  1"), result.getFunctionReferenceValue(reconnectState, "FFR1AA1  FFR3AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testOneLineReconnectionAnd2PstChange() {
+        Network network = Network.read(new ResourceDataSource("TestCase16Nodes", new ResourceSet("/", "TestCase16Nodes.uct")));
+
+        Network refNetwork = NetworkSerDe.copy(network);
+        runAcLf(refNetwork);
+        Map<String, Double> preContRefValues = new HashMap<>();
+        for (Branch<?> branch : refNetwork.getBranchStream().toList()) {
+            preContRefValues.put(branch.getId(), branch.getTerminal2().getI());
+        }
+        refNetwork.getLine("FFR2AA1  FFR3AA1  1").disconnect();
+        refNetwork.getLine("FFR1AA1  FFR5AA1  1").connect();
+        refNetwork.getTwoWindingsTransformer("BBE2AA1  BBE3AA1  1").getPhaseTapChanger().setTapPosition(-16);
+        refNetwork.getTwoWindingsTransformer("FFR2AA1  FFR4AA1  1").getPhaseTapChanger().setTapPosition(15);
+        runAcLf(refNetwork);
+        Map<String, Double> actionRefValues = new HashMap<>();
+        for (Branch<?> branch : refNetwork.getBranchStream().toList()) {
+            actionRefValues.put(branch.getId(), branch.getTerminal2().getI());
+        }
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = List.of(new Contingency("co1_fr2_fr3_1", new BranchContingency("FFR2AA1  FFR3AA1  1")));
+
+        List<SensitivityFactor> factors = List.of(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2,
+                                                               "FFR2AA1  DDE3AA1  1",
+                                                                        SensitivityVariableType.TRANSFORMER_PHASE,
+                                                               "FFR2AA1  FFR4AA1  1",
+                                                              false,
+                                                                        ContingencyContext.all()));
+        // the operator strategy is to close FFR1AA1  FFR2AA1  1 and FFR2AA1  FFR3AA1  1
+        OperatorStrategy os = new OperatorStrategy("OS-co1_fr2_fr3_1",
+                                                   ContingencyContext.all(),
+                                                   new TrueCondition(),
+                                                   List.of("TerminalsConnectionAction_FFR1AA1  FFR5AA1  1_CLOSE", "BBE2AA1  BBE3AA1  1_-16", "FFR2AA1  FFR4AA1  1_15"));
+        List<OperatorStrategy> operatorStrategies = List.of(os);
+        List<Action> actions = List.of(new TerminalsConnectionAction("TerminalsConnectionAction_FFR1AA1  FFR5AA1  1_CLOSE", "FFR1AA1  FFR5AA1  1", false),
+                                       new PhaseTapChangerTapPositionAction("BBE2AA1  BBE3AA1  1_-16", "BBE2AA1  BBE3AA1  1", false, -16),
+                                       new PhaseTapChangerTapPositionAction("FFR2AA1  FFR4AA1  1_15", "FFR2AA1  FFR4AA1  1", false, 15));
+
+        OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
+        SensitivityAnalysis.Runner sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        var reconnectState = new SensitivityState(contingencies.getFirst().getId(), os.getId());
+        assertEquals(2, result.getStateStatuses().size());
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(reconnectState));
+
+        assertEquals(preContRefValues.get("FFR2AA1  DDE3AA1  1"), result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR2AA1  DDE3AA1  1", SensitivityFunctionType.BRANCH_CURRENT_2), LoadFlowAssert.DELTA_POWER);
+        assertEquals(actionRefValues.get("FFR2AA1  DDE3AA1  1"), result.getFunctionReferenceValue(reconnectState, "FFR2AA1  DDE3AA1  1", SensitivityFunctionType.BRANCH_CURRENT_2), LoadFlowAssert.DELTA_POWER);
     }
 }

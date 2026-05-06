@@ -24,14 +24,16 @@ import java.util.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkChange {
+    private LfNetwork lfNetwork;
     private final PropagatedContingency propagatedContingency;
     private final LfContingency lfContingency;
     private final LfOperatorStrategy lfOperatorStrategy;
     private final DisabledNetwork disabledNetwork;
     private final EnabledNetwork enabledNetwork;
+    private final List<LfAction> otherActions = new ArrayList<>();
 
     public LfNetworkChange(LfNetwork lfNetwork, PropagatedContingency propagatedContingency, LfContingency lfContingency, LfOperatorStrategy lfOperatorStrategy) {
-        Objects.requireNonNull(lfNetwork);
+        this.lfNetwork = Objects.requireNonNull(lfNetwork);
         this.propagatedContingency = propagatedContingency;
         this.lfContingency = lfContingency;
         this.lfOperatorStrategy = lfOperatorStrategy;
@@ -47,7 +49,6 @@ public class LfNetworkChange {
         }
         if (lfOperatorStrategy != null) {
             List<AbstractLfBranchAction<?>> branchActions = new ArrayList<>();
-            List<LfAction> otherActions = new ArrayList<>();
             LfActionUtils.split(lfOperatorStrategy.getActions(), branchActions, otherActions);
             NetworkActivations networkActivations = AbstractLfBranchAction.getNetworkActivations(lfNetwork, lfContingency, branchActions);
             disabledBuses.addAll(networkActivations.getDisabledNetwork().getBuses());
@@ -91,11 +92,14 @@ public class LfNetworkChange {
         return enabledNetwork;
     }
 
-    public void apply(LoadFlowParameters.BalanceType balanceType) {
+    public void apply(LoadFlowParameters.BalanceType balanceType, LfNetworkParameters networkParameters) {
         disabledNetwork.apply();
         enabledNetwork.apply();
         if (lfContingency != null) {
             lfContingency.processLostPowerChanges(balanceType, true);
+        }
+        for (LfAction otherAction : otherActions) {
+            otherAction.apply(lfNetwork, lfContingency, networkParameters);
         }
     }
 
