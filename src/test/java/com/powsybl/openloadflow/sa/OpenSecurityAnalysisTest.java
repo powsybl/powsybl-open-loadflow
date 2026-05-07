@@ -37,6 +37,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
@@ -81,6 +82,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     private final LimitViolationComparator limitViolationComparator = new LimitViolationComparator();
+
+    OpenSecurityAnalysisTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @Test
     void testCurrentLimitViolations() {

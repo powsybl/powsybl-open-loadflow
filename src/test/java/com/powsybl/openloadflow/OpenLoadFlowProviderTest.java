@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 
 import java.util.Collections;
@@ -38,11 +39,18 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class OpenLoadFlowProviderTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    OpenLoadFlowProviderTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void test() {
-        LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
+        LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
         assertEquals(ProviderConstants.NAME, loadFlowProvider.getName());
         assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
     }
@@ -63,9 +71,9 @@ class OpenLoadFlowProviderTest {
                      acParameters.toString());
     }
 
-    private static VoltageInitializer getExtendedVoltageInitializer(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private static VoltageInitializer getExtendedVoltageInitializer(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, CommonTestConfig commonTestConfig) {
         LfNetworkParameters networkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
-        return OpenLoadFlowParameters.getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, new DenseMatrixFactory());
+        return OpenLoadFlowParameters.getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, commonTestConfig.matrixFactory());
     }
 
     @Test
@@ -73,15 +81,15 @@ class OpenLoadFlowProviderTest {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof UniformValueVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt, commonTestConfig) instanceof UniformValueVoltageInitializer);
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof PreviousValueVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt, commonTestConfig) instanceof PreviousValueVoltageInitializer);
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof DcValueVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt, commonTestConfig) instanceof DcValueVoltageInitializer);
         parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.VOLTAGE_MAGNITUDE);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof VoltageMagnitudeInitializer);
+        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt, commonTestConfig) instanceof VoltageMagnitudeInitializer);
         parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof FullVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt, commonTestConfig) instanceof FullVoltageInitializer);
     }
 
     @Test
@@ -121,7 +129,7 @@ class OpenLoadFlowProviderTest {
 
     @Test
     void testSpecificParametersClass() {
-        assertSame(OpenLoadFlowParameters.class, new OpenLoadFlowProvider(new DenseMatrixFactory()).getSpecificParametersClass().orElseThrow());
+        assertSame(OpenLoadFlowParameters.class, new OpenLoadFlowProvider(commonTestConfig.matrixFactory()).getSpecificParametersClass().orElseThrow());
     }
 
     @Test
@@ -131,11 +139,10 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         loadFlowParameters.setHvdcAcEmulation(true);
         openLoadFlowParameters.setAcSolverType(FastDecoupledFactory.NAME);
-        DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
         EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, loadFlowParameters,
-                openLoadFlowParameters, matrixFactory, connectivityFactory, false, false));
+                openLoadFlowParameters, commonTestConfig.matrixFactory(), connectivityFactory, false, false));
         assertEquals("Fast-Decoupled solver is incompatible with AcEmulation: hvdcAcEmulation LoadFlowParameter should be switched to false", e.getMessage());
     }
 }

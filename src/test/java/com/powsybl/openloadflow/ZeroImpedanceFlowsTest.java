@@ -14,7 +14,6 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -22,6 +21,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
@@ -32,7 +32,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Luma Zamarreño {@literal <zamarrenolm at aia.es>}
  * @author José Antonio Marqués {@literal <marquesja at aia.es>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
+
+    private final CommonTestConfig commonTestConfig;
+
+    ZeroImpedanceFlowsTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -42,7 +49,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters);
     }
@@ -524,9 +531,8 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b4, "l14", 0.01);
         network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal2()); // remote control g1 -> b2
         network.getGenerator("g4").setRegulatingTerminal(network.getLine("l34").getTerminal1()); // remote control g4 -> b3
-        var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
@@ -566,9 +572,8 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b4, "l14", 0.01);
         network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal2()); // remote control g1 -> b2
         network.getGenerator("g3").setRegulatingTerminal(network.getLine("l34").getTerminal2()); // remote control g3 -> b4
-        var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
