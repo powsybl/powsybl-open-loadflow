@@ -23,7 +23,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -67,6 +67,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTest {
+
+    OpenSecurityAnalysisWithActionsTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @Test
     void testDcEquationSystemUpdater() {
@@ -160,7 +164,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         LfNetwork lfNetwork = lfNetworks.get(0);
 
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
-            .setMatrixFactory(new DenseMatrixFactory());
+            .setMatrixFactory(commonTestConfig.matrixFactory());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context).run();
 
@@ -247,7 +251,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testSecurityAnalysisWithOperatorStrategy() throws IOException {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
@@ -354,7 +358,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testSecurityAnalysisWithOperatorStrategy2() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
@@ -409,7 +413,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testFilteredCondition() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
@@ -450,7 +454,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testSecurityAnalysisWithOperatorStrategy3() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getVoltageLevel("VL1").setLowVoltageLimit(390.0);
@@ -491,7 +495,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testWithSeveralConnectedComponents() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedBySwitches();
 
@@ -523,7 +527,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testMetrixTutorial() throws IOException {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = MetrixTutorialSixBusesFactory.create();
         network.getGenerator("SO_G2").setTargetP(960);
@@ -628,7 +632,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testMetrixCurrent() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithCurrentLimits();
 
@@ -673,7 +677,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testMetrixVoltage() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithCurrentLimits2();
 
@@ -716,7 +720,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testMetrixActivePower() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithActivePowerLimits();
 
@@ -760,7 +764,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testMetrixApparentPower() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithApparentPowerLimits();
 
@@ -804,7 +808,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testBranchOpenAtOneSideRecovery() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
         var network = ConnectedComponentNetworkFactory.createTwoCcLinkedBySwitches();
         network.getLine("l46").getTerminal1().disconnect();
         network.getSwitch("s25").setOpen(true);
@@ -875,7 +879,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @ValueSource(booleans = {false, true})
     void testDcSecurityAnalysisWithOperatorStrategy(boolean dcFastMode) {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
@@ -1050,7 +1054,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     private void testLoadAction(boolean dc) {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getLine("l24").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(150).add();
@@ -1119,7 +1123,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testLoadActionOnFictitiousLoad() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getLoad("l1").setFictitious(true); // single load on bus
@@ -1170,7 +1174,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     void testActionWithGeneratorPostContingencySlackDistrib() {
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = FourBusNetworkFactory.create();
 
@@ -1229,7 +1233,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     private void testGeneratorAction(boolean dc, LoadFlowParameters.BalanceType balanceType, double deltaG1, double deltaG2,
                                      double targetPG4) {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = FourBusNetworkFactory.create();
         network.getLoad("d2").setP0(2.3); // to unbalance the network.
@@ -1331,7 +1335,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testActionOnGeneratorInContingency() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getGenerator("g2").setTargetV(400).setVoltageRegulatorOn(true);
@@ -1480,7 +1484,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     @Test
     void testPhaseTapChangerActionThreeWindingsTransformer() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = PhaseControlFactory.createNetworkWithT3wt();
 

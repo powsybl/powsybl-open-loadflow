@@ -9,17 +9,26 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class NonImpedantBranchWithBreakerIssueTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    NonImpedantBranchWithBreakerIssueTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void busBreakerAndNonImpedantBranchIssue() {
@@ -31,7 +40,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
-                .setMatrixFactory(new DenseMatrixFactory());
+                .setMatrixFactory(commonTestConfig.matrixFactory());
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -52,7 +61,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters()
                 .setNetworkParameters(networkParameters)
-                .setMatrixFactory(new DenseMatrixFactory());
+                .setMatrixFactory(commonTestConfig.matrixFactory());
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();

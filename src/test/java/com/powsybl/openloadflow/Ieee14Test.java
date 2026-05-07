@@ -12,11 +12,11 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.network.LinePerUnitMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -27,7 +27,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class Ieee14Test {
+
+    private final CommonTestConfig commonTestConfig;
+
+    Ieee14Test(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network = IeeeCdfNetworkFactory.create14();
 
@@ -42,7 +49,7 @@ class Ieee14Test {
         network = IeeeCdfNetworkFactory.create14();
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters);
-        OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
+        OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 

@@ -23,7 +23,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
@@ -32,6 +31,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -48,7 +48,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Jérémy Labous {@literal <jlabous at silicom.fr>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class OpenLoadFlowParametersTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    OpenLoadFlowParametersTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private InMemoryPlatformConfig platformConfig;
 
@@ -199,7 +206,7 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
 
         // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
         network.getVoltageLevel("VLGEN").setNominalV(100);
@@ -214,7 +221,7 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
                 result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
@@ -224,12 +231,12 @@ class OpenLoadFlowParametersTest {
     void testSetSlackBusPMaxMismatch() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), DELTA_MISMATCH);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
-        LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
         assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), DELTA_MISMATCH);
     }
@@ -239,7 +246,7 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getGenerator("GEN").setTargetV(30.0);
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         loadFlowRunner.run(network, parameters);
         assertTrue(Double.isNaN(network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV())); // no calculation
         parameters.getExtension(OpenLoadFlowParameters.class).setMaxPlausibleTargetVoltage(1.3);
@@ -275,7 +282,7 @@ class OpenLoadFlowParametersTest {
         // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var nload = network.getBusBreakerView().getBus("NLOAD");
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         loadFlowRunner.run(network, parameters);
         assertTrue(Double.isNaN(nload.getV()));
 

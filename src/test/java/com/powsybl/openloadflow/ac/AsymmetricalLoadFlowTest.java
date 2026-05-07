@@ -17,9 +17,10 @@ import com.powsybl.iidm.network.extensions.LoadAsymmetricalAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.asym.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
@@ -32,6 +33,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -43,7 +45,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 public class AsymmetricalLoadFlowTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AsymmetricalLoadFlowTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus bus1;
@@ -67,7 +76,7 @@ public class AsymmetricalLoadFlowTest {
         line1 = network.getLine("B1_B2");
         line23 = network.getLine("B2_B3");
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters()
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -361,11 +370,10 @@ public class AsymmetricalLoadFlowTest {
     void incompatibilityWithFastDecoupledTest() {
         parametersExt.setAcSolverType(FastDecoupledFactory.NAME);
         parametersExt.setAsymmetrical(true);
-        DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
         EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, parameters,
-                parametersExt, matrixFactory, connectivityFactory, false, false));
+                parametersExt, commonTestConfig.matrixFactory(), connectivityFactory, false, false));
         assertEquals("Fast-Decoupled solver is incompatible with asymmetrical load flow: asymmetrical OpenLoadFLowParameter should be switched to false", e.getMessage());
     }
 

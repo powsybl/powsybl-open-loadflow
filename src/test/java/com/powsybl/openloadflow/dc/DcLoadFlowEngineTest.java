@@ -10,8 +10,9 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.LfElement;
@@ -19,13 +20,21 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class DcLoadFlowEngineTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    DcLoadFlowEngineTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void contextTest() {
@@ -34,7 +43,7 @@ class DcLoadFlowEngineTest {
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
         DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(parameters,
                                                                                       olfParameters,
-                                                                                      new DenseMatrixFactory(),
+                                                                                      commonTestConfig.matrixFactory(),
                                                                                       new NaiveGraphConnectivityFactory<>(LfElement::getNum),
                                                                                       false);
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters()).get(0);

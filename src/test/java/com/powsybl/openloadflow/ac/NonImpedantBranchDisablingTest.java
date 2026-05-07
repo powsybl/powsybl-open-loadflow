@@ -13,9 +13,10 @@ import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -26,6 +27,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 
@@ -36,13 +38,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class NonImpedantBranchDisablingTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    NonImpedantBranchDisablingTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private LoadFlow.Runner loadFlowRunner;
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
     }
 
     @Test
@@ -52,7 +61,7 @@ class NonImpedantBranchDisablingTest {
         network.getSwitch("C").setRetained(true);
         AcLoadFlowParameters parameters = OpenLoadFlowParameters.createAcParameters(new LoadFlowParameters(),
                                                                                     new OpenLoadFlowParameters(),
-                                                                                    new DenseMatrixFactory(),
+                                                                                    commonTestConfig.matrixFactory(),
                                                                                     new EvenShiloachGraphDecrementalConnectivityFactory<>(),
                                                                                     true,
                                                                                     false);
@@ -115,7 +124,7 @@ class NonImpedantBranchDisablingTest {
         AcLoadFlowParameters acLoadFlowParameters
                 = OpenLoadFlowParameters.createAcParameters(network,
                                                             parameters, olfParameters,
-                                                            new DenseMatrixFactory(),
+                                                            commonTestConfig.matrixFactory(),
                                                             new NaiveGraphConnectivityFactory<>(LfElement::getNum),
                                                             true,
                                                             false);

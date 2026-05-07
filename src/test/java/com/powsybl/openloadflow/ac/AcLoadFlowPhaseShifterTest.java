@@ -12,9 +12,10 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
@@ -23,6 +24,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -34,7 +36,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowPhaseShifterTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowPhaseShifterTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus bus1;
@@ -52,7 +61,7 @@ class AcLoadFlowPhaseShifterTest {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters()
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -622,10 +631,10 @@ class AcLoadFlowPhaseShifterTest {
         double di2t10 = i2t1 - i2t0;
         double di1t12 = i1t1 - i1t2;
         double di2t12 = i2t1 - i2t2;
-        assertEquals(35.183506011159274, di1t10, 0d);
-        assertEquals(35.183506011159274, di2t10, 0d);
-        assertEquals(-45.76103264996253, di1t12, 0d);
-        assertEquals(-45.76103264996253, di2t12, 0d);
+        assertEquals(35.183506, di1t10, DELTA_ANGLE);
+        assertEquals(35.183506, di2t10, DELTA_ANGLE);
+        assertEquals(-45.761032, di1t12, DELTA_ANGLE);
+        assertEquals(-45.761032, di2t12, DELTA_ANGLE);
 
         // compare with sensi on tap 1
         t2wt.getPhaseTapChanger().setTapPosition(1);
@@ -639,7 +648,7 @@ class AcLoadFlowPhaseShifterTest {
         LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).getFirst();
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
                 .setNetworkParameters(lfNetworkParameters)
-                .setMatrixFactory(new DenseMatrixFactory());
+                .setMatrixFactory(commonTestConfig.matrixFactory());
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();
@@ -656,13 +665,13 @@ class AcLoadFlowPhaseShifterTest {
             double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.ONE);
             double di1t10p = sensi1 * da10 * ib;
             double di1t12p = sensi1 * da12 * ib;
-            assertEquals(43.007011829925496, di1t10p, 0d);
-            assertEquals(-43.007011829925496, di1t12p, 0d);
+            assertEquals(43.007011829925496, di1t10p, DELTA_ANGLE);
+            assertEquals(-43.007011829925496, di1t12p, DELTA_ANGLE);
             double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.TWO);
             double di2t10p = sensi2 * da10 * ib;
             double di2t12p = sensi2 * da12 * ib;
-            assertEquals(43.007011829925496, di2t10p, 0d);
-            assertEquals(-43.007011829925496, di2t12p, 0d);
+            assertEquals(43.007011, di2t10p, DELTA_ANGLE);
+            assertEquals(-43.007011, di2t12p, DELTA_ANGLE);
         }
     }
 

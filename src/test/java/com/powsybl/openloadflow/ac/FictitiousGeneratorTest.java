@@ -16,11 +16,13 @@ import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +31,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class FictitiousGeneratorTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    FictitiousGeneratorTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private LoadFlow.Runner loadFlowRunner;
@@ -108,7 +117,7 @@ class FictitiousGeneratorTest {
                 .setX(1)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
 
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters);

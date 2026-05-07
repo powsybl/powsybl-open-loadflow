@@ -13,13 +13,15 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 
@@ -29,7 +31,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class VoltageTargetPrioritiesTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    VoltageTargetPrioritiesTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void voltageTargetPriorities() {
@@ -37,7 +46,7 @@ class VoltageTargetPrioritiesTest {
         Bus genBus = network.getBusBreakerView().getBus("NGEN");
         Bus loadBus = network.getBusBreakerView().getBus("NLOAD");
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
