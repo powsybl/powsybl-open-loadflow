@@ -556,9 +556,9 @@ class AcLoadFlowVscTest {
 
         // Active flow capped at limit. Output has losses (due to VSC stations)
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs2").getTerminal());
-        assertActivePowerEquals(-170.0, network.getLine("l12").getTerminal2() ); // Checking that power that goes out of the line equals power that goes in the converter station
+        assertActivePowerEquals(-170.0, network.getLine("l12").getTerminal2()); // Checking that power that goes out of the line equals power that goes in the converter station
         assertActivePowerEquals(isDc ? -170.0 : -166.263, network.getHvdcConverterStation("cs3").getTerminal());
-        assertActivePowerEquals(isDc ? 170.0 : 166.263, network.getLine("l34").getTerminal1() );
+        assertActivePowerEquals(isDc ? 170.0 : 166.263, network.getLine("l34").getTerminal1());
         assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=170\\.0 MW from station cs2 to station cs3\\)", report);
 
         // now invert power direction
@@ -571,9 +571,9 @@ class AcLoadFlowVscTest {
         assertReportContains("HVDC line hvdc23 AC emulation switches from linear mode to saturated mode \\(Pmax=170\\.0 MW from station cs3 to station cs2\\)", report);
 
         assertActivePowerEquals(isDc ? -170.0 : -166.263, network.getHvdcConverterStation("cs2").getTerminal());
-        assertActivePowerEquals(isDc ? 170.0 : 166.263, network.getLine("l12").getTerminal2() );
+        assertActivePowerEquals(isDc ? 170.0 : 166.263, network.getLine("l12").getTerminal2());
         assertActivePowerEquals(170, network.getHvdcConverterStation("cs3").getTerminal());
-        assertActivePowerEquals(-170.0, network.getLine("l34").getTerminal1() );
+        assertActivePowerEquals(-170.0, network.getLine("l34").getTerminal1());
 
     }
 
