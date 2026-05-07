@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.dcnetwork.*;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -1131,29 +1132,7 @@ public class AcEquationSystemCreator {
                     .addTerm(p2);
             hvdc.setP2(p2);
         }
-        updateHvdcAcEmulationEquations(hvdc);
-    }
-
-    public static void updateHvdcAcEmulationEquations(LfHvdc hvdc) {
-        if (hvdc.getBus1() != null && !hvdc.getBus1().isDisabled()
-                && hvdc.getBus2() != null && !hvdc.getBus2().isDisabled()
-                && !hvdc.isDisabled() && hvdc.isAcEmulation()) {
-            switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
-                case LINEAR_MODE -> {
-                    setActive(hvdc.getP1(), true);
-                    setActive(hvdc.getP2(), true);
-                }
-                case SATURATION_MODE_FROM_CS1_TO_CS2,
-                     SATURATION_MODE_FROM_CS2_TO_CS1,
-                     FROZEN -> {
-                    setActive(hvdc.getP1(), false);
-                    setActive(hvdc.getP2(), false);
-                }
-            }
-        } else {
-            setActive(hvdc.getP1(), false);
-            setActive(hvdc.getP2(), false);
-        }
+        AbstractEquationSystemUpdater.updateHvdcAcEmulationEquations(hvdc);
     }
 
     private void createImpedantBranchEquations(LfBranch branch,

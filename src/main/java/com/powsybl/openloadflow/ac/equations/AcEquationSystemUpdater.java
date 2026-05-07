@@ -123,17 +123,12 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             case HVDC:
                 LfHvdc hvdc = (LfHvdc) element;
                 if (hvdc.isAcEmulation()) {
-                    AcEquationSystemCreator.updateHvdcAcEmulationEquations(hvdc);
+                    updateHvdcAcEmulationEquations(hvdc);
                 }
                 break;
             default:
                 throw new IllegalStateException("Unknown element type: " + element.getType());
         }
-    }
-
-    @Override
-    public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
-        AcEquationSystemCreator.updateHvdcAcEmulationEquations(hvdc);
     }
 
     private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {
