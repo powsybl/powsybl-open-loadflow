@@ -425,8 +425,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
             }
         }
-        // sortByVariableRowAndVectorizedLocalNum
-        terms.sort(Comparator.comparingInt(o -> o.derivative.getVariable().getRow()));
+        // Terms do not have a row initially so they are sorted by variable hash code
+        terms.sort(Comparator.comparingInt(o -> o.derivative.getVariable().hashCode()));
 
         allTerms.addAll(terms);
     }
