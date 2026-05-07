@@ -16,12 +16,14 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -29,12 +31,19 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowVscTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowVscTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void test() {
         Network network = HvdcNetworkFactory.createVsc();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -82,7 +91,7 @@ class AcLoadFlowVscTest {
         vscConverterStation.setRegulatingTerminal(network.getGenerator("g1").getTerminal()).setVoltageSetpoint(390);
         vscConverterStation.setVoltageRegulatorOn(true); //FIXME
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
@@ -102,7 +111,7 @@ class AcLoadFlowVscTest {
         vscConverterStation.setRegulatingTerminal(network.getVscConverterStation("cs3").getTerminal()).setVoltageSetpoint(400); // will be discarded.
         vscConverterStation.setVoltageRegulatorOn(true); //FIXME
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -131,7 +140,7 @@ class AcLoadFlowVscTest {
                 .setX(3)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -157,7 +166,7 @@ class AcLoadFlowVscTest {
                 .withEnabled(true)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD).setHvdcAcEmulation(true);
         OpenLoadFlowParameters.create(parameters)
@@ -194,7 +203,7 @@ class AcLoadFlowVscTest {
                 .withEnabled(true)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -215,7 +224,7 @@ class AcLoadFlowVscTest {
     void testHvdcDisconnectedAtOneSide() {
         Network network = HvdcNetworkFactory.createVsc();
         network.getVscConverterStation("cs3").getTerminal().disconnect();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -259,7 +268,7 @@ class AcLoadFlowVscTest {
     void testVscConverterWithoutHvdcLineNpe() {
         Network network = HvdcNetworkFactory.createVsc();
         network.getHvdcLine("hvdc23").remove();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network);
         assertTrue(result.isFullyConverged());
     }
@@ -267,7 +276,7 @@ class AcLoadFlowVscTest {
     @Test
     void testHvdcPowerAcEmulation() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
         assertTrue(result.isFullyConverged());
         // AC Emulation takes into account cable loss
@@ -281,7 +290,7 @@ class AcLoadFlowVscTest {
     void testHvdcPowerAcEmulationWithoutR() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch();
         network.getHvdcLine("hvdc23").setR(0d); //Removing resistance to ignore cable loss
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(198.158, network.getHvdcConverterStation("cs2").getTerminal());
@@ -294,7 +303,7 @@ class AcLoadFlowVscTest {
     void testHvdcDirectionChangeAcEmulation() {
         Network network = HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork();
         network.getHvdcLine("hvdc12").setR(0.1d);
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -357,7 +366,7 @@ class AcLoadFlowVscTest {
     @Test
     void testLccOpenAtOneSide() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.LCC);
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network);
         assertTrue(result.isFullyConverged());
 
@@ -383,7 +392,7 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setHvdcAcEmulation(false);
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -407,7 +416,7 @@ class AcLoadFlowVscTest {
     @Test
     void testHvdcAndGenerator() {
         Network network = HvdcNetworkFactory.createWithHvdcAndGenerator();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowParameters());
         assertTrue(result.isFullyConverged());
         assertActivePowerEquals(-1.956, network.getVscConverterStation("cs3").getTerminal());
@@ -419,7 +428,7 @@ class AcLoadFlowVscTest {
     @Test
     void testVscVoltageControlWithZeroTargetP() {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         // Set specific voltage setPoints to the stations
         double vcs2 = 397;
         double vcs3 = 401;
@@ -457,7 +466,7 @@ class AcLoadFlowVscTest {
     @ValueSource(booleans = {false, true})
     void testVscVoltageControlWithOneSideDisconnected(boolean withFictiveLoad) {
         Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(HvdcConverterStation.HvdcType.VSC);
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         // Set specific voltage setPoints to the stations
         double vcs2 = 397;
         double vcs3 = 401;
@@ -515,7 +524,7 @@ class AcLoadFlowVscTest {
                 .withOprFromCS1toCS2(170)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters p = new LoadFlowParameters();
         p.setHvdcAcEmulation(true);
         LoadFlowResult result = loadFlowRunner.run(network, p);
@@ -545,7 +554,7 @@ class AcLoadFlowVscTest {
                 .setMaxP(170);
 
         ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setReportNode(report);
         runParameters.getLoadFlowParameters().setHvdcAcEmulation(true);
         LoadFlowResult result = loadFlowRunner.run(network, runParameters);
@@ -580,7 +589,7 @@ class AcLoadFlowVscTest {
                 .setMaxP(51);
 
         ReportNode report = ReportNode.newRootReportNode().withMessageTemplate("test").build();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setReportNode(report);
         runParameters.getLoadFlowParameters().setHvdcAcEmulation(true)
                 .setPhaseShifterRegulationOn(true)
@@ -632,7 +641,7 @@ class AcLoadFlowVscTest {
                 .withEnabled(true)
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDc(true);
         OpenLoadFlowParameters olfParams = OpenLoadFlowParameters.create(parameters)

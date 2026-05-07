@@ -12,9 +12,10 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
@@ -23,6 +24,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -34,7 +36,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowPhaseShifterTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowPhaseShifterTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus bus1;
@@ -52,7 +61,7 @@ class AcLoadFlowPhaseShifterTest {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters()
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -639,7 +648,7 @@ class AcLoadFlowPhaseShifterTest {
         LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).getFirst();
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
                 .setNetworkParameters(lfNetworkParameters)
-                .setMatrixFactory(new DenseMatrixFactory());
+                .setMatrixFactory(commonTestConfig.matrixFactory());
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();

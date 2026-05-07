@@ -23,6 +23,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -50,6 +51,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
+
+    DcSensitivityAnalysisTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @Test
     void testEsgTuto() {

@@ -11,19 +11,28 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.T3wtFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlow3wtTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlow3wtTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Substation s;
@@ -44,7 +53,7 @@ class AcLoadFlow3wtTest {
         bus2 = network.getBusBreakerView().getBus("b2");
         bus3 = network.getBusBreakerView().getBus("b3");
         twt = network.getThreeWindingsTransformer("3wt");
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)

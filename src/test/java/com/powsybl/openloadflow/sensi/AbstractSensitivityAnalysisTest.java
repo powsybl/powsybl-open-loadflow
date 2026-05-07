@@ -21,13 +21,17 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
@@ -38,19 +42,34 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest {
 
     protected static final double SENSI_CHANGE = 10e-4;
 
-    protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
+    protected CommonTestConfig commonTestConfig;
 
-    protected final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
+    protected OpenSensitivityAnalysisProvider sensiProvider;
 
-    protected final SensitivityAnalysis.Runner sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
+    protected SensitivityAnalysis.Runner sensiRunner;
 
-    protected final OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(matrixFactory);
+    protected OpenLoadFlowProvider loadFlowProvider;
 
-    protected final LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
+    protected LoadFlow.Runner loadFlowRunner;
+
+    protected AbstractSensitivityAnalysisTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
+    @Override
+    @BeforeEach
+    public void setUp() throws IOException {
+        super.setUp();
+        sensiProvider = new OpenSensitivityAnalysisProvider(commonTestConfig.matrixFactory());
+        sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
+        loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
+        loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
+    }
 
     protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
         return createParameters(dc, List.of(slackBusId), distributedSlack);
@@ -381,7 +400,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
 
     protected void runAcLf(Network network, ReportNode reportNode) {
         LoadFlowParameters parameters = new LoadFlowParameters().setWriteSlackBus(false);
-        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+        LoadFlowResult result = new OpenLoadFlowProvider(commonTestConfig.matrixFactory())
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reportNode)
                 .join();
         if (!result.isFullyConverged()) {
@@ -399,7 +418,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                 .setParameters(parameters)
                 .setReportNode(reportNode)
                 .setComputationManager(LocalComputationManager.getDefault());
-        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+        LoadFlowResult result = new OpenLoadFlowProvider(commonTestConfig.matrixFactory())
                 .run(network, VariantManagerConstants.INITIAL_VARIANT_ID, lfRunParameters)
                 .join();
         if (!result.isFullyConverged()) {
@@ -416,7 +435,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                 .setParameters(loadFlowParameters)
                 .setReportNode(reportNode)
                 .setComputationManager(LocalComputationManager.getDefault());
-        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+        LoadFlowResult result = new OpenLoadFlowProvider(commonTestConfig.matrixFactory())
                 .run(network, VariantManagerConstants.INITIAL_VARIANT_ID, lfRunParameters)
                 .join();
         if (!result.isFullyConverged()) {

@@ -18,9 +18,10 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -28,6 +29,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,7 +40,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowEurostagTutorialExample1Test {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowEurostagTutorialExample1Test(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus genBus;
@@ -71,7 +80,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         vlhv1 = network.getVoltageLevel("VLHV1");
         vlhv2 = network.getVoltageLevel("VLHV2");
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
@@ -350,7 +359,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add()
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
@@ -385,8 +394,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add()
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
