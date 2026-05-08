@@ -374,7 +374,7 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         var reconnectState = new SensitivityState(contingencies.getFirst().getId(), os.getId());
-        assertEquals(2, result.getStateStatuses().size());
+        assertEquals(3, result.getStateStatuses().size());
         assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(reconnectState));
 
         assertEquals(preContRefValues.get("FFR2AA1  DDE3AA1  1"), result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR2AA1  DDE3AA1  1", SensitivityFunctionType.BRANCH_CURRENT_2), LoadFlowAssert.DELTA_POWER);
