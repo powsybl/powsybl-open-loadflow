@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -29,8 +30,6 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     private EquationVector<AcVariableType, AcEquationType> equationVector;
 
     private AcLoadFlowResult result;
-
-    private boolean networkUpdated = true;
 
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         super(network, parameters);
@@ -80,14 +79,6 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
 
     public void setResult(AcLoadFlowResult result) {
         this.result = result;
-    }
-
-    public boolean isNetworkUpdated() {
-        return networkUpdated;
-    }
-
-    public void setNetworkUpdated(boolean networkUpdated) {
-        this.networkUpdated = networkUpdated;
     }
 
     @Override

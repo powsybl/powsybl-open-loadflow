@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.lf;
 
+import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Quantity;

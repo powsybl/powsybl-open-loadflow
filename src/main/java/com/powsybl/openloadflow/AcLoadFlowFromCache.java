@@ -88,8 +88,8 @@ public class AcLoadFlowFromCache {
         }
     }
 
-    private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
-        List<AcLoadFlowContext> contexts;
+    private List<NetworkCache.AcCacheContext> initContexts(NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcCacheContext> entry) {
+        List<NetworkCache.AcCacheContext> contexts;
         LfTopoConfig topoConfig = new LfTopoConfig();
         configureTopoConfig(topoConfig);
 
@@ -99,7 +99,7 @@ public class AcLoadFlowFromCache {
                 LfNetworkList.WorkingVariantReverter::new, reportNode)) {
             contexts = lfNetworkList.getList()
                     .stream()
-                    .map(n -> new AcLoadFlowContext(n, acParameters))
+                    .map(n -> new NetworkCache.AcCacheContext(new AcLoadFlowContext(n, acParameters)))
                     .collect(Collectors.toList());
             entry.setContexts(contexts);
             LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
@@ -110,12 +110,12 @@ public class AcLoadFlowFromCache {
         return contexts;
     }
 
-    private static AcLoadFlowResult run(AcLoadFlowContext context) {
+    private static AcLoadFlowResult run(NetworkCache.AcCacheContext context) {
         if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
             return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
         }
         if (context.isNetworkUpdated()) {
-            AcLoadFlowResult result = new AcloadFlowEngine(context)
+            AcLoadFlowResult result = new AcloadFlowEngine(context.get())
                     .run();
             context.setNetworkUpdated(false);
             return result;
@@ -124,8 +124,8 @@ public class AcLoadFlowFromCache {
     }
 
     public List<AcLoadFlowResult> run() {
-        NetworkCache.Entry<NetworkCache.AcInput, AcLoadFlowContext> entry = NetworkCache.INSTANCE.get(network, new NetworkCache.AcInput(parameters));
-        List<AcLoadFlowContext> contexts = entry.getContexts();
+        NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcCacheContext> entry = NetworkCache.INSTANCE.get(network, new NetworkCache.AcLfInput(parameters));
+        List<NetworkCache.AcCacheContext> contexts = entry.getContexts();
         if (contexts == null) {
             contexts = initContexts(entry);
         }
