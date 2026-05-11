@@ -40,6 +40,28 @@ public enum NetworkCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
+    public static class Input {
+
+        private final LoadFlowParameters parameters;
+
+        public Input(LoadFlowParameters parameters) {
+            this.parameters = Objects.requireNonNull(parameters);
+        }
+
+        public LoadFlowParameters getParameters() {
+            return parameters;
+        }
+
+        public Input copy() {
+            return new Input(OpenLoadFlowParameters.clone(parameters));
+        }
+
+        public boolean hasChanged(Input other) {
+            // TODO to refine later by comparing in detail parameters that have changed
+            return OpenLoadFlowParameters.equals(parameters, other.getParameters());
+        }
+    }
+
     public static class Entry extends DefaultNetworkListener {
 
         private final WeakReference<Network> networkRef;
@@ -47,17 +69,17 @@ public enum NetworkCache {
         private final String workingVariantId;
         private String tmpVariantId;
 
-        private final LoadFlowParameters parameters;
+        private final Input input;
 
         private List<AcLoadFlowContext> contexts;
 
         private boolean pause = false;
 
-        public Entry(Network network, LoadFlowParameters parameters) {
+        public Entry(Network network, Input input) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
             this.workingVariantId = network.getVariantManager().getWorkingVariantId();
-            this.parameters = Objects.requireNonNull(parameters);
+            this.input = Objects.requireNonNull(input);
         }
 
         public WeakReference<Network> getNetworkRef() {
@@ -80,8 +102,8 @@ public enum NetworkCache {
             this.contexts = contexts;
         }
 
-        public LoadFlowParameters getParameters() {
-            return parameters;
+        public Input getInput() {
+            return input;
         }
 
         public void setPause(boolean pause) {
@@ -94,6 +116,17 @@ public enum NetworkCache {
                     context.close();
                 }
                 contexts = null;
+            }
+        }
+
+        private void restart() {
+            if (contexts != null) {
+                for (AcLoadFlowContext context : contexts) {
+                    AcLoadFlowResult result = context.getResult();
+                    if (result != null && result.getSolverStatus() == AcSolverStatus.CONVERGED) {
+                        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+                    }
+                }
             }
         }
 
@@ -470,9 +503,9 @@ public enum NetworkCache {
                 .findFirst();
     }
 
-    public Entry get(Network network, LoadFlowParameters parameters) {
+    public Entry get(Network network, Input input) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(parameters);
+        Objects.requireNonNull(input);
 
         Entry entry;
         lock.lock();
@@ -481,18 +514,17 @@ public enum NetworkCache {
 
             entry = findEntry(network).orElse(null);
 
-            // invalid cache if parameters have changed
-            // TODO to refine later by comparing in detail parameters that have changed
-            if (entry != null && !OpenLoadFlowParameters.equals(parameters, entry.getParameters())) {
+            // invalid cache if input has changed
+            if (entry != null && !input.hasChanged(entry.getInput())) {
                 // release all resources
                 entry.close();
                 entries.remove(entry);
                 entry = null;
-                LOGGER.info("Network cache evicted because of parameters change");
+                LOGGER.info("Network cache evicted because of input change");
             }
 
             if (entry == null) {
-                entry = new Entry(network, OpenLoadFlowParameters.clone(parameters));
+                entry = new Entry(network, input.copy());
                 entries.add(entry);
                 network.addListener(entry);
 
@@ -510,12 +542,7 @@ public enum NetworkCache {
             LOGGER.info("Network cache reused for network '{}' and variant '{}'",
                     network.getId(), network.getVariantManager().getWorkingVariantId());
 
-            for (AcLoadFlowContext context : entry.getContexts()) {
-                AcLoadFlowResult result = context.getResult();
-                if (result != null && result.getSolverStatus() == AcSolverStatus.CONVERGED) {
-                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
-                }
-            }
+            entry.restart();
         } else {
             LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
         }

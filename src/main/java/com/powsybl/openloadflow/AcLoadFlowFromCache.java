@@ -124,7 +124,7 @@ public class AcLoadFlowFromCache {
     }
 
     public List<AcLoadFlowResult> run() {
-        NetworkCache.Entry entry = NetworkCache.INSTANCE.get(network, parameters);
+        NetworkCache.Entry entry = NetworkCache.INSTANCE.get(network, new NetworkCache.Input(parameters));
         List<AcLoadFlowContext> contexts = entry.getContexts();
         if (contexts == null) {
             contexts = initContexts(entry);
