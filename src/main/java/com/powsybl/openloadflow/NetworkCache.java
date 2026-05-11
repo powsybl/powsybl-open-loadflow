@@ -17,7 +17,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
-import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
@@ -36,10 +35,9 @@ import java.util.function.BiFunction;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NetworkCache<I extends NetworkCache.Input<I>,
-                          C extends NetworkCache.CacheContext> {
+public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCache.Value> {
 
-    public static final NetworkCache<AcLfInput, AcCacheContext> INSTANCE = new NetworkCache<>(AcLfEntry::new);
+    public static final NetworkCache<AcLfInput, AcLfValue> INSTANCE = new NetworkCache<>(AcLfEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
@@ -70,11 +68,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
     }
 
-    public interface CacheContext {
+    public interface Value {
 
         LfNetwork getNetwork();
 
-        AbstractLoadFlowParameters getParameters();
+        LfNetworkParameters getNetworkParameters();
 
         boolean isNetworkUpdated();
 
@@ -83,17 +81,17 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         void close();
     }
 
-    public static class AcCacheContext implements CacheContext {
+    public static class AcLfValue implements Value {
 
         private final AcLoadFlowContext context;
 
         private boolean networkUpdated = true;
 
-        public AcCacheContext(AcLoadFlowContext context) {
+        public AcLfValue(AcLoadFlowContext context) {
             this.context = context;
         }
 
-        public AcLoadFlowContext get() {
+        public AcLoadFlowContext getContext() {
             return context;
         }
 
@@ -103,8 +101,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
 
         @Override
-        public AbstractLoadFlowParameters getParameters() {
-            return context.getParameters();
+        public LfNetworkParameters getNetworkParameters() {
+            return context.getParameters().getNetworkParameters();
         }
 
         @Override
@@ -123,7 +121,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
     }
 
-    public interface Entry<I extends Input<I>, C extends CacheContext> {
+    public interface Entry<I extends Input<I>, V extends Value> {
 
         WeakReference<Network> getNetworkRef();
 
@@ -131,9 +129,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
 
         void setTmpVariantId(String tmpVariantId);
 
-        List<C> getContexts();
+        List<V> getValues();
 
-        void setContexts(List<C> contexts);
+        void setValues(List<V> values);
 
         I getInput();
 
@@ -144,7 +142,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         void close();
     }
 
-    public static class AcLfEntry extends AbstractEntry<AcLfInput, AcCacheContext> {
+    public static class AcLfEntry extends AbstractEntry<AcLfInput, AcLfValue> {
 
         public AcLfEntry(Network network, AcLfInput input) {
             super(network, input);
@@ -152,18 +150,18 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
 
         @Override
         public void restart() {
-            if (contexts != null) {
-                for (AcCacheContext context : contexts) {
-                    AcLoadFlowResult result = context.get().getResult();
+            if (values != null) {
+                for (AcLfValue value : values) {
+                    AcLoadFlowResult result = value.getContext().getResult();
                     if (result != null && result.getSolverStatus() == AcSolverStatus.CONVERGED) {
-                        context.get().getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+                        value.getContext().getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
                     }
                 }
             }
         }
     }
 
-    public abstract static class AbstractEntry<I extends Input<I>, C extends CacheContext> extends DefaultNetworkListener implements Entry<I, C> {
+    public abstract static class AbstractEntry<I extends Input<I>, V extends Value> extends DefaultNetworkListener implements Entry<I, V> {
 
         private final WeakReference<Network> networkRef;
 
@@ -172,7 +170,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
 
         private final I input;
 
-        protected List<C> contexts;
+        protected List<V> values;
 
         private boolean pause = false;
 
@@ -200,13 +198,13 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
 
         @Override
-        public List<C> getContexts() {
-            return contexts;
+        public List<V> getValues() {
+            return values;
         }
 
         @Override
-        public void setContexts(List<C> contexts) {
-            this.contexts = contexts;
+        public void setValues(List<V> values) {
+            this.values = values;
         }
 
         @Override
@@ -220,11 +218,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
 
         protected void reset() {
-            if (contexts != null) {
-                for (C context : contexts) {
-                    context.close();
+            if (values != null) {
+                for (V value : values) {
+                    value.close();
                 }
-                contexts = null;
+                values = null;
             }
         }
 
@@ -243,15 +241,15 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
             onStructureChange();
         }
 
-        private static <C extends CacheContext> Optional<Bus> getBus(Injection<?> injection, C context) {
-            return Optional.ofNullable(context.getParameters().getNetworkParameters().isBreakers()
+        private static <V extends Value> Optional<Bus> getBus(Injection<?> injection, V value) {
+            return Optional.ofNullable(value.getNetworkParameters().isBreakers()
                     ? injection.getTerminal().getBusBreakerView().getBus()
                     : injection.getTerminal().getBusView().getBus());
         }
 
-        private static <C extends CacheContext> Optional<LfBus> getLfBus(Injection<?> injection, C context) {
-            return getBus(injection, context)
-                    .map(bus -> context.getNetwork().getBusById(bus.getId()));
+        private static <V extends Value> Optional<LfBus> getLfBus(Injection<?> injection, V value) {
+            return getBus(injection, value)
+                    .map(bus -> value.getNetwork().getBusById(bus.getId()));
         }
 
         enum CacheUpdateStatus {
@@ -261,85 +259,85 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
             ELEMENT_NOT_FOUND
         }
 
-        record CacheUpdateResult<C extends CacheContext>(CacheUpdateStatus status, C context) {
-            static <C extends CacheContext> CacheUpdateResult<C> unsupportedUpdate() {
+        record CacheUpdateResult<V extends Value>(CacheUpdateStatus status, V value) {
+            static <V extends Value> CacheUpdateResult<V> unsupportedUpdate() {
                 return new CacheUpdateResult<>(CacheUpdateStatus.UNSUPPORTED_UPDATE, null);
             }
 
-            static <C extends CacheContext> CacheUpdateResult<C> elementUpdated(C context) {
-                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_UPDATED, context);
+            static <V extends Value> CacheUpdateResult<V> elementUpdated(V value) {
+                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_UPDATED, value);
             }
 
-            static <C extends CacheContext> CacheUpdateResult<C> ignoreUpdate() {
+            static <V extends Value> CacheUpdateResult<V> ignoreUpdate() {
                 return new CacheUpdateResult<>(CacheUpdateStatus.IGNORE_UPDATE, null);
             }
 
-            static <C extends CacheContext> CacheUpdateResult<C> elementNotFound() {
+            static <V extends Value> CacheUpdateResult<V> elementNotFound() {
                 return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_NOT_FOUND, null);
             }
         }
 
-        private CacheUpdateResult<C> onInjectionUpdate(Injection<?> injection, BiFunction<C, LfBus, CacheUpdateResult<C>> handler) {
-            for (C context : contexts) {
-                LfBus lfBus = getLfBus(injection, context).orElse(null);
+        private CacheUpdateResult<V> onInjectionUpdate(Injection<?> injection, BiFunction<V, LfBus, CacheUpdateResult<V>> handler) {
+            for (V value : values) {
+                LfBus lfBus = getLfBus(injection, value).orElse(null);
                 if (lfBus != null) {
-                    return handler.apply(context, lfBus);
+                    return handler.apply(value, lfBus);
                 }
             }
             return CacheUpdateResult.elementNotFound();
         }
 
-        private static <C extends CacheContext> CacheUpdateResult<C> updateLfGeneratorTargetP(String id, double oldValue, double newValue, C context, LfBus lfBus) {
+        private static <V extends Value> CacheUpdateResult<V> updateLfGeneratorTargetP(String id, double oldValue, double newValue, V value, LfBus lfBus) {
             double valueShift = newValue - oldValue;
             LfGenerator lfGenerator = lfBus.getNetwork().getGeneratorById(id);
             double newTargetP = lfGenerator.getInitialTargetP() + valueShift / PerUnit.SB;
             lfGenerator.setTargetP(newTargetP);
             lfGenerator.setInitialTargetP(newTargetP);
-            lfGenerator.reApplyActivePowerControlChecks(context.getParameters().getNetworkParameters(), null);
-            return CacheUpdateResult.elementUpdated(context);
+            lfGenerator.reApplyActivePowerControlChecks(value.getNetworkParameters(), null);
+            return CacheUpdateResult.elementUpdated(value);
         }
 
-        private CacheUpdateResult<C> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
-            return onInjectionUpdate(generator, (context, lfBus) -> {
+        private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
+            return onInjectionUpdate(generator, (value, lfBus) -> {
                 if (attribute.equals("targetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                     double nominalV = voltageControl.getControlledBus().getNominalV();
                     double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
-                    LfNetworkParameters networkParameters = context.getParameters().getNetworkParameters();
+                    LfNetworkParameters networkParameters = value.getNetworkParameters();
                     if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
                         voltageControl.setTargetValue(newTargetV);
                     } else {
-                        context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                        value.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                         if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                             lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
                         }
                     }
-                    context.getNetwork().validate(LoadFlowModel.AC, null);
-                    return CacheUpdateResult.elementUpdated(context);
+                    value.getNetwork().validate(LoadFlowModel.AC, null);
+                    return CacheUpdateResult.elementUpdated(value);
                 } else if (attribute.equals("targetP")) {
-                    return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, context, lfBus);
+                    return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate();
             });
         }
 
-        private CacheUpdateResult<C> onBatteryUpdate(Battery battery, String attribute, Object oldValue, Object newValue) {
-            return onInjectionUpdate(battery, (context, lfBus) -> {
+        private CacheUpdateResult<V> onBatteryUpdate(Battery battery, String attribute, Object oldValue, Object newValue) {
+            return onInjectionUpdate(battery, (value, lfBus) -> {
                 if (attribute.equals("targetP")) {
-                    return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, context, lfBus);
+                    return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate();
             });
         }
 
-        private CacheUpdateResult<C> onShuntUpdate(ShuntCompensator shunt, String attribute) {
-            return onInjectionUpdate(shunt, (context, lfBus) -> {
+        private CacheUpdateResult<V> onShuntUpdate(ShuntCompensator shunt, String attribute) {
+            return onInjectionUpdate(shunt, (value, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
                     if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
-                        return CacheUpdateResult.elementUpdated(context);
+                        return CacheUpdateResult.elementUpdated(value);
                     } else {
                         LOGGER.info("Shunt compensator {} is controlling voltage or connected to a bus containing a shunt compensator" +
                                 "with an active voltage control: not supported", shunt.getId());
@@ -350,13 +348,13 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
             });
         }
 
-        private CacheUpdateResult<C> onSwitchUpdate(String switchId, boolean open) {
-            for (C context : contexts) {
-                LfNetwork lfNetwork = context.getNetwork();
+        private CacheUpdateResult<V> onSwitchUpdate(String switchId, boolean open) {
+            for (V value : values) {
+                LfNetwork lfNetwork = value.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
                     updateSwitch(open, lfNetwork, lfBranch);
-                    return CacheUpdateResult.elementUpdated(context);
+                    return CacheUpdateResult.elementUpdated(value);
                 }
             }
             return CacheUpdateResult.elementNotFound();
@@ -377,35 +375,35 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
             }
         }
 
-        private CacheUpdateResult<C> onTransformerTargetVoltageUpdate(String twtId, double newValue) {
-            for (C context : contexts) {
-                LfNetwork lfNetwork = context.getNetwork();
+        private CacheUpdateResult<V> onTransformerTargetVoltageUpdate(String twtId, double newValue) {
+            for (V value : values) {
+                LfNetwork lfNetwork = value.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(twtId);
                 if (lfBranch != null) {
                     var vc = lfBranch.getVoltageControl().orElseThrow();
                     vc.setTargetValue(newValue / vc.getControlledBus().getNominalV());
-                    return CacheUpdateResult.elementUpdated(context);
+                    return CacheUpdateResult.elementUpdated(value);
                 }
             }
             return CacheUpdateResult.elementNotFound();
         }
 
-        private CacheUpdateResult<C> onTransformerTapPositionUpdate(String twtId, int newTapPosition) {
-            for (C context : contexts) {
-                LfNetwork lfNetwork = context.getNetwork();
+        private CacheUpdateResult<V> onTransformerTapPositionUpdate(String twtId, int newTapPosition) {
+            for (V value : values) {
+                LfNetwork lfNetwork = value.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(twtId);
                 if (lfBranch != null) {
                     lfBranch.getPiModel().setTapPosition(newTapPosition);
-                    return CacheUpdateResult.elementUpdated(context);
+                    return CacheUpdateResult.elementUpdated(value);
                 }
             }
             return CacheUpdateResult.elementNotFound();
         }
 
-        void processUpdateResult(Identifiable<?> identifiable, String attribute, CacheUpdateResult<C> result) {
+        void processUpdateResult(Identifiable<?> identifiable, String attribute, CacheUpdateResult<V> result) {
             switch (result.status) {
                 case UNSUPPORTED_UPDATE -> reset();
-                case ELEMENT_UPDATED -> result.context.setNetworkUpdated(true);
+                case ELEMENT_UPDATED -> result.value.setNetworkUpdated(true);
                 case IGNORE_UPDATE -> { /* nothing to do */ }
                 case ELEMENT_NOT_FOUND -> LOGGER.warn("Cannot update attribute '{}' of element '{}' (type={})", attribute, identifiable.getId(), identifiable.getType());
             }
@@ -413,10 +411,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
 
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
-            if (contexts == null || pause) {
+            if (values == null || pause) {
                 return;
             }
-            CacheUpdateResult<C> result = CacheUpdateResult.unsupportedUpdate(); // by default to be safe
+            CacheUpdateResult<V> result = CacheUpdateResult.unsupportedUpdate(); // by default to be safe
             switch (attribute) {
                 case "v",
                      "angle",
@@ -472,11 +470,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
 
         @Override
         public void onExtensionUpdate(Extension<?> extension, String attribute, String variantId, Object oldValue, Object newValue) {
-            if (contexts == null || pause) {
+            if (values == null || pause) {
                 return;
             }
 
-            CacheUpdateResult<C> result = CacheUpdateResult.unsupportedUpdate();
+            CacheUpdateResult<V> result = CacheUpdateResult.unsupportedUpdate();
             if ("secondaryVoltageControl".equals(extension.getName())) {
                 SecondaryVoltageControl svc = (SecondaryVoltageControl) extension;
                 result = onSecondaryVoltageControlExtensionUpdate(svc, attribute, newValue);
@@ -485,24 +483,24 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
             processUpdateResult((Identifiable<?>) extension.getExtendable(), attribute, result);
         }
 
-        private CacheUpdateResult<C> onSecondaryVoltageControlExtensionUpdate(SecondaryVoltageControl svc, String attribute, Object newValue) {
+        private CacheUpdateResult<V> onSecondaryVoltageControlExtensionUpdate(SecondaryVoltageControl svc, String attribute, Object newValue) {
             if ("pilotPointTargetV".equals(attribute)) {
                 PilotPoint.TargetVoltageEvent event = (PilotPoint.TargetVoltageEvent) newValue;
                 ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
-                for (C context : contexts) {
-                    LfNetwork lfNetwork = context.getNetwork();
+                for (V value : values) {
+                    LfNetwork lfNetwork = value.getNetwork();
                     var lfSvc = lfNetwork.getSecondaryVoltageControl(controlZone.getName()).orElse(null);
                     if (lfSvc != null) {
                         lfSvc.setTargetValue(event.value() / lfSvc.getPilotBus().getNominalV());
-                        return CacheUpdateResult.elementUpdated(context);
+                        return CacheUpdateResult.elementUpdated(value);
                     }
                 }
                 return CacheUpdateResult.elementNotFound();
             } else if ("controlUnitParticipate".equals(attribute)) {
                 ControlUnit.ParticipateEvent event = (ControlUnit.ParticipateEvent) newValue;
                 ControlZone controlZone = svc.getControlZone(event.controlZoneName()).orElseThrow();
-                for (C context : contexts) {
-                    LfNetwork lfNetwork = context.getNetwork();
+                for (V value : values) {
+                    LfNetwork lfNetwork = value.getNetwork();
                     var lfSvc = lfNetwork.getSecondaryVoltageControl(controlZone.getName()).orElse(null);
                     if (lfSvc != null) {
                         if (event.value()) {
@@ -510,7 +508,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
                         } else {
                             lfSvc.removeParticipatingControlUnit(event.controlUnitId());
                         }
-                        return CacheUpdateResult.elementUpdated(context);
+                        return CacheUpdateResult.elementUpdated(value);
                     }
                 }
                 return CacheUpdateResult.elementNotFound();
@@ -568,20 +566,20 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
     }
 
-    private final BiFunction<Network, I, Entry<I, C>> entryFactory;
+    private final BiFunction<Network, I, Entry<I, V>> entryFactory;
 
-    private final List<Entry<I, C>> entries = new ArrayList<>();
+    private final List<Entry<I, V>> entries = new ArrayList<>();
 
     private final Lock lock = new ReentrantLock();
 
-    public NetworkCache(BiFunction<Network, I, Entry<I, C>> entryFactory) {
+    public NetworkCache(BiFunction<Network, I, Entry<I, V>> entryFactory) {
         this.entryFactory = Objects.requireNonNull(entryFactory);
     }
 
     private void evictDeadEntries() {
-        Iterator<Entry<I, C>> it = entries.iterator();
+        Iterator<Entry<I, V>> it = entries.iterator();
         while (it.hasNext()) {
-            Entry<I, C> entry = it.next();
+            Entry<I, V> entry = it.next();
             if (entry.getNetworkRef().get() == null) {
                 // release all resources
                 entry.close();
@@ -601,18 +599,18 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
     }
 
-    public Optional<Entry<I, C>> findEntry(Network network) {
+    public Optional<Entry<I, V>> findEntry(Network network) {
         String variantId = network.getVariantManager().getWorkingVariantId();
         return entries.stream()
                 .filter(e -> e.getNetworkRef().get() == network && e.getWorkingVariantId().equals(variantId))
                 .findFirst();
     }
 
-    public Entry<I, C> get(Network network, Input<I> input) {
+    public Entry<I, V> get(Network network, Input<I> input) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(input);
 
-        Entry<I, C> entry;
+        Entry<I, V> entry;
         lock.lock();
         try {
             evictDeadEntries();
@@ -642,7 +640,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>,
         }
 
         // restart from previous state
-        if (entry.getContexts() != null) {
+        if (entry.getValues() != null) {
             LOGGER.info("Network cache reused for network '{}' and variant '{}'",
                     network.getId(), network.getVariantManager().getWorkingVariantId());
 

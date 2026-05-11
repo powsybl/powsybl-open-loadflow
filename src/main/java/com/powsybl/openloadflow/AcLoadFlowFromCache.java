@@ -88,8 +88,8 @@ public class AcLoadFlowFromCache {
         }
     }
 
-    private List<NetworkCache.AcCacheContext> initContexts(NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcCacheContext> entry) {
-        List<NetworkCache.AcCacheContext> contexts;
+    private List<NetworkCache.AcLfValue> initValues(NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcLfValue> entry) {
+        List<NetworkCache.AcLfValue> values;
         LfTopoConfig topoConfig = new LfTopoConfig();
         configureTopoConfig(topoConfig);
 
@@ -97,39 +97,39 @@ public class AcLoadFlowFromCache {
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
         try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, acParameters.getNetworkParameters(),
                 LfNetworkList.WorkingVariantReverter::new, reportNode)) {
-            contexts = lfNetworkList.getList()
+            values = lfNetworkList.getList()
                     .stream()
-                    .map(n -> new NetworkCache.AcCacheContext(new AcLoadFlowContext(n, acParameters)))
+                    .map(n -> new NetworkCache.AcLfValue(new AcLoadFlowContext(n, acParameters)))
                     .collect(Collectors.toList());
-            entry.setContexts(contexts);
+            entry.setValues(values);
             LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
             if (variantCleaner != null) {
                 entry.setTmpVariantId(variantCleaner.getTmpVariantId());
             }
         }
-        return contexts;
+        return values;
     }
 
-    private static AcLoadFlowResult run(NetworkCache.AcCacheContext context) {
-        if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
-            return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
+    private static AcLoadFlowResult run(NetworkCache.AcLfValue value) {
+        if (value.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
+            return AcLoadFlowResult.createNoCalculationResult(value.getNetwork());
         }
-        if (context.isNetworkUpdated()) {
-            AcLoadFlowResult result = new AcloadFlowEngine(context.get())
+        if (value.isNetworkUpdated()) {
+            AcLoadFlowResult result = new AcloadFlowEngine(value.getContext())
                     .run();
-            context.setNetworkUpdated(false);
+            value.setNetworkUpdated(false);
             return result;
         }
-        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
+        return new AcLoadFlowResult(value.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
     }
 
     public List<AcLoadFlowResult> run() {
-        NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcCacheContext> entry = NetworkCache.INSTANCE.get(network, new NetworkCache.AcLfInput(parameters));
-        List<NetworkCache.AcCacheContext> contexts = entry.getContexts();
-        if (contexts == null) {
-            contexts = initContexts(entry);
+        NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcLfValue> entry = NetworkCache.INSTANCE.get(network, new NetworkCache.AcLfInput(parameters));
+        List<NetworkCache.AcLfValue> values = entry.getValues();
+        if (values == null) {
+            values = initValues(entry);
         }
-        return contexts.stream()
+        return values.stream()
                 .map(AcLoadFlowFromCache::run)
                 .collect(Collectors.toList());
     }
