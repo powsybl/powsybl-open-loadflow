@@ -35,77 +35,112 @@ import java.util.function.BiFunction;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public enum NetworkCache {
-    INSTANCE;
+public class NetworkCache<I extends NetworkCache.Input<I>, C> {
+
+    public static final NetworkCache<AcInput, AcLoadFlowContext> INSTANCE = new NetworkCache<>(AcEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
-    public static class Input {
+    public interface Input<T extends Input<T>> {
+
+        T copy();
+
+        boolean hasChanged(T other);
+    }
+
+    public static class AcInput implements Input<AcInput> {
 
         private final LoadFlowParameters parameters;
 
-        public Input(LoadFlowParameters parameters) {
+        public AcInput(LoadFlowParameters parameters) {
             this.parameters = Objects.requireNonNull(parameters);
         }
 
-        public LoadFlowParameters getParameters() {
-            return parameters;
+        @Override
+        public AcInput copy() {
+            return new AcInput(OpenLoadFlowParameters.clone(parameters));
         }
 
-        public Input copy() {
-            return new Input(OpenLoadFlowParameters.clone(parameters));
-        }
-
-        public boolean hasChanged(Input other) {
+        @Override
+        public boolean hasChanged(AcInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
-            return OpenLoadFlowParameters.equals(parameters, other.getParameters());
+            return OpenLoadFlowParameters.equals(parameters, other.parameters);
         }
     }
 
-    public static class Entry extends DefaultNetworkListener {
+    public interface Entry<I extends Input<I>, C> {
+
+        WeakReference<Network> getNetworkRef();
+
+        String getWorkingVariantId();
+
+        void setTmpVariantId(String tmpVariantId);
+
+        List<C> getContexts();
+
+        void setContexts(List<C> contexts);
+
+        I getInput();
+
+        void setPause(boolean pause);
+
+        void restart();
+
+        void close();
+    }
+
+    public static class AcEntry<I extends Input<I>> extends DefaultNetworkListener implements Entry<I, AcLoadFlowContext> {
 
         private final WeakReference<Network> networkRef;
 
         private final String workingVariantId;
         private String tmpVariantId;
 
-        private final Input input;
+        private final I input;
 
         private List<AcLoadFlowContext> contexts;
 
         private boolean pause = false;
 
-        public Entry(Network network, Input input) {
+        public AcEntry(Network network, I input) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
             this.workingVariantId = network.getVariantManager().getWorkingVariantId();
             this.input = Objects.requireNonNull(input);
+            network.addListener(this);
         }
 
+        @Override
         public WeakReference<Network> getNetworkRef() {
             return networkRef;
         }
 
+        @Override
         public String getWorkingVariantId() {
             return workingVariantId;
         }
 
+        @Override
         public void setTmpVariantId(String tmpVariantId) {
             this.tmpVariantId = tmpVariantId;
         }
 
+        @Override
         public List<AcLoadFlowContext> getContexts() {
             return contexts;
         }
 
+        @Override
         public void setContexts(List<AcLoadFlowContext> contexts) {
             this.contexts = contexts;
         }
 
-        public Input getInput() {
+        @Override
+        public I getInput() {
             return input;
         }
 
+        @Override
         public void setPause(boolean pause) {
             this.pause = pause;
         }
@@ -119,7 +154,8 @@ public enum NetworkCache {
             }
         }
 
-        private void restart() {
+        @Override
+        public void restart() {
             if (contexts != null) {
                 for (AcLoadFlowContext context : contexts) {
                     AcLoadFlowResult result = context.getResult();
@@ -460,6 +496,7 @@ public enum NetworkCache {
             onVariantChange();
         }
 
+        @Override
         public void close() {
             reset();
             Network network = networkRef.get();
@@ -469,14 +506,20 @@ public enum NetworkCache {
         }
     }
 
-    private final List<Entry> entries = new ArrayList<>();
+    private final BiFunction<Network, I, Entry<I, C>> entryFactory;
+
+    private final List<Entry<I, C>> entries = new ArrayList<>();
 
     private final Lock lock = new ReentrantLock();
 
+    public NetworkCache(BiFunction<Network, I, Entry<I, C>> entryFactory) {
+        this.entryFactory = Objects.requireNonNull(entryFactory);
+    }
+
     private void evictDeadEntries() {
-        Iterator<Entry> it = entries.iterator();
+        Iterator<Entry<I, C>> it = entries.iterator();
         while (it.hasNext()) {
-            Entry entry = it.next();
+            Entry<I, C> entry = it.next();
             if (entry.getNetworkRef().get() == null) {
                 // release all resources
                 entry.close();
@@ -496,18 +539,18 @@ public enum NetworkCache {
         }
     }
 
-    public Optional<Entry> findEntry(Network network) {
+    public Optional<Entry<I, C>> findEntry(Network network) {
         String variantId = network.getVariantManager().getWorkingVariantId();
         return entries.stream()
                 .filter(e -> e.getNetworkRef().get() == network && e.getWorkingVariantId().equals(variantId))
                 .findFirst();
     }
 
-    public Entry get(Network network, Input input) {
+    public Entry<I, C> get(Network network, Input<I> input) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(input);
 
-        Entry entry;
+        Entry<I, C> entry;
         lock.lock();
         try {
             evictDeadEntries();
@@ -524,9 +567,8 @@ public enum NetworkCache {
             }
 
             if (entry == null) {
-                entry = new Entry(network, input.copy());
+                entry = entryFactory.apply(network, input.copy());
                 entries.add(entry);
-                network.addListener(entry);
 
                 LOGGER.info("Network cache created for network '{}' and variant '{}'",
                         network.getId(), network.getVariantManager().getWorkingVariantId());
