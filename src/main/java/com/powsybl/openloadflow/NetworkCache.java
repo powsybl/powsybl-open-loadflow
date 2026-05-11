@@ -37,7 +37,7 @@ import java.util.function.BiFunction;
  */
 public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCache.Value> {
 
-    public static final NetworkCache<AcLfInput, AcLfValue> INSTANCE = new NetworkCache<>(AcLfEntry::new);
+    public static final NetworkCache<LfInput, AcLfValue> INSTANCE = new NetworkCache<>(AcLfEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
@@ -48,21 +48,21 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         boolean hasChanged(T other);
     }
 
-    public static class AcLfInput implements Input<AcLfInput> {
+    public static class LfInput implements Input<LfInput> {
 
         private final LoadFlowParameters parameters;
 
-        public AcLfInput(LoadFlowParameters parameters) {
+        public LfInput(LoadFlowParameters parameters) {
             this.parameters = Objects.requireNonNull(parameters);
         }
 
         @Override
-        public AcLfInput copy() {
-            return new AcLfInput(OpenLoadFlowParameters.clone(parameters));
+        public LfInput copy() {
+            return new LfInput(OpenLoadFlowParameters.clone(parameters));
         }
 
         @Override
-        public boolean hasChanged(AcLfInput other) {
+        public boolean hasChanged(LfInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
             return OpenLoadFlowParameters.equals(parameters, other.parameters);
         }
@@ -142,9 +142,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         void close();
     }
 
-    public static class AcLfEntry extends AbstractEntry<AcLfInput, AcLfValue> {
+    public static class AcLfEntry extends AbstractEntry<LfInput, AcLfValue> {
 
-        public AcLfEntry(Network network, AcLfInput input) {
+        public AcLfEntry(Network network, LfInput input) {
             super(network, input);
         }
 

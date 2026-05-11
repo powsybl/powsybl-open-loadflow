@@ -88,7 +88,7 @@ public class AcLoadFlowFromCache {
         }
     }
 
-    private List<NetworkCache.AcLfValue> initValues(NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcLfValue> entry) {
+    private List<NetworkCache.AcLfValue> initValues(NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry) {
         List<NetworkCache.AcLfValue> values;
         LfTopoConfig topoConfig = new LfTopoConfig();
         configureTopoConfig(topoConfig);
@@ -124,7 +124,7 @@ public class AcLoadFlowFromCache {
     }
 
     public List<AcLoadFlowResult> run() {
-        NetworkCache.Entry<NetworkCache.AcLfInput, NetworkCache.AcLfValue> entry = NetworkCache.INSTANCE.get(network, new NetworkCache.AcLfInput(parameters));
+        NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry = NetworkCache.INSTANCE.get(network, new NetworkCache.LfInput(parameters));
         List<NetworkCache.AcLfValue> values = entry.getValues();
         if (values == null) {
             values = initValues(entry);
