@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
