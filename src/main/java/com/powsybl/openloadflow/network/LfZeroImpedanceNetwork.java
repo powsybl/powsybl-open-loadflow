@@ -50,13 +50,19 @@ public class LfZeroImpedanceNetwork {
         return subGraph;
     }
 
+    private static Set<LfBus> sortVerticesById(Set<LfBus> connectedSet) {
+        Set<LfBus> sortedSet = new LinkedHashSet<>();
+        connectedSet.stream().sorted(Comparator.comparing(LfBus::getId)).forEach(sortedSet::add);
+        return sortedSet;
+    }
+
     public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, LoadFlowModel loadFlowModel) {
         Objects.requireNonNull(network);
         Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = new LinkedHashSet<>();
         var graph = createZeroImpedanceSubGraph(network, loadFlowModel);
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
-            var subGraph = createSubgraph(graph, connectedSet);
+            var subGraph = createSubgraph(graph, sortVerticesById(connectedSet));
             zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, loadFlowModel, subGraph));
         }
         return zeroImpedanceNetworks;
