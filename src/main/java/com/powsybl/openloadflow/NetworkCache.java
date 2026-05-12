@@ -109,7 +109,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         @Override
         public boolean hasChanged(LfInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
-            return OpenLoadFlowParameters.equals(parameters, other.parameters);
+            return !OpenLoadFlowParameters.equals(parameters, other.parameters);
         }
     }
 
@@ -177,7 +177,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         @Override
         public boolean hasChanged(DcSensiInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
-            return OpenLoadFlowParameters.equals(parameters, other.parameters) || !contingencyIds.equals(other.contingencyIds) || !topoActionIds.equals(other.topoActionIds);
+            return !OpenLoadFlowParameters.equals(parameters, other.parameters)
+                    || !contingencyIds.equals(other.contingencyIds)
+                    || !topoActionIds.equals(other.topoActionIds);
         }
     }
 
@@ -697,7 +699,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             entry = findEntry(network).orElse(null);
 
             // invalid cache if input has changed
-            if (entry != null && !input.hasChanged(entry.getInput())) {
+            if (entry != null && input.hasChanged(entry.getInput())) {
                 // release all resources
                 entry.close();
                 entries.remove(entry);

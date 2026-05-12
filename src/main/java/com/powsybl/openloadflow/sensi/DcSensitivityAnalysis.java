@@ -517,13 +517,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         entry.setTmpVariantId(variantCleaner.getTmpVariantId());
                     }
                 }
-
-                NetworkCache.DcSensiValue value = entry.getValues().getFirst();
-                LfNetwork lfNetwork = value.getNetwork();
-                DcLoadFlowContext loadFlowContext = value.getContext();
-                analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
-                        propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt);
             }
+            NetworkCache.DcSensiValue value = entry.getValues().getFirst();
+            LfNetwork lfNetwork = value.getNetwork();
+            DcLoadFlowContext loadFlowContext = value.getContext();
+            analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
+                    propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt);
         } else {
             // create networks including all necessary switches
             try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, sensiReportNode)) {

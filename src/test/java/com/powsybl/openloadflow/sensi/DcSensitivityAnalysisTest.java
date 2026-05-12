@@ -23,6 +23,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -1364,5 +1365,34 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2, operatorStrategies, actions,
                 creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
                 executor));
+    }
+
+    @Test
+    void testFastRestart() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+
+        assertEquals(0, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(1, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        result = sensiRunner.run(network, factors.subList(1, 2), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(1, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 }
