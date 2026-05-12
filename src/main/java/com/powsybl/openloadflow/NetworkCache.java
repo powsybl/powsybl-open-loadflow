@@ -283,6 +283,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         @Override
         public void setTmpVariantId(String tmpVariantId) {
+            if (this.tmpVariantId != null) {
+                throw new IllegalArgumentException("Entry already has a tmp variant ID set");
+            }
             this.tmpVariantId = tmpVariantId;
         }
 
@@ -650,7 +653,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             reset();
             Network network = networkRef.get();
             if (network != null && tmpVariantId != null) {
-                network.getVariantManager().removeVariant(tmpVariantId);
+                if (network.getVariantManager().getVariantIds().contains(tmpVariantId)) {
+                    network.getVariantManager().removeVariant(tmpVariantId);
+                }
             }
         }
     }
