@@ -17,6 +17,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
@@ -38,6 +39,7 @@ import java.util.function.BiFunction;
 public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCache.Value> {
 
     public static final NetworkCache<LfInput, AcLfValue> AC_LF_INSTANCE = new NetworkCache<>(AcLfEntry::new);
+    public static final NetworkCache<DcSensiInput, DcSensiValue> DC_SENSI_INSTANCE = new NetworkCache<>(DcLfEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
@@ -111,11 +113,24 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public static class AcLfValue implements Value {
-
-        private final AcLoadFlowContext context;
+    public abstract static class AbstractValue implements Value {
 
         private boolean networkUpdated = true;
+
+        @Override
+        public boolean isNetworkUpdated() {
+            return networkUpdated;
+        }
+
+        @Override
+        public void setNetworkUpdated(boolean networkUpdated) {
+            this.networkUpdated = networkUpdated;
+        }
+    }
+
+    public static class AcLfValue extends AbstractValue {
+
+        private final AcLoadFlowContext context;
 
         public AcLfValue(AcLoadFlowContext context) {
             this.context = context;
@@ -136,13 +151,56 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         @Override
-        public boolean isNetworkUpdated() {
-            return networkUpdated;
+        public void close() {
+            context.close();
+        }
+    }
+
+    public static class DcSensiInput implements Input<DcSensiInput> {
+
+        private final LoadFlowParameters parameters;
+        // this is what impact TopoConfig
+        private final Set<String> contingencyIds;
+        private final Set<String> topoActionIds;
+
+        public DcSensiInput(LoadFlowParameters parameters, Set<String> contingencyIds, Set<String> topoActionIds) {
+            this.parameters = Objects.requireNonNull(parameters);
+            this.contingencyIds = Objects.requireNonNull(contingencyIds);
+            this.topoActionIds = Objects.requireNonNull(topoActionIds);
         }
 
         @Override
-        public void setNetworkUpdated(boolean networkUpdated) {
-            this.networkUpdated = networkUpdated;
+        public DcSensiInput copy() {
+            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), contingencyIds, topoActionIds);
+        }
+
+        @Override
+        public boolean hasChanged(DcSensiInput other) {
+            // TODO to refine later by comparing in detail parameters that have changed
+            return OpenLoadFlowParameters.equals(parameters, other.parameters) || !contingencyIds.equals(other.contingencyIds) || !topoActionIds.equals(other.topoActionIds);
+        }
+    }
+
+    public static class DcSensiValue extends AbstractValue {
+
+        private final DcLoadFlowContext context;
+
+        public DcSensiValue(DcLoadFlowContext context) {
+            this.context = context;
+        }
+
+        public DcLoadFlowContext getContext() {
+            return context;
+        }
+
+        @Override
+        public LfNetwork getNetwork() {
+            return context.getNetwork();
+        }
+
+        @Override
+        public LfNetworkParameters getNetworkParameters() {
+            return context.getParameters().getNetworkParameters();
         }
 
         @Override
@@ -167,6 +225,18 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     }
                 }
             }
+        }
+    }
+
+    public static class DcLfEntry extends AbstractEntry<DcSensiInput, DcSensiValue> {
+
+        public DcLfEntry(Network network, DcSensiInput input) {
+            super(network, input);
+        }
+
+        @Override
+        public void restart() {
+            // nothing to do
         }
     }
 
