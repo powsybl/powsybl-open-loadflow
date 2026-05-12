@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import org.jgrapht.alg.connectivity.TreeDynamicConnectivity;
 
 import java.util.ArrayList;
@@ -19,19 +21,37 @@ import java.util.List;
 public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
     private final List<TreeDynamicConnectivity<V>> spanningTreeForests = new ArrayList<>();
+    private final TObjectIntMap<E> edgeToLevel = new TObjectIntHashMap<>();
 
     public HolmEtAlGraphConnectivity() {
         super(new JGraphTModel<>());
+        spanningTreeForests.add(new TreeDynamicConnectivity<>());
     }
 
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
+        int level = edgeToLevel.get(edgeRemove.e);
 
+        // remove edge from every spanning trees. the edge cannot be in level > 'level'
+        for (int i = 0; i <= level; i++) {
+            spanningTreeForests.get(i).cut(edgeRemove.v1, edgeRemove.v2);
+        }
+
+        replace(edgeRemove, level);
+    }
+
+    private void replace(EdgeRemove<V, E> edgeRemove, int level) {
+        TreeDynamicConnectivity<V> forest = spanningTreeForests.get(level);
+        // problem: jgrapht doesn't provide getSize for a tree...
     }
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
-
+        TreeDynamicConnectivity<V> level0 = spanningTreeForests.getFirst();
+        // try link
+        if (level0.link(edgeAdd.v1, edgeAdd.v2)) {
+            edgeToLevel.put(edgeAdd.e, 0);
+        }
     }
 
     @Override
