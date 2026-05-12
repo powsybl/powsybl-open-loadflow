@@ -49,10 +49,26 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
+
+        // We need to ensure that two LfDcBuses connected to the same converter are initialized with different voltage
+        // values. There is no such constraints for other LfDcBuses.
+        // Therefore, we use setInitialVoltage() and isInitialVoltageSet() to ensure the two LfDcBuses have a different
+        // initial voltage and that the LfDcBuses already processed are not changed.
+        // These values are then used in UniformValueVoltageInitializer.
+        // The initial voltage values do not impact on the load flow result and have been arbitrarily chosen to 0 and 1.
+        if (dcBus1.isInitialVoltageSet() && dcBus2.isInitialVoltageSet()) {
+            assert dcBus1.getInitialVoltage() != dcBus2.getInitialVoltage();
+        } else if (dcBus1.isInitialVoltageSet()) {
+            dcBus2.setInitialVoltage(1 - dcBus1.getInitialVoltage());
+        } else if (dcBus2.isInitialVoltageSet()) {
+            dcBus1.setInitialVoltage(1 - dcBus2.getInitialVoltage());
+        } else {
+            dcBus1.setInitialVoltage(1);
+            dcBus2.setInitialVoltage(0);
+        }
+
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
-        // By convention, the dcBus2 is supposed to be the neutral layer, it is just needed for voltage initialization
-        dcBus2.setNeutralPole(true);
         this.bus1 = bus1;
         this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();

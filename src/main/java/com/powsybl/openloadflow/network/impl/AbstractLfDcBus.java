@@ -21,7 +21,8 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
 
     protected final double nominalV;
 
-    protected boolean isNeutralPole = false;
+    // Initial voltage used by the UniformValueVoltageInitializer. Only set for DC buses connected to a converter.
+    private Double initialVoltage = null;
 
     protected AbstractLfDcBus(LfNetwork network, double nominalV, double v) {
         super(network);
@@ -50,12 +51,18 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
     }
 
     @Override
-    public boolean isNeutralPole() {
-        return isNeutralPole;
+    public void setInitialVoltage(double v) {
+        initialVoltage = v;
     }
 
     @Override
-    public void setNeutralPole(boolean isNeutralPole) {
-        this.isNeutralPole = isNeutralPole;
+    public double getInitialVoltage() {
+        assert initialVoltage != null;
+        return initialVoltage;
+    }
+
+    @Override
+    public boolean isInitialVoltageSet() {
+        return initialVoltage != null;
     }
 }

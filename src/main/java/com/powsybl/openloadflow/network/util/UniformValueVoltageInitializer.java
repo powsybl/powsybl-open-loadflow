@@ -36,10 +36,11 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
     }
 
     public double getMagnitude(LfDcBus dcBus) {
-        if (dcBus.isNeutralPole()) {
-            return 0.0;
+        if (dcBus.isInitialVoltageSet()) {
+            return dcBus.getInitialVoltage();
+        } else {
+            return 1.0;
         }
-        return 1.0;
     }
 }
 

@@ -16,9 +16,11 @@ public interface LfDcBus extends LfElement {
 
     void setV(double v);
 
-    boolean isNeutralPole();
+    boolean isInitialVoltageSet();
 
-    void setNeutralPole(boolean isNeutralPole);
+    void setInitialVoltage(double v);
+
+    double getInitialVoltage();
 
     double getNominalV();
 
