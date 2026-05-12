@@ -46,7 +46,7 @@ public class LfZeroImpedanceNetwork {
 
     private static Graph<LfBus, LfBranch> createSubgraph(Graph<LfBus, LfBranch> graph, Set<LfBus> vertexSubset) {
         Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
-        Graphs.addGraph(subGraph, new AsSubgraph<>(graph, vertexSubset));
+        Graphs.addGraph(subGraph, new AsSubgraph<>(graph, sortVerticesById(vertexSubset)));
         return subGraph;
     }
 
@@ -62,7 +62,7 @@ public class LfZeroImpedanceNetwork {
         var graph = createZeroImpedanceSubGraph(network, loadFlowModel);
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
-            var subGraph = createSubgraph(graph, sortVerticesById(connectedSet));
+            var subGraph = createSubgraph(graph, connectedSet);
             zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, loadFlowModel, subGraph));
         }
         return zeroImpedanceNetworks;
