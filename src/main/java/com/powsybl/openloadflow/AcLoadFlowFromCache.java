@@ -124,7 +124,7 @@ public class AcLoadFlowFromCache {
     }
 
     public List<AcLoadFlowResult> run() {
-        NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry = NetworkCache.INSTANCE.get(network, new NetworkCache.LfInput(parameters));
+        NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry = NetworkCache.AC_LF_INSTANCE.get(network, new NetworkCache.LfInput(parameters));
         List<NetworkCache.AcLfValue> values = entry.getValues();
         if (values == null) {
             values = initValues(entry);

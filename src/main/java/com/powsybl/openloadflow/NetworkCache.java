@@ -37,15 +37,58 @@ import java.util.function.BiFunction;
  */
 public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCache.Value> {
 
-    public static final NetworkCache<LfInput, AcLfValue> INSTANCE = new NetworkCache<>(AcLfEntry::new);
+    public static final NetworkCache<LfInput, AcLfValue> AC_LF_INSTANCE = new NetworkCache<>(AcLfEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
+    /**
+     * Input associated to a cache entry, used to detect when input data of the previous run has changed.
+     */
     public interface Input<T extends Input<T>> {
 
         T copy();
 
         boolean hasChanged(T other);
+    }
+
+    /**
+     * Value associated to a cache entry, used to store the LF network and its parameters.
+     */
+    public interface Value {
+
+        LfNetwork getNetwork();
+
+        LfNetworkParameters getNetworkParameters();
+
+        boolean isNetworkUpdated();
+
+        void setNetworkUpdated(boolean networkUpdated);
+
+        void close();
+    }
+
+    /**
+     * Cache entry to store everything associated to a given IIDM network.
+     */
+    public interface Entry<I extends Input<I>, V extends Value> {
+
+        WeakReference<Network> getNetworkRef();
+
+        String getWorkingVariantId();
+
+        void setTmpVariantId(String tmpVariantId);
+
+        List<V> getValues();
+
+        void setValues(List<V> values);
+
+        I getInput();
+
+        void setPause(boolean pause);
+
+        void restart();
+
+        void close();
     }
 
     public static class LfInput implements Input<LfInput> {
@@ -66,19 +109,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             // TODO to refine later by comparing in detail parameters that have changed
             return OpenLoadFlowParameters.equals(parameters, other.parameters);
         }
-    }
-
-    public interface Value {
-
-        LfNetwork getNetwork();
-
-        LfNetworkParameters getNetworkParameters();
-
-        boolean isNetworkUpdated();
-
-        void setNetworkUpdated(boolean networkUpdated);
-
-        void close();
     }
 
     public static class AcLfValue implements Value {
@@ -119,27 +149,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         public void close() {
             context.close();
         }
-    }
-
-    public interface Entry<I extends Input<I>, V extends Value> {
-
-        WeakReference<Network> getNetworkRef();
-
-        String getWorkingVariantId();
-
-        void setTmpVariantId(String tmpVariantId);
-
-        List<V> getValues();
-
-        void setValues(List<V> values);
-
-        I getInput();
-
-        void setPause(boolean pause);
-
-        void restart();
-
-        void close();
     }
 
     public static class AcLfEntry extends AbstractEntry<LfInput, AcLfValue> {
