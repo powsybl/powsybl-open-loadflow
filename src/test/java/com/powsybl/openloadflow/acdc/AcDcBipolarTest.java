@@ -435,7 +435,6 @@ class AcDcBipolarTest {
         assertReactivePowerEquals(-10.00000, l25.getTerminal2());
     }
 
-
     static Stream<Arguments> bipolarFourConvAllVdcAndSwapCases() {
         // Arguments are:
         // Test case id and whether to swap DC nodes order for the four converters

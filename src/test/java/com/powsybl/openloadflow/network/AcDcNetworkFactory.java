@@ -2252,7 +2252,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         DcNode dc2 = createDcNode(net, "DC2", 500);
         DcNode dc3 = createDcNode(net, "DC3", 500);
         DcNode dc4 = createDcNode(net, "DC4", 500);
-        DcNode dc5 = createDcNode(net, "DC5", 500,true);
+        DcNode dc5 = createDcNode(net, "DC5", 500, true);
         DcNode dc6 = createDcNode(net, "DC6", 500);
         DcNode dc7 = createDcNode(net, "DC7", 500);
         DcNode dc8 = createDcNode(net, "DC8", 500);
