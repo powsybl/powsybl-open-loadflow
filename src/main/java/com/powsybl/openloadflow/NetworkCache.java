@@ -24,6 +24,7 @@ import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         T copy();
 
-        boolean hasChanged(T other);
+        Pair<Boolean, String> hasChanged(T other);
     }
 
     /**
@@ -107,9 +108,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         @Override
-        public boolean hasChanged(LfInput other) {
+        public Pair<Boolean, String> hasChanged(LfInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
-            return !OpenLoadFlowParameters.equals(parameters, other.parameters);
+            return Pair.of(!OpenLoadFlowParameters.equals(parameters, other.parameters), "parameters");
         }
     }
 
@@ -175,11 +176,18 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         @Override
-        public boolean hasChanged(DcSensiInput other) {
+        public Pair<Boolean, String> hasChanged(DcSensiInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
-            return !OpenLoadFlowParameters.equals(parameters, other.parameters)
-                    || !contingencyIds.equals(other.contingencyIds)
-                    || !topoActionIds.equals(other.topoActionIds);
+            if (!OpenLoadFlowParameters.equals(parameters, other.parameters)) {
+                return Pair.of(true, "parameters");
+            }
+            if (!contingencyIds.equals(other.contingencyIds)) {
+                return Pair.of(true, "contingencies");
+            }
+            if (!topoActionIds.equals(other.topoActionIds)) {
+                return Pair.of(true, "actions");
+            }
+            return Pair.of(false, null);
         }
     }
 
@@ -699,12 +707,15 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             entry = findEntry(network).orElse(null);
 
             // invalid cache if input has changed
-            if (entry != null && input.hasChanged(entry.getInput())) {
-                // release all resources
-                entry.close();
-                entries.remove(entry);
-                entry = null;
-                LOGGER.info("Network cache evicted because of input change");
+            if (entry != null) {
+                var changed = input.hasChanged(entry.getInput());
+                if (Boolean.TRUE.equals(changed.getLeft())) {
+                    // release all resources
+                    entry.close();
+                    entries.remove(entry);
+                    entry = null;
+                    LOGGER.info("Network cache evicted because of input change (reason={})", changed.getRight());
+                }
             }
 
             if (entry == null) {
