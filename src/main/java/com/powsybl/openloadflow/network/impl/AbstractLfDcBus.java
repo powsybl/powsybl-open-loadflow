@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.Objects;
+
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
@@ -57,7 +59,7 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
 
     @Override
     public double getInitialVoltage() {
-        assert initialVoltage != null;
+        Objects.requireNonNull(initialVoltage);
         return initialVoltage;
     }
 

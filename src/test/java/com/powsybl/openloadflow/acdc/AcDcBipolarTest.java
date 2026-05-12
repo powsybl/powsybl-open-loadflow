@@ -452,8 +452,8 @@ class AcDcBipolarTest {
             Arguments.of("C11", true, false, true, false),
             Arguments.of("C12", true, false, true, true),
             Arguments.of("C13", true, true, false, false),
-            Arguments.of("C14", true, true, false, false),
-            Arguments.of("C15", true, true, true, true),
+            Arguments.of("C14", true, true, false, true),
+            Arguments.of("C15", true, true, true, false),
             Arguments.of("C16", true, true, true, true)
         );
     }
