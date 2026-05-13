@@ -7,9 +7,15 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.json.JsonUtil;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.IdBasedBusRef;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TopologyLevel;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityFactorReader;
+import com.powsybl.sensitivity.SensitivityFunctionType;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -25,9 +31,12 @@ public class SensitivityFactoryJsonRecorder implements SensitivityFactorReader {
 
     private final Path jsonFile;
 
-    public SensitivityFactoryJsonRecorder(SensitivityFactorReader delegate, Path jsonFile) {
+    private final Network network;
+
+    public SensitivityFactoryJsonRecorder(SensitivityFactorReader delegate, Network network, Path jsonFile) {
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonFile = Objects.requireNonNull(jsonFile);
+        this.network = Objects.requireNonNull(network);
     }
 
     @Override
@@ -39,7 +48,13 @@ public class SensitivityFactoryJsonRecorder implements SensitivityFactorReader {
 
                 delegate.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
                     SensitivityFactor.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, variableSet, contingencyContext);
-                    handler.onFactor(functionType, functionId, variableType, variableId, variableSet, contingencyContext);
+                    String finalFunctionId = functionId;
+                    if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
+                        Bus bus = new IdBasedBusRef(functionId).resolve(network, TopologyLevel.BUS_BRANCH)
+                                .orElseThrow(() -> new PowsyblException("The bus ref for '" + functionId + "' cannot be resolved."));
+                        finalFunctionId = bus.getId();
+                    }
+                    handler.onFactor(functionType, finalFunctionId, variableType, variableId, variableSet, contingencyContext);
                 });
 
                 jsonGenerator.writeEndArray();
