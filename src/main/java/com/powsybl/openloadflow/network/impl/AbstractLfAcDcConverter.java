@@ -19,25 +19,23 @@ import java.util.List;
  */
 public abstract class AbstractLfAcDcConverter extends AbstractElement implements LfAcDcConverter {
 
-    protected Evaluable calculatedPac;
+    protected Evaluable calculatedPac; // in pu
 
-    protected Evaluable calculatedQac;
+    protected Evaluable calculatedQac; // in pu
 
-    protected Evaluable calculatedIconv1;
+    protected Evaluable calculatedIconv1; // in pu
 
-    protected Evaluable calculatedIconv2;
+    protected Evaluable calculatedIconv2; // in pu
 
-    protected final double targetP;
+    protected final double targetP; // in pu
 
-    protected double pAc;
+    protected double pAc; // in MW
 
-    protected double qAc;
+    protected double qAc; // in MVAr
 
-    protected double targetVac;
+    protected final List<Double> lossFactors; // in MW, MW/A and Ohm
 
-    protected final List<Double> lossFactors;
-
-    protected double targetVdc;
+    protected double targetVdc; // in pu
 
     protected final AcDcConverter.ControlMode controlMode;
 
@@ -49,20 +47,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
-
-        // We need to ensure that two LfDcBuses connected to the same converter are initialized with different voltage
-        // values. There is no such constraints for other LfDcBuses.
-        if (!dcBus1.isInitialVoltageSet() && !dcBus2.isInitialVoltageSet()) {
-            dcBus1.setInitialVoltage(1);
-            dcBus2.setInitialVoltage(0);
-        } else if (dcBus1.isInitialVoltageSet() && !dcBus2.isInitialVoltageSet()) {
-            // Complement ensures the two DC buses get distinct values
-            dcBus2.setInitialVoltage(1 - dcBus1.getInitialVoltage());
-        } else if (!dcBus1.isInitialVoltageSet()) {
-            // Complement ensures the two DC buses get distinct values
-            dcBus1.setInitialVoltage(1 - dcBus2.getInitialVoltage());
-        }
-        // else: both already set by a previous converter, nothing to do
 
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
@@ -93,11 +77,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public double getTargetP() {
         return targetP;
-    }
-
-    @Override
-    public double getTargetVac() {
-        return targetVac;
     }
 
     @Override

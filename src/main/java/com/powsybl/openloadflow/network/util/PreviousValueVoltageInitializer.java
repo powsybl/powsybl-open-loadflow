@@ -65,11 +65,11 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public double getMagnitude(LfDcBus dcBus) {
+    public double getDcVoltage(LfDcBus dcBus) {
         double v = dcBus.getV();
         if (Double.isNaN(v)) {
             if (defaultToUniformValue) {
-                return defaultVoltageInitializer.getMagnitude(dcBus);
+                return defaultVoltageInitializer.getDcVoltage(dcBus);
             } else {
                 throw new PowsyblException("Voltage is undefined for dcBus '" + dcBus.getId() + "'");
             }

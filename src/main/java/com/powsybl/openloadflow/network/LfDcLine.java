@@ -14,21 +14,70 @@ import com.powsybl.openloadflow.util.Evaluable;
  */
 public interface LfDcLine extends LfElement {
 
+    /**
+     * Get the DC bus on side one of the DC line.
+     *
+     * @return The LfDcBus one side one of the DC line
+     */
     LfDcBus getDcBus1();
 
+    /**
+     * Get the DC bus on side two of the DC line.
+     *
+     * @return The LfDcBus one side two of the DC line
+     */
     LfDcBus getDcBus2();
 
+    /**
+     * Get the resistance of the DC line in Ohm.
+     *
+     * @return The resistance of the DC line.
+     */
     double getR();
 
+    /**
+     * Attach the evaluable computing the current at side one of the DC line.
+     *
+     * @param i1 evaluable computing the current at side one of the DC line in per unit.
+     */
     void setI1(Evaluable i1);
 
+    /**
+     * Attach the evaluable computing the current at side two of the DC line.
+     *
+     * @param i2 evaluable computing the current at side two of the DC line in per unit.
+     */
     void setI2(Evaluable i2);
 
+    /**
+     * Attach the evaluable computing the power at side one of the DC line.
+     *
+     * @param p1 evaluable computing the power at side one of the DC line in per unit.
+     */
     void setP1(Evaluable p1);
 
+    /**
+     * Attach the evaluable computing the power at side two of the DC line.
+     *
+     * @param p2 evaluable computing the power at side two of the DC line in per unit.
+     */
     void setP2(Evaluable p2);
 
+    /**
+     * Update the DC line state after the load flow.
+     *
+     * @param parameters   Parameters of state update.
+     * @param updateReport report of connected/disconnected branches and open/closed switch count.
+     */
     void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
+    /**
+     * Update the DC line terminals current and power at the end of the load flow.
+     *
+     * @param i1 current at side one of the DC line. In per unit.
+     * @param i2 current at side two of the DC line. In per unit.
+     * @param p1 power at side one of the DC line. In per unit.
+     * @param p2 power at side two of the DC line. In per unit.
+     */
     void updateFlows(double i1, double i2, double p1, double p2);
 }

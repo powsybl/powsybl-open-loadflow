@@ -12,19 +12,14 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
-import java.util.Objects;
-
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus {
 
-    protected double v;
+    protected double v; // in kV
 
-    protected final double nominalV;
-
-    // Initial voltage used by the UniformValueVoltageInitializer. Only set for DC buses connected to a converter.
-    private Double initialVoltage = null;
+    protected final double nominalV; // in kV
 
     protected AbstractLfDcBus(LfNetwork network, double nominalV, double v) {
         super(network);
@@ -50,21 +45,5 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
     @Override
     public double getNominalV() {
         return nominalV;
-    }
-
-    @Override
-    public void setInitialVoltage(double v) {
-        initialVoltage = v;
-    }
-
-    @Override
-    public double getInitialVoltage() {
-        Objects.requireNonNull(initialVoltage);
-        return initialVoltage;
-    }
-
-    @Override
-    public boolean isInitialVoltageSet() {
-        return initialVoltage != null;
     }
 }
