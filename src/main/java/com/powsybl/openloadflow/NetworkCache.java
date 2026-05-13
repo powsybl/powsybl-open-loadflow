@@ -160,18 +160,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private final LoadFlowParameters parameters;
         // this is what impact TopoConfig
-        private final Set<String> contingencyIds;
         private final Set<String> topoActionIds;
 
-        public DcSensiInput(LoadFlowParameters parameters, Set<String> contingencyIds, Set<String> topoActionIds) {
+        public DcSensiInput(LoadFlowParameters parameters, Set<String> topoActionIds) {
             this.parameters = Objects.requireNonNull(parameters);
-            this.contingencyIds = Objects.requireNonNull(contingencyIds);
             this.topoActionIds = Objects.requireNonNull(topoActionIds);
         }
 
         @Override
         public DcSensiInput copy() {
-            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), contingencyIds, topoActionIds);
+            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), topoActionIds);
         }
 
         @Override
@@ -179,9 +177,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             // TODO to refine later by comparing in detail parameters that have changed
             if (!OpenLoadFlowParameters.equals(parameters, other.parameters)) {
                 return "parameters";
-            }
-            if (!contingencyIds.equals(other.contingencyIds)) {
-                return "contingencies";
             }
             if (!topoActionIds.equals(other.topoActionIds)) {
                 return "actions";
@@ -626,25 +621,25 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             onPropertyChange();
         }
 
-        private void onVariantChange() {
-            // we reset
-            // TODO to study later if we can do better
-            reset();
+        private void onVariantChange(String variantId) {
+            if (variantId.equals(workingVariantId)) {
+                reset();
+            }
         }
 
         @Override
         public void onVariantCreated(String sourceVariantId, String targetVariantId) {
-            onVariantChange();
+            onVariantChange(targetVariantId);
         }
 
         @Override
         public void onVariantOverwritten(String sourceVariantId, String targetVariantId) {
-            onVariantChange();
+            onVariantChange(targetVariantId);
         }
 
         @Override
         public void onVariantRemoved(String variantId) {
-            onVariantChange();
+            onVariantChange(variantId);
         }
 
         @Override
@@ -652,9 +647,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             reset();
             Network network = networkRef.get();
             if (network != null && tmpVariantId != null) {
-                if (network.getVariantManager().getVariantIds().contains(tmpVariantId)) {
-                    network.getVariantManager().removeVariant(tmpVariantId);
-                }
+                network.getVariantManager().removeVariant(tmpVariantId);
             }
         }
     }
