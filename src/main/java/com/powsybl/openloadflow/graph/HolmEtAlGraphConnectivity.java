@@ -33,7 +33,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
-        EdgeInfo info = edgeInfos.get(edgeRemove.e);
+        EdgeInfo info = edgeInfos.remove(edgeRemove.e);
 
         if (info != null && info.isTreeEdge()) {
             // remove edge from every spanning trees. the edge cannot be in level > 'info.level'
@@ -90,6 +90,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
                     // mean the spanning forest wasn't actually a spanning forest.
                     // Conclusion: this candidate edge is a replacement edge
 
+                    replacementEdgeInfo.treeEdge = true;
                     for (int i = 0; i <= level; i++) {
                         spanningForests.get(i).addEdge(src, target);
                     }
