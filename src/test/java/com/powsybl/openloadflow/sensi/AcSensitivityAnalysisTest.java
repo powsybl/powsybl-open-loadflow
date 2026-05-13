@@ -2278,5 +2278,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 result.getSensitivityValue("SHUNT", "b2", SensitivityFunctionType.BUS_VOLTAGE, SensitivityVariableType.SHUNT_B), 1e-1);
         assertEquals(0.0,
                 result.getSensitivityValue("SHUNT", "b1", SensitivityFunctionType.BUS_VOLTAGE, SensitivityVariableType.SHUNT_B), 1e-3);
+
+        SensitivityAnalysisParameters sensiParametersDc = createParameters(true, "b2", false);
+        SensitivityAnalysisRunParameters runParametersDc = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParametersDc);
+
+        CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParametersDc));
+        assertEquals("com.powsybl.commons.PowsyblException: Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC", ex.getMessage());
     }
 }
