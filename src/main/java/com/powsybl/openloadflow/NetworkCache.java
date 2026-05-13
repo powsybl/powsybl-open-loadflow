@@ -24,7 +24,6 @@ import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,7 @@ import java.util.function.BiFunction;
 public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCache.Value> {
 
     public static final NetworkCache<LfInput, AcLfValue> AC_LF_INSTANCE = new NetworkCache<>(AcLfEntry::new);
-    public static final NetworkCache<DcSensiInput, DcSensiValue> DC_SENSI_INSTANCE = new NetworkCache<>(DcLfEntry::new);
+    public static final NetworkCache<DcSensiInput, DcSensiValue> DC_SENSI_INSTANCE = new NetworkCache<>(DcSensiEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
@@ -51,7 +50,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         T copy();
 
-        Pair<Boolean, String> hasChanged(T other);
+        String hasChanged(T other);
     }
 
     /**
@@ -108,9 +107,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         @Override
-        public Pair<Boolean, String> hasChanged(LfInput other) {
+        public String hasChanged(LfInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
-            return Pair.of(!OpenLoadFlowParameters.equals(parameters, other.parameters), "parameters");
+            return OpenLoadFlowParameters.equals(parameters, other.parameters) ? null : "parameters";
         }
     }
 
@@ -176,18 +175,18 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         @Override
-        public Pair<Boolean, String> hasChanged(DcSensiInput other) {
+        public String hasChanged(DcSensiInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
             if (!OpenLoadFlowParameters.equals(parameters, other.parameters)) {
-                return Pair.of(true, "parameters");
+                return "parameters";
             }
             if (!contingencyIds.equals(other.contingencyIds)) {
-                return Pair.of(true, "contingencies");
+                return "contingencies";
             }
             if (!topoActionIds.equals(other.topoActionIds)) {
-                return Pair.of(true, "actions");
+                return "actions";
             }
-            return Pair.of(false, null);
+            return null;
         }
     }
 
@@ -238,9 +237,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public static class DcLfEntry extends AbstractEntry<DcSensiInput, DcSensiValue> {
+    public static class DcSensiEntry extends AbstractEntry<DcSensiInput, DcSensiValue> {
 
-        public DcLfEntry(Network network, DcSensiInput input) {
+        public DcSensiEntry(Network network, DcSensiInput input) {
             super(network, input);
         }
 
@@ -713,13 +712,13 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
             // invalid cache if input has changed
             if (entry != null) {
-                var changed = input.hasChanged(entry.getInput());
-                if (Boolean.TRUE.equals(changed.getLeft())) {
+                String reason = input.hasChanged(entry.getInput());
+                if (reason != null) {
                     // release all resources
                     entry.close();
                     entries.remove(entry);
                     entry = null;
-                    LOGGER.info("Network cache evicted because of input change (reason={})", changed.getRight());
+                    LOGGER.info("Network cache evicted because of input change (reason={})", reason);
                 }
             }
 
