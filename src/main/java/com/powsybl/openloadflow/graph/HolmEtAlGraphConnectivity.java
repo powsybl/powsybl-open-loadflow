@@ -7,14 +7,11 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import gnu.trove.map.TObjectIntMap;
+import gnu.trove.impl.Constants;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.jgrapht.util.AVLTree;
 
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -22,7 +19,12 @@ import java.util.List;
 public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
     private final List<SpanningForest<V>> spanningForests = new ArrayList<>();
-    private final TObjectIntMap<E> edgeToLevel = new TObjectIntHashMap<>();
+
+    // contains additional data for every tree edges
+    // some nontree edge may be absent. In case an
+    // EdgeInfo doesn't exist, the edge should be considered
+    // as a nontree edge with level 0.
+    private final Map<E, EdgeInfo> edgeInfos = new HashMap<>();
 
     public HolmEtAlGraphConnectivity() {
         super(new JGraphTModel<>());
@@ -31,16 +33,16 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
-        int level = edgeToLevel.get(edgeRemove.e);
+        EdgeInfo info = edgeInfos.get(edgeRemove.e);
 
-        // TODO: check treeedge: such edge cannot trigger replace
+        if (info != null && info.isTreeEdge()) {
+            // remove edge from every spanning trees. the edge cannot be in level > 'info.level'
+            for (int i = 0; i <= info.level; i++) {
+                spanningForests.get(i).removeEdge(edgeRemove.v1, edgeRemove.v2);
+            }
 
-        // remove edge from every spanning trees. the edge cannot be in level > 'level'
-        for (int i = 0; i <= level; i++) {
-            spanningForests.get(i).removeEdge(edgeRemove.v1, edgeRemove.v2);
+            replace(edgeRemove, info.level);
         }
-
-        replace(edgeRemove, level);
     }
 
     private void replace(EdgeRemove<V, E> edgeRemove, int level) {
@@ -65,7 +67,13 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             V vertexInComponent = it.next();
 
             for (E replacementCandidate : graph.getNeighborEdgesOf(vertexInComponent)) {
-                // TODO: need to check edge is nontree, and the level is 'level'
+                EdgeInfo replacementEdgeInfo = edgeInfos.computeIfAbsent(replacementCandidate, e -> new EdgeInfo());
+                if (replacementEdgeInfo.isTreeEdge() || replacementEdgeInfo.level != level) {
+                    // FIXME: iterate over only nontree edges of level 'level' instead of iterating over every edges
+                    // By the way, this implementation is iterating over every edges twice !!
+                    continue;
+                }
+
                 V src = graph.getEdgeSource(replacementCandidate);
                 V target = graph.getEdgeTarget(replacementCandidate);
 
@@ -74,12 +82,13 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
                     // that means that src and target were already in the same spanning tree, which is T_u
                     // because we are iterating over the incident edges of T_u
 
-                    edgeToLevel.put(replacementCandidate, level + 1); // increase level
+                    replacementEdgeInfo.level = level + 1; // increase level
                 } else {
                     // src and target are not connected. That means they are in two different
                     // spanning trees. One of them is T_u (because we are iterating over the incident
                     // edges of T_u). The other one must be in T_v. Indeed, if it is not, that would
                     // mean the spanning forest wasn't actually a spanning forest.
+                    // Conclusion: this candidate edge is a replacement edge
 
                     for (int i = 0; i <= level; i++) {
                         spanningForests.get(i).addEdge(src, target);
@@ -99,7 +108,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         SpanningForest<V> level0 = spanningForests.getFirst();
 
         if (level0.addEdge(edgeAdd.v1, edgeAdd.v2)) {
-            edgeToLevel.put(edgeAdd.e, 0);
+            edgeInfos.put(edgeAdd.e, new EdgeInfo(0, true));
         }
     }
 
@@ -126,5 +135,27 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
     @Override
     public boolean supportTemporaryChangesNesting() {
         return false;
+    }
+
+    private static final class EdgeInfo {
+        private int level;
+        private boolean treeEdge;
+
+        EdgeInfo() {
+            this(0, false);
+        }
+
+        EdgeInfo(int level, boolean treeEdge) {
+            this.level = level;
+            this.treeEdge = treeEdge;
+        }
+
+        public boolean isNonTreeEdge() {
+            return !treeEdge;
+        }
+
+        public boolean isTreeEdge() {
+            return treeEdge;
+        }
     }
 }
