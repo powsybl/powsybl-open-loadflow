@@ -88,6 +88,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         void setPause(boolean pause);
 
+        Set<String> getInvalidationReasons();
+
+        void clearInvalidationReasons();
+
         void restart();
 
         void close();
@@ -257,6 +261,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private boolean pause = false;
 
+        private final Set<String> invalidationReasons = new LinkedHashSet<>();
+
         protected AbstractEntry(Network network, I input) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
@@ -303,18 +309,29 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             this.pause = pause;
         }
 
-        protected void reset() {
+        @Override
+        public Set<String> getInvalidationReasons() {
+            return invalidationReasons;
+        }
+
+        @Override
+        public void clearInvalidationReasons() {
+            invalidationReasons.clear();
+        }
+
+        protected void reset(String invalidationReason) {
             if (values != null) {
                 for (V value : values) {
                     value.close();
                 }
                 values = null;
+                invalidationReasons.add(invalidationReason);
             }
         }
 
         private void onStructureChange() {
             // too difficult to update LfNetwork incrementally
-            reset();
+            reset("structure");
         }
 
         @Override
@@ -345,21 +362,21 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             ELEMENT_NOT_FOUND
         }
 
-        record CacheUpdateResult<V extends Value>(CacheUpdateStatus status, V value) {
-            static <V extends Value> CacheUpdateResult<V> unsupportedUpdate() {
-                return new CacheUpdateResult<>(CacheUpdateStatus.UNSUPPORTED_UPDATE, null);
+        record CacheUpdateResult<V extends Value>(CacheUpdateStatus status, V value, String invalidationReason) {
+            static <V extends Value> CacheUpdateResult<V> unsupportedUpdate(String invalidationReason) {
+                return new CacheUpdateResult<>(CacheUpdateStatus.UNSUPPORTED_UPDATE, null, invalidationReason);
             }
 
             static <V extends Value> CacheUpdateResult<V> elementUpdated(V value) {
-                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_UPDATED, value);
+                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_UPDATED, value, null);
             }
 
             static <V extends Value> CacheUpdateResult<V> ignoreUpdate() {
-                return new CacheUpdateResult<>(CacheUpdateStatus.IGNORE_UPDATE, null);
+                return new CacheUpdateResult<>(CacheUpdateStatus.IGNORE_UPDATE, null, null);
             }
 
             static <V extends Value> CacheUpdateResult<V> elementNotFound() {
-                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_NOT_FOUND, null);
+                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_NOT_FOUND, null, null);
             }
         }
 
@@ -383,6 +400,14 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.elementUpdated(value);
         }
 
+        private static String createInvalidationReason(Identifiable<?> identifiable, String attribute) {
+            return identifiable.getType() + "_" + attribute;
+        }
+
+        private static String createInvalidationReason(Extension<?> extension, String attribute) {
+            return extension.getName() + "_" + attribute;
+        }
+
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(generator, (value, lfBus) -> {
                 if (attribute.equals("targetV")) {
@@ -404,7 +429,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 } else if (attribute.equals("targetP")) {
                     return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
-                return CacheUpdateResult.unsupportedUpdate();
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
             });
         }
 
@@ -413,7 +438,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 if (attribute.equals("targetP")) {
                     return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
-                return CacheUpdateResult.unsupportedUpdate();
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(battery, attribute));
             });
         }
 
@@ -427,10 +452,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     } else {
                         LOGGER.info("Shunt compensator {} is controlling voltage or connected to a bus containing a shunt compensator" +
                                 "with an active voltage control: not supported", shunt.getId());
-                        return CacheUpdateResult.unsupportedUpdate();
+                        return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(shunt, attribute));
                     }
                 }
-                return CacheUpdateResult.unsupportedUpdate();
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(shunt, attribute));
             });
         }
 
@@ -488,7 +513,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         void processUpdateResult(Identifiable<?> identifiable, String attribute, CacheUpdateResult<V> result) {
             switch (result.status) {
-                case UNSUPPORTED_UPDATE -> reset();
+                case UNSUPPORTED_UPDATE -> reset(result.invalidationReason);
                 case ELEMENT_UPDATED -> result.value.setNetworkUpdated(true);
                 case IGNORE_UPDATE -> { /* nothing to do */ }
                 case ELEMENT_NOT_FOUND -> LOGGER.warn("Cannot update attribute '{}' of element '{}' (type={})", attribute, identifiable.getId(), identifiable.getType());
@@ -500,7 +525,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             if (values == null || pause) {
                 return;
             }
-            CacheUpdateResult<V> result = CacheUpdateResult.unsupportedUpdate(); // by default to be safe
+            CacheUpdateResult<V> result = CacheUpdateResult.unsupportedUpdate(createInvalidationReason(identifiable, attribute)); // by default to be safe
             switch (attribute) {
                 case "v",
                      "angle",
@@ -560,7 +585,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 return;
             }
 
-            CacheUpdateResult<V> result = CacheUpdateResult.unsupportedUpdate();
+            CacheUpdateResult<V> result = CacheUpdateResult.unsupportedUpdate(createInvalidationReason(extension, attribute));
             if ("secondaryVoltageControl".equals(extension.getName())) {
                 SecondaryVoltageControl svc = (SecondaryVoltageControl) extension;
                 result = onSecondaryVoltageControlExtensionUpdate(svc, attribute, newValue);
@@ -599,7 +624,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 }
                 return CacheUpdateResult.elementNotFound();
             }
-            return CacheUpdateResult.unsupportedUpdate();
+            return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(svc, attribute));
         }
 
         private void onPropertyChange() {
@@ -623,7 +648,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private void onVariantChange(String variantId) {
             if (variantId.equals(workingVariantId)) {
-                reset();
+                reset("variant");
             }
         }
 
@@ -644,7 +669,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         @Override
         public void close() {
-            reset();
+            reset("close");
             Network network = networkRef.get();
             if (network != null && tmpVariantId != null) {
                 network.getVariantManager().removeVariant(tmpVariantId);
@@ -735,7 +760,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
             entry.restart();
         } else {
-            LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
+            LOGGER.info("Network cache cannot be reused for network '{}' because invalided (reasons={})",
+                    network.getId(), entry.getInvalidationReasons());
+            entry.clearInvalidationReasons();
         }
 
         return entry;
