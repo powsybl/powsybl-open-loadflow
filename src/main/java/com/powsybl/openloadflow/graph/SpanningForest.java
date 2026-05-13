@@ -7,11 +7,9 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.jgrapht.alg.connectivity.TreeDynamicConnectivity;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.util.AVLTree;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Iterator;
 
 /**
@@ -19,7 +17,7 @@ import java.util.Iterator;
  */
 public class SpanningForest<V> {
 
-    public AVLTree<V> find(V vertex) {
+    private AVLTree<V> find(V vertex) {
         return null;
     }
 
@@ -43,29 +41,11 @@ public class SpanningForest<V> {
         return false;
     }
 
-    public Iterator<V> verticesInComponent(V vertex) {
+    public Iterator<Pair<V, V>> edgesInComponent(V vertex) {
         return null;
     }
 
-    private int sizeOfComponent(TreeDynamicConnectivity<V> forest, V vertex) {
-        return avlTree(forest, vertex).getSize() / 2;
+    public Iterator<V> verticesInComponent(V vertex) {
+        return null;
     }
-
-    // uuuh
-    private AVLTree<V> avlTree(TreeDynamicConnectivity<V> forest, V vertex) {
-        try {
-            Method getNode = TreeDynamicConnectivity.class.getDeclaredMethod("getNode", Object.class);
-            getNode.setAccessible(true);
-            Method getTree = TreeDynamicConnectivity.class.getDeclaredMethod("getTree",
-                    Class.forName("org.jgrapht.alg.connectivity.TreeDynamicConnectivity$Node"));
-            getTree.setAccessible(true);
-
-            Object node = getNode.invoke(forest, vertex);
-            return (AVLTree<V>) getTree.invoke(forest, node);
-        } catch (NoSuchMethodException | ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static class Edge {}
 }

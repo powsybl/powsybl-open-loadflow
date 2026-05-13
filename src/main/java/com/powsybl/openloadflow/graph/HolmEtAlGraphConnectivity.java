@@ -7,8 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import gnu.trove.impl.Constants;
-import gnu.trove.map.hash.TObjectIntHashMap;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.util.AVLTree;
 
 import java.util.*;
@@ -47,21 +46,26 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     private void replace(EdgeRemove<V, E> edgeRemove, int level) {
         SpanningForest<V> forest = spanningForests.get(level);
-        V u = edgeRemove.v1;
+        V u = edgeRemove.v1; // vertex in the smallest component between T_u and T_v
         V v = edgeRemove.v2;
-        AVLTree<V> treeU = forest.find(u);
-        AVLTree<V> treeV = forest.find(v);
 
-        if (treeU.getSize() > treeV.getSize()) {
-            treeU = treeV;
+        if (forest.componentSize(u) > forest.componentSize(v)) {
             u = edgeRemove.v2;
         }
 
         SpanningForest<V> above = spanningForests.get(level + 1);
-        // TODO: also need to update level...
-        above.addAll(treeU); // promote edges of the smallest tree
 
-        // iterate over all incident edges to treeU
+        // promote edges of the smallest tree
+        for (Iterator<Pair<V, V>> it = forest.edgesInComponent(u); it.hasNext();) {
+            Pair<V, V> edge = it.next();
+
+            above.addEdge(edge.getLeft(), edge.getRight());
+            for (E actualEdge : getGraph().getEdgesBetween(edge.getLeft(), edge.getRight())) {
+                edgeInfos.get(actualEdge).level = level + 1;
+            }
+        }
+
+        // iterate over all incident edges to the smallest tree
         JGraphTModel<V, E> graph = getGraph();
         for (Iterator<V> it = forest.verticesInComponent(u); it.hasNext();) {
             V vertexInComponent = it.next();
