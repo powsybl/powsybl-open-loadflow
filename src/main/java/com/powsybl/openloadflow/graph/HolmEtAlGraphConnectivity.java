@@ -9,10 +9,11 @@ package com.powsybl.openloadflow.graph;
 
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
-import org.jgrapht.alg.connectivity.TreeDynamicConnectivity;
+import org.jgrapht.util.AVLTree;
 
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -20,36 +21,84 @@ import java.util.List;
  */
 public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
-    private final List<TreeDynamicConnectivity<V>> spanningTreeForests = new ArrayList<>();
+    private final List<SpanningForest<V>> spanningForests = new ArrayList<>();
     private final TObjectIntMap<E> edgeToLevel = new TObjectIntHashMap<>();
 
     public HolmEtAlGraphConnectivity() {
         super(new JGraphTModel<>());
-        spanningTreeForests.add(new TreeDynamicConnectivity<>());
+        spanningForests.add(new SpanningForest<>());
     }
 
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
         int level = edgeToLevel.get(edgeRemove.e);
 
+        // TODO: check treeedge: such edge cannot trigger replace
+
         // remove edge from every spanning trees. the edge cannot be in level > 'level'
         for (int i = 0; i <= level; i++) {
-            spanningTreeForests.get(i).cut(edgeRemove.v1, edgeRemove.v2);
+            spanningForests.get(i).removeEdge(edgeRemove.v1, edgeRemove.v2);
         }
 
         replace(edgeRemove, level);
     }
 
     private void replace(EdgeRemove<V, E> edgeRemove, int level) {
-        TreeDynamicConnectivity<V> forest = spanningTreeForests.get(level);
-        // problem: jgrapht doesn't provide getSize for a tree...
+        SpanningForest<V> forest = spanningForests.get(level);
+        V u = edgeRemove.v1;
+        V v = edgeRemove.v2;
+        AVLTree<V> treeU = forest.find(u);
+        AVLTree<V> treeV = forest.find(v);
+
+        if (treeU.getSize() > treeV.getSize()) {
+            treeU = treeV;
+            u = edgeRemove.v2;
+        }
+
+        SpanningForest<V> above = spanningForests.get(level + 1);
+        // TODO: also need to update level...
+        above.addAll(treeU); // promote edges of the smallest tree
+
+        // iterate over all incident edges to treeU
+        JGraphTModel<V, E> graph = getGraph();
+        for (Iterator<V> it = forest.verticesInComponent(u); it.hasNext();) {
+            V vertexInComponent = it.next();
+
+            for (E replacementCandidate : graph.getNeighborEdgesOf(vertexInComponent)) {
+                // TODO: need to check edge is nontree, and the level is 'level'
+                V src = graph.getEdgeSource(replacementCandidate);
+                V target = graph.getEdgeTarget(replacementCandidate);
+
+                if (forest.connected(src, target)) {
+                    // src and target are still connected, even after the separation of T_u and T_v
+                    // that means that src and target were already in the same spanning tree, which is T_u
+                    // because we are iterating over the incident edges of T_u
+
+                    edgeToLevel.put(replacementCandidate, level + 1); // increase level
+                } else {
+                    // src and target are not connected. That means they are in two different
+                    // spanning trees. One of them is T_u (because we are iterating over the incident
+                    // edges of T_u). The other one must be in T_v. Indeed, if it is not, that would
+                    // mean the spanning forest wasn't actually a spanning forest.
+
+                    for (int i = 0; i <= level; i++) {
+                        spanningForests.get(i).addEdge(src, target);
+                    }
+                    return;
+                }
+            }
+        }
+
+        if (level > 0) {
+            replace(edgeRemove, level - 1);
+        }
     }
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
-        TreeDynamicConnectivity<V> level0 = spanningTreeForests.getFirst();
-        // try link
-        if (level0.link(edgeAdd.v1, edgeAdd.v2)) {
+        SpanningForest<V> level0 = spanningForests.getFirst();
+
+        if (level0.addEdge(edgeAdd.v1, edgeAdd.v2)) {
             edgeToLevel.put(edgeAdd.e, 0);
         }
     }
