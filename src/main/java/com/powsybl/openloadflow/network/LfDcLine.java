@@ -15,50 +15,36 @@ import com.powsybl.openloadflow.util.Evaluable;
 public interface LfDcLine extends LfElement {
 
     /**
-     * Get the DC bus on side one of the DC line.
-     *
      * @return The LfDcBus one side one of the DC line
      */
     LfDcBus getDcBus1();
 
     /**
-     * Get the DC bus on side two of the DC line.
-     *
      * @return The LfDcBus one side two of the DC line
      */
     LfDcBus getDcBus2();
 
     /**
-     * Get the resistance of the DC line in Ohm.
-     *
-     * @return The resistance of the DC line.
+     * @return The resistance of the DC line in Ohm.
      */
     double getR();
 
     /**
-     * Attach the evaluable computing the current at side one of the DC line.
-     *
      * @param i1 evaluable computing the current at side one of the DC line in per unit.
      */
     void setI1(Evaluable i1);
 
     /**
-     * Attach the evaluable computing the current at side two of the DC line.
-     *
      * @param i2 evaluable computing the current at side two of the DC line in per unit.
      */
     void setI2(Evaluable i2);
 
     /**
-     * Attach the evaluable computing the power at side one of the DC line.
-     *
      * @param p1 evaluable computing the power at side one of the DC line in per unit.
      */
     void setP1(Evaluable p1);
 
     /**
-     * Attach the evaluable computing the power at side two of the DC line.
-     *
      * @param p2 evaluable computing the power at side two of the DC line in per unit.
      */
     void setP2(Evaluable p2);

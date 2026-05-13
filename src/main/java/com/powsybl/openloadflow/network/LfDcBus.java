@@ -13,36 +13,26 @@ package com.powsybl.openloadflow.network;
 public interface LfDcBus extends LfElement {
 
     /**
-     * Get the DC bus voltage.
-     *
      * @return The DC bus voltage in per unit.
      */
     double getV();
 
     /**
-     * Set the DC bus voltage.
-     *
      * @param v DC bus voltage in per unit.
      */
     void setV(double v);
 
     /**
-     * Get the DC bus nominal voltage.
-     *
      * @return The DC bus nominal voltage in kV.
      */
     double getNominalV();
 
     /**
-     * Get whether the DC bus is connected to the ground.
-     *
      * @return Whether the DC bus is grounded
      */
     boolean isGrounded();
 
     /**
-     * Set whether the DC bus is connected to the ground.
-     *
      * @param isGrounded Whether the DC bus is grounded.
      */
     void setGround(boolean isGrounded);

@@ -18,66 +18,48 @@ import java.util.List;
 public interface LfAcDcConverter extends LfElement {
 
     /**
-     * Attach the evaluable computing the current going from the first DC bus of a converter to the second one.
-     *
      * @param iconv evaluable computing the current going from the first DC bus to the second one in per unit.
      */
     void setCalculatedIconv1(Evaluable iconv);
 
     /**
-     * Attach the evaluable computing the current going from the second DC bus of a converter to the first one.
-     *
      * @param iconv evaluable computing the current going from the second DC bus to the first one in per unit.
      */
     void setCalculatedIconv2(Evaluable iconv);
 
     /**
-     * Attach the evaluable computing the active power on the AC side of the converter.
-     *
      * @param p evaluable computing the active power on the AC side of the converter in per unit.
      */
     void setCalculatedPac(Evaluable p);
 
     /**
-     * Attach the evaluable computing the reactive power on the AC side of the converter.
-     *
      * @param q evaluable computing the reactive power on the AC side of the converter in per unit.
      */
     void setCalculatedQac(Evaluable q);
 
     /**
-     * Get the AC bus connected to the converter.
-     *
      * @return The LfBus connected to the converter.
      */
     LfBus getBus1();
 
     /**
-     * Get the first DC bus connected to the converter.
-     *
      * @return The first LfDcBus connected to the converter.
      */
     LfDcBus getDcBus1();
 
     /**
-     * Get the second DC bus connected to the converter.
-     *
      * @return The second LfDcBus connected to the converter.
      */
     LfDcBus getDcBus2();
 
     /**
-     * Get the AC active power the converter request from the AC network.
-     *
      * @return The AC active power requested by the converter from the AC network. In per unit
      */
     double getTargetP();
 
     /**
-     * Get the target DC voltage of the converter, that is the target voltage difference between the first and the
-     * second DC bus.
-     *
-     * @return The target DC voltage difference. In per unit.
+     * @return The target DC voltage difference, that is the target voltage difference between the first and the second
+     * DC bus. In per unit.
      */
     double getTargetVdc();
 
@@ -92,36 +74,26 @@ public interface LfAcDcConverter extends LfElement {
     List<Double> getLossFactors();
 
     /**
-     * Get the converter control mode.
-     *
      * @return The converter control mode.
      */
     AcDcConverter.ControlMode getControlMode();
 
     /**
-     * Get the active power on the AC side of the converter in per unit.
-     *
      * @return the active power on the AC side of the converter in per unit.
      */
     double getPac();
 
     /**
-     * Sets the active power on the AC side of the converter in per unit.
-     *
      * @param pac the active power on the AC side of the converter in per unit.
      */
     void setPac(double pac);
 
     /**
-     * Get the reactive power on the AC side of the converter in per unit.
-     *
      * @return the reactive power on the AC side of the converter in per unit.
      */
     double getQac();
 
     /**
-     * Sets the reactive power on the AC side of the converter in per unit.
-     *
      * @param qac the reactive power on the AC side of the converter in per unit.
      */
     void setQac(double qac);
