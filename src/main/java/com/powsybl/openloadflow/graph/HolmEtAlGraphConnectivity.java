@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.util.AVLTree;
 
 import java.util.*;
 
@@ -17,7 +16,7 @@ import java.util.*;
  */
 public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
-    private final List<SpanningForest<V>> spanningForests = new ArrayList<>();
+    private final List<SpanningForest<V, E>> spanningForests = new ArrayList<>();
 
     // contains additional data for every tree edges
     // some nontree edge may be absent. In case an
@@ -37,7 +36,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         if (info != null && info.isTreeEdge()) {
             // remove edge from every spanning trees. the edge cannot be in level > 'info.level'
             for (int i = 0; i <= info.level; i++) {
-                spanningForests.get(i).removeEdge(edgeRemove.v1, edgeRemove.v2);
+                spanningForests.get(i).removeEdge(edgeRemove.v1, edgeRemove.v2, edgeRemove.e);
             }
 
             replace(edgeRemove, info.level);
@@ -45,7 +44,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
     }
 
     private void replace(EdgeRemove<V, E> edgeRemove, int level) {
-        SpanningForest<V> forest = spanningForests.get(level);
+        SpanningForest<V, E> forest = spanningForests.get(level);
         V u = edgeRemove.v1; // vertex in the smallest component between T_u and T_v
         V v = edgeRemove.v2;
 
@@ -53,14 +52,16 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             u = edgeRemove.v2;
         }
 
-        SpanningForest<V> above = spanningForests.get(level + 1);
+        SpanningForest<V, E> above = spanningForests.get(level + 1);
 
         // promote edges of the smallest tree
-        for (Iterator<Pair<V, V>> it = forest.edgesInComponent(u); it.hasNext();) {
-            Pair<V, V> edge = it.next();
+        for (Iterator<E> it = forest.edgesInComponent(u); it.hasNext();) {
+            E edge = it.next();
+            V src = getGraph().getEdgeSource(edge);
+            V dest = getGraph().getEdgeTarget(edge);
 
-            above.addEdge(edge.getLeft(), edge.getRight());
-            for (E actualEdge : getGraph().getEdgesBetween(edge.getLeft(), edge.getRight())) {
+            above.addEdge(src, dest, edge);
+            for (E actualEdge : getGraph().getEdgesBetween(src, dest)) {
                 edgeInfos.get(actualEdge).level = level + 1;
             }
         }
@@ -96,7 +97,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
                     replacementEdgeInfo.treeEdge = true;
                     for (int i = 0; i <= level; i++) {
-                        spanningForests.get(i).addEdge(src, target);
+                        spanningForests.get(i).addEdge(src, target, replacementCandidate);
                     }
                     return;
                 }
@@ -110,9 +111,9 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
-        SpanningForest<V> level0 = spanningForests.getFirst();
+        SpanningForest<V, E> level0 = spanningForests.getFirst();
 
-        if (level0.addEdge(edgeAdd.v1, edgeAdd.v2)) {
+        if (level0.addEdge(edgeAdd.v1, edgeAdd.v2, edgeAdd.e)) {
             edgeInfos.put(edgeAdd.e, new EdgeInfo(0, true));
         }
     }

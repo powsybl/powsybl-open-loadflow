@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.util.AVLTree;
 
 import java.util.*;
@@ -20,10 +19,12 @@ import java.util.*;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SpanningForest<V> {
+public class SpanningForest<V, E> {
 
-    // map a vertex to the node in which it is stored.
+    // map a vertex to one of the node in which it is stored.
     private final Map<V, AVLTree.TreeNode<V>> vertexToNode = new HashMap<>();
+
+    private final Map<E, DirectedEdges> directedEdges = new HashMap<>();
 
     // map a root to the AVLTree in which it is. Indeed, a TreeNode doesn't
     // store the AVLTree in which it is. This is only for root node because
@@ -81,7 +82,7 @@ public class SpanningForest<V> {
         return vertexToNode.containsKey(vertex);
     }
 
-    public boolean addEdge(V u, V v) {
+    public boolean addEdge(V u, V v, E edge) {
         addIfAbsent(u);
         addIfAbsent(v);
 
@@ -120,6 +121,9 @@ public class SpanningForest<V> {
         // finally, we should update rootNodeToTree
         rootNodeToTree.put(treeU.getRoot(), treeU);
 
+        DirectedEdges dEdge = new DirectedEdges(treeNodeU, treeNodeV);
+        directedEdges.put(edge, dEdge);
+
         return true;
     }
 
@@ -136,28 +140,54 @@ public class SpanningForest<V> {
         // [4 2 1 5 1 2 3 2 4]
     }
 
-    public boolean removeEdge(V u, V v) {
+    public boolean removeEdge(V u, V v, E edge) {
         if (!connected(u, v)) {
             return false;
         }
 
-        AVLTree.TreeNode<V> treeNodeU = vertexToNode.get(u);
-        AVLTree.TreeNode<V> treeNodeV = vertexToNode.get(v);
+        DirectedEdges directedEdge = directedEdges.remove(edge);
 
-        AVLTree<V> treeU = rootNodeToTree.get(treeNodeU);
-        rootNodeToTree.remove(treeU.getRoot());
+        AVLTree<V> tree = directedEdge.getTree();
+        rootNodeToTree.remove(tree.getRoot());
 
         // Considering one tree and an edge to remove
         // [1 2 3 2 4 2 1 5 6 5 7 5 8 5 1 9 1] - (u, v) = (1, 5)
+        //              ^             ^
+        //              uvStart       vuStart
+        // FIXME: it is possible that uvStart > vuStart !!!
+
+        AVLTree<V> newTree = tree.splitAfter(directedEdge.uvStart);
+        // tree=[1 2 3 2 4 2 1] - newTree=[5 6 5 7 5 8 5 1 9 1]
+
+        AVLTree<V> right = newTree.splitAfter(directedEdge.vuStart);
+        // tree=[1 2 3 2 4 2 1] - newTree=[5 6 5 7 5 8 5] - right=[1 9 1]
+        right.removeMin();
+        // tree=[1 2 3 2 4 2 1] - newTree=[5 6 5 7 5 8 5] - right=[9 1]
+        tree.mergeAfter(right);
+        // tree=[1 2 3 2 4 2 1 9 1] - newTree=[5 6 5 7 5 8 5]
 
         return true;
     }
 
-    public Iterator<Pair<V, V>> edgesInComponent(V vertex) {
+    public Iterator<E> edgesInComponent(V vertex) {
         return null;
     }
 
     public Iterator<V> verticesInComponent(V vertex) {
         return null;
+    }
+
+    private final class DirectedEdges {
+        private final AVLTree.TreeNode<V> uvStart;
+        private final AVLTree.TreeNode<V> vuStart;
+
+        DirectedEdges(AVLTree.TreeNode<V> uvStart, AVLTree.TreeNode<V> vuStart) {
+            this.uvStart = uvStart;
+            this.vuStart = vuStart;
+        }
+
+        public AVLTree<V> getTree() {
+            return rootNodeToTree.get(uvStart.getRoot());
+        }
     }
 }
