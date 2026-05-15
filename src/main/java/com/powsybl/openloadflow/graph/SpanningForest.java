@@ -22,6 +22,7 @@ import java.util.*;
 public class SpanningForest<V, E> {
 
     // map a vertex to one of the node in which it is stored.
+    // invariant: it maps to the FIRST node containing V.
     private final Map<V, AVLTree.TreeNode<V>> vertexToNode = new HashMap<>();
 
     private final Map<E, DirectedEdges> directedEdges = new HashMap<>();
@@ -56,6 +57,10 @@ public class SpanningForest<V, E> {
         } else {
             return -1;
         }
+    }
+
+    public int treeCount() {
+        return rootNodeToTree.size();
     }
 
     public boolean addVertex(V vertex) {
@@ -93,11 +98,28 @@ public class SpanningForest<V, E> {
         AVLTree.TreeNode<V> treeNodeU = vertexToNode.get(u);
         AVLTree.TreeNode<V> treeNodeV = vertexToNode.get(v);
 
-        AVLTree<V> treeU = rootNodeToTree.get(treeNodeU);
-        AVLTree<V> treeV = rootNodeToTree.get(treeNodeV);
+        AVLTree<V> treeU = rootNodeToTree.get(treeNodeU.getRoot());
+        AVLTree<V> treeV = rootNodeToTree.get(treeNodeV.getRoot());
 
         rootNodeToTree.remove(treeU.getRoot());
         rootNodeToTree.remove(treeV.getRoot());
+
+        // from https://github.com/tomtseng/dynamic-connectivity-hdt/blob/6e02d0e63c35e156f10cb56058ee68a96b9d0507/src/dynamic_graph/src/dynamic_forest.cpp#L121
+        // Considering two trees
+        //    treeNodeU             treeNodeV
+        //    |                     |
+        //    v                     v
+        // [1 2 3 2 4 2 1 5 1] - [6 7 6 8 6 9 6]
+        // and an edge to insert: (u, v) = (2, 7)
+
+        AVLTree<V> uSuccessor = treeU.splitAfter(treeNodeU);
+        AVLTree<V> vSuccessor = treeV.splitAfter(treeNodeV);
+        // treeU   uSuccessor        treeV   vSuccessor
+        // [1 2] - [3 2 4 2 1 5 1] - [6 7] - [6 8 6 9 6]
+
+        treeU.addMax(v);
+
+        //
 
         makeRoot(treeU, treeNodeU);
         makeRoot(treeV, treeNodeV);
@@ -109,7 +131,7 @@ public class SpanningForest<V, E> {
         // [1 2 3 2 4 2 1 5 1] - [6 7 6 8 6 9 6]
         // and an edge to insert: (u, v) = (1, 6)
         // First, add '1' at the end of treeV
-        treeV.addMax(v);
+        treeV.addMax(u);
 
         // [1 2 3 2 4 2 1 5 1] - [6 7 6 8 6 9 6 1]
         // Then insert treeV just after any occurrence of '1' in treeU (here juste after the root)
@@ -128,6 +150,10 @@ public class SpanningForest<V, E> {
     }
 
     private void makeRoot(AVLTree<V> tree, AVLTree.TreeNode<V> newRoot) {
+        if (tree.getRoot() == newRoot) {
+            return;
+        }
+
         // Considering one tree and an element of its Euler tour that will become the new root
         // [1 2 3 2 4 2 1 5 1] - 4
         AVLTree<V> right = tree.splitBefore(newRoot);
@@ -166,6 +192,8 @@ public class SpanningForest<V, E> {
         tree.mergeAfter(right);
         // tree=[1 2 3 2 4 2 1 9 1] - newTree=[5 6 5 7 5 8 5]
 
+        // TODO: update rootNodeToTree
+
         return true;
     }
 
@@ -174,6 +202,10 @@ public class SpanningForest<V, E> {
     }
 
     public Iterator<V> verticesInComponent(V vertex) {
+        return null;
+    }
+
+    public Iterator<V> roots() {
         return null;
     }
 
