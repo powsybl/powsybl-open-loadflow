@@ -100,35 +100,56 @@ public class SpanningForest<V, E> {
         rootNodeToTree.remove(treeU.getRoot());
         rootNodeToTree.remove(treeV.getRoot());
 
-        // from https://github.com/tomtseng/dynamic-connectivity-hdt/blob/6e02d0e63c35e156f10cb56058ee68a96b9d0507/src/dynamic_graph/src/dynamic_forest.cpp#L121
-        // Considering two trees
-        //        treeNodeU                                           treeNodeV
-        //        |                                                   |
-        //        v                                                   v
-        // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)] - [(6,7) (7,6) (6,8) (8,6) (6,9) (9,6)]
-        // and an edge to insert: (u, v) = (2, 7)
+        DirectedEdge uv = new DirectedEdge(edge, u, true);
+        DirectedEdge vu = uv.backward(v);
 
-        DirectedEdge uv = new DirectedEdge(edge, true);
-        DirectedEdge vu = new DirectedEdge(edge, false);
+        AVLTree.TreeNode<DirectedEdge> uvNode;
+        AVLTree.TreeNode<DirectedEdge> vuNode;
+        if (occurrenceU.isInSingleton() && occurrenceV.isInSingleton()) {
+            uvNode = treeU.addMax(uv);
+            vuNode = treeU.addMax(vu);
 
-        AVLTree<DirectedEdge> uSuccessor = occurrenceU.splitTreeAfter(treeU);
-        AVLTree<DirectedEdge> vSuccessor = occurrenceV.splitTreeAfter(treeV);
+        } else if (occurrenceU.isInSingleton()) {
+            makeRoot(treeV, occurrenceV.edge);
+            uvNode = treeV.addMax(uv);
+            vuNode = treeV.addMax(vu);
 
-        // treeU     uSuccessor                                    treeV     vSuccessor
-        // [(1,2)] - [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)] - [(6,7)] - [(7,6) (6,8) (8,6) (6,9) (9,6)]
-        // will be transformed into
-        // treeU     uv        vSuccessor                        treeV     vu        uSuccessor
-        // [(1,2)] + [(2,7)] + [(7,6) (6,8) (8,6) (6,9) (9,6)] + [(6,7)] + [(7,2)] + [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)]
-        AVLTree.TreeNode<DirectedEdge> uvNode = treeU.addMax(uv);
-        treeU.mergeAfter(vSuccessor);
-        treeU.mergeAfter(treeV);
-        AVLTree.TreeNode<DirectedEdge> vuNode = treeU.addMax(vu);
-        treeU.mergeAfter(uSuccessor);
-        // done
+            treeU = treeV;
+
+        } else if (occurrenceV.isInSingleton()) {
+            makeRoot(treeU, occurrenceU.edge);
+            uvNode = treeU.addMax(uv);
+            vuNode = treeU.addMax(vu);
+
+        } else {
+            // from https://github.com/tomtseng/dynamic-connectivity-hdt/blob/6e02d0e63c35e156f10cb56058ee68a96b9d0507/src/dynamic_graph/src/dynamic_forest.cpp#L121
+            // Considering two trees
+            //        treeNodeU                                           treeNodeV
+            //        |                                                   |
+            //        v                                                   v
+            // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)] - [(6,7) (7,6) (6,8) (8,6) (6,9) (9,6)]
+            // and an edge to insert: (u, v) = (2, 7)
+
+            // TODO: use make root, instead of tomtseng implementation
+            AVLTree<DirectedEdge> uSuccessor = occurrenceU.splitTreeAfter(treeU);
+            AVLTree<DirectedEdge> vSuccessor = occurrenceV.splitTreeAfter(treeV);
+
+            // treeU     uSuccessor                                    treeV     vSuccessor
+            // [(1,2)] - [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)] - [(6,7)] - [(7,6) (6,8) (8,6) (6,9) (9,6)]
+            // will be transformed into
+            // treeU     uv        vSuccessor                        treeV     vu        uSuccessor
+            // [(1,2)] + [(2,7)] + [(7,6) (6,8) (8,6) (6,9) (9,6)] + [(6,7)] + [(7,2)] + [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)]
+            uvNode = treeU.addMax(uv);
+            treeU.mergeAfter(vSuccessor);
+            treeU.mergeAfter(treeV);
+            vuNode = treeU.addMax(vu);
+            treeU.mergeAfter(uSuccessor);
+            // done
+        }
 
         // finally, update directedEdges and rootNodeToTree
         uv.setNodes(uvNode, vuNode);
-        uv.setNodes(vuNode, uvNode);
+        vu.setNodes(vuNode, uvNode);
 
         occurrenceU.setEdge(uvNode);
         occurrenceV.setEdge(vuNode);
@@ -139,6 +160,11 @@ public class SpanningForest<V, E> {
         return true;
     }
 
+    private void makeRoot(AVLTree<DirectedEdge> tree, AVLTree.TreeNode<DirectedEdge> newRoot) {
+        AVLTree<DirectedEdge> left = tree.splitBefore(newRoot);
+        tree.mergeBefore(left);
+    }
+
     public boolean removeEdge(V u, V v, E edge) {
         if (!connected(u, v)) {
             return false;
@@ -147,47 +173,63 @@ public class SpanningForest<V, E> {
         DirectedEdge forwardEdge = forwardEdges.remove(edge);
 
         AVLTree<DirectedEdge> tree = forwardEdge.getTree();
-        AVLTree.TreeNode<DirectedEdge> forwardNode = forwardEdge.forwardNode;
-        AVLTree.TreeNode<DirectedEdge> backwardNode = forwardEdge.backwardNode;
+        AVLTree.TreeNode<DirectedEdge> forwardNode = forwardEdge.forwardNode; // uv
+        AVLTree.TreeNode<DirectedEdge> backwardNode = forwardEdge.backwardNode; // vu
 
         rootNodeToTree.remove(tree.getRoot());
 
         // Considering an edge to remove and one tree
         // to remove: (u,v) = (1,5)
-        //                                      forwardNode                               backwardNode
+        //                                      forward/backwardNode                      forward/backwardNode
         //                                      |                                         |
         //                                      v                                         v
         // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,6) (6,5) (5,7) (7,5) (5,8) (8,5) (5,1) (1,9) (9,1)]
-        // split the tree in three parts:
-        // tree                                    newTree                                             right
-        // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1)] - [(1,5) (5,6) (6,5) (5,7) (7,5) (5,8) (8,5) (5,1)] - [(1,9) (9,1)]
-        // FIXME: is it possible that forwardEdge > backwardEdge?
+        // split the tree in two parts using forwardNode, we have two possibilities because we
+        // don't know the relative position between forwardNode and backwardNode
 
         AVLTree<DirectedEdge> newTree = tree.splitBefore(forwardNode);
-        AVLTree<DirectedEdge> right = tree.splitAfter(backwardNode);
-        AVLTree.TreeNode<DirectedEdge> rightMin = right.getMin();
-        if (rightMin == null) {
-            rightMin = tree.getMin();
+        boolean isUVBeforeVU = backwardNode.getRoot() == newTree.getRoot(); // it means that forwardNode < backwardNode (index-wise)
+
+        if (isUVBeforeVU) {
+            AVLTree<DirectedEdge> right = newTree.splitAfter(backwardNode);
+            // tree                                    newTree                                             right
+            // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1)] - [(1,5) (5,6) (6,5) (5,7) (7,5) (5,8) (8,5) (5,1)] - [(1,9) (9,1)]
+            //                                          ^ forwardNode                             ^ backwardNode
+            tree.mergeAfter(right);
+            newTree.removeMin();
+            newTree.removeMax();
+            // tree                                                newTree
+            // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,9) (9,1)] - [(5,6) (6,5) (5,7) (7,5) (5,8) (8,5)]
+        } else {
+            AVLTree<DirectedEdge> middle = tree.splitBefore(backwardNode);
+
+            // tree                                    middle                                        newTree
+            // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1)] - [(1,5) (5,6) (6,5) (5,7) (7,5) (5,8) (8,5)] - [(5,1) (1,9) (9,1)]
+            //                                         ^ backwardNode                                 ^ forwardNode
+            newTree.removeMin();
+            middle.removeMin();
+            tree.mergeAfter(newTree);
+            // tree                                                middle
+            // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,9) (9,1)] - [(5,6) (6,5) (5,7) (7,5) (5,8) (8,5)]
+
+            newTree = middle;
         }
 
-        tree.mergeAfter(right);
-        newTree.removeMin();
-        newTree.removeMax();
-        // which gives:
+        // Finally:
         // tree                                                newTree
         // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,9) (9,1)] - [(5,6) (6,5) (5,7) (7,5) (5,8) (8,5)]
 
         // TODO: update rootNodeToTree and occurrences accordingly
         if (tree.isEmpty()) {
-            vertexToOccurrence.get(u).setSingleton(new AVLTree<>());
+            // vertexToOccurrence.get(forwardNode.getValue().src).setSingleton();
         } else {
-            vertexToOccurrence.get(u).setEdge(rightMin);
+            // vertexToOccurrence.get(forwardNode.getValue().src).setEdge(tree.getMin());
             rootNodeToTree.put(tree.getRoot(), tree);
         }
         if (newTree.isEmpty()) {
-            vertexToOccurrence.get(v).setSingleton(new AVLTree<>());
+            // vertexToOccurrence.get(backwardNode.getValue().src).setSingleton();
         } else {
-            vertexToOccurrence.get(v).setEdge(newTree.getMin());
+            // vertexToOccurrence.get(backwardNode.getValue().src).setEdge(newTree.getMin());
             rootNodeToTree.put(newTree.getRoot(), newTree);
         }
 
@@ -206,6 +248,72 @@ public class SpanningForest<V, E> {
         return null;
     }
 
+    public String eulerTour(V vertex) {
+        AVLTree<DirectedEdge> tree = find(vertex);
+
+        if (tree == null) {
+            return "null";
+        } else {
+            return eulerTour(tree);
+        }
+    }
+
+    private String eulerTour(AVLTree<DirectedEdge> tree) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+
+        boolean first = true;
+        for (DirectedEdge edge : tree) {
+            if (!first) {
+                sb.append(", ");
+            }
+            DirectedEdge backward = edge.backwardNode.getValue();
+
+            sb.append("(");
+            sb.append(edge.src).append(", ").append(backward.src);
+            sb.append(")");
+            first = false;
+        }
+        sb.append("]");
+
+        return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+
+        // first add singleton nodes
+        boolean first = true;
+        for (Map.Entry<V, Occurrence> entry : vertexToOccurrence.entrySet()) {
+            if (entry.getValue().isInSingleton()) {
+                if (!first) {
+                    sb.append(", ");
+                }
+
+                sb.append("[").append(entry.getKey()).append("]");
+                first = false;
+            }
+        }
+
+        // add trees
+        for (AVLTree<DirectedEdge> tree : rootNodeToTree.values()) {
+            if (!first) {
+                sb.append(", ");
+            }
+
+            sb.append(eulerTour(tree.getRoot().getValue().src));
+            first = false;
+        }
+        sb.append("]");
+
+        return sb.toString();
+    }
+
+    public void checkInvariants() {
+    }
+
     private final class Occurrence {
         private AVLTree<DirectedEdge> singletonTree;
         private AVLTree.TreeNode<DirectedEdge> edge;
@@ -219,8 +327,8 @@ public class SpanningForest<V, E> {
             singletonTree = null;
         }
 
-        public void setSingleton(AVLTree<DirectedEdge> singletonTree) {
-            this.singletonTree = singletonTree;
+        public void setSingleton() {
+            this.singletonTree = new AVLTree<>();
             edge = null;
         }
 
@@ -247,13 +355,19 @@ public class SpanningForest<V, E> {
 
     private final class DirectedEdge {
         private final E edge;
+        private final V src;
         private final boolean forward;
         private AVLTree.TreeNode<DirectedEdge> forwardNode;
         private AVLTree.TreeNode<DirectedEdge> backwardNode;
 
-        DirectedEdge(E edge, boolean forward) {
+        DirectedEdge(E edge, V src, boolean forward) {
             this.edge = edge;
+            this.src = src;
             this.forward = forward;
+        }
+
+        public DirectedEdge backward(V dest) {
+            return new DirectedEdge(edge, dest, !forward);
         }
 
         public AVLTree<DirectedEdge> getTree() {
