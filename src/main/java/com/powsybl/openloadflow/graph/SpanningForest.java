@@ -34,7 +34,7 @@ public class SpanningForest<V, E> {
 
     private AVLTree<DirectedEdge> find(V vertex) {
         Occurrences occurrence = vertexToOccurrences.get(vertex);
-        return occurrence.getTree();
+        return occurrence == null ? null : occurrence.getTree();
     }
 
     public boolean connected(V u, V v) {
@@ -232,15 +232,82 @@ public class SpanningForest<V, E> {
     }
 
     public Iterator<E> edgesInComponent(V vertex) {
-        return null;
+        AVLTree<DirectedEdge> tree = find(vertex);
+
+        if (tree == null || tree.isEmpty()) {
+            return Collections.emptyIterator();
+        }
+
+        return new Iterator<>() {
+            private final Iterator<DirectedEdge> it = tree.iterator();
+            private E next = null;
+
+            @Override
+            public boolean hasNext() {
+                while (next == null && it.hasNext()) {
+                    DirectedEdge edge = it.next();
+                    if (edge.forward) {
+                        next = edge.undirectedEdge;
+                    }
+                }
+
+                return next != null;
+            }
+
+            @Override
+            public E next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
+                E next = this.next;
+                this.next = null;
+                return next;
+            }
+        };
     }
 
     public Iterator<V> verticesInComponent(V vertex) {
-        return null;
+        AVLTree<DirectedEdge> tree = find(vertex);
+
+        if (tree == null) {
+            return null;
+        } else if (tree.isEmpty()) {
+            return Collections.emptyIterator();
+        } else {
+            return new Iterator<V>() {
+                private final Iterator<DirectedEdge> it = tree.iterator();
+                private V next = null;
+
+                @Override
+                public boolean hasNext() {
+                    while (next == null && it.hasNext()) {
+                        DirectedEdge edge = it.next();
+
+                        if (vertexToOccurrences.get(edge.src).activeEdge() == edge.forwardNode) {
+                            next = edge.src;
+                        }
+                    }
+
+                    return next != null;
+                }
+
+                @Override
+                public V next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+
+                    V next = this.next;
+                    this.next = null;
+                    return next;
+                }
+            };
+        }
     }
 
     public Iterator<V> roots() {
-        return null;
+        return Collections.emptyIterator();
     }
 
     public String eulerTour(V vertex) {
@@ -337,10 +404,10 @@ public class SpanningForest<V, E> {
         for (Map.Entry<E, DirectedEdge> edges : forwardEdges.entrySet()) {
             DirectedEdge edge = edges.getValue();
 
-            assert edge.edge == edges.getKey();
+            assert edge.undirectedEdge == edges.getKey();
             assert edge.forward;
             assert edge.forwardNode != null && edge.forwardNode.getValue() == edge;
-            assert edge.backwardNode != null && edge.backwardNode.getValue().edge == edge.edge;
+            assert edge.backwardNode != null && edge.backwardNode.getValue().undirectedEdge == edge.undirectedEdge;
         }
 
         // check rootNodeToTree
@@ -407,20 +474,20 @@ public class SpanningForest<V, E> {
     }
 
     private final class DirectedEdge {
-        private final E edge;
+        private final E undirectedEdge;
         private final V src;
         private final boolean forward;
         private AVLTree.TreeNode<DirectedEdge> forwardNode;
         private AVLTree.TreeNode<DirectedEdge> backwardNode;
 
-        DirectedEdge(E edge, V src, boolean forward) {
-            this.edge = edge;
+        DirectedEdge(E undirectedEdge, V src, boolean forward) {
+            this.undirectedEdge = undirectedEdge;
             this.src = src;
             this.forward = forward;
         }
 
         public DirectedEdge backward(V dest) {
-            return new DirectedEdge(edge, dest, !forward);
+            return new DirectedEdge(undirectedEdge, dest, !forward);
         }
 
         public AVLTree<DirectedEdge> getTree() {

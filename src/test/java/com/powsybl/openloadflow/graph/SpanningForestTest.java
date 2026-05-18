@@ -14,7 +14,7 @@ import org.jgrapht.graph.DefaultUndirectedGraph;
 import org.jgrapht.util.SupplierUtil;
 import org.junit.jupiter.api.Test;
 
-import java.util.Random;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -98,7 +98,6 @@ public class SpanningForestTest {
         // link
         forest.addEdge(0, 4, -5);
 
-        System.out.println(forest);
         forest.checkInvariants();
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
@@ -106,6 +105,34 @@ public class SpanningForestTest {
             }
         }
     }
+
+    @Test
+    void testEdgesInComponent() {
+        SpanningForest<Integer, Integer> forest = new SpanningForest<>();
+
+        assertEquals(Collections.emptySet(), collect(forest.edgesInComponent(0), 0));
+
+        forest.addEdge(0, 1, -1);
+        assertEquals(Set.of(-1), collect(forest.edgesInComponent(0), 1));
+
+        forest.addEdge(0, 2, -2);
+        assertEquals(Set.of(-1, -2), collect(forest.edgesInComponent(0), 2));
+    }
+
+    // The purpose of maxSize is to prevent infinite loop if the iterator next() method
+    // always return true
+    <V> Set<V> collect(Iterator<V> it, int maxSize) {
+        Set<V> set = new HashSet<>();
+
+        while (it.hasNext() && set.size() < maxSize) {
+            assertTrue(set.add(it.next()));
+        }
+
+        assertFalse(it.hasNext());
+
+        return set;
+    }
+
 
     @Test
     void testConnected() {
@@ -120,11 +147,9 @@ public class SpanningForestTest {
         assertTrue(forest.connected(0, 1));
         assertTrue(forest.connected(0, 2));
         assertTrue(forest.connected(1, 2));
-        System.out.println(forest);
 
         forest.removeEdge(0, 1, 0);
         forest.checkInvariants();
-        System.out.println(forest);
         assertFalse(forest.connected(0, 1));
         assertTrue(forest.connected(1, 2));
 
