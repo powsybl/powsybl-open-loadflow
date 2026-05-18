@@ -9,8 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.util.Evaluable;
-
-import java.util.List;
+import org.apache.commons.lang3.tuple.Triple;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -54,6 +53,7 @@ public interface LfAcDcConverter extends LfElement {
 
     /**
      * @return The AC active power requested by the converter from the AC network. In per unit
+     * Positive value means the power flows from AC network to DC network.
      */
     double getTargetP();
 
@@ -71,7 +71,7 @@ public interface LfAcDcConverter extends LfElement {
      *
      * @return The three loss factor of the converter.
      */
-    List<Double> getLossFactors();
+    Triple<Double, Double, Double> getLossFactors();
 
     /**
      * @return The converter control mode.
@@ -80,21 +80,25 @@ public interface LfAcDcConverter extends LfElement {
 
     /**
      * @return the active power on the AC side of the converter in per unit.
+     * Positive value means the power flows from AC network to DC network.
      */
     double getPac();
 
     /**
      * @param pac the active power on the AC side of the converter in per unit.
+     *            Positive value means the power flows from AC network to DC network.
      */
     void setPac(double pac);
 
     /**
      * @return the reactive power on the AC side of the converter in per unit.
+     * Positive value means the power flows from AC network to DC network.
      */
     double getQac();
 
     /**
      * @param qac the reactive power on the AC side of the converter in per unit.
+     *            Positive value means the power flows from AC network to DC network.
      */
     void setQac(double qac);
 
@@ -112,7 +116,9 @@ public interface LfAcDcConverter extends LfElement {
      * @param iConv1 current going from the first DC bus to the second one in per unit.
      * @param iConv2 current going from the second DC bus to the first one in per unit.
      * @param pAc    the active power on the AC side of the converter in per unit.
+     *               Positive value means the power flows from AC network to DC network.
      * @param qAc    the reactive power on the AC side of the converter in per unit.
+     *               Positive value means the power flows from AC network to DC network.
      */
     void updateFlows(double iConv1, double iConv2, double pAc, double qAc);
 }

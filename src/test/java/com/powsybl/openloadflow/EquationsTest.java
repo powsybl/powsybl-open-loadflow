@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -342,7 +343,7 @@ class EquationsTest {
         var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(converter).getNum();
         Mockito.doReturn(false).when(converter).isDisabled();
-        Mockito.doReturn(List.of(0.1, 0.001, 1.0)).when(converter).getLossFactors(); // With resistive loss
+        Mockito.doReturn(Triple.of(0.1, 0.001, 1.0)).when(converter).getLossFactors(); // With resistive loss
         Mockito.doReturn(0.5).when(converter).getTargetP();
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);
@@ -369,7 +370,7 @@ class EquationsTest {
         var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(converter).getNum();
         Mockito.doReturn(false).when(converter).isDisabled();
-        Mockito.doReturn(List.of(0.1, 0.001, 0.)).when(converter).getLossFactors(); // No resistive loss
+        Mockito.doReturn(Triple.of(0.1, 0.001, 0.)).when(converter).getLossFactors(); // No resistive loss
         Mockito.doReturn(0.5).when(converter).getTargetP();
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);

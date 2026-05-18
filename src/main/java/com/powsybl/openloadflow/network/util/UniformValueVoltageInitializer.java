@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfDcBus;
@@ -16,6 +17,7 @@ import com.powsybl.openloadflow.util.Reports;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -45,8 +47,12 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
             } else if (!dcBusInitialVoltage.containsKey(dcBus1)) {
                 // Complement ensures the two DC buses get distinct values
                 dcBusInitialVoltage.put(dcBus1, 1.0 - dcBusInitialVoltage.get(dcBus2));
+            } else {
+                // Both have been already set by a previous converter, nothing to do
+                if (Objects.equals(dcBusInitialVoltage.get(dcBus1), dcBusInitialVoltage.get(dcBus2))) {
+                    throw new PowsyblException("Could not initialize DC bus voltage properly");
+                }
             }
-            // else: both already set by a previous converter, nothing to do
         }
     }
 
@@ -60,6 +66,12 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
         return 0;
     }
 
+    /**
+     * Get the initial voltage of a DC bus. If the DC bus is connected to a converter, its initial voltage has been
+     * computed in prepare. Otherwise, it defaults to 1 pu.
+     * @param dcBus: DC bus whose initial voltage is requested.
+     * @return The DC voltage of the DC bus in per unit.
+     */
     @Override
     public double getDcVoltage(LfDcBus dcBus) {
         return dcBusInitialVoltage.getOrDefault(dcBus, 1.0);

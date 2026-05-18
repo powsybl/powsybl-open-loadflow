@@ -466,7 +466,7 @@ class AcDcBipolarTest {
         // consistently with that order.
 
         // Create network and run load flow
-        Network network = AcDcNetworkFactory.createFourConvertersBipole(testCaseId, swapOrder1, swapOrder2, swapOrder3, swapOrder4);
+        network = AcDcNetworkFactory.createFourConvertersBipole(testCaseId, swapOrder1, swapOrder2, swapOrder3, swapOrder4);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 

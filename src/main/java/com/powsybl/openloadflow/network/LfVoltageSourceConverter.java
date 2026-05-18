@@ -13,12 +13,13 @@ package com.powsybl.openloadflow.network;
 public interface LfVoltageSourceConverter extends LfAcDcConverter {
 
     /**
-     * @return whether the voltage source converter controls AC voltage magnitude or reactive power.
+     * @return If true, the voltage source converter controls AC voltage magnitude. Else it controls reactive power.
      */
     boolean isVoltageRegulatorOn();
 
     /**
      * @return The AC reactive power requested by the converter from the AC network. In per unit
+     * Positive value means the power flows from AC network to DC network.
      */
     double getTargetQ();
 

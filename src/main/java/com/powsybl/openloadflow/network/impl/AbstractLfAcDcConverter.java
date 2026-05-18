@@ -11,8 +11,7 @@ import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-
-import java.util.List;
+import org.apache.commons.lang3.tuple.Triple;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -33,7 +32,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double qAc; // in MVAr
 
-    protected final List<Double> lossFactors; // in MW, MW/A and Ohm
+    protected final Triple<Double, Double, Double> lossFactors; // in MW, MW/A and Ohm
 
     protected double targetVdc; // in pu
 
@@ -51,7 +50,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
-        this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
+        this.lossFactors = Triple.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
         targetVdc = dcBus1.isGrounded() ? converter.getTargetVdc() / dcBus2.getNominalV() : converter.getTargetVdc() / dcBus1.getNominalV();
@@ -80,7 +79,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
-    public List<Double> getLossFactors() {
+    public Triple<Double, Double, Double> getLossFactors() {
         return lossFactors;
     }
 

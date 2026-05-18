@@ -30,22 +30,22 @@ public interface LfDcLine extends LfElement {
     double getR();
 
     /**
-     * @param i1 evaluable computing the current at side one of the DC line in per unit.
+     * @param i1 evaluable computing in per unit the current entering the DC line in DC bus 1.
      */
     void setI1(Evaluable i1);
 
     /**
-     * @param i2 evaluable computing the current at side two of the DC line in per unit.
+     * @param i2 evaluable computing in per unit the current entering the DC line in DC bus 2.
      */
     void setI2(Evaluable i2);
 
     /**
-     * @param p1 evaluable computing the power at side one of the DC line in per unit.
+     * @param p1 evaluable computing in per unit the power entering the DC line in DC bus 1.
      */
     void setP1(Evaluable p1);
 
     /**
-     * @param p2 evaluable computing the power at side two of the DC line in per unit.
+     * @param p2 evaluable computing in per unit the power entering the DC line in DC bus 1.
      */
     void setP2(Evaluable p2);
 
@@ -60,10 +60,10 @@ public interface LfDcLine extends LfElement {
     /**
      * Update the DC line terminals current and power at the end of the load flow.
      *
-     * @param i1 current at side one of the DC line. In per unit.
-     * @param i2 current at side two of the DC line. In per unit.
-     * @param p1 power at side one of the DC line. In per unit.
-     * @param p2 power at side two of the DC line. In per unit.
+     * @param i1 current entering the DC line in DC bus 1. In per unit.
+     * @param i2 current entering the DC line in DC bus 2. In per unit.
+     * @param p1 power entering the DC line in DC bus 1. In per unit.
+     * @param p2 power entering the DC line in DC bus 2. In per unit.
      */
     void updateFlows(double i1, double i2, double p1, double p2);
 }

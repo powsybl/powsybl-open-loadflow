@@ -943,14 +943,14 @@ public class AcEquationSystemCreator {
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
 
         if (closedI1 != null) {
-            equationSystem.getEquation(dcBus1.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_BUS_TARGET_I).orElseThrow()
+            equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
         }
         if (i1 != null) {
             dcLine.setI1(i1);
         }
         if (closedI2 != null) {
-            equationSystem.getEquation(dcBus2.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_BUS_TARGET_I).orElseThrow()
+            equationSystem.getEquation(dcBus2.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI2);
         }
         if (i2 != null) {
