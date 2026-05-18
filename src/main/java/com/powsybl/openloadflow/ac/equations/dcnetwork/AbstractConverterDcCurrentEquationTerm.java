@@ -14,8 +14,6 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
-import com.powsybl.openloadflow.util.PerUnit;
-import org.apache.commons.lang3.tuple.Triple;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,14 +31,6 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
     protected final Variable<AcVariableType> pAcVar;
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
-
-    protected final double idleLoss;
-
-    protected final double switchingLoss;
-
-    protected final double resistiveLoss;
-
-    protected Triple<Double, Double, Double> lossFactors;
 
     protected double dcNominalV;
 
@@ -60,13 +50,9 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
         variables.add(v1Var);
         variables.add(v2Var);
         variables.add(pAcVar);
-        lossFactors = converter.getLossFactors();
         dcNominalV = nominalV;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
-        this.idleLoss = lossFactors.getLeft() / PerUnit.SB;
-        this.switchingLoss = lossFactors.getMiddle() * 1000d / nominalV;
-        this.resistiveLoss = lossFactors.getRight() / PerUnit.zb(nominalV);
     }
 
     protected double v1() {

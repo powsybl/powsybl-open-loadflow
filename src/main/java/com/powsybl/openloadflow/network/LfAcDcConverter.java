@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.util.Evaluable;
-import org.apache.commons.lang3.tuple.Triple;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -64,14 +63,19 @@ public interface LfAcDcConverter extends LfElement {
     double getTargetVdc();
 
     /**
-     * Get the three losses factors of the converter.
-     * 1. idle losses: losses independent of the DC current. In MW.
-     * 2. switching losses: losses proportional to the DC current. In MW/A.
-     * 3. resistive losses: losses proportional to the current squared. In Ohm.
+     * The three loss factors of the converter
      *
+     * @param idleLoss      losses independent of the DC current. In MW.
+     * @param switchingLoss losses proportional to the DC current. In MW/A.
+     * @param resistiveLoss losses proportional to the current squared. In Ohm.
+     */
+    record LossFactors(double idleLoss, double switchingLoss, double resistiveLoss) {
+    }
+
+    /**
      * @return The three loss factor of the converter.
      */
-    Triple<Double, Double, Double> getLossFactors();
+    LossFactors getLossFactors();
 
     /**
      * @return The converter control mode.

@@ -15,12 +15,12 @@ import com.powsybl.openloadflow.util.Evaluable;
 public interface LfDcLine extends LfElement {
 
     /**
-     * @return The LfDcBus one side one of the DC line
+     * @return The LfDcBus on side one of the DC line
      */
     LfDcBus getDcBus1();
 
     /**
-     * @return The LfDcBus one side two of the DC line
+     * @return The LfDcBus on side two of the DC line
      */
     LfDcBus getDcBus2();
 
@@ -45,7 +45,7 @@ public interface LfDcLine extends LfElement {
     void setP1(Evaluable p1);
 
     /**
-     * @param p2 evaluable computing in per unit the power entering the DC line in DC bus 1.
+     * @param p2 evaluable computing in per unit the power entering the DC line in DC bus 2.
      */
     void setP2(Evaluable p2);
 

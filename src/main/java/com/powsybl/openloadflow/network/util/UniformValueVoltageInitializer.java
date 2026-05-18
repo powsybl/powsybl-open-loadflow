@@ -34,6 +34,7 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
 
         // We need to ensure that two LfDcBuses connected to the same converter are initialized with different voltage
         // values. There is no such constraints for other LfDcBuses.
+        dcBusInitialVoltage.clear();
         for (LfVoltageSourceConverter converter : network.getVoltageSourceConverters()) {
             LfDcBus dcBus1 = converter.getDcBus1();
             LfDcBus dcBus2 = converter.getDcBus2();
@@ -50,7 +51,8 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
             } else {
                 // Both have been already set by a previous converter, nothing to do
                 if (Objects.equals(dcBusInitialVoltage.get(dcBus1), dcBusInitialVoltage.get(dcBus2))) {
-                    throw new PowsyblException("Could not initialize DC bus voltage properly");
+                    throw new PowsyblException("Could not initialize DC bus voltage properly. Two DC buses connected to " +
+                        "the same converter have been initialized at the same voltage");
                 }
             }
         }
