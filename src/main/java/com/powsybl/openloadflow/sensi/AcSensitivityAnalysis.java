@@ -264,6 +264,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
                 .setMinNominalVoltageTargetVoltageCheck(lfParametersExt.getMinNominalVoltageTargetVoltageCheck())
+                .setLowImpedanceThreshold(lfParametersExt.getLowImpedanceThreshold())
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setSimulateAutomationSystems(false)
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet

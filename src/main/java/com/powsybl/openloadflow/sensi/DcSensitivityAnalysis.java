@@ -455,6 +455,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setConnectivityFactory(connectivityFactory)
                 .setGeneratorVoltageRemoteControl(false)
                 .setMinImpedance(true)
+                .setLowImpedanceThreshold(lfParametersExt.getLowImpedanceThreshold())
                 .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
