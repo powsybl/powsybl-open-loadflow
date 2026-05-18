@@ -35,52 +35,116 @@ public class SpanningForestTest {
     // Inspired by https://github.com/jgrapht/jgrapht/blob/70d5287e3e10cb8c4676e84fbfe1d4a3cc4338ba/jgrapht-core/src/test/java/org/jgrapht/alg/connectivity/TreeDynamicConnectivityTest.java#L41
     @Test
     void testAddVertex() {
-        SpanningForest<Integer, DefaultEdge> spanningForest = new SpanningForest<>();
+        SpanningForest<Integer, DefaultEdge> forest = new SpanningForest<>();
 
         for (int i = 0; i < 50; i++) {
-            assertFalse(spanningForest.contains(i));
-            assertTrue(spanningForest.addVertex(i));
-            assertTrue(spanningForest.contains(i));
-            assertFalse(spanningForest.addVertex(i));
+            assertFalse(forest.contains(i));
+            assertTrue(forest.addVertex(i));
+            forest.checkInvariants();
+            assertTrue(forest.contains(i));
+            assertFalse(forest.addVertex(i));
+            forest.checkInvariants();
 
-            assertEquals(1, spanningForest.componentSize(i));
-            assertEquals(i + 1, spanningForest.treeCount());
+            assertEquals(1, forest.componentSize(i));
+            assertEquals(i + 1, forest.treeCount());
+        }
+    }
+
+    @Test
+    void addEdgeBetweenSingletonAndSingleton() {
+        SpanningForest<Integer, Integer> forest = new SpanningForest<>();
+
+        forest.addEdge(0, 1, 0);
+        forest.checkInvariants();
+        assertTrue(forest.connected(0, 1));
+    }
+
+    @Test
+    void addEdgeBetweenTreeAndSingleton() {
+        SpanningForest<Integer, Integer> forest = new SpanningForest<>();
+
+        forest.addEdge(0, 1, -1);
+        forest.addEdge(0, 2, -2);
+
+        forest.checkInvariants();
+        assertTrue(forest.connected(0, 1));
+        assertTrue(forest.connected(0, 2));
+        assertTrue(forest.connected(1, 2));
+    }
+
+    @Test
+    void addEdgeBetweenSingletonAndTree() {
+        SpanningForest<Integer, Integer> forest = new SpanningForest<>();
+
+        forest.addEdge(0, 1, -1);
+        forest.addEdge(2, 0, -2);
+
+        forest.checkInvariants();
+        assertTrue(forest.connected(0, 1));
+        assertTrue(forest.connected(0, 2));
+        assertTrue(forest.connected(1, 2));
+    }
+
+    @Test
+    void addEdgeBetweenTreeAndTree() {
+        SpanningForest<Integer, Integer> forest = new SpanningForest<>();
+
+        // tree1
+        forest.addEdge(0, 1, -1);
+        forest.addEdge(0, 2, -2);
+        // tree2
+        forest.addEdge(3, 4, -3);
+        forest.addEdge(4, 3, -4);
+        // link
+        forest.addEdge(0, 4, -5);
+
+        System.out.println(forest);
+        forest.checkInvariants();
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 5; j++) {
+                assertTrue(forest.connected(i, j));
+            }
         }
     }
 
     @Test
     void testConnected() {
-        SpanningForest<Integer, Integer> spanningForest = new SpanningForest<>();
+        SpanningForest<Integer, Integer> forest = new SpanningForest<>();
 
-        spanningForest.addEdge(0, 1, 0);
-        assertTrue(spanningForest.connected(0, 1));
-        spanningForest.addEdge(1, 2, 1);
-        assertTrue(spanningForest.connected(0, 1));
-        assertTrue(spanningForest.connected(0, 2));
-        assertTrue(spanningForest.connected(1, 2));
-        System.out.println(spanningForest);
+        forest.addEdge(0, 1, 0);
+        forest.checkInvariants();
+        assertTrue(forest.connected(0, 1));
 
-        spanningForest.removeEdge(0, 1, 0);
-        System.out.println(spanningForest);
-        assertFalse(spanningForest.connected(0, 1));
-        assertTrue(spanningForest.connected(1, 2));
+        forest.addEdge(1, 2, 1);
+        forest.checkInvariants();
+        assertTrue(forest.connected(0, 1));
+        assertTrue(forest.connected(0, 2));
+        assertTrue(forest.connected(1, 2));
+        System.out.println(forest);
 
-        spanningForest.removeEdge(1, 2, 1);
-        assertFalse(spanningForest.connected(0, 1));
-        assertFalse(spanningForest.connected(0, 2));
-        assertFalse(spanningForest.connected(1, 2));
+        forest.removeEdge(0, 1, 0);
+        forest.checkInvariants();
+        System.out.println(forest);
+        assertFalse(forest.connected(0, 1));
+        assertTrue(forest.connected(1, 2));
+
+        forest.removeEdge(1, 2, 1);
+        forest.checkInvariants();
+        assertFalse(forest.connected(0, 1));
+        assertFalse(forest.connected(0, 2));
+        assertFalse(forest.connected(1, 2));
     }
 
     // Inspired by https://github.com/jgrapht/jgrapht/blob/70d5287e3e10cb8c4676e84fbfe1d4a3cc4338ba/jgrapht-core/src/test/java/org/jgrapht/alg/connectivity/TreeDynamicConnectivityTest.java#L58
     @Test
     void testTwoTrees() {
         // generate two distinct trees
-        Graph<Integer, DefaultEdge> tree1 = generateTree(5, 0);
-        Graph<Integer, DefaultEdge> tree2 = generateTree(5, 50);
+        Graph<Integer, DefaultEdge> tree1 = generateTree(50, 0);
+        Graph<Integer, DefaultEdge> tree2 = generateTree(50, tree1.vertexSet().size());
 
         SpanningForest<Integer, DefaultEdge> forest = new SpanningForest<>();
         // connect these trees in the forest. that is,
-        // for each edge in tree1 and tree2, call foreset.addEdge
+        // for each edge in tree1 and tree2, call forest.addEdge
         connectTree(tree1, forest);
         connectTree(tree2, forest);
 
@@ -89,28 +153,30 @@ public class SpanningForestTest {
         int iter = 0;
         for (int v1 : tree1.vertexSet()) {
             for (int v2 : tree2.vertexSet()) {
-                System.out.println(forest.eulerTour(v1));
-                System.out.println(forest.eulerTour(v2));
                 DefaultEdge edge = new DefaultEdge();
                 assertFalse(forest.connected(v1, v2), "iter = " + iter);
 
                 assertTrue(forest.addEdge(v1, v2, edge), "iter = " + iter);
+                forest.checkInvariants();
                 assertTrue(forest.connected(v1, v2), "iter = " + iter);
 
                 assertFalse(forest.addEdge(v1, v2, edge), "iter = " + iter);
+                forest.checkInvariants();
                 assertTrue(forest.connected(v1, v2), "iter = " + iter);
 
                 assertTrue(forest.removeEdge(v1, v2, edge), "iter = " + iter);
+                forest.checkInvariants();
                 assertFalse(forest.connected(v1, v2), "iter = " + iter);
 
                 assertFalse(forest.removeEdge(v1, v2, edge), "iter = " + iter);
+                forest.checkInvariants();
                 assertFalse(forest.connected(v1, v2), "iter = " + iter);
 
                 iter++;
             }
         }
 
-        // remove every edges in the forest
+        // remove every edge in the forest
         disconnectTree(tree1, forest);
         disconnectTree(tree2, forest);
     }
@@ -121,26 +187,24 @@ public class SpanningForestTest {
         for (Integer v : graph.vertexSet()) {
             assertFalse(forest.contains(v));
             assertTrue(forest.addVertex(v));
-            assertTrue(forest.contains(v));
             forest.checkInvariants();
-            System.out.println(forest);
+            assertTrue(forest.contains(v));
         }
         for (DefaultEdge e : graph.edgeSet()) {
             int source = graph.getEdgeSource(e), target = graph.getEdgeTarget(e);
             assertFalse(forest.connected(source, target));
             assertTrue(forest.addEdge(source, target, e));
-            assertTrue(forest.connected(source, target));
             forest.checkInvariants();
-            System.out.println(forest);
+            assertTrue(forest.connected(source, target));
         }
     }
 
-    private void disconnectTree(Graph<Integer, DefaultEdge> graph, SpanningForest<Integer, DefaultEdge> connectivity) {
+    private void disconnectTree(Graph<Integer, DefaultEdge> graph, SpanningForest<Integer, DefaultEdge> forest) {
         for (DefaultEdge e : graph.edgeSet()) {
             int source = graph.getEdgeSource(e), target = graph.getEdgeTarget(e);
-            assertTrue(connectivity.connected(source, target));
-            assertTrue(connectivity.removeEdge(source, target, e));
-            assertFalse(connectivity.connected(source, target));
+            assertTrue(forest.connected(source, target));
+            assertTrue(forest.removeEdge(source, target, e));
+            assertFalse(forest.connected(source, target));
         }
     }
 

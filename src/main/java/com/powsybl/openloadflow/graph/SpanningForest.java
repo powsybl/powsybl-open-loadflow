@@ -22,7 +22,7 @@ import java.util.*;
 public class SpanningForest<V, E> {
 
     // map a vertex to one of the node in which it is stored.
-    private final Map<V, Occurrence> vertexToOccurrence = new HashMap<>();
+    private final Map<V, Occurrences> vertexToOccurrences = new HashMap<>();
 
     // map an edge to a unique forward edge
     private final Map<E, DirectedEdge> forwardEdges = new HashMap<>();
@@ -33,7 +33,7 @@ public class SpanningForest<V, E> {
     private final Map<AVLTree.TreeNode<DirectedEdge>, AVLTree<DirectedEdge>> rootNodeToTree = new HashMap<>();
 
     private AVLTree<DirectedEdge> find(V vertex) {
-        Occurrence occurrence = vertexToOccurrence.get(vertex);
+        Occurrences occurrence = vertexToOccurrences.get(vertex);
         return occurrence.getTree();
     }
 
@@ -46,7 +46,7 @@ public class SpanningForest<V, E> {
     }
 
     public int componentSize(V vertex) {
-        Occurrence occurrence = vertexToOccurrence.get(vertex);
+        Occurrences occurrence = vertexToOccurrences.get(vertex);
 
         if (occurrence == null) {
             return -1;
@@ -59,7 +59,7 @@ public class SpanningForest<V, E> {
     }
 
     public int treeCount() {
-        return vertexToOccurrence.size() - forwardEdges.size();
+        return vertexToOccurrences.size() - forwardEdges.size();
     }
 
     public boolean addVertex(V vertex) {
@@ -68,7 +68,7 @@ public class SpanningForest<V, E> {
         }
 
         AVLTree<DirectedEdge> tree = new AVLTree<>();
-        vertexToOccurrence.put(vertex, new Occurrence(tree));
+        vertexToOccurrences.put(vertex, new Occurrences(tree));
 
         return true;
     }
@@ -80,7 +80,7 @@ public class SpanningForest<V, E> {
     }
 
     public boolean contains(V vertex) {
-        return vertexToOccurrence.containsKey(vertex);
+        return vertexToOccurrences.containsKey(vertex);
     }
 
     public boolean addEdge(V u, V v, E edge) {
@@ -91,8 +91,8 @@ public class SpanningForest<V, E> {
             return false;
         }
 
-        Occurrence occurrenceU = vertexToOccurrence.get(u);
-        Occurrence occurrenceV = vertexToOccurrence.get(v);
+        Occurrences occurrenceU = vertexToOccurrences.get(u);
+        Occurrences occurrenceV = vertexToOccurrences.get(v);
 
         AVLTree<DirectedEdge> treeU = occurrenceU.getTree();
         AVLTree<DirectedEdge> treeV = occurrenceV.getTree();
@@ -110,19 +110,18 @@ public class SpanningForest<V, E> {
             vuNode = treeU.addMax(vu);
 
         } else if (occurrenceU.isInSingleton()) {
-            makeRoot(treeV, occurrenceV.edge);
-            uvNode = treeV.addMax(uv);
+            makeRoot(treeV, occurrenceV.activeEdge());
             vuNode = treeV.addMax(vu);
+            uvNode = treeV.addMax(uv);
 
             treeU = treeV;
 
         } else if (occurrenceV.isInSingleton()) {
-            makeRoot(treeU, occurrenceU.edge);
+            makeRoot(treeU, occurrenceU.activeEdge());
             uvNode = treeU.addMax(uv);
             vuNode = treeU.addMax(vu);
 
         } else {
-            // from https://github.com/tomtseng/dynamic-connectivity-hdt/blob/6e02d0e63c35e156f10cb56058ee68a96b9d0507/src/dynamic_graph/src/dynamic_forest.cpp#L121
             // Considering two trees
             //        treeNodeU                                           treeNodeV
             //        |                                                   |
@@ -130,20 +129,20 @@ public class SpanningForest<V, E> {
             // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)] - [(6,7) (7,6) (6,8) (8,6) (6,9) (9,6)]
             // and an edge to insert: (u, v) = (2, 7)
 
-            // TODO: use make root, instead of tomtseng implementation
-            AVLTree<DirectedEdge> uSuccessor = occurrenceU.splitTreeAfter(treeU);
-            AVLTree<DirectedEdge> vSuccessor = occurrenceV.splitTreeAfter(treeV);
+            AVLTree.TreeNode<DirectedEdge> treeNodeU = occurrenceU.activeEdge();
+            AVLTree.TreeNode<DirectedEdge> treeNodeV = occurrenceV.activeEdge();
+            makeRoot(treeU, treeNodeU);
+            makeRoot(treeV, treeNodeV);
 
-            // treeU     uSuccessor                                    treeV     vSuccessor
-            // [(1,2)] - [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)] - [(6,7)] - [(7,6) (6,8) (8,6) (6,9) (9,6)]
-            // will be transformed into
-            // treeU     uv        vSuccessor                        treeV     vu        uSuccessor
-            // [(1,2)] + [(2,7)] + [(7,6) (6,8) (8,6) (6,9) (9,6)] + [(6,7)] + [(7,2)] + [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1)]
+            // treeU                                               treeV
+            // [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1) (1,2)] - [(7,6) (6,8) (8,6) (6,9) (9,6) (6,7)]
+            //  ^ treeNodeU                                         ^ treeNodeV
+
             uvNode = treeU.addMax(uv);
-            treeU.mergeAfter(vSuccessor);
             treeU.mergeAfter(treeV);
             vuNode = treeU.addMax(vu);
-            treeU.mergeAfter(uSuccessor);
+            // [(2,3) (3,2) (2,4) (4,2) (2,1) (1,5) (5,1) (1,2)] + [(2,7)] [(7,6) (6,8) (8,6) (6,9) (9,6) (6,7)] + [(7, 2])
+
             // done
         }
 
@@ -151,8 +150,8 @@ public class SpanningForest<V, E> {
         uv.setNodes(uvNode, vuNode);
         vu.setNodes(vuNode, uvNode);
 
-        occurrenceU.setEdge(uvNode);
-        occurrenceV.setEdge(vuNode);
+        occurrenceU.addEdge(uv);
+        occurrenceV.addEdge(vu);
 
         forwardEdges.put(edge, uv);
         rootNodeToTree.put(treeU.getRoot(), treeU);
@@ -219,17 +218,13 @@ public class SpanningForest<V, E> {
         // tree                                                newTree
         // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,9) (9,1)] - [(5,6) (6,5) (5,7) (7,5) (5,8) (8,5)]
 
-        // TODO: update rootNodeToTree and occurrences accordingly
-        if (tree.isEmpty()) {
-            // vertexToOccurrence.get(forwardNode.getValue().src).setSingleton();
-        } else {
-            // vertexToOccurrence.get(forwardNode.getValue().src).setEdge(tree.getMin());
+        vertexToOccurrences.get(forwardEdge.src).removeEdge(forwardEdge);
+        vertexToOccurrences.get(forwardEdge.backwardNode.getValue().src).removeEdge(forwardEdge.backwardNode.getValue());
+
+        if (!tree.isEmpty()) {
             rootNodeToTree.put(tree.getRoot(), tree);
         }
-        if (newTree.isEmpty()) {
-            // vertexToOccurrence.get(backwardNode.getValue().src).setSingleton();
-        } else {
-            // vertexToOccurrence.get(backwardNode.getValue().src).setEdge(newTree.getMin());
+        if (!newTree.isEmpty()) {
             rootNodeToTree.put(newTree.getRoot(), newTree);
         }
 
@@ -286,7 +281,7 @@ public class SpanningForest<V, E> {
 
         // first add singleton nodes
         boolean first = true;
-        for (Map.Entry<V, Occurrence> entry : vertexToOccurrence.entrySet()) {
+        for (Map.Entry<V, Occurrences> entry : vertexToOccurrences.entrySet()) {
             if (entry.getValue().isInSingleton()) {
                 if (!first) {
                     sb.append(", ");
@@ -312,43 +307,101 @@ public class SpanningForest<V, E> {
     }
 
     public void checkInvariants() {
+        // check occurrences
+        for (Map.Entry<V, Occurrences> entry : vertexToOccurrences.entrySet()) {
+            Occurrences occurrences = entry.getValue();
+
+            if (occurrences.isInSingleton()) {
+                // assert that no tree contains V
+                assert occurrences.edges.isEmpty();
+
+                for (AVLTree<DirectedEdge> tree : rootNodeToTree.values()) {
+                    for (DirectedEdge edge : tree) {
+                        assert edge.src != entry.getValue();
+                    }
+                }
+
+            } else {
+                for (DirectedEdge edge : occurrences.edges) {
+                    assert edge.src == entry.getKey();
+                }
+                for (DirectedEdge edge : forwardEdges.values()) {
+                    if (!occurrences.edges.contains(edge)) {
+                        assert edge.src != entry.getValue();
+                    }
+                }
+            }
+        }
+
+        // check edges
+        for (Map.Entry<E, DirectedEdge> edges : forwardEdges.entrySet()) {
+            DirectedEdge edge = edges.getValue();
+
+            assert edge.edge == edges.getKey();
+            assert edge.forward;
+            assert edge.forwardNode != null && edge.forwardNode.getValue() == edge;
+            assert edge.backwardNode != null && edge.backwardNode.getValue().edge == edge.edge;
+        }
+
+        // check rootNodeToTree
+        for (Map.Entry<AVLTree.TreeNode<DirectedEdge>, AVLTree<DirectedEdge>> entry : rootNodeToTree.entrySet()) {
+            AVLTree<DirectedEdge> tree = entry.getValue();
+
+            assert entry.getKey() == tree.getRoot();
+            assert tree.getSize() > 0;
+            assert tree.getSize() % 2 == 0;
+
+            // check tree is an euler tour
+            DirectedEdge first = null;
+            DirectedEdge prev = null;
+            for (DirectedEdge edge : entry.getValue()) {
+                if (prev != null) {
+                    assert prev.backwardNode.getValue().src == edge.src;
+                } else {
+                    first = edge;
+                }
+
+                prev = edge;
+            }
+
+            assert first != null && prev.backwardNode.getValue().src == first.src;
+        }
     }
 
-    private final class Occurrence {
-        private AVLTree<DirectedEdge> singletonTree;
-        private AVLTree.TreeNode<DirectedEdge> edge;
+    private final class Occurrences {
+        private AVLTree<DirectedEdge> singletonTree; // TODO: remove
+        // edges in which this vertex is the source
+        private final List<DirectedEdge> edges = new ArrayList<>();
 
-        Occurrence(AVLTree<DirectedEdge> singletonTree) {
+        Occurrences(AVLTree<DirectedEdge> singletonTree) {
             this.singletonTree = singletonTree;
         }
 
-        public void setEdge(AVLTree.TreeNode<DirectedEdge> edge) {
-            this.edge = edge;
+        public AVLTree.TreeNode<DirectedEdge> activeEdge() {
+            return edges.getFirst().forwardNode;
+        }
+
+        public void addEdge(DirectedEdge edge) {
+            this.edges.add(edge);
             singletonTree = null;
         }
 
-        public void setSingleton() {
-            this.singletonTree = new AVLTree<>();
-            edge = null;
+        public void removeEdge(DirectedEdge edge) {
+            this.edges.remove(edge); // TODO: replace with linked list
+            if (edges.isEmpty()) {
+                singletonTree = new AVLTree<>();
+            }
         }
 
         public boolean isInSingleton() {
-            return singletonTree != null;
+            return edges.isEmpty();
         }
 
         public AVLTree<DirectedEdge> getTree() {
             if (isInSingleton()) {
                 return singletonTree;
             } else {
-                return rootNodeToTree.get(edge.getRoot());
-            }
-        }
-
-        public AVLTree<DirectedEdge> splitTreeAfter(AVLTree<DirectedEdge> treeU) {
-            if (isInSingleton()) {
-                return new AVLTree<>();
-            } else {
-                return treeU.splitAfter(edge);
+                return rootNodeToTree.get(activeEdge().getRoot());
             }
         }
     }
