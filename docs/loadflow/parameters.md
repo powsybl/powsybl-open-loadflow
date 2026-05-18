@@ -10,14 +10,14 @@ load-flow:
 
 Generic parameters are documented in [PowSyBl Core](inv:powsyblcore:*:*#simulation/loadflow/configuration).
 
-The next section details the parameters that are specific to PowSyBl Open LoadFLow.
+The next section details the parameters that are specific to PowSyBl Open LoadFlow.
 
 ## Specific parameters
 
 (param-lf-voltage-init-mode-override)=
 ### voltageInitModeOverride
 Additional voltage init modes of PowSyBl Open Load Flow that are not present in
-[PowSyBl LoadFlow `voltageInitMode` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration):
+PowSyBl Core [`voltageInitMode`](inv:powsyblcore:*:*:#param-lf-voltage-init-mode) LoadFlow Parameter:
 - `NONE`: no override
 - `VOLTAGE_MAGNITUDE`: specific initializer to initialize voltages magnitudes $v$, leaving $\theta=0$. Proven useful for
   unusual input data with transformers rated voltages very far away from bus nominal voltages.
@@ -54,14 +54,14 @@ This option defines the behavior in case the slack distribution fails. Available
 The default value is `FAIL`.
 
 ```{note}
-In version 1.16.0 and before, the default value was `LEAVE_ON_SLACK_BUS`.
+In versions 1.16.0 and before, the default value was `LEAVE_ON_SLACK_BUS`.
 ```
 
 (param-lf-slack-bus-selection-mode)=
 ### slackBusSelectionMode
 The `slackBusSelectionMode` parameter defines how to select the slack bus. The three options are available through the configuration file:
 - `FIRST` if you want to choose the first bus of all the network buses.
-- `NAME` if you want to choose a specific bus as the slack bus. In that case, the `slackBusesIds` property has to be filled.
+- `NAME` if you want to choose a specific bus as the slack bus. In that case, the [`slackBusesIds`](#slackbusesids) property has to be filled.
 - `MOST_MESHED` if you want to choose the most meshed bus among buses with the highest nominal voltage as the slack bus.
   This option is typically required for computation with several synchronous components.
 - `LARGEST_GENERATOR` if you want to choose the bus with the highest total generation capacity as the slack bus.
@@ -70,14 +70,14 @@ The default value is `MOST_MESHED`.
 
 Note that if you want to choose the slack buses that are defined inside the network with
 a [slack terminal extension](inv:powsyblcore:*:*:#slack-terminal-extension),
-you have to set the [PowSyBl LoadFlow `readSlackBus` Parameter](inv:powsyblcore:*:*#simulation/loadflow/configuration) to `true`.
-When `readSlackBus` is set to true, [`slackBusSelectionMode`](#slackbusselectionmode) is still used and serves as a secondary selection criteria:
+you have to set the PowSyBl Core [`readSlackBus`](inv:powsyblcore:*:*:#param-lf-read-slack-bus) LoadFlow Parameter to `true`.
+When `readSlackBus` is set to true, `slackBusSelectionMode` is still used and serves as a secondary selection criteria:
 - for e.g. synchronous components where no slack terminal extension is present.
 - for e.g. synchronous components where more than [`maxSlackBusCount`](#maxslackbuscount) slack terminal extensions are present.
 
 (param-lf-most-meshed-slack-bus-selector-max-nominal-voltage-percentile)=
 ### mostMeshedSlackBusSelectorMaxNominalVoltagePercentile
-This option is used when [`slackBusSelectionMode`](#slackbusselectionmode) is set to `MOST_MESHED`. It sets the maximum nominal voltage percentile.
+This option is used when [`slackBusSelectionMode`](#slackbusselectionmode) is set to `MOST_MESHED`. It sets the maximum nominal voltage percentile.<br>
 The default value is `95` and it must be inside the interval [`0`, `100`].
 
 (param-lf-max-slack-bus-count)=
@@ -89,7 +89,8 @@ The default value is `1`.
 (param-lf-slack-buses-ids)=
 ### slackBusesIds
 The `slackBusesIds` property is a required property if you choose `NAME` for property [`slackBusSelectionMode`](#slackbusselectionmode).
-It defines a prioritized list of buses or voltage levels to be chosen for slack bus selection (as an array, or as a comma or semicolon separated string).
+It defines a prioritized list of buses or voltage levels to be chosen for slack bus selection (as an array, or as a comma or semicolon separated string).<br>
+The default value is an empty list.
 
 (param-lf-slack-bus-country-filter)=
 ### slackBusCountryFilter
@@ -99,14 +100,14 @@ The default value is an empty list (any country can be used for slack bus select
 
 (param-lf-load-power-factor-constant)=
 ### loadPowerFactorConstant
-The `loadPowerFactorConstant ` property is an optional boolean property. This property is used in the outer loop that distributes slack on loads if :
-- `distributedSlack` property is set to true in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration),
-- `balanceType` property is set to `PROPORTIONAL_TO_LOAD` or `PROPORTIONAL_TO_CONFORM_LOAD` in the [load flow default parameters](inv:powsyblcore:*:*#simulation/loadflow/configuration).
+The `loadPowerFactorConstant ` property is an optional boolean property. This property is used in the outer loop that distributes slack on loads if:
+- the PowSyBl Core [`distributedSlack`](inv:powsyblcore:*:*:#param-lf-distributed-slack) LoadFlow Parameter is set to `true`
+- the PowSyBl Core [`balanceType`](inv:powsyblcore:*:*:#param-lf-balance-type) property is set to `PROPORTIONAL_TO_LOAD` or `PROPORTIONAL_TO_CONFORM_LOAD`.
 
 The default value is `false`.
 
 If prerequisites fulfilled and `loadPowerFactorConstant` property is set to `true`, the distributed slack outer loop adjusts the load P value and adjusts also the load Q value in order to maintain the power factor as a constant value.
-At the end of the load flow calculation, $P$ and $Q$ at loads terminals are both updated. Note that the power factor of a load is given by this equation :
+At the end of the load flow calculation, $P$ and $Q$ at loads terminals are both updated. Note that the power factor of a load is given by this equation:
 
 $$
 Power Factor = {\frac {P} {\sqrt {P^2+{Q^2}}}}
@@ -118,7 +119,7 @@ $$
 {\frac {P} {\sqrt {P^2+{Q^2}}}}={\frac {P^‎\prime} {\sqrt {P^‎\prime^2+{Q^‎\prime^2}}}}
 $$
 
-Finally, a simple rule of three is implemented in the outer loop :
+Finally, a simple rule of three is implemented in the outer loop:
 
 $$
 Q^\prime={\frac {Q P^\prime} {P}}
@@ -133,14 +134,13 @@ The default value for `loadPowerFactorConstant` property is `false`.
 
 (param-lf-slack-bus-p-max-mismatch)=
 ### slackBusPMaxMismatch
-When slack distribution is enabled (`distributedSlack` set to `true` in LoadFlowParameters),
+When slack distribution is enabled (PowSyBl Core [`distributedSlack`](inv:powsyblcore:*:*:#param-lf-distributed-slack) LoadFlow Parameter is set to `true`),
 this is the threshold below which slack power is considered to be distributed.<br>
 The default value is `1 MW` and it must be greater or equal to `0 MW`.
 
 (param-lf-area-interchange-control)=
 ### areaInterchangeControl
-The `areaInterchangeControl` parameter defines if the
-[area interchange control](loadflow.md#area-interchange-control) outer loop is enabled.
+The `areaInterchangeControl` parameter defines if the [area interchange control](loadflow.md#area-interchange-control) outer loop is enabled.
 If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.<br>
 The default value is `false`.
 
@@ -209,20 +209,20 @@ for remote voltage control are switched to local voltage control with an initial
 
 (param-lf-reactive-limits-max-pq-pv-switch)=
 ### reactiveLimitsMaxPqPvSwitch
-When `useReactiveLimits` is set to `true`, this parameter is used to limit the number of times an equipment performing voltage control
+When PowSyBl Core [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits) LoadFlow Parameter is set to `true`, this parameter is used to limit the number of times an equipment performing voltage control
 is switching from PQ to PV type. After this number of PQ/PV type switch, the equipment will not change PV/PQ type anymore.<br>
 The default value is `3` and it must be greater or equal to `0`.
 
 (param-lf-force-target-q-in-reactive-limits)=
 ### forceTargetQInReactiveLimits
-When `useReactiveLimits` is set to `true`, this parameter is used to prioritize the reactive power limits over the input target Q when target Q is
+When PowSyBl Core [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits) LoadFlow Parameter is set to `true`, this parameter is used to prioritize the reactive power limits over the input target Q when target Q is
 outside these limits. If set to `true`, if any generator has a target Q which is outside its reactive power limits (for its given target P), then its target Q 
 is overridden by the value of the exceeded limit (minQ or maxQ).<br>
 The default value is `false`.
 
 (param-lf-extrapolate-reactive-limits)=
 ### extrapolateReactiveLimits
-When `useReactiveLimits` is set to `true`, this parameter is used for equipment with reactive limits defined by reactive capability curves. If the target P value is outside the reactive
+When PowSyBl Core [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits) LoadFlow Parameter is set to `true`, this parameter is used for equipment with reactive limits defined by reactive capability curves. If the target P value is outside the reactive
 capability curve limits (if it is below lowest P value or above highest P value), the behavior depends on the parameter `extrapolateReactiveLimit` :
 - If set to `false`: reactive limits at the given target P are defined by the min Q and max Q at the limit of active power of the capability curve.
 - If set to `true`: reactive limits at the given target P are defined by the extrapolation of the reactive limits slope of the reactive capability curve 
@@ -245,10 +245,11 @@ This parameter defines which kind of outer loops is used for transformer voltage
                                    The control deadband is not taken into account.
 - `AFTER_GENERATOR_VOLTAGE_CONTROL` means that a continuous voltage control is performed after each generator voltage control outerloop. The final transformer $\rho$ is 
                                     obtained by rounding to the closest tap position. The control deadband is taken into account. This mode can be further
-                                    configured with parameters **transformerVoltageControlUseInitialTapPosition** and **generatorVoltageControlMinNominalVoltage**
+                                    configured with parameters [`transformerVoltageControlUseInitialTapPosition`](#transformervoltagecontroluseinitialtapposition) and
+                                    [`generatorVoltageControlMinNominalVoltage`](#generatorvoltagecontrolminnominalvoltage)
 - `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used. $\rho$ always corresponds to a tap position. Tap changes using sensitivity 
                                     computations. The control deadband is taken into account. This mode can be further configured with parameter 
-                                    **incrementalTransformerRatioTapControlOuterLoopMaxTapShift**
+                                    [`incrementalTransformerRatioTapControlOuterLoopMaxTapShift`](#incrementaltransformerratiotapcontrolouterloopmaxtapshift)
 
 The default value is `INCREMENTAL_VOLTAGE_CONTROL`.
 
@@ -263,8 +264,9 @@ The default value is `false`.
 
 (param-lf-incremental-transformer-ratio-tap-control-outer-loop-max-tap-shift)=
 ### incrementalTransformerRatioTapControlOuterLoopMaxTapShift
-Maximum number of tap position change during a single iteration of the incremental voltage and or reactive power control outer loop.
-Applies when `transformerVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONTROL` and when `transformerReactivePowerControl` is enabled (`true`).<br>
+Maximum number of tap position change during a single iteration of the incremental voltage and/or reactive power control outer loop.
+Applies when [`transformerVoltageControlMode`](#transformervoltagecontrolmode) is set to `INCREMENTAL_VOLTAGE_CONTROL` and
+[`transformerReactivePowerControl`](#transformerreactivepowercontrol) is enabled (`true`).<br>
 The default value is `3`.
 
 (param-lf-shunt-voltage-control-mode)=
@@ -275,14 +277,15 @@ Susceptance is finally rounded to the closest section for shunt that are control
 The control deadband is not taken into account.
 - `INCREMENTAL_VOLTAGE_CONTROL` means that an incremental voltage control is used.
 Susceptance always corresponds to a section. Section changes using sensitivity computations. The control deadband is taken into account.
-This mode can be further configured with parameter **incrementalShuntControlOuterLoopMaxSectionShift**
+This mode can be further configured with parameter [`incrementalShuntControlOuterLoopMaxSectionShift`](#incrementalshuntcontrolouterloopmaxsectionshift)
 
 The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
 (param-lf-incremental-shunt-control-outer-loop-max-section-shift)=
 ### incrementalShuntControlOuterLoopMaxSectionShift
 Maximum number of section position change during a single iteration of the incremental shunt voltage control outer loop.
-Applies when `shuntVoltageControlMode` is set to `INCREMENTAL_VOLTAGE_CONTROL` and when `shuntVoltageControl` is enabled (`true`).<br>
+Applies when [`shuntVoltageControlMode`](#shuntvoltagecontrolmode) is set to `INCREMENTAL_VOLTAGE_CONTROL` and when
+PowSyBl Core [`shuntCompensatorVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-shunt-compensator-voltage-control-on) LoadFlow Parameter is set to `true`.<br>
 The default value is `3`.
 
 (param-lf-svc-voltage-monitoring)=
@@ -347,7 +350,7 @@ The default value is `NONE`.
 (param-lf-line-search-state-vector-scaling-max-iteration)=
 ### lineSearchStateVectorScalingMaxIteration
 Only applies: 
-- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
+- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if [`stateVectorScalingMode`](#statevectorscalingmode) is `LINE_SEARCH`,
 - Or if [`acSolverType`](#acsolvertype) is `FAST_DECOUPLED`.
 
 Maximum iterations for a vector scaling when applying a line search strategy.<br>
@@ -356,7 +359,7 @@ The default value is `10` and it must be greater or equal to `1`.
 (param-lf-line-search-state-vector-scaling-step-fold)=
 ### lineSearchStateVectorScalingStepFold
 Only applies:
-- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `LINE_SEARCH`,
+- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if [`stateVectorScalingMode`](#statevectorscalingmode) is `LINE_SEARCH`,
 - Or if [`acSolverType`](#acsolvertype) is `FAST_DECOUPLED`.
 
 At the iteration $i$ of vector scaling with the line search strategy, with this parameter having the value $s$ , the step size will be $ \mu  = \frac{1}{s^i}$ .<br>
@@ -365,7 +368,7 @@ The default value is `4/3 = 1.333` and it must be greater than `1`.
 (param-lf-max-voltage-change-state-vector-scaling-max-dv)=
 ### maxVoltageChangeStateVectorScalingMaxDv
 Only applies:
-- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
+- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if [`stateVectorScalingMode`](#statevectorscalingmode) is `MAX_VOLTAGE_CHANGE`,
 - Or if [`acSolverType`](#acsolvertype) is `FAST_DECOUPLED`.
 
 Maximum amplitude p.u. for a voltage change.<br>
@@ -374,7 +377,7 @@ The default value is `0.1 p.u.` and it must be greater than `0`.
 (param-lf-max-voltage-change-state-vector-scaling-max-dphi)=
 ### maxVoltageChangeStateVectorScalingMaxDphi
 Only applies:
-- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if **stateVectorScalingMode** is `MAX_VOLTAGE_CHANGE`,
+- If [`acSolverType`](#acsolvertype) is `NEWTON_RAPHSON` and if [`stateVectorScalingMode`](#statevectorscalingmode) is `MAX_VOLTAGE_CHANGE`,
 - Or if [`acSolverType`](#acsolvertype) is `FAST_DECOUPLED`.
 
 Maximum angle for a voltage change.<br>
@@ -383,28 +386,28 @@ The default value is `0.174533 radians` (`10°`) and it must be greater than `0`
 (param-lf-newton-krylov-line-search)=
 ### newtonKrylovLineSearch
 Only applies if [`acSolverType`](#acsolvertype) is `NEWTON_KRYLOV`.
-Activates or deactivates line search for the Newton-Raphson Kinsol solver.
+Activates or deactivates line search for the Newton-Raphson Kinsol solver.<br>
 The default value is `false`.
 
 (param-lf-plausible-active-power-limit)=
 ### plausibleActivePowerLimit
 The `plausibleActivePowerLimit` parameter defines a maximal active power limit for generators to be considered as participating elements for:
-- slack distribution (if `balanceType` equals to any of the `PROPORTIONAL_TO_GENERATION_<any>` types)
+- slack distribution (if PowSyBl Core [`balanceType`](inv:powsyblcore:*:*:#param-lf-balance-type) property equals to any of the `PROPORTIONAL_TO_GENERATION_<any>` types)
 - slack selection (if [`slackBusSelectionMode`](#slackbusselectionmode) equals to `LARGEST_GENERATOR`)
 
 The default value is $10000 MW$.
 
 ```{note}
-In version 1.16.0 and before the default value was $5000 MW$.
+In versions 1.16.0 and before the default value was $5000 MW$.
 ```
 
-(param-lf-min-plausible-target-voltage and max-plausible-target-voltage)=
+(param-lf-min-plausible-target-voltage-and-max-plausible-target-voltage)=
 ### minPlausibleTargetVoltage and maxPlausibleTargetVoltage
 Equipments with voltage regulation target voltage outside these per-unit thresholds
 are considered suspect and are discarded from regulation prior to load flow resolution.<br>
 The default values are `0.8` and `1.2` p.u. and they must be greater or equal to `0`.
 
-(param-lf-min-realistic-voltage and max-realistic-voltage)=
+(param-lf-min-realistic-voltage-and-max-realistic-voltage)=
 ### minRealisticVoltage and maxRealisticVoltage
 These parameters are used to identify if the AC Solver has converged to an unrealistic state.
 
@@ -412,7 +415,7 @@ If there is any bus in a voltage level, in p.u., higher than [`minNominalVoltage
 with a computed voltage outside these per-unit thresholds, the component solution is deemed unrealistic and 
 its solution status is flagged as failed.
 
-If `voltageRemoteControlRobustMode` is set to true, the check of unrealistic voltage is done after the 
+If [`voltageRemoteControlRobustMode`](#voltageremotecontrolrobustmode) is set to true, the check of unrealistic voltage is done after the 
 ReactiveLimits outerloop has been used. In addition, the ReactiveLimits outerloop uses these values as a 
 criteria to block PQ remote controller buses that have an unrealistic voltage and a reactive injection within 
 their reactive diagram.
@@ -421,8 +424,8 @@ The default values are `0.5` and `2.0` and they must be greater or equal to `0`.
 
 (param-lf-min-nominal-voltage-realistic-voltage-check)=
 ### minNominalVoltageRealisticVoltageCheck
-This parameter defines the minimal nominal voltage, in kV, for which a bus outside **minRealisticVoltage**
-and **maxRealisticVoltage** will stop the simulation.
+This parameter defines the minimal nominal voltage, in kV, for which a bus outside
+[`minRealisticVoltage` and `maxRealisticVoltage`](#minrealisticvoltage-and-maxrealisticvoltage) will stop the simulation.
 
 Unrealistic voltages -particularly in high-voltage substations- can trigger automated protections or other 
 hazardous phenomena, potentially causing significant impacts to the system. Steady-state simulation may not 
@@ -430,8 +433,8 @@ accurately account for these effects. Therefore, results obtained under such con
 with caution.
 
 A configuration that offers both reliable simulation results and resilience to local observability issues could, 
-for example, use 0.8 and 1.2 p.u. for [**minRealisticVoltage** and **maxRealisticVoltage**](#minrealisticvoltage-and-maxrealisticvoltage), respectively, 
-and 100 kV for **minNominalVoltageRealisticVoltageCheck**.
+for example, use 0.8 and 1.2 p.u. for [`minRealisticVoltage` and `maxRealisticVoltage`](#minrealisticvoltage-and-maxrealisticvoltage), respectively, 
+and 100 kV for `minNominalVoltageRealisticVoltageCheck`.
 
 The default value is 0 kV.
 
@@ -489,13 +492,13 @@ This parameter is used to run fast simulations by applying incremental modificat
 The cache mode allows faster runs when modifications on the network are light.
 Not all modifications types are supported yet, currently supported modifications are:
 - target voltage modification
-- switch open/close status modification. The switches to be modified must be configured via the `actionableSwitchesIds` property (as an array, or as a comma or semicolon separated string).
+- switch open/close status modification. The switches to be modified must be configured via the [`actionableSwitchesIds`](#actionableswitchesids) property (as an array, or as a comma or semicolon separated string).
 
 The default value is `false`.
 
 (param-lf-actionable-switches-ids)=
 ### actionableSwitchesIds
-This parameter list is used if `networkCachedEnabled` is activated. It defines a list of switches that might be modified (as an array, or as a comma or semicolon separated string). When one of the switches changes its status (open/close) and a load flow is run just after, the cache will be used to a faster resolution. Note that in the implementation, all the switches of that list will be considered as retained, leading to a size increase of the Jacobian matrix. The list should have a reasonable size, otherwise the simulation without cache use should be preferred.
+This parameter list is used if [`networkCachedEnabled`](#networkcacheenabled) is activated. It defines a list of switches that might be modified (as an array, or as a comma or semicolon separated string). When one of the switches changes its status (open/close) and a load flow is run just after, the cache will be used to a faster resolution. Note that in the implementation, all the switches of that list will be considered as retained, leading to a size increase of the Jacobian matrix. The list should have a reasonable size, otherwise the simulation without cache use should be preferred.
 
 (param-lf-always-update-network)=
 ### alwaysUpdateNetwork
@@ -526,7 +529,8 @@ The default value is `false`.
 ### minNominalVoltageTargetVoltageCheck
 This parameter defines the minimal nominal voltage, in kV, for which the plausible voltage target checks are applied.
  
-Above this voltage level, voltage targets that are, in p.u., outside 'minPlausibleTargetVoltage' - 'maxPlausibleTargetVoltage' are ignored.
+Above this voltage level, voltage targets that are, in p.u., outside
+[`minPlausibleTargetVoltage` and `maxPlausibleTargetVoltage`](#minplausibletargetvoltage-and-maxplausibletargetvoltage) are ignored.
 
 The default value is `20 kV`. It must be greater or equal to `0 kV`.
 
@@ -561,8 +565,8 @@ By default, this parameter is set to `null`, and the activated outer loops are e
 (as defined in `DefaultAcOuterLoopConfig` for AC Load Flow and `DefaultDcOuterLoopConfig` for DC Load Flow).
 
 Here an example with slack distribution and reactive limits consideration, in AC Load Flow, when `outerLoopNames` is **not** used:
-- the creation of the `DistributedSlack` *outerloop* is driven by the parameter `distributedSlack` *parameter*.
-- the creation of the `ReactiveLimits` *outerloop* is driven by the parameter `useReactiveLimits` *parameter*.
+- the creation of the `DistributedSlack` *outerloop* is driven by the parameter [`distributedSlack`](inv:powsyblcore:*:*:#param-lf-distributed-slack) *parameter*.
+- the creation of the `ReactiveLimits` *outerloop* is driven by the parameter [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits) *parameter*.
 - PowSyBl Open Load Flow default order is to run the `DistributedSlack` outerloop first, and then the `ReactiveLimits` outerloop.
 
 Continuing this example, the outer loops creation and execution order can be modified by setting `outerLoopNames` to
@@ -570,19 +574,19 @@ value `['ReactiveLimits', 'DistributedSlack']`, in this case PowSyBl Open Load F
 and then the `DistributedSlack` outerloop.
 
 For AC load flow the supported outer loop names, their default execution order, and their corresponding high-level parameter, are:
-1. `DistributedSlack` / `AreaInterchangeControl` (parameters: `distributedSlack` / `areaInterchangeControl`)
-2. `SecondaryVoltageControl` (parameter: `secondaryVoltageControl`)
-3. `VoltageMonitoring` (parameter: `svcVoltageMonitoring`)
-4. `ReactiveLimits` (parameter: `useReactiveLimits`)
-5. `PhaseControl` / `IncrementalPhaseControl` (parameters: `phaseShifterRegulationOn` and `phaseShifterControlMode`)
-6. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: `transformerVoltageControlOn` and `transformerVoltageControlMode`)
-7. `IncrementalTransformerReactivePowerControl` (parameter: `transformerReactivePowerControl`)
-8. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: `shuntVoltageControl` and `shuntVoltageControlMode`)
-9. `AutomationSystem` (parameter: `simulateAutomationSystems`)
+1. `DistributedSlack` / `AreaInterchangeControl` (parameters: [`distributedSlack`](inv:powsyblcore:*:*:#param-lf-distributed-slack) / [`areaInterchangeControl`](#areainterchangecontrol))
+2. `SecondaryVoltageControl` (parameter: [`secondaryVoltageControl`](#secondaryvoltagecontrol))
+3. `VoltageMonitoring` (parameter: [`svcVoltageMonitoring`](#svcvoltagemonitoring))
+4. `ReactiveLimits` (parameter: [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits))
+5. `PhaseControl` / `IncrementalPhaseControl` (parameters: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on) and [`phaseShifterControlMode`](#phaseshiftercontrolmode))
+6. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: [`transformerVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-transformer-voltage-control-on) and [`transformerVoltageControlMode`](#transformervoltagecontrolmode))
+7. `IncrementalTransformerReactivePowerControl` (parameter: [`transformerReactivePowerControl`](#transformerreactivepowercontrol))
+8. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: [`shuntCompensatorVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-shunt-compensator-voltage-control-on) and [`shuntVoltageControlMode`](#shuntvoltagecontrolmode))
+9. `AutomationSystem` (parameter: [`simulateAutomationSystems`](#simulateautomationsystems))
 
 And for DC load flow:
-1. `IncrementalPhaseControl` (parameter: `phaseShifterRegulationOn`)
-2. `AreaInterchangeControl` (parameter: `areaInterchangeControl`)
+1. `IncrementalPhaseControl` (parameter: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on))
+2. `AreaInterchangeControl` (parameter: [`areaInterchangeControl`](#areainterchangecontrol))
 
 (param-lf-line-per-unit-mode)=
 ### linePerUnitMode
@@ -661,7 +665,7 @@ detection.
 ### fictitiousGeneratorVoltageControlCheckMode
 Specifies the active power checks exemption for fictitious generators voltage control.
 
-PowSyBl open-loadflow performs these checks on generators:
+PowSyBl Open LoadFlow performs these checks on generators:
 - if `targetP` equals zero, voltage control is disabled.
 - if parameter [`disableVoltageControlOfGeneratorsOutsideActivePowerLimits`](#disablevoltagecontrolofgeneratorsoutsideactivepowerlimits)
   is enabled, a generator with a `targetP` lower than `minP` or greater than `maxP`, voltage control is disabled.
@@ -681,7 +685,7 @@ continues with the HVDC set to AC emulation mode. Otherwise, the simulation fail
 
 If `false`, simulation allows HVDC lines to immediately adapt to the new angles.
 
-The value 'true' is typically used to use a loadFlow to simulate an N-K contingency after a loadflow has previously been run.
+The value 'true' is typically used to use a load flow to simulate an N-K contingency after a load flow has previously been run.
 
 The default value is `false`. This parameter can be overridden by the security analysis parameter with same name.
 
@@ -723,7 +727,7 @@ The default value is `false`.
 (param-lf-ac-dc-network)=
 ### acDcNetwork
 
-Defines if the loadflow uses DC detailed equipment and computes an AC DC loadflow 
+Defines if the loadflow uses DC detailed equipment and computes an AC DC loadflow.
 
 If `true`, the network supports DC detailed equipments, and the loadflow is computed on the whole connected network, 
 AC and DC sides in the same Jacobian matrix. Currently, the network shall contain only one synchronous component, but the number of 
@@ -762,5 +766,3 @@ open-loadflow-default-parameters:
   slackBusesIds: Bus3_0,Bus5_0
   loadPowerFactorConstant: true
 ```
-
-At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.

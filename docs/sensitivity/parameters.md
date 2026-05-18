@@ -48,5 +48,3 @@ See below an extract of a config file that could help:
 open-sensitivityanalysis-default-parameters:
   debugDir: /path/to/debug/dir
 ```
-
-At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.

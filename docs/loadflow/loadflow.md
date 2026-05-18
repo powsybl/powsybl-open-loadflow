@@ -236,7 +236,7 @@ Just like other outer loops, the Area Interchange Control outer loop checks whet
 
 ### Area Interchange Control - algorithm description
 
-The active power is distributed separately on injections (as configured in the [parameter `balanceType`](parameters.md)) of each area
+The active power is distributed separately on injections (as configured in the [parameter `balanceType`](inv:powsyblcore:*:*:#param-lf-balance-type)) of each area
 to compensate the area "total mismatch" that is given by:
 
 $$
@@ -336,7 +336,7 @@ Note that [`stateVectorScalingMode`](parameters.md#statevectorscalingmode) is no
 ### Limitations
 The current implemented version cannot compute when one of the following parameter is activated:
 - [`asymmetrical`](parameters.md#asymmetrical),
-- [`hvdcAcEmulation`](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- [`hvdcAcEmulation`](inv:powsyblcore:*:*:#param-lf-hvdc-ac-emulation)
 
 In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, an exception is triggered.
 

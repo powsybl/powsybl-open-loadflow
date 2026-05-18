@@ -112,8 +112,6 @@ open-security-analysis-default-parameters:
   contingencyActivePowerLossDistribution: Default
 ```
 
-At the moment, overriding the parameters by a JSON file is not supported by Open Load Flow.
-
 (contingency-load-flow-parameters)=
 
 ## Contingency Load Flow Parameters
@@ -122,9 +120,9 @@ A specific set of load flow parameters can be configured for each contingency in
 
 These parameters correspond directly to the parameters in the [`LoadFlowParameters`](inv:powsyblcore:*:*#simulation/loadflow/configuration) from powsybl-core API and
 the [`OpenLoadFlowParameters`](../loadflow/parameters.md#specific-parameters) specific parameters:
-- `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `distributedSlack`: Refer to [`distributedSlack` in powsybl-core](inv:powsyblcore:*:*:#param-lf-distributed-slack)
 - `areaInterchangeControl`: Refer to [`areaInterchangeControl` in powsybl-open-loadflow](../loadflow/parameters.md#areainterchangecontrol)
-- `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*#simulation/loadflow/configuration)
+- `balanceType`: Refer to [`balanceType` in powsybl-core](inv:powsyblcore:*:*:#param-lf-balance-type)
 - `outerLoopNames` : Refer to [`outerLoopNames` in powsybl-open-loadflow](../loadflow/parameters.md#outerloopnames)
 
 To customize these parameters for a contingency, add to the `Contingency` object a `ContingencyLoadFlowParameters` extension where you may configure the parameters.
