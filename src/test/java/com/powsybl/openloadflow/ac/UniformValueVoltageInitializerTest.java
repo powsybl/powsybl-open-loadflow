@@ -10,7 +10,10 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
 
-public class UniformValueVoltageInitializerTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+class UniformValueVoltageInitializerTest {
 
 
     /**
@@ -39,10 +42,10 @@ public class UniformValueVoltageInitializerTest {
         LfDcBus dnGr = lfNetwork.getDcBusById("dnGr_dcBus");
 
         // Check initial voltages
-        assert initializer.getDcVoltage(dn3p) != initializer.getDcVoltage(dn3r);
-        assert initializer.getDcVoltage(dn3n) != initializer.getDcVoltage(dn3r);
-        assert initializer.getDcVoltage(dn4p) != initializer.getDcVoltage(dn4r);
-        assert initializer.getDcVoltage(dn4n) != initializer.getDcVoltage(dn4r);
-        assert initializer.getDcVoltage(dnGr) == 1.;
+        assertNotEquals(initializer.getDcVoltage(dn3p), initializer.getDcVoltage(dn3r));
+        assertNotEquals(initializer.getDcVoltage(dn3n), initializer.getDcVoltage(dn3r));
+        assertNotEquals(initializer.getDcVoltage(dn4p), initializer.getDcVoltage(dn4r));
+        assertNotEquals(initializer.getDcVoltage(dn4n), initializer.getDcVoltage(dn4r));
+        assertEquals(1d, initializer.getDcVoltage(dnGr));
     }
 }
