@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.google.common.collect.Iterators;
 import org.jgrapht.util.AVLTree;
 
 import java.util.*;
@@ -271,9 +272,9 @@ public class SpanningForest<V, E> {
         AVLTree<DirectedEdge> tree = find(vertex);
 
         if (tree == null) {
-            return null;
+            return Collections.emptyIterator(); // vertex isn't in the forest
         } else if (tree.isEmpty()) {
-            return Collections.emptyIterator();
+            return Iterators.singletonIterator(vertex);
         } else {
             return new Iterator<V>() {
                 private final Iterator<DirectedEdge> it = tree.iterator();

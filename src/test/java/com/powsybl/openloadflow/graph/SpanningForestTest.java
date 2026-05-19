@@ -119,8 +119,34 @@ public class SpanningForestTest {
         assertEquals(Set.of(-1, -2), collect(forest.edgesInComponent(0), 2));
     }
 
-    // The purpose of maxSize is to prevent infinite loop if the iterator next() method
-    // always return true
+    @Test
+    void testVerticesInComponent() {
+        SpanningForest<Integer, Integer> forest = new SpanningForest<>();
+
+        assertEquals(Collections.emptySet(), collect(forest.verticesInComponent(0), 0));
+        forest.addVertex(0);
+        forest.addVertex(1);
+
+        assertEquals(Set.of(0), collect(forest.verticesInComponent(0), 1));
+        assertEquals(Set.of(1), collect(forest.verticesInComponent(1), 1));
+
+        forest.addEdge(0, 1, -1);
+        assertEquals(Set.of(0, 1), collect(forest.verticesInComponent(0), 2));
+        assertEquals(Set.of(0, 1), collect(forest.verticesInComponent(1), 2));
+
+        forest.addEdge(1, 2, -2);
+        assertEquals(Set.of(0, 1, 2), collect(forest.verticesInComponent(0), 3));
+        assertEquals(Set.of(0, 1, 2), collect(forest.verticesInComponent(1), 3));
+        assertEquals(Set.of(0, 1, 2), collect(forest.verticesInComponent(2), 3));
+
+        forest.removeEdge(0, 1, -1);
+        assertEquals(Set.of(0), collect(forest.verticesInComponent(0), 1));
+        assertEquals(Set.of(1, 2), collect(forest.verticesInComponent(1), 2));
+        assertEquals(Set.of(1, 2), collect(forest.verticesInComponent(2), 2));
+    }
+
+    // The purpose of maxSize is to prevent infinite loop if Iterator#next
+    // always returns true
     <V> Set<V> collect(Iterator<V> it, int maxSize) {
         Set<V> set = new HashSet<>();
 
@@ -132,7 +158,6 @@ public class SpanningForestTest {
 
         return set;
     }
-
 
     @Test
     void testConnected() {
@@ -161,6 +186,7 @@ public class SpanningForestTest {
     }
 
     // Inspired by https://github.com/jgrapht/jgrapht/blob/70d5287e3e10cb8c4676e84fbfe1d4a3cc4338ba/jgrapht-core/src/test/java/org/jgrapht/alg/connectivity/TreeDynamicConnectivityTest.java#L58
+    // this test is slow (1-2s) because of checkInvariants
     @Test
     void testTwoTrees() {
         // generate two distinct trees
@@ -206,9 +232,7 @@ public class SpanningForestTest {
         disconnectTree(tree2, forest);
     }
 
-    private void connectTree(
-            Graph<Integer, DefaultEdge> graph, SpanningForest<Integer, DefaultEdge> forest)
-    {
+    private void connectTree(Graph<Integer, DefaultEdge> graph, SpanningForest<Integer, DefaultEdge> forest) {
         for (Integer v : graph.vertexSet()) {
             assertFalse(forest.contains(v));
             assertTrue(forest.addVertex(v));
@@ -216,7 +240,8 @@ public class SpanningForestTest {
             assertTrue(forest.contains(v));
         }
         for (DefaultEdge e : graph.edgeSet()) {
-            int source = graph.getEdgeSource(e), target = graph.getEdgeTarget(e);
+            int source = graph.getEdgeSource(e);
+            int target = graph.getEdgeTarget(e);
             assertFalse(forest.connected(source, target));
             assertTrue(forest.addEdge(source, target, e));
             forest.checkInvariants();
@@ -226,7 +251,8 @@ public class SpanningForestTest {
 
     private void disconnectTree(Graph<Integer, DefaultEdge> graph, SpanningForest<Integer, DefaultEdge> forest) {
         for (DefaultEdge e : graph.edgeSet()) {
-            int source = graph.getEdgeSource(e), target = graph.getEdgeTarget(e);
+            int source = graph.getEdgeSource(e);
+            int target = graph.getEdgeTarget(e);
             assertTrue(forest.connected(source, target));
             assertTrue(forest.removeEdge(source, target, e));
             assertFalse(forest.connected(source, target));
