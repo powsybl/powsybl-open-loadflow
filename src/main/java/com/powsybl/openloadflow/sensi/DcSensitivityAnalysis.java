@@ -20,7 +20,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.NetworkCache;
-import com.powsybl.openloadflow.NetworkVariantPool;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
@@ -505,9 +504,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoActionIds));
             if (entry.getValues() == null) {
                 // create networks including all necessary switches
-                String pooledTmpVariantId = NetworkVariantPool.INSTANCE.acquire(network, network.getVariantManager().getWorkingVariantId(), lfParametersExt.getNetworkVariantPoolSize());
                 try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters,
-                        LfNetworkList.WorkingVariantReverter::new, sensiReportNode, pooledTmpVariantId)) {
+                        new LfNetworkList.PoolVariantAcquirer(network, lfParametersExt.getNetworkVariantPoolSize()), LfNetworkList.WorkingVariantReverter::new, sensiReportNode)) {
                     if (lfNetworkList.getList().isEmpty()) {
                         throw new PowsyblException("Empty network");
                     }
@@ -516,7 +514,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             .map(n -> new NetworkCache.DcSensiValue(new DcLoadFlowContext(n, dcLoadFlowParameters)))
                             .toList();
                     entry.setValues(values);
-                    entry.setVariantCleaner(new LfNetworkList.PoolVariantReleaser(network, entry.getWorkingVariantId(), pooledTmpVariantId));
+                    LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
+                    if (variantCleaner != null) {
+                        entry.setVariantCleaner(new LfNetworkList.PoolVariantReleaser(network, entry.getWorkingVariantId(), variantCleaner.getTmpVariantId()));
+                    }
                 }
             }
             NetworkCache.DcSensiValue value = entry.getValues().getFirst();
