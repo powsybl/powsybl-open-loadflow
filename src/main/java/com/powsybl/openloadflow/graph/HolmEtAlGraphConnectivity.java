@@ -16,6 +16,8 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     private final List<SpanningForest<V, E>> spanningForests = new ArrayList<>();
 
+    private final MultiLevelAdjacencyList adjacencyList = new MultiLevelAdjacencyList();
+
     // contains additional data for every tree edges
     // some nontree edge may be absent. In case an
     // EdgeInfo doesn't exist, the edge should be considered
@@ -64,18 +66,12 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             }
         }
 
-        // iterate over all incident edges to the smallest tree
-        JGraphTModel<V, E> graph = getGraph();
+        // iterate over all incident non-tree edges of level 'level' to the smallest tree
         for (Iterator<V> it = forest.verticesInComponent(u); it.hasNext();) {
             V vertexInComponent = it.next();
 
-            for (E replacementCandidate : graph.getNeighborEdgesOf(vertexInComponent)) {
+            for (E replacementCandidate : adjacencyList.adjacentEdges(level, vertexInComponent)) {
                 EdgeInfo replacementEdgeInfo = edgeInfos.computeIfAbsent(replacementCandidate, e -> new EdgeInfo());
-                if (replacementEdgeInfo.isTreeEdge() || replacementEdgeInfo.level != level) {
-                    // FIXME: iterate over only nontree edges of level 'level' instead of iterating over every edges
-                    // By the way, this implementation is iterating over every edges twice !!
-                    continue;
-                }
 
                 V src = graph.getEdgeSource(replacementCandidate);
                 V target = graph.getEdgeTarget(replacementCandidate);
@@ -160,6 +156,43 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
         public boolean isTreeEdge() {
             return treeEdge;
+        }
+    }
+
+    private final class MultiLevelAdjacencyList {
+
+        private final List<Map<V, List<E>>> adjacencyList = new ArrayList<>();
+
+        public void addEdge(int level, V src, V dest, E edge) {
+            adjacencyList.get(level).compute(src, (s, list) -> {
+                if (list == null) {
+                    list = new ArrayList<>();
+                }
+                list.add(edge);
+                return list;
+            });
+
+            adjacencyList.get(level).compute(dest, (s, list) -> {
+                if (list == null) {
+                    list = new ArrayList<>();
+                }
+                list.add(edge);
+                return list;
+            });
+        }
+
+        public void removeEdge(int level, V src, V dest, E edge) {
+            adjacencyList.get(level).get(src).remove(edge);
+            adjacencyList.get(level).get(dest).remove(edge);
+        }
+
+        public void changeLevel(int level, V src, V dest, E edge, int newLevel) {
+            removeEdge(level, src, dest, edge);
+            addEdge(newLevel, src, dest, edge);
+        }
+
+        public Iterable<E> adjacentEdges(int level, V src) {
+            return adjacencyList.get(level).get(src);
         }
     }
 }
