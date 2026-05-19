@@ -255,10 +255,6 @@ class AcLoadFlowWithCachingTest {
 
         loadFlowRunner.run(network, parameters);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
-
-        network.getVariantManager().removeVariant("v");
-        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
-        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
     }
 
     @Test

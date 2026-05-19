@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ControlUnit;
@@ -22,6 +23,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -78,7 +80,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         String getWorkingVariantId();
 
-        void setTmpVariantId(String tmpVariantId);
+        void setVariantCleaner(LfNetworkList.VariantCleaner variantCleaner);
 
         List<V> getValues();
 
@@ -253,7 +255,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         private final WeakReference<Network> networkRef;
 
         private final String workingVariantId;
-        private String tmpVariantId;
+        private LfNetworkList.VariantCleaner variantCleaner;
 
         private final I input;
 
@@ -282,11 +284,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         @Override
-        public void setTmpVariantId(String tmpVariantId) {
-            if (this.tmpVariantId != null) {
-                throw new IllegalArgumentException("Entry already has a tmp variant ID set");
+        public void setVariantCleaner(LfNetworkList.VariantCleaner variantCleaner) {
+            if (this.variantCleaner != null) {
+                throw new PowsyblException("Entry already has a variant cleaner set");
             }
-            this.tmpVariantId = tmpVariantId;
+            this.variantCleaner = variantCleaner;
         }
 
         @Override
@@ -520,9 +522,13 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             }
         }
 
+        private boolean skipUpdate(String variantId) {
+            return values == null || pause || !variantId.equals(workingVariantId);
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
-            if (values == null || pause) {
+            if (skipUpdate(variantId)) {
                 return;
             }
             CacheUpdateResult<V> result = CacheUpdateResult.unsupportedUpdate(createInvalidationReason(identifiable, attribute)); // by default to be safe
@@ -581,7 +587,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         @Override
         public void onExtensionUpdate(Extension<?> extension, String attribute, String variantId, Object oldValue, Object newValue) {
-            if (values == null || pause) {
+            if (skipUpdate(variantId)) {
                 return;
             }
 
@@ -671,8 +677,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         public void close() {
             reset("close");
             Network network = networkRef.get();
-            if (network != null && tmpVariantId != null) {
-                network.getVariantManager().removeVariant(tmpVariantId);
+            if (network != null && variantCleaner != null) {
+                variantCleaner.clean();
             }
         }
     }
@@ -736,7 +742,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     entry.close();
                     entries.remove(entry);
                     entry = null;
-                    LOGGER.info("Network cache evicted because of input change (reason={})", reason);
+                    LOGGER.info("Network cache evicted for network '{}' and variant '{}' because of input change (reason={})",
+                            network.getId(), network.getVariantManager().getWorkingVariantId(), reason);
                 }
             }
 
@@ -760,8 +767,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
             entry.restart();
         } else {
-            LOGGER.info("Network cache cannot be reused for network '{}' because invalided (reasons={})",
-                    network.getId(), entry.getInvalidationReasons());
+            LOGGER.info("Network cache cannot be reused for network '{}' and variant '{}' because invalided (reasons={})",
+                    network.getId(), network.getVariantManager().getWorkingVariantId(), entry.getInvalidationReasons());
             entry.clearInvalidationReasons();
         }
 

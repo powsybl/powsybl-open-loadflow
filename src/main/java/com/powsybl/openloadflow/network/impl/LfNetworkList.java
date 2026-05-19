@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.NetworkVariantPool;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.List;
@@ -67,6 +68,19 @@ public class LfNetworkList implements AutoCloseable {
 
         @Override
         public void clean() {
+            network.getVariantManager().setWorkingVariant(workingVariantId);
+        }
+    }
+
+    public static class PoolVariantReleaser extends AbstractVariantCleaner {
+
+        public PoolVariantReleaser(Network network, String workingVariantId, String tmpVariantId) {
+            super(network, workingVariantId, tmpVariantId);
+        }
+
+        @Override
+        public void clean() {
+            NetworkVariantPool.INSTANCE.release(network, tmpVariantId);
             network.getVariantManager().setWorkingVariant(workingVariantId);
         }
     }

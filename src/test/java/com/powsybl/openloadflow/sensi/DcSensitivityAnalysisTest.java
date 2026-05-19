@@ -8,15 +8,13 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.action.Action;
+import com.powsybl.action.SwitchAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.BoundaryLineContingency;
-import com.powsybl.contingency.GeneratorContingency;
+import com.powsybl.contingency.*;
 import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -37,13 +35,16 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcSensitivityAnalysisTest.class);
 
     @Test
     void testEsgTuto() {
@@ -1394,5 +1397,74 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
         assertEquals(1, result.getValues().size());
         assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Disabled("Only for stress testing of fast restart with multiple threads")
+    @Test
+    void testFastRestartMultiThreaded() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = NodeBreakerNetworkFactory.create();
+        network.getVariantManager().allowVariantMultiThreadAccess(true);
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true)
+                .setNetworkVariantPoolSize(50);
+
+        List<Contingency> contingencies = network.getLineStream().map(l -> Contingency.line(l.getId())).toList();
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+
+        OperatorStrategy osOpenC = new OperatorStrategy("open C",
+                ContingencyContext.none(),
+                new TrueCondition(), List.of("open C"));
+        List<OperatorStrategy> operatorStrategies = List.of(osOpenC);
+        List<Action> actions = List.of(new SwitchAction("open C", "C", true));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies);
+
+        SensitivityAnalysisRunParameters runParametersWithActions = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions);
+
+        int n = 40;
+        boolean[] error = new boolean[n];
+        Arrays.fill(error, false);
+        String initialVariantId = network.getVariantManager().getWorkingVariantId();
+        List<ForkJoinTask<?>> results = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            network.getVariantManager().cloneVariant(initialVariantId, "v" + i);
+        }
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool(n)) {
+            for (int i = 0; i < n; i++) {
+                int finalI = i;
+                results.add(forkJoinPool.submit(() -> {
+                    // fast restart cached context is bound to a variant so let's associate each working thread to its own variant
+                    network.getVariantManager().setWorkingVariant("v" + finalI);
+                    try {
+                        for (int j = 0; j < 1000; j++) {
+                            SensitivityAnalysisResult result = sensiRunner.run(network, factors, j % 2 == 0 ? runParametersWithActions : runParameters);
+                            assertEquals(j % 2 == 0 ? 3 : 2, result.getStateStatuses().size());
+                        }
+                    } catch (Throwable t) {
+                        error[finalI] = true;
+                        LOGGER.error(t.toString(), t);
+                    }
+                }));
+            }
+            for (ForkJoinTask<?> task : results) {
+                task.join();
+            }
+            forkJoinPool.shutdown();
+            assertTrue(IntStream.range(0, n).noneMatch(i -> error[i]));
+        }
     }
 }

@@ -100,7 +100,8 @@
         "generatorsWithZeroMwTargetAreNotStarted" : true,
         "incrementalShuntControlOuterLoopMaxSectionShift" : 3,
         "fixVoltageTargets" : false,
-        "acDcNetwork" : false
+        "acDcNetwork" : false,
+        "networkVariantPoolSize" : 20
       }
     }
   },

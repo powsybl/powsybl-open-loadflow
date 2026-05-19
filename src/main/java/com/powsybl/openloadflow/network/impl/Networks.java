@@ -218,11 +218,12 @@ public final class Networks {
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
                                                               ReportNode reportNode) {
-        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode);
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode, null);
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
-                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode,
+                                                              String poolTmpVariantId) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
@@ -241,9 +242,15 @@ public final class Networks {
             }
 
             // create a temporary working variant to build LF networks
-            String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
             String workingVariantId = network.getVariantManager().getWorkingVariantId();
-            network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
+            String tmpVariantId;
+            if (poolTmpVariantId != null) {
+                tmpVariantId = poolTmpVariantId;
+                network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId, true);
+            } else {
+                tmpVariantId = "olf-tmp-" + UUID.randomUUID();
+                network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
+            }
             network.getVariantManager().setWorkingVariant(tmpVariantId);
 
             // retain in topology all switches that could be open or close
@@ -259,7 +266,8 @@ public final class Networks {
                 }
             }
 
-            return new LfNetworkList(lfNetworks, variantCleanerFactory.create(network, workingVariantId, tmpVariantId));
+            LfNetworkList.VariantCleaner variantCleaner = variantCleanerFactory.create(network, workingVariantId, tmpVariantId);
+            return new LfNetworkList(lfNetworks, variantCleaner);
         }
     }
 
