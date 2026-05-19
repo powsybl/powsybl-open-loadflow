@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -495,13 +495,15 @@ class ConnectivityTest {
     private static Stream<Arguments> provideNonRestrictedConnectivities() {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
-                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()));
+                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlGraphConnectivity<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
                 Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>()),
-                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()));
+                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlGraphConnectivity<>()));
     }
 }

@@ -307,8 +307,10 @@ public class SpanningForest<V, E> {
         }
     }
 
+    // TODO: this method doesn't return singletons
     public Iterator<V> roots() {
-        return Collections.emptyIterator();
+        return Iterators.transform(rootNodeToTree.keySet().iterator(),
+                rootNode -> Objects.requireNonNull(rootNode).getValue().src);
     }
 
     public String eulerTour(V vertex) {

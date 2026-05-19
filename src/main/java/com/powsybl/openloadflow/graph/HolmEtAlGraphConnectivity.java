@@ -7,12 +7,17 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+
 import java.util.*;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, HolmEtAlGraphConnectivity.Graph<V, E>> {
+
+    private final TObjectIntMap<V> vertexToComponent = new TObjectIntHashMap<>();
 
     public HolmEtAlGraphConnectivity() {
         super(new Graph<>());
@@ -48,12 +53,37 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     @Override
     protected void updateComponents() {
+        if (componentSets != null) {
+            return;
+        }
 
+        componentSets = new ArrayList<>();
+        vertexToComponent.clear();
+
+        Graph<V, E> graph = getGraph();
+        SpanningForest<V, E> fullForest = graph.spanningForests.getFirst();
+
+        int i = 0;
+        for (Iterator<V> roots = fullForest.roots(); roots.hasNext();) {
+            V root = roots.next();
+
+            Set<V> component = new HashSet<>();
+            for (Iterator<V> it = fullForest.verticesInComponent(root); it.hasNext();) {
+                V vertex = it.next();
+                component.add(vertex);
+                vertexToComponent.put(vertex, i);
+            }
+
+            componentSets.add(component);
+            i++;
+        }
+
+        componentSets.sort(Comparator.comparingInt(c -> -c.size()));
     }
 
     @Override
     protected int getQuickComponentNumber(V vertex) {
-        return 0;
+        return vertexToComponent.get(vertex);
     }
 
     @Override
@@ -71,6 +101,11 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         // EdgeInfo doesn't exist, the edge should be considered
         // as a nontree edge with level 0.
         private final Map<E, EdgeInfo<V>> edgeInfos = new HashMap<>();
+
+        public Graph() {
+            spanningForests.add(new SpanningForest<>());
+            adjacencyList.add(new HashMap<>());
+        }
 
         private void addNonTreeEdgeAtLevel(V v1, V v2, E e, int level) {
             adjacencyList.get(level).get(v1).add(e);
