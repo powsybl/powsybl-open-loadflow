@@ -307,10 +307,16 @@ public class SpanningForest<V, E> {
         }
     }
 
-    // TODO: this method doesn't return singletons
+    // TODO: simplify this method
     public Iterator<V> roots() {
-        return Iterators.transform(rootNodeToTree.keySet().iterator(),
+        Iterator<Map.Entry<V, Occurrences>> singletons = Iterators.filter(vertexToOccurrences.entrySet().iterator(),
+                entry -> entry.getValue().isInSingleton());
+        Iterator<V> singletonVertex = Iterators.transform(singletons, Map.Entry::getKey);
+
+        Iterator<V> roots = Iterators.transform(rootNodeToTree.keySet().iterator(),
                 rootNode -> Objects.requireNonNull(rootNode).getValue().src);
+
+        return Iterators.concat(singletonVertex, roots);
     }
 
     public String eulerTour(V vertex) {
