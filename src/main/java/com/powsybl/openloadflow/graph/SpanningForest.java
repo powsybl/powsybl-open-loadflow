@@ -74,6 +74,20 @@ public class SpanningForest<V, E> {
         return true;
     }
 
+    public boolean removeVertex(V vertex) {
+        Occurrences occ = vertexToOccurrences.get(vertex);
+        if (occ == null) {
+            return false;
+        }
+
+        for (DirectedEdge edge : occ.edges) {
+            removeEdge(edge.src, edge.dest(), edge.undirectedEdge);
+        }
+        vertexToOccurrences.remove(vertex);
+
+        return true;
+    }
+
     private void addIfAbsent(V element) {
         if (!contains(element)) {
             addVertex(element);
@@ -220,7 +234,7 @@ public class SpanningForest<V, E> {
         // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,9) (9,1)] - [(5,6) (6,5) (5,7) (7,5) (5,8) (8,5)]
 
         vertexToOccurrences.get(forwardEdge.src).removeEdge(forwardEdge);
-        vertexToOccurrences.get(forwardEdge.backwardNode.getValue().src).removeEdge(forwardEdge.backwardNode.getValue());
+        vertexToOccurrences.get(forwardEdge.dest()).removeEdge(forwardEdge.backwardNode.getValue());
 
         if (!tree.isEmpty()) {
             rootNodeToTree.put(tree.getRoot(), tree);
@@ -305,6 +319,30 @@ public class SpanningForest<V, E> {
                 }
             };
         }
+    }
+
+    public Iterator<E> adjacentEdges(V vertex) {
+        Occurrences occ = vertexToOccurrences.get(vertex);
+
+        return new Iterator<>() {
+            private int index = 0;
+
+            @Override
+            public boolean hasNext() {
+                return index < occ.edges.size();
+            }
+
+            @Override
+            public E next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
+                DirectedEdge e = occ.edges.get(index);
+                index++;
+                return e.undirectedEdge;
+            }
+        };
     }
 
     // TODO: simplify this method
@@ -513,6 +551,10 @@ public class SpanningForest<V, E> {
         public void setNodes(AVLTree.TreeNode<DirectedEdge> forwardNode, AVLTree.TreeNode<DirectedEdge> backwardNode) {
             this.forwardNode = forwardNode;
             this.backwardNode = backwardNode;
+        }
+
+        public V dest() {
+            return backwardNode.getValue().src;
         }
     }
 }
