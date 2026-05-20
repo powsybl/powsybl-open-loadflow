@@ -144,28 +144,28 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             edgeInfos.put(e, new EdgeInfo<>(0, treeEdge, v1, v2));
         }
 
-        private void replace(V v1, V v2, E e, int level) {
+        private void promoteTreeEdges(V representative, int currentLevel, int newLevel) {
+            SpanningForest<V, E> forest = spanningForests.get(currentLevel);
+            SpanningForest<V, E> newForest = spanningForests.get(newLevel);
+
+            for (Iterator<E> it = forest.edgesInComponent(representative); it.hasNext();) {
+                E edge = it.next();
+                V src = getEdgeSource(edge);
+                V dest = getEdgeTarget(edge);
+
+                newForest.addEdge(src, dest, edge);
+            }
+        }
+
+        private void replace(V v1, V v2, int level) {
             SpanningForest<V, E> forest = spanningForests.get(level);
             V smallest = v1; // vertex in the smallest component between T_v1 and T_v2
             if (forest.componentSize(v1) > forest.componentSize(v2)) {
                 smallest = v2;
             }
 
-            SpanningForest<V, E> above = spanningForests.get(level + 1);
-
             // promote edges of the smallest tree
-            for (Iterator<E> it = forest.edgesInComponent(smallest); it.hasNext();) {
-                E edge = it.next();
-                V src = getEdgeSource(edge);
-                V dest = getEdgeTarget(edge);
-
-                above.addEdge(src, dest, edge);
-                for (E actualEdge : getEdgesBetween(src, dest, level)) {
-                    removeNonTreeEdgeAtLevel(src, dest, actualEdge, level);
-                    edgeInfos.get(actualEdge).level = level + 1;
-                    addNonTreeEdgeAtLevel(v1, v2, e, level + 1);
-                }
-            }
+            promoteTreeEdges(smallest, level, level + 1);
 
             // iterate over all incident non-tree edges of level 'level' to the smallest tree
             for (Iterator<V> it = forest.verticesInComponent(smallest); it.hasNext();) {
@@ -179,9 +179,9 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
                         // that means that src and target were already in the same spanning tree, which is T_u
                         // because we are iterating over the incident edges of T_u
 
-                        removeNonTreeEdgeAtLevel(v1, v2, e, info.level);
+                        removeNonTreeEdgeAtLevel(info.src, info.dest, replacementCandidate, info.level);
                         info.level = level + 1; // increase level
-                        addNonTreeEdgeAtLevel(v1, v2, e, info.level);
+                        addNonTreeEdgeAtLevel(info.src, info.dest, replacementCandidate, info.level);
                     } else {
                         // src and target are not connected. That means they are in two different
                         // spanning trees. One of them is T_u (because we are iterating over the incident
@@ -199,7 +199,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             }
 
             if (level > 0) {
-                replace(v1, v2, e, level - 1);
+                replace(v1, v2, level - 1);
             }
         }
 
@@ -216,7 +216,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
                     spanningForests.get(i).removeEdge(info.src, info.dest, e);
                 }
 
-                replace(info.src, info.dest, e, info.level);
+                replace(info.src, info.dest, info.level);
             } else {
                 removeNonTreeEdgeAtLevel(info.src, info.dest, e, info.level);
             }
