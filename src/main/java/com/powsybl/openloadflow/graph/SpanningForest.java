@@ -377,7 +377,12 @@ public class SpanningForest<V, E> {
     }
 
     public void checkInvariants() {
-        // check occurrences
+        checkOccurrences();
+        checkForwardEdges();
+        checkRootNodeToTree();
+    }
+
+    private void checkOccurrences() {
         for (Map.Entry<V, Occurrences> entry : vertexToOccurrences.entrySet()) {
             Occurrences occurrences = entry.getValue();
 
@@ -402,8 +407,9 @@ public class SpanningForest<V, E> {
                 }
             }
         }
+    }
 
-        // check edges
+    private void checkForwardEdges() {
         for (Map.Entry<E, DirectedEdge> edges : forwardEdges.entrySet()) {
             DirectedEdge edge = edges.getValue();
 
@@ -412,8 +418,9 @@ public class SpanningForest<V, E> {
             assert edge.forwardNode != null && edge.forwardNode.getValue() == edge;
             assert edge.backwardNode != null && edge.backwardNode.getValue().undirectedEdge == edge.undirectedEdge;
         }
+    }
 
-        // check rootNodeToTree
+    private void checkRootNodeToTree() {
         for (Map.Entry<AVLTree.TreeNode<DirectedEdge>, AVLTree<DirectedEdge>> entry : rootNodeToTree.entrySet()) {
             AVLTree<DirectedEdge> tree = entry.getValue();
 
