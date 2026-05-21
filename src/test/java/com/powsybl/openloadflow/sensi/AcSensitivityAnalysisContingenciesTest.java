@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -476,7 +477,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = network.getBranchStream()
                                                  .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34", TwoSides.ONE))
                                                  .collect(Collectors.toList());
-        factors.addAll(network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l12", TwoSides.ONE)).collect(Collectors.toList()));
+        factors.addAll(network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l12", TwoSides.ONE)).toList());
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
                 .setVariableSets(variableSets)
@@ -1248,7 +1249,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testMaxIterationReachedAfterContingency() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        network.getLine("NHV1_NHV2_1").setX(1000);
+        network.getLine("NHV1_NHV2_1").setX(100000);
         List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_2", List.of(new BranchContingency("NHV1_NHV2_2"))));
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"));
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
@@ -1256,8 +1257,44 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getStateStatus(SensitivityState.postContingency("NHV1_NHV2_2")));
+
+        AtomicInteger valueCallCount = new AtomicInteger(0);
+        AtomicInteger computationCompleteCallCount = new AtomicInteger(0);
+        List<SensitivityAnalysisResult.Status> contingencyStatuses = new ArrayList<>();
+        List<SensitivityAnalysisResult.LoadFlowStatus> preContingencyLoadFlowStatuses = new ArrayList<>();
+        SensitivityResultWriter resultWriter = new SensitivityResultWriter() {
+            @Override
+            public void writeSensitivityValue(int factorIndex, int contingencyIndex, int operatorStrategyIndex, double value, double functionReference) {
+                valueCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status,
+                                         SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus, int numCC, int numCS) {
+                if (contingencyIndex == -1 && operatorStrategyIndex == -1) {
+                    // pre-contingency component status (folded from writeSynchronousComponentStatus)
+                    preContingencyLoadFlowStatuses.add(loadFlowStatus);
+                } else {
+                    contingencyStatuses.add(status);
+                }
+            }
+
+            @Override
+            public void computationComplete() {
+                computationCompleteCallCount.incrementAndGet();
+            }
+        };
+        SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
+        sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(),
+                factorReader,
+                resultWriter,
+                runParameters);
+
+        assertEquals(1, computationCompleteCallCount.get());
+        assertEquals(1, contingencyStatuses.size());  // first contingency max iteration reached
+        assertEquals(1, preContingencyLoadFlowStatuses.size()); // 1 for base case
+        assertEquals(1, valueCallCount.get());
+        assertEquals(SensitivityAnalysisResult.Status.FAILURE, contingencyStatuses.getFirst());
     }
 
     @Test
