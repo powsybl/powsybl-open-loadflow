@@ -31,7 +31,7 @@ public class SpanningForest<V, E> {
     // map a root to the AVLTree in which it is. Indeed, a TreeNode doesn't
     // store the AVLTree in which it is. This is only for root node because
     // maintaining this information for every node is too costly.
-    private final Map<AVLTree.TreeNode<DirectedEdge>, AVLTree<DirectedEdge>> rootNodeToTree = new HashMap<>();
+    private final Map<AVLTree.TreeNode<DirectedEdge>, AVLTree<DirectedEdge>> rootNodeToTree = new LinkedHashMap<>();
 
     private AVLTree<DirectedEdge> find(V vertex) {
         Occurrences occurrence = vertexToOccurrences.get(vertex);

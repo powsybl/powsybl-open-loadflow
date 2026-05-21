@@ -77,7 +77,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             componentSets.add(component);
         }
 
-        componentSets.sort(Comparator.comparingInt(c -> -c.size()));
+        componentSets.sort((s1, s2) -> s2.size() - s1.size());
 
         int i = 0;
         for (Set<V> comp : componentSets) {
