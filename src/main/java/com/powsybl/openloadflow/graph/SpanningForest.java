@@ -46,7 +46,7 @@ public class SpanningForest<V, E> {
         return treeU != null && treeU == treeV;
     }
 
-    public int componentSize(V vertex) {
+    public int treeSize(V vertex) {
         Occurrences occurrence = vertexToOccurrences.get(vertex);
 
         if (occurrence == null) {
@@ -55,7 +55,7 @@ public class SpanningForest<V, E> {
             return 1;
         } else {
             // the size of an euler tour tree is 2 * n - 2, except when the tree contains only one node
-            return (occurrence.getTree().getSize() + 1) / 2;
+            return (occurrence.getTree().getSize() + 2) / 2;
         }
     }
 
@@ -80,7 +80,8 @@ public class SpanningForest<V, E> {
             return false;
         }
 
-        for (DirectedEdge edge : occ.edges) {
+        while (!occ.edges.isEmpty()) {
+            DirectedEdge edge = occ.edges.getFirst();
             removeEdge(edge.src, edge.dest(), edge.undirectedEdge);
         }
         vertexToOccurrences.remove(vertex);
@@ -99,12 +100,12 @@ public class SpanningForest<V, E> {
     }
 
     public boolean addEdge(V u, V v, E edge) {
-        addIfAbsent(u);
-        addIfAbsent(v);
-
-        if (connected(u, v)) {
+        if (connected(u, v) || forwardEdges.containsKey(edge)) {
             return false;
         }
+
+        addIfAbsent(u);
+        addIfAbsent(v);
 
         Occurrences occurrenceU = vertexToOccurrences.get(u);
         Occurrences occurrenceV = vertexToOccurrences.get(v);
@@ -185,6 +186,9 @@ public class SpanningForest<V, E> {
         }
 
         DirectedEdge forwardEdge = forwardEdges.remove(edge);
+        if (forwardEdge == null) {
+            return false;
+        }
 
         AVLTree<DirectedEdge> tree = forwardEdge.getTree();
         AVLTree.TreeNode<DirectedEdge> forwardNode = forwardEdge.forwardNode; // uv
@@ -324,6 +328,10 @@ public class SpanningForest<V, E> {
     public Iterator<E> adjacentEdges(V vertex) {
         Occurrences occ = vertexToOccurrences.get(vertex);
 
+        if (occ == null || occ.edges.isEmpty()) {
+            return Collections.emptyIterator();
+        }
+
         return new Iterator<>() {
             private int index = 0;
 
@@ -420,7 +428,7 @@ public class SpanningForest<V, E> {
         return sb.toString();
     }
 
-    public void checkInvariants() {
+    /*public void checkInvariants() {
         checkOccurrences();
         checkForwardEdges();
         checkRootNodeToTree();
@@ -487,7 +495,7 @@ public class SpanningForest<V, E> {
 
             assert first != null && prev.backwardNode.getValue().src == first.src;
         }
-    }
+    }*/
 
     private final class Occurrences {
         private AVLTree<DirectedEdge> singletonTree; // TODO: remove

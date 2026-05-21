@@ -156,7 +156,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         private void replace(V v1, V v2, int level) {
             SpanningForest<V, E> forest = spanningForests.get(level);
             V smallest = v1; // vertex in the smallest component between T_v1 and T_v2
-            if (forest.componentSize(v1) > forest.componentSize(v2)) {
+            if (forest.treeSize(v1) > forest.treeSize(v2)) {
                 smallest = v2;
             }
 
