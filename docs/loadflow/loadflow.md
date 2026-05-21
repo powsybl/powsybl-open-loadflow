@@ -9,7 +9,7 @@ The main goal of Open Load Flow is to compute a steady state of the network give
 - Regulations that have impact on the steady state have been simulated (ratio tap changing, phase tap changing, AC emulation, etc.)
 
 To get to these conditions, the input network is modeled in bus/view topology (only composed of buses and branches). The load flow mainly has to compute state variables (in AC mode, they are voltage magnitudes $v_i$ and phase angles $\phi_i$ at each bus $i$).
-From this estimation of the state variables, branch equations (detailed in [Grid modeling chapter](#grid-modeling)) let us compute active power flows ($P_ij$ and $P_ji$), reactive power flows ($Q_ij$ and $Q_ji$) at each branch connecting bus $i$ to bus $j$.
+From this estimation of the state variables, branch equations (detailed in [Grid modeling chapter](../detailed_models_description/equations.md#grid-modeling)) let us compute active power flows ($P_ij$ and $P_ji$), reactive power flows ($Q_ij$ and $Q_ji$) at each branch connecting bus $i$ to bus $j$.
 From these power flows, power injection $P_i$ and $Q_i$ at each bus $i$ can be computed.
 
 ## Inner loops: Solving the equation system
@@ -32,7 +32,7 @@ A bus $i$ can also be defined by two equations implying all the branches that ar
 ![Bus equations](bus-equations.svg){class="only-light"}
 ![Bus equations](bus-equations-dark-mode.svg){class="only-dark"}
 
-More details about the equations used are given in [Grid modeling chapter](#grid-modeling).
+More details about the equations used are given in [Grid modeling chapter](../detailed_models_description/equations.md#grid-modeling).
 
 At the end, the number of unknows and equations leads to a complete nonlinear equation system:
 ![Equation system](equation-system.svg){class="only-light"}
