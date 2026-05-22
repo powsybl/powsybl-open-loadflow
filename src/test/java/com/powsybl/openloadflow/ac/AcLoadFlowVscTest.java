@@ -629,7 +629,7 @@ class AcLoadFlowVscTest {
         if (!isDc) {
             runParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
         }
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, runParameters);
         assertTrue(result.isFullyConverged());
         assertReportContains("HVDC line hvdc12 AC emulation switches from linear mode to saturated mode \\(Pmax=1\\.5 MW from station cs1 to station cs2\\)", report);

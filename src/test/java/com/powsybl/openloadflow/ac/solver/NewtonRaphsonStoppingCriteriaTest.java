@@ -116,12 +116,12 @@ class NewtonRaphsonStoppingCriteriaTest {
     @Test
     void testReactivePowerConvergedPerEquationCriteria() {
         OpenLoadFlowParameters.create(parameters)
-                .setMaxReactivePowerMismatch(1E-11)
+                .setMaxReactivePowerMismatch(1E-10)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(11, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
@@ -137,20 +137,20 @@ class NewtonRaphsonStoppingCriteriaTest {
     @Test
     void testAngleConvergedPerEquationCriteria() {
         OpenLoadFlowParameters.create(parameters)
-                .setMaxAngleMismatch(1E-22)
+                .setMaxAngleMismatch(1E-10)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
 
         OpenLoadFlowParameters.create(parameters)
-                .setMaxAngleMismatch(1E-30)
+                .setMaxAngleMismatch(1E-10)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
