@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class AbstractTransformerVoltageControlOuterLoop implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 

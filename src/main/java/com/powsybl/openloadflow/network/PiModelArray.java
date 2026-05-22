@@ -295,6 +295,23 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public boolean clipR1() {
+        if (Double.isNaN(r1)) {
+            return false; // nothing to do because r1 has not been modified
+        }
+        if (r1 < minR1) {
+            r1 = minR1;
+            tapPositionIndex = lowTapPosition;
+            return true;
+        } else if (r1 > maxR1) {
+            r1 = maxR1;
+            tapPositionIndex = lowTapPosition + models.size() - 1;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public boolean shiftOneTapPositionToChangeA1(Direction direction) {
         // an increase direction means that A1 should increase.
         // a decrease direction means that A1 should decrease.

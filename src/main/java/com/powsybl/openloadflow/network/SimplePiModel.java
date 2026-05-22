@@ -154,6 +154,11 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
+    public boolean clipR1() {
+        throw new IllegalStateException("R1 clipping is not supported in simple Pi model implementation");
+    }
+
+    @Override
     public boolean shiftOneTapPositionToChangeA1(Direction direction) {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }

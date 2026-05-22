@@ -106,6 +106,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new SimpleTransformerVoltageControlOuterLoop();
                 case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop(useInitialTapPosition, generatorVoltageControlMinNominalVoltage);
                 case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalTransformerVoltageControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift);
+                case CONTINUOUS_VOLTAGE_CONTROL -> new ContinuousTransformerVoltageControlOuterLoop();
             };
             return Optional.of(outerLoop);
         }

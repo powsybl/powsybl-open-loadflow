@@ -61,6 +61,8 @@ public interface PiModel {
 
     void roundR1ToClosestTap();
 
+    boolean clipR1();
+
     boolean shiftOneTapPositionToChangeA1(Direction direction);
 
     Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection);

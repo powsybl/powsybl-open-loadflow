@@ -473,7 +473,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum TransformerVoltageControlMode {
         WITH_GENERATOR_VOLTAGE_CONTROL,
         AFTER_GENERATOR_VOLTAGE_CONTROL,
-        INCREMENTAL_VOLTAGE_CONTROL
+        INCREMENTAL_VOLTAGE_CONTROL,
+        CONTINUOUS_VOLTAGE_CONTROL
     }
 
     public enum ShuntVoltageControlMode {

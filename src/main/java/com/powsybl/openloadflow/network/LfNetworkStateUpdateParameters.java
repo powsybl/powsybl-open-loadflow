@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+
 import java.util.Objects;
 
 /**
@@ -22,6 +24,8 @@ public class LfNetworkStateUpdateParameters {
 
     private final boolean transformerVoltageControlOn;
 
+    private final OpenLoadFlowParameters.TransformerVoltageControlMode transformerVoltageControlMode;
+
     private final boolean transformerReactivePowerControlOn;
 
     private final boolean loadPowerFactorConstant;
@@ -36,10 +40,11 @@ public class LfNetworkStateUpdateParameters {
 
     private final ReferenceBusSelectionMode referenceBusSelectionMode;
 
-    private boolean simulateAutomationSystems;
+    private final boolean simulateAutomationSystems;
 
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                                          boolean transformerVoltageControlOn, boolean transformerReactivePowerControlOn, boolean loadPowerFactorConstant, boolean dc,
+                                          boolean transformerVoltageControlOn, OpenLoadFlowParameters.TransformerVoltageControlMode transformerVoltageControlMode,
+                                          boolean transformerReactivePowerControlOn, boolean loadPowerFactorConstant, boolean dc,
                                           boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode,
                                           boolean writeReferenceTerminals, ReferenceBusSelectionMode referenceBusSelectionMode,
                                           boolean simulateAutomationSystems) {
@@ -47,6 +52,7 @@ public class LfNetworkStateUpdateParameters {
         this.writeSlackBus = writeSlackBus;
         this.phaseShifterRegulationOn = phaseShifterRegulationOn;
         this.transformerVoltageControlOn = transformerVoltageControlOn;
+        this.transformerVoltageControlMode = transformerVoltageControlMode;
         this.transformerReactivePowerControlOn = transformerReactivePowerControlOn;
         this.loadPowerFactorConstant = loadPowerFactorConstant;
         this.dc = dc;
@@ -71,6 +77,10 @@ public class LfNetworkStateUpdateParameters {
 
     public boolean isTransformerVoltageControlOn() {
         return transformerVoltageControlOn;
+    }
+
+    public OpenLoadFlowParameters.TransformerVoltageControlMode getTransformerVoltageControlMode() {
+        return transformerVoltageControlMode;
     }
 
     public boolean isTransformerReactivePowerControlOn() {
