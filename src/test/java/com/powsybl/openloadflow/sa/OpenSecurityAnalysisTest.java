@@ -1970,8 +1970,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .build();
 
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
-                .setDc(true)
-                .setHvdcAcEmulation(false);
+                .setDc(true);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(loadFlowParameters);
         runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNode);
