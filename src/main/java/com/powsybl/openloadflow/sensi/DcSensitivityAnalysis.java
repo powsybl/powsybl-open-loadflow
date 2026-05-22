@@ -621,7 +621,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     // pre-contingency operator strategies (preventive actions)
                     List<Indexed<OperatorStrategy>> preContingencyOperatorStrategies = operatorStrategiesByContingencyId.getOrDefault(null, Collections.emptyList());
                     if (!preContingencyOperatorStrategies.isEmpty()) {
-                        LOGGER.info("Running pre-contingency operator strategies...");
+                        LOGGER.info("Running preventive operator strategies...");
 
                         for (Indexed<OperatorStrategy> operatorStrategyForBaseCase : preContingencyOperatorStrategies) {
                             if (Thread.currentThread().isInterrupted()) {
