@@ -41,12 +41,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    private static final SlackBusSelector SLACK_BUS_SELECTOR_FALLBACK = new MostMeshedSlackBusSelector();
-
     protected final int numCC;
 
     private final List<LfSynchronousNetwork> synchronousNetworks;
-//    private final int numSC;
 
     protected final SlackBusSelector slackBusSelector;
 
@@ -57,14 +54,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
-
-//    protected LfBus referenceBus;
-
-//    protected List<LfBus> slackBuses = new ArrayList<>();
-
-//    private Set<LfBus> excludedSlackBuses = Collections.emptySet();
-
-//    private LfGenerator referenceGenerator;
 
     private final List<LfBranch> branches = new ArrayList<>();
 
@@ -220,64 +209,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         };
     }
 
-//    protected void invalidateSlackAndReference() {
-//        if (slackBuses != null) {
-//            for (var slackBus : slackBuses) {
-//                slackBus.setSlack(false);
-//            }
-//        }
-//        slackBuses = null;
-//        if (referenceBus != null) {
-//            referenceBus.setReference(false);
-//        }
-//        referenceBus = null;
-//        if (referenceGenerator != null) {
-//            referenceGenerator.setReference(false);
-//        }
-//        referenceGenerator = null;
-//    }
-
     public void updateSlackBusesAndReferenceBus() {
         for (LfSynchronousNetwork lfScNetwork : synchronousNetworks) {
             lfScNetwork.updateSlackBusesAndReferenceBus();
         }
-        // Main component vertex is only meaningful for single-SC networks (security analysis).
-        // For multi-SC (AC-DC) networks, security analysis is not yet supported; leave unset.
-//        if (connectivity != null && synchronousNetworks.size() == 1) {
-//            connectivity.setMainComponentVertex(synchronousNetworks.getFirst().getSlackBuses().getFirst());
-//        }
-
-//        if (slackBuses == null && referenceBus == null) {
-//            List<LfBus> selectableBuses =
-//                    excludedSlackBuses.isEmpty() ? busesByIndex :
-//                            busesByIndex.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
-//            SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
-//            slackBuses = selectedSlackBus.getBuses();
-//            if (slackBuses.isEmpty()) { // ultimate fallback
-//                selectedSlackBus = SLACK_BUS_SELECTOR_FALLBACK.select(selectableBuses, maxSlackBusCount);
-//                if (selectedSlackBus.getBuses().isEmpty()) {
-//                    throw new PowsyblException("No slack bus could be selected");
-//                }
-//                slackBuses = selectedSlackBus.getBuses();
-//            }
-//            LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
-//            for (var slackBus : slackBuses) {
-//                slackBus.setSlack(true);
-//            }
-//            // reference bus must be selected after slack bus, because of ReferenceBusFirstSlackSelector implementation requiring slackBuses
-//            SelectedReferenceBus selectedReferenceBus = referenceBusSelector.select(this);
-//            referenceBus = selectedReferenceBus.getLfBus();
-//            LOGGER.info("Network {}, reference bus is {} (method='{}')", this, referenceBus, selectedReferenceBus.getSelectionMethod());
-//            referenceBus.setReference(true);
-//            if (selectedReferenceBus instanceof SelectedGeneratorReferenceBus generatorReferenceBus) {
-//                referenceGenerator = generatorReferenceBus.getLfGenerator();
-//                LOGGER.info("Network {}, reference generator is {}", this, referenceGenerator.getId());
-//                referenceGenerator.setReference(true);
-//            }
-//            if (connectivity != null) {
-//                connectivity.setMainComponentVertex(slackBuses.get(0));
-//            }
-
     }
 
     private void invalidateZeroImpedanceNetworks() {
@@ -407,34 +342,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public LfBus getBus(int num) {
         return busesByIndex.get(num);
     }
-
-//    public LfBus getReferenceBus() {
-//        updateSlackBusesAndReferenceBus();
-//        return referenceBus;
-//    }
-
-
-//    public List<LfBus> getSlackBuses() {
-//        updateSlackBusesAndReferenceBus();
-//        return slackBuses;
-//    }
-
-//    public Set<LfBus> getExcludedSlackBuses() {
-//        return excludedSlackBuses;
-//    }
-
-//    public void setExcludedSlackBuses(Set<LfBus> excludedSlackBuses) {
-//        Objects.requireNonNull(excludedSlackBuses);
-//        if (!excludedSlackBuses.equals(this.excludedSlackBuses)) {
-//            this.excludedSlackBuses = excludedSlackBuses;
-//            invalidateSlackAndReference();
-//        }
-//    }
-
-//    public LfGenerator getReferenceGenerator() {
-//        updateSlackBusesAndReferenceBus();
-//        return referenceGenerator;
-//    }
 
     public List<LfShunt> getShunts() {
         return shuntsByIndex;
@@ -788,40 +695,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         }
     }
 
-//    private void validateBuses(LoadFlowModel loadFlowModel, ReportNode reportNode) {
-//        // DC or AC, if no generator, network is dead
-//        boolean hasAtLeastOneBusGenerator = false;
-//        for (LfBus bus : busesByIndex) {
-//            if (!bus.getGenerators().isEmpty() || !bus.getConverters().isEmpty()) {
-//                hasAtLeastOneBusGenerator = true;
-//                break;
-//            }
-//        }
-//        if (!hasAtLeastOneBusGenerator) {
-//            // we don't report because this is too much on real networks
-//            LOGGER.debug("Network {} has no generator and will be considered dead", this);
-//            validity = Validity.INVALID_NO_GENERATOR;
-//            return;
-//        }
-//        // AC requires at least one bus under voltage control
-//        if (loadFlowModel == LoadFlowModel.AC) {
-//            boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
-//            for (LfBus bus : busesByIndex) {
-//                if (bus.isGeneratorVoltageControlEnabled() || bus.isVoltageSourceConverterVoltageControlled()) {
-//                    hasAtLeastOneBusGeneratorVoltageControlEnabled = true;
-//                    break;
-//                }
-//            }
-//            if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
-//                LOGGER.warn("Network {} must have at least one bus with generator voltage control enabled", this);
-//                if (reportNode != null) {
-//                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
-//                }
-//                validity = Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL;
-//            }
-//        }
-//    }
-
     public void validate(LoadFlowModel loadFlowModel, ReportNode reportNode) {
         validity = Validity.VALID;
         // The network is valid if each synchronous network is valid
@@ -902,11 +775,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             getBranches().stream()
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
                 .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
-            // Main component vertex is only meaningful for single-SC networks (security analysis).
-            // For multi-SC (AC-DC) networks, security analysis is not yet supported; leave unset.
-            if (synchronousNetworks.size() == 1) {
-                connectivity.setMainComponentVertex(synchronousNetworks.getFirst().getSlackBuses().getFirst());
-            }
+            connectivity.setMainComponentVertex(synchronousNetworks.getFirst().getSlackBuses().getFirst());
             // this is necessary to create a first temporary changes level in order to allow
             // some outer loop to change permanently the connectivity (with automation systems for instance)
             // this one will never be reverted
@@ -1003,9 +872,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         String numSCs = synchronousNetworks.stream()
             .map(LfSynchronousNetwork::getNumSC)
             .map(String::valueOf)
-            .collect(Collectors.joining(", "));
+            .collect(Collectors.joining(","));
         return "{CC" + numCC + " SC" + numSCs + '}';
-    } //FIXME
+    }
 
     public void addSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
         secondaryVoltageControls.add(Objects.requireNonNull(secondaryVoltageControl));

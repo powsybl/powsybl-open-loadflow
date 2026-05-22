@@ -1020,7 +1020,7 @@ class AcDcLoadFlowTest {
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("At least one AC/DC converter control mode must be V_DC", e5.getCause().getMessage());
+        assertEquals("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
     }
 
     @Test
@@ -1030,7 +1030,7 @@ class AcDcLoadFlowTest {
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("Open Load Flow does not support DC networks without a DC ground", e5.getCause().getMessage());
+        assertEquals("Open Load Flow does not support DC components without a DC ground, but DC component 0 does not have any", e5.getCause().getMessage());
     }
 
     @Test

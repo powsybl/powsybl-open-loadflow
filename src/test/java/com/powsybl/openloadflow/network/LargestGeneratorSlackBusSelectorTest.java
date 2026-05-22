@@ -57,7 +57,7 @@ class LargestGeneratorSlackBusSelectorTest {
         var parameters = new LfNetworkParameters()
                 .setSlackBusSelector(new LargestGeneratorSlackBusSelector(5000))
                 .setMaxSlackBusCount(3);
-        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0).getSynchronousNetworks().getFirst(); // FIXME
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0).getSynchronousNetworks().getFirst();
         var slackBusIds = lfNetwork.getSlackBuses().stream().map(LfBus::getId).collect(Collectors.toList());
         assertEquals(List.of("b2_vl_0", "b3_vl_0", "b1_vl_0"), slackBusIds);
     }

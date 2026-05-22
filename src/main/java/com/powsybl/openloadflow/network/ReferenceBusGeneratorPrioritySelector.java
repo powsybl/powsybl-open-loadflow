@@ -41,7 +41,6 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
         } else {
             priority = lfGeneratorsPrioritized.get(0).getReferencePriority();
         }
-        // FIXME to string hidden
         LOGGER.info("Network {}, will select reference generator among generators of priority {}", lfScNetwork, priority);
         // if multiple generators of same priority, select based on highest maxP
         LfGenerator referenceGenerator = lfGenerators.stream()

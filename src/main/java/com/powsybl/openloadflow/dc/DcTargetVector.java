@@ -31,8 +31,6 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
                 targets[equation.getColumn()] = bus.getTargetP();
                 // Only used for multi slack (BUS_TARGET_P equation is disabled for first slack bus)
                 if (bus.isSlack()) {
-                    // As DC load flow does not support AC-DC network, this should always return the first synchronous
-                    // network, i.e. the whole network itself, so compatibility is ensured. FIXME
                     LfSynchronousNetwork lfScNetwork = network.getSynchronousNetwork(bus.getNumSC());
                     targets[equation.getColumn()] += DcLoadFlowEngine.getActivePowerMismatch(lfScNetwork.getBuses()) / lfScNetwork.getSlackBuses().size();
                 }

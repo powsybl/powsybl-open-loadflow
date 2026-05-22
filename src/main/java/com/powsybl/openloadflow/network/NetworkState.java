@@ -55,7 +55,7 @@ public class NetworkState {
         Set<LfBus> excludedSlackBuses = network.getSynchronousNetworks().stream()
             .flatMap(lfScNetwork -> lfScNetwork.getExcludedSlackBuses().stream())
             .collect(Collectors.toSet());
-        return new NetworkState(network, busStates, branchStates, hvdcStates, excludedSlackBuses, areaStates); //FIXME
+        return new NetworkState(network, busStates, branchStates, hvdcStates, excludedSlackBuses, areaStates);
     }
 
     public void restore() {
@@ -66,6 +66,5 @@ public class NetworkState {
         ElementState.restore(areaStates);
         // Set excluded slack buses of each synchronous network
         network.getSynchronousNetworks().forEach(scLfNetwork -> scLfNetwork.setExcludedSlackBuses(excludedSlackBuses));
-        // FIXME
     }
 }

@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2026, SuperGrid Institute (http://www.supergrid-institute.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.report.ReportNode;
@@ -5,7 +12,9 @@ import com.powsybl.commons.report.ReportNode;
 import java.util.List;
 import java.util.Set;
 
+
 /**
+ * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  * Methods specific to a network in a single synchronous component
  */
 public interface LfSynchronousNetwork {
@@ -61,7 +70,14 @@ public interface LfSynchronousNetwork {
      */
     List<LfBus> getBuses();
 
+    /**
+     * Unset slack bus, reference bus and reference generator.
+     */
     void invalidateSlackAndReference();
 
+    /**
+     * If not already set, select the slack buses, the reference bus and the reference generator (if the reference bus
+     * is selected via the reference generator)
+     */
     void updateSlackBusesAndReferenceBus();
 }
