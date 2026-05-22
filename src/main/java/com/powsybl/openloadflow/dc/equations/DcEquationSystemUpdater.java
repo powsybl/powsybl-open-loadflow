@@ -10,10 +10,7 @@ package com.powsybl.openloadflow.dc.equations;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LoadFlowModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import static com.powsybl.openloadflow.equations.EquationTerm.setActive;
@@ -51,7 +48,13 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 break;
-            case BRANCH, HVDC, SHUNT_COMPENSATOR:
+            case HVDC:
+                LfHvdc hvdc = (LfHvdc) element;
+                if (hvdc.isAcEmulation()) {
+                    updateHvdcAcEmulationEquations(hvdc);
+                }
+                break;
+            case BRANCH, SHUNT_COMPENSATOR:
                 // nothing to do
                 break;
             default:
