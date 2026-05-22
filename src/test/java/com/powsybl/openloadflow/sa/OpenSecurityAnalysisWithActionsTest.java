@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.datasource.ResourceDataSource;
+import com.powsybl.commons.datasource.ResourceSet;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -24,11 +26,14 @@ import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -2233,5 +2238,38 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // operator strategy
         OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, opStrat.getId());
         assertEquals(expectedOpStrat, strategyResult.getFinalOperatorStrategyResult().getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testKluIssueBecauseOfVectorization() {
+        Network network = Network.read(new ResourceDataSource("3Nodes1LineOpen", new ResourceSet("/", "3Nodes1LineOpen.uct")));
+
+        List<Contingency> contingencies = List.of(Contingency.line("FFR1AA1  FFR2AA1  1")); // fake contingency because already open
+
+        // the operator strategy is to close FFR1AA1  FFR2AA1  1 and FFR2AA1  FFR3AA1  1
+        OperatorStrategy reconnect = new OperatorStrategy("Close FR1 FR2 and FR2 FR3",
+                ContingencyContext.all(),
+                new TrueCondition(),
+                List.of("Close FR2 FR3", "Close FR1 FR2"));
+        List<OperatorStrategy> operatorStrategies = List.of(reconnect);
+        List<Action> actions = List.of(new TerminalsConnectionAction("Close FR1 FR2", "FFR1AA1  FFR2AA1  1", false),
+                                       new TerminalsConnectionAction("Close FR2 FR3", "FFR2AA1  FFR3AA1  1", false));
+
+        // run the security analysis
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(false);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        MatrixFactory matrixFactory = new SparseMatrixFactory();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setSecurityAnalysisParameters(securityAnalysisParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions);
+        SecurityAnalysisResult result = securityAnalysisProvider.run(network,
+                        network.getVariantManager().getWorkingVariantId(),
+                n -> contingencies, runParameters)
+                .join().getResult();
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getOperatorStrategyResults().getFirst().getStatus());
     }
 }
