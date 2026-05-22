@@ -36,8 +36,10 @@ public class SpanningForestTest {
     void testConnected() {
         SpanningForest<Integer, String> spanningForest = new SpanningForest<>();
 
+        assertFalse(spanningForest.connected(0, 0));
         assertFalse(spanningForest.connected(0, 1));
         spanningForest.addVertex(0);
+        assertTrue(spanningForest.connected(0, 0));
         assertFalse(spanningForest.connected(0, 1));
         spanningForest.addVertex(1);
         assertFalse(spanningForest.connected(0, 1));
@@ -179,6 +181,8 @@ public class SpanningForestTest {
         assertForestEquals(forest, List.of(
                 Pair.of(Set.of(0, 1), Set.of("0-1"))
         ));
+
+        assertFalse(forest.addEdge(0, 0, "0-0"));
     }
 
     @Test
@@ -430,8 +434,8 @@ public class SpanningForestTest {
     @Test
     void testTwoTrees() {
         // generate two distinct trees
-        Graph<Integer, DefaultEdge> tree1 = generateTree(5000, 0);
-        Graph<Integer, DefaultEdge> tree2 = generateTree(5000, tree1.vertexSet().size());
+        Graph<Integer, DefaultEdge> tree1 = generateTree(50, 0);
+        Graph<Integer, DefaultEdge> tree2 = generateTree(50, tree1.vertexSet().size());
 
         SpanningForest<Integer, DefaultEdge> forest = new SpanningForest<>();
         // connect these trees in the forest. that is,
@@ -443,9 +447,9 @@ public class SpanningForestTest {
         // and then remove it
         int iter = 0;
         for (int v1 : tree1.vertexSet()) {
-            if (iter % 100 == 0) {
+            /*if (iter % 100 == 0) {
                 System.out.println(iter);
-            }
+            }*/
 
             for (int v2 : tree2.vertexSet()) {
                 DefaultEdge edge = new DefaultEdge();

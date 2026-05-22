@@ -100,7 +100,7 @@ public class SpanningForest<V, E> {
     }
 
     public boolean addEdge(V u, V v, E edge) {
-        if (connected(u, v) || forwardEdges.containsKey(edge)) {
+        if (u == v || connected(u, v) || forwardEdges.containsKey(edge)) {
             return false;
         }
 
