@@ -274,7 +274,9 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             case MAIN_CONNECTED -> networks.getList().stream()
                     .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
             case MAIN_SYNCHRONOUS -> networks.getList().stream()
-                    .filter(n -> n.getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+                // FIXME Security analysis does not support LfNetwork with several synchronous networks. An earlier stage
+                // safeguard allows to simply look at the first synchronous network.
+                    .filter(n -> n.getSynchronousNetworks().getFirst().getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
             case ALL_CONNECTED -> networks.getList().stream()
                     .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
         };

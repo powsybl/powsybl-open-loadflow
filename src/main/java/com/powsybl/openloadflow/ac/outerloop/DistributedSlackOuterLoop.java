@@ -17,16 +17,13 @@ import com.powsybl.openloadflow.lf.outerloop.AbstractActivePowerDistributionOute
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfAcDcNetwork;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -57,34 +54,28 @@ public class DistributedSlackOuterLoop
 
     @Override
     public void initialize(AcOuterLoopContext context) {
-        List<Integer> synchronousComponentsNumbers = context.getNetwork() instanceof LfAcDcNetwork acDcNetwork
-            ? acDcNetwork.getAcNetworks().stream().map(LfNetwork::getNumSC).toList()
-            : List.of(context.getNetwork().getNumSC());
-        Map<Integer, DistributedSlackContextData> contextData = new HashMap<>();
-        synchronousComponentsNumbers.forEach(numSc -> contextData.put(numSc, new DistributedSlackContextData()));
-        context.setData(contextData);
+        context.setData(new DistributedSlackContextData());
     }
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
-        if (context.getNetwork() instanceof LfAcDcNetwork acDcNetwork) {
-            Map<Integer, Double> slackMismatchPerSynchronousComponent = context.getLastSolverResult().getSlackBusActivePowerMismatch();
-            OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
-            for (LfNetwork acNetwork : acDcNetwork.getAcNetworks()) {
-                OuterLoopResult result = check(acNetwork, slackMismatchPerSynchronousComponent.get(acNetwork.getNumSC()), context, reportNode);
-                if (result.status() == OuterLoopStatus.FAILED) {
-                    return new OuterLoopResult(this, OuterLoopStatus.FAILED); // We do not wait for the outer loops on other synchronous components
-                } else if (result.status() == OuterLoopStatus.UNSTABLE) {
-                    globalStatus = OuterLoopStatus.UNSTABLE;
-                }
+        // FIXME Noisy reports
+        Map<Integer, Double> slackMismatchPerSynchronousComponent = context.getLastSolverResult().getSlackBusActivePowerMismatch();
+        OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
+        for (LfSynchronousNetwork lfScNetwork : context.getNetwork().getSynchronousNetworks()) {
+//            ReportNode scReport = Reports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC());
+            OuterLoopResult result = check(lfScNetwork, slackMismatchPerSynchronousComponent.get(lfScNetwork.getNumSC()), context, reportNode);
+            if (result.status() == OuterLoopStatus.FAILED) {
+                return result; // We do not wait for the outer loops on other synchronous components
+            } else if (result.status() == OuterLoopStatus.UNSTABLE) {
+                globalStatus = OuterLoopStatus.UNSTABLE;
             }
-            return new OuterLoopResult(this, globalStatus);
-        } else {
-            return check(context.getNetwork(), getSlackBusActivePowerMismatch(context), context, reportNode);
         }
+        return new OuterLoopResult(this, globalStatus);
+
     }
 
-    public OuterLoopResult check(LfNetwork network, double slackBusActivePowerMismatch, AcOuterLoopContext context, ReportNode reportNode) {
+    public OuterLoopResult check(LfSynchronousNetwork lfScNetwork, double slackBusActivePowerMismatch, AcOuterLoopContext context, ReportNode reportNode) {
         double absMismatch = Math.abs(slackBusActivePowerMismatch);
         boolean shouldDistributeSlack = absMismatch > slackBusPMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
 
@@ -93,13 +84,13 @@ public class DistributedSlackOuterLoop
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
-        ActivePowerDistribution.Result result = activePowerDistribution.run(network, slackBusActivePowerMismatch);
+        ActivePowerDistribution.Result result = activePowerDistribution.run(lfScNetwork, slackBusActivePowerMismatch);
         ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
-                context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior(),
-                network.getReferenceGenerator(),
-                slackBusActivePowerMismatch,
-                result,
-                "Failed to distribute slack bus active power mismatch, %.2f MW remains"
+            context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior(),
+            lfScNetwork.getReferenceGenerator(),
+            slackBusActivePowerMismatch,
+            result,
+            "Failed to distribute slack bus active power mismatch, %.2f MW remains"
         );
         double remainingMismatch = resultWbh.remainingMismatch();
         double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
@@ -111,10 +102,10 @@ public class DistributedSlackOuterLoop
             }
             ActivePowerDistribution.reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, resultWbh);
         }
-        DistributedSlackContextData contextData = (DistributedSlackContextData) ((Map<?, ?>) context.getData()).get(network.getNumSC());
-        contextData.addDistributedActivePower(distributedActivePower);
+        DistributedSlackContextData contextData = (DistributedSlackContextData) context.getData();
+        contextData.addDistributedActivePower(lfScNetwork.getNumSC(), distributedActivePower);
         if (resultWbh.failed()) {
-            contextData.addDistributedActivePower(-resultWbh.failedDistributedActivePower());
+            contextData.addDistributedActivePower(lfScNetwork.getNumSC(), -resultWbh.failedDistributedActivePower());
             return new OuterLoopResult(this, OuterLoopStatus.FAILED, resultWbh.failedMessage());
         } else {
             return new OuterLoopResult(this, resultWbh.movedBuses() ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
@@ -128,7 +119,6 @@ public class DistributedSlackOuterLoop
 
     @Override
     public double getDistributedActivePower(AcOuterLoopContext context, int numSC) {
-        DistributedSlackContextData contextData = (DistributedSlackContextData) ((Map<?, ?>) context.getData()).get(numSC);
-        return contextData.getDistributedActivePower();
+        return ((DistributedSlackContextData) context.getData()).getDistributedActivePower(numSC);
     }
 }

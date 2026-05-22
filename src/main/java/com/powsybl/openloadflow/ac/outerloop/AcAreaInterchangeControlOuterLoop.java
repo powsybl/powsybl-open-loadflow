@@ -13,13 +13,10 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
-import com.powsybl.openloadflow.lf.outerloop.AreaInterchangeControlContextData;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
@@ -41,14 +38,6 @@ public class AcAreaInterchangeControlOuterLoop
 
     @Override
     public double getDistributedActivePower(AcOuterLoopContext context, int numSC) {
-        if (context.getData() instanceof AreaInterchangeControlContextData contextData) {
-            // This corresponds to AcAreaInterchangeControl outer loop.
-            return contextData.getDistributedActivePower();
-        } else {
-            // This corresponds to the fallback without areas: the DistributedSlack outer loop
-            // in this case, the context data is a Map matching the numSC to the DistributedSlackContextData object
-            DistributedSlackContextData contextData = (DistributedSlackContextData) ((Map<?, ?>) context.getData()).get(numSC);
-            return contextData.getDistributedActivePower();
-        }
+        return ((DistributedSlackContextData) context.getData()).getDistributedActivePower(numSC);
     }
 }

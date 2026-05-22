@@ -441,6 +441,7 @@ class AcLoadFlowReportTest {
                         Network balance: active generation=100 MW, active load=120 MW, reactive generation=0 MVar, reactive load=0 MVar
                         Angle reference bus: b1_vl_0
                         Slack bus: b1_vl_0
+                        Angle reference bus: b2_vl_0
                         Slack bus: b2_vl_0
                      Voltage initialization with method Uniform Values
                      + Newton-Raphson on Network CC0

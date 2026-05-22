@@ -13,10 +13,12 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -27,7 +29,7 @@ class LargestGeneratorSlackBusSelectorTest {
     void test() {
         var network = DistributedSlackNetworkFactory.create();
         var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
-        var slackBus = lfNetwork.getSlackBus();
+        var slackBus = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst();
         assertEquals("b2_vl_0", slackBus.getId());
     }
 
@@ -36,7 +38,7 @@ class LargestGeneratorSlackBusSelectorTest {
         var network = DistributedSlackNetworkFactory.create();
         network.getGenerator("g2").setFictitious(true);
         var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
-        var slackBus = lfNetwork.getSlackBus();
+        var slackBus = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst();
         assertEquals("b3_vl_0", slackBus.getId());
     }
 
@@ -45,7 +47,7 @@ class LargestGeneratorSlackBusSelectorTest {
         var network = DistributedSlackNetworkFactory.create();
         network.getGenerator("g2").setMaxP(10000);
         var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
-        var slackBus = lfNetwork.getSlackBus();
+        var slackBus = lfNetwork.getSynchronousNetworks().get(0).getSlackBuses().get(0);
         assertEquals("b3_vl_0", slackBus.getId());
     }
 
@@ -55,7 +57,7 @@ class LargestGeneratorSlackBusSelectorTest {
         var parameters = new LfNetworkParameters()
                 .setSlackBusSelector(new LargestGeneratorSlackBusSelector(5000))
                 .setMaxSlackBusCount(3);
-        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0);
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0).getSynchronousNetworks().getFirst(); // FIXME
         var slackBusIds = lfNetwork.getSlackBuses().stream().map(LfBus::getId).collect(Collectors.toList());
         assertEquals(List.of("b2_vl_0", "b3_vl_0", "b1_vl_0"), slackBusIds);
     }
@@ -65,7 +67,7 @@ class LargestGeneratorSlackBusSelectorTest {
         Network network = FourSubstationsNodeBreakerFactory.create();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new LargestGeneratorSlackBusSelector(5000)).get(0);
-        LfBus slackBus = lfNetwork.getSlackBus();
+        LfBus slackBus = lfNetwork.getSynchronousNetworks().get(0).getSlackBuses().get(0);
         assertEquals("S2VL1_0", slackBus.getId());
 
         network.getSubstation("S1").setCountry(Country.FR);
@@ -74,13 +76,13 @@ class LargestGeneratorSlackBusSelectorTest {
         network.getSubstation("S4").setCountry(Country.FR);
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new LargestGeneratorSlackBusSelector(5000, Collections.singleton(Country.FR))).get(0);
-        slackBus = lfNetwork.getSlackBus();
+        slackBus = lfNetwork.getSynchronousNetworks().get(0).getSlackBuses().get(0);
         assertEquals("S3VL1_0", slackBus.getId());
 
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new LargestGeneratorSlackBusSelector(5000,
                         Set.of(Country.BE, Country.FR))).get(0);
-        slackBus = lfNetwork.getSlackBus();
+        slackBus = lfNetwork.getSynchronousNetworks().get(0).getSlackBuses().get(0);
         assertEquals("S2VL1_0", slackBus.getId());
     }
 }

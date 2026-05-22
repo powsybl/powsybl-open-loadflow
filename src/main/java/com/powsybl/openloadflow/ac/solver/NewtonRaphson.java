@@ -12,9 +12,9 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.LfAcDcNetwork;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -137,12 +137,8 @@ public class NewtonRaphson extends AbstractAcSolver {
         }
 
         HashMap<Integer, Double> slackBusActivePowerMismatch = new HashMap<>();
-        if (network instanceof LfAcDcNetwork acDcNetwork) {
-            for (LfNetwork acNetwork : acDcNetwork.getAcNetworks()) {
-                slackBusActivePowerMismatch.put(acNetwork.getNumSC(), acNetwork.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum());
-            }
-        } else {
-            slackBusActivePowerMismatch.put(network.getNumSC(), network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum());
+        for (LfSynchronousNetwork lfScNetwork : network.getSynchronousNetworks()) {
+            slackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), lfScNetwork.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum());
         }
 
         return new AcSolverResult(status, iterations.getValue(), slackBusActivePowerMismatch);

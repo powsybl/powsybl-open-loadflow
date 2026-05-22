@@ -58,7 +58,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         ReportNode originalReportNode = network.getReportNode();
         network.setReportNode(Reports.reportVoltageInitializer(reportNode, NAME));
 
-        if (network instanceof LfAcDcNetwork) {
+        if (!network.getDcBuses().isEmpty()) {
             // Throw exception here, otherwise DC load flow will run anyway
             throw new PowsyblException("DC initialization is not yet supported with AcDcNetwork");
         }

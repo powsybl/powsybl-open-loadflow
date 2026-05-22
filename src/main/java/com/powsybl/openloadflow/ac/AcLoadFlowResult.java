@@ -12,12 +12,10 @@ import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfAcDcNetwork;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -28,14 +26,11 @@ import java.util.stream.Collectors;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        List<Integer> synchronousComponentsNumbers = network instanceof LfAcDcNetwork acDcNetwork
-            ? acDcNetwork.getAcNetworks().stream().map(LfNetwork::getNumSC).toList()
-            : List.of(network.getNumSC());
         HashMap<Integer, Double> emptySlackBusActivePowerMismatch = new HashMap<>();
         HashMap<Integer, Double> emptyDistributedActivePower = new HashMap<>();
-        synchronousComponentsNumbers.forEach(synchronousComponentNumber -> {
-            emptySlackBusActivePowerMismatch.put(synchronousComponentNumber, Double.NaN);
-            emptyDistributedActivePower.put(synchronousComponentNumber, Double.NaN);
+        network.getSynchronousNetworks().forEach(lfScNetwork -> {
+            emptySlackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), Double.NaN);
+            emptyDistributedActivePower.put(lfScNetwork.getNumSC(), Double.NaN);
         });
         return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), emptySlackBusActivePowerMismatch, emptyDistributedActivePower);
     }

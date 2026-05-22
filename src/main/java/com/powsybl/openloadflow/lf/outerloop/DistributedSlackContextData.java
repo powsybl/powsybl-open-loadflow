@@ -7,19 +7,26 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * Keeps track of distributed active power
+ * Keeps track of distributed active power per synchronous component.
  *
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 public class DistributedSlackContextData {
-    private double distributedActivePower = 0.0;
+    private final Map<Integer, Double> distributedActivePowerByNumSC = new HashMap<>();
 
-    public double getDistributedActivePower() {
-        return distributedActivePower;
+    public double getDistributedActivePower(int numSC) {
+        return distributedActivePowerByNumSC.getOrDefault(numSC, 0.0);
     }
 
-    public void addDistributedActivePower(double addedDistributedActivePower) {
-        distributedActivePower += addedDistributedActivePower;
+    public double getDistributedActivePower() {
+        return distributedActivePowerByNumSC.values().stream().mapToDouble(Double::doubleValue).sum();
+    }
+
+    public void addDistributedActivePower(int numSC, double addedDistributedActivePower) {
+        distributedActivePowerByNumSC.merge(numSC, addedDistributedActivePower, Double::sum);
     }
 }

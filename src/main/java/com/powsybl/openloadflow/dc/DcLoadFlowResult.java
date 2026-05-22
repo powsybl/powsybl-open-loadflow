@@ -29,11 +29,11 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
     public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch, double distributedActivePower) {
         super(network,
-            // In DC load flow, there is one synchronous component par LfNetwork
-            Collections.singletonMap(network.getNumSC(), slackBusActivePowerMismatch),
+            // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
+            Collections.singletonMap(network.getSynchronousNetworks().getFirst().getNumSC(), slackBusActivePowerMismatch),
             outerLoopIterations,
             outerLoopResult,
-            Collections.singletonMap(network.getNumSC(), distributedActivePower)
+            Collections.singletonMap(network.getSynchronousNetworks().getFirst().getNumSC(), distributedActivePower)
         );
         this.solverSuccess = solverSuccess;
     }
@@ -64,8 +64,9 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         return "DcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
             + ", solverSuccess=" + solverSuccess
             + ", outerLoopStatus=" + outerLoopResult.status()
-            + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch.get(network.getNumSC()) * PerUnit.SB
-            + ", distributedActivePower=" + distributedActivePower.get(network.getNumSC()) * PerUnit.SB
+            // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
+            + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch.get(network.getSynchronousNetworks().getFirst().getNumSC()) * PerUnit.SB
+            + ", distributedActivePower=" + distributedActivePower.get(network.getSynchronousNetworks().getFirst().getNumSC()) * PerUnit.SB
             + ")";
     }
 }

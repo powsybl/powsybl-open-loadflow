@@ -11,7 +11,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
-import com.powsybl.openloadflow.network.LfAcDcNetwork;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -41,11 +40,11 @@ public class FullVoltageInitializer implements VoltageInitializer {
 
     @Override
     public void prepare(LfNetwork network, ReportNode reportNode) {
-        ReportNode initReportNode = Reports.reportVoltageInitializer(reportNode, NAME);
-        if (network instanceof LfAcDcNetwork) {
-            // Throw exception here, otherwise DC load flow will run anyway by angle initializer
+        if (!network.getDcBuses().isEmpty()) {
             throw new PowsyblException("Full voltage initialization is not yet supported with AcDcNetwork");
         }
+
+        ReportNode initReportNode = Reports.reportVoltageInitializer(reportNode, NAME);
         magnitudeInitializer.prepare(network, initReportNode);
         angleInitializer.prepare(network, initReportNode);
     }

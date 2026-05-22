@@ -78,7 +78,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case BUS_DISTR_SLACK_P :
-                targets[column] = network.getBus(elementNum).getTargetP() - network.getSlackBuses().get(0).getTargetP();
+                int busNumSc = network.getBus(elementNum).getNumSC();
+                List<LfSynchronousNetwork> a = network.getSynchronousNetworks().stream().filter(scNetwork -> scNetwork.getNumSC() == busNumSc).toList();
+                assert a.size() == 1; // FIXME
+                targets[column] = network.getBus(elementNum).getTargetP() - a.getFirst().getSlackBuses().get(0).getTargetP();
                 break;
 
             case BUS_TARGET_Q:

@@ -191,7 +191,7 @@ class OpenLoadFlowParametersTest {
                 olfParameters.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), Collections.emptySet());
         List<LfNetwork> lfNetworks = Networks.load(EurostagFactory.fix(EurostagTutorialExample1Factory.create()), slackBusSelector);
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId()); // fallback to automatic method.
+        assertEquals("VLHV1_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId()); // fallback to automatic method.
     }
 
     @Test

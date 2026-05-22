@@ -236,7 +236,7 @@ public final class ConnectivityBreakAnalysis {
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, operatorStrategy, lfNetwork, elementsToReconnect,
                         new DisabledElements(disabledBuses, connectivity.getEdgesRemovedFromMainComponent(), hvdcsWithoutPower),
-                        connectivity.getConnectedComponent(lfNetwork.getSlackBus()), createdSynchronousComponents);
+                        connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst()), createdSynchronousComponents);
             }
         } finally {
             connectivity.undoTemporaryChanges();

@@ -846,6 +846,13 @@ public final class Reports {
                 .build();
     }
 
+    public static ReportNode createLfSynchronousNetworkReportNode(ReportNode firstRootReportNode, int networkNumSc) {
+        return firstRootReportNode.newReportNode()
+            .withMessageTemplate("olf.scNetwork")
+            .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+            .add();
+    }
+
     public static ReportNode includeLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode) {
         reportNode.include(lfNetworkReportNode);
         return lfNetworkReportNode;

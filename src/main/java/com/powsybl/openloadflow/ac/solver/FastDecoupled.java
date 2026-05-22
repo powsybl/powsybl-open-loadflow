@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -337,7 +338,9 @@ public class FastDecoupled extends AbstractAcSolver {
             AcSolverUtil.updateNetwork(network, equationSystem);
         }
 
-        double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(status, iterations.intValue(), Collections.singletonMap(network.getNumSC(), slackBusActivePowerMismatch));
+        // This solver does not support AC-DC networks. Thus, the LfNetwork contains only one synchronous component
+        LfSynchronousNetwork lfScNetwork = network.getSynchronousNetworks().getFirst();
+        double slackBusActivePowerMismatch = lfScNetwork.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
+        return new AcSolverResult(status, iterations.intValue(), Collections.singletonMap(lfScNetwork.getNumSC(), slackBusActivePowerMismatch));
     }
 }

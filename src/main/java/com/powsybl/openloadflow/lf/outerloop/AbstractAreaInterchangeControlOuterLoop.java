@@ -12,7 +12,10 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfArea;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -74,7 +77,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
     @Override
     public void initialize(O context) {
         LfNetwork network = context.getNetwork();
-        if (network instanceof LfAcDcNetwork acDcNetwork && acDcNetwork.getSynchronousComponentCount() > 1) {
+        if (network.getSynchronousNetworks().size() > 1) { // FIXME
             throw new PowsyblException("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components");
         }
         if (!network.hasArea() && noAreaOuterLoop != null) {
@@ -274,7 +277,8 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
 
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         AreaInterchangeControlContextData contextData = (AreaInterchangeControlContextData) context.getData();
-        contextData.addDistributedActivePower(totalDistributedActivePower);
+        int numSC = context.getNetwork().getSynchronousNetworks().getFirst().getNumSC();
+        contextData.addDistributedActivePower(numSC, totalDistributedActivePower);
         if (!remainingMismatches.isEmpty()) {
             reportAndLogAreaActivePowerDistributionFailure(iterationReportNode, remainingMismatches);
             switch (context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior()) {
@@ -286,7 +290,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
                     // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last solver (DC, NR, ...) run.
                     // Since we will not be re-running the solver, revert distributedActivePower reporting which would otherwise be misleading.
                     // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
-                    contextData.addDistributedActivePower(-totalDistributedActivePower);
+                    contextData.addDistributedActivePower(numSC, -totalDistributedActivePower);
                     return new OuterLoopResult(this, OuterLoopStatus.FAILED, FAILED_TO_DISTRIBUTE_ACTIVE_POWER_MISMATCH);
                 }
                 default -> throw new IllegalStateException("Unexpected SlackDistributionFailureBehavior value");
@@ -333,7 +337,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
 
     protected Map<String, Double> allocateSlackDistributionParticipationFactors(LfNetwork lfNetwork) {
         Map<String, Double> slackDistributionFactorByAreaId = new HashMap<>();
-        List<LfBus> slackBuses = lfNetwork.getSlackBuses();
+        List<LfBus> slackBuses = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses();
         int totalSlackBusCount = slackBuses.size();
         for (LfBus slackBus : slackBuses) {
             Optional<LfArea> areaOpt = slackBus.getArea();
