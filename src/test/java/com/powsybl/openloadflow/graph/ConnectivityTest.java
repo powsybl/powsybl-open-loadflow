@@ -8,12 +8,18 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
+import org.jgrapht.Graph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.generate.ScaleFreeGraphGenerator;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DefaultUndirectedGraph;
+import org.jgrapht.util.SupplierUtil;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -490,6 +496,159 @@ class ConnectivityTest {
         assertEquals(Set.of(1, 2), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of("1-2", "2-3"), c.getEdgesRemovedFromMainComponent());
         // 1---2   3---4---5   6
+    }
+
+    @Test
+    void fishTest() {
+        //  0     2
+        //  |\  ／ |＼
+        //  | 1    |  5
+        //  |/  ＼ |／
+        //  4     3
+
+        HolmEtAlGraphConnectivity<Integer, String> connectivity = new HolmEtAlGraphConnectivity<>();
+        for (int i = 0; i < 6; i++) {
+            connectivity.addVertex(i);
+        }
+
+        connectivity.addEdge(0, 1, "0-1");
+        connectivity.addEdge(2, 1, "2-1");
+        connectivity.addEdge(3, 1, "3-1");
+        connectivity.addEdge(3, 2, "3-2");
+        connectivity.addEdge(0, 4, "0-4");
+        connectivity.addEdge(1, 4, "1-4");
+        connectivity.addEdge(2, 5, "2-5");
+        connectivity.addEdge(5, 3, "5-3");
+
+        // order of removal is important
+        connectivity.removeEdge("0-1");
+        connectivity.removeEdge("2-1");
+        connectivity.removeEdge("3-1");
+        connectivity.removeEdge("3-2");
+
+        connectivity.startTemporaryChanges();
+        assertEquals(2, connectivity.getNbConnectedComponents());
+    }
+
+    @Test
+    void randomGraph() {
+        List<GraphConnectivityFactory<Integer, DefaultEdge>> factories = List.of(
+                new NaiveGraphConnectivityFactory<>(i -> i),
+                //new MinimumSpanningTreeGraphConnectivityFactory<>(),
+                new HolmEtAlGraphConnectivityFactory<>()
+        );
+
+        int minSize = Integer.MAX_VALUE;
+        int bestSeed = 0;
+        for (int seed = 0; seed < 100_000; seed++) {
+            if (seed % 1000 == 0) {
+                System.out.println(seed);
+            }
+
+            for (int size = 1; size < minSize; size++) {
+                try {
+                    List<GraphConnectivity<Integer, DefaultEdge>> connectivities = factories.stream()
+                            .map(GraphConnectivityFactory::create)
+                            .toList();
+
+                    Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
+
+                    // add all vertices
+                    addVertices(graph, connectivities);
+
+                    // fully connect in connectivity
+                    connect(graph, connectivities);
+
+                    // then fully disconnect
+                    disconnect(graph, connectivities);
+                } catch (Throwable t) {
+                    minSize = size;
+                    bestSeed = seed;
+                    System.out.println("New min size: " + minSize);
+                    break;
+                }
+            }
+
+        }
+
+        System.out.println(bestSeed + " -> " + minSize);
+    }
+
+    private static void addVertices(Graph<Integer, DefaultEdge> graph, List<GraphConnectivity<Integer, DefaultEdge>> connectivities) {
+        int i = 0;
+        for (Integer vertex : graph.vertexSet()) {
+            Integer expected = null;
+
+            for (GraphConnectivity<Integer, DefaultEdge> connectivity : connectivities) {
+                connectivity.addVertex(vertex);
+
+                connectivity.startTemporaryChanges();
+                if (expected == null) {
+                    expected = connectivity.getNbConnectedComponents();
+                } else {
+                    assertEquals(expected, connectivity.getNbConnectedComponents(), "at " + i + " with " + connectivity.getClass().getName());
+                }
+                connectivity.undoTemporaryChanges();
+            }
+            i++;
+        }
+    }
+
+    private static void connect(Graph<Integer, DefaultEdge> graph, List<GraphConnectivity<Integer, DefaultEdge>> connectivities) {
+        int i = 0;
+        for (DefaultEdge edge : graph.edgeSet()) {
+            Integer expected = null;
+            // System.out.println("touch " + edge);
+
+            for (GraphConnectivity<Integer, DefaultEdge> connectivity : connectivities) {
+                connectivity.addEdge(graph.getEdgeSource(edge), graph.getEdgeTarget(edge), edge);
+
+                connectivity.startTemporaryChanges();
+                if (expected == null) {
+                    expected = connectivity.getNbConnectedComponents();
+                } else {
+                    assertEquals(expected, connectivity.getNbConnectedComponents(), "at " + i + " with " + connectivity.getClass().getName());
+                }
+                connectivity.undoTemporaryChanges();
+            }
+            i++;
+        }
+    }
+
+    private static void disconnect(Graph<Integer, DefaultEdge> graph, List<GraphConnectivity<Integer, DefaultEdge>> connectivities) {
+        int i = 0;
+        for (DefaultEdge edge : graph.edgeSet()) {
+            Integer expected = null;
+            // System.out.println("rm " + edge);
+
+            for (GraphConnectivity<Integer, DefaultEdge> connectivity : connectivities) {
+                connectivity.removeEdge(edge);
+
+                connectivity.startTemporaryChanges();
+                if (expected == null) {
+                    expected = connectivity.getNbConnectedComponents();
+                } else {
+                    assertEquals(expected, connectivity.getNbConnectedComponents(), "at " + i + " with " + connectivity.getClass().getName());
+                }
+                connectivity.undoTemporaryChanges();
+            }
+            i++;
+        }
+    }
+
+    private Graph<Integer, DefaultEdge> generateGraph(int vertexCount, int seed) {
+        Graph<Integer, DefaultEdge> graph = new DefaultUndirectedGraph<>(
+                SupplierUtil.createIntegerSupplier(), SupplierUtil.createDefaultEdgeSupplier(),
+                false);
+
+        // https://mathworld.wolfram.com/Scale-FreeNetwork.html
+        // many vertices with low degree
+        // and many vertices with high degree
+        ScaleFreeGraphGenerator<Integer, DefaultEdge> gen =
+                new ScaleFreeGraphGenerator<>(vertexCount, new Random(seed)); // 70 -> 6
+        gen.generateGraph(graph);
+
+        return graph;
     }
 
     private static Stream<Arguments> provideNonRestrictedConnectivities() {

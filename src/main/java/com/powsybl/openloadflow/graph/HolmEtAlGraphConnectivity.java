@@ -140,16 +140,16 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             edgeInfos.put(e, new EdgeInfo<>(0, treeEdge, v1, v2));
         }
 
-        private void promoteTreeEdges(V representative, int currentLevel, int newLevel) {
+        private void promoteTreeEdges(V representative, int currentLevel) {
+            int newLevel = currentLevel + 1;
             SpanningForest<V, E> forest = spanningForests.get(currentLevel);
             SpanningForest<V, E> newForest = spanningForests.get(newLevel);
 
             for (Iterator<E> it = forest.edgesInComponent(representative); it.hasNext();) {
                 E edge = it.next();
-                V src = getEdgeSource(edge);
-                V dest = getEdgeTarget(edge);
-
-                newForest.addEdge(src, dest, edge);
+                EdgeInfo<V> info = edgeInfos.get(edge);
+                info.level = newLevel;
+                newForest.addEdge(info.src, info.dest, edge);
             }
         }
 
@@ -161,7 +161,7 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             }
 
             // promote edges of the smallest tree
-            promoteTreeEdges(smallest, level, level + 1);
+            promoteTreeEdges(smallest, level);
 
             // iterate over all incident non-tree edges of level 'level' to the smallest tree
             for (Iterator<V> it = forest.verticesInComponent(smallest); it.hasNext();) {
