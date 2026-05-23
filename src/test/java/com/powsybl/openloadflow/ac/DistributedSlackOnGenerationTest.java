@@ -22,13 +22,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -869,5 +863,23 @@ class DistributedSlackOnGenerationTest {
         assertTrue(result.isFullyConverged());
         assertEquals(0.0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.15, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testNegligibleRemainingMismatch() {
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        network.getGenerator("g1").setMaxP(115);
+        network.getGenerator("g2").setMaxP(245);
+        network.getGenerator("g3").setMaxP(105);
+        network.getGenerator("g4").setMaxP(135);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged()); // Load flow succeeds maxP are just high enough to distribute the entire slack mismatch
+
+        network.getGenerator("g1").setMaxP(114.999);
+        network.getGenerator("g2").setMaxP(244.999);
+        network.getGenerator("g3").setMaxP(104.999);
+        network.getGenerator("g4").setMaxP(134.999);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged()); // All generators are at maxP but remaining mismatch is negligible ( < slackBusMaxMismatch), load flow should succeed
     }
 }
