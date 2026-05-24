@@ -168,9 +168,6 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                             + Outer loop iteration 3
                                1 reactive power-controlled branches are outside of their target deadbands
                          Outer loop ReactiveLimits
-                         + Outer loop IncrementalTransformerReactivePowerControl
-                            + Outer loop iteration 3
-                               1 reactive power-controlled branches are outside of their target deadbands
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
 
@@ -234,7 +231,6 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                             + Outer loop iteration 1
                                + 1 bus(es) with remote reactive power controller switched PQ
                                   Remote reactive power controller bus 'b4_vl_0' -> PQ, q=-3.49137 < minQ=-3
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
 

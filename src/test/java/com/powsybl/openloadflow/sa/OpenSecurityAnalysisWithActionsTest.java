@@ -621,8 +621,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                             + Outer loop iteration 8
                                Slack bus active power (-6.481646 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop DistributedSlack
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
 

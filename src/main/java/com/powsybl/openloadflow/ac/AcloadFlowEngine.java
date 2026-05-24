@@ -64,6 +64,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         private OuterLoopResult lastOuterLoopResult = OuterLoopResult.stable();
 
         private AcOuterLoop lastUnrealisticStateFixingLoop;
+
+        private AcOuterLoop lastUnstableOuterLoop;
     }
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext, boolean checkUnrealistic) {
@@ -93,6 +95,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                             runningContext.outerLoopTotalIterations + 1,
                             outerLoop.getName());
                 }
+
+                // Keep track that this outer loop went through unstable state.
+                runningContext.lastUnstableOuterLoop = outerLoop;
 
                 // if not yet stable, restart solver
                 runningContext.lastSolverResult = runAcSolverAndCheckRealisticState(solver, new PreviousValueVoltageInitializer(), reportNode, checkUnrealistic,
@@ -258,9 +263,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
                 // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
-                    runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), solver, runningContext, checkUnrealisticStates);
+                    AcOuterLoop outerLoop = outerLoopAndContext.getLeft();
+                    if (outerLoop == runningContext.lastUnstableOuterLoop) {
+                        // We went through all other outer loops and none of them modified anything -> we are done.
+                        break;
+                    }
+                    runOuterLoop(outerLoop, outerLoopAndContext.getRight(), solver, runningContext, checkUnrealisticStates);
 
-                    if (outerLoopAndContext.getLeft() == runningContext.lastUnrealisticStateFixingLoop) {
+                    if (outerLoop == runningContext.lastUnrealisticStateFixingLoop) {
                         checkUnrealisticStates = true;
                     }
 
