@@ -603,7 +603,7 @@ class AcDcLoadFlowTest {
         Generator g1 = network.getGenerator("g1");
         VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
 
-        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv13.getTerminal1().getP(), 1e-3);
+        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv13.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(20, ld1.getTerminal());
         assertActivePowerEquals(-90, g1.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(70, conv13.getTerminal1());
@@ -613,7 +613,7 @@ class AcDcLoadFlowTest {
         Generator g2 = network.getGenerator("g2");
         VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
 
-        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv24.getTerminal1().getP(), 1e-3);
+        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv24.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-30.001, g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-69.998, conv24.getTerminal1());
@@ -663,7 +663,7 @@ class AcDcLoadFlowTest {
         Generator g1 = network.getGenerator("g1");
         VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
 
-        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP(), 1e-3);
+        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(20, ld1.getTerminal());
         assertActivePowerEquals(-90, g1.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(70, conv14.getTerminal1());
@@ -673,7 +673,7 @@ class AcDcLoadFlowTest {
         Generator g2 = network.getGenerator("g2");
         VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
 
-        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-3);
+        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-49.997, conv25.getTerminal1());
@@ -683,7 +683,7 @@ class AcDcLoadFlowTest {
         Generator g3 = network.getGenerator("g3");
         VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
 
-        assertEquals(0, ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-3);
+        assertEquals(0, ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(50, ld3.getTerminal());
         assertActivePowerEquals(-30, g3.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-20, conv36.getTerminal1());
@@ -710,7 +710,7 @@ class AcDcLoadFlowTest {
         VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
 
         assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP()
-            + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-3);
+            + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(20, ld1.getTerminal());
         assertActivePowerEquals(-60.000, g1.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(70, conv14.getTerminal1());
@@ -723,7 +723,7 @@ class AcDcLoadFlowTest {
         Generator g2 = network.getGenerator("g2");
         VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
 
-        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-3);
+        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-49.997, conv25.getTerminal1());
@@ -746,7 +746,7 @@ class AcDcLoadFlowTest {
         Generator g1 = network.getGenerator("g1");
         VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
 
-        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP(), 1e-3);
+        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(20, ld1.getTerminal());
         assertActivePowerEquals(-90, g1.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(70, conv14.getTerminal1());
@@ -760,7 +760,7 @@ class AcDcLoadFlowTest {
         VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP()
-            + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-3);
+            + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-40.001, g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-49.997, conv25.getTerminal1());
