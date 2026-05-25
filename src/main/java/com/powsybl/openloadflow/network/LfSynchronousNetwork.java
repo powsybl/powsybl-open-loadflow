@@ -12,7 +12,6 @@ import com.powsybl.commons.report.ReportNode;
 import java.util.List;
 import java.util.Set;
 
-
 /**
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  * Methods specific to a network in a single synchronous component

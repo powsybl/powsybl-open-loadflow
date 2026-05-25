@@ -518,5 +518,3 @@ class LfNetworkTest extends AbstractSerDeTest {
             "No slack bus could be selected");
     }
 }
-
-// TODO add tests calling LfSynchronousNetwork. e.g. validity

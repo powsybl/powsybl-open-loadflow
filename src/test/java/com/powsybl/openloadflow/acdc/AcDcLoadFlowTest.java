@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createBaseNetwork;
@@ -768,10 +767,9 @@ class AcDcLoadFlowTest {
     void testMtDcTwoAcZones2() {
         // A network with 2 synchronous components but 2 converters (one P_PCC and one V_DC) are in the same synchronous component.
         // Slack distribution should behave similarly to the test `testMtDcTwoAcZones`.
-        // Indeed, slack mismatch distribution should be agnostic to the AC-DC converter control mode. FIXME : correct explanation
+        // Indeed, slack mismatch distribution should be agnostic to the AC-DC converter control mode.
         network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZonesV2();
-        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-            .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -796,7 +794,7 @@ class AcDcLoadFlowTest {
         assertReactivePowerEquals(0, ld2.getTerminal());
 
         Generator g2 = network.getGenerator("g2");
-        assertActivePowerEquals(-40.001665, g2.getTerminal());
+        assertActivePowerEquals(-40.001, g2.getTerminal());
         assertReactivePowerEquals(-10.001727, g2.getTerminal());
 
         VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");

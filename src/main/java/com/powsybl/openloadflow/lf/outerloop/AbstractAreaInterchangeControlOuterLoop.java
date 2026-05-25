@@ -77,7 +77,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
     @Override
     public void initialize(O context) {
         LfNetwork network = context.getNetwork();
-        if (network.getSynchronousNetworks().size() > 1) { // FIXME
+        if (network.getSynchronousNetworks().size() > 1) {
             throw new PowsyblException("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components");
         }
         if (!network.hasArea() && noAreaOuterLoop != null) {
