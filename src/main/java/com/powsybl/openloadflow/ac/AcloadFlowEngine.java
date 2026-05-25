@@ -194,7 +194,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         );
 
         RunningContext runningContext = new RunningContext();
-        HashMap<Integer, Double> distributedActivePowerPerSc = new HashMap<>();
+        Map<Integer, Double> distributedActivePowerPerSc = new HashMap<>();
         context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> distributedActivePowerPerSc.put(lfScNetwork.getNumSC(), 0.0));
 
         // Verify whether a regulated bus voltage exists.
@@ -209,7 +209,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         if (!hasVoltageRegulatedBus) {
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
             Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
-            HashMap<Integer, Double> nonInitializedSlackMismatch = new HashMap<>();
+            Map<Integer, Double> nonInitializedSlackMismatch = new HashMap<>();
             context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> nonInitializedSlackMismatch.put(lfScNetwork.getNumSC(), Double.NaN));
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, nonInitializedSlackMismatch);
             return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePowerPerSc);

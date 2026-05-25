@@ -310,7 +310,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         // create networks including all necessary switches
         LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
         if (lfNetwork.getSynchronousNetworks().size() > 1) {
-            throw new PowsyblException("AC sensitivity analysis does not support multiple synchronous components (AC-DC networks)");
+            throw new PowsyblException("AC sensitivity analysis does not support multiple synchronous components");
         }
 
         ReportNode networkReportNode = lfNetwork.getReportNode();

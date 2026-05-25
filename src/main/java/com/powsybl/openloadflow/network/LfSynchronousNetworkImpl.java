@@ -16,6 +16,9 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
+ * Implementation of LfSynchronousNetwork that provides a filtered view of LfNetwork buses for a single synchronous
+ * component.
+ *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
 public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
@@ -92,9 +95,10 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
 
     @Override
     public LfNetwork.Validity validateBuses(LoadFlowModel loadFlowModel, ReportNode reportNode) {
+        List<LfBus> buses = getBuses();
         // DC or AC, if no generator, network is dead
         boolean hasAtLeastOneBusGenerator = false;
-        for (LfBus bus : getBuses()) {
+        for (LfBus bus : buses) {
             if (!bus.getGenerators().isEmpty() || !bus.getConverters().isEmpty()) {
                 hasAtLeastOneBusGenerator = true;
                 break;
@@ -108,7 +112,7 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
         // AC requires at least one bus under voltage control
         if (loadFlowModel == LoadFlowModel.AC) {
             boolean hasAtLeastOneBusGeneratorVoltageControlEnabled = false;
-            for (LfBus bus : getBuses()) {
+            for (LfBus bus : buses) {
                 if (bus.isGeneratorVoltageControlEnabled() || bus.isVoltageSourceConverterVoltageControlled()) {
                     hasAtLeastOneBusGeneratorVoltageControlEnabled = true;
                     break;

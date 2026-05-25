@@ -447,7 +447,7 @@ class AcLoadFlowReportTest {
                      + Network info
                         Network has 2 buses and 0 branches
                         Network balance: active generation=100 MW, active load=120 MW, reactive generation=0 MVar, reactive load=0 MVar
-                        + SC1
+                        + SC0
                            Angle reference bus: b1_vl_0
                            Slack bus: b1_vl_0
                         + SC1

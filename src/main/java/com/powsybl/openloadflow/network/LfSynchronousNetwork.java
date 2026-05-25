@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * Methods specific to a network in a single synchronous component.
+ *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
- * Methods specific to a network in a single synchronous component
  */
 public interface LfSynchronousNetwork {
 
@@ -57,7 +58,7 @@ public interface LfSynchronousNetwork {
      * least one generator controls voltage
      *
      * @param loadFlowModel either AC or DC
-     * @param reportNode:   A report node object
+     * @param reportNode    A report node object
      * @return Whether this synchronous component is valid
      */
     LfNetwork.Validity validateBuses(LoadFlowModel loadFlowModel, ReportNode reportNode);

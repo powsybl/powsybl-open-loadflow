@@ -28,6 +28,7 @@ class LfSynchronousNetworkImplTest {
 
     @BeforeEach
     void setUp() {
+        // We create a network with several synchronous components.
         network = AcDcNetworkFactory.createMtDcNetworkWithThreeAcZones();
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
         lfNetwork = Networks.load(network, params).getFirst();

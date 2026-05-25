@@ -18,14 +18,26 @@ import java.util.Map;
 public class DistributedSlackContextData {
     private final Map<Integer, Double> distributedActivePowerByNumSC = new HashMap<>();
 
+    /**
+     * Get the distributed active power in a synchronous component.
+     * @param numSC number of the synchronous component
+     */
     public double getDistributedActivePower(int numSC) {
         return distributedActivePowerByNumSC.getOrDefault(numSC, 0.0);
     }
 
+    /**
+     * Get the overall distributed active power.
+     */
     public double getDistributedActivePower() {
         return distributedActivePowerByNumSC.values().stream().mapToDouble(Double::doubleValue).sum();
     }
 
+    /**
+     * Update the distributed active power in a synchronous component.
+     * @param numSC number of the synchronous component
+     * @param addedDistributedActivePower new distributed active power to be added (can be negative).
+     */
     public void addDistributedActivePower(int numSC, double addedDistributedActivePower) {
         distributedActivePowerByNumSC.merge(numSC, addedDistributedActivePower, Double::sum);
     }

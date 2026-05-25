@@ -15,6 +15,10 @@ import com.powsybl.openloadflow.util.PerUnit;
  */
 public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
+    /**
+     * A simple network with 3 AC buses and an asymmetrical monopole DC connection.
+     * The network does not contain any AC-DC converter.
+     */
     public static Network createBaseNetwork() {
         Network network = Network.create("vsc", "test");
 
@@ -131,6 +135,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    /**
+     * A simple network with 3 AC buses and a bipolar DC connection with metallic return.
+     * The network does not contain any AC-DC converter.
+     */
     public static Network createBipolarBaseNetwork() {
         Network network = Network.create("vsc", "test");
 
