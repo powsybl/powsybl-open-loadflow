@@ -59,16 +59,26 @@ public class DistributedSlackOuterLoop
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
-        // FIXME Noisy reports
         Map<Integer, Double> slackMismatchPerSynchronousComponent = context.getLastSolverResult().getSlackBusActivePowerMismatch();
+
+        if (context.getNetwork().getSynchronousNetworks().size() == 1) {
+            LfSynchronousNetwork lfScNetwork = context.getNetwork().getSynchronousNetworks().getFirst();
+            return check(lfScNetwork, slackMismatchPerSynchronousComponent.get(lfScNetwork.getNumSC()), context, reportNode);
+        }
+
         OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
         for (LfSynchronousNetwork lfScNetwork : context.getNetwork().getSynchronousNetworks()) {
-//            ReportNode scReport = Reports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC());
-            OuterLoopResult result = check(lfScNetwork, slackMismatchPerSynchronousComponent.get(lfScNetwork.getNumSC()), context, reportNode);
+            // We create one sub-report per synchronous component
+            ReportNode synchronousNetworkReport = Reports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC());
+            OuterLoopResult result = check(lfScNetwork, slackMismatchPerSynchronousComponent.get(lfScNetwork.getNumSC()), context, synchronousNetworkReport);
             if (result.status() == OuterLoopStatus.FAILED) {
                 return result; // We do not wait for the outer loops on other synchronous components
             } else if (result.status() == OuterLoopStatus.UNSTABLE) {
                 globalStatus = OuterLoopStatus.UNSTABLE;
+            }
+            // Include synchronous network report node only if something was reported.
+            if (!synchronousNetworkReport.getChildren().isEmpty()) {
+                reportNode.include(synchronousNetworkReport);
             }
         }
         return new OuterLoopResult(this, globalStatus);

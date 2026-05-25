@@ -734,9 +734,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
                     lfNetwork.reportSize(networkReport);
                     lfNetwork.reportBalance(networkReport);
                     lfNetwork.reportFictitiousInjectionTotal(networkReport);
-                    for (LfSynchronousNetwork lfScNetwork : lfNetwork.getSynchronousNetworks()) {
-//                        ReportNode scReport = Reports.createLfSynchronousNetworkReportNode(networkReport, lfScNetwork.getNumSC());
+                    if (lfNetwork.getSynchronousNetworks().size() == 1) {
+                        // Report slacks and reference buses at the same indent level
+                        LfSynchronousNetwork lfScNetwork = lfNetwork.getSynchronousNetworks().getFirst();
                         Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfScNetwork.getReferenceBus().getId(), lfScNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
+                    } else {
+                        // We create one sub-report per synchronous component
+                        for (LfSynchronousNetwork lfScNetwork : lfNetwork.getSynchronousNetworks()) {
+                            ReportNode synchronousNetworkReport = Reports.createLfSynchronousNetworkReportNode(networkReport, lfScNetwork.getNumSC());
+                            Reports.reportAngleReferenceBusAndSlackBuses(synchronousNetworkReport, lfScNetwork.getReferenceBus().getId(), lfScNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
+                            networkReport.include(synchronousNetworkReport);
+                        }
                     }
                     lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }

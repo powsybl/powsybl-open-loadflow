@@ -414,7 +414,15 @@ class AcLoadFlowReportTest {
     }
 
     @Test
-    void testAcDcNetworkReportsDoNotIncludeNumSc() throws IOException {
+    void testReportsOnLfNetworkWithSeveralSynchronousComponent() throws IOException {
+        // If a LfNetwork represents several synchronous component, it shall not be named CCx SCx in the report nodes
+        // but rather CCx.
+        // In addition, if a LfNetwork represents several synchronous component, the following reports should have an
+        // additional indent level as they are specific to one synchronous component that should be identified with a
+        // SCx header.
+        // - Slack and reference bus report
+        // - Slack mismatch distribution outer loop
+
         Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
         ReportNode reportNode = ReportNode.newRootReportNode()
             .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -435,14 +443,16 @@ class AcLoadFlowReportTest {
         LoadFlowAssert.assertTxtReportEquals("""
             + Test Report
                + Load flow on network '2ACzones'
-                  + Network CC0 SC0
+                  + Network CC0
                      + Network info
                         Network has 2 buses and 0 branches
                         Network balance: active generation=100 MW, active load=120 MW, reactive generation=0 MVar, reactive load=0 MVar
-                        Angle reference bus: b1_vl_0
-                        Slack bus: b1_vl_0
-                        Angle reference bus: b2_vl_0
-                        Slack bus: b2_vl_0
+                        + SC1
+                           Angle reference bus: b1_vl_0
+                           Slack bus: b1_vl_0
+                        + SC1
+                           Angle reference bus: b2_vl_0
+                           Slack bus: b2_vl_0
                      Voltage initialization with method Uniform Values
                      + Newton-Raphson on Network CC0
                         No outer loops have been launched
@@ -465,10 +475,12 @@ class AcLoadFlowReportTest {
                               Bus V: 1 pu, 0 rad
                               Bus injection: 70 MW, 0 MVar
                      + Outer loop DistributedSlack
-                        + Outer loop iteration 1
-                           Slack bus active power (40 MW) distributed in 1 distribution iteration(s)
-                        + Outer loop iteration 1
-                           Slack bus active power (-19.998222 MW) distributed in 1 distribution iteration(s)
+                        + SC0
+                           + Outer loop iteration 1
+                              Slack bus active power (40 MW) distributed in 1 distribution iteration(s)
+                        + SC1
+                           + Outer loop iteration 1
+                              Slack bus active power (-19.998222 MW) distributed in 1 distribution iteration(s)
                      + Newton-Raphson on Network CC0
                         Newton-Raphson of outer loop iteration 1 of type DistributedSlack
                         + Initial mismatch

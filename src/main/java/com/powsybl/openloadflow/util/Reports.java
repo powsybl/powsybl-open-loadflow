@@ -846,11 +846,34 @@ public final class Reports {
                 .build();
     }
 
+    /**
+     * Create a Root report node for an AC-DC network. It is identified only by its connected component number.
+     * @param firstRootReportNode original root report node. Used to get locale parameter.
+     * @param networkNumCc number of the connected component represented by the LfNetwork associated to this report node.
+     * @return a new report node to be attached to a LfNetwork.
+     */
+    public static ReportNode createRootAcDcLfNetworkReportNode(ReportNode firstRootReportNode, int networkNumCc) {
+        return ReportNode.newRootReportNode()
+            .withLocale(firstRootReportNode.getTreeContext().getLocale())
+            .withAllResourceBundlesFromClasspath()
+            .withMessageTemplate("olf.lfCcNetwork")
+            .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+            .build();
+    }
+
+    /**
+     * Create a Root report node for a synchronous network. It is identified only by its synchronous component number.
+     * @param firstRootReportNode original root report node. Used to get locale parameter.
+     * @param networkNumSc number of the synchronous component represented by the LfSynchronousNetwork associated to this report node.
+     * @return a new report node to be used by a LfSynchronousNetwork.
+     */
     public static ReportNode createLfSynchronousNetworkReportNode(ReportNode firstRootReportNode, int networkNumSc) {
-        return firstRootReportNode.newReportNode()
-            .withMessageTemplate("olf.scNetwork")
+        return ReportNode.newRootReportNode()
+            .withLocale(firstRootReportNode.getTreeContext().getLocale())
+            .withAllResourceBundlesFromClasspath()
+            .withMessageTemplate("olf.lfScNetwork")
             .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-            .add();
+            .build();
     }
 
     public static ReportNode includeLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode) {
@@ -931,8 +954,8 @@ public final class Reports {
         return createDetailedSolverReporter(subReportNode);
     }
 
-    public static ReportNode createDetailedSolverReporterAcDcNetwork(ReportNode reportNode, String solverName, int networkNumCc) {
-        ReportNode subReportNode = createSolverReportAcDc(reportNode, solverName, networkNumCc);
+    public static ReportNode createDetailedSolverReporterConnectedComponent(ReportNode reportNode, String solverName, int networkNumCc) {
+        ReportNode subReportNode = createSolverReportConnectedComponent(reportNode, solverName, networkNumCc);
         return createDetailedSolverReporter(subReportNode);
     }
 
@@ -947,16 +970,16 @@ public final class Reports {
     public static ReportNode createDetailedSolverReporterOuterLoop(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc,
                                                                    int outerLoopIteration, String outerLoopType) {
         ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
-        return createDetailedSolverReporterOuterLoopAcDc(subReportNode, solverName, outerLoopIteration, outerLoopType);
+        return createDetailedSolverReporterOuterLoopConnectedComponent(subReportNode, solverName, outerLoopIteration, outerLoopType);
     }
 
-    public static ReportNode createDetailedSolverReporterOuterLoopAcDc(ReportNode reportNode, String solverName, int networkNumCc,
-                                                                       int outerLoopIteration, String outerLoopType) {
-        ReportNode subReportNode = createSolverReportAcDc(reportNode, solverName, networkNumCc);
-        return createDetailedSolverReporterOuterLoopAcDc(subReportNode, solverName, outerLoopIteration, outerLoopType);
+    public static ReportNode createDetailedSolverReporterOuterLoopConnectedComponent(ReportNode reportNode, String solverName, int networkNumCc,
+                                                                                     int outerLoopIteration, String outerLoopType) {
+        ReportNode subReportNode = createSolverReportConnectedComponent(reportNode, solverName, networkNumCc);
+        return createDetailedSolverReporterOuterLoopConnectedComponent(subReportNode, solverName, outerLoopIteration, outerLoopType);
     }
 
-    public static ReportNode createDetailedSolverReporterOuterLoopAcDc(ReportNode subReportNode, String solverName, int outerLoopIteration, String outerLoopType) {
+    public static ReportNode createDetailedSolverReporterOuterLoopConnectedComponent(ReportNode subReportNode, String solverName, int outerLoopIteration, String outerLoopType) {
         subReportNode.newReportNode()
                 .withMessageTemplate("olf.solverOuterLoopCurrentType")
                 .withUntypedValue(SOLVER_NAME, solverName)
@@ -976,9 +999,9 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createSolverReportAcDc(ReportNode reportNode, String solverName, int networkNumCc) {
+    public static ReportNode createSolverReportConnectedComponent(ReportNode reportNode, String solverName, int networkNumCc) {
         return reportNode.newReportNode()
-                .withMessageTemplate("olf.solverAcDc")
+                .withMessageTemplate("olf.solverCc")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(SOLVER_NAME, solverName)
                 .add();

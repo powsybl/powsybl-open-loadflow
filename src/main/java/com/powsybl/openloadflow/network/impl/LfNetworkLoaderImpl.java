@@ -1583,11 +1583,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork = lfNetworkByCc.get(numCc);
                 } else {
                     lfNetwork = new LfNetwork(numCc, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                        parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), Reports.createRootLfNetworkReportNode(reportNode, numCc, 0));
+                        parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), Reports.createRootAcDcLfNetworkReportNode(reportNode, numCc));
                     lfNetworkByCc.put(numCc, lfNetwork);
                 }
                 createAc(lfNetwork, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                    parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
+                    parameters, lfNetwork.getReportNode());
             });
 
             // Create DC networks
