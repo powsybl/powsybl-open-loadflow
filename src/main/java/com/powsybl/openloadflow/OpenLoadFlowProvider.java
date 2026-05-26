@@ -163,7 +163,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             List<LfSynchronousNetwork> lfScNetworks = result.getNetwork().getSynchronousNetworks();
 
             for (LfSynchronousNetwork lfScNetwork : lfScNetworks) {
-                ReferenceBusAndSlackBusesResults referenceBusAndSlackBusResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork,result.getNetwork().getValidity());
+                ReferenceBusAndSlackBusesResults referenceBusAndSlackBusResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork, result.getNetwork().getValidity());
                 componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(
                     result.getNetwork().getNumCC(),
                     lfScNetwork.getNumSC(),
@@ -185,7 +185,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
 
-        if (validity ==  LfNetwork.Validity.VALID) {
+        if (validity == LfNetwork.Validity.VALID) {
             double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch(lfScNetwork.getNumSC()) * PerUnit.SB;
             referenceBusId = lfScNetwork.getReferenceBus().getId();
             List<LfBus> slackBuses = lfScNetwork.getSlackBuses();
