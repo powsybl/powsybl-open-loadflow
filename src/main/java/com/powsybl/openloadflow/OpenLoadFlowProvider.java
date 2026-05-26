@@ -163,7 +163,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             List<LfSynchronousNetwork> lfScNetworks = result.getNetwork().getSynchronousNetworks();
 
             for (LfSynchronousNetwork lfScNetwork : lfScNetworks) {
-                ReferenceBusAndSlackBusesResults referenceBusAndSlackBusResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork);
+                ReferenceBusAndSlackBusesResults referenceBusAndSlackBusResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork,result.getNetwork().getValidity());
                 componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(
                     result.getNetwork().getNumCC(),
                     lfScNetwork.getNumSC(),
@@ -181,12 +181,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result, LfSynchronousNetwork lfScNetwork) {
+    private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result, LfSynchronousNetwork lfScNetwork, LfNetwork.Validity validity) {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
 
-//        if (acNetwork.getValidity() == LfNetwork.Validity.VALID) {
-        if (true) {
+        if (validity ==  LfNetwork.Validity.VALID) {
             double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch(lfScNetwork.getNumSC()) * PerUnit.SB;
             referenceBusId = lfScNetwork.getReferenceBus().getId();
             List<LfBus> slackBuses = lfScNetwork.getSlackBuses();
@@ -249,7 +248,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
         LfSynchronousNetwork lfScNetwork = result.getNetwork().getSynchronousNetworks().getFirst();
-        var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork);
+        var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork, result.getNetwork().getValidity());
         final var status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
             result.getNetwork().getNumCC(),
