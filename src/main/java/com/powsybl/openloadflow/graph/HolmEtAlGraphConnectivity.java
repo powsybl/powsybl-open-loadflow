@@ -59,6 +59,8 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             return;
         }
 
+        // gatherStatistics();
+
         componentSets = new ArrayList<>();
         vertexToComponent.clear();
 
@@ -87,6 +89,42 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
             i++;
         }
+    }
+
+    private void gatherStatistics() {
+        Graph<V, E> graph = getGraph();
+
+        int[] nonTreeEdgeCount = new int[graph.currentLevelMax()];
+        int totalNonTreeEdgeCount = 0;
+
+        for (int i = 0; i < nonTreeEdgeCount.length; i++) {
+            Map<V, SetMultimap<V, E>> adj = graph.adjacencyList.get(i);
+
+            for (SetMultimap<V, E> s : adj.values()) {
+                nonTreeEdgeCount[i] += s.size();
+            }
+            nonTreeEdgeCount[i] /= 2; // edges are counted twice
+
+            totalNonTreeEdgeCount += nonTreeEdgeCount[i];
+        }
+
+        int[] treeEdgeCount = new int[graph.currentLevelMax()];
+        for (int i = 0; i < nonTreeEdgeCount.length; i++) {
+            SpanningForest<V, E> forest = graph.spanningForests.get(i);
+
+            for (Iterator<V> it = forest.roots(); it.hasNext();) {
+                V root = it.next();
+
+                treeEdgeCount[i] += forest.treeSize(root) - 1;
+            }
+        }
+
+        System.out.println("---------");
+        for (int i = 0; i < nonTreeEdgeCount.length; i++) {
+            System.out.printf("Level %d: tree edge: %d. Non tree edge: %d%n", i, treeEdgeCount[i], nonTreeEdgeCount[i]);
+        }
+
+        System.out.println("Total non tree edge: " + totalNonTreeEdgeCount);
     }
 
     @Override

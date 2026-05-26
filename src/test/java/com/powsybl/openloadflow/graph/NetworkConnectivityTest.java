@@ -42,6 +42,7 @@ class NetworkConnectivityTest {
         testConnectivity(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
         testConnectivity(new HolmEtAlGraphConnectivity<>());
+        testConnectivity(new HolmEtAlWithoutLevelGraphConnectivity<>());
     }
 
     @Test
@@ -51,6 +52,7 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new NaiveGraphConnectivity<>(LfBus::getNum));
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
         testReducedMainComponent(new HolmEtAlGraphConnectivity<>());
+        testReducedMainComponent(new HolmEtAlWithoutLevelGraphConnectivity<>());
     }
 
     @Test
@@ -60,6 +62,7 @@ class NetworkConnectivityTest {
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
         testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
         testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
+        testReaddEdge(new HolmEtAlWithoutLevelGraphConnectivity<>(), true);
     }
 
     @Test
@@ -84,6 +87,7 @@ class NetworkConnectivityTest {
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
         testNonConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
         testNonConnectedComponents(new HolmEtAlGraphConnectivity<>());
+        testNonConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
     }
 
     @Test
@@ -92,6 +96,7 @@ class NetworkConnectivityTest {
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
         testConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
         testConnectedComponents(new HolmEtAlGraphConnectivity<>());
+        testConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
     }
 
     private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {

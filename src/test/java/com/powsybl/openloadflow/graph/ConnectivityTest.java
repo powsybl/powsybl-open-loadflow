@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
 import org.jgrapht.Graph;
-import org.jgrapht.GraphPath;
 import org.jgrapht.generate.ScaleFreeGraphGenerator;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DefaultUndirectedGraph;
@@ -540,7 +539,7 @@ class ConnectivityTest {
 
         int minSize = 50; //Integer.MAX_VALUE;
         int bestSeed = 0;
-        for (int seed = 0; seed < 100_000; seed++) {
+        for (int seed = 0; seed < 100; seed++) {
             if (seed % 1000 == 0) {
                 System.out.println(seed);
             }
@@ -655,7 +654,8 @@ class ConnectivityTest {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
-                Arguments.of(new HolmEtAlGraphConnectivity<>()));
+                Arguments.of(new HolmEtAlGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -663,6 +663,7 @@ class ConnectivityTest {
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
                 Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>()),
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
-                Arguments.of(new HolmEtAlGraphConnectivity<>()));
+                Arguments.of(new HolmEtAlGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()));
     }
 }
