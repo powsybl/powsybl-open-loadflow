@@ -148,8 +148,11 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             for (Iterator<E> it = forest.edgesInComponent(representative); it.hasNext();) {
                 E edge = it.next();
                 EdgeInfo<V> info = edgeInfos.get(edge);
-                info.level = newLevel;
-                newForest.addEdge(info.src, info.dest, edge);
+                // only promote edges of level exactly currentLevel
+                if (info.level == currentLevel) {
+                    info.level = newLevel;
+                    newForest.addEdge(info.src, info.dest, edge);
+                }
             }
         }
 

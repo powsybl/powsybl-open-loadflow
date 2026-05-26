@@ -538,7 +538,7 @@ class ConnectivityTest {
                 new HolmEtAlGraphConnectivityFactory<>()
         );
 
-        int minSize = Integer.MAX_VALUE;
+        int minSize = 50; //Integer.MAX_VALUE;
         int bestSeed = 0;
         for (int seed = 0; seed < 100_000; seed++) {
             if (seed % 1000 == 0) {
@@ -565,7 +565,7 @@ class ConnectivityTest {
                     minSize = size;
                     bestSeed = seed;
                     System.out.println("New min size: " + minSize);
-                    break;
+                    throw t;
                 }
             }
 
