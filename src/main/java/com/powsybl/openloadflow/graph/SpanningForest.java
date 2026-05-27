@@ -33,6 +33,8 @@ public class SpanningForest<V, E> {
     // maintaining this information for every node is too costly.
     private final Map<AVLTree.TreeNode<DirectedEdge>, AVLTree<DirectedEdge>> rootNodeToTree = new LinkedHashMap<>();
 
+    private final Set<V> singletons = new HashSet<>();
+
     private AVLTree<DirectedEdge> find(V vertex) {
         Occurrences occurrence = vertexToOccurrences.get(vertex);
         return occurrence == null ? null : occurrence.getTree();
@@ -70,6 +72,7 @@ public class SpanningForest<V, E> {
 
         AVLTree<DirectedEdge> tree = new AVLTree<>();
         vertexToOccurrences.put(vertex, new Occurrences(tree));
+        singletons.add(vertex);
 
         return true;
     }
@@ -85,6 +88,7 @@ public class SpanningForest<V, E> {
             removeEdge(edge.src, edge.dest(), edge.undirectedEdge);
         }
         vertexToOccurrences.remove(vertex);
+        singletons.remove(vertex);
 
         return true;
     }
@@ -125,10 +129,15 @@ public class SpanningForest<V, E> {
             uvNode = treeU.addMax(uv);
             vuNode = treeU.addMax(vu);
 
+            singletons.remove(u);
+            singletons.remove(v);
+
         } else if (occurrenceU.isInSingleton()) {
             makeRoot(treeV, occurrenceV.activeEdge());
             vuNode = treeV.addMax(vu);
             uvNode = treeV.addMax(uv);
+
+            singletons.remove(u);
 
             treeU = treeV;
 
@@ -136,6 +145,8 @@ public class SpanningForest<V, E> {
             makeRoot(treeU, occurrenceU.activeEdge());
             uvNode = treeU.addMax(uv);
             vuNode = treeU.addMax(vu);
+
+            singletons.remove(v);
 
         } else {
             // Considering two trees
@@ -237,8 +248,17 @@ public class SpanningForest<V, E> {
         // tree                                                newTree
         // [(1,2) (2,3) (3,2) (2,4) (4,2) (2,1) (1,9) (9,1)] - [(5,6) (6,5) (5,7) (7,5) (5,8) (8,5)]
 
-        vertexToOccurrences.get(forwardEdge.src).removeEdge(forwardEdge);
-        vertexToOccurrences.get(forwardEdge.dest()).removeEdge(forwardEdge.backwardNode.getValue());
+        Occurrences src = vertexToOccurrences.get(forwardEdge.src);
+        src.removeEdge(forwardEdge);
+        if (src.isInSingleton()) {
+            singletons.add(forwardEdge.src);
+        }
+
+        Occurrences dest = vertexToOccurrences.get(forwardEdge.dest());
+        dest.removeEdge(forwardEdge.backwardNode.getValue());
+        if (dest.isInSingleton()) {
+            singletons.add(forwardEdge.dest());
+        }
 
         if (!tree.isEmpty()) {
             rootNodeToTree.put(tree.getRoot(), tree);
@@ -355,14 +375,10 @@ public class SpanningForest<V, E> {
 
     // TODO: simplify this method
     public Iterator<V> roots() {
-        Iterator<Map.Entry<V, Occurrences>> singletons = Iterators.filter(vertexToOccurrences.entrySet().iterator(),
-                entry -> entry.getValue().isInSingleton());
-        Iterator<V> singletonVertex = Iterators.transform(singletons, Map.Entry::getKey);
-
         Iterator<V> roots = Iterators.transform(rootNodeToTree.keySet().iterator(),
                 rootNode -> Objects.requireNonNull(rootNode).getValue().src);
 
-        return Iterators.concat(singletonVertex, roots);
+        return Iterators.concat(singletons.iterator(), roots);
     }
 
     public String eulerTour(V vertex) {
