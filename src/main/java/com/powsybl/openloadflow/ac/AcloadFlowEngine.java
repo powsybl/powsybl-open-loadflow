@@ -265,10 +265,10 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
                     AcOuterLoop outerLoop = outerLoopAndContext.getLeft();
                     // continue with next outer loop only if:
+                    // - another outerloop went through unstable state
                     // - last solver run succeed,
                     // - last OuterLoopStatus is not FAILED
                     // - we have not reached max number of outer loop iteration
-                    // - another outerloop went through unstable state
                     if (outerLoop == runningContext.lastUnstableOuterLoop // We went through all other outer loops and none of them modified anything -> we are done.
                         || runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
                         || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED

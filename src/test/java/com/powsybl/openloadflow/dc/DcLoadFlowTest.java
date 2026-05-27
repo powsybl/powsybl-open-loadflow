@@ -445,7 +445,7 @@ class DcLoadFlowTest {
     }
 
     @Test
-    void multipleOuterLoopsTest() {
+    void multipleOuterLoopsTest() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
         Line l1 = network.getLine("L1");
         Line l2 = network.getLine("L2");
@@ -457,7 +457,12 @@ class DcLoadFlowTest {
         parametersExt.setAreaInterchangeControl(true);
         parametersExt.setAreaInterchangePMaxMismatch(1);
 
-        var result = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        var result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
 
         assertTrue(result.isFullyConverged());
         assertEquals(0.0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
@@ -470,6 +475,40 @@ class DcLoadFlowTest {
         assertEquals(-80.87, l2.getTerminal2().getP(), 0.01);
         assertEquals(80.87, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-80.87, ps1.getTerminal2().getP(), 0.01);
+
+        // Test the report
+        String expected = """
+            + test
+               + Load flow on network 'phaseShifterTestCase'
+                  + Network CC0 SC0
+                     + Network info
+                        Network has 3 buses and 3 branches
+                        Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
+                        Angle reference bus: VL1_0
+                        Slack bus: VL1_0
+                     Slack bus active power (0 MW) distributed in 0 distribution iteration(s)
+                     Outer loop IncrementalPhaseControl
+                     + Outer loop AreaInterchangeControl
+                        + Outer loop iteration 2
+                           Area A1 interchange mismatch (19.996807 MW) distributed in 1 distribution iteration(s)
+                           Area A2 interchange mismatch (-19.996807 MW) distributed in 1 distribution iteration(s)
+                        + Outer loop iteration 3
+                           Area A1 interchange mismatch (9.998404 MW) distributed in 1 distribution iteration(s)
+                           Area A2 interchange mismatch (-9.998404 MW) distributed in 1 distribution iteration(s)
+                        + Outer loop iteration 4
+                           Area A1 interchange mismatch (4.999202 MW) distributed in 1 distribution iteration(s)
+                           Area A2 interchange mismatch (-4.999202 MW) distributed in 1 distribution iteration(s)
+                        + Outer loop iteration 5
+                           Area A1 interchange mismatch (2.499601 MW) distributed in 1 distribution iteration(s)
+                           Area A2 interchange mismatch (-2.499601 MW) distributed in 1 distribution iteration(s)
+                        + Outer loop iteration 6
+                           Area A1 interchange mismatch (1.2498 MW) distributed in 1 distribution iteration(s)
+                           Area A2 interchange mismatch (-1.2498 MW) distributed in 1 distribution iteration(s)
+                     Outer loop IncrementalPhaseControl
+                     DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
+            """;
+
+        assertReportEquals(new ByteArrayInputStream(expected.getBytes()), reportNode);
     }
 
     @Test
