@@ -264,24 +264,21 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
                     AcOuterLoop outerLoop = outerLoopAndContext.getLeft();
-                    if (outerLoop == runningContext.lastUnstableOuterLoop) {
-                        // We went through all other outer loops and none of them modified anything -> we are done.
+                    // continue with next outer loop only if:
+                    // - last solver run succeed,
+                    // - last OuterLoopStatus is not FAILED
+                    // - we have not reached max number of outer loop iteration
+                    // - another outerloop went through unstable state
+                    if (outerLoop == runningContext.lastUnstableOuterLoop // We went through all other outer loops and none of them modified anything -> we are done.
+                        || runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
+                        || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
+                        || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
                     }
                     runOuterLoop(outerLoop, outerLoopAndContext.getRight(), solver, runningContext, checkUnrealisticStates);
 
                     if (outerLoop == runningContext.lastUnrealisticStateFixingLoop) {
                         checkUnrealisticStates = true;
-                    }
-
-                    // continue with next outer loop only if:
-                    // - last solver run succeed,
-                    // - last OuterLoopStatus is not FAILED
-                    // - we have not reached max number of outer loop iteration
-                    if (runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
-                            || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
-                            || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
-                        break;
                     }
                 }
             } while (runningContext.nrTotalIterations.getValue() > oldNrTotalIterations
