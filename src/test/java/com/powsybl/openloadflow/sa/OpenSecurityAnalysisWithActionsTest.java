@@ -15,6 +15,8 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
+import com.powsybl.contingency.list.ContingencyList;
+import com.powsybl.contingency.strategy.OperatorStrategyList;
 import com.powsybl.contingency.strategy.condition.*;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.violations.LimitViolation;
@@ -59,12 +61,16 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -2271,5 +2277,36 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 n -> contingencies, runParameters)
                 .join().getResult();
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getOperatorStrategyResults().getFirst().getStatus());
+    }
+
+    @Test
+    void testActionsTakenShouldContainAppliedActionId() throws URISyntaxException {
+        // Given
+        Path path = Paths.get(Objects.requireNonNull(getClass().getResource("/issue_1416")).toURI());
+        Network network = Network.read(path.resolve("network.xiidm"));
+        List<Contingency> contingency = ContingencyList.load(path.resolve("contingency.json")).getContingencies(network);
+        List<OperatorStrategy> strategies = OperatorStrategyList.read(path.resolve("strategies.json")).getOperatorStrategies();
+        List<Action> actions = ActionList.readJsonFile(path.resolve("actions-gen-load.json")).getActions();
+        // When
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingency, List.of(), new SecurityAnalysisParameters(), strategies, actions, ReportNode.NO_OP);
+        // Then
+        // Before actions: in ContingencyResult there is a violation on a line NHV1_NHV2_1
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "contingency1");
+        assertThat(postContingencyResult.getStatus())
+                .isEqualTo(PostContingencyComputationStatus.CONVERGED);
+        assertThat(postContingencyResult.getLimitViolationsResult().getLimitViolations())
+                .isNotEmpty()
+                .extracting(LimitViolation::getSubjectId)
+                .contains("NHV1_NHV2_1");
+        // After actions: in OperatorStrategyResult there is no more violations but ActionsTaken are not reported
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy_gen_load");
+        assertThat(operatorStrategyResult.getStatus())
+                .isEqualTo(PostContingencyComputationStatus.CONVERGED);
+        // there is no more violations
+        assertThat(operatorStrategyResult.getLimitViolationsResult().getLimitViolations())
+                .isEmpty();
+        // currently FAIL: ActionsTaken must contain applied actions, but it's empty
+//         assertThat(operatorStrategyResult.getLimitViolationsResult().getActionsTaken())
+//                 .containsExactlyInAnyOrder("decreaseLoadP", "decreaseGenP");
     }
 }

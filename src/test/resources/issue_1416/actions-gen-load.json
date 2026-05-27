@@ -1,0 +1,18 @@
+{
+  "version" : "1.2",
+  "actions" : [
+    {
+      "type" : "LOAD",
+      "id" : "decreaseLoadP",
+      "loadId" : "LOAD",
+      "relativeValue" : false,
+      "activePowerValue" : 250.0
+    }, {
+      "type" : "GENERATOR",
+      "id" : "decreaseGenP",
+      "generatorId" : "GEN",
+      "activePowerRelativeValue" : false,
+      "activePowerValue" : 250.0
+    }
+  ]
+}

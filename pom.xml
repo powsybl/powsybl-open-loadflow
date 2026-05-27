@@ -53,7 +53,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>7.2.0</powsybl-core.version>
+        <powsybl-core.version>7.2.1</powsybl-core.version>
 
         <!--  This is required for later correct replacement of argline -->
         <argLine/>
@@ -240,6 +240,12 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ucte-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

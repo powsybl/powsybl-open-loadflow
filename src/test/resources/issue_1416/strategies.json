@@ -1,0 +1,15 @@
+{
+  "version" : "1.2",
+  "operatorStrategies" : [ {
+    "id" : "strategy_gen_load",
+    "contingencyContextType" : "SPECIFIC",
+    "contingencyId" : "contingency1",
+    "conditionalActions" : [ {
+      "id" : "stage1",
+      "condition" : {
+        "type" : "TRUE_CONDITION"
+      },
+      "actionIds" : [ "decreaseLoadP", "decreaseGenP" ]
+    } ]
+  } ]
+}

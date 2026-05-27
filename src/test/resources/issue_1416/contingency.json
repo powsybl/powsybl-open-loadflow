@@ -1,0 +1,12 @@
+{
+  "type" : "default",
+  "version" : "1.0",
+  "name" : "list",
+  "contingencies" : [{
+    "id" : "contingency1",
+    "elements" : [ {
+      "id" : "NHV1_NHV2_2",
+      "type" : "BRANCH"
+    }]
+  }]
+}
