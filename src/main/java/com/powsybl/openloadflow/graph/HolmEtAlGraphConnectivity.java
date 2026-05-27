@@ -19,7 +19,7 @@ import java.util.*;
  */
 public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, HolmEtAlGraphConnectivity.Graph<V, E>> {
 
-    private final TObjectIntMap<V> vertexToComponent = new TObjectIntHashMap<>();
+    private TObjectIntMap<V> vertexToComponent = new TObjectIntHashMap<>();
 
     public HolmEtAlGraphConnectivity() {
         super(new Graph<>());
@@ -28,18 +28,21 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
         // simple because everything is done in Graph
+        vertexToComponent = null;
         componentSets = null;
     }
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
         // simple because everything is done in Graph
+        vertexToComponent = null;
         componentSets = null;
     }
 
     @Override
     protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
         // simple because everything is done in Graph
+        vertexToComponent = null;
         componentSets = null;
     }
 
@@ -59,36 +62,10 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             return;
         }
 
+        vertexToComponent = null;
+        componentSets = getGraph().spanningForests.getFirst().getComponents();
+
         // gatherStatistics();
-
-        componentSets = new ArrayList<>();
-        vertexToComponent.clear();
-
-        Graph<V, E> graph = getGraph();
-        SpanningForest<V, E> fullForest = graph.spanningForests.getFirst();
-
-        for (Iterator<V> roots = fullForest.roots(); roots.hasNext();) {
-            V root = roots.next();
-
-            Set<V> component = new HashSet<>();
-            for (Iterator<V> it = fullForest.verticesInComponent(root); it.hasNext();) {
-                V vertex = it.next();
-                component.add(vertex);
-            }
-
-            componentSets.add(component);
-        }
-
-        componentSets.sort((s1, s2) -> s2.size() - s1.size());
-
-        int i = 0;
-        for (Set<V> comp : componentSets) {
-            for (V vertex : comp) {
-                vertexToComponent.put(vertex, i);
-            }
-
-            i++;
-        }
     }
 
     private void gatherStatistics() {
@@ -129,7 +106,39 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     @Override
     protected int getQuickComponentNumber(V vertex) {
-        return vertexToComponent.get(vertex);
+        return getVertexToComponent().get(vertex);
+    }
+
+    private TObjectIntMap<V> getVertexToComponent() {
+        if (vertexToComponent == null) {
+            vertexToComponent = new TObjectIntHashMap<>();
+
+            int i = 0;
+            for (Set<V> comp : componentSets) {
+                for (V vertex : comp) {
+                    vertexToComponent.put(vertex, i);
+                }
+
+                i++;
+            }
+        }
+
+        return vertexToComponent;
+    }
+
+    @Override
+    public int getNbConnectedComponents() {
+        return getGraph().spanningForests.getFirst().treeCount();
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        return getGraph().spanningForests.getFirst().getComponent(vertex);
+    }
+
+    @Override
+    protected Set<V> getNonConnectedVertices(V vertex) {
+        return getGraph().spanningForests.getFirst().getNonConnectedVertices(vertex);
     }
 
     @Override
