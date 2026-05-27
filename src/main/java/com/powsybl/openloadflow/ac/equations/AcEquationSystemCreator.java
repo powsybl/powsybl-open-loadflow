@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.dcnetwork.*;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -1131,6 +1132,7 @@ public class AcEquationSystemCreator {
                     .addTerm(p2);
             hvdc.setP2(p2);
         }
+        AbstractEquationSystemUpdater.updateHvdcAcEmulationEquations(hvdc);
     }
 
     private void createImpedantBranchEquations(LfBranch branch,

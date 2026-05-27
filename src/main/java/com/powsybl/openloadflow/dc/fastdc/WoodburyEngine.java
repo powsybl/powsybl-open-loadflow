@@ -68,14 +68,14 @@ public class WoodburyEngine {
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
-        return runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, Collections.emptyList());
+        return runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, Collections.emptyList(), reportNode);
     }
 
     /**
      * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
-    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> lfActions) {
+    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, List<LfAction> lfActions, ReportNode reportNode) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -131,9 +131,9 @@ public class WoodburyEngine {
             // set transformer phase shift to 0 for disabled phase tap changers by actions
             lfActions.stream()
                     .filter(AbstractLfBranchAction.class::isInstance)
-                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch())
+                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranches())
                     .filter(Objects::nonNull)
-                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .flatMap(lfBranches -> lfBranches.stream().flatMap(b -> loadFlowContext.getEquationSystem().getEquation(b.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream()))
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
         }

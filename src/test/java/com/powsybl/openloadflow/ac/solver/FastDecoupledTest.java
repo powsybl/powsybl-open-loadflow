@@ -387,8 +387,11 @@ class FastDecoupledTest {
                             Network balance: active generation=319.64102 MW, active load=315 MW, reactive generation=0 MVar, reactive load=115 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
-                         Slack bus active power (-4.64102 MW) distributed in 1 distribution iteration(s)
-                         DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
+                         + Voltage initialization with method Full Voltage
+                            Voltage initialization with method Voltage Magnitude
+                            + Voltage initialization with method DC Values
+                               Slack bus active power (-4.64102 MW) distributed in 1 distribution iteration(s)
+                               DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
                          + Fast-Decoupled on Network CC0 SC0
                             No outer loops have been launched
                             + Initial mismatch

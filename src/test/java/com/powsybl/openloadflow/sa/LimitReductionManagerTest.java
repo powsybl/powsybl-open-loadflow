@@ -236,4 +236,17 @@ class LimitReductionManagerTest {
         List<LimitReductionManager.TerminalLimitReduction> terminalLimitReductions = limitReductionManager.getTerminalLimitReductions();
         assertEquals(0, terminalLimitReductions.size());
     }
+
+    @Test
+    void limitReductionsSpecifiedOperationalLimitsGroupNotSupportedTest() {
+        String limitGroup1 = "limitGroup1";
+        LimitReduction limitReduction = LimitReduction.builder(LimitType.CURRENT, 0.9)
+                .withNetworkElementCriteria(new IdentifiableCriterion(
+                        new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(220., 240., true, true))))
+                .withLimitDurationCriteria(IntervalTemporaryDurationCriterion.between(0, 300, true, false))
+                .withOperationalLimitsGroupIdSelection(limitGroup1)
+                .build();
+        LimitReductionManager limitReductionManager = LimitReductionManager.create(List.of(limitReduction));
+        assertTrue(limitReductionManager.isEmpty());
+    }
 }

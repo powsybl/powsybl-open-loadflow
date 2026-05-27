@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -40,7 +41,7 @@ class FullVoltageInitializerTest {
                                                                                                       DcApproximationType.IGNORE_R,
                                                                                                       matrixFactory,
                                                                                                       0));
-        initializer.prepare(lfNetwork);
+        initializer.prepare(lfNetwork, ReportNode.NO_OP);
         assertBusVoltage(lfNetwork, initializer, "VLGEN_0", 1.020833, 0);
         assertBusVoltage(lfNetwork, initializer, "VLHV1_0", 1.074561, -0.043833);
         assertBusVoltage(lfNetwork, initializer, "VLHV2_0", 1.074561, -0.112393);

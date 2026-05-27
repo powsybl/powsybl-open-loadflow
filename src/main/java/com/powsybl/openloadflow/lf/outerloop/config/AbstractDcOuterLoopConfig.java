@@ -12,6 +12,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.dc.DcAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.dc.DcHvdcAcEmulationLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -44,6 +45,13 @@ public abstract class AbstractDcOuterLoopConfig implements DcOuterLoopConfig {
     protected static Optional<DcOuterLoop> createIncrementalPhaseControlOuterLoop(LoadFlowParameters parameters) {
         if (parameters.isPhaseShifterRegulationOn()) {
             return Optional.of(new DcIncrementalPhaseControlOuterLoop());
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<DcOuterLoop> createDcHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
+        if (parameters.isHvdcAcEmulation()) {
+            return Optional.of(new DcHvdcAcEmulationLimitsOuterLoop());
         }
         return Optional.empty();
     }

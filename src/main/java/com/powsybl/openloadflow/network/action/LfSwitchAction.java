@@ -23,8 +23,8 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfSwitchAction.class);
 
-    public LfSwitchAction(String id, SwitchAction action, LfNetwork lfNetwork) {
-        super(id, action, lfNetwork);
+    public LfSwitchAction(SwitchAction action, LfNetwork lfNetwork) {
+        super(action, lfNetwork);
     }
 
     @Override
@@ -32,9 +32,9 @@ public class LfSwitchAction extends AbstractLfBranchAction<SwitchAction> {
         LfBranch branch = lfNetwork.getBranchById(action.getSwitchId());
         if (branch != null) {
             if (action.isOpen()) {
-                setDisabledBranch(branch);
+                addDisabledBranch(branch);
             } else {
-                setEnabledBranch(branch);
+                addEnabledBranch(branch);
             }
         } else {
             LOGGER.warn("Switch action {}: branch matching switch id {} not found", action.getId(), action.getSwitchId());

@@ -23,16 +23,21 @@ public abstract class AbstractLfTapChangerAction<A extends AbstractTapChangerTap
 
     protected LfBranch branch;
 
-    AbstractLfTapChangerAction(String id, A action, LfNetwork network) {
-        super(id, action);
+    AbstractLfTapChangerAction(A action, LfNetwork network) {
+        super(action);
         String branchId = action.getSide().map(side -> LfLegBranch.getId(side, action.getTransformerId())).orElseGet(action::getTransformerId);
-        this.branch = network.getBranchById(branchId);
-        if (this.branch != null) {
+        branch = network.getBranchById(branchId);
+        if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
                 throw new UnsupportedOperationException("Tap position action: only one tap in branch " + branch.getId());
             }
-            this.change = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
+            change = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
         }
+    }
+
+    @Override
+    public boolean isValid() {
+        return branch != null;
     }
 
     public TapPositionChange getChange() {

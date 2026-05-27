@@ -141,7 +141,7 @@ class NetworkConnectivityTest {
         }
     }
 
-    private void testNonConnectedComponents(AbstractGraphConnectivity<LfBus, LfBranch> connectivity) {
+    private <G extends GraphModel<LfBus, LfBranch>> void testNonConnectedComponents(AbstractGraphConnectivity<LfBus, LfBranch, G> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
 

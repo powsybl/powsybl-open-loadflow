@@ -78,7 +78,7 @@ class WoodburyEngineTest {
                     .run();
 
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
             DenseMatrix flowStates = new DenseMatrix(dx.length, 1, dx);
             return calculateFlows(lfNetwork, flowStates, Collections.emptySet());
         }
@@ -99,7 +99,7 @@ class WoodburyEngineTest {
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
             DenseMatrix flowStates = new DenseMatrix(dx.length, 1, dx);
             engine.toPostContingencyStates(flowStates);
             assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Set.of("l23")), LoadFlowAssert.DELTA_POWER);
@@ -119,14 +119,14 @@ class WoodburyEngineTest {
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<ComputedElement> actionElements = List.of(new ComputedSwitchBranchElement(lfNetwork.getBranchById("l14"), false, context.getEquationSystem()));
+            List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("l14"), false, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
             var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
             assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Set.of("l23", "l14")), LoadFlowAssert.DELTA_POWER);
@@ -144,14 +144,14 @@ class WoodburyEngineTest {
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<ComputedElement> actionElements = List.of(new ComputedSwitchBranchElement(lfNetwork.getBranchById("l23"), true, context.getEquationSystem()));
+            List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("l23"), true, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, Collections.emptyList());
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
             var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
             assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Collections.emptySet()), LoadFlowAssert.DELTA_POWER);
@@ -177,7 +177,7 @@ class WoodburyEngineTest {
             List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("L1"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
-            List<LfAction> actions = List.of(new LfPhaseTapChangerAction("PS1", new PhaseTapChangerTapPositionAction("PS1", "PS1", false, newTapPosition), lfNetwork));
+            List<LfAction> actions = List.of(new LfPhaseTapChangerAction(new PhaseTapChangerTapPositionAction("PS1", "PS1", false, newTapPosition), lfNetwork));
             List<ComputedElement> actionElements = List.of(new ComputedTapPositionChangeElement(new TapPositionChange(lfNetwork.getBranchById("PS1"), newTapPosition, false), context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(actionElements);
 
@@ -185,7 +185,7 @@ class WoodburyEngineTest {
             DenseMatrix actionsStates = ComputedElement.calculateElementsStates(context, actionElements);
             WoodburyEngine engine = new WoodburyEngine(context.getParameters().getEquationSystemCreationParameters(), contingencyElements, contingenciesStates, actionElements, actionsStates);
             DisabledNetwork disabledNetwork = new DisabledNetwork();
-            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, ReportNode.NO_OP, actions);
+            double[] flowStatesArray = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, actions, ReportNode.NO_OP);
             var flowStates = new DenseMatrix(flowStatesArray.length, 1, flowStatesArray);
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
             // we need to update the phase shift in the model that that the equation term tap is also updated and

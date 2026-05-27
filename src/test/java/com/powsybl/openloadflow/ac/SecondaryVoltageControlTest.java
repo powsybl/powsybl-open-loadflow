@@ -230,11 +230,13 @@ class SecondaryVoltageControlTest {
                 + test
                    + Load flow on network 'ieee14cdf'
                       + Network CC0 SC0
+                         2 generators have been discarded from active power control because of maxP not plausible
                          + Network info
                             Network has 14 buses and 20 branches
                             Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits
@@ -323,6 +325,7 @@ class SecondaryVoltageControlTest {
                             Network balance: active generation=272.4 MW, active load=259 MW, reactive generation=0 MVar, reactive load=73.5 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits

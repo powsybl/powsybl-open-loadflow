@@ -175,7 +175,7 @@ class OpenSecurityAnalysisGraphTest {
                 .setBreakers(true);
 
         // create networks including all necessary switches
-        LfNetworkList lfNetworks = Networks.load(network, networkParameters, topoConfig, ReportNode.NO_OP);
+        LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, networkParameters, ReportNode.NO_OP);
 
         // run simulation on each network
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();

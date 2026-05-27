@@ -28,7 +28,7 @@ public class HvdcAcEmulationSide2DCFlowEquationTerm extends AbstractHvdcAcEmulat
 
     @Override
     public double eval() {
-        return k * (ph2() - ph1()) - hvdc.getP0();
+        return k * (ph2() - ph1()) - hvdc.getAcEmulationControl().getP0();
     }
 
     @Override
@@ -49,6 +49,6 @@ public class HvdcAcEmulationSide2DCFlowEquationTerm extends AbstractHvdcAcEmulat
 
     @Override
     public double rhs() {
-        return -hvdc.getP0();
+        return -hvdc.getAcEmulationControl().getP0();
     }
 }

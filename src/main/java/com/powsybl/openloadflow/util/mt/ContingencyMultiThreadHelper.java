@@ -137,7 +137,7 @@ public final class ContingencyMultiThreadHelper {
                         reportNodes.set(partitionNum, threadRootNode);
 
                         // create networks including all necessary switches
-                        lfNetworks = Networks.load(network, parameters.getNetworkParameters(), partitionTopoConfig, threadRootNode);
+                        lfNetworks = Networks.loadWithReconnectableElements(network, partitionTopoConfig, parameters.getNetworkParameters(), threadRootNode);
                         lfNetworksList.add(0, lfNetworks); // FIXME to workaround variant removal bug, to fix in core
                     } finally {
                         networkLock.unlock();

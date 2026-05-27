@@ -155,6 +155,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                             Network balance: active generation=3 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
                             Angle reference bus: b1_vl_0
                             Slack bus: b1_vl_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 1 bus(es) with remote reactive power controller switched PQ
@@ -228,6 +229,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                             Network balance: active generation=3 MW, active load=5 MW, reactive generation=0 MVar, reactive load=0 MVar
                             Angle reference bus: b1_vl_0
                             Slack bus: b1_vl_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 1 bus(es) with remote reactive power controller switched PQ

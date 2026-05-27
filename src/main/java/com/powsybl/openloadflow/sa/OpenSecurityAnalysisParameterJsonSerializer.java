@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.json.JsonUtil;
@@ -64,5 +65,12 @@ public class OpenSecurityAnalysisParameterJsonSerializer implements ExtensionJso
     @Override
     public OpenSecurityAnalysisParameters deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         return createMapper().readValue(jsonParser, OpenSecurityAnalysisParameters.class);
+    }
+
+    @Override
+    public OpenSecurityAnalysisParameters deserializeAndUpdate(JsonParser jsonParser, DeserializationContext deserializationContext, OpenSecurityAnalysisParameters extension) throws IOException {
+        ObjectMapper objectMapper = createMapper();
+        ObjectReader objectReader = objectMapper.readerForUpdating(extension);
+        return objectReader.readValue(jsonParser, OpenSecurityAnalysisParameters.class);
     }
 }

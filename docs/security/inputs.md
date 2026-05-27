@@ -8,7 +8,7 @@ With Open Load Flow only the following remedial actions are currently implemente
 
 - `LoadAction`
 - `SwitchAction`
-- `TerminalsConnectionAction`
+- `TerminalsConnectionAction` (Only supporting actions on branches and three windings transformers terminals)
 - `PhaseTapChangerTapPositionAction`
 - `RatioTapChangerTapPositionAction`
 - `ShuntCompensatorPositionAction`

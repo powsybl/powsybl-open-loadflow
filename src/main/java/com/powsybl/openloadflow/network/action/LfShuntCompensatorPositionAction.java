@@ -25,14 +25,22 @@ public class LfShuntCompensatorPositionAction extends AbstractLfAction<ShuntComp
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntCompensatorPositionAction.class);
 
-    public LfShuntCompensatorPositionAction(String id, ShuntCompensatorPositionAction action) {
-        super(id, action);
+    private final LfShunt shunt;
+
+    public LfShuntCompensatorPositionAction(ShuntCompensatorPositionAction action, LfNetwork network) {
+        super(action);
+        LfShunt aShunt = network.getShuntById(action.getShuntCompensatorId());
+        this.shunt = aShunt instanceof LfShuntImpl ? aShunt : null; // no svc here
+    }
+
+    @Override
+    public boolean isValid() {
+        return shunt != null;
     }
 
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
-        LfShunt shunt = network.getShuntById(action.getShuntCompensatorId());
-        if (shunt instanceof LfShuntImpl) { // no svc here
+        if (isValid()) {
             if (shunt.getVoltageControl().isPresent()) {
                 LOGGER.warn("Shunt compensator position action: voltage control is present on the shunt, section could be overridden.");
             }

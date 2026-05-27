@@ -68,6 +68,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final Map<String, LfBranch> branchesById = new HashMap<>();
 
+    private final Map<String, List<LfBranch>> branchesByOriginalId = new HashMap<>();
+
     private int shuntCount = 0;
 
     private final List<LfShunt> shuntsByIndex = new ArrayList<>();
@@ -276,6 +278,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
+        branch.getOriginalIds().forEach(originalId ->
+            branchesByOriginalId.computeIfAbsent(originalId, k -> new ArrayList<>()).add(branch));
         invalidateSlackAndReference();
         connectivity = null;
         invalidateZeroImpedanceNetworks();
@@ -300,6 +304,37 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public LfBranch getBranchById(String branchId) {
         Objects.requireNonNull(branchId);
         return branchesById.get(branchId);
+    }
+
+    public List<LfBranch> getBranchesByOriginalId(String equipmentId) {
+        Objects.requireNonNull(equipmentId);
+        return branchesByOriginalId.get(equipmentId);
+    }
+
+    public void removeBranch(String branchId) {
+        Objects.requireNonNull(branchId);
+        LfBranch branch = branchesById.remove(branchId);
+        if (branch == null) {
+            throw new PowsyblException("Branch " + branchId + " not found in network " + this);
+        }
+        branches.remove(branch);
+        branch.getOriginalIds().forEach(branchesByOriginalId::remove);
+        invalidateSlackAndReference();
+        if (connectivity != null) {
+            connectivity.removeEdge(branch);
+        }
+        invalidateZeroImpedanceNetworks();
+
+        // renumber all branches
+        for (int i = 0; i < branches.size(); i++) {
+            branches.get(i).setNum(i);
+        }
+        if (branch.getBus1() != null) {
+            branch.getBus1().removeBranch(branch);
+        }
+        if (branch.getBus2() != null) {
+            branch.getBus2().removeBranch(branch);
+        }
     }
 
     private void addShunt(LfShunt shunt) {

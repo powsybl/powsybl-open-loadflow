@@ -171,15 +171,18 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
+        ReportNode reportNode = context.getNetwork().getReportNode();
         VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
         // in case of a DC voltage initializer, an DC equation system in created and equations are attached
         // to the network. It is important that DC init is done before AC equation system is created by
         // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
-        voltageInitializer.prepare(context.getNetwork());
+        voltageInitializer.prepare(
+                context.getNetwork(),
+                context.getParameters().isVoltageInitReport() ? reportNode : ReportNode.NO_OP
+        );
 
         RunningContext runningContext = new RunningContext();
         double distributedActivePower = 0.0;
-        ReportNode reportNode = context.getNetwork().getReportNode();
 
         // Verify whether a regulated bus voltage exists.
         // If not, then fail immediately with SOLVER_FAILED status.

@@ -19,7 +19,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>2.2.0-SNAPSHOT</version>
+    <version>2.3.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -53,7 +53,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>7.2.0-RC1</powsybl-core.version>
+        <powsybl-core.version>7.2.0</powsybl-core.version>
 
         <!--  This is required for later correct replacement of argline -->
         <argLine/>
@@ -157,10 +157,6 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-loadflow-results-completion</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.powsybl</groupId>
             <artifactId>powsybl-math</artifactId>
         </dependency>
         <dependency>
@@ -239,6 +235,11 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-psse-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-ucte-converter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

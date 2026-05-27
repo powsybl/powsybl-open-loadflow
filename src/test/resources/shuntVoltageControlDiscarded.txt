@@ -7,6 +7,7 @@
             Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
             Angle reference bus: vl2_0
             Slack bus: vl2_0
+         Voltage initialization with method Uniform Values
          Outer loop DistributedSlack
          Outer loop ReactiveLimits
          Outer loop ShuntVoltageControl

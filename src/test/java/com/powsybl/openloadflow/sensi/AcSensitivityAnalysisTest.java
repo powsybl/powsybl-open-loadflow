@@ -7,14 +7,15 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.action.Action;
+import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.BoundaryLineContingency;
-import com.powsybl.contingency.LineContingency;
+import com.powsybl.contingency.*;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
@@ -2178,6 +2179,25 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testUnsupportedSensitivityOperatorStrategy() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters()
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")), network.getBranchStream().toList());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("open l14", ContingencyContext.all(), new TrueCondition(), List.of("open l14")));
+        List<Action> actions = List.of(new TerminalsConnectionAction("open l14", "l14", true));
+
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions)));
+        assertEquals("AC sensitivity analysis does not support operator strategies", e.getCause().getMessage());
+    }
+
+    @Test
     void testComputationInterrupted() {
         Network network = BoundaryFactory.createWithLoad();
         runAcLf(network);
@@ -2192,7 +2212,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             new EvenShiloachGraphDecrementalConnectivityFactory<>(),
             sensiParameters);
         SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
-        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies, List.of());
+        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies, Collections.emptyList());
 
         LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
@@ -2206,8 +2226,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Executor executor = LocalComputationManager.getDefault().getExecutor();
         List<SensitivityVariableSet> noVar = Collections.emptyList();
         OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        List<OperatorStrategy> operatorStrategies = Collections.emptyList();
+        List<Action> actions = Collections.emptyList();
         assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId,
-                contingencies, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
+                contingencies, operatorStrategies, actions, creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP,
                 openSensitivityAnalysisParameters, executor));
     }
 
@@ -2215,7 +2237,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testRunSyncIsCallable() {
         OpenSensitivityAnalysisProvider p = new OpenSensitivityAnalysisProvider(new SparseMatrixFactory());
         // Make sur that runSync is a Callable. Only CompletableFutureTask.runAsync(Callable) handles correctly thread cancel. Not CompletableFutureTask.runAsync(Runnable)
-        Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null);
+        Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null, null, null);
         assertFalse(t instanceof Runnable);
     }
 }

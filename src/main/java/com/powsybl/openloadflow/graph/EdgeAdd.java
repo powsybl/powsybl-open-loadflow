@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.jgrapht.Graph;
-
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
@@ -18,12 +16,12 @@ public class EdgeAdd<V, E> extends AbstractEdgeModification<V, E> {
     }
 
     @Override
-    public void apply(Graph<V, E> graph) {
+    public void apply(GraphModel<V, E> graph) {
         graph.addEdge(v1, v2, e);
     }
 
     @Override
-    public void undo(Graph<V, E> graph) {
+    public void undo(GraphModel<V, E> graph) {
         graph.removeEdge(e);
     }
 }

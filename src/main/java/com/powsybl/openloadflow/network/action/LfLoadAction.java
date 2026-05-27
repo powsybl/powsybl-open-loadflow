@@ -9,12 +9,11 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.LoadAction;
-import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.LfLoadImpl;
+import com.powsybl.openloadflow.util.PerUnit;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -23,32 +22,43 @@ import com.powsybl.openloadflow.network.impl.Networks;
  */
 public class LfLoadAction extends AbstractLfAction<LoadAction> {
 
-    private final Network network;
+    private final String loadId;
+    private final LfLoad lfLoad;
+    private final PowerShift powerShift;
 
-    private final boolean breakers;
+    public LfLoadAction(LoadAction action, Network network, LfNetwork lfNetwork) {
+        super(action);
+        this.loadId = action.getLoadId();
+        Load load = network.getLoad(action.getLoadId());
+        lfLoad = lfNetwork.getLoadById(action.getLoadId());
+        powerShift = createPowerShift(load, action);
+    }
 
-    public LfLoadAction(String id, LoadAction action, Network network, boolean breakers) {
-        super(id, action);
-        this.network = network;
-        this.breakers = breakers;
+    private static PowerShift createPowerShift(Load load, LoadAction loadAction) {
+        double activePowerShift = loadAction.getActivePowerValue().stream().map(a -> loadAction.isRelativeValue() ? a : a - load.getP0()).findAny().orElse(0);
+        double reactivePowerShift = loadAction.getReactivePowerValue().stream().map(r -> loadAction.isRelativeValue() ? r : r - load.getQ0()).findAny().orElse(0);
+
+        // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
+        // of P0 that could be described in a LoadDetail extension.
+        // Note that fictitious loads have a zero variable active power shift.
+        double variableActivePower = LfLoadImpl.isLoadNotParticipating(load) ? 0.0 : activePowerShift;
+        return new PowerShift(activePowerShift / PerUnit.SB,
+                variableActivePower / PerUnit.SB,
+                reactivePowerShift / PerUnit.SB);
+    }
+
+    @Override
+    public boolean isValid() {
+        return lfLoad != null;
     }
 
     @Override
     public boolean apply(LfNetwork lfNetwork, LfContingency contingency, LfNetworkParameters networkParameters) {
-        Load load = network.getLoad(action.getLoadId());
-        Terminal terminal = load.getTerminal();
-        Bus bus = Networks.getBus(terminal, breakers);
-        if (bus != null) {
-            LfLoad lfLoad = lfNetwork.getLoadById(load.getId());
-            if (lfLoad != null) {
-                PowerShift powerShift = PowerShift.createPowerShift(load, action);
-                if (!lfLoad.isOriginalLoadDisabled(load.getId())) {
-                    lfLoad.setTargetP(lfLoad.getTargetP() + powerShift.getActive());
-                    lfLoad.setTargetQ(lfLoad.getTargetQ() + powerShift.getReactive());
-                    lfLoad.setAbsVariableTargetP(lfLoad.getAbsVariableTargetP() + Math.signum(powerShift.getActive()) * Math.abs(powerShift.getVariableActive()));
-                    return true;
-                }
-            }
+        if (isValid() && !lfLoad.isOriginalLoadDisabled(loadId)) {
+            lfLoad.setTargetP(lfLoad.getTargetP() + powerShift.getActive());
+            lfLoad.setTargetQ(lfLoad.getTargetQ() + powerShift.getReactive());
+            lfLoad.setAbsVariableTargetP(lfLoad.getAbsVariableTargetP() + Math.signum(powerShift.getActive()) * Math.abs(powerShift.getVariableActive()));
+            return true;
         }
         return false;
     }
