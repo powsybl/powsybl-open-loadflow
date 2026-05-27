@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.NetworkVariantPool;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -136,13 +137,21 @@ public class LfNetworkList implements AutoCloseable {
 
     private final VariantCleaner variantCleaner;
 
-    public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner) {
+    // branches kept enabled in LfNetwork that are disconnected in the base case
+    private final List<String> permanentContingencyBranchIds;
+
+    public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner, List<String> permanentContingencyBranchIds) {
         this.list = Objects.requireNonNull(list);
         this.variantCleaner = variantCleaner;
+        this.permanentContingencyBranchIds = Objects.requireNonNull(permanentContingencyBranchIds);
+    }
+
+    public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner) {
+        this(list, variantCleaner, Collections.emptyList());
     }
 
     public LfNetworkList(List<LfNetwork> list) {
-        this(list, null);
+        this(list, null, Collections.emptyList());
     }
 
     public List<LfNetwork> getList() {
@@ -162,5 +171,9 @@ public class LfNetworkList implements AutoCloseable {
 
     public VariantCleaner getVariantCleaner() {
         return variantCleaner;
+    }
+
+    public List<String> getPermanentContingencyBranchIds() {
+        return permanentContingencyBranchIds;
     }
 }

@@ -76,8 +76,6 @@ public class LfNetworkParameters {
 
     public static final boolean DETAILED_REPORT_DEFAULT_VALUE = false;
 
-    public static final boolean INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE = true;
-
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -170,8 +168,6 @@ public class LfNetworkParameters {
 
     private boolean detailedReport = DETAILED_REPORT_DEFAULT_VALUE;
 
-    private boolean includeElementsReconnectingSmallComponents = INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE;
-
     public LfNetworkParameters() {
     }
 
@@ -226,7 +222,6 @@ public class LfNetworkParameters {
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
         this.isAcDcNetwork = other.isAcDcNetwork;
         this.detailedReport = other.detailedReport;
-        this.includeElementsReconnectingSmallComponents = other.includeElementsReconnectingSmallComponents;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -684,15 +679,6 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isIncludeElementsReconnectingSmallComponents() {
-        return includeElementsReconnectingSmallComponents;
-    }
-
-    public LfNetworkParameters setIncludeElementsReconnectingSmallComponents(boolean includeElementsReconnectingSmallComponents) {
-        this.includeElementsReconnectingSmallComponents = includeElementsReconnectingSmallComponents;
-        return this;
-    }
-
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -740,7 +726,6 @@ public class LfNetworkParameters {
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
                 ", isAcDcNetwork=" + isAcDcNetwork +
                 ", detailedReport=" + detailedReport +
-                ", includeElementsReconnectingSmallComponents=" + includeElementsReconnectingSmallComponents +
                 ')';
     }
 }
