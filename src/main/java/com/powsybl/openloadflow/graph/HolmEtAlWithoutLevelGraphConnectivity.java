@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.graph;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
@@ -20,7 +19,7 @@ import java.util.*;
  */
 public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, HolmEtAlWithoutLevelGraphConnectivity.Graph<V, E>> {
 
-    private final TObjectIntMap<V> vertexToComponent = new TObjectIntHashMap<>();
+    private TObjectIntMap<V> vertexToComponent = new TObjectIntHashMap<>();
 
     public HolmEtAlWithoutLevelGraphConnectivity() {
         super(new HolmEtAlWithoutLevelGraphConnectivity.Graph<>());
@@ -29,18 +28,21 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
         // simple because everything is done in Graph
+        vertexToComponent = null;
         componentSets = null;
     }
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
         // simple because everything is done in Graph
+        vertexToComponent = null;
         componentSets = null;
     }
 
     @Override
     protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
         // simple because everything is done in Graph
+        vertexToComponent = null;
         componentSets = null;
     }
 
@@ -60,23 +62,45 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
             return;
         }
 
-        vertexToComponent.clear();
+        vertexToComponent = null;
         componentSets = getGraph().spanningForest.getComponents();
-        componentSets.sort((s1, s2) -> s2.size() - s1.size());
-
-        int i = 0;
-        for (Set<V> comp : componentSets) {
-            for (V vertex : comp) {
-                vertexToComponent.put(vertex, i);
-            }
-
-            i++;
-        }
     }
 
     @Override
     protected int getQuickComponentNumber(V vertex) {
-        return vertexToComponent.get(vertex);
+        return getVertexToComponent().get(vertex);
+    }
+
+    private TObjectIntMap<V> getVertexToComponent() {
+        if (vertexToComponent == null) {
+            vertexToComponent = new TObjectIntHashMap<>();
+
+            int i = 0;
+            for (Set<V> comp : componentSets) {
+                for (V vertex : comp) {
+                    vertexToComponent.put(vertex, i);
+                }
+
+                i++;
+            }
+        }
+
+        return vertexToComponent;
+    }
+
+    @Override
+    public int getNbConnectedComponents() {
+        return getGraph().spanningForest.treeCount();
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        return getGraph().spanningForest.getComponent(vertex);
+    }
+
+    @Override
+    protected Set<V> getNonConnectedVertices(V vertex) {
+        return getGraph().spanningForest.getNonConnectedVertices(vertex);
     }
 
     @Override
@@ -124,7 +148,7 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
             edgeInfos.put(e, new EdgeInfo<>(treeEdge, v1, v2));
         }
 
-        private void replace(V v1, V v2) {
+        private boolean replace(V v1, V v2) {
             V smallest = v1; // vertex in the smallest component between T_v1 and T_v2
             if (spanningForest.treeSize(v1) > spanningForest.treeSize(v2)) {
                 smallest = v2;
@@ -147,10 +171,12 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
                         removeNonTreeEdge(info.src, info.dest, replacementCandidate);
                         info.treeEdge = true;
                         spanningForest.addEdge(info.src, info.dest, replacementCandidate);
-                        return;
+                        return true;
                     }
                 }
             }
+
+            return false;
         }
 
         @Override

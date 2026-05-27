@@ -314,34 +314,7 @@ public class SpanningForest<V, E> {
         } else if (tree.isEmpty()) {
             return Iterators.singletonIterator(vertex);
         } else {
-            return new Iterator<V>() {
-                private final Iterator<DirectedEdge> it = tree.iterator();
-                private V next = null;
-
-                @Override
-                public boolean hasNext() {
-                    while (next == null && it.hasNext()) {
-                        DirectedEdge edge = it.next();
-
-                        if (vertexToOccurrences.get(edge.src).activeEdge() == edge.forwardNode) {
-                            next = edge.src;
-                        }
-                    }
-
-                    return next != null;
-                }
-
-                @Override
-                public V next() {
-                    if (!hasNext()) {
-                        throw new NoSuchElementException();
-                    }
-
-                    V next = this.next;
-                    this.next = null;
-                    return next;
-                }
-            };
+            return new ComponentIterator(tree.iterator());
         }
     }
 
@@ -384,17 +357,99 @@ public class SpanningForest<V, E> {
     public List<Set<V>> getComponents() {
         List<Set<V>> components = new ArrayList<>();
 
-        for (AVLTree<DirectedEdge> trees : rootNodeToTree.values()) {
-            Set<V> component = new HashSet<>();
-            trees.iterator().forEachRemaining(d -> component.add(d.src));
-            components.add(component);
+        for (AVLTree<DirectedEdge> tree : rootNodeToTree.values()) {
+            // Set<V> component = new HashSet<>(tree.getSize());
+            // tree.iterator().forEachRemaining(d -> component.add(d.src));
+            components.add(componentView(tree));
         }
+        components.sort((s1, s2) -> s2.size() - s1.size());
 
         for (V singleton : singletons) {
             components.add(Set.of(singleton));
         }
 
         return components;
+    }
+
+    public Set<V> getComponent(V vertex) {
+        AVLTree<DirectedEdge> tree = find(vertex);
+
+        if (tree == null) {
+            return null;
+        } else if (tree.isEmpty()) {
+            return Set.of(vertex);
+        } else {
+            return componentView(tree);
+        }
+    }
+
+    public Set<V> getNonConnectedVertices(V vertex) {
+        AVLTree<DirectedEdge> excludeTree = find(vertex);
+
+        Set<V> components = new HashSet<>();
+
+        for (AVLTree<DirectedEdge> tree : rootNodeToTree.values()) {
+            if (tree != excludeTree) {
+                components.addAll(componentView(tree));
+            }
+        }
+
+        for (V singleton : singletons) {
+            if (singleton != vertex) {
+                components.add(singleton);
+            }
+        }
+
+        return components;
+    }
+
+    // only for components with two vertices or more
+    private AbstractSetView<V> componentView(AVLTree<DirectedEdge> tree) {
+        return new AbstractSetView<>() {
+            @Override
+            public Iterator<V> iterator() {
+                return new ComponentIterator(tree.iterator());
+            }
+
+            @Override
+            public int size() {
+                return tree.getSize();
+            }
+        };
+    }
+
+    private class ComponentIterator implements Iterator<V> {
+
+        private final Iterator<DirectedEdge> it;
+        private V next = null;
+
+        ComponentIterator(Iterator<DirectedEdge> it) {
+            this.it = it;
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (next == null && it.hasNext()) {
+                DirectedEdge edge = it.next();
+
+                if (vertexToOccurrences.get(edge.src).activeEdge() == edge.forwardNode) {
+                    next = edge.src;
+                }
+            }
+
+            return next != null;
+        }
+
+        @Override
+        public V next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+
+            V next = this.next;
+            this.next = null;
+            return next;
+        }
     }
 
     public String eulerTour(V vertex) {
