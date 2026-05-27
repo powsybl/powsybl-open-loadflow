@@ -251,11 +251,7 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
 
         @Override
         public Set<E> getNeighborEdgesOf(V v) {
-            Set<E> set = new HashSet<>();
-
-            for (int i = 0; i < adjacencyList.size(); i++) {
-                set.addAll(adjacencyList.get(v).values());
-            }
+            Set<E> set = new HashSet<>(adjacencyList.get(v).values());
 
             for (Iterator<E> it = spanningForest.adjacentEdges(v); it.hasNext();) {
                 set.add(it.next());
