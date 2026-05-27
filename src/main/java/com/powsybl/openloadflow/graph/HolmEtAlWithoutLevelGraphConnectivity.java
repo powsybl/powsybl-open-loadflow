@@ -19,7 +19,7 @@ import java.util.*;
  */
 public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, HolmEtAlWithoutLevelGraphConnectivity.Graph<V, E>> {
 
-    private TObjectIntMap<V> vertexToComponent = new TObjectIntHashMap<>();
+    private TObjectIntMap<V> vertexToComponent;
 
     public HolmEtAlWithoutLevelGraphConnectivity() {
         super(new HolmEtAlWithoutLevelGraphConnectivity.Graph<>());
@@ -75,13 +75,15 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
         if (vertexToComponent == null) {
             vertexToComponent = new TObjectIntHashMap<>();
 
-            int i = 0;
-            for (Set<V> comp : componentSets) {
+            // don't compute mapping for the biggest component
+            // vertexToComponent.get return 0 (the biggest component)
+            // if the key isn't present
+            for (int i = 1; i < componentSets.size(); i++) {
+                Set<V> comp = componentSets.get(i);
+
                 for (V vertex : comp) {
                     vertexToComponent.put(vertex, i);
                 }
-
-                i++;
             }
         }
 
