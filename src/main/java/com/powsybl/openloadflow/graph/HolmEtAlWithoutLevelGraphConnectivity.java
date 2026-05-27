@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.graph;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
@@ -59,24 +60,8 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
             return;
         }
 
-        componentSets = new ArrayList<>();
         vertexToComponent.clear();
-
-        HolmEtAlWithoutLevelGraphConnectivity.Graph<V, E> graph = getGraph();
-        SpanningForest<V, E> fullForest = graph.spanningForest;
-
-        for (Iterator<V> roots = fullForest.roots(); roots.hasNext();) {
-            V root = roots.next();
-
-            Set<V> component = new HashSet<>();
-            for (Iterator<V> it = fullForest.verticesInComponent(root); it.hasNext();) {
-                V vertex = it.next();
-                component.add(vertex);
-            }
-
-            componentSets.add(component);
-        }
-
+        componentSets = getGraph().spanningForest.getComponents();
         componentSets.sort((s1, s2) -> s2.size() - s1.size());
 
         int i = 0;

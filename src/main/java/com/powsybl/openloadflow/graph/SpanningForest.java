@@ -381,6 +381,22 @@ public class SpanningForest<V, E> {
         return Iterators.concat(singletons.iterator(), roots);
     }
 
+    public List<Set<V>> getComponents() {
+        List<Set<V>> components = new ArrayList<>();
+
+        for (AVLTree<DirectedEdge> trees : rootNodeToTree.values()) {
+            Set<V> component = new HashSet<>();
+            trees.iterator().forEachRemaining(d -> component.add(d.src));
+            components.add(component);
+        }
+
+        for (V singleton : singletons) {
+            components.add(Set.of(singleton));
+        }
+
+        return components;
+    }
+
     public String eulerTour(V vertex) {
         AVLTree<DirectedEdge> tree = find(vertex);
 
