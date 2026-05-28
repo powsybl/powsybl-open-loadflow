@@ -130,16 +130,21 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
     @Override
     public int getNbConnectedComponents() {
+        checkSavedContext();
         return getGraph().spanningForests.getFirst().treeCount();
     }
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
+        checkSavedContext();
+        checkVertex(vertex);
         return getGraph().spanningForests.getFirst().getComponent(vertex);
     }
 
     @Override
     protected Set<V> getNonConnectedVertices(V vertex) {
+        checkSavedContext();
+        checkVertex(vertex);
         return getGraph().spanningForests.getFirst().getNonConnectedVertices(vertex);
     }
 

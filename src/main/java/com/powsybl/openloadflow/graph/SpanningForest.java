@@ -412,8 +412,16 @@ public class SpanningForest<V, E> {
             }
 
             @Override
+            public boolean contains(Object o) {
+                if (o != null) {
+                    return find((V) o) == tree;
+                }
+                return false;
+            }
+
+            @Override
             public int size() {
-                return tree.getSize();
+                return (tree.getSize() + 2) / 2;
             }
         };
     }

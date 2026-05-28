@@ -534,6 +534,7 @@ class ConnectivityTest {
         List<GraphConnectivityFactory<Integer, DefaultEdge>> factories = List.of(
                 new NaiveGraphConnectivityFactory<>(i -> i),
                 //new MinimumSpanningTreeGraphConnectivityFactory<>(),
+                new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 new HolmEtAlGraphConnectivityFactory<>()
         );
 
