@@ -621,7 +621,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     // pre-contingency operator strategies (preventive actions)
                     List<Indexed<OperatorStrategy>> preContingencyOperatorStrategies = operatorStrategiesByContingencyId.getOrDefault(null, Collections.emptyList());
                     if (!preContingencyOperatorStrategies.isEmpty()) {
-                        LOGGER.info("Running pre-contingency operator strategies...");
+                        LOGGER.info("Running preventive operator strategies...");
 
                         for (Indexed<OperatorStrategy> operatorStrategyForBaseCase : preContingencyOperatorStrategies) {
                             if (Thread.currentThread().isInterrupted()) {
@@ -631,7 +631,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             workingFlowStates.copyValuesFrom(baseFlowStates);
                             workingFactorStates.copyValuesFrom(baseFactorStates);
 
-                            LfOperatorStrategy lfOperatorStrategy = LfOperatorStrategy.create(operatorStrategyForBaseCase, lfActionById);
+                            List<String> operatorStrategyActionIds = operatorStrategyForBaseCase.value().getConditionalActions().stream().flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
+                            List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
+                            LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategyForBaseCase, operatorStrategyLfActions);
                             var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
                                     ConnectivityBreakAnalysis.ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(null, lfOperatorStrategy, lfNetwork),
                                     connectivityBreakAnalysisResults.contingencyElementByBranch(),

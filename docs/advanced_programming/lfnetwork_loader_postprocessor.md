@@ -1,7 +1,7 @@
 # LfNetwork Loader post-processors
 
 Any simulation performed by PowSyBl Open LoadFlow starts by loading the 
-iIDM Grid Model into PowSyBl Open LoadFlow representation: the `LfNetwork`
+IIDM Grid Model into PowSyBl Open LoadFlow representation: the `LfNetwork`
 [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-open-loadflow/latest/com/powsybl/openloadflow/network/LfNetwork.html).
 
 By providing an `LfNetworkLoaderPostProcessor` [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-open-loadflow/latest/com/powsybl/openloadflow/network/LfNetworkLoaderPostProcessor.html)
@@ -9,7 +9,7 @@ plug-in, it is possible to further alter the `LfNetwork`. The plug-in is called 
 - at each bus, branch, injection, and area creation
 - and when the `LfNetwork` loading is complete
 
-In each callback a reference to the original iIDM object is provided, as well as the corresponding object in `LfNetwork`.
+In each callback a reference to the original IIDM object is provided, as well as the corresponding object in `LfNetwork`.
 
 Below an example empty post-processor, doing nothing:
 
@@ -59,7 +59,7 @@ public class MyLfNetworkLoaderPostProcessor implements LfNetworkLoaderPostProces
 }
 ```
 
-For example, if you have a need to copy some extra data from iIDM elements to LfNetwork elements `PropertyBag`
+For example, if you have a need to copy some extra data from IIDM elements to LfNetwork elements `PropertyBag`
 [![Javadoc](https://img.shields.io/badge/-javadoc-blue.svg)](https://javadoc.io/doc/com.powsybl/powsybl-open-loadflow/latest/com/powsybl/openloadflow/network/PropertyBag.html),
 you may proceed as follows:
 
@@ -72,7 +72,7 @@ you may proceed as follows:
     }
 ```
 
-The above example stores the iIDM branch name in the LfBranch as a property having key `name-or-id`.
+The above example stores the IIDM branch name in the LfBranch as a property having key `name-or-id`.
 
 Note that `PropertyBag`-s are not limited to storing strings: you can attach a complex object behind a property.
 One practical use case of doing so is to attach to the LfNetwork specific information needed to run custom Outer-Loops.
