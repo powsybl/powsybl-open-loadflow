@@ -82,7 +82,6 @@ public class LfNetworkList implements AutoCloseable {
         @Override
         public void clean() {
             NetworkVariantPool.INSTANCE.release(network, tmpVariantId);
-            network.getVariantManager().setWorkingVariant(workingVariantId);
         }
     }
 
