@@ -138,8 +138,9 @@ public class WoodburyEngine {
                     .forEach(genAction -> {
                         LfBus bus = genAction.getGenerator().getBus();
                         double deltaTargetP = genAction.getNewTargetP() - genAction.getGenerator().getTargetP();
-                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P).ifPresent(
-                                eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
+                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                                .filter(Equation::isActive)
+                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
                     });
 
             // apply load actions: a load increase reduces the bus net injection (generation - load)
@@ -150,8 +151,9 @@ public class WoodburyEngine {
                     .forEach(loadAction -> {
                         LfBus bus = loadAction.getLfLoad().getBus();
                         double deltaTargetP = -loadAction.getPowerShift().getActive();
-                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P).ifPresent(
-                                eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
+                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                                .filter(Equation::isActive)
+                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
                     });
 
             // set transformer phase shift to 0 for disabled phase tap changers by actions
