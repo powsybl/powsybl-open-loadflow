@@ -405,6 +405,27 @@ class AcLoadFlowTransformerVoltageControlTest {
     }
 
     @Test
+    void voltageControlT2wtTestInsensitive() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(4.0)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1()) // HV side, but changing tap will not change voltage at all
+                .setTargetV(145.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(30.766, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition()); // did not move
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
     void voltageControlT2wtTest7() {
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
 
