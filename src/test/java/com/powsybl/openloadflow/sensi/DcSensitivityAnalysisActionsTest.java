@@ -405,8 +405,9 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testContingencyAndPhaseShifterPositionOperatorStrategy() {
         // this test demonstrates that sensi on an operator strategy with a phase shifter tap position change
-        // gives incorrect results. The reference is obtained by running classical sensi on a variant where
-        // the contingency and the PST action have been applied beforehand.
+        // gives incorrect results.
+        // the reference is obtained by running classical sensi on a variant where the contingency and the PST action
+        // have been applied beforehand.
         Network network = MetrixTutorialSixBusesFactory.create();
         runDcLf(network);
 
@@ -465,7 +466,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
     void testNegativeTapPhaseTapChangerPositionOperatorStrategy() {
         // OLF bug: PiModelArray.getModel(int) receives the raw tap position (e.g. -5) and uses it
         // directly as an ArrayList index instead of computing (tapPosition - lowTapPosition).
-        // Reproduce by shifting NE_NO_1's tap range to [-16, 16] and starting at tap -5.
+        // reproduced by shifting NE_NO_1's tap range to [-16, 16] and starting at tap -5.
         Network network = MetrixTutorialSixBusesFactory.create();
         network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger()
                 .setLowTapPosition(-16)
