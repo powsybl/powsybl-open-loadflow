@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        HashMap<Integer, Double> emptySlackBusActivePowerMismatch = new HashMap<>();
-        HashMap<Integer, Double> emptyDistributedActivePower = new HashMap<>();
+        Map<Integer, Double> emptySlackBusActivePowerMismatch = new HashMap<>();
+        Map<Integer, Double> emptyDistributedActivePower = new HashMap<>();
         network.getSynchronousNetworks().forEach(lfScNetwork -> {
             emptySlackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), Double.NaN);
             emptyDistributedActivePower.put(lfScNetwork.getNumSC(), Double.NaN);

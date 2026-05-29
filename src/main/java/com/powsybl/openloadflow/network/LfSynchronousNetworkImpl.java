@@ -37,9 +37,9 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
 
     private final int maxSlackBusCount;
 
-    protected LfBus referenceBus;
+    private LfBus referenceBus;
 
-    protected List<LfBus> slackBuses = new ArrayList<>();
+    private List<LfBus> slackBuses = new ArrayList<>();
 
     private Set<LfBus> excludedSlackBuses = Collections.emptySet();
 
@@ -154,6 +154,12 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
     }
 
     public void updateSlackBusesAndReferenceBus() {
+        // Usually (slackBuses == null) == (referenceBus == null), as they are invalidated and updated by the same
+        // methods. However, in the code block below, after setting the slack buses, if the referenceBusSelector is a
+        // ReferenceBusFirstSlackSelector, it requests the slack buses of this LfSynchronousComponent which calls this
+        // method again.
+        // At this stage (slackBuses != null) and (referenceBus == null). The condition below allows the method to
+        // return directly to prevent an infinite loop.
         if (slackBuses == null && referenceBus == null) {
             List<LfBus> scBuses = getBuses();
             List<LfBus> selectableBuses =
@@ -169,7 +175,7 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
                 slackBuses = selectedSlackBus.getBuses();
             }
             LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
-            for (var slackBus : slackBuses) {
+            for (LfBus slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
             // reference bus must be selected after slack bus, because of ReferenceBusFirstSlackSelector implementation requiring slackBuses
@@ -184,7 +190,7 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
             }
 
             // If this synchronous network is the main one, updating the LfNetwork connectivity graph main vertex
-            // is part of its responsibility
+            // is part of its responsibility.
             if (lfNetwork.getSynchronousNetworks().getFirst() == this && !lfNetwork.isConnectivityNull()) {
                 lfNetwork.getConnectivity().setMainComponentVertex(slackBuses.getFirst());
             }

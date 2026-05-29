@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -122,8 +123,8 @@ public class AcLoadFlowFromCache {
             return result;
         }
 
-        HashMap<Integer, Double> slackBusActivePowerMismatch = new HashMap<>();
-        HashMap<Integer, Double> distributedActivePower = new HashMap<>();
+        Map<Integer, Double> slackBusActivePowerMismatch = new HashMap<>();
+        Map<Integer, Double> distributedActivePower = new HashMap<>();
         context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> {
             slackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), 0d);
             distributedActivePower.put(lfScNetwork.getNumSC(), 0d);

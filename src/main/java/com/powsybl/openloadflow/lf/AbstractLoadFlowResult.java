@@ -40,7 +40,7 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
 
     @Override
     public double getSlackBusActivePowerMismatch() {
-        return slackBusActivePowerMismatch.values().stream().reduce(0.0, Double::sum);
+        return slackBusActivePowerMismatch.values().stream().mapToDouble(Double::doubleValue).sum();
     }
 
     public double getSlackBusActivePowerMismatch(int numSc) {

@@ -41,15 +41,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    protected final int numCC;
+    private final int numCC;
 
     private final List<LfSynchronousNetwork> synchronousNetworks;
 
-    protected final SlackBusSelector slackBusSelector;
+    private final SlackBusSelector slackBusSelector;
 
-    protected final ReferenceBusSelector referenceBusSelector;
+    private final ReferenceBusSelector referenceBusSelector;
 
-    protected final int maxSlackBusCount;
+    private final int maxSlackBusCount;
 
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
@@ -89,9 +89,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
-    protected Validity validity = Validity.VALID;
+    private Validity validity = Validity.VALID;
 
-    protected final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
@@ -313,7 +313,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             ));
         }
 
-        synchronousNetworks.forEach(LfSynchronousNetwork::invalidateSlackAndReference);
+        getSynchronousNetwork(bus.getNumSC()).invalidateSlackAndReference();
         connectivity = null;
 
         bus.getShunt().ifPresent(this::addShunt);

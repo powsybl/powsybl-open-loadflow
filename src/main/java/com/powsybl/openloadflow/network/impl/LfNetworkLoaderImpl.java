@@ -1041,16 +1041,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     /**
+     * Get or create a LfNetwork to represent a connected component and add elements of a synchronous component inside it.
+     *
+     * @param numCc         The connected component's id.
+     * @param numSc         The synchronous component's id.
+     * @param network       The iidm representation of the network.
+     * @param buses         A list of buses belonging to the same synchronous component.
+     * @param lfNetworkByCc A map providing access to a LfNetwork by its connected component id.
+     * @param switches      A list of switches to add in the LfNetwork representation.
+     * @param topoConfig    Topology configuration: openable branches, switch to open/close, etc...
+     * @param parameters    Parameters specific to OpenLoadFlow.
+     * @param reportNode    A report node object.
+     */
+    private void addSynchronousComponentElements(int numCc, int numSc, Network network, List<Bus> buses, Map<Integer, LfNetwork> lfNetworkByCc, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
+        LfNetwork lfNetwork;
+        if (lfNetworkByCc.containsKey(numCc)) {
+            lfNetwork = lfNetworkByCc.get(numCc);
+        } else {
+            lfNetwork = new LfNetwork(numCc, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
+                parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), Reports.createRootAcDcLfNetworkReportNode(reportNode, numCc));
+            lfNetworkByCc.put(numCc, lfNetwork);
+        }
+        createAc(lfNetwork, numSc, network, buses, switches, topoConfig, parameters, lfNetwork.getReportNode());
+    }
+
+    /**
      * Create a new LfNetwork with LfElements of a single synchronous component.
      *
-     * @param numCC      The number of the connected component.
-     * @param numSC      The number of the synchronous component.
+     * @param numCC      The connected component's id.
+     * @param numSC      The synchronous component's id.
      * @param network    The iidm representation of the network.
      * @param buses      A list of buses belonging to the same synchronous component.
      * @param switches   A list of switches to add in the LfNetwork representation.
      * @param topoConfig Topology configuration: openable branches, switch to open/close, etc...
-     * @param parameters parameters specific to OpenLoadFlow.
-     * @param reportNode a report node object.
+     * @param parameters Parameters specific to OpenLoadFlow.
+     * @param reportNode A report node object.
      * @return A LfNetwork filled with elements from the synchronous component.
      */
     private LfNetwork createAc(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
@@ -1068,7 +1093,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * @param buses      A list of buses belonging to the same synchronous component.
      * @param switches   A list of switches to add in the LfNetwork representation.
      * @param topoConfig Topology configuration: openable branches, switch to open/close, etc...
-     * @param parameters parameters specific to OpenLoadFlow.
+     * @param parameters Parameters specific to OpenLoadFlow.
      * @param reportNode a report node object.
      * @return The lfNetwork with new elements from the synchronous component.
      */
@@ -1251,6 +1276,25 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
         return lfNetwork;
+    }
+
+    /**
+     * Get the LfNetwork representing a connected component and add elements of a DC component inside it.
+     *
+     * @param numCc         The connected component's id.
+     * @param numDcc        The synchronous component's id.
+     * @param network       The iidm representation of the network.
+     * @param dcBuses       A list of DC buses belonging to the same DC component.
+     * @param lfNetworkByCc A map providing access to a LfNetwork by its connected component id.
+     * @param parameters    Parameters specific to OpenLoadFlow.
+     */
+    private void addDcComponentElements(int numCc, int numDcc, Network network, List<DcBus> dcBuses, Map<Integer, LfNetwork> lfNetworkByCc, LfNetworkParameters parameters) {
+        if (lfNetworkByCc.containsKey(numCc)) {
+            createDc(lfNetworkByCc.get(numCc), numDcc, network, dcBuses, parameters);
+        } else {
+            // Should not happen
+            throw new PowsyblException("Found DC buses in a connected component without AC buses");
+        }
     }
 
     private void createDc(LfNetwork lfNetwork, int numDcc, Network network, List<DcBus> dcBuses, LfNetworkParameters parameters) {
@@ -1538,8 +1582,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     var networkKey = e.getKey();
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
-                    List<Bus> lfBuses = e.getValue();
-                    return createAc(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
+                    List<Bus> scBuses = e.getValue();
+                    return createAc(numCc, numSc, network, scBuses, switchesByCc.get(networkKey), topoConfig,
                         parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
                 })
                 .toList();
@@ -1572,38 +1616,31 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             Map<Integer, LfNetwork> lfNetworkByCc = new HashMap<>();
 
             // Create AC networks
-            filteredBusesByComponentStream.forEach(e -> {
-                var networkKey = e.getKey();
-                int numCc = networkKey.getLeft();
-                int numSc = networkKey.getRight();
-                List<Bus> lfBuses = e.getValue();
-
-                LfNetwork lfNetwork;
-                if (lfNetworkByCc.containsKey(numCc)) {
-                    lfNetwork = lfNetworkByCc.get(numCc);
-                } else {
-                    lfNetwork = new LfNetwork(numCc, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                        parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), Reports.createRootAcDcLfNetworkReportNode(reportNode, numCc));
-                    lfNetworkByCc.put(numCc, lfNetwork);
-                }
-                createAc(lfNetwork, numSc, network, lfBuses, switchesByCc.get(networkKey), topoConfig,
-                    parameters, lfNetwork.getReportNode());
-            });
+            filteredBusesByComponentStream.forEach(e ->
+                addSynchronousComponentElements(
+                    e.getKey().getLeft(),
+                    e.getKey().getRight(),
+                    network,
+                    e.getValue(),
+                    lfNetworkByCc,
+                    switchesByCc.get(e.getKey()),
+                    topoConfig,
+                    parameters,
+                    reportNode
+                )
+            );
 
             // Create DC networks
-            filteredDcBusesByComponentStream.forEach(e -> {
-                var networkKey = e.getKey();
-                int numCc = networkKey.getLeft();
-                int numDcc = networkKey.getRight();
-                List<DcBus> lfDcBuses = e.getValue();
-
-                if (lfNetworkByCc.containsKey(numCc)) {
-                    createDc(lfNetworkByCc.get(numCc), numDcc, network, lfDcBuses, parameters);
-                } else {
-                    // Should not happen
-                    throw new PowsyblException("Found DC buses in a connected component without AC buses");
-                }
-            });
+            filteredDcBusesByComponentStream.forEach(e ->
+                addDcComponentElements(
+                    e.getKey().getLeft(),
+                    e.getKey().getRight(),
+                    network,
+                    e.getValue(),
+                    lfNetworkByCc,
+                    parameters
+                )
+            );
 
             // Add AC-DC converters
             for (AcDcConverter<?> converter : network.getVoltageSourceConverters()) {

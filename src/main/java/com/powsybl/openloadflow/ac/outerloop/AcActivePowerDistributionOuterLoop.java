@@ -25,7 +25,7 @@ public interface AcActivePowerDistributionOuterLoop extends ActivePowerDistribut
      * synchronous component.
      *
      * @param context Outer loop context, storing data about the last load flow iteration.
-     * @param numSC The number of the synchronous component whose distributed active power should be returned.
+     * @param numSC The id of the synchronous component whose distributed active power should be returned.
      * @return The active power redistributed within the synchronous component by the outer loop. In pu.
      */
     double getDistributedActivePower(AcOuterLoopContext context, int numSC);

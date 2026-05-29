@@ -614,9 +614,10 @@ class AcDcLoadFlowTest {
         VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv24.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLine("dl34").getR() * Math.pow(network.getDcLine("dl34").getDcTerminal1().getI() / 1000, 2);
         assertActivePowerEquals(100, ld2.getTerminal());
-        assertActivePowerEquals(-30.001, g2.getTerminal());  // TargetP was initially set to 50
-        assertActivePowerEquals(-69.998, conv24.getTerminal1());
+        assertActivePowerEquals(-(30 + dcLineLosses), g2.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-(70 - dcLineLosses), conv24.getTerminal1());  // A bit less than 70 due to losses in DC lines
     }
 
     @Test
@@ -635,8 +636,10 @@ class AcDcLoadFlowTest {
     @Test
     void testTwoAcZonesNoGeneratorButVscVoltageControl() {
         // A network with 2 synchronous components. The second zone has no generator to compensate slack mismatch
-        // The Voltage Source Converter conv24 controls AC voltage, so the AC zone is valid.
-        // However, it cannot modify its target active power, so the DistributedSlacOuterLoop cannot converge.
+        // The Voltage Source Converter conv24 controls AC voltage, so the AC zone is still valid.
+        // However, as a VSC cannot modify its target active power, the DistributedSlacOuterLoop cannot converge (if
+        // generators are used to compensate the mismatch, which is the default behavior).
+        // Therefore, we are testing that the load flow does not converge because of the DistributedSlackOuterLoop.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
         network.getGenerator("g2").remove();
         network.getVoltageSourceConverter("conv24").setVoltageSetpoint(400).setVoltageRegulatorOn(true);
@@ -674,9 +677,11 @@ class AcDcLoadFlowTest {
         VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLineStream().map(
+            dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
-        assertActivePowerEquals(-49.997, conv25.getTerminal1());
+        assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
 
         // Synchronous component 3
         Load ld3 = network.getLoad("ld3");
@@ -691,7 +696,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testMtDcTwoAcZones() {
-        // A network with 2 synchronous components but 2 P_PCC converters are in the same synchronous component.
+        // A network with 2 synchronous components and 3 converters. 2 converters in P_PCC mode are in the same synchronous component.
         // Slack distribution should behave similarly to the case with two AC zones and a simple DC link.
         // Indeed, slack mismatch distribution should be agnostic to the DC network topology.
         Network network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZones();
@@ -724,9 +729,11 @@ class AcDcLoadFlowTest {
         VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLineStream().map(
+            dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
-        assertActivePowerEquals(-49.997, conv25.getTerminal1());
+        assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
     }
 
     @Test
@@ -761,9 +768,11 @@ class AcDcLoadFlowTest {
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP()
             + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLineStream().map(
+            dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-40.001, g2.getTerminal());  // TargetP was initially set to 50
-        assertActivePowerEquals(-49.997, conv25.getTerminal1());
+        assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
         assertActivePowerEquals(50, ld3.getTerminal());
         assertActivePowerEquals(-40.001, g3.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-20, conv36.getTerminal1());

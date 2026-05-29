@@ -72,12 +72,16 @@ public interface LfSynchronousNetwork {
 
     /**
      * Unset slack bus, reference bus and reference generator.
+     * Meant to be use only by implementations and the LfNetwork class.
      */
     void invalidateSlackAndReference();
 
     /**
      * If not already set, select the slack buses, the reference bus and the reference generator (if the reference bus
-     * is selected via the reference generator)
+     * is selected via the reference generator).
+     * If the LfSynchronousNetwork is the main one of a LfNetwork, its first slack bus is the main vertex of the
+     * LfNetwork connectivity graph. Therefore, this method might also update the connectivity graph if it is not null.
+     * Meant to be use only by implementations and the LfNetwork class.
      */
     void updateSlackBusesAndReferenceBus();
 }
