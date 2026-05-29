@@ -329,6 +329,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 values = null;
                 invalidationReasons.add(invalidationReason);
             }
+            if (variantCleaner != null) {
+                variantCleaner.clean();
+                variantCleaner = null;
+            }
         }
 
         private void onStructureChange() {
