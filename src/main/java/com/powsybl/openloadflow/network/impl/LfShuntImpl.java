@@ -8,15 +8,11 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.ShuntCompensator;
-import com.powsybl.iidm.network.ShuntCompensatorLinearModel;
-import com.powsybl.iidm.network.ShuntCompensatorModel;
-import com.powsybl.iidm.network.ShuntCompensatorNonLinearModel;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -28,8 +24,8 @@ public class LfShuntImpl extends AbstractLfShunt {
 
         private final Ref<ShuntCompensator> shuntCompensatorRef;
 
-        private ControllerImpl(Ref<ShuntCompensator> shuntCompensatorRef, List<Double> sectionsB, List<Double> sectionsG, int position) {
-            super(shuntCompensatorRef.get().getId(), sectionsB, sectionsG, position);
+        private ControllerImpl(Ref<ShuntCompensator> shuntCompensatorRef, List<Double> sectionsB, List<Double> sectionsG, int position, int minPosition) {
+            super(shuntCompensatorRef.get().getId(), sectionsB, sectionsG, position, minPosition);
             this.shuntCompensatorRef = shuntCompensatorRef;
         }
 
@@ -81,27 +77,36 @@ public class LfShuntImpl extends AbstractLfShunt {
         super(network);
         shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream()
                 .map(sc -> Ref.create(sc, parameters.isCacheEnabled()))
-                .collect(Collectors.toList());
+                .toList();
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
+        if (!parameters.isAllowNonLinearShuntZeroSection()) {
+            shuntCompensators.stream()
+                .filter(shuntCompensator -> shuntCompensator.getModelType() == ShuntCompensatorModelType.NON_LINEAR && shuntCompensator.getSectionCount() == 0)
+                .findFirst().ifPresent(shuntCompensator -> {
+                        throw new PowsyblException("Non-linear shunt compensator has zero section count");
+                });
+        }
         this.bus = Objects.requireNonNull(bus);
         this.voltageControlCapability = voltageControlCapability;
-        double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
+        double nominalV = shuntCompensators.getFirst().getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
         zb = PerUnit.zb(nominalV);
         b = computeB(shuntCompensators, zb);
         g = computeG(shuntCompensators, zb);
 
-        boolean keepSections = shuntCompensators.stream().map(ShuntCompensator::getId).anyMatch(id -> topoConfig.isOperatedShunt(id));
+        boolean keepSections = shuntCompensators.stream().map(ShuntCompensator::getId).anyMatch(topoConfig::isOperatedShunt);
 
         if (voltageControlCapability || keepSections) {
             shuntCompensatorsRefs.forEach(shuntCompensatorRef -> {
                 var shuntCompensator = shuntCompensatorRef.get();
                 List<Double> sectionsB = new ArrayList<>(1);
                 List<Double> sectionsG = new ArrayList<>(1);
+
                 sectionsB.add(0.0);
                 sectionsG.add(0.0);
                 ShuntCompensatorModel model = shuntCompensator.getModel();
+                int minPosition = 0;
                 switch (shuntCompensator.getModelType()) {
                     case LINEAR:
                         ShuntCompensatorLinearModel linearModel = (ShuntCompensatorLinearModel) model;
@@ -111,6 +116,7 @@ public class LfShuntImpl extends AbstractLfShunt {
                         }
                         break;
                     case NON_LINEAR:
+                        minPosition = parameters.isAllowNonLinearShuntZeroSection() ? 0 : 1;
                         ShuntCompensatorNonLinearModel nonLinearModel = (ShuntCompensatorNonLinearModel) model;
                         for (int section = 0; section < shuntCompensator.getMaximumSectionCount(); section++) {
                             sectionsB.add(nonLinearModel.getAllSections().get(section).getB() * zb);
@@ -118,7 +124,7 @@ public class LfShuntImpl extends AbstractLfShunt {
                         }
                         break;
                 }
-                controllers.add(new ControllerImpl(shuntCompensatorRef, sectionsB, sectionsG, shuntCompensator.getSectionCount()));
+                controllers.add(new ControllerImpl(shuntCompensatorRef, sectionsB, sectionsG, shuntCompensator.getSectionCount(), minPosition));
             });
             // Controllers are always enabled, a contingency with shunt compensator with voltage control on is not supported yet.
             controllers.sort(Comparator.comparingDouble(Controller::getBMagnitude).reversed());
@@ -149,7 +155,7 @@ public class LfShuntImpl extends AbstractLfShunt {
 
     @Override
     public List<String> getOriginalIds() {
-        return shuntCompensatorsRefs.stream().map(scRef -> scRef.get().getId()).collect(Collectors.toList());
+        return shuntCompensatorsRefs.stream().map(scRef -> scRef.get().getId()).toList();
     }
 
     @Override
@@ -220,7 +226,7 @@ public class LfShuntImpl extends AbstractLfShunt {
         List<Double> sections = controller.getSectionsB();
         // find tap position with the closest b value
         double smallestDistance = Math.abs(b - sections.get(controller.getPosition()));
-        for (int s = 0; s < sections.size(); s++) {
+        for (int s = controller.getMinPosition(); s < sections.size(); s++) {
             double distance = Math.abs(b - sections.get(s));
             if (distance < smallestDistance) {
                 controller.setPosition(s);
@@ -276,7 +282,7 @@ public class LfShuntImpl extends AbstractLfShunt {
         if (voltageControlCapability) {
             throw new PowsyblException("Cannot re-init a shunt compensator with voltage control capabilities");
         }
-        List<ShuntCompensator> shuntCompensators = shuntCompensatorsRefs.stream().map(Ref::get).collect(Collectors.toList());
+        List<ShuntCompensator> shuntCompensators = shuntCompensatorsRefs.stream().map(Ref::get).toList();
         setB(computeB(shuntCompensators, zb));
         setG(computeG(shuntCompensators, zb));
     }
