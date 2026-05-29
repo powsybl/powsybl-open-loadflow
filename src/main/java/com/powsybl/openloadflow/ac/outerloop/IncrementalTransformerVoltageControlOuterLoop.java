@@ -128,18 +128,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private static boolean isInsensitive(IncrementalContextData contextData, LfBranch controllerBranch, LfBus controlledBus, double sensitivity) {
-        IncrementalContextData.ControllerContext controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-        if (controllerContext.isInsensitive()) {
-            // already identified
-            return true;
-        }
-        boolean insensitive = Math.abs(sensitivity) < MIN_SENSI_FILTER;
-        if (insensitive) {
+        if (Math.abs(sensitivity) < MIN_SENSI_FILTER) {
+            IncrementalContextData.ControllerContext controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
             controllerContext.setInsensitive();
             LOGGER.debug("Controller branch '{}' ratio tap sensitivity to bus {} voltage too low ({}), no control performed",
                     controllerBranch.getId(), controlledBus.getId(), sensitivity);
+            return true;
         }
-        return insensitive;
+        return false;
     }
 
     private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivities,
