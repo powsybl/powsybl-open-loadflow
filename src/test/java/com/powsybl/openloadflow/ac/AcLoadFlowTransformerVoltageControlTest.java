@@ -18,6 +18,8 @@ import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
+import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -423,6 +426,38 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(30.766, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition()); // did not move
         assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTestInsensitive2() {
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
+
+        parameters.setTransformerVoltageControlOn(true).setDistributedSlack(true);
+        parametersExt
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                // put transformer control outerloop first so that it runs twice, so we can test caching of insensitive transformers
+                .setOuterLoopNames(List.of(IncrementalTransformerVoltageControlOuterLoop.NAME, DistributedSlackOuterLoop.NAME));
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(4.0)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1()) // HV side, but changing tap will not change voltage at all
+                .setTargetV(145.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(4.0)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt2.getTerminal1()) // HV side, but changing tap will not change voltage at all
+                .setTargetV(145.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(32.242, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition()); // did not move
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition()); // did not move
+        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test

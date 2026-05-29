@@ -260,7 +260,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 .stream().filter(b -> !contextData.getControllersContexts().get(b.getId()).isInsensitive())
                 .toList();
 
-        // all branches are within their deadbands
+        // all branches are within their deadbands or are insensitive
         if (controllerBranchesOutOfDeadband.isEmpty()) {
             return new OuterLoopResult(this, status.get());
         }
