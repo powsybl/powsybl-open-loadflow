@@ -43,8 +43,8 @@ public interface LfShunt extends LfElement {
             this.sectionsG = Objects.requireNonNull(sectionsG);
             this.position = position;
             this.minPosition = minPosition;
-            double bMin = Math.min(sectionsB.getFirst(), sectionsB.getLast());
-            double bMax = Math.max(sectionsB.getFirst(), sectionsB.getLast());
+            double bMin = Math.min(sectionsB.get(minPosition), sectionsB.getLast());
+            double bMax = Math.max(sectionsB.get(minPosition), sectionsB.getLast());
             this.bMagnitude = Math.abs(bMax - bMin);
         }
 

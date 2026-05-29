@@ -85,7 +85,7 @@ public class LfShuntImpl extends AbstractLfShunt {
             shuntCompensators.stream()
                 .filter(shuntCompensator -> shuntCompensator.getModelType() == ShuntCompensatorModelType.NON_LINEAR && shuntCompensator.getSectionCount() == 0)
                 .findFirst().ifPresent(shuntCompensator -> {
-                        throw new PowsyblException("Non-linear shunt compensator has zero section count");
+                    throw new PowsyblException("Non-linear shunt compensator " + shuntCompensator.getId() + " has invalid section count 0 (see parameter allowNonLinearShuntZeroSection)");
                 });
         }
         this.bus = Objects.requireNonNull(bus);
@@ -102,7 +102,6 @@ public class LfShuntImpl extends AbstractLfShunt {
                 var shuntCompensator = shuntCompensatorRef.get();
                 List<Double> sectionsB = new ArrayList<>(1);
                 List<Double> sectionsG = new ArrayList<>(1);
-
                 sectionsB.add(0.0);
                 sectionsG.add(0.0);
                 ShuntCompensatorModel model = shuntCompensator.getModel();
