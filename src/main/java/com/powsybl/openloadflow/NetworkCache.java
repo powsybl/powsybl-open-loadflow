@@ -160,35 +160,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public static class DcSensiInput implements Input<DcSensiInput> {
-
-        private final LoadFlowParameters parameters;
-        // this is what impact TopoConfig
-        private final Set<String> topoActionIds;
-
-        public DcSensiInput(LoadFlowParameters parameters, Set<String> topoActionIds) {
-            this.parameters = Objects.requireNonNull(parameters);
-            this.topoActionIds = Objects.requireNonNull(topoActionIds);
-        }
-
-        @Override
-        public DcSensiInput copy() {
-            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), topoActionIds);
-        }
-
-        @Override
-        public String hasChanged(DcSensiInput other) {
-            // TODO to refine later by comparing in detail parameters that have changed
-            if (!OpenLoadFlowParameters.equals(parameters, other.parameters)) {
-                return "parameters";
-            }
-            if (!topoActionIds.equals(other.topoActionIds)) {
-                return "actions";
-            }
-            return null;
-        }
-    }
-
     public static class AcLfEntry extends AbstractEntry<LfInput, AcLfValue> {
 
         public AcLfEntry(Network network, LfInput input) {
