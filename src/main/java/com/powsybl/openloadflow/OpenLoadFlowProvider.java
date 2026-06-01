@@ -95,7 +95,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private void updateAcState(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                AcLoadFlowResult result, AcLoadFlowParameters acParameters, boolean atLeastOneComponentHasToBeUpdated) {
         if (parametersExt.isNetworkCacheEnabled()) {
-            NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().setPause(true);
+            NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(true);
         }
         try {
             // update network state
@@ -120,7 +120,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
         } finally {
             if (parametersExt.isNetworkCacheEnabled()) {
-                NetworkCache.INSTANCE.findEntryAc(network).orElseThrow().setPause(false);
+                NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(false);
             }
         }
     }
