@@ -12,7 +12,8 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
-import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -23,6 +24,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
 
@@ -35,11 +37,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class DcLoadFlowMatrixTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowMatrixTest.class);
 
-    private final MatrixFactory matrixFactory = new DenseMatrixFactory();
+    private final CommonTestConfig commonTestConfig;
+
+    DcLoadFlowMatrixTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private static void logNetwork(Network network) {
         network.getLoads().forEach(l -> LOGGER.info("{} : p = {}.", l.getId(), l.getP0()));
@@ -71,7 +78,7 @@ class DcLoadFlowMatrixTest {
                     .print(ps, equationSystem.getColumnNames(), null);
         }
 
-        try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
+        try (var j = new JacobianMatrix<>(equationSystem, commonTestConfig.matrixFactory())) {
             try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
                 ps.println("J=");
                 j.getMatrix().print(ps, equationSystem.getRowNames(), equationSystem.getColumnNames());
@@ -80,7 +87,7 @@ class DcLoadFlowMatrixTest {
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {
                 try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
                     ps.println("TGT=");
-                    Matrix.createFromColumn(targets.getArray(), matrixFactory)
+                    Matrix.createFromColumn(targets.getArray(), commonTestConfig.matrixFactory())
                             .print(ps, equationSystem.getRowNames(), null);
                 }
 
@@ -109,7 +116,7 @@ class DcLoadFlowMatrixTest {
 
         equationSystem = new DcEquationSystemCreator(mainNetwork).create(false);
 
-        try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
+        try (var j = new JacobianMatrix<>(equationSystem, commonTestConfig.matrixFactory())) {
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {
                 var dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
                 try (LUDecomposition lu = j.getMatrix().decomposeLU()) {
