@@ -20,7 +20,6 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -32,6 +31,7 @@ import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Collections;
 import java.util.List;
@@ -44,7 +44,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
+
+    private final CommonTestConfig commonTestConfig;
+
+    NonImpedantBranchTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -54,7 +61,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters().setWriteSlackBus(false);
         parametersExt = OpenLoadFlowParameters.create(parameters);
     }
@@ -366,7 +373,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                                                   new Contingency("contingency2", List.of(new BranchContingency("l01"), new BranchContingency("l13"))));
 
         ContingenciesProvider provider = n -> contingencies;
-        SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(LocalComputationManager.getDefault())
@@ -399,7 +406,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters()
                 .setCreateResultExtension(true);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
-        SecurityAnalysisProvider provider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        SecurityAnalysisProvider provider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(),
                 Set.of("tr34"),
                 Set.of("b0_vl", "b1_vl", "b2_vl", "b3_vl", "b4_vl", "b5_vl"),
