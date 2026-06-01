@@ -15,6 +15,7 @@ import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
@@ -47,6 +48,10 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     private LoadFlowParameters parameters;
     private SecurityAnalysisParameters securityAnalysisParameters;
     private OpenLoadFlowParameters parametersExt;
+
+    WoodburyDcSecurityAnalysisWithActionsTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @BeforeEach
     public void setUpWoodburyDcSa() {
