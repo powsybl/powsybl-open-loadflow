@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow;
 
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Bus;
@@ -17,19 +17,17 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
-import com.powsybl.openloadflow.NetworkCache;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,11 +36,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 @ExtendWith(ServiceParameterResolver.class)
-class AcLoadFlowWithCachingTest {
+class LoadFlowWithCachingTest {
 
     private final CommonTestConfig commonTestConfig;
 
-    AcLoadFlowWithCachingTest(CommonTestConfig commonTestConfig) {
+    LoadFlowWithCachingTest(CommonTestConfig commonTestConfig) {
         this.commonTestConfig = commonTestConfig;
     }
 
@@ -51,6 +49,8 @@ class AcLoadFlowWithCachingTest {
     private LoadFlowParameters parameters;
 
     private OpenLoadFlowParameters parametersExt;
+
+    private final BiFunction<Network, Boolean, NetworkCache.Entry> findEntryFunction = (n, isDc) -> isDc ? NetworkCache.DC_LF_INSTANCE.findEntry(n).orElseThrow() : NetworkCache.AC_LF_INSTANCE.findEntry(n).orElseThrow();
 
     @BeforeEach
     void setUp() {
@@ -91,8 +91,10 @@ class AcLoadFlowWithCachingTest {
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
     }
 
-    @Test
-    void testGeneratorTargetP() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testGeneratorTargetP(boolean isDc) {
+        parameters.setDc(isDc);
         var network = DistributedSlackNetworkFactory.create();
         var g1 = network.getGenerator("g1");
         var g2 = network.getGenerator("g2");
@@ -110,7 +112,7 @@ class AcLoadFlowWithCachingTest {
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
         // mismatch 120 -> + 30 each
         assertActivePowerEquals(-130.0, g1.getTerminal()); // 100 -> 130
         assertActivePowerEquals(-230.0, g2.getTerminal()); // 200 -> 230
@@ -118,11 +120,11 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(-120.0, g4.getTerminal()); // 90 -> 120
 
         g1.setTargetP(120); // 100 -> 120
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
         // mismatch 100 -> + 25 each
         assertActivePowerEquals(-145.0, g1.getTerminal()); // 120 -> 125
         assertActivePowerEquals(-225.0, g2.getTerminal()); // 220 -> 225
@@ -133,7 +135,7 @@ class AcLoadFlowWithCachingTest {
         g1.setTargetP(310);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
         // mismatch 90 -> + 60 each
         assertActivePowerEquals(-310.0, g1.getTerminal()); // unchanged
         assertActivePowerEquals(-170.0, g2.getTerminal()); // 200 -> 170
@@ -141,24 +143,26 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(-60.0, g4.getTerminal()); // 90 -> 60
     }
 
-    @Test
-    void testBatteryTargetP() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testBatteryTargetP(boolean isDc) {
+        parameters.setDc(isDc);
         var network = DistributedSlackNetworkFactory.createWithBattery();
         var b1 = network.getBattery("bat1");
         var b2 = network.getBattery("bat2");
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(-2.0, b1.getTerminal());
         assertActivePowerEquals(2.983, b2.getTerminal());
 
         b1.setTargetP(4);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(-4.0, b1.getTerminal());
         assertActivePowerEquals(3.016, b2.getTerminal());
     }
@@ -180,7 +184,7 @@ class AcLoadFlowWithCachingTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         loadFlowRunner.run(network, parameters);
         assertEquals(1, NetworkCache.AC_LF_INSTANCE.getEntryCount());
-        NetworkCache.Entry entry3 = NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow();
+        NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry3 = NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow();
         assertNotSame(entry, entry3); // cache has been evicted and recreated
     }
 
@@ -209,8 +213,10 @@ class AcLoadFlowWithCachingTest {
         assertTrue(NetworkCache.AC_LF_INSTANCE.getEntryCount() < runCount);
     }
 
-    @Test
-    void testEntryEviction() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testEntryEviction(boolean isDc) {
+        parameters.setDc(isDc);
         var network = FourSubstationsNodeBreakerFactory.create();
         assertEquals(1, network.getVariantManager().getVariantIds().size());
 
@@ -223,30 +229,34 @@ class AcLoadFlowWithCachingTest {
         assertEquals(2, network.getVariantManager().getVariantIds().size());
     }
 
-    @Test
-    void testUnsupportedAttributeChange() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testUnsupportedAttributeChange(boolean isDc) {
+        parameters.setDc(isDc);
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var gen = network.getGenerator("GEN");
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
         gen.setTargetQ(10);
-        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNull(findEntryFunction.apply(network, isDc).getValues());
     }
 
-    @Test
-    void testPropertiesChange() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testPropertiesChange(boolean isDc) {
+        parameters.setDc(isDc);
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var gen = network.getGenerator("GEN");
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
         gen.setProperty("foo", "bar");
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
         gen.setProperty("foo", "baz");
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
         gen.removeProperty("foo");
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
     }
 
     @Test
