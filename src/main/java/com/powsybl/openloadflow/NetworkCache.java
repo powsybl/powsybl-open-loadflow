@@ -219,11 +219,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         @Override
         public void restart() {
-            if (values != null) {
-                for (DcLfValue value : values) {
-                    DcLoadFlowResult result = value.getContext().getResult();
-                }
-            }
+            // nothing to do
         }
     }
 

@@ -25,8 +25,6 @@ public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, D
 
     private DcTargetVector targetVector;
 
-    private DcLoadFlowResult result;
-
     public DcLoadFlowContext(LfNetwork network, DcLoadFlowParameters parameters) {
         this(network, parameters, true);
     }
@@ -67,13 +65,5 @@ public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, D
         if (targetVector != null) {
             targetVector.close();
         }
-    }
-
-    public DcLoadFlowResult getResult() {
-        return result;
-    }
-
-    public void setResult(DcLoadFlowResult result) {
-        this.result = result;
     }
 }
