@@ -489,7 +489,6 @@ class DcLoadFlowTest {
                         Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                         Angle reference bus: VL1_0
                         Slack bus: VL1_0
-                     Slack bus active power (0 MW) distributed in 0 distribution iteration(s)
                      Outer loop IncrementalPhaseControl
                      + Outer loop AreaInterchangeControl
                         + Outer loop iteration 2
