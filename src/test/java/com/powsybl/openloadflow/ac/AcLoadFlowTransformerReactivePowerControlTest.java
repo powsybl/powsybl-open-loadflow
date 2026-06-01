@@ -18,15 +18,17 @@ import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
@@ -38,7 +40,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowTransformerReactivePowerControlTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowTransformerReactivePowerControlTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private TwoWindingsTransformer t2wt;
@@ -51,7 +60,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         parameters.setTransformerVoltageControlOn(false);
         parameters.setDistributedSlack(false);

@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
@@ -29,9 +29,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTest {
 
+    OpenSensitivityAnalysisProviderTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
+
     @Test
     void testGeneralInfos() {
-        OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
+        OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(commonTestConfig.matrixFactory());
         assertEquals(ProviderConstants.NAME, provider.getName());
         assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), provider.getVersion());
         assertEquals(ProviderConstants.NAME, provider.getLoadFlowProviderName().orElseThrow());
