@@ -18,6 +18,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
@@ -40,6 +42,8 @@ import java.util.function.BiFunction;
 public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCache.Value> {
 
     public static final NetworkCache<LfInput, AcLfValue> AC_LF_INSTANCE = new NetworkCache<>(AcLfEntry::new);
+
+    public static final NetworkCache<LfInput, DcLfValue> DC_LF_INSTANCE = new NetworkCache<>(DcLfEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
@@ -174,6 +178,50 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     if (result != null && result.getSolverStatus() == AcSolverStatus.CONVERGED) {
                         value.getContext().getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
                     }
+                }
+            }
+        }
+    }
+
+    public static class DcLfValue extends AbstractValue {
+
+        private final DcLoadFlowContext context;
+
+        public DcLfValue(DcLoadFlowContext context) {
+            this.context = context;
+        }
+
+        public DcLoadFlowContext getContext() {
+            return context;
+        }
+
+        @Override
+        public LfNetwork getNetwork() {
+            return context.getNetwork();
+        }
+
+        @Override
+        public LfNetworkParameters getNetworkParameters() {
+            return context.getParameters().getNetworkParameters();
+        }
+
+        @Override
+        public void close() {
+            context.close();
+        }
+    }
+
+    public static class DcLfEntry extends AbstractEntry<LfInput, DcLfValue> {
+
+        public DcLfEntry(Network network, LfInput input) {
+            super(network, input);
+        }
+
+        @Override
+        public void restart() {
+            if (values != null) {
+                for (DcLfValue value : values) {
+                    DcLoadFlowResult result = value.getContext().getResult();
                 }
             }
         }

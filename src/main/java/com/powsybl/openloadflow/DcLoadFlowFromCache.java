@@ -10,46 +10,130 @@ package com.powsybl.openloadflow;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfTopoConfig;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.Networks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * @author Sylvestre Prabakaran {@literal <sylvestre.prabakaran at rte-france.com>}
  */
-public class DcLoadFlowFromCache extends AbstractLoadFlowFromCache<DcLoadFlowParameters, DcLoadFlowContext> {
+public class DcLoadFlowFromCache {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowFromCache.class);
+
+    private final Network network;
+
+    private final LoadFlowParameters parameters;
+
+    private final OpenLoadFlowParameters parametersExt;
+
+    private final DcLoadFlowParameters dcParameters;
+
+    private final ReportNode reportNode;
 
     public DcLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                DcLoadFlowParameters dcParameters, ReportNode reportNode) {
-        super(network, parameters, parametersExt, dcParameters, reportNode);
+        this.network = Objects.requireNonNull(network);
+        this.parameters = Objects.requireNonNull(parameters);
+        this.parametersExt = Objects.requireNonNull(parametersExt);
+        this.dcParameters = Objects.requireNonNull(dcParameters);
+        this.reportNode = Objects.requireNonNull(reportNode);
     }
 
-    private static DcLoadFlowResult run(DcLoadFlowContext context) {
-        if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
-            return DcLoadFlowResult.createNoCalculationResult(context.getNetwork());
+    private void configureTopoConfig(LfTopoConfig topoConfig) {
+        for (String switchId : parametersExt.getActionableSwitchesIds()) {
+            Switch sw = network.getSwitch(switchId);
+            if (sw != null) {
+                if (sw.isOpen()) {
+                    topoConfig.getSwitchesToClose().add(sw);
+                } else {
+                    topoConfig.getSwitchesToOpen().add(sw);
+                }
+            } else {
+                LOGGER.warn("Actionable switch '{}' does not exist", switchId);
+            }
         }
-        if (context.getNetwork().isNetworkUpdated()) {
-            DcLoadFlowResult result = new DcLoadFlowEngine(context)
+        for (String transformerId : parametersExt.getActionableTransformersIds()) {
+            Branch<?> branch = network.getBranch(transformerId);
+            if (branch != null) {
+                topoConfig.addBranchIdWithRtcToRetain(transformerId);
+                topoConfig.addBranchIdWithPtcToRetain(transformerId);
+            } else {
+                ThreeWindingsTransformer tw3 = network.getThreeWindingsTransformer(transformerId);
+                if (tw3 != null) {
+                    for (ThreeSides side : ThreeSides.values()) {
+                        topoConfig.addBranchIdWithRtcToRetain(LfLegBranch.getId(side, transformerId));
+                        topoConfig.addBranchIdWithPtcToRetain(LfLegBranch.getId(side, transformerId));
+                    }
+                }
+                LOGGER.warn("Actionable transformer '{}' does not exist", transformerId);
+            }
+        }
+        if (topoConfig.isBreaker()) {
+            dcParameters.getNetworkParameters().setBreakers(true);
+        }
+    }
+
+    private List<NetworkCache.DcLfValue> initValues(NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.DcLfValue> entry) {
+        List<NetworkCache.DcLfValue> values;
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        configureTopoConfig(topoConfig);
+
+        // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
+        // WorkingVariantReverter is used instead of DefaultVariantCleaner
+        try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, dcParameters.getNetworkParameters(),
+                LfNetworkList.WorkingVariantReverter::new, reportNode)) {
+            values = lfNetworkList.getList()
+                    .stream()
+                    .map(n -> new NetworkCache.DcLfValue(new DcLoadFlowContext(n, dcParameters)))
+                    .toList();
+            entry.setValues(values);
+            LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
+            if (variantCleaner != null) {
+                entry.setVariantCleaner(new LfNetworkList.DefaultVariantCleaner(network, entry.getWorkingVariantId(), variantCleaner.getTmpVariantId()));
+            }
+        }
+        return values;
+    }
+
+    private static DcLoadFlowResult run(NetworkCache.DcLfValue value) {
+        if (value.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
+            return DcLoadFlowResult.createNoCalculationResult(value.getNetwork());
+        }
+        if (value.isNetworkUpdated()) {
+            DcLoadFlowResult result = new DcLoadFlowEngine(value.getContext())
                     .run();
-            context.getNetwork().setNetworkUpdated(false);
+            value.setNetworkUpdated(false);
             return result;
         }
-        return new DcLoadFlowResult(context.getNetwork(), 0, true, OuterLoopResult.stable(), 0d, 0d);
+        return new DcLoadFlowResult(value.getNetwork(), 0, true, OuterLoopResult.stable(), 0d, 0d);
     }
 
     public List<DcLoadFlowResult> run() {
-        NetworkCache.Entry<DcLoadFlowContext> entry = NetworkCache.INSTANCE.getDc(network, parameters);
-        List<DcLoadFlowContext> contexts = entry.getContexts();
-        if (contexts == null) {
-            contexts = initContexts(entry, n -> new DcLoadFlowContext(n, acOrDcParameters));
+        NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.DcLfValue> entry = NetworkCache.DC_LF_INSTANCE.get(network, new NetworkCache.LfInput(parameters));
+        List<NetworkCache.DcLfValue> values = entry.getValues();
+        if (values == null) {
+            values = initValues(entry);
         }
-        return contexts.stream()
+        return values.stream()
                 .map(DcLoadFlowFromCache::run)
                 .collect(Collectors.toList());
     }
