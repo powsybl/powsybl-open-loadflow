@@ -24,7 +24,10 @@ public class LfDcSwitchImpl extends AbstractLfDcLine {
         this.dcSwitchRef = Ref.create(dcSwitch, parameters.isCacheEnabled());
     }
 
-    public static LfDcSwitchImpl create(DcSwitch dcSwitch, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2,
+    public static LfDcSwitchImpl create(DcSwitch dcSwitch,
+                                        LfNetwork network,
+                                        LfDcBus dcBus1,
+                                        LfDcBus dcBus2,
                                         LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(dcSwitch);

@@ -2298,7 +2298,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
      * Like {@link #createAcDcNetwork1()} but with a configurable DC line resistance.
-     * Used as oracle for DC switch tests.
+     * Used as reference for DC switch tests.
      * <pre>
      * g1       ld2                                 ld5
      * |         |                                   |
@@ -2317,7 +2317,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * Network with a DC switch (resistance {@code rSwitch}) replacing the DC line between dn3 and dn4.
      * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
-     * because the switch contributes no resistance.
+     * so the switch contributes no resistance.
      * <pre>
      * g1       ld2                                     ld5
      * |         |                                       |
