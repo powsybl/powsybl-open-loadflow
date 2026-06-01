@@ -494,7 +494,7 @@ class DcLoadFlowTest {
     @Test
     void outerLoopMaxTotalIterationTest() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
-        parameters.setPhaseShifterRegulationOn(true).setHvdcAcEmulation(false);
+        parameters.setPhaseShifterRegulationOn(true);
         parametersExt.setAreaInterchangeControl(true);
 
         // For this case, AIC outer loop needs 3 iterations to be stable, phase control needs 1.
@@ -527,7 +527,6 @@ class DcLoadFlowTest {
                             Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
-                         Slack bus active power (0 MW) distributed in 0 distribution iteration(s)
                          + Outer loop IncrementalPhaseControl
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1

@@ -48,4 +48,10 @@ public class DcHvdcAcEmulationLimitsOuterLoop
         }
         return new OuterLoopResult(this, status);
     }
+
+    @Override
+    public boolean isNeeded(DcLoadFlowContext context) {
+        // Needed if the network contains an lfHVDC in AC Emulation mode
+        return context.getNetwork().getHvdcs().stream().anyMatch(LfHvdc::isAcEmulation);
+    }
 }

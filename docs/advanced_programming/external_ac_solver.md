@@ -10,7 +10,7 @@ Other AC solvers can be plugged into PowSyBl Open LoadFlow with the following in
 - `AcSolverFactory`: Responsible for creating `AcSolver` instances and `AcSolverParameters`.
 Provide your own implementation of `AcSolverFactory` and make it available to the Java ServiceLoader.
 The `getName()` method should provide the plugin name - which can then be used in the
-`acSolverType` [Load Flow parameter](../loadflow/parameters.md#specific-parameters)
+`acSolverType` [Load Flow parameter](../loadflow/parameters.md#acsolvertype)
 
 PowSyBl Open LoadFlow uses the same plugin mechanism internally. For more details you may have a look at:
 - `NewtonRaphson` / `NewtonRaphsonParameters` / `NewtonRaphsonFactory`
