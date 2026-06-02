@@ -61,6 +61,6 @@ public class LfDcSwitchImpl extends AbstractLfDcLine {
 
     @Override
     public void updateFlows(double i1, double i2, double p1, double p2) {
-        // For now no terminal in DcSwitch, so skip.
+        // TODO: DcSwitch has no DcTerminal yet in the IIDM model - revisit when terminals are added.
     }
 }
