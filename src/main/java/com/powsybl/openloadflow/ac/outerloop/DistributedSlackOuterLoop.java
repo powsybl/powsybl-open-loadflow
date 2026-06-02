@@ -61,6 +61,9 @@ public class DistributedSlackOuterLoop
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         Map<Integer, Double> slackMismatchPerSynchronousComponent = context.getLastSolverResult().getSlackBusActivePowerMismatch();
 
+        // If the LfNetwork contains only one synchronous component, it is not necessary to add a new indent level in
+        // the report node logs, i.e. we can use the input report node directly.
+        // Otherwise, we create one sub-report per synchronous component.
         if (context.getNetwork().getSynchronousNetworks().size() == 1) {
             LfSynchronousNetwork lfScNetwork = context.getNetwork().getSynchronousNetworks().getFirst();
             return check(lfScNetwork, slackMismatchPerSynchronousComponent.get(lfScNetwork.getNumSC()), context, reportNode);

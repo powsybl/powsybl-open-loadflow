@@ -442,7 +442,7 @@ class AcLoadFlowReportTest {
             .setAcDcNetwork(true)
             .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
             .setReportNode(reportNode);
