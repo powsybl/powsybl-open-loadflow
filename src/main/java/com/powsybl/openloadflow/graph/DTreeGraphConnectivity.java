@@ -40,10 +40,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
-        for (Iterator<GraphModification<V, E>> it = m.descendingIterator(); it.hasNext();) {
-            GraphModification<V, E> modification = it.next();
-            modification.undo(getGraph());
-        }
+        componentSets = null;
     }
 
     @Override
@@ -108,6 +105,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         @Override
         public void addEdge(V u, V v, E e) {
+            if (containsEdge(e)) {
+                return;
+            }
+
             DTNode nodeU = vertexToTreeNode.get(u);
             DTNode nodeV = vertexToTreeNode.get(v);
 
@@ -163,11 +164,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             if (rootU.size < rootV.size) {
                 nodeU.makeRoot();
                 link(rootV, nodeV, nodeU, edge);
-                toRemove = rootU;
+                toRemove = nodeU;
             } else {
                 nodeV.makeRoot();
                 link(rootU, nodeU, nodeV, edge);
-                toRemove = rootV;
+                toRemove = nodeV;
             }
 
             removeRoot(toRemove);
@@ -183,7 +184,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             DTNode nodeU = vertexToTreeNode.get(edge.u);
             DTNode nodeV = vertexToTreeNode.get(edge.v);
 
-            if (nodeU.parent == nodeV || nodeV.parent == nodeU) {
+            if (nodeU.parent == nodeV && nodeU.parentEdge == e || nodeV.parent == nodeU && nodeV.parentEdge == e) {
                 // tree edge
                 removeTreeEdge(nodeU, nodeV, e);
             } else {
@@ -202,7 +203,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
 
             DTNode otherTree = unlink(child);
-            addRoot(otherTree);
+            addRoot(child);
 
             DTNode small;
             DTNode large;
@@ -314,6 +315,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         @Override
         public void removeVertex(V v) {
+            if (!containsVertex(v)) {
+                return;
+            }
+
             for (E edge : getNeighborEdgesOf(v)) {
                 removeEdge(edge);
             }

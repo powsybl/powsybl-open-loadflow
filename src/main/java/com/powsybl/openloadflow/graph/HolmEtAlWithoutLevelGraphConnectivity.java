@@ -49,11 +49,6 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
     @Override
     protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
         componentSets = null;
-
-        for (Iterator<GraphModification<V, E>> it = m.descendingIterator(); it.hasNext();) {
-            GraphModification<V, E> modification = it.next();
-            modification.undo(getGraph());
-        }
     }
 
     @Override
