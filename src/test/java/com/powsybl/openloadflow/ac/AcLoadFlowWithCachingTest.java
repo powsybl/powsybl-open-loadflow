@@ -281,6 +281,27 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
+    void testUpdateOnDifferentVariantDoesNotInvalidateCache() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+
+        // create cache entry for INITIAL_VARIANT_ID
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+
+        // switch to a different variant
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v");
+        network.getVariantManager().setWorkingVariant("v");
+
+        // make an unsupported change in "v" - fires onUpdate with variantId="v"
+        gen.setTargetQ(10);
+
+        // switch back to INITIAL_VARIANT_ID: cache should not have been invalidated
+        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+    }
+
+    @Test
     void testLoadAddition() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
