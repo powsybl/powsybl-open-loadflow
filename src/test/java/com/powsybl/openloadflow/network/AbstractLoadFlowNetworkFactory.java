@@ -58,15 +58,15 @@ public abstract class AbstractLoadFlowNetworkFactory {
 
     protected static DcNode createDcNode(Network network, String id, double nominalV, boolean grounded) {
         DcNode dn = network.newDcNode().
-                setId(id).
-                setNominalV(nominalV).
-                add();
+            setId(id).
+            setNominalV(nominalV).
+            add();
 
         if (grounded) {
             network.newDcGround()
-                    .setId(id + "_ground")
-                    .setDcNode(id)
-                    .add();
+                .setId(id + "_ground")
+                .setDcNode(id)
+                .add();
         }
         return dn;
     }
@@ -139,11 +139,11 @@ public abstract class AbstractLoadFlowNetworkFactory {
 
     protected static DcLine createDcLine(Network network, DcNode dn1, DcNode dn2, String id, double r) {
         return network.newDcLine()
-                .setId(id)
-                .setDcNode1(dn1.getId())
-                .setDcNode2(dn2.getId())
-                .setR(r)
-                .add();
+            .setId(id)
+            .setDcNode1(dn1.getId())
+            .setDcNode2(dn2.getId())
+            .setR(r)
+            .add();
     }
 
     protected static Switch createSwitch(Network network, Bus b1, Bus b2, String id) {
@@ -174,80 +174,80 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static ThreeWindingsTransformer createThreeWindingsTransformer(Network network, String substationId,
-                                                                             Bus b1, Bus b2, Bus b3, String id, double x1, double rho1, double x2, double rho2, double x3, double rho3) {
+        Bus b1, Bus b2, Bus b3, String id, double x1, double rho1, double x2, double rho2, double x3, double rho3) {
         return network.getSubstation(substationId).newThreeWindingsTransformer()
-                .setId(id)
-                .setRatedU0(1)
-                .newLeg1()
-                .setBus(b1.getId())
-                .setConnectableBus(b1.getId())
-                .setRatedU(rho1)
-                .setR(0)
-                .setX(x1)
-                .add()
-                .newLeg2()
-                .setBus(b2.getId())
-                .setConnectableBus(b2.getId())
-                .setRatedU(rho2)
-                .setR(0)
-                .setX(x2)
-                .add()
-                .newLeg3()
-                .setBus(b3.getId())
-                .setConnectableBus(b3.getId())
-                .setRatedU(rho3)
-                .setR(0)
-                .setX(x3)
-                .add()
-                .add();
+            .setId(id)
+            .setRatedU0(1)
+            .newLeg1()
+            .setBus(b1.getId())
+            .setConnectableBus(b1.getId())
+            .setRatedU(rho1)
+            .setR(0)
+            .setX(x1)
+            .add()
+            .newLeg2()
+            .setBus(b2.getId())
+            .setConnectableBus(b2.getId())
+            .setRatedU(rho2)
+            .setR(0)
+            .setX(x2)
+            .add()
+            .newLeg3()
+            .setBus(b3.getId())
+            .setConnectableBus(b3.getId())
+            .setRatedU(rho3)
+            .setR(0)
+            .setX(x3)
+            .add()
+            .add();
     }
 
     protected static BoundaryLine createBoundaryLine(Bus b, String id, double x, double p0, double q0) {
         return b.getVoltageLevel().newBoundaryLine()
-                .setId(id)
-                .setBus(b.getId())
-                .setConnectableBus(b.getId())
-                .setR(0)
-                .setX(x)
-                .setP0(p0)
-                .setQ0(q0)
-                .add();
+            .setId(id)
+            .setBus(b.getId())
+            .setConnectableBus(b.getId())
+            .setR(0)
+            .setX(x)
+            .setP0(p0)
+            .setQ0(q0)
+            .add();
     }
 
     protected static LccConverterStation createLcc(Bus b, String id) {
         return b.getVoltageLevel().newLccConverterStation()
-                .setId(id)
-                .setConnectableBus(b.getId())
-                .setBus(b.getId())
-                .setPowerFactor(0.8f)
-                .setLossFactor(1.1f)
-                .add();
+            .setId(id)
+            .setConnectableBus(b.getId())
+            .setBus(b.getId())
+            .setPowerFactor(0.8f)
+            .setLossFactor(1.1f)
+            .add();
     }
 
     protected static VscConverterStation createVsc(Bus b, String id, double voltageSetpoint, double reactivePowerSetpoint) {
         return b.getVoltageLevel().newVscConverterStation()
-                .setId(id)
-                .setConnectableBus(b.getId())
-                .setBus(b.getId())
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(voltageSetpoint)
-                .setReactivePowerSetpoint(reactivePowerSetpoint)
-                .setLossFactor(1.1f)
-                .add();
+            .setId(id)
+            .setConnectableBus(b.getId())
+            .setBus(b.getId())
+            .setVoltageRegulatorOn(true)
+            .setVoltageSetpoint(voltageSetpoint)
+            .setReactivePowerSetpoint(reactivePowerSetpoint)
+            .setLossFactor(1.1f)
+            .add();
     }
 
     protected static HvdcLine createHvdcLine(Network network, String id, HvdcConverterStation station1, HvdcConverterStation station2,
                                              double nominalV, double r, double activePowerSetpoint) {
         return network.newHvdcLine()
-                .setId(id)
-                .setConverterStationId1(station1.getId())
-                .setConverterStationId2(station2.getId())
-                .setNominalV(nominalV)
-                .setR(r)
-                .setActivePowerSetpoint(activePowerSetpoint)
-                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-                .setMaxP(2 * activePowerSetpoint)
-                .add();
+            .setId(id)
+            .setConverterStationId1(station1.getId())
+            .setConverterStationId2(station2.getId())
+            .setNominalV(nominalV)
+            .setR(r)
+            .setActivePowerSetpoint(activePowerSetpoint)
+            .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+            .setMaxP(2 * activePowerSetpoint)
+            .add();
     }
 
     protected static VoltageSourceConverter createVoltageSourceConverterPccQac(Bus b, DcNode dn1, DcNode dn2, String id, double targetP, double targetQ) {
@@ -284,22 +284,22 @@ public abstract class AbstractLoadFlowNetworkFactory {
 
     protected static VoltageSourceConverter createVoltageSourceConverter(Bus b, DcNode dn1, DcNode dn2, String id, double idle, double sw, double r, AcDcConverter.ControlMode mode, double targetP, double targetVdc, boolean voltageRegulatorOn, double targetVac, double targetQ) {
         return b.getVoltageLevel().newVoltageSourceConverter()
-                .setId(id)
-                .setBus1(b.getId())
-                .setDcNode1(dn1.getId())
-                .setDcNode2(dn2.getId())
-                .setDcConnected1(true)
-                .setDcConnected2(true)
-                .setIdleLoss(idle)
-                .setSwitchingLoss(sw)
-                .setResistiveLoss(r)
-                .setControlMode(mode)
-                .setTargetP(targetP)
-                .setTargetVdc(targetVdc)
-                .setVoltageRegulatorOn(voltageRegulatorOn)
-                .setVoltageSetpoint(targetVac)
-                .setReactivePowerSetpoint(targetQ)
-                .add();
+            .setId(id)
+            .setBus1(b.getId())
+            .setDcNode1(dn1.getId())
+            .setDcNode2(dn2.getId())
+            .setDcConnected1(true)
+            .setDcConnected2(true)
+            .setIdleLoss(idle)
+            .setSwitchingLoss(sw)
+            .setResistiveLoss(r)
+            .setControlMode(mode)
+            .setTargetP(targetP)
+            .setTargetVdc(targetVdc)
+            .setVoltageRegulatorOn(voltageRegulatorOn)
+            .setVoltageSetpoint(targetVac)
+            .setReactivePowerSetpoint(targetQ)
+            .add();
     }
 
     protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection) {
@@ -308,58 +308,58 @@ public abstract class AbstractLoadFlowNetworkFactory {
 
     protected static ShuntCompensator createFixedShuntCompensator(Bus bus, String id, double gPerSection, double bPersection, int maximumSectionCount) {
         return bus.getVoltageLevel()
-                .newShuntCompensator()
-                .setId(id)
-                .setBus(bus.getId())
-                .setConnectableBus(bus.getId())
-                .setSectionCount(maximumSectionCount)
-                .newLinearModel()
-                .setGPerSection(gPerSection)
-                .setBPerSection(bPersection)
-                .setMaximumSectionCount(maximumSectionCount)
-                .add()
-                .add();
+            .newShuntCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setSectionCount(maximumSectionCount)
+            .newLinearModel()
+            .setGPerSection(gPerSection)
+            .setBPerSection(bPersection)
+            .setMaximumSectionCount(maximumSectionCount)
+            .add()
+            .add();
     }
 
     protected static ShuntCompensator createShuntCompensator(Bus bus, String id, double g, double b, double v,
-                                                             boolean voltageControl) {
+        boolean voltageControl) {
         ShuntCompensator sh = bus.getVoltageLevel()
-                .newShuntCompensator()
-                .setId(id)
-                .setBus(bus.getId())
-                .setConnectableBus(bus.getId())
-                .setSectionCount(1)
-                .newNonLinearModel()
-                .beginSection()
-                .setB(b)
-                .setG(g)
-                .endSection()
-                .add()
-                .add();
+            .newShuntCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setSectionCount(1)
+            .newNonLinearModel()
+            .beginSection()
+            .setB(b)
+            .setG(g)
+            .endSection()
+            .add()
+            .add();
         sh.setTargetV(v)
-                .setRegulatingTerminal(sh.getTerminal())
-                .setTargetDeadband(0.0)
-                .setVoltageRegulatorOn(voltageControl);
+            .setRegulatingTerminal(sh.getTerminal())
+            .setTargetDeadband(0.0)
+            .setVoltageRegulatorOn(voltageControl);
         return sh;
     }
 
     protected static StaticVarCompensator createStaticVarCompensator(Bus bus, String id, double qSetpoint,
-                                                                     double vSetpoint, RegulationMode regulationMode) {
+        double vSetpoint, RegulationMode regulationMode) {
         StaticVarCompensator svc = bus.getVoltageLevel()
-                .newStaticVarCompensator()
-                .setId(id)
-                .setBus(bus.getId())
-                .setConnectableBus(bus.getId())
-                .setBmin(-1.0)
-                .setBmax(1.0)
-                .setRegulating(false)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .add();
+            .newStaticVarCompensator()
+            .setId(id)
+            .setBus(bus.getId())
+            .setConnectableBus(bus.getId())
+            .setBmin(-1.0)
+            .setBmax(1.0)
+            .setRegulating(false)
+            .setRegulationMode(RegulationMode.VOLTAGE)
+            .add();
         svc.setRegulatingTerminal(svc.getTerminal())
-                .setVoltageSetpoint(vSetpoint)
-                .setReactivePowerSetpoint(qSetpoint)
-                .setRegulationMode(regulationMode)
-                .setRegulating(true);
+            .setVoltageSetpoint(vSetpoint)
+            .setReactivePowerSetpoint(qSetpoint)
+            .setRegulationMode(regulationMode)
+            .setRegulating(true);
 
         return svc;
     }
