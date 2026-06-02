@@ -48,7 +48,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     protected void updateComponents() {
+        if (componentSets != null) {
+            return;
+        }
 
+        componentSets = new ArrayList<>();
+        for (Graph<V, E>.DTNode root : getGraph().roots) {
+            componentSets.add(root.createSetView());
+        }
     }
 
     @Override
@@ -73,7 +80,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     protected Set<V> getNonConnectedVertices(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().spanningForest.getNonConnectedVertices(vertex);
+
+        Graph<V, E> graph = getGraph();
+        Graph<V, E>.DTNode excludedTree = graph.vertexToTreeNode.get(vertex).findRootOptReroot();
+
+        Set<V> components = new HashSet<>();
+        for (Graph<V, E>.DTNode root : graph.roots) {
+            if (root != excludedTree) {
+                components.addAll(root.createSetView());
+            }
+        }
+
+        return components;
     }
 
     @Override
@@ -83,18 +101,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public static final class Graph<V, E> implements GraphModel<V, E> {
 
-        private final Map<V, DTNode<V, E>> vertexToTreeNode = new HashMap<>();
+        private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
         private final Map<E, Edge<V>> edges = new HashMap<>();
 
-        private final List<DTNode<V, E>> roots = new ArrayList<>();
+        private final List<DTNode> roots = new ArrayList<>();
 
         @Override
         public void addEdge(V u, V v, E e) {
-            DTNode<V, E> nodeU = vertexToTreeNode.get(u);
-            DTNode<V, E> nodeV = vertexToTreeNode.get(v);
+            DTNode nodeU = vertexToTreeNode.get(u);
+            DTNode nodeV = vertexToTreeNode.get(v);
 
-            Pair<DTNode<V, E>, Integer> rootUdist = nodeU.findRootWithDist();
-            Pair<DTNode<V, E>, Integer> rootVdist = nodeV.findRootWithDist();
+            Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDist();
+            Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDist();
 
             if (rootUdist.getKey() == rootVdist.getKey()) {
                 // insert non tree edge
@@ -107,9 +125,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             edges.put(e, new Edge<>(u, v));
         }
 
-        private void insertNonTreeEdge(DTNode<V, E> root, DTNode<V, E> nodeU, int depthU, DTNode<V, E> nodeV, int depthV, E edge) {
-            DTNode<V, E> deep;
-            DTNode<V, E> shallow;
+        private void insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
+            DTNode deep;
+            DTNode shallow;
             int delta;
 
             if (depthU <= depthV) {
@@ -127,7 +145,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 nodeU.nonTreeEdges.add(edge);
                 nodeV.nonTreeEdges.add(edge);
             } else {
-                DTNode<V, E> i = deep;
+                DTNode i = deep;
                 for (int j = 0; j < delta - 2; j++) {
                     i = i.parent;
                 }
@@ -140,14 +158,19 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
-        private void insertTreeEdge(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, E edge) {
+        private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
+            DTNode toRemove;
             if (rootU.size < rootV.size) {
                 nodeU.makeRoot();
                 link(rootV, nodeV, nodeU, edge);
+                toRemove = rootU;
             } else {
                 nodeV.makeRoot();
                 link(rootU, nodeU, nodeV, edge);
+                toRemove = rootV;
             }
+
+            removeRoot(toRemove);
         }
 
         @Override
@@ -157,8 +180,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return;
             }
 
-            DTNode<V, E> nodeU = vertexToTreeNode.get(edge.u);
-            DTNode<V, E> nodeV = vertexToTreeNode.get(edge.v);
+            DTNode nodeU = vertexToTreeNode.get(edge.u);
+            DTNode nodeV = vertexToTreeNode.get(edge.v);
 
             if (nodeU.parent == nodeV || nodeV.parent == nodeU) {
                 // tree edge
@@ -169,8 +192,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
-        private void removeTreeEdge(DTNode<V, E> nodeU, DTNode<V, E> nodeV, E edge) {
-            DTNode<V, E> child;
+        private void removeTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
+            DTNode child;
 
             if (nodeU == nodeV.parent) {
                 child = nodeV;
@@ -178,11 +201,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 child = nodeU;
             }
 
-            DTNode<V, E> otherTree = unlink(child);
+            DTNode otherTree = unlink(child);
+            addRoot(otherTree);
 
-            DTNode<V, E> small;
-            DTNode<V, E> large;
-
+            DTNode small;
+            DTNode large;
             if (child.size < otherTree.size) {
                 small = child;
                 large = otherTree;
@@ -194,17 +217,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             replace(small);
         }
 
-        private void replace(DTNode<V, E> root) {
-            Queue<DTNode<V, E>> queue = new ArrayDeque<>();
+        private void replace(DTNode root) {
+            Queue<DTNode> queue = new ArrayDeque<>();
             queue.offer(root);
 
             while (!queue.isEmpty()) {
-                DTNode<V, E> n = queue.poll();
+                DTNode n = queue.poll();
 
                 for (E nonTreeEdge : n.nonTreeEdges) {
                     V opp = edges.get(nonTreeEdge).opposite(n.vertex);
-                    DTNode<V, E> oppNode = vertexToTreeNode.get(opp);
-                    DTNode<V, E> oppRoot = oppNode.findRoot();
+                    DTNode oppNode = vertexToTreeNode.get(opp);
+                    DTNode oppRoot = oppNode.findRoot();
 
                     if (oppRoot != root) {
                         // found a replacement edge
@@ -219,19 +242,19 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
-        private void removeNonTreeEdge(DTNode<V, E> nodeU, DTNode<V, E> nodeV, E edge) {
+        private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
             nodeU.nonTreeEdges.remove(edge);
             nodeV.nonTreeEdges.remove(edge);
         }
 
-        private void link(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, E edge) {
+        private void link(DTNode rootU, DTNode nodeU, DTNode rootV, E edge) {
             nodeU.children.put(rootV, edge);
 
             rootV.parent = nodeU;
             rootV.parentEdge = edge;
 
-            DTNode<V, E> newCentroid = null;
-            DTNode<V, E> i = nodeU;
+            DTNode newCentroid = null;
+            DTNode i = nodeU;
 
             while (i != null) {
                 i.size += rootV.size;
@@ -248,10 +271,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
-        private DTNode<V, E> unlink(DTNode<V, E> node) {
+        private DTNode unlink(DTNode node) {
             Objects.requireNonNull(node.parent);
 
-            DTNode<V, E> newTree = node;
+            DTNode newTree = node;
 
             while (newTree.parent != null) {
                 newTree = newTree.parent;
@@ -260,7 +283,22 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             node.parent.children.remove(node);
             node.parent = null;
+            node.parentEdge = null;
             return newTree;
+        }
+
+        private void addRoot(DTNode node) {
+            node.rootIndex = roots.size();
+            roots.add(node);
+        }
+
+        private void removeRoot(DTNode node) {
+            // update roots, swapping 'node' and the last element of roots
+            DTNode last = roots.removeLast();
+            if (node != last) {
+                last.rootIndex = node.rootIndex;
+                roots.set(last.rootIndex, last);
+            }
         }
 
         @Override
@@ -269,7 +307,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return;
             }
 
-            vertexToTreeNode.put(v, new DTNode<>(v));
+            DTNode newNode = new DTNode(v);
+            vertexToTreeNode.put(v, newNode);
+            addRoot(newNode);
         }
 
         @Override
@@ -277,7 +317,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             for (E edge : getNeighborEdgesOf(v)) {
                 removeEdge(edge);
             }
-            vertexToTreeNode.remove(v);
+            DTNode root = vertexToTreeNode.remove(v);
+            removeRoot(root);
         }
 
         @Override
@@ -318,7 +359,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         @Override
         public Set<E> getNeighborEdgesOf(V v) {
-            DTNode<V, E> node = vertexToTreeNode.get(v);
+            DTNode node = vertexToTreeNode.get(v);
 
             Set<E> edges = new HashSet<>(node.nonTreeEdges);
             if (node.parentEdge != null) {
@@ -343,131 +384,150 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         public List<V> getNeighborVerticesOf(V v) {
             throw new UnsupportedOperationException();
         }
-    }
 
-    public static final class DTNode<V, E> {
+        private final class DTNode {
 
-        public DTNode<V, E> parent = null;
-        public E parentEdge = null;
-        public Map<DTNode<V, E>, E> children = new HashMap<>();
-        public int size;
+            public DTNode parent = null;
+            public E parentEdge = null;
+            public Map<DTNode, E> children = new HashMap<>();
+            public int size;
 
-        public V vertex;
-        public Set<E> nonTreeEdges = new HashSet<>();
+            public V vertex;
+            public Set<E> nonTreeEdges = new HashSet<>();
 
-        // valid only if this node is a root
-        public int rootIndex;
+            // valid only if this node is a root
+            public int rootIndex;
 
-        public DTNode(V vertex) {
-            this.vertex = vertex;
-            this.size = 1;
-        }
-
-        public void makeRoot() {
-            DTNode<V, E> child = this;
-            DTNode<V, E> current = child.parent;
-            parent = null;
-
-            // swap parent/child relationship
-            while (current != null) {
-                // greatParent --> current --> child
-                DTNode<V, E> greatParent = current.parent;
-                current.parent = child;
-                current.children.remove(child);
-                child.children.add(current);
-                // greatParent --> current <-- child
-
-                child = current;
-                current = greatParent;
+            DTNode(V vertex) {
+                this.vertex = vertex;
+                this.size = 1;
             }
 
-            // update size attributes
-            while (child.parent != null) {
-                child.size -= child.parent.size;
-                child.parent.size += child.size;
-                child = child.parent;
+            public void makeRoot() {
+                if (parent == null) {
+                    return;
+                }
+
+                DTNode child = this;
+                DTNode parent = child.parent;
+                this.parent = null;
+                this.parentEdge = null;
+
+                // swap parent/child relationship, between parent and child
+                while (parent != null) {
+                    DTNode greatParent = parent.parent;
+
+                    // The followings invariants hold:
+                    // 1. parent.children[child] == parentEdge
+                    // 2. child.children[parent] == null
+                    E parentEdge = parent.children.remove(child);
+                    child.children.put(parent, parentEdge);
+
+                    parent.parent = child;
+                    parent.parentEdge = parentEdge;
+
+                    // Now, it should be:
+                    // 1. child.children[parent] == parentEdge
+                    // 2. parent.children[child] == null
+                    // 3. parent.parent = child
+                    // 4. parent.parentEdge == parentEdge
+
+                    child = parent;
+                    parent = greatParent;
+                }
+
+                // child is the old root, update rootIndex and roots
+                rootIndex = child.rootIndex;
+                roots.set(rootIndex, DTNode.this);
+
+                // update size attributes
+                while (child.parent != null) {
+                    child.size -= child.parent.size;
+                    child.parent.size += child.size;
+                    child = child.parent;
+                }
             }
-        }
 
-        public DTNode<V, E> findRoot() {
-            DTNode<V, E> node = this;
+            public DTNode findRoot() {
+                DTNode node = this;
 
-            while (node.parent != null) {
-                node = node.parent;
+                while (node.parent != null) {
+                    node = node.parent;
+                }
+
+                return node;
             }
 
-            return node;
-        }
+            public Pair<DTNode, Integer> findRootWithDist() {
+                DTNode node = this;
+                int dist = 0;
 
-        public Pair<DTNode<V, E>, Integer> findRootWithDist() {
-            DTNode<V, E> node = this;
-            int dist = 0;
+                while (node.parent != null) {
+                    node = node.parent;
+                    dist++;
+                }
 
-            while (node.parent != null) {
-                node = node.parent;
-                dist++;
+                return new ImmutablePair<>(node, dist);
             }
 
-            return new ImmutablePair<>(node, dist);
-        }
+            public DTNode findRootOptReroot() {
+                DTNode nodeRoot = this;
+                DTNode nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
 
-        public DTNode<V, E> findRootOptReroot() {
-            DTNode<V, E> nodeRoot = this;
-            DTNode<V, E> nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
+                while (nodeRoot.parent != null) {
+                    nodeRootChild = nodeRoot;
+                    nodeRoot = nodeRoot.parent;
+                }
 
-            while (nodeRoot.parent != null) {
-                nodeRootChild = nodeRoot;
-                nodeRoot = nodeRoot.parent;
+                if (nodeRootChild != null && nodeRootChild.size > nodeRoot.size / 2) {
+                    nodeRootChild.makeRoot();
+                    nodeRoot = nodeRootChild;
+                }
+
+                return nodeRoot;
             }
 
-            if (nodeRootChild != null && nodeRootChild.size > nodeRoot.size / 2) {
-                nodeRootChild.makeRoot();
-                nodeRoot = nodeRootChild;
+            public Set<V> createSetView() {
+                return new AbstractSetView<>() {
+                    @Override
+                    public Iterator<V> iterator() {
+                        return new BFSIterator();
+                    }
+
+                    @Override
+                    public int size() {
+                        return size;
+                    }
+                };
             }
 
-            return nodeRoot;
-        }
+            private class BFSIterator implements Iterator<V> {
 
-        public Set<V> createSetView() {
-            return new AbstractSetView<V>() {
-                @Override
-                public Iterator<V> iterator() {
-                    return new BFSIterator<>(DTNode.this);
+                private final Stack<DTNode> stack = new Stack<>();
+
+                BFSIterator() {
+                    stack.push(DTNode.this);
                 }
 
                 @Override
-                public int size() {
-                    return size;
-                }
-            };
-        }
-
-        private static class BFSIterator<V> implements Iterator<V> {
-
-            private final Stack<DTNode<V, ?>> stack = new Stack<>();
-
-            BFSIterator(DTNode<V, ?> node) {
-                stack.push(node);
-            }
-
-            @Override
-            public boolean hasNext() {
-                return !stack.isEmpty();
-            }
-
-            @Override
-            public V next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
+                public boolean hasNext() {
+                    return !stack.isEmpty();
                 }
 
-                DTNode<V, ?> node = stack.pop();
-                stack.addAll(node.children.keySet());
-                return node.vertex;
+                @Override
+                public V next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+
+                    DTNode node = stack.pop();
+                    stack.addAll(node.children.keySet());
+                    return node.vertex;
+                }
             }
         }
     }
-    
+
     private record Edge<V>(V u, V v) {
         public V opposite(V vertex) {
             if (u == vertex) {

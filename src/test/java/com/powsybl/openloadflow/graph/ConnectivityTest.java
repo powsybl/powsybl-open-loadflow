@@ -656,7 +656,8 @@ class ConnectivityTest {
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
-                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()));
+                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
+                Arguments.of(new DTreeGraphConnectivity<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -665,6 +666,7 @@ class ConnectivityTest {
                 Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>()),
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
-                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()));
+                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
+                Arguments.of(new DTreeGraphConnectivity<>()));
     }
 }
