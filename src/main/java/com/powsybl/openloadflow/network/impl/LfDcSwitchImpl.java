@@ -8,7 +8,11 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DcSwitch;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfDcBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.LfNetworkUpdateReport;
 
 import java.util.Objects;
 
@@ -31,6 +35,8 @@ public class LfDcSwitchImpl extends AbstractLfDcLine {
                                         LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(dcSwitch);
+        Objects.requireNonNull(dcBus1);
+        Objects.requireNonNull(dcBus2);
         Objects.requireNonNull(parameters);
         return new LfDcSwitchImpl(dcBus1, dcBus2, network, dcSwitch, parameters);
     }
@@ -55,6 +61,6 @@ public class LfDcSwitchImpl extends AbstractLfDcLine {
 
     @Override
     public void updateFlows(double i1, double i2, double p1, double p2) {
-        // DcSwitch exposes no DcTerminal — nothing to write back to IIDM
+        // For now no terminal in DcSwitch, so skip.
     }
 }
