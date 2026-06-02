@@ -68,4 +68,35 @@ class AcDcDcSwitchTest {
         // dn3 (1) + dn4 (1) + dnDummy3 (1) + dnDummy4 (1) = 4 DC buses
         assertEquals(4, lfNetwork.getDcBuses().size());
     }
+
+    /**
+     * An open DC switch must never be loaded as a branch, regardless of its resistance.
+     * Core topology does not merge nodes across an open switch, so both nodes resolve to
+     * distinct LfDcBus instances — but the circuit is broken and no branch should appear.
+     */
+    @Test
+    void testOpenDcSwitchIsNotLoadedAsBranch() {
+        // dn3 --[sw R=0.5, open]--> dn4: circuit breaker is open
+        Network network = createAcDcNetworkWithDcSwitchOnly(0.5);
+        network.getDcSwitch("sw34").setOpen(true);
+
+        LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
+
+        assertEquals(0, lfNetwork.getDcLines().size());
+    }
+
+    /**
+     * Meshed case: dl34 and an open sw34 both connect dn3 to dn4. Because dl34 keeps the DC
+     * component connected, both ends of sw34 resolve to distinct non-null LfDcBuses — the guard
+     * must still discard the open switch (the null-bus shortcut does not apply here).
+     */
+    @Test
+    void testOpenDcSwitchInParallelWithDcLineIsNotLoadedAsBranch() {
+        Network network = createAcDcNetworkWithParallelOpenDcSwitch();
+
+        LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
+
+        // Only dl34 must be present; the open sw34 must be discarded
+        assertEquals(1, lfNetwork.getDcLines().size());
+    }
 }
