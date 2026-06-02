@@ -229,6 +229,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         if (result.isSuccess()) {
+            if (parametersExt.isNetworkCacheEnabled()) {
+                NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(true);
+            }
             var updateParameters = new LfNetworkStateUpdateParameters(false,
                                                                       parameters.isWriteSlackBus(),
                                                                       parameters.isPhaseShifterRegulationOn(),
@@ -245,6 +248,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             // zero or low impedance branch flows computation
             computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC, parameters.getDcPowerFactor());
+            if (parametersExt.isNetworkCacheEnabled()) {
+                NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(false);
+            }
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
