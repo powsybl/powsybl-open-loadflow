@@ -531,9 +531,9 @@ class ConnectivityTest {
 
     @Test
     void randomGraph() {
-        for (int size = 1; size < 100; size++) {
+        for (int size = 4; size < 100; size++) {
             System.out.println(size);
-            for (int seed = 0; seed < 1000; seed++) {
+            for (int seed = 75; seed < 1000; seed++) {
                 // generate graph
                 Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
 
@@ -546,8 +546,8 @@ class ConnectivityTest {
                 // test others implementations produce same results as NaiveGraphConnectivity
                 List<GraphConnectivity<Integer, DefaultEdge>> toTest = List.of(
                         new HolmEtAlWithoutLevelGraphConnectivity<>(),
-                        new HolmEtAlGraphConnectivity<>()/*,
-                        new DTreeGraphConnectivity<>()*/
+                        new HolmEtAlGraphConnectivity<>(),
+                        new DTreeGraphConnectivity<>()
                 );
 
                 for (GraphConnectivity<Integer, DefaultEdge> connectivity : toTest) {

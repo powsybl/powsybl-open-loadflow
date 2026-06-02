@@ -123,8 +123,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             boolean treeEdge;
             if (rootUdist.getKey() == rootVdist.getKey()) {
                 // insert non tree edge
-                insertNonTreeEdge(rootUdist.getKey(), nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
-                treeEdge = false;
+                treeEdge = insertNonTreeEdge(rootUdist.getKey(), nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
             } else {
                 // insert tree edge
                 insertTreeEdge(rootUdist.getKey(), nodeU, rootVdist.getKey(), nodeV, e);
@@ -134,7 +133,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             edges.put(e, new Edge<>(u, v, treeEdge));
         }
 
-        private void insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
+        private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
             DTNode deep;
             DTNode shallow;
             int delta;
@@ -153,6 +152,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 // no changes in the BFS tree
                 nodeU.nonTreeEdges.add(edge);
                 nodeV.nonTreeEdges.add(edge);
+                return false;
             } else {
                 DTNode i = deep;
                 for (int j = 0; j < delta - 2; j++) {
@@ -161,9 +161,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                 i.parent.nonTreeEdges.add(i.parentEdge);
                 i.nonTreeEdges.add(i.parentEdge);
+                edges.get(i.parentEdge).treeEdge = false;
 
                 unlink(i);
                 link(root, shallow, deep, edge);
+                return true;
             }
         }
 
