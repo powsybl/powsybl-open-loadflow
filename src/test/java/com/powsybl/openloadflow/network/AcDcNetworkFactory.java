@@ -2297,34 +2297,9 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
-     * Like {@link #createAcDcNetwork1()} but with a configurable DC line resistance.
-     * Used as reference for DC switch tests.
-     * <pre>
-     * g1       ld2                                 ld5
-     * |         |                                   |
-     * b1 ------b2-conv23-dn3--dl34(r)--dn4-conv45--b5
-     *            |                           |
-     *        (dnDummy3,dg3)           (dnDummy4,dg4)
-     * </pre>
-     */
-    public static Network createAcDcNetworkWithCustomDcLineR(double r) {
-        Network network = createBaseNetwork();
-        network.getDcLine("dl34").setR(r);
-        addStandardConverters(network);
-        return network;
-    }
-
-    /**
      * Network with a DC switch (resistance {@code rSwitch}) replacing the DC line between dn3 and dn4.
      * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
      * so the switch contributes no resistance.
-     * <pre>
-     * g1       ld2                                     ld5
-     * |         |                                       |
-     * b1 ------b2-conv23-dn3--sw34(rSwitch)--dn4-conv45-b5
-     *            |                               |
-     *        (dnDummy3,dg3)               (dnDummy4,dg4)
-     * </pre>
      */
     public static Network createAcDcNetworkWithDcSwitchOnly(double rSwitch) {
         Network network = createBaseNetwork();
@@ -2344,13 +2319,6 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
      * Network with a DC switch (resistance {@code rSwitch}) in series with a DC line (resistance {@code rLine}).
      * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn3b, so only {@code rLine} remains.
-     * <pre>
-     * g1       ld2                                                ld5
-     * |         |                                                  |
-     * b1 ------b2-conv23-dn3--sw3b(rSwitch)--dn3b--dl3b4(rLine)--dn4-conv45-b5
-     *            |                                                     |
-     *        (dnDummy3,dg3)                                    (dnDummy4,dg4)
-     * </pre>
      */
     public static Network createAcDcNetworkWithDcSwitchAndDcLine(double rSwitch, double rLine) {
         Network network = createBaseNetwork();

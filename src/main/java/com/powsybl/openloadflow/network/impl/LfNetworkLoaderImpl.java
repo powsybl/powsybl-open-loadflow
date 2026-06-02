@@ -621,7 +621,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (DcSwitch dcSwitch : loadingContext.dcSwitchSet) {
             LfDcBus lfDcBus1 = getLfDcBusFromDcNode(dcSwitch.getDcNode1(), lfNetwork);
             LfDcBus lfDcBus2 = getLfDcBusFromDcNode(dcSwitch.getDcNode2(), lfNetwork);
-            if (lfDcBus1 == null || lfDcBus2 == null) {
+            if (lfDcBus1 == null || lfDcBus2 == null || lfDcBus1 == lfDcBus2) {
+                // Only add branch when the DcSwitch has
+                // distinct buses (with non-zero resistance and closed).
                 continue;
             }
             LfDcSwitchImpl lfDcSwitch = LfDcSwitchImpl.create(dcSwitch, lfNetwork, lfDcBus1, lfDcBus2, parameters);
