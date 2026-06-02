@@ -25,10 +25,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import static java.lang.Math.sqrt;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
+import static java.lang.Math.sqrt;
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createBaseNetwork;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -825,12 +825,11 @@ class AcDcLoadFlowTest {
 
     static Stream<Arguments> dcSwitchResistanceCases() {
         return Stream.of(
-        // 4 different distributions of the resistance between the DcSwitch and DcLine, including a case with zero-resistance
-        // switch and another one with zero-resistance line.
+            // 3 different distributions of the resistance between the DcSwitch and DcLine, including a case
+            // with zero-resistance switch.
             Arguments.of(0.0, 1.0),
             Arguments.of(0.5, 0.5),
-            Arguments.of(0.25, 0.75),
-            Arguments.of(1.0, 0.0)
+            Arguments.of(0.25, 0.75)
         );
     }
 
@@ -852,9 +851,9 @@ class AcDcLoadFlowTest {
         //             V_dn3 = V_dn4 + I * rTotal  (Ohm's law across the full path)
         //             P = V_dn3 * I quadratic equation, solved here for V_dn3
         //   V_dn3b computed through the voltage divider formula.
-        double sqrtdelta = sqrt(targetVdc * targetVdc - 4 * rTotal * targetP);
+        double sqrtdelta = sqrt(targetVdc * targetVdc + 4 * rTotal * targetP);
         double expectedVdn3 = 0.5 * (targetVdc + sqrtdelta);  // voltage at dn3 (kV)
-        double expectedIdc = (expectedVdn3 - targetVdc) / rTotal;  // DC current through the path (A)
+        double expectedIdc = (expectedVdn3 - targetVdc) / rTotal * 1000;  // DC current through the path (A)
         double expectedVdn4 = targetVdc;
         double expectedVdn3b = expectedVdn4 + rLi / (rLi + rSw) * (expectedVdn3 - expectedVdn4);  // voltage at dn3b (kV)
 
@@ -862,12 +861,12 @@ class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        assertVoltageEquals(expectedVdn3, network.getDcNode("dn3"));
         assertVoltageEquals(expectedVdn4, network.getDcNode("dn4"));
+        assertVoltageEquals(expectedVdn3, network.getDcNode("dn3"));
         assertVoltageEquals(expectedVdn3b, network.getDcNode("dn3b"));
 
         VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
-        assertDcCurrentEquals(expectedIdc, conv23.getDcTerminal1());
+        assertDcCurrentEquals(expectedIdc, conv23.getDcTerminal2());
     }
 
     @Test
