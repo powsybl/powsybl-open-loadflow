@@ -19,12 +19,15 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -40,7 +43,15 @@ import java.util.stream.Collectors;
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class FastDecoupledTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    FastDecoupledTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
     private LoadFlowParameters parametersFastDecoupled;
 
     private LoadFlowParameters parametersNewtonRaphson;
@@ -65,7 +76,7 @@ class FastDecoupledTest {
                 .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
                 .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
                 .setMaxNewtonRaphsonIterations(30);
-        OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
+        OpenLoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
@@ -142,7 +153,7 @@ class FastDecoupledTest {
     void testWithSharedVoltageControl() {
         Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
 
         parametersFastDecoupled.setUseReactiveLimits(false).setDistributedSlack(false);
         parametersNewtonRaphson.setUseReactiveLimits(false).setDistributedSlack(false);
