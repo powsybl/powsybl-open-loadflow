@@ -207,8 +207,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ReportNode reportNode) {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
-        dcParameters.getNetworkParameters()
-                .setCacheEnabled(false); // force not caching as not supported in DC LF
 
         List<DcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {

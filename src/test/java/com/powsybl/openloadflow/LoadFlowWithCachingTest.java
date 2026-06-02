@@ -59,6 +59,7 @@ class LoadFlowWithCachingTest {
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setNetworkCacheEnabled(true);
         NetworkCache.AC_LF_INSTANCE.clear();
+        NetworkCache.DC_LF_INSTANCE.clear();
     }
 
     @Test
