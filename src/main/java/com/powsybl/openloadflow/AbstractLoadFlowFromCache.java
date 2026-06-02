@@ -35,7 +35,7 @@ public abstract class AbstractLoadFlowFromCache<P extends AbstractLoadFlowParame
 
     protected final ReportNode reportNode;
 
-    public AbstractLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+    protected AbstractLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                P acOrDcParameters, ReportNode reportNode) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);

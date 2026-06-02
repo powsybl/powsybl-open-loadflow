@@ -260,35 +260,37 @@ class LoadFlowWithCachingTest {
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
     }
 
-    @Test
-    void testVariantChange() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testVariantChange(boolean isDc) {
+        parameters.setDc(isDc);
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v");
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // no reason to invaludate the cache has initial variant has not been changed
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues()); // no reason to invaludate the cache has initial variant has not been changed
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v", true);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         network.getVariantManager().setWorkingVariant("v");
         network.getVariantManager().cloneVariant("v", VariantManagerConstants.INITIAL_VARIANT_ID, true);
         network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
-        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNull(findEntryFunction.apply(network, isDc).getValues());
 
         loadFlowRunner.run(network, parameters);
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         network.getVariantManager().removeVariant("v");
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
     }
 
     @Test
@@ -442,13 +444,13 @@ class LoadFlowWithCachingTest {
     @Test
     void testInvalidNetwork() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        var result = loadFlowRunner.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
 
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
 
         var gen = network.getGenerator("GEN");
         gen.setTargetV(1000);
-        result = loadFlowRunner.run(network, parameters);
+        var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(0).getStatus());
     }
 
