@@ -18,74 +18,20 @@ import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfTopoConfig;
-import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class AcLoadFlowFromCache {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AcLoadFlowFromCache.class);
-
-    private final Network network;
-
-    private final LoadFlowParameters parameters;
-
-    private final OpenLoadFlowParameters parametersExt;
-
-    private final AcLoadFlowParameters acParameters;
-
-    private final ReportNode reportNode;
+public class AcLoadFlowFromCache extends AbstractLoadFlowFromCache<AcLoadFlowParameters> {
 
     public AcLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                AcLoadFlowParameters acParameters, ReportNode reportNode) {
-        this.network = Objects.requireNonNull(network);
-        this.parameters = Objects.requireNonNull(parameters);
-        this.parametersExt = Objects.requireNonNull(parametersExt);
-        this.acParameters = Objects.requireNonNull(acParameters);
-        this.reportNode = Objects.requireNonNull(reportNode);
-    }
-
-    private void configureTopoConfig(LfTopoConfig topoConfig) {
-        for (String switchId : parametersExt.getActionableSwitchesIds()) {
-            Switch sw = network.getSwitch(switchId);
-            if (sw != null) {
-                if (sw.isOpen()) {
-                    topoConfig.getSwitchesToClose().add(sw);
-                } else {
-                    topoConfig.getSwitchesToOpen().add(sw);
-                }
-            } else {
-                LOGGER.warn("Actionable switch '{}' does not exist", switchId);
-            }
-        }
-        for (String transformerId : parametersExt.getActionableTransformersIds()) {
-            Branch<?> branch = network.getBranch(transformerId);
-            if (branch != null) {
-                topoConfig.addBranchIdWithRtcToRetain(transformerId);
-                topoConfig.addBranchIdWithPtcToRetain(transformerId);
-            } else {
-                ThreeWindingsTransformer tw3 = network.getThreeWindingsTransformer(transformerId);
-                if (tw3 != null) {
-                    for (ThreeSides side : ThreeSides.values()) {
-                        topoConfig.addBranchIdWithRtcToRetain(LfLegBranch.getId(side, transformerId));
-                        topoConfig.addBranchIdWithPtcToRetain(LfLegBranch.getId(side, transformerId));
-                    }
-                }
-                LOGGER.warn("Actionable transformer '{}' does not exist", transformerId);
-            }
-        }
-        if (topoConfig.isBreaker()) {
-            acParameters.getNetworkParameters().setBreakers(true);
-        }
+        super(network, parameters, parametersExt, acParameters, reportNode);
     }
 
     private List<NetworkCache.AcLfValue> initValues(NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry) {
@@ -95,11 +41,11 @@ public class AcLoadFlowFromCache {
 
         // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
-        try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, acParameters.getNetworkParameters(),
+        try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, acOrDcParameters.getNetworkParameters(),
                 LfNetworkList.WorkingVariantReverter::new, reportNode)) {
             values = lfNetworkList.getList()
                     .stream()
-                    .map(n -> new NetworkCache.AcLfValue(new AcLoadFlowContext(n, acParameters)))
+                    .map(n -> new NetworkCache.AcLfValue(new AcLoadFlowContext(n, acOrDcParameters)))
                     .toList();
             entry.setValues(values);
             LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
