@@ -164,6 +164,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 edges.get(i.parentEdge).treeEdge = false;
 
                 unlink(i);
+                // updating roots is useless because 'deep' will be
+                // connected to 'shallow' juste after.
+                deep.makeRoot(false);
                 link(root, shallow, deep, edge);
                 return true;
             }
@@ -172,11 +175,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
             DTNode toRemove;
             if (rootU.size < rootV.size) {
-                nodeU.makeRoot();
+                nodeU.makeRoot(true);
                 link(rootV, nodeV, nodeU, edge);
                 toRemove = nodeU;
             } else {
-                nodeV.makeRoot();
+                nodeV.makeRoot(true);
                 link(rootU, nodeU, nodeV, edge);
                 toRemove = nodeV;
             }
@@ -277,7 +280,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
 
             if (newCentroid != null && newCentroid != rootU) {
-                newCentroid.makeRoot();
+                newCentroid.makeRoot(true);
             }
         }
 
@@ -417,7 +420,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 this.size = 1;
             }
 
-            public void makeRoot() {
+            public void makeRoot(boolean updateRoots) {
                 if (parent == null) {
                     return;
                 }
@@ -450,9 +453,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     parent = greatParent;
                 }
 
-                // child is the old root, update rootIndex and roots
-                rootIndex = child.rootIndex;
-                roots.set(rootIndex, DTNode.this);
+                if (updateRoots) {
+                    // child is the old root, update rootIndex and roots
+                    rootIndex = child.rootIndex;
+                    roots.set(rootIndex, DTNode.this);
+                }
 
                 // update size attributes
                 while (child.parent != null) {
@@ -494,7 +499,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 if (nodeRootChild != null && nodeRootChild.size > nodeRoot.size / 2) {
-                    nodeRootChild.makeRoot();
+                    nodeRootChild.makeRoot(true);
                     nodeRoot = nodeRootChild;
                 }
 

@@ -530,10 +530,54 @@ class ConnectivityTest {
     }
 
     @Test
+    void testDTreeInsertNonTreeEdge() {
+        //      0 -- 1
+        //      |    |
+        // 3 -- 2 -- 5
+        //      |
+        //      4
+
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        for (int i = 0; i < 6; i++) {
+            connectivity.addVertex(i);
+        }
+
+        connectivity.addEdge(0, 1, "0-1");
+        connectivity.addEdge(2, 0, "2-0");
+        connectivity.addEdge(2, 3, "2-3");
+        connectivity.addEdge(2, 4, "2-4");
+        connectivity.addEdge(1, 5, "1-5");
+
+        connectivity.startTemporaryChanges();
+        for (int i = 0; i < 6; i++) {
+            assertEquals(0, connectivity.getComponentNumber(i));
+        }
+
+        // Adding this edge doesn't affect connectivity.
+        // However, it modifies the spanning tree.
+        // Before:
+        //      0 -- 1
+        //      |    |
+        // 3 -- 2    5  (5 and 2 not connected)
+        //      |
+        //      4
+        connectivity.addEdge(5, 2, "5-2");
+        // After:
+        //      0    1   (0 and 1 are still connected, but not in the spanning tree!)
+        //      |    |
+        // 3 -- 1 -- 5
+        //      |
+        //      4
+        for (int i = 0; i < 6; i++) {
+            assertEquals(0, connectivity.getComponentNumber(i));
+        }
+    }
+
+    @Test
     void randomGraph() {
-        for (int size = 4; size < 100; size++) {
+        for (int size = 1; size < 100; size++) {
             System.out.println(size);
-            for (int seed = 75; seed < 1000; seed++) {
+            for (int seed = 0; seed < 1000; seed++) {
                 // generate graph
                 Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
 
@@ -577,13 +621,23 @@ class ConnectivityTest {
         for (E edge : graph.edgeSet()) {
             connectivity.addEdge(graph.getEdgeSource(edge), graph.getEdgeTarget(edge), edge);
             sample.checkAddEdge(connectivity, edge);
+
+            // check previously connected edges are still connected
+            for (E e2 : graph.edgeSet()) {
+                assertEquals(connectivity.getComponentNumber(graph.getEdgeSource(e2)), connectivity.getComponentNumber(graph.getEdgeTarget(e2)), edge.toString());
+
+                if (edge == e2) {
+                    break;
+                }
+            }
         }
 
         // check the graph is indeed fully connected
         connectivity.startTemporaryChanges();
         for (V v1 : graph.vertexSet()) {
             for (V v2 : graph.vertexSet()) {
-                Assertions.assertEquals(connectivity.getComponentNumber(v1), connectivity.getComponentNumber(v2));
+                Assertions.assertEquals(connectivity.getComponentNumber(v1), connectivity.getComponentNumber(v2),
+                        "(size = " + sample.size + ", seed = " + sample.seed + ")");
             }
         }
         connectivity.undoTemporaryChanges();
@@ -592,6 +646,16 @@ class ConnectivityTest {
         for (E edge : graph.edgeSet()) {
             connectivity.removeEdge(edge);
             sample.checkRemoveEdge(connectivity, edge);
+
+            // check previously disconnected edges are still disconnected
+            // TODO: doesn't work
+            for (E e2 : graph.edgeSet()) {
+                assertNotEquals(connectivity.getComponentNumber(graph.getEdgeSource(e2)), connectivity.getComponentNumber(graph.getEdgeTarget(e2)), edge.toString());
+
+                if (edge == e2) {
+                    break;
+                }
+            }
         }
 
         sample.endTest();
