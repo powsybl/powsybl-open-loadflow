@@ -2345,6 +2345,25 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    /**
+     * Meshed network: DC line dl34 (from the base network) and an open DC switch sw34 both connect
+     * dn3 to dn4. Because dl34 keeps the component connected, both nodes resolve to distinct but
+     * non-null LfDcBuses — the open switch must still be discarded.
+     */
+    public static Network createAcDcNetworkWithParallelOpenDcSwitch() {
+        Network network = createBaseNetwork();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(true)
+                .setR(0.5)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
     private static void addStandardConverters(Network network) {
         // Ideal converters (zero losses) to simplify analytical solutions.
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
