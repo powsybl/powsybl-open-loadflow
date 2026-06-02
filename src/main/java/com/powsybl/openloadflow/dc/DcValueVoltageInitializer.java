@@ -103,7 +103,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public double getMagnitude(LfDcBus dcBus) {
+    public double getDcVoltage(LfDcBus dcBus) {
         throw new PowsyblException("DC initialization is not yet supported with AcDcNetwork");
     }
 }
