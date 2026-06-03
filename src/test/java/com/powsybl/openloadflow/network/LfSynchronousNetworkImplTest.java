@@ -189,9 +189,9 @@ class LfSynchronousNetworkImplTest {
         // Second synchronous component is now without generator. The synchronous network is invalid.
         n.getGenerator("g3").remove();
 
-        LfNetwork lfNetwork = Networks.load(n, new LfNetworkParameters()).getLast();
+        LfNetwork secondLfNetwork = Networks.load(n, new LfNetworkParameters()).getLast();
 
-        LfSynchronousNetwork synchronousNetwork = lfNetwork.getSynchronousNetwork(1);
+        LfSynchronousNetwork synchronousNetwork = secondLfNetwork.getSynchronousNetwork(1);
         LfNetwork.Validity validity = synchronousNetwork.validateBuses(loadFlowModel, ReportNode.NO_OP);
 
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR, validity);
@@ -204,9 +204,9 @@ class LfSynchronousNetworkImplTest {
         network.getGenerator("g1").setTargetQ(0).setVoltageRegulatorOn(false);
 
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
-        LfNetwork lfNetwork = Networks.load(network, params).getFirst();
+        LfNetwork lfNet = Networks.load(network, params).getFirst();
 
-        LfSynchronousNetwork synchronousNetwork = lfNetwork.getSynchronousNetwork(0);
+        LfSynchronousNetwork synchronousNetwork = lfNet.getSynchronousNetwork(0);
         LfNetwork.Validity validity = synchronousNetwork.validateBuses(LoadFlowModel.AC, ReportNode.NO_OP);
 
         assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL, validity);
@@ -219,9 +219,9 @@ class LfSynchronousNetworkImplTest {
         network.getGenerator("g1").setTargetQ(0).setVoltageRegulatorOn(false);
 
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
-        LfNetwork lfNetwork = Networks.load(network, params).getFirst();
+        LfNetwork lfNet = Networks.load(network, params).getFirst();
 
-        LfSynchronousNetwork synchronousNetwork = lfNetwork.getSynchronousNetwork(0);
+        LfSynchronousNetwork synchronousNetwork = lfNet.getSynchronousNetwork(0);
         LfNetwork.Validity validity = synchronousNetwork.validateBuses(LoadFlowModel.DC, ReportNode.NO_OP);
 
         assertEquals(LfNetwork.Validity.VALID, validity);
@@ -233,9 +233,9 @@ class LfSynchronousNetworkImplTest {
         // Generator g1 controls AC voltage. The synchronous network is valid for AC load flow.
 
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
-        LfNetwork lfNetwork = Networks.load(network, params).getFirst();
+        LfNetwork lfNet = Networks.load(network, params).getFirst();
 
-        LfSynchronousNetwork synchronousNetwork = lfNetwork.getSynchronousNetwork(0);
+        LfSynchronousNetwork synchronousNetwork = lfNet.getSynchronousNetwork(0);
         LfNetwork.Validity validity = synchronousNetwork.validateBuses(LoadFlowModel.AC, ReportNode.NO_OP);
 
         assertEquals(LfNetwork.Validity.VALID, validity);
@@ -250,9 +250,9 @@ class LfSynchronousNetworkImplTest {
         network.getVoltageSourceConverter("conv14").setVoltageSetpoint(380).setVoltageRegulatorOn(true);
 
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
-        LfNetwork lfNetwork = Networks.load(network, params).getFirst();
+        LfNetwork lfNet = Networks.load(network, params).getFirst();
 
-        LfSynchronousNetwork synchronousNetwork = lfNetwork.getSynchronousNetwork(0);
+        LfSynchronousNetwork synchronousNetwork = lfNet.getSynchronousNetwork(0);
         LfNetwork.Validity validity = synchronousNetwork.validateBuses(LoadFlowModel.AC, ReportNode.NO_OP);
 
         assertEquals(LfNetwork.Validity.VALID, validity);

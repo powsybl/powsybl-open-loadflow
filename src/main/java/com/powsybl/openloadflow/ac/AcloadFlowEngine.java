@@ -70,6 +70,35 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         private AcOuterLoop lastUnrealisticStateFixingLoop;
     }
 
+    /**
+     * If detailed report is requested, include a report node to log outer loop iterations
+     *
+     * @param outerLoop The outer loop which will use the report node.
+     * @param solver The AC solver used in the load flow
+     * @param runningContext used to get the total number of outer loops iteration
+     * @param reportNode the report node of the LfNetwork
+     * @return The report node of the LfNetwork, which can include a report node for the outer loops
+     */
+    private ReportNode addSolverReporterOuterLoop(AcOuterLoop outerLoop, AcSolver solver, RunningContext runningContext, ReportNode reportNode) {
+        if (context.getParameters().isDetailedReport()) {
+            if (context.getNetwork().getSynchronousNetworks().size() == 1) {
+                return Reports.createDetailedSolverReporterOuterLoop(reportNode,
+                    solver.getName(),
+                    context.getNetwork().getNumCC(),
+                    context.getNetwork().getSynchronousNetworks().getFirst().getNumSC(),
+                    runningContext.outerLoopTotalIterations + 1,
+                    outerLoop.getName());
+            } else {
+                return Reports.createDetailedSolverReporterOuterLoopConnectedComponent(reportNode,
+                    solver.getName(),
+                    context.getNetwork().getNumCC(),
+                    runningContext.outerLoopTotalIterations + 1,
+                    outerLoop.getName());
+            }
+        }
+        return reportNode;
+    }
+
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext, boolean checkUnrealistic) {
         ReportNode olReportNode = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
 
@@ -89,22 +118,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), runningContext.outerLoopTotalIterations);
 
                 ReportNode reportNode = context.getNetwork().getReportNode();
-                if (context.getParameters().isDetailedReport()) {
-                    if (context.getNetwork().getSynchronousNetworks().size() == 1) {
-                        reportNode = Reports.createDetailedSolverReporterOuterLoop(reportNode,
-                            solver.getName(),
-                            context.getNetwork().getNumCC(),
-                            context.getNetwork().getSynchronousNetworks().getFirst().getNumSC(),
-                            runningContext.outerLoopTotalIterations + 1,
-                            outerLoop.getName());
-                    } else {
-                        reportNode = Reports.createDetailedSolverReporterOuterLoopConnectedComponent(reportNode,
-                            solver.getName(),
-                            context.getNetwork().getNumCC(),
-                            runningContext.outerLoopTotalIterations + 1,
-                            outerLoop.getName());
-                    }
-                }
+                reportNode = addSolverReporterOuterLoop(outerLoop, solver, runningContext, reportNode);
 
                 // if not yet stable, restart solver
                 runningContext.lastSolverResult = runAcSolverAndCheckRealisticState(solver, new PreviousValueVoltageInitializer(), reportNode, checkUnrealistic,
