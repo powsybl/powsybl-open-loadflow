@@ -17,11 +17,9 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus {
 
-    protected double v;
+    protected double v; // in kV
 
-    protected final double nominalV;
-
-    protected boolean isNeutralPole = false;
+    protected final double nominalV; // in kV
 
     protected AbstractLfDcBus(LfNetwork network, double nominalV, double v) {
         super(network);
@@ -47,15 +45,5 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
     @Override
     public double getNominalV() {
         return nominalV;
-    }
-
-    @Override
-    public boolean isNeutralPole() {
-        return isNeutralPole;
-    }
-
-    @Override
-    public void setNeutralPole(boolean isNeutralPole) {
-        this.isNeutralPole = isNeutralPole;
     }
 }

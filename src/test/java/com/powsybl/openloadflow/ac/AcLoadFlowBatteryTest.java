@@ -7,24 +7,36 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Battery;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.VoltageRegulationAdder;
 import com.powsybl.iidm.network.test.BatteryNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowBatteryTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowBatteryTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus genBus;
@@ -47,7 +59,7 @@ class AcLoadFlowBatteryTest {
         battery2 = network.getBattery("BAT2");
         battery2.setMinP(-1000).setTargetP(-1000).setMaxP(1000);
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
