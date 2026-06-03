@@ -838,18 +838,17 @@ class AcDcLoadFlowTest {
     void testDcSwitchResistanceLineEquivalence(double rSwitch, double rLine) {
         network = AcDcNetworkFactory.createAcDcNetworkWithDcSwitchAndDcLine(rSwitch, rLine);
 
-        // Parameters read from the network (converter losses = 0)
-        double targetP = network.getVoltageSourceConverter("conv23").getTargetP();    // MW
-        double targetVdc = network.getVoltageSourceConverter("conv45").getTargetVdc();  // kV
-        double rSw = network.getDcSwitch("sw3b").getR();     // Ohm
-        double rLi = network.getDcLine("dl3b4").getR();     // Ohm
+        double targetP = network.getVoltageSourceConverter("conv23").getTargetP(); // MW
+        double targetVdc = network.getVoltageSourceConverter("conv45").getTargetVdc(); // kV
+        double rSw = network.getDcSwitch("sw3b").getR(); // Ohm
+        double rLi = network.getDcLine("dl3b4").getR(); // Ohm
         double rTotal = rSw + rLi;
 
         // Expected values derived analytically:
         // Assumption: converter losses = 0 so DC power at conv23 = targetP
-        //             V_dn4 = targetVdc (imposed by inverter conv45)
-        //             V_dn3 = V_dn4 + I * rTotal  (Ohm's law across the full path)
-        //             P = V_dn3 * I quadratic equation, solved here for V_dn3
+        //   V_dn4 = targetVdc (imposed by inverter conv45)
+        //   V_dn3 = V_dn4 + I * rTotal  (Ohm's law across the full path)
+        //   P = V_dn3 * I quadratic equation, solved here for V_dn3
         //   V_dn3b computed through the voltage divider formula.
         double sqrtdelta = sqrt(targetVdc * targetVdc + 4 * rTotal * targetP);
         double expectedVdn3 = 0.5 * (targetVdc + sqrtdelta);  // voltage at dn3 (kV)
