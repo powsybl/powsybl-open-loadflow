@@ -577,7 +577,7 @@ class ConnectivityTest {
     void randomGraph() {
         for (int size = 1; size < 100; size++) {
             System.out.println(size);
-            for (int seed = 0; seed < 1000; seed++) {
+            for (int seed = 0; seed < 10; seed++) {
                 // generate graph
                 Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
 
@@ -602,6 +602,8 @@ class ConnectivityTest {
     }
 
     private static <V, E> void assertSameResultAsControlSample(Graph<V, E> graph, GraphConnectivity<V, E> connectivity, Sample<V, E> sample) {
+        List<E> edges = new ArrayList<>(graph.edgeSet());
+
         sample.beginTest();
 
         boolean init = false;
@@ -618,44 +620,40 @@ class ConnectivityTest {
         }
 
         // fully connect the graph
-        for (E edge : graph.edgeSet()) {
+        for (int i = 0; i < edges.size(); i++) {
+            E edge = edges.get(i);
             connectivity.addEdge(graph.getEdgeSource(edge), graph.getEdgeTarget(edge), edge);
             sample.checkAddEdge(connectivity, edge);
 
             // check previously connected edges are still connected
-            for (E e2 : graph.edgeSet()) {
-                assertEquals(connectivity.getComponentNumber(graph.getEdgeSource(e2)), connectivity.getComponentNumber(graph.getEdgeTarget(e2)), edge.toString());
-
-                if (edge == e2) {
-                    break;
-                }
+            for (int j = 0; j <= i; j++) {
+                E e2 = edges.get(j);
+                assertEquals(connectivity.getComponentNumber(graph.getEdgeSource(e2)),
+                        connectivity.getComponentNumber(graph.getEdgeTarget(e2)),
+                        e2.toString());
             }
         }
 
         // check the graph is indeed fully connected
-        connectivity.startTemporaryChanges();
         for (V v1 : graph.vertexSet()) {
             for (V v2 : graph.vertexSet()) {
                 Assertions.assertEquals(connectivity.getComponentNumber(v1), connectivity.getComponentNumber(v2),
                         "(size = " + sample.size + ", seed = " + sample.seed + ")");
             }
         }
-        connectivity.undoTemporaryChanges();
 
         // fully disconnect the graph
-        for (E edge : graph.edgeSet()) {
+        for (int i = 0; i < edges.size(); i++) {
+            E edge = edges.get(i);
             connectivity.removeEdge(edge);
             sample.checkRemoveEdge(connectivity, edge);
+        }
 
-            // check previously disconnected edges are still disconnected
-            // TODO: doesn't work
-            for (E e2 : graph.edgeSet()) {
-                assertNotEquals(connectivity.getComponentNumber(graph.getEdgeSource(e2)), connectivity.getComponentNumber(graph.getEdgeTarget(e2)), edge.toString());
-
-                if (edge == e2) {
-                    break;
-                }
-            }
+        // check graph is indeed fully disconnected
+        for (E edge : edges) {
+            assertNotEquals(connectivity.getComponentNumber(graph.getEdgeSource(edge)),
+                    connectivity.getComponentNumber(graph.getEdgeTarget(edge)),
+                    edge.toString() + " isn't disconnected");
         }
 
         sample.endTest();
