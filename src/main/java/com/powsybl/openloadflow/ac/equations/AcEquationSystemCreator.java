@@ -1225,6 +1225,12 @@ public class AcEquationSystemCreator {
         return terms;
     }
 
+    /**
+     * Create equations specific for the multi-slack bus case.
+     * As the active power balance is disabled for these buses, we need to add a new equation connecting the slack buses active power.
+     * The equation ensures, for each slack bus (except the first one):
+     *  branchInjectionAtSlackBus - branchInjectionAtFirstSlackBus = generatorLoadInjectionAtSlackBus - generatorLoadInjectionAtFirstSlackBus
+     */
     private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfSynchronousNetwork lfScNetwork : network.getSynchronousNetworks()) {
 

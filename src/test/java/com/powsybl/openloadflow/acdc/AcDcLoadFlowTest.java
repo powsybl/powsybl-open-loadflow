@@ -41,8 +41,6 @@ class AcDcLoadFlowTest {
         this.commonTestConfig = commonTestConfig;
     }
 
-    Network network;
-
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
@@ -782,10 +780,10 @@ class AcDcLoadFlowTest {
         double dcLineLosses = network.getDcLineStream().map(
             dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
         assertActivePowerEquals(100, ld2.getTerminal());
-        assertActivePowerEquals(-40.001, g2.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-(40 + dcLineLosses / 2), g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
         assertActivePowerEquals(50, ld3.getTerminal());
-        assertActivePowerEquals(-40.001, g3.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-(40 + dcLineLosses / 2), g3.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-20, conv36.getTerminal1());
     }
 
