@@ -2218,4 +2218,124 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
         return network;
     }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) replacing the DC line between dn3 and dn4.
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
+     * so the switch contributes no resistance.
+     * <pre>
+     * g1    ld2-┬------------l25------------------------┐
+     * |         |                                       |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn4-conv45-b5--ld5
+     *              |                               |
+     *        (dnDummy3,dg3)                (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchOnly(double rSwitch) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) in series with a DC line (resistance {@code rLine}).
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn3b, so only {@code rLine} remains.
+     * <pre>
+     * g1    ld2-┬------------l25--------------------------------------------┐
+     * |         |                                                           |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn3b--dl3b4(rLine)--dn4-conv45-b5--ld5
+     *              |                                                   |
+     *        (dnDummy3,dg3)                                    (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchAndDcLine(double rSwitch, double rLine) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcNode()
+                .setId("dn3b")
+                .setNominalV(400.)
+                .add();
+        network.newDcSwitch()
+                .setId("sw3b")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn3b")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcLine()
+                .setId("dl3b4")
+                .setDcNode1("dn3b")
+                .setDcNode2("dn4")
+                .setR(rLine)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Meshed network: DC line dl34 (from the base network) and an open DC switch sw34 both connect
+     * dn3 to dn4. Because dl34 keeps the component connected, both nodes resolve to distinct but
+     * non-null LfDcBuses — the open switch must still be discarded.
+     */
+    public static Network createAcDcNetworkWithParallelOpenDcSwitch() {
+        Network network = createBaseNetwork();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(true)
+                .setR(0.5)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    private static void addStandardConverters(Network network) {
+        // Ideal converters (zero losses) to simplify analytical solutions.
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+        // Rectifier (target P > 0)
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+        // Inverter (by power balance law)
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+    }
 }
