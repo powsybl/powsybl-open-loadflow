@@ -836,25 +836,40 @@ class AcLoadFlowShuntTest {
         parametersExt.setShuntVoltageControlMode(shuntVoltageControlMode);
         shunt.setSectionCount(2).setTargetV(380.);
 
+        // test without regulation
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, shunt.getSectionCount());
-        assertEquals(2, shunt.getSolvedSectionCount()); // no regulation
+        assertEquals(2, shunt.getSolvedSectionCount());
         assertVoltageEquals(395.709, bus3);
+        assertReactivePowerEquals(-469.757, shunt.getTerminal());
 
+        // test with regulation, section zero allowed
         parameters.setShuntCompensatorVoltageControlOn(true);
         parametersExt.setAllowNonLinearShuntZeroSection(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, shunt.getSectionCount());
-        assertEquals(0, shunt.getSolvedSectionCount()); // goes to zero because allowed
+        assertEquals(0, shunt.getSolvedSectionCount());
         assertVoltageEquals(388.582, bus3);
+        assertReactivePowerEquals(0.0, shunt.getTerminal());
 
+        // test with regulation, section zero not allowed
         parametersExt.setAllowNonLinearShuntZeroSection(false);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, shunt.getSectionCount());
-        assertEquals(1, shunt.getSolvedSectionCount()); // did not go to zero because not allowed
+        assertEquals(1, shunt.getSolvedSectionCount());
         assertVoltageEquals(390.930, bus3);
+        assertReactivePowerEquals(-152.827, shunt.getTerminal());
+
+        // test with regulation, section zero not allowed, section 1 modeling disconnection with B=G=0
+        ((ShuntCompensatorNonLinearModel) shunt.getModel()).getAllSections().getFirst().setB(0.).setG(0.);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertVoltageEquals(388.582, bus3);
+        assertReactivePowerEquals(0.0, shunt.getTerminal());
     }
 }
