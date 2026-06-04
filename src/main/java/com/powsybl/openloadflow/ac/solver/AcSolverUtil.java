@@ -67,7 +67,7 @@ public final class AcSolverUtil {
                     break;
 
                 case DC_BUS_V:
-                    x[v.getRow()] = initializer.getMagnitude(network.getDcBus(v.getElementNum()));
+                    x[v.getRow()] = initializer.getDcVoltage(network.getDcBus(v.getElementNum()));
                     break;
 
                 case CONV_P_AC:
