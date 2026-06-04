@@ -267,12 +267,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         branches.remove(branch);
         branch.getOriginalIds().forEach(branchesByOriginalId::remove);
         LfBus bus = branch.getBus1() != null ? branch.getBus1() : branch.getBus2();
-        if (bus != null) {
-            getSynchronousNetwork(bus.getNumSC()).invalidateSlackAndReference();
-        } else {
-            // security fallback
-            synchronousNetworks.forEach(LfSynchronousNetwork::invalidateSlackAndReference);
-        }
+        // If the branch is disconnected at both side then 'bus' is null. This does not correspond to the use case of
+        // this method, so we can assume 'bus' is not null.
+        getSynchronousNetwork(bus.getNumSC()).invalidateSlackAndReference();
 
         if (connectivity != null) {
             connectivity.removeEdge(branch);

@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -85,7 +84,7 @@ class AcSolverFactoryTest {
         public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
             AcSolverUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
             LOGGER.info("I am a not so advanced solver only able to return flat 1 p.u. /_ 0.0, in max iterations, leaving 34 MW slack mismatch.");
-            return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), new HashMap<>(Collections.singletonMap(0, 0.34)));
+            return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), Collections.singletonMap(0, 0.34));
         }
     }
 
