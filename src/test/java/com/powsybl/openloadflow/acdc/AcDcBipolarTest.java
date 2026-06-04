@@ -20,6 +20,11 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -438,4 +443,52 @@ class AcDcBipolarTest {
         assertActivePowerEquals(-0.003124, l25.getTerminal2());
         assertReactivePowerEquals(-10.00000, l25.getTerminal2());
     }
+
+    static Stream<Arguments> bipolarFourConvAllVdcAndSwapCases() {
+        // Arguments are:
+        // Test case id and whether to swap DC nodes order for the four converters
+        return Stream.of(
+            Arguments.of("C1", false, false, false, false),
+            Arguments.of("C2", false, false, false, true),
+            Arguments.of("C3", false, false, true, false),
+            Arguments.of("C4", false, false, true, true),
+            Arguments.of("C5", false, true, false, false),
+            Arguments.of("C6", false, true, false, true),
+            Arguments.of("C7", false, true, true, false),
+            Arguments.of("C8", false, true, true, true),
+            Arguments.of("C9", true, false, false, false),
+            Arguments.of("C10", true, false, false, true),
+            Arguments.of("C11", true, false, true, false),
+            Arguments.of("C12", true, false, true, true),
+            Arguments.of("C13", true, true, false, false),
+            Arguments.of("C14", true, true, false, true),
+            Arguments.of("C15", true, true, true, false),
+            Arguments.of("C16", true, true, true, true)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("bipolarFourConvAllVdcAndSwapCases")
+    void testDifferentVoltageInitialisation(String testCaseId, boolean swapOrder1, boolean swapOrder2, boolean swapOrder3, boolean swapOrder4) {
+        // The purpose of this test is to ensure the network definition, and especially which DC node is set as DC node1
+        // or DC node 2 of a converter has no impact on the load flow result (as long as the targetVdc are defined
+        // consistently with that order.
+
+        // Create network and run load flow
+        network = AcDcNetworkFactory.createFourConvertersBipole(testCaseId, swapOrder1, swapOrder2, swapOrder3, swapOrder4);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check DC nodes voltages
+        assertVoltageEquals(500, network.getDcNode("DC1"));
+        assertVoltageEquals(0, network.getDcNode("DC2"));
+        assertVoltageEquals(-500, network.getDcNode("DC3"));
+        assertVoltageEquals(500.08, network.getDcNode("DC4"));
+        assertVoltageEquals(0, network.getDcNode("DC5"));
+        assertVoltageEquals(-500.08, network.getDcNode("DC6"));
+        assertVoltageEquals(500.16, network.getDcNode("DC7"));
+        assertVoltageEquals(0, network.getDcNode("DC8"));
+        assertVoltageEquals(-500.16, network.getDcNode("DC9"));
+    }
+
 }

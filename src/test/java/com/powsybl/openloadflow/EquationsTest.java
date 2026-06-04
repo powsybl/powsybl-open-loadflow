@@ -342,7 +342,7 @@ class EquationsTest {
         var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(converter).getNum();
         Mockito.doReturn(false).when(converter).isDisabled();
-        Mockito.doReturn(List.of(0.1, 0.001, 1.0)).when(converter).getLossFactors(); // With resistive loss
+        Mockito.doReturn(new LfAcDcConverter.LossFactors(0.1, 0.001, 1.0)).when(converter).getLossFactors(); // With resistive loss
         Mockito.doReturn(0.5).when(converter).getTargetP();
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);
@@ -369,7 +369,7 @@ class EquationsTest {
         var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(converter).getNum();
         Mockito.doReturn(false).when(converter).isDisabled();
-        Mockito.doReturn(List.of(0.1, 0.001, 0.)).when(converter).getLossFactors(); // No resistive loss
+        Mockito.doReturn(new LfAcDcConverter.LossFactors(0.1, 0.001, 0.)).when(converter).getLossFactors(); // No resistive loss
         Mockito.doReturn(0.5).when(converter).getTargetP();
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);
