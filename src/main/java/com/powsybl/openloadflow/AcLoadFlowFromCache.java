@@ -90,8 +90,8 @@ public class AcLoadFlowFromCache {
         }
     }
 
-    private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
-        List<AcLoadFlowContext> contexts;
+    private List<NetworkCache.AcLfValue> initValues(NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry) {
+        List<NetworkCache.AcLfValue> values;
         LfTopoConfig topoConfig = new LfTopoConfig();
         configureTopoConfig(topoConfig);
 
@@ -99,46 +99,46 @@ public class AcLoadFlowFromCache {
         // WorkingVariantReverter is used instead of DefaultVariantCleaner
         try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, acParameters.getNetworkParameters(),
                 LfNetworkList.WorkingVariantReverter::new, reportNode)) {
-            contexts = lfNetworkList.getList()
+            values = lfNetworkList.getList()
                     .stream()
-                    .map(n -> new AcLoadFlowContext(n, acParameters))
-                    .collect(Collectors.toList());
-            entry.setContexts(contexts);
+                    .map(n -> new NetworkCache.AcLfValue(new AcLoadFlowContext(n, acParameters)))
+                    .toList();
+            entry.setValues(values);
             LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
             if (variantCleaner != null) {
-                entry.setTmpVariantId(variantCleaner.getTmpVariantId());
+                entry.setVariantCleaner(new LfNetworkList.DefaultVariantCleaner(network, entry.getWorkingVariantId(), variantCleaner.getTmpVariantId()));
             }
         }
-        return contexts;
+        return values;
     }
 
-    private static AcLoadFlowResult run(AcLoadFlowContext context) {
-        if (context.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
-            return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
+    private static AcLoadFlowResult run(NetworkCache.AcLfValue value) {
+        if (value.getNetwork().getValidity() != LfNetwork.Validity.VALID) {
+            return AcLoadFlowResult.createNoCalculationResult(value.getNetwork());
         }
-        if (context.isNetworkUpdated()) {
-            AcLoadFlowResult result = new AcloadFlowEngine(context)
+        if (value.isNetworkUpdated()) {
+            AcLoadFlowResult result = new AcloadFlowEngine(value.getContext())
                     .run();
-            context.setNetworkUpdated(false);
+            value.setNetworkUpdated(false);
             return result;
         }
 
         Map<Integer, Double> slackBusActivePowerMismatch = new HashMap<>();
         Map<Integer, Double> distributedActivePower = new HashMap<>();
-        context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> {
+        value.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> {
             slackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), 0d);
             distributedActivePower.put(lfScNetwork.getNumSC(), 0d);
         });
-        return new AcLoadFlowResult(context.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), slackBusActivePowerMismatch, distributedActivePower);
+        return new AcLoadFlowResult(value.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), slackBusActivePowerMismatch, distributedActivePower);
     }
 
     public List<AcLoadFlowResult> run() {
-        NetworkCache.Entry entry = NetworkCache.INSTANCE.get(network, parameters);
-        List<AcLoadFlowContext> contexts = entry.getContexts();
-        if (contexts == null) {
-            contexts = initContexts(entry);
+        NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry = NetworkCache.AC_LF_INSTANCE.get(network, new NetworkCache.LfInput(parameters));
+        List<NetworkCache.AcLfValue> values = entry.getValues();
+        if (values == null) {
+            values = initValues(entry);
         }
-        return contexts.stream()
+        return values.stream()
                 .map(AcLoadFlowFromCache::run)
                 .collect(Collectors.toList());
     }
