@@ -23,15 +23,15 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     protected final LfDcBus dcBus2;
 
-    protected Evaluable p1 = NAN;
+    protected Evaluable p1 = NAN; // in pu
 
-    protected Evaluable i1 = NAN;
+    protected Evaluable i1 = NAN; // in pu
 
-    protected Evaluable p2 = NAN;
+    protected Evaluable p2 = NAN; // in pu
 
-    protected Evaluable i2 = NAN;
+    protected Evaluable i2 = NAN; // in pu
 
-    private final double r;
+    private final double r; // in Ohm
 
     protected AbstractLfDcLine(LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
         super(network);
