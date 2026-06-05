@@ -451,13 +451,14 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     void testFastDcSaWithUnsupportedAction() {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        List<Contingency> contingencies = List.of(new Contingency("contingencyLD2", List.of(new LoadContingency("LD2"))));
-        List<Action> actions = List.of(new GeneratorActionBuilder().withId("genActionG1").withGeneratorId("G1").withActivePowerRelativeValue(true).withActivePowerValue(1).build());
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("contingencyLD2"), new TrueCondition(), List.of("genActionG1")));
+        List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
+        // RatioTapChangerTapPositionAction is not yet supported in Woodbury fast DC SA
+        List<Action> actions = List.of(new RatioTapChangerTapPositionAction("rtcAction", "PS1", false, 0));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyRtc", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("rtcAction")));
 
         CompletionException thrown = assertThrows(CompletionException.class,
                 () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
-        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction and SwitchAction are allowed in fast DC Security Analysis"));
+        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, SwitchAction, GeneratorAction and LoadAction are allowed in fast DC Security Analysis"));
     }
 
     // Test on fast DC only. The limitation is specific to fast dc
