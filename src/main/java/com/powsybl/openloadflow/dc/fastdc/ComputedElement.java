@@ -14,14 +14,15 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfAction;
@@ -41,6 +42,12 @@ public interface ComputedElement {
 
     Logger LOGGER = LoggerFactory.getLogger(ComputedElement.class);
 
+    LfBus getBus1();
+
+    LfBus getBus2();
+
+    LfElement getLfElement();
+
     int getComputedElementIndex();
 
     void setComputedElementIndex(final int index);
@@ -53,9 +60,11 @@ public interface ComputedElement {
 
     void setAlphaForWoodburyComputation(double alphaForPostContingencyStates);
 
-    LfBranch getLfBranch();
+    EquationTerm<DcVariableType, DcEquationType> getEquation();
 
-    ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation();
+    int getPh1VarRow();
+
+    int getPh2VarRow();
 
     void applyToConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity);
 
@@ -66,10 +75,9 @@ public interface ComputedElement {
      */
     static void setComputedElementIndexes(Collection<? extends ComputedElement> elements) {
         AtomicInteger index = new AtomicInteger(0);
-        Map<LfBranch, Integer> branchesToRhsIndex = new HashMap<>();
+        Map<LfElement, Integer> keyToRhsIndex = new HashMap<>();
         for (ComputedElement element : elements) {
-            LfBranch elementLfBranch = element.getLfBranch();
-            Integer elementIndex = branchesToRhsIndex.computeIfAbsent(elementLfBranch, lfBranch -> index.getAndIncrement());
+            Integer elementIndex = keyToRhsIndex.computeIfAbsent(element.getLfElement(), k -> index.getAndIncrement());
             element.setComputedElementIndex(elementIndex);
         }
     }
@@ -82,16 +90,15 @@ public interface ComputedElement {
     }
 
     /**
-     * Fills the right hand side with +1/-1 to model a branch contingency or action.
+     * Fills the right hand side with +1/-1 to model a branch/HVDC contingency or action.
      */
     private static void fillRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends ComputedElement> computedElements, Matrix rhs) {
         for (ComputedElement element : computedElements) {
-            LfBranch lfBranch = element.getLfBranch();
-            if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
+            LfBus bus1 = element.getBus1();
+            LfBus bus2 = element.getBus2();
+            if (bus1 == null || bus2 == null) {
                 continue;
             }
-            LfBus bus1 = lfBranch.getBus1();
-            LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
                 Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), element.getComputedElementIndex(), -1);
@@ -108,9 +115,11 @@ public interface ComputedElement {
     }
 
     static DenseMatrix initRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends ComputedElement> elements) {
-        // the number of columns of the rhs equals the number of distinct branches affected by the computed elements
-        // those affecting the same branch share the same column
-        int columnCount = (int) elements.stream().map(ComputedElement::getLfBranch).filter(Objects::nonNull).distinct().count();
+        // the number of columns equals the number of distinct elements: branch elements that affect the same
+        // branch share a column; HVDC elements each get their own column (getLfBranch() is null for them)
+        int columnCount = (int) elements.stream()
+                .map(ComputedElement::getLfElement)
+                .distinct().count();
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getColumnCount();
         int maxElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
@@ -151,7 +160,7 @@ public interface ComputedElement {
                 }
                 return Stream.of(Map.entry(lfAction, elements));
             })
-            .filter(e -> e.getValue().stream().filter(b -> b.getLfBranchEquation() == null).findAny().isEmpty())
+            .filter(e -> e.getValue().stream().filter(b -> b.getEquation() == null).findAny().isEmpty())
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
                 Map.Entry::getValue,

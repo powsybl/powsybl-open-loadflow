@@ -21,7 +21,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
+import com.powsybl.openloadflow.dc.fastdc.ComputedBranchContingencyElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
 import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
 import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis.ConnectivityAnalysisResult;
@@ -111,7 +111,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * @return the post contingency states for the contingency.
      */
     private double[] calculatePostContingencyStates(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
-                                                    ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                    ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, ComputedBranchContingencyElement> contingencyElementByBranch,
                                                     ReportNode reportNode) {
         return calculatePostContingencyAndOperatorStrategyStates(loadFlowContext, contingenciesStates, flowStates, connectivityAnalysisResult, contingencyElementByBranch,
                 Collections.emptyMap(), DenseMatrix.EMPTY, reportNode);
@@ -124,7 +124,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      * @return the post contingency and operator strategy states.
      */
     private double[] calculatePostContingencyAndOperatorStrategyStates(DcLoadFlowContext loadFlowContext, DenseMatrix contingenciesStates, double[] flowStates,
-                                                                       ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                       ConnectivityAnalysisResult connectivityAnalysisResult, Map<String, ComputedBranchContingencyElement> contingencyElementByBranch,
                                                                        Map<LfAction, List<ComputedElement>> actionElementByLfAction, DenseMatrix actionsStates, ReportNode reportNode) {
         PropagatedContingency contingency = connectivityAnalysisResult.getPropagatedContingency();
         Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
@@ -138,14 +138,14 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             contingency.getGeneratorIdsToLose().add(hvdcWithoutPower.getConverterStation2().getId());
         });
 
-        List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
+        List<ComputedBranchContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().keySet().stream()
                 .filter(element -> !elementsToReconnect.contains(element))
                 .map(contingencyElementByBranch::get)
                 .toList();
         List<ComputedElement> actionElements = operatorStrategyLfActions.stream()
                 .map(actionElementByLfAction::get)
                 .flatMap(Collection::stream)
-                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
+                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfElement().getId()))
                 .toList();
 
         var lfNetwork = loadFlowContext.getNetwork();
@@ -161,7 +161,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             Set<LfBranch> lostPhaseControllers = contingency.getBranchIdsToOpen().keySet().stream()
                     .filter(element -> !elementsToReconnect.contains(element))
                     .map(contingencyElementByBranch::get)
-                    .map(ComputedContingencyElement::getLfBranch)
+                    .map(ComputedBranchContingencyElement::getLfBranch)
                     .filter(LfBranch::hasPhaseControllerCapability)
                     .collect(Collectors.toSet());
 

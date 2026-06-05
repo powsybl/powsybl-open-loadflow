@@ -8,7 +8,11 @@
 package com.powsybl.openloadflow.dc.fastdc;
 
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.Objects;
 
@@ -16,16 +20,36 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
-abstract class AbstractComputedElement {
+abstract class AbstractComputedBranchElement {
     private int computedElementIndex = -1; // index of the element in the rhs for +1-1
     private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
     private double alphaForWoodburyComputation = Double.NaN;
     private final LfBranch lfBranch;
     private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
 
-    protected AbstractComputedElement(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm branchEquation) {
+    protected AbstractComputedBranchElement(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm branchEquation) {
         this.lfBranch = Objects.requireNonNull(lfBranch);
         this.branchEquation = Objects.requireNonNull(branchEquation);
+    }
+
+    public LfBranch getLfElement() {
+        return lfBranch;
+    }
+
+    public LfBus getBus1() {
+        return lfBranch.getBus1();
+    }
+
+    public LfBus getBus2() {
+        return lfBranch.getBus2();
+    }
+
+    public int getPh1VarRow() {
+        return branchEquation.getPh1Var().getRow();
+    }
+
+    public int getPh2VarRow() {
+        return branchEquation.getPh2Var().getRow();
     }
 
     public int getComputedElementIndex() {
@@ -56,7 +80,7 @@ abstract class AbstractComputedElement {
         return lfBranch;
     }
 
-    public ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
+    public EquationTerm<DcVariableType, DcEquationType> getEquation() {
         return branchEquation;
     }
 }
