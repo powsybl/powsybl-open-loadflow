@@ -388,6 +388,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             LfLoad lfLoad = lfBus.getNetwork().getLoadById(id);
             double newTargetP = lfLoad.getInitialTargetP() + valueShift / PerUnit.SB;
             lfLoad.setTargetP(newTargetP);
+            lfLoad.setInitialTargetP(newTargetP);
             return CacheUpdateResult.elementUpdated(value);
         }
 
