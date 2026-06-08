@@ -18,9 +18,10 @@ import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -29,6 +30,7 @@ import org.apache.commons.lang3.Range;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,7 +49,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class LfNetworkTest extends AbstractSerDeTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    LfNetworkTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Override
     @BeforeEach
@@ -142,7 +151,7 @@ class LfNetworkTest extends AbstractSerDeTest {
     @Test
     void testMultipleConnectedComponentsACMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -156,7 +165,7 @@ class LfNetworkTest extends AbstractSerDeTest {
     @Test
     void testMultipleConnectedComponentsACAllComponents() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -168,7 +177,7 @@ class LfNetworkTest extends AbstractSerDeTest {
     @Test
     void testMultipleConnectedComponentsDCMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -183,7 +192,7 @@ class LfNetworkTest extends AbstractSerDeTest {
     @Test
     void testMultipleConnectedComponentsDCAllComponents() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
@@ -204,7 +213,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         network.getGenerator("g2").setMaxP(3); // Increasing MaxP to allow slack bus distribution
         network.getGenerator("g6").setMaxP(3); // Increasing MaxP to allow slack bus distribution
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
@@ -492,7 +501,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         Network network = FourBusNetworkFactory.createBaseNetwork();
         network.getSubstations().forEach(substation -> substation.setCountry(Country.FR));
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setReadSlackBus(false);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);

@@ -17,12 +17,14 @@ import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Set;
 
@@ -32,7 +34,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class ReferenceBusPrioritiesTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    ReferenceBusPrioritiesTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Generator g1;
@@ -51,7 +60,7 @@ class ReferenceBusPrioritiesTest {
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");
         g3 = network.getGenerator("g3");
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters()
                 .setReadSlackBus(true)
                 .setUseReactiveLimits(false)
