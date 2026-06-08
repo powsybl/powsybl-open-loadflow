@@ -169,6 +169,27 @@ class LoadFlowWithCachingTest {
     }
 
     @Test
+    void testLoadP() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var load = network.getLoad("LOAD");
+        var gen = network.getGenerator("GEN");
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(600, load.getTerminal());
+        assertActivePowerEquals(-605.559, gen.getTerminal());
+
+        load.setP0(620);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(620, load.getTerminal());
+        assertActivePowerEquals(-625.895, gen.getTerminal());
+    }
+
+    @Test
     void testParameterChange() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 

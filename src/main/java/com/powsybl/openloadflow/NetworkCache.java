@@ -10,15 +10,13 @@ package com.powsybl.openloadflow;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.ControlUnit;
-import com.powsybl.iidm.network.extensions.ControlZone;
-import com.powsybl.iidm.network.extensions.PilotPoint;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
@@ -54,6 +52,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         T copy();
 
         String hasChanged(T other);
+
+        LoadFlowParameters getLoadFlowParameters();
     }
 
     /**
@@ -117,6 +117,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         public String hasChanged(LfInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
             return OpenLoadFlowParameters.equals(parameters, other.parameters) ? null : "parameters";
+        }
+
+        @Override
+        public LoadFlowParameters getLoadFlowParameters() {
+            return parameters;
         }
     }
 
@@ -378,6 +383,15 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.elementUpdated(value);
         }
 
+        private static <V extends Value> CacheUpdateResult<V> updateLfLoadTargetP(String id, double oldValue, double newValue, V value, LfBus lfBus) {
+            // Load active power distribution is not handled
+            double valueShift = newValue - oldValue;
+            LfLoad lfLoad = lfBus.getNetwork().getLoadById(id);
+            double newTargetP = lfLoad.getInitialTargetP() + valueShift / PerUnit.SB;
+            lfLoad.setTargetP(newTargetP);
+            return CacheUpdateResult.elementUpdated(value);
+        }
+
         private static String createInvalidationReason(Identifiable<?> identifiable, String attribute) {
             return identifiable.getType() + "_" + attribute;
         }
@@ -417,6 +431,27 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(battery, attribute));
+            });
+        }
+
+        private CacheUpdateResult<V> onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
+            return onInjectionUpdate(load, (value, lfBus) -> {
+                if (attribute.equals("p0")) {
+                    LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+                    if (loadDetail != null) {
+                        LOGGER.info("Load {} has a LoadDetail extension: not supported", load.getId());
+                        return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
+                    }
+                    if (input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                            || input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD
+                            && input.getLoadFlowParameters().isDistributedSlack()) {
+                        LOGGER.info("Load active power distribution is enabled: not supported");
+                        return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
+                    }
+                    LOGGER.info("Load {} updated from {} to {}", load.getId(), oldValue, newValue);
+                    return updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
+                }
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
             });
         }
 
@@ -529,6 +564,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         Battery battery = (Battery) identifiable;
                         if (attribute.equals("targetP")) {
                             result = onBatteryUpdate(battery, attribute, oldValue, newValue);
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.LOAD) {
+                        Load load = (Load) identifiable;
+                        if (attribute.equals("p0")) {
+                            result = onLoadUpdate(load, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;
