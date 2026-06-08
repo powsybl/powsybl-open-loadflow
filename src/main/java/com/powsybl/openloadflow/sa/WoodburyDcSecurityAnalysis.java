@@ -236,6 +236,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
      */
     private OperatorStrategyResult computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(WoodburyContext woodburyContext, LfContingency lfContingency, OperatorStrategy operatorStrategy,
                                                                                                              List<LfAction> operatorStrategyLfActions, LimitViolationManager preContingencyLimitViolationManager,
+                                                                                                             Contingency contingency, PreContingencyNetworkResult preContingencyNetworkResult,
                                                                                                              double[] postContingencyAndOperatorStrategyStates, Predicate<LfBranch> isBranchDisabledDueToContingency) {
         DcLoadFlowContext loadFlowContext = woodburyContext.dcLoadFlowContext;
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
@@ -249,7 +250,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
 
         // update network result
-        var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), woodburyContext.createResultExtension, LoadFlowModel.DC, loadFlowContext.getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
+        var postActionsNetworkResult = new PostContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), woodburyContext.createResultExtension,
+                preContingencyNetworkResult, contingency, LoadFlowModel.DC, loadFlowContext.getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
         postActionsNetworkResult.update(isBranchDisabledDueToContingency);
 
         // detect violations
@@ -339,7 +341,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
                     double[] postContingencyAndOperatorStrategyStates = toFastDcResults.toPostContingencyAndOperatorStrategyStates.apply(postContingencyAndOperatorStrategyConnectivityAnalysisResult);
                     OperatorStrategyResult operatorStrategyResult = computeOperatorStrategyResultFromPostContingencyAndOperatorStrategyStates(woodburyContext, lfContingency, operatorStrategy.value(), operatorStrategyLfActions,
-                            securityAnalysisSimulationResults.preContingencyLimitViolationManager, postContingencyAndOperatorStrategyStates, isBranchDisabledDueToContingencyAndOperatorStrategy);
+                            securityAnalysisSimulationResults.preContingencyLimitViolationManager, contingency, securityAnalysisSimulationResults.preContingencyNetworkResult,
+                            postContingencyAndOperatorStrategyStates, isBranchDisabledDueToContingencyAndOperatorStrategy);
                     securityAnalysisSimulationResults.operatorStrategyResults.add(operatorStrategyResult);
 
                     stopwatch.stop();
