@@ -18,6 +18,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
@@ -49,6 +50,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
 class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysisTest {
+
+    DcSensitivityAnalysisContingenciesTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @Test
     void testContingencyWithOneElementAwayFromSlack() {
