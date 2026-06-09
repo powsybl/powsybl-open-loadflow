@@ -42,6 +42,14 @@ public class LfGeneratorAction extends AbstractLfAction<GeneratorAction> {
         }
     }
 
+    public LfGenerator getGenerator() {
+        return generator;
+    }
+
+    public double getNewTargetP() {
+        return generatorChange.isRelative() ? generator.getTargetP() + generatorChange.change() : generatorChange.change();
+    }
+
     @Override
     public boolean isValid() {
         return generator != null;
