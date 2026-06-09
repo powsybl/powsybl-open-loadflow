@@ -524,6 +524,23 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.elementNotFound();
         }
 
+        private CacheUpdateResult<V> onHvdcLineUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
+            if (attribute.equals("activePowerSetpoint")) {
+                if (hvdcLine.getConverterStation1().getHvdcType().equals(HvdcConverterStation.HvdcType.LCC)) {
+                    LccConverterStation lcc1 = (LccConverterStation) hvdcLine.getConverterStation1();
+                    LccConverterStation lcc2 = (LccConverterStation) hvdcLine.getConverterStation2();
+                    CacheUpdateResult<V> result = onInjectionUpdate(lcc1, (value, lfBus) ->
+                            updateLfLoadTargetP(lcc1.getId(), (double) oldValue, (double) newValue, value, lfBus));
+                    if (result.status.equals(CacheUpdateStatus.ELEMENT_UPDATED)) {
+                        return onInjectionUpdate(lcc2, (value, lfBus) ->
+                            updateLfLoadTargetP(lcc2.getId(), -(double) oldValue, -(double) newValue, value, lfBus));
+                    }
+                    return result;
+                }
+            }
+            return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(hvdcLine, attribute));
+        }
+
         void processUpdateResult(Identifiable<?> identifiable, String attribute, CacheUpdateResult<V> result) {
             switch (result.status) {
                 case UNSUPPORTED_UPDATE -> reset(result.invalidationReason);
@@ -593,6 +610,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                                 result = onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue);
                                 break;
                             }
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.HVDC_LINE) {
+                        HvdcLine hvdcLine = (HvdcLine) identifiable;
+                        if (attribute.equals("activePowerSetpoint")) {
+                            result = onHvdcLineUpdate(hvdcLine, attribute, oldValue, newValue);
                         }
                     }
                 }

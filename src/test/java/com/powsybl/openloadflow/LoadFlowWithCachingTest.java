@@ -9,6 +9,7 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.extensions.*;
@@ -90,6 +91,25 @@ class LoadFlowWithCachingTest {
         assertEquals(1, NetworkCache.AC_LF_INSTANCE.getEntryCount());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testLccInjection(boolean isDc) {
+        parameters.setDc(isDc);
+        Network network = HvdcNetworkFactory.createLcc();
+        HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(50.0, hvdcLine.getConverterStation1().getTerminal());
+        assertActivePowerEquals(-49.399, hvdcLine.getConverterStation2().getTerminal());
+        hvdcLine.setActivePowerSetpoint(40);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(40.0, hvdcLine.getConverterStation1().getTerminal());
+        assertActivePowerEquals(-39.519, hvdcLine.getConverterStation2().getTerminal());
     }
 
     @ParameterizedTest
