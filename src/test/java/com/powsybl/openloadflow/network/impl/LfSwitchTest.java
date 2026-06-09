@@ -11,8 +11,9 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.SingleEquationTerm;
@@ -23,6 +24,7 @@ import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,7 +35,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class LfSwitchTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    LfSwitchTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
 
@@ -47,7 +56,7 @@ class LfSwitchTest {
     void setUp() {
         network = NodeBreakerNetworkFactory.create();
         acLoadFlowParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters(),
-                new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true, false);
+                new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true, false);
         List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), ReportNode.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);

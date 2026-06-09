@@ -17,14 +17,16 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 import java.util.Set;
@@ -35,7 +37,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowWithCachingTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowWithCachingTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -45,7 +54,7 @@ class AcLoadFlowWithCachingTest {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setNetworkCacheEnabled(true);
@@ -248,12 +257,47 @@ class AcLoadFlowWithCachingTest {
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
 
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v");
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // no reason to invaludate the cache has initial variant has not been changed
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v", true);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+
+        loadFlowRunner.run(network, parameters);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
 
         network.getVariantManager().setWorkingVariant("v");
-        assertTrue(NetworkCache.AC_LF_INSTANCE.findEntry(network).isEmpty());
+        network.getVariantManager().cloneVariant("v", VariantManagerConstants.INITIAL_VARIANT_ID, true);
+        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
 
         loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+
+        network.getVariantManager().removeVariant("v");
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+    }
+
+    @Test
+    void testUpdateOnDifferentVariantDoesNotInvalidateCache() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+
+        // create cache entry for INITIAL_VARIANT_ID
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+
+        // switch to a different variant
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v");
+        network.getVariantManager().setWorkingVariant("v");
+
+        // make an unsupported change in "v" - fires onUpdate with variantId="v"
+        gen.setTargetQ(10);
+
+        // switch back to INITIAL_VARIANT_ID: cache should not have been invalidated
+        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
     }
 
