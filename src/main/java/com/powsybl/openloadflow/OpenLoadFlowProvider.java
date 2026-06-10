@@ -212,7 +212,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<DcLoadFlowResult> results;
         final boolean updateV;
         if (parametersExt.isNetworkCacheEnabled()) {
-            if (NetworkCache.DC_LF_INSTANCE.findEntry(network).map(NetworkCache.Entry::getValues).orElse(null) == null ) {
+            if (NetworkCache.DC_LF_INSTANCE.findEntry(network).map(NetworkCache.Entry::getValues).orElse(null) == null) {
                 Networks.resetState(network); // reset state only if new NetworkCache created
                 updateV = true;
             } else {
@@ -226,7 +226,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             Networks.resetState(network);
             updateV = true;
         }
-
 
         List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers(), updateV)).toList();
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSuccess);
