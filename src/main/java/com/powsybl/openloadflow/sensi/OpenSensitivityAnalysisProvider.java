@@ -191,7 +191,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 throw new UncheckedIOException(e);
             }
 
-            decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
+            decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, network, debugDir.resolve("factors-" + dateStr + JSON_EXTENSION));
         }
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
