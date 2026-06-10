@@ -252,7 +252,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // These are all unsupported parameters that should be overriden
         sensiParameters.getLoadFlowParameters()
                 .setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
-                .setPhaseShifterRegulationOn(true)
                 .getExtension(OpenLoadFlowParameters.class)
                     .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE)
                     .setNetworkCacheEnabled(true)
