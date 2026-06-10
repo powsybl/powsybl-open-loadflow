@@ -8,16 +8,14 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -95,21 +93,56 @@ class LoadFlowWithCachingTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void testLccInjection(boolean isDc) {
+    void testLccActivePowerSetpoint(boolean isDc) {
         parameters.setDc(isDc);
+        parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);;
         Network network = HvdcNetworkFactory.createLcc();
         HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
+        Line line = network.getLine("l12");
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(50.0, hvdcLine.getConverterStation1().getTerminal());
         assertActivePowerEquals(-49.399, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(-100, line.getTerminal2());
+
+        hvdcLine.setActivePowerSetpoint(30);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(30.0, hvdcLine.getConverterStation1().getTerminal());
+        assertActivePowerEquals(-29.639, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(50, network.getLoad("ld2").getTerminal());
+        assertActivePowerEquals(isDc ? -80 : -80.049, network.getGenerator("g1").getTerminal());
+        assertReactivePowerEquals(isDc ? 0 : -32.647, network.getGenerator("g1").getTerminal());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testVscActivePowerSetpoint(boolean isDc) {
+        parameters.setDc(isDc);
+        parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);;
+        Network network = HvdcNetworkFactory.createVsc(true);
+        network.getGenerator("g3").setMaxP(20);
+        HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
+        Line line = network.getLine("l12");
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(50.0, hvdcLine.getConverterStation1().getTerminal());
+        assertActivePowerEquals(-49.349, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(-100, line.getTerminal2());
+
         hvdcLine.setActivePowerSetpoint(40);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(0, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(40.0, hvdcLine.getConverterStation1().getTerminal());
-        assertActivePowerEquals(-39.519, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(-39.479, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(50, network.getLoad("ld2").getTerminal());
+        assertActivePowerEquals(isDc ? -90 : -92.578, network.getGenerator("g1").getTerminal());
     }
 
     @ParameterizedTest
