@@ -96,7 +96,7 @@ class LoadFlowWithCachingTest {
     void testLccActivePowerSetpoint(boolean isDc) {
         parameters.setDc(isDc);
         parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
-                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);;
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         Network network = HvdcNetworkFactory.createLcc();
         HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
         Line line = network.getLine("l12");
@@ -123,7 +123,7 @@ class LoadFlowWithCachingTest {
     void testVscActivePowerSetpoint(boolean isDc) {
         parameters.setDc(isDc);
         parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
-                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);;
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         Network network = HvdcNetworkFactory.createVsc(true);
         network.getGenerator("g3").setMaxP(20);
         HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
