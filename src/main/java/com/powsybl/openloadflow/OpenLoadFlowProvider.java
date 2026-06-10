@@ -112,7 +112,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           parametersExt.getReactivePowerDispatchMode(),
                                                                           parametersExt.isWriteReferenceTerminals(),
                                                                           parametersExt.getReferenceBusSelectionMode(),
-                                                                          parametersExt.isSimulateAutomationSystems());
+                                                                          parametersExt.isSimulateAutomationSystems(),
+                                                                          true);
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -209,29 +210,38 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
 
         List<DcLoadFlowResult> results;
+        final boolean updateV;
         if (parametersExt.isNetworkCacheEnabled()) {
+            if (NetworkCache.DC_LF_INSTANCE.findEntry(network).map(NetworkCache.Entry::getValues).orElse(null) == null ) {
+                Networks.resetState(network); // reset state only if new NetworkCache created
+                updateV = true;
+            } else {
+                updateV = false; // if a NetworkCache is reused, there is no need to fill again the V state variables of all buses
+            }
             results = new DcLoadFlowFromCache(network, parameters, parametersExt, dcParameters, reportNode)
                     .run();
+            NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(true);
         } else {
             results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reportNode);
+            Networks.resetState(network);
+            updateV = true;
         }
 
-        Networks.resetState(network);
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers())).toList();
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers(), updateV)).toList();
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSuccess);
+        if (parametersExt.isNetworkCacheEnabled()) {
+            NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(false);
+        }
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
-    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, boolean breakers) {
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, boolean breakers, boolean updateV) {
         if (result.isSuccess() && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
 
         if (result.isSuccess()) {
-            if (parametersExt.isNetworkCacheEnabled()) {
-                NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(true);
-            }
             var updateParameters = new LfNetworkStateUpdateParameters(false,
                                                                       parameters.isWriteSlackBus(),
                                                                       parameters.isPhaseShifterRegulationOn(),
@@ -243,14 +253,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       ReactivePowerDispatchMode.Q_EQUAL_PROPORTION,
                                                                       parametersExt.isWriteReferenceTerminals(),
                                                                       parametersExt.getReferenceBusSelectionMode(),
-                                                                      false);
+                                                                      false,
+                                                                      updateV);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
             computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC, parameters.getDcPowerFactor());
-            if (parametersExt.isNetworkCacheEnabled()) {
-                NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(false);
-            }
         }
 
         var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
