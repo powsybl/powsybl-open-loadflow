@@ -17,7 +17,7 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLine {
+public abstract class AbstractLfDcBranch extends AbstractElement implements LfDcBranch {
 
     protected final LfDcBus dcBus1;
 
@@ -33,7 +33,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     private final double r; // in Ohm
 
-    protected AbstractLfDcLine(LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
+    protected AbstractLfDcBranch(LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
         super(network);
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;

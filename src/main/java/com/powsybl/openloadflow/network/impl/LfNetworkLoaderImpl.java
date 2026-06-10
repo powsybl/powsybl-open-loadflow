@@ -524,12 +524,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void addDcLine(LfNetwork lfNetwork, LfDcLine lfDcLine) {
-        boolean connectedToSameDcBus = lfDcLine.getDcBus1() == lfDcLine.getDcBus2();
+    private static void addDcBranch(LfNetwork lfNetwork, LfDcBranch lfDcBranch) {
+        boolean connectedToSameDcBus = lfDcBranch.getDcBus1() == lfDcBranch.getDcBus2();
         if (connectedToSameDcBus) {
-            LOGGER.trace("Discard dcLine '{}' because connected to same dcBus at both ends", lfDcLine.getId());
+            LOGGER.trace("Discard dcLine '{}' because connected to same dcBus at both ends", lfDcBranch.getId());
         } else {
-            lfNetwork.addDcLine(lfDcLine);
+            lfNetwork.addDcBranch(lfDcBranch);
         }
     }
 
@@ -623,12 +623,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDcLines(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
+    private static void createDcBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
         for (DcLine dcLine : loadingContext.dcLineSet) {
             LfDcBus lfDcBus1 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal1(), lfNetwork);
             LfDcBus lfDcBus2 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal2(), lfNetwork);
             LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcBus1, lfDcBus2, parameters);
-            addDcLine(lfNetwork, lfDcLine);
+            addDcBranch(lfNetwork, lfDcLine);
         }
 
         for (DcSwitch dcSwitch : loadingContext.dcSwitchSet) {
@@ -643,7 +643,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 continue;
             }
             LfDcSwitchImpl lfDcSwitch = LfDcSwitchImpl.create(dcSwitch, lfNetwork, lfDcBus1, lfDcBus2, parameters);
-            addDcLine(lfNetwork, lfDcSwitch);
+            addDcBranch(lfNetwork, lfDcSwitch);
         }
     }
 
@@ -1380,7 +1380,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createDcBuses(dcBuses, parameters, lfNetwork, lfDcBuses, loadingContext);
         network.getDcSwitches().forEach(loadingContext.dcSwitchSet::add);
         createDcGrounds(lfNetwork, dcGrounds);
-        createDcLines(lfNetwork, loadingContext, parameters);
+        createDcBranches(lfNetwork, loadingContext, parameters);
 
         // TO DO : Handle switches that have non zero resistance
         network.getDcSwitchStream().filter(s -> !s.isOpen() && s.getR() != 0)
