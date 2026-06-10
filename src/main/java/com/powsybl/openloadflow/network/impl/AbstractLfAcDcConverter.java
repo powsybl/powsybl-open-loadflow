@@ -12,32 +12,28 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.List;
-
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public abstract class AbstractLfAcDcConverter extends AbstractElement implements LfAcDcConverter {
 
-    protected Evaluable calculatedPac;
+    protected Evaluable calculatedPac; // in pu
 
-    protected Evaluable calculatedQac;
+    protected Evaluable calculatedQac; // in pu
 
-    protected Evaluable calculatedIconv1;
+    protected Evaluable calculatedIconv1; // in pu
 
-    protected Evaluable calculatedIconv2;
+    protected Evaluable calculatedIconv2; // in pu
 
-    protected final double targetP;
+    protected final double targetP; // in pu
 
-    protected double pAc;
+    protected double pAc; // in MW
 
-    protected double qAc;
+    protected double qAc; // in MVAr
 
-    protected double targetVac;
+    protected final LossFactors lossFactors; // in MW, MW/A and Ohm
 
-    protected final List<Double> lossFactors;
-
-    protected double targetVdc;
+    protected double targetVdc; // in pu
 
     protected final AcDcConverter.ControlMode controlMode;
 
@@ -49,12 +45,11 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
+
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
-        // By convention, the dcBus2 is supposed to be the neutral layer, it is just needed for voltage initialization
-        dcBus2.setNeutralPole(true);
         this.bus1 = bus1;
-        this.lossFactors = List.of(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
+        this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
         targetVdc = dcBus1.isGrounded() ? converter.getTargetVdc() / dcBus2.getNominalV() : converter.getTargetVdc() / dcBus1.getNominalV();
@@ -83,12 +78,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
-    public double getTargetVac() {
-        return targetVac;
-    }
-
-    @Override
-    public List<Double> getLossFactors() {
+    public LossFactors getLossFactors() {
         return lossFactors;
     }
 
