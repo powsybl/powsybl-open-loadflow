@@ -409,8 +409,6 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testContingencyAndPhaseShifterPositionOperatorStrategy() {
-        // this test demonstrates that sensi on an operator strategy with a phase shifter tap position change
-        // gives incorrect results.
         // the reference is obtained by running classical sensi on a variant where the contingency and the PST action
         // have been applied beforehand.
         Network network = MetrixTutorialSixBusesFactory.create();
