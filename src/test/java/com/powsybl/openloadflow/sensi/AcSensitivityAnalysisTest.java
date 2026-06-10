@@ -256,7 +256,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                     .setNetworkCacheEnabled(true)
                     .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
 
-        // this network has no G or B, so we should be very close to DC results
         Network network = FourBusNetworkFactory.createBaseNetwork();
         runLf(network, sensiParameters.getLoadFlowParameters());
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g4")),
@@ -265,7 +264,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
-        // Results should be the same
+        // Results should be the same (and also warn log messages should appear)
         assertEquals(5, result.getValues().size());
         assertEquals(-0.632d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.122d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
