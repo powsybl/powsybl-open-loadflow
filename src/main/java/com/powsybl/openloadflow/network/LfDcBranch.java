@@ -12,7 +12,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public interface LfDcLine extends LfElement {
+public interface LfDcBranch extends LfElement {
 
     /**
      * @return The LfDcBus on side one of the DC line

@@ -11,16 +11,16 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfDcBus;
-import com.powsybl.openloadflow.network.LfDcLine;
+import com.powsybl.openloadflow.network.LfDcBranch;
 
 import java.util.Objects;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class ClosedDcLineSide2CurrentEquationTerm extends AbstractClosedDcLineFlowEquationTerm {
+public class ClosedDcBranchSide2CurrentEquationTerm extends AbstractClosedDcBranchFlowEquationTerm {
 
-    public ClosedDcLineSide2CurrentEquationTerm(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
+    public ClosedDcBranchSide2CurrentEquationTerm(LfDcBranch dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
         super(dcLine, dcBus1, dcBus2, variableSet);
     }
 

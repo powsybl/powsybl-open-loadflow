@@ -47,7 +47,7 @@ class AcDcDcSwitchTest {
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
 
         // The switch is discarded because both DC terminals resolve to the same LfDcBus
-        assertEquals(0, lfNetwork.getDcLines().size());
+        assertEquals(0, lfNetwork.getDcBranches().size());
         // dn3+dn4 are merged (1 bus) + dnDummy3 (1) + dnDummy4 (1) = 3 DC buses
         assertEquals(3, lfNetwork.getDcBuses().size());
     }
@@ -64,7 +64,7 @@ class AcDcDcSwitchTest {
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
 
         // The switch must appear as exactly one LfDcLine
-        assertEquals(1, lfNetwork.getDcLines().size());
+        assertEquals(1, lfNetwork.getDcBranches().size());
         // dn3 (1) + dn4 (1) + dnDummy3 (1) + dnDummy4 (1) = 4 DC buses
         assertEquals(4, lfNetwork.getDcBuses().size());
     }
@@ -82,7 +82,7 @@ class AcDcDcSwitchTest {
 
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
 
-        assertEquals(0, lfNetwork.getDcLines().size());
+        assertEquals(0, lfNetwork.getDcBranches().size());
     }
 
     /**
@@ -97,6 +97,6 @@ class AcDcDcSwitchTest {
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
 
         // Only dl34 must be present; the open sw34 must be discarded
-        assertEquals(1, lfNetwork.getDcLines().size());
+        assertEquals(1, lfNetwork.getDcBranches().size());
     }
 }

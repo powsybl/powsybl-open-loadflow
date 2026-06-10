@@ -42,7 +42,7 @@ public class LfAcDcNetwork extends LfNetwork {
         }
         for (LfNetwork network : dcNetworks) {
             network.getDcBuses().forEach(this::addDcBus);
-            network.getDcLines().forEach(this::addDcLine);
+            network.getDcBranches().forEach(this::addDcBranch);
         }
     }
 

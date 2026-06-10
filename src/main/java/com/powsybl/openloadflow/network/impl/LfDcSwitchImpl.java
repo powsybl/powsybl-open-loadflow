@@ -19,7 +19,7 @@ import java.util.Objects;
 /**
  * @author Landry Huet {@literal <landry.huet at supergrid-institute.com>}
  */
-public class LfDcSwitchImpl extends AbstractLfDcLine {
+public class LfDcSwitchImpl extends AbstractLfDcBranch {
 
     private final Ref<DcSwitch> dcSwitchRef;
 

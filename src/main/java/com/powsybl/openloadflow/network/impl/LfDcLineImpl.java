@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class LfDcLineImpl extends AbstractLfDcLine {
+public class LfDcLineImpl extends AbstractLfDcBranch {
 
     private final Ref<DcLine> dcLineRef;
 

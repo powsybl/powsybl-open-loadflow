@@ -92,7 +92,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final Map<String, LfDcBus> dcBusById = new LinkedHashMap<>();
 
-    private final List<LfDcLine> dcLinesByIndex = new ArrayList<>();
+    private final List<LfDcBranch> dcBranchesByIndex = new ArrayList<>();
 
     private final List<LfVoltageSourceConverter> voltageSourceConvertersByIndex = new ArrayList<>();
 
@@ -213,7 +213,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
             case DC_BUS -> getDcBus(num);
-            case DC_LINE -> getDcLine(num);
+            case DC_LINE -> getDcBranch(num);
             case CONVERTER -> getVoltageSourceConverter(num);
         };
     }
@@ -504,7 +504,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         }
 
         branches.forEach(branch -> branch.updateState(parameters, updateReport));
-        dcLinesByIndex.forEach(dcLine -> dcLine.updateState(parameters, updateReport));
+        dcBranchesByIndex.forEach(dcBranch -> dcBranch.updateState(parameters, updateReport));
         voltageSourceConvertersByIndex.forEach(converter -> converter.updateState(parameters, updateReport));
         hvdcs.forEach(LfHvdc::updateState);
 
@@ -1060,17 +1060,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return dcBusByIndex;
     }
 
-    public void addDcLine(LfDcLine dcLine) {
-        dcLine.setNum(dcLinesByIndex.size());
-        dcLinesByIndex.add(dcLine);
+    public void addDcBranch(LfDcBranch dcBranch) {
+        dcBranch.setNum(dcBranchesByIndex.size());
+        dcBranchesByIndex.add(dcBranch);
     }
 
-    public List<LfDcLine> getDcLines() {
-        return dcLinesByIndex;
+    public List<LfDcBranch> getDcBranches() {
+        return dcBranchesByIndex;
     }
 
-    public LfDcLine getDcLine(int num) {
-        return dcLinesByIndex.get(num);
+    public LfDcBranch getDcBranch(int num) {
+        return dcBranchesByIndex.get(num);
     }
 
     public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {

@@ -302,7 +302,7 @@ class EquationsTest {
 
     @Test
     void dcLineTest() {
-        var dcLine = Mockito.mock(LfDcLine.class, new RuntimeExceptionAnswer());
+        var dcLine = Mockito.mock(LfDcBranch.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(dcLine).getNum();
         Mockito.doReturn(false).when(dcLine).isDisabled();
         Mockito.doReturn(1.0).when(dcLine).getR();
@@ -322,19 +322,19 @@ class EquationsTest {
         var sv = new StateVector(new double[]{V_1, V_2, 0});
 
         // closed dcLine equations
-        assertEquals("dc_i_closed_1", new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
-        assertEquals("dc_i_closed_2", new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
-        assertEquals("dc_p_closed_1", new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
-        assertEquals("dc_p_closed_2", new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
+        assertEquals("dc_i_closed_1", new ClosedDcBranchSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
+        assertEquals("dc_i_closed_2", new ClosedDcBranchSide2CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
+        assertEquals("dc_p_closed_1", new ClosedDcBranchSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
+        assertEquals("dc_p_closed_2", new ClosedDcBranchSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
 
         assertArrayEquals(new double[]{-0.7035674405958758, 1600.0, -1600.0, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{0.7035674405958758, -1600.0, 1600.0, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide2CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{-0.7538300813508406, 1713.5999386168091, -1714.303506057405, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{0.7541394608155072, -1715.0070734980009, 1715.7106409385967, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
     }
 
     @Test
