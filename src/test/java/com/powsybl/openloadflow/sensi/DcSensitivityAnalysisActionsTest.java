@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.action.Action;
+import com.powsybl.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.contingency.BranchContingency;
@@ -15,7 +16,10 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
@@ -401,6 +405,93 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(300d, result.getFunctionReferenceValue(contAndCloseCState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(300d, result.getFunctionReferenceValue(contAndCloseCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertTrue(Double.isNaN(result.getFunctionReferenceValue(contAndCloseCState, "L2_bis", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
+    }
+
+    @Test
+    void testContingencyAndPhaseShifterPositionOperatorStrategy() {
+        // the reference is obtained by running classical sensi on a variant where the contingency and the PST action
+        // have been applied beforehand.
+        Network network = MetrixTutorialSixBusesFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+        List<SensitivityFactor> factors = createFactorMatrix(
+                List.of(network.getGenerator("SO_G1")),
+                network.getBranchStream().toList());
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "NE_NO_1", false, 1));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyPstChange",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("pstChange")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        var opStratState = new SensitivityState("S_SO_1", "strategyPstChange");
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+
+        // build reference: apply contingency and PST action to a cloned variant, then run classical sensi
+        String modifiedVariantId = "contingencyAndPst";
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, modifiedVariantId);
+        network.getVariantManager().setWorkingVariant(modifiedVariantId);
+        network.getLine("S_SO_1").getTerminal1().disconnect();
+        network.getLine("S_SO_1").getTerminal2().disconnect();
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(1);
+        SensitivityAnalysisResult refResult = sensiRunner.run(network, modifiedVariantId, factors,
+                new SensitivityAnalysisRunParameters().setParameters(createParameters(true)));
+        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+        network.getVariantManager().removeVariant(modifiedVariantId);
+
+        // operator strategy results should match classical sensi on the modified variant
+        List<String> branchIds = network.getBranchStream().map(Identifiable::getId).toList();
+        for (String branchId : branchIds) {
+            double refFlow = refResult.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, branchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1);
+            double opStratFlow = result.getFunctionReferenceValue(opStratState, branchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1);
+            if (Double.isNaN(refFlow)) {
+                assertTrue(Double.isNaN(opStratFlow), "Branch " + branchId + " flow should be NaN in operator strategy state");
+            } else {
+                assertEquals(refFlow, opStratFlow, LoadFlowAssert.DELTA_POWER, "Branch " + branchId + " reference flow mismatch");
+            }
+            double refSensi = refResult.getSensitivityValue(SensitivityState.PRE_CONTINGENCY, "SO_G1", branchId,
+                    SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER);
+            double opStratSensi = result.getSensitivityValue(opStratState, "SO_G1", branchId,
+                    SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER);
+            assertEquals(refSensi, opStratSensi, LoadFlowAssert.DELTA_SENSITIVITY_VALUE, "Branch " + branchId + " sensitivity mismatch");
+        }
+    }
+
+    @Test
+    void testNegativeTapPhaseTapChangerPositionOperatorStrategy() {
+        // OLF bug: PiModelArray.getModel(int) receives the raw tap position (e.g. -5) and uses it
+        // directly as an ArrayList index instead of computing (tapPosition - lowTapPosition).
+        // reproduced by shifting NE_NO_1's tap range to [-16, 16] and starting at tap -5.
+        Network network = MetrixTutorialSixBusesFactory.create();
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger()
+                .setLowTapPosition(-16)
+                .setTapPosition(-5);
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<SensitivityFactor> factors = createFactorMatrix(
+                List.of(network.getGenerator("SO_G1")),
+                network.getBranchStream().toList());
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pst-tap-minus-5", "NE_NO_1", false, -5));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy(
+                "OS", ContingencyContext.all(), new TrueCondition(), List.of("pst-tap-minus-5")));
+
+        assertDoesNotThrow(() -> sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions)));
     }
 
     @Test
