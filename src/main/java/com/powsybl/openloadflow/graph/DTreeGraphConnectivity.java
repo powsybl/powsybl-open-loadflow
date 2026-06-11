@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.google.common.collect.Iterators;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -249,7 +248,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         private void replace(DTNode root) {
-            Queue<DTNode> queue = new ArrayDeque<>();
+            ArrayDeque<DTNode> queue = new ArrayDeque<>();
             queue.offer(root);
 
             while (!queue.isEmpty()) {
@@ -270,7 +269,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     }
                 }
 
-                queue.addAll(n.children.keySet());
+                DTNode child = n.firstChild;
+                while (child != null) {
+                    queue.add(child);
+                    child = child.nextSibling;
+                }
             }
         }
 
@@ -280,11 +283,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         private void link(DTNode rootU, DTNode nodeU, DTNode rootV, E edge) {
-            nodeU.children.put(rootV, edge);
+            // first step: update parent/child relations
+            nodeU.addChildUnchecked(rootV, edge);
 
             rootV.parent = nodeU;
             rootV.parentEdge = edge;
 
+            // next: update size attributes in the parent tree
             DTNode newCentroid = null;
             DTNode i = nodeU;
 
@@ -298,6 +303,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 i = i.parent;
             }
 
+            // eventually, change the root to a better one
             if (newCentroid != null && newCentroid != rootU) {
                 newCentroid.makeRoot(true);
             }
@@ -306,14 +312,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         private DTNode unlink(DTNode node) {
             Objects.requireNonNull(node.parent);
 
+            // first step: update size attribute in the parent tree
             DTNode newTree = node;
-
             while (newTree.parent != null) {
                 newTree = newTree.parent;
                 newTree.size -= node.size;
             }
 
-            node.parent.children.remove(node);
+            // second step: update parent/child relations
+            node.parent.removeChildUnchecked(node);
             node.parent = null;
             node.parentEdge = null;
             return newTree;
@@ -401,7 +408,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             if (node.parentEdge != null) {
                 edges.add(node.parentEdge);
             }
-            edges.addAll(node.children.values());
+            edges.addAll(node.childTreeEdges);
 
             return edges;
         }
@@ -425,10 +432,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             public DTNode parent = null;
             public E parentEdge = null;
-            public Map<DTNode, E> children = new HashMap<>();
+
+            // the children of this node. They are stored in a
+            // doubly linked list
+            public DTNode previousSibling = null;
+            public DTNode nextSibling = null;
+            public DTNode firstChild = null;
+
+            // the size of this subtree
             public int size;
 
             public V vertex;
+            public Set<E> childTreeEdges = new HashSet<>();
             public Set<E> nonTreeEdges = new HashSet<>();
 
             // valid only if this node is a root
@@ -447,7 +462,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 DTNode child = this;
                 DTNode parent = child.parent;
                 this.parent = null;
-                this.parentEdge = null;
 
                 // swap parent/child relationship, between parent and child
                 while (parent != null) {
@@ -456,8 +470,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     // The followings invariants hold:
                     // 1. parent.children[child] == parentEdge
                     // 2. child.children[parent] == null
-                    E parentEdge = parent.children.remove(child);
-                    child.children.put(parent, parentEdge);
+                    E parentEdge = child.parentEdge;
+                    parent.removeChildUnchecked(child);
+                    child.addChildUnchecked(parent, parentEdge);
 
                     parent.parent = child;
                     parent.parentEdge = parentEdge;
@@ -472,6 +487,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     parent = greatParent;
                 }
 
+                this.parentEdge = null;
+
                 if (updateRoots) {
                     // child is the old root, update rootIndex and roots
                     rootIndex = child.rootIndex;
@@ -484,6 +501,45 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     child.parent.size += child.size;
                     child = child.parent;
                 }
+            }
+
+            // Add child in the doubly linked list of children
+            // no verification is performed
+            public void addChildUnchecked(DTNode child, E edge) {
+                DTNode oldFirstChild = this.firstChild;
+
+                firstChild = child;
+                child.nextSibling = oldFirstChild;
+
+                if (oldFirstChild != null) {
+                    oldFirstChild.previousSibling = child;
+                }
+
+                childTreeEdges.add(edge);
+            }
+
+            // Remove child from the doubly linked list of children
+            // no verification is performed
+            public void removeChildUnchecked(DTNode child) {
+                DTNode prev = child.previousSibling;
+                DTNode next = child.nextSibling;
+
+                child.previousSibling = null;
+                child.nextSibling = null;
+
+                if (prev != null) {
+                    prev.nextSibling = next;
+                } else {
+                    // if there is no 'prev' node, that means
+                    // that 'child' was the first child, and
+                    // we need to update it
+                    firstChild = next;
+                }
+                if (next != null) {
+                    next.previousSibling = prev;
+                }
+
+                childTreeEdges.remove(child.parentEdge);
             }
 
             public DTNode findRoot() {
@@ -530,7 +586,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return new AbstractSetView<>() {
                     @Override
                     public Iterator<V> iterator() {
-                        return new BFSIterator();
+                        return new DFSIterator();
                     }
 
                     @Override
@@ -549,17 +605,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 };
             }
 
-            private class BFSIterator implements Iterator<V> {
+            private class DFSIterator implements Iterator<V> {
 
-                private final Stack<Iterator<DTNode>> stack = new Stack<>();
+                private DTNode cursor;
 
-                BFSIterator() {
-                    stack.push(Iterators.singletonIterator(DTNode.this));
+                DFSIterator() {
+                    cursor = DTNode.this;
                 }
 
                 @Override
                 public boolean hasNext() {
-                    return !stack.isEmpty();
+                    return cursor != null;
                 }
 
                 @Override
@@ -568,15 +624,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                         throw new NoSuchElementException();
                     }
 
-                    Iterator<DTNode> it = stack.peek();
-                    DTNode next = it.next();
+                    DTNode next = cursor;
 
-                    if (!it.hasNext()) {
-                        stack.pop();
-                    }
-
-                    if (!next.children.isEmpty()) {
-                        stack.push(next.children.keySet().iterator());
+                    // update cursor
+                    if (cursor.firstChild != null) {
+                        cursor = cursor.firstChild;
+                    } else if (cursor.nextSibling != null) {
+                        cursor = cursor.nextSibling;
+                    } else {
+                        while (cursor != null && cursor.nextSibling == null) {
+                            cursor = cursor.parent;
+                        }
                     }
 
                     return next.vertex;
