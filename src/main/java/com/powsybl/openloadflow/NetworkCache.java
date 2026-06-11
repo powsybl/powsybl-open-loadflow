@@ -18,10 +18,7 @@ import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
-import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
-import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
-import com.powsybl.openloadflow.network.impl.LfLegBranch;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -461,11 +458,29 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         LOGGER.info("Load active power distribution is enabled: not supported");
                         return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
                     }
-                    LOGGER.info("Load {} updated from {} to {}", load.getId(), oldValue, newValue);
                     return updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
             });
+        }
+
+        private CacheUpdateResult<V> onBoundaryLineUpdate(BoundaryLine boundaryLine, String attribute, Object oldValue, Object newValue) {
+            if (attribute.equals("p0")) {
+                if (!boundaryLine.isPaired()) {
+                    for (V value : values) {
+                        LfBus lfBus = value.getNetwork().getBusById(LfBoundaryLineBus.getId(boundaryLine));
+                        if (lfBus != null) {
+                            double valueShift = (double) newValue - (double) oldValue;
+                            LfLoad lfLoad = lfBus.getLoads().getFirst();
+                            double newTargetP = lfLoad.getTargetP() + valueShift / PerUnit.SB;
+                            lfLoad.setTargetP(newTargetP);
+                            return CacheUpdateResult.elementUpdated(value);
+                        }
+                    }
+                    return CacheUpdateResult.elementNotFound();
+                }
+            }
+            return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(boundaryLine, attribute));
         }
 
         private CacheUpdateResult<V> onShuntUpdate(ShuntCompensator shunt, String attribute) {
@@ -670,6 +685,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         Load load = (Load) identifiable;
                         if (attribute.equals("p0")) {
                             result = onLoadUpdate(load, attribute, oldValue, newValue);
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.BOUNDARY_LINE) {
+                        BoundaryLine boundaryLine = (BoundaryLine) identifiable;
+                        if (attribute.equals("p0")) {
+                            result = onBoundaryLineUpdate(boundaryLine, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;

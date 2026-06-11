@@ -116,6 +116,12 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(50, network.getLoad("ld2").getTerminal());
         assertActivePowerEquals(isDc ? -80 : -80.049, network.getGenerator("g1").getTerminal());
         assertReactivePowerEquals(isDc ? 0 : -32.647, network.getGenerator("g1").getTerminal());
+
+        // test unsupported update
+        hvdcLine.setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
+        assertNull(findEntryFunction.apply(network, isDc).getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
 
     @ParameterizedTest
@@ -143,6 +149,39 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(-39.479, hvdcLine.getConverterStation2().getTerminal());
         assertActivePowerEquals(50, network.getLoad("ld2").getTerminal());
         assertActivePowerEquals(isDc ? -90 : -92.578, network.getGenerator("g1").getTerminal());
+
+        // test unsupported update
+        hvdcLine.setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
+        assertNull(findEntryFunction.apply(network, isDc).getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testBoundaryLineP0(boolean isDc) {
+        parameters.setDc(isDc);
+        Network network = BoundaryFactory.create();
+        BoundaryLine boundaryLine = network.getBoundaryLine("bl1");
+        Line line = network.getLine("l1");
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(isDc ? 101 : 101.303, boundaryLine.getTerminal());
+        assertActivePowerEquals(isDc ? -101 : -101.150, line.getTerminal2());
+
+        boundaryLine.setP0(90);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(isDc ? 90 : 90.293, boundaryLine.getTerminal());
+        assertActivePowerEquals(isDc ? -90 : -90.306, line.getTerminal2());
+
+        // test unsupported update
+        boundaryLine.setQ0(0);
+        assertNull(findEntryFunction.apply(network, isDc).getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
 
     @ParameterizedTest
