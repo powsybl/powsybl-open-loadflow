@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.google.common.collect.Iterators;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -62,7 +63,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     protected int getQuickComponentNumber(V vertex) {
-        return getGraph().vertexToTreeNode.get(vertex).findRootOptReroot().rootIndex;
+        return getGraph().rootOf(vertex).rootIndex;
     }
 
     @Override
@@ -75,7 +76,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     public Set<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().vertexToTreeNode.get(vertex).findRootOptReroot().createSetView();
+        return getGraph().rootOf(vertex).createSetView();
     }
 
     @Override
@@ -84,7 +85,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         checkVertex(vertex);
 
         Graph<V, E> graph = getGraph();
-        Graph<V, E>.DTNode excludedTree = graph.vertexToTreeNode.get(vertex).findRootOptReroot();
+        Graph<V, E>.DTNode excludedTree = graph.rootOf(vertex);
 
         Set<V> components = new HashSet<>();
         for (Graph<V, E>.DTNode root : graph.roots) {
@@ -101,12 +102,30 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         return true;
     }
 
+    public long computeSd() {
+        return getGraph().sumOfDistances();
+    }
+
     public static final class Graph<V, E> implements GraphModel<V, E> {
 
         private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
         private final Map<E, Edge<V>> edges = new HashMap<>();
 
         private final List<DTNode> roots = new ArrayList<>();
+
+        public long sumOfDistances() {
+            long sum = 0;
+
+            for (DTNode node : vertexToTreeNode.values()) {
+                sum += node.findRootWithDist().getValue();
+            }
+
+            return sum;
+        }
+
+        DTNode rootOf(V vertex) {
+            return vertexToTreeNode.get(vertex).findRootOptReroot();
+        }
 
         @Override
         public void addEdge(V u, V v, E e) {
@@ -375,7 +394,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         @Override
-        public Set<E> getNeighborEdgesOf(V v) {
+        public Set<E> getNeighborEdgesOf(V v) { // TODO: optimize
             DTNode node = vertexToTreeNode.get(v);
 
             Set<E> edges = new HashSet<>(node.nonTreeEdges);
@@ -506,11 +525,21 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return nodeRoot;
             }
 
+            // This DNode MUST be a root
             public Set<V> createSetView() {
                 return new AbstractSetView<>() {
                     @Override
                     public Iterator<V> iterator() {
                         return new BFSIterator();
+                    }
+
+                    @Override
+                    public boolean contains(Object o) {
+                        if (o != null) {
+                            return rootOf((V) o) == DTNode.this;
+                        }
+
+                        return false;
                     }
 
                     @Override
@@ -522,10 +551,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             private class BFSIterator implements Iterator<V> {
 
-                private final Stack<DTNode> stack = new Stack<>();
+                private final Stack<Iterator<DTNode>> stack = new Stack<>();
 
                 BFSIterator() {
-                    stack.push(DTNode.this);
+                    stack.push(Iterators.singletonIterator(DTNode.this));
                 }
 
                 @Override
@@ -539,9 +568,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                         throw new NoSuchElementException();
                     }
 
-                    DTNode node = stack.pop();
-                    stack.addAll(node.children.keySet());
-                    return node.vertex;
+                    Iterator<DTNode> it = stack.peek();
+                    DTNode next = it.next();
+
+                    if (!it.hasNext()) {
+                        stack.pop();
+                    }
+
+                    if (!next.children.isEmpty()) {
+                        stack.push(next.children.keySet().iterator());
+                    }
+
+                    return next.vertex;
                 }
             }
         }
