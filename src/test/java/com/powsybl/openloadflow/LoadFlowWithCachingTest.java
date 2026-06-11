@@ -187,6 +187,10 @@ class LoadFlowWithCachingTest {
         assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(620, load.getTerminal());
         assertActivePowerEquals(isDc ? -620 : -625.895, gen.getTerminal());
+
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+        load.setQ0(20);
+        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
     }
 
     @ParameterizedTest
