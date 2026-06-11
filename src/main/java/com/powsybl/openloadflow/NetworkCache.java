@@ -54,6 +54,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         T copy();
 
         String hasChanged(T other);
+
+        LoadFlowParameters getLoadFlowParameters();
     }
 
     /**
@@ -117,6 +119,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         public String hasChanged(LfInput other) {
             // TODO to refine later by comparing in detail parameters that have changed
             return OpenLoadFlowParameters.equals(parameters, other.parameters) ? null : "parameters";
+        }
+
+        @Override
+        public LoadFlowParameters getLoadFlowParameters() {
+            return parameters;
         }
     }
 
@@ -402,7 +409,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                             lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
                         }
                     }
-                    value.getNetwork().validate(LoadFlowModel.AC, null);
+                    value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
                     return CacheUpdateResult.elementUpdated(value);
                 } else if (attribute.equals("targetP")) {
                     return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
