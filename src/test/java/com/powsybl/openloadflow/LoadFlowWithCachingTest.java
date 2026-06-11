@@ -284,6 +284,33 @@ class LoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
 
+    @Test
+    void testUnsupportedACEmulationUpdate() {
+        Network network = HvdcNetworkFactory.createVsc(true);
+        network.getGenerator("g3").setMaxP(20);
+        HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
+        hvdcLine.newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+
+        hvdcLine.setActivePowerSetpoint(40);
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // Network cache invalidated because AC emulation
+
+        parameters.setHvdcAcEmulation(false);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+
+        hvdcLine.setActivePowerSetpoint(50);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // Network cache is used because AC emulation has been disabled
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void testBoundaryLineP0(boolean isDc) {
