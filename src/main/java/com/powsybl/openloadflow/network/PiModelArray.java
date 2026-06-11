@@ -54,8 +54,8 @@ public class PiModelArray implements PiModel {
         return models.get(tapPositionIndex);
     }
 
-    public PiModel getModel(int tapPositionIndex) {
-        return models.get(tapPositionIndex);
+    public PiModel getModel(int tapPosition) {
+        return models.get(tapPosition - lowTapPosition);
     }
 
     @Override
