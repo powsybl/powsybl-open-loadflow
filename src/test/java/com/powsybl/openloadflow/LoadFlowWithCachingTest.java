@@ -194,7 +194,6 @@ class LoadFlowWithCachingTest {
     void testUnsupportedLoadUpdate(boolean isDc) {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         Load load = network.getLoad("LOAD");
-        Generator gen = network.getGenerator("GEN");
         parameters.setDc(isDc)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
 
@@ -212,7 +211,7 @@ class LoadFlowWithCachingTest {
         loadFlowRunner.run(network, parameters);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
         load.setP0(35);
-        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load model
+        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
     }
 
     @ParameterizedTest
