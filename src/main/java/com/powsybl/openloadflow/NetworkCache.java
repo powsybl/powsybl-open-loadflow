@@ -429,7 +429,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                             lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
                         }
                     }
-                    value.getNetwork().validate(LoadFlowModel.AC, null);
+                    value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
                     return CacheUpdateResult.elementUpdated(value);
                 } else if (attribute.equals("targetP")) {
                     return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
