@@ -489,10 +489,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 DTNode child = this;
                 DTNode parent = child.parent;
                 E parentEdge = child.parentEdge;
+                parent.removeChildUnchecked(child); // remove before making parentEdge null
+
                 this.parent = null;
                 this.parentEdge = null;
-
-                parent.removeChildUnchecked(child);
 
                 // swap parent/child relation
                 while (parent != null) {
