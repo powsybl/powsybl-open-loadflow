@@ -261,7 +261,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(LfBranch::hasPhaseControllerCapability)
                     .collect(Collectors.toSet());
 
-            // if a phase tap changer is lost, if the connectivity have changed, or if there are PST, generator or load actions, we must recompute load flows
+            // if a phase tap changer is lost, if the connectivity has changed, or if there are PST, generator or load actions, we must recompute load flows
             boolean hasPstActions = actions.stream().anyMatch(AbstractLfTapChangerAction.class::isInstance);
             boolean hasGeneratorActions = actions.stream().anyMatch(LfGeneratorAction.class::isInstance);
             boolean hasLoadActions = actions.stream().anyMatch(LfLoadAction.class::isInstance);
