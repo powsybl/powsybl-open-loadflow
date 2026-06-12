@@ -58,7 +58,7 @@ public class LfGeneratorAction extends AbstractLfAction<GeneratorAction> {
     @Override
     public boolean apply(LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         if (isValid() && !generator.isDisabled()) {
-            double newTargetP = generatorChange.isRelative() ? generator.getTargetP() + generatorChange.change() : generatorChange.change();
+            double newTargetP = getNewTargetP();
             generator.setTargetP(newTargetP);
             generator.setInitialTargetP(newTargetP);
             generator.reApplyActivePowerControlChecks(networkParameters, null);
