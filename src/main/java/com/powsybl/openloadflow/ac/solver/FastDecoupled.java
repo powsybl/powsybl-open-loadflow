@@ -13,12 +13,14 @@ import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Objects;
 
 /**
@@ -295,8 +297,8 @@ public class FastDecoupled extends AbstractAcSolver {
         MutableInt iterations = new MutableInt();
 
         try (
-            JacobianMatrixFastDecoupled jPhiRes = initPhiJacobianMatrix(rangeIndex);
-            JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
+                JacobianMatrixFastDecoupled jPhiRes = initPhiJacobianMatrix(rangeIndex);
+                JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
         ) {
             // initialize state vector
             AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
@@ -336,7 +338,9 @@ public class FastDecoupled extends AbstractAcSolver {
             AcSolverUtil.updateNetwork(network, equationSystem);
         }
 
-        double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new AcSolverResult(status, iterations.intValue(), slackBusActivePowerMismatch);
+        // This solver does not support AC-DC networks. Thus, the LfNetwork contains only one synchronous component
+        LfSynchronousNetwork lfScNetwork = network.getSynchronousNetworks().getFirst();
+        double slackBusActivePowerMismatch = lfScNetwork.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
+        return new AcSolverResult(status, iterations.intValue(), Collections.singletonMap(lfScNetwork.getNumSC(), slackBusActivePowerMismatch));
     }
 }

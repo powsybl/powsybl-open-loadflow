@@ -22,15 +22,7 @@ import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,11 +30,11 @@ import java.util.stream.Stream;
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public abstract class AbstractAreaInterchangeControlOuterLoop<
-            V extends Enum<V> & Quantity,
-            E extends Enum<E> & Quantity,
-            P extends AbstractLoadFlowParameters<P>,
-            C extends LoadFlowContext<V, E, P>,
-            O extends AbstractOuterLoopContext<V, E, P, C>>
+        V extends Enum<V> & Quantity,
+        E extends Enum<E> & Quantity,
+        P extends AbstractLoadFlowParameters<P>,
+        C extends LoadFlowContext<V, E, P>,
+        O extends AbstractOuterLoopContext<V, E, P, C>>
         extends AbstractActivePowerDistributionOuterLoop<V, E, P, C, O> {
 
     public static final String NAME = "AreaInterchangeControl";
@@ -85,6 +77,9 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
     @Override
     public void initialize(O context) {
         LfNetwork network = context.getNetwork();
+        if (network.getSynchronousNetworks().size() > 1) {
+            throw new PowsyblException("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components");
+        }
         if (!network.hasArea() && noAreaOuterLoop != null) {
             noAreaOuterLoop.initialize(context);
             return;
@@ -282,12 +277,12 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
 
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         AreaInterchangeControlContextData contextData = (AreaInterchangeControlContextData) context.getData();
-        contextData.addDistributedActivePower(totalDistributedActivePower);
+        int numSC = context.getNetwork().getSynchronousNetworks().getFirst().getNumSC();
+        contextData.addDistributedActivePower(numSC, totalDistributedActivePower);
         if (!remainingMismatches.isEmpty()) {
             reportAndLogAreaActivePowerDistributionFailure(iterationReportNode, remainingMismatches);
             switch (context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior()) {
-                case THROW ->
-                    throw new PowsyblException(FAILED_TO_DISTRIBUTE_ACTIVE_POWER_MISMATCH);
+                case THROW -> throw new PowsyblException(FAILED_TO_DISTRIBUTE_ACTIVE_POWER_MISMATCH);
                 case LEAVE_ON_SLACK_BUS -> {
                     return new OuterLoopResult(this, movedBuses ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE);
                 }
@@ -295,7 +290,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
                     // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last solver (DC, NR, ...) run.
                     // Since we will not be re-running the solver, revert distributedActivePower reporting which would otherwise be misleading.
                     // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
-                    contextData.addDistributedActivePower(-totalDistributedActivePower);
+                    contextData.addDistributedActivePower(numSC, -totalDistributedActivePower);
                     return new OuterLoopResult(this, OuterLoopStatus.FAILED, FAILED_TO_DISTRIBUTE_ACTIVE_POWER_MISMATCH);
                 }
                 default -> throw new IllegalStateException("Unexpected SlackDistributionFailureBehavior value");
@@ -342,7 +337,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
 
     protected Map<String, Double> allocateSlackDistributionParticipationFactors(LfNetwork lfNetwork) {
         Map<String, Double> slackDistributionFactorByAreaId = new HashMap<>();
-        List<LfBus> slackBuses = lfNetwork.getSlackBuses();
+        List<LfBus> slackBuses = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses();
         int totalSlackBusCount = slackBuses.size();
         for (LfBus slackBus : slackBuses) {
             Optional<LfArea> areaOpt = slackBus.getArea();

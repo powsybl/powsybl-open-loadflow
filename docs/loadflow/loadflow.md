@@ -24,11 +24,7 @@ Open Load Flow also supports networks with HVDC lines (High Voltage Direct Curre
 ### DC detailed model
 
 Additionally, Open Load Flow supports AC-DC load flow formulation with detailed model of DC elements.  
-However, it is currently restricted to embedded DC components, meaning that all converters of a given DC component must be connected to the same synchronous component. 
-In other words, a DC component cannot be used to connect two different synchronous components. Consequently, a single connected component should only contain one synchronous component.
-However, the number of DC components within a connected component is not restricted.  
-Yet, it is possible to run a load flow on a network with several synchronous components (with their own embedded DC components) as long
-as they do not belong to the same connected component.
+There is no limitation on the number of synchronous components and DC components in a single connected component, except if specific load flow parameters are used (see [acDcNetwork parameter documentation](./parameters.md))
 
 (ac-flow-computing)=
 ## AC flows computing

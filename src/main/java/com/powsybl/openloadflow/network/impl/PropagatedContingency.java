@@ -400,6 +400,9 @@ public class PropagatedContingency {
     }
 
     private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus) {
+        if (network.getSynchronousNetworks().size() > 1) {
+            throw new PowsyblException("Security analysis does not support AC-DC networks with multiple synchronous components");
+        }
         // update connectivity with triggered branches of this network
         // note that this will define the main component as the one containing the first slack bus
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -409,15 +412,15 @@ public class PropagatedContingency {
                     .filter(LfBranch::isConnectedAtBothSides)
                     .forEach(connectivity::removeEdge);
 
-            if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSlackBus())) {
+            if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())) {
                 LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
                         contingencyId);
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
                 // we select a new slack bus excluding buses from isolated component
                 Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent());
-                network.setExcludedSlackBuses(excludedBuses);
+                network.getSynchronousNetworks().forEach(lfScNetwork -> lfScNetwork.setExcludedSlackBuses(excludedBuses));
                 // reverse main component to the one containing the relocated slack bus
-                connectivity.setMainComponentVertex(network.getSlackBus());
+                connectivity.setMainComponentVertex(network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst());
             }
 
             // add to contingency description buses and branches that won't be part of the main connected

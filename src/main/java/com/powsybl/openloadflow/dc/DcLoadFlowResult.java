@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Collections;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -26,7 +28,13 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
     }
 
     public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch, double distributedActivePower) {
-        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
+        super(network,
+            // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
+            Collections.singletonMap(network.getSynchronousNetworks().getFirst().getNumSC(), slackBusActivePowerMismatch),
+            outerLoopIterations,
+            outerLoopResult,
+            Collections.singletonMap(network.getSynchronousNetworks().getFirst().getNumSC(), distributedActivePower)
+        );
         this.solverSuccess = solverSuccess;
     }
 
@@ -54,10 +62,11 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
     @Override
     public String toString() {
         return "DcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
-                + ", solverSuccess=" + solverSuccess
-                + ", outerLoopStatus=" + outerLoopResult.status()
-                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
-                + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
-                + ")";
+            + ", solverSuccess=" + solverSuccess
+            + ", outerLoopStatus=" + outerLoopResult.status()
+            // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
+            + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch.get(network.getSynchronousNetworks().getFirst().getNumSC()) * PerUnit.SB
+            + ", distributedActivePower=" + distributedActivePower.get(network.getSynchronousNetworks().getFirst().getNumSC()) * PerUnit.SB
+            + ")";
     }
 }

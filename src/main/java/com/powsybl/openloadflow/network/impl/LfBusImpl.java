@@ -18,7 +18,10 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -49,10 +52,13 @@ public class LfBusImpl extends AbstractLfBus {
     // Lazy initialiation
     private ViolationLocation violationLocation = null;
 
+    private final int numSC;
+
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters);
         this.busRef = Ref.create(bus, parameters.isCacheEnabled());
+        numSC = bus.getSynchronousComponent().getNum();
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
@@ -236,5 +242,10 @@ public class LfBusImpl extends AbstractLfBus {
             };
         }
         return violationLocation;
+    }
+
+    @Override
+    public int getNumSC() {
+        return numSC;
     }
 }

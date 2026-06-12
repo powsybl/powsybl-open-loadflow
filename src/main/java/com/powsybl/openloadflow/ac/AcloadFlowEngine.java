@@ -13,13 +13,17 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
-import com.powsybl.openloadflow.ac.solver.*;
+import com.powsybl.openloadflow.ac.solver.AcSolver;
+import com.powsybl.openloadflow.ac.solver.AcSolverFactory;
+import com.powsybl.openloadflow.ac.solver.AcSolverResult;
+import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -66,6 +70,35 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         private AcOuterLoop lastUnrealisticStateFixingLoop;
     }
 
+    /**
+     * If detailed report is requested, include a report node to log outer loop iterations
+     *
+     * @param outerLoop The outer loop which will use the report node.
+     * @param solver The AC solver used in the load flow
+     * @param runningContext used to get the total number of outer loops iteration
+     * @param reportNode the report node of the LfNetwork
+     * @return The report node of the LfNetwork, which can include a report node for the outer loops
+     */
+    private ReportNode addSolverReporterOuterLoop(AcOuterLoop outerLoop, AcSolver solver, RunningContext runningContext, ReportNode reportNode) {
+        if (context.getParameters().isDetailedReport()) {
+            if (context.getNetwork().getSynchronousNetworks().size() == 1) {
+                return Reports.createDetailedSolverReporterOuterLoop(reportNode,
+                    solver.getName(),
+                    context.getNetwork().getNumCC(),
+                    context.getNetwork().getSynchronousNetworks().getFirst().getNumSC(),
+                    runningContext.outerLoopTotalIterations + 1,
+                    outerLoop.getName());
+            } else {
+                return Reports.createDetailedSolverReporterOuterLoopConnectedComponent(reportNode,
+                    solver.getName(),
+                    context.getNetwork().getNumCC(),
+                    runningContext.outerLoopTotalIterations + 1,
+                    outerLoop.getName());
+            }
+        }
+        return reportNode;
+    }
+
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext, boolean checkUnrealistic) {
         ReportNode olReportNode = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
 
@@ -85,18 +118,11 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getName(), runningContext.outerLoopTotalIterations);
 
                 ReportNode reportNode = context.getNetwork().getReportNode();
-                if (context.getParameters().isDetailedReport()) {
-                    reportNode = Reports.createDetailedSolverReporterOuterLoop(reportNode,
-                            solver.getName(),
-                            context.getNetwork().getNumCC(),
-                            context.getNetwork().getNumSC(),
-                            runningContext.outerLoopTotalIterations + 1,
-                            outerLoop.getName());
-                }
+                reportNode = addSolverReporterOuterLoop(outerLoop, solver, runningContext, reportNode);
 
                 // if not yet stable, restart solver
                 runningContext.lastSolverResult = runAcSolverAndCheckRealisticState(solver, new PreviousValueVoltageInitializer(), reportNode, checkUnrealistic,
-                        outerLoopContext.getLoadFlowContext().getParameters());
+                    outerLoopContext.getLoadFlowContext().getParameters());
 
                 runningContext.nrTotalIterations.add(runningContext.lastSolverResult.getIterations());
                 runningContext.outerLoopTotalIterations++;
@@ -104,19 +130,19 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 outerLoopIteration.increment();
             }
         } while (outerLoopResult.status() == OuterLoopStatus.UNSTABLE
-                && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
-                && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
+            && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
+            && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
         if (!checkUnrealistic && runningContext.lastUnrealisticStateFixingLoop == outerLoop && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED) {
 
             // This is time to check the unrealistic state and create a report if needed
             boolean isStateUnrealistic = isStateUnrealistic(context.getNetwork().getReportNode(),
-                    outerLoopContext.getLoadFlowContext().getParameters().getMinNominalVoltageRealisticVoltageCheck());
+                outerLoopContext.getLoadFlowContext().getParameters().getMinNominalVoltageRealisticVoltageCheck());
 
             if (isStateUnrealistic) {
                 runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.UNREALISTIC_STATE,
-                                                                     runningContext.lastSolverResult.getIterations(),
-                                                                     runningContext.lastSolverResult.getSlackBusActivePowerMismatch());
+                    runningContext.lastSolverResult.getIterations(),
+                    runningContext.lastSolverResult.getSlackBusActivePowerMismatch());
             }
         }
 
@@ -149,7 +175,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 }
             }
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
-                    busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
+                busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
 
             Reports.reportNewtonRaphsonBusesOutOfRealisticVoltageRange(reportNode, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
         }
@@ -177,12 +203,13 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         // to the network. It is important that DC init is done before AC equation system is created by
         // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
         voltageInitializer.prepare(
-                context.getNetwork(),
-                context.getParameters().isVoltageInitReport() ? reportNode : ReportNode.NO_OP
+            context.getNetwork(),
+            context.getParameters().isVoltageInitReport() ? reportNode : ReportNode.NO_OP
         );
 
         RunningContext runningContext = new RunningContext();
-        double distributedActivePower = 0.0;
+        Map<Integer, Double> distributedActivePowerPerSc = new HashMap<>();
+        context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> distributedActivePowerPerSc.put(lfScNetwork.getNumSC(), 0.0));
 
         // Verify whether a regulated bus voltage exists.
         // If not, then fail immediately with SOLVER_FAILED status.
@@ -192,25 +219,27 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         // just report SOLVER_FAILED. However, there could be other generators blocked at MinQ or MaxQ that
         // _could potentially_ recover the situation, but this will not be tried at all...
         boolean hasVoltageRegulatedBus = context.getNetwork().getBuses().stream()
-                .anyMatch(b -> b.isGeneratorVoltageControlEnabled() && !b.isDisabled() && !b.getGeneratorVoltageControl().orElseThrow().isDisabled());
+            .anyMatch(b -> b.isGeneratorVoltageControlEnabled() && !b.isDisabled() && !b.getGeneratorVoltageControl().orElseThrow().isDisabled());
         if (!hasVoltageRegulatedBus) {
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
             Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
-            runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, Double.NaN);
-            return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePower);
+            Map<Integer, Double> nonInitializedSlackMismatch = new HashMap<>();
+            context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> nonInitializedSlackMismatch.put(lfScNetwork.getNumSC(), Double.NaN));
+            runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, nonInitializedSlackMismatch);
+            return buildAcLoadFlowResult(runningContext, OuterLoopResult.stable(), distributedActivePowerPerSc);
         }
 
         AcSolver solver = solverFactory.create(context.getNetwork(),
-                                               context.getParameters(),
-                                               context.getEquationSystem(),
-                                               context.getJacobianMatrix(),
-                                               context.getTargetVector(),
-                                               context.getEquationVector());
+            context.getParameters(),
+            context.getEquationSystem(),
+            context.getJacobianMatrix(),
+            context.getTargetVector(),
+            context.getEquationVector());
 
         List<AcOuterLoop> outerLoops = context.getParameters().getOuterLoops().stream().filter(o -> o.isNeeded(context)).toList();
         List<Pair<AcOuterLoop, AcOuterLoopContext>> outerLoopsAndContexts = outerLoops.stream()
-                .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
-                .toList();
+            .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContext(context.getNetwork())))
+            .toList();
 
         // outer loops initialization
         for (var outerLoopAndContext : outerLoopsAndContexts) {
@@ -221,16 +250,22 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         if (context.getParameters().isDetailedReport()) {
-            reportNode = Reports.createDetailedSolverReporter(reportNode,
+            if (context.getNetwork().getSynchronousNetworks().size() == 1) {
+                reportNode = Reports.createDetailedSolverReporter(reportNode,
                     solver.getName(),
                     context.getNetwork().getNumCC(),
-                    context.getNetwork().getNumSC());
+                    context.getNetwork().getSynchronousNetworks().getFirst().getNumSC());
+            } else {
+                reportNode = Reports.createDetailedSolverReporterConnectedComponent(reportNode,
+                    solver.getName(),
+                    context.getNetwork().getNumCC());
+            }
         }
 
         // If in remote voltage control robust mode, find the latest outerloop that can fix unrealistic state
         // to apply the check after that loop only
         runningContext.lastUnrealisticStateFixingLoop = context.getParameters().isVoltageRemoteControlRobustMode() ?
-                outerLoopsAndContexts.stream()
+            outerLoopsAndContexts.stream()
                 .map(Pair::getLeft)
                 .filter(AcOuterLoop::canFixUnrealisticState)
                 .reduce((first, second) -> second).orElse(null)
@@ -269,15 +304,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     // - last OuterLoopStatus is not FAILED
                     // - we have not reached max number of outer loop iteration
                     if (runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
-                            || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
-                            || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
+                        || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
+                        || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
                     }
                 }
             } while (runningContext.nrTotalIterations.getValue() > oldNrTotalIterations
-                    && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
-                    && runningContext.lastOuterLoopResult.status() != OuterLoopStatus.FAILED
-                    && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
+                && runningContext.lastSolverResult.getStatus() == AcSolverStatus.CONVERGED
+                && runningContext.lastOuterLoopResult.status() != OuterLoopStatus.FAILED
+                && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
 
         // outer loops finalization (in reverse order to allow correct cleanup)
@@ -285,7 +320,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             var outerLoop = outerLoopAndContext.getLeft();
             var outerLoopContext = outerLoopAndContext.getRight();
             if (outerLoop instanceof AcActivePowerDistributionOuterLoop activePowerDistributionOuterLoop) {
-                distributedActivePower = activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext);
+                for (int numSC : context.getNetwork().getSynchronousNetworks().stream().map(LfSynchronousNetwork::getNumSC).toList()) {
+                    distributedActivePowerPerSc.put(numSC, activePowerDistributionOuterLoop.getDistributedActivePower(outerLoopContext, numSC));
+                }
             }
             outerLoop.cleanup(outerLoopContext);
         }
@@ -299,22 +336,22 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoopFinalResult = runningContext.lastOuterLoopResult;
         } else {
             outerLoopFinalResult = runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations()
-                    ? new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.STABLE, runningContext.lastOuterLoopResult.statusText()) :
-                    new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
+                ? new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.STABLE, runningContext.lastOuterLoopResult.statusText()) :
+                new OuterLoopResult(runningContext.lastOuterLoopResult.outerLoopName(), OuterLoopStatus.UNSTABLE, runningContext.lastOuterLoopResult.statusText());
         }
 
-        return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePower);
+        return buildAcLoadFlowResult(runningContext, outerLoopFinalResult, distributedActivePowerPerSc);
     }
 
-    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, double distributedActivePower) {
+    private AcLoadFlowResult buildAcLoadFlowResult(RunningContext runningContext, OuterLoopResult outerLoopFinalResult, Map<Integer, Double> distributedActivePower) {
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
-                                                       runningContext.outerLoopTotalIterations,
-                                                       runningContext.nrTotalIterations.getValue(),
-                                                       runningContext.lastSolverResult.getStatus(),
-                                                       outerLoopFinalResult,
-                                                       runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
-                                                       distributedActivePower
-                                                       );
+            runningContext.outerLoopTotalIterations,
+            runningContext.nrTotalIterations.getValue(),
+            runningContext.lastSolverResult.getStatus(),
+            outerLoopFinalResult,
+            runningContext.lastSolverResult.getSlackBusActivePowerMismatch(),
+            distributedActivePower
+        );
 
         LOGGER.info("AC loadflow complete on network {} (result={})", context.getNetwork(), result);
 
@@ -331,15 +368,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
     public static List<AcLoadFlowResult> run(List<LfNetwork> lfNetworks, AcLoadFlowParameters parameters) {
         return lfNetworks.stream()
-                .map(n -> {
-                    if (n.getValidity() == LfNetwork.Validity.VALID) {
-                        try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
-                            return new AcloadFlowEngine(context)
-                                    .run();
-                        }
+            .map(n -> {
+                if (n.getValidity() == LfNetwork.Validity.VALID) {
+                    try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
+                        return new AcloadFlowEngine(context)
+                            .run();
                     }
-                    return AcLoadFlowResult.createNoCalculationResult(n);
-                })
-                .toList();
+                }
+                return AcLoadFlowResult.createNoCalculationResult(n);
+            })
+            .toList();
     }
 }
