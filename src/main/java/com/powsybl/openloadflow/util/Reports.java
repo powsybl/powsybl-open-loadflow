@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -908,7 +909,7 @@ public final class Reports {
     public static ReportNode createPostContingencySimulation(ReportNode reportNode, String contingencyId) {
         return reportNode.newReportNode()
                 .withMessageTemplate(POST_CONTINGENCY_SIMULATION_KEY)
-                .withUntypedValue(CONTINGENCY_ID, contingencyId)
+                .withUntypedValue(CONTINGENCY_ID, Objects.toString(contingencyId))
                 .add();
     }
 
