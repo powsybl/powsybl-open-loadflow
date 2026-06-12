@@ -250,7 +250,11 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        // filter out buses/branches which are outside their deadbands
+        // If another outerloop than us ran, this will reset insensitive statuses.
+        // Insensitive statuses they may have changed, in particular in case of PV/PQ switching.
+        contextData.check(context.getOuterLoopTotalIterations());
+
+        // filter out buses/branches which are outside their deadbands or insensitive
         List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData);
         List<LfBranch> controllerBranchesOutOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutOfDeadband)
                 .stream().filter(b -> !contextData.getControllersContexts().get(b.getId()).isInsensitive())

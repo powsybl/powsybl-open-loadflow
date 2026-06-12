@@ -56,6 +56,10 @@ public class IncrementalContextData {
             insensitive = true;
         }
 
+        private void resetInsensitive() {
+            insensitive = false;
+        }
+
         public boolean isInsensitive() {
             return insensitive;
         }
@@ -64,6 +68,8 @@ public class IncrementalContextData {
     private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
 
     private final List<LfBus> candidateControlledBuses;
+
+    private int lastOuterLoopTotalIterations = 0;
 
     public Map<String, ControllerContext> getControllersContexts() {
         return controllersContexts;
@@ -96,5 +102,13 @@ public class IncrementalContextData {
                 .filter(Predicate.not(LfElement::isDisabled))
                 .map(element -> (E) element)
                 .toList();
+    }
+
+    public void check(int outerLoopTotalIterations) {
+        if (outerLoopTotalIterations > lastOuterLoopTotalIterations + 1) {
+            // another outer loop executed before our last run, reset insensitive status
+            controllersContexts.values().forEach(ControllerContext::resetInsensitive);
+        }
+        lastOuterLoopTotalIterations = outerLoopTotalIterations;
     }
 }
