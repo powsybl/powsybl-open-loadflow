@@ -22,7 +22,9 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
     protected final boolean isVoltageRegulatorOn;
 
-    protected double targetQ;
+    protected double targetQ; // In pu
+
+    protected double targetVac; // In pu
 
     public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
                                         LfNetworkParameters parameters) {
@@ -60,6 +62,11 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     @Override
     public double getTargetQ() {
         return targetQ;
+    }
+
+    @Override
+    public double getTargetVac() {
+        return targetVac;
     }
 
     @Override

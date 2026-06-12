@@ -312,6 +312,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String AC_DC_NETWORK_PARAM_NAME = "acDcNetwork";
 
+    public static final String ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME = "allowNonLinearShuntZeroSection";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -463,7 +465,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental shunt control maximum section shift per outer loop", IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(FIX_VOLTAGE_TARGETS_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix problematic voltage targets", AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(AC_DC_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "AC DC simultaneous loadflow", AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
+        new Parameter(AC_DC_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "AC DC simultaneous loadflow", AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, ParameterType.BOOLEAN, "Allow Non-Linear Shunt Compensator zero section position", LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -667,6 +670,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean fixVoltageTargets = AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE;
 
     private boolean acDcNetwork = AC_DC_NETWORK_DEFAULT_VALUE;
+
+    private boolean allowNonLinearShuntZeroSection = LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE;
 
     private boolean coordinatedReactiveLimits = COORDINATED_REACTIVE_LIMITS_DEFAULT_VALUE;
 
@@ -1487,6 +1492,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isAllowNonLinearShuntZeroSection() {
+        return allowNonLinearShuntZeroSection;
+    }
+
+    public OpenLoadFlowParameters setAllowNonLinearShuntZeroSection(boolean allowNonLinearShuntZeroSection) {
+        this.allowNonLinearShuntZeroSection = allowNonLinearShuntZeroSection;
+        return this;
+    }
+
     public boolean isCoordinatedReactiveLimits() {
         return coordinatedReactiveLimits;
     }
@@ -1633,6 +1647,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                             .ifPresent(this::setIncrementalShuntControlOuterLoopMaxSectionShift);
                     config.getOptionalBooleanProperty(FIX_VOLTAGE_TARGETS_PARAM_NAME).ifPresent(this::setFixVoltageTargets);
                     config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
+                    config.getOptionalBooleanProperty(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME).ifPresent(this::setAllowNonLinearShuntZeroSection);
                 });
         return this;
     }
@@ -1809,11 +1824,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setFixVoltageTargets(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(AC_DC_NETWORK_PARAM_NAME))
                 .ifPresent(prop -> this.setAcDcNetwork(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME))
+                .ifPresent(prop -> this.setAllowNonLinearShuntZeroSection(Boolean.parseBoolean(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = LinkedHashMap.newLinkedHashMap(81);
+        Map<String, Object> map = LinkedHashMap.newLinkedHashMap(82);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, slackDistributionFailureBehavior);
@@ -1895,6 +1912,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, incrementalShuntControlOuterLoopMaxSectionShift);
         map.put(FIX_VOLTAGE_TARGETS_PARAM_NAME, fixVoltageTargets);
         map.put(AC_DC_NETWORK_PARAM_NAME, acDcNetwork);
+        map.put(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, allowNonLinearShuntZeroSection);
         return map;
     }
 
@@ -2058,7 +2076,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setExtrapolateReactiveLimits(parametersExt.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
                 .setAcDcNetwork(parametersExt.isAcDcNetwork())
-                .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NETWORK_LOADING));
+                .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NETWORK_LOADING))
+                .setAllowNonLinearShuntZeroSection(parametersExt.isAllowNonLinearShuntZeroSection());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -2176,7 +2195,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableInconsistentVoltageControls(parametersExt.isDisableInconsistentVoltageControls())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(parametersExt.isGeneratorsWithZeroMwTargetAreNotStarted())
                 .setAcDcNetwork(parametersExt.isAcDcNetwork())
-                .setDetailedReport(parametersExt.reportedFeatures.contains(ReportedFeatures.NETWORK_LOADING));
+                .setDetailedReport(parametersExt.reportedFeatures.contains(ReportedFeatures.NETWORK_LOADING))
+                .setAllowNonLinearShuntZeroSection(parametersExt.isAllowNonLinearShuntZeroSection());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters()
                 .setUpdateFlows(true)
@@ -2323,6 +2343,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getIncrementalShuntControlOuterLoopMaxSectionShift() == extension2.getIncrementalShuntControlOuterLoopMaxSectionShift() &&
                 extension1.isFixVoltageTargets() == extension2.isFixVoltageTargets() &&
                 extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
+                extension1.isAllowNonLinearShuntZeroSection() == extension2.isAllowNonLinearShuntZeroSection() &&
                 extension1.isCoordinatedReactiveLimits() == extension2.isCoordinatedReactiveLimits();
     }
 
@@ -2409,6 +2430,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setIncrementalShuntControlOuterLoopMaxSectionShift(extension.getIncrementalShuntControlOuterLoopMaxSectionShift())
                 .setFixVoltageTargets(extension.isFixVoltageTargets())
                 .setAcDcNetwork(extension.isAcDcNetwork())
+                .setAllowNonLinearShuntZeroSection(extension.isAllowNonLinearShuntZeroSection())
                 .setCoordinatedReactiveLimits(extension.isCoordinatedReactiveLimits());
     }
 

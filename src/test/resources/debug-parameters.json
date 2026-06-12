@@ -101,6 +101,7 @@
         "incrementalShuntControlOuterLoopMaxSectionShift" : 3,
         "fixVoltageTargets" : false,
         "acDcNetwork" : false,
+        "allowNonLinearShuntZeroSection" : true,
         "coordinatedReactiveLimits" : false
       }
     }

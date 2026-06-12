@@ -21,12 +21,10 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.iidm.network.extensions.VoltageRegulationAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
@@ -57,6 +55,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
+
+    AcSensitivityAnalysisTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @Test
     void testEsgTuto() {
@@ -903,12 +905,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testBusVoltagePerTargetQGen() {
         Network network = ReactiveInjectionNetworkFactory.createTwoGensOneLoad();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
 
-        List<SensitivityFactor> factors = Arrays.asList(new SensitivityFactor[] {
-                createBusVoltagePerTargetQ("b3", "g2", null),
+        List<SensitivityFactor> factors = Arrays.asList(createBusVoltagePerTargetQ("b3", "g2", null),
                 createBusVoltagePerTargetQ("b2", "g2", null),
-                createBusVoltagePerTargetQ("b1", "g2", null)});
+                createBusVoltagePerTargetQ("b1", "g2", null));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001).setNewtonRaphsonConvEpsPerEq(0.0001);

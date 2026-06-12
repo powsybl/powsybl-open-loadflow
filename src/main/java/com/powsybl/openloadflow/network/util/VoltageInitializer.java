@@ -23,6 +23,6 @@ public interface VoltageInitializer {
 
     double getAngle(LfBus bus);
 
-    double getMagnitude(LfDcBus dcBus);
+    double getDcVoltage(LfDcBus dcBus);
 
 }
