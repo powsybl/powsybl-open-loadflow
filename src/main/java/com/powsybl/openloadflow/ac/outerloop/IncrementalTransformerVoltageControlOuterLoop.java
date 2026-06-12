@@ -44,6 +44,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final int MAX_DIRECTION_CHANGE = 3;
 
+    private static final double MIN_SENSI_FILTER = 0.05; // voltage vs. tap changer ratio sensitivity
+
     private final int maxTapShift;
 
     public IncrementalTransformerVoltageControlOuterLoop(int maxTapShift) {
@@ -125,6 +127,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
+    private static boolean isInsensitive(IncrementalContextData contextData, LfBranch controllerBranch, LfBus controlledBus, double sensitivity) {
+        if (Math.abs(sensitivity) < MIN_SENSI_FILTER) {
+            IncrementalContextData.ControllerContext controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+            controllerContext.setInsensitive();
+            LOGGER.debug("Controller branch '{}' ratio tap sensitivity to bus {} voltage too low ({}), no control performed",
+                    controllerBranch.getId(), controlledBus.getId(), sensitivity);
+            return true;
+        }
+        return false;
+    }
+
     private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivities,
                                             double diffV, List<String> controlledBusesWithAllItsControllersToLimit) {
         // only one transformer controls a bus
@@ -133,6 +146,9 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         PiModel piModel = controllerBranch.getPiModel();
         int previousTapPosition = piModel.getTapPosition();
         double deltaR1 = diffV / sensitivity;
+        if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
+            return false;
+        }
         return piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
             controllerContext.updateAllowedDirection(direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
@@ -163,9 +179,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         while (hasChanged.booleanValue()) {
             hasChanged.setValue(false);
             for (LfBranch controllerBranch : controllerBranches) {
-                if (Math.abs(remainingDiffV.getValue()) > halfTargetDeadband) {
+                if (Math.abs(remainingDiffV.doubleValue()) > halfTargetDeadband) {
                     var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
                     double sensitivity = sensitivityContext.calculateSensitivityFromRToV(controllerBranch, controlledBus);
+                    if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
+                        continue;
+                    }
                     PiModel piModel = controllerBranch.getPiModel();
                     double previousR1 = piModel.getR1();
                     double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
@@ -231,13 +250,19 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        // filter out buses/branches which are outside their deadbands
-        List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData);
-        List<LfBranch> controllerBranchesOutOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutOfDeadband);
+        // If another outerloop than us ran, this will reset insensitive statuses.
+        // Insensitive statuses they may have changed, in particular in case of PV/PQ switching.
+        contextData.check(context.getOuterLoopTotalIterations());
 
-        // all branches are within their deadbands
+        // filter out buses/branches which are outside their deadbands or insensitive
+        List<LfBus> controlledBusesOutOfDeadband = getControlledBusesOutOfDeadband(contextData);
+        List<LfBranch> controllerBranchesOutOfDeadband = getControllerElementsOutOfDeadband(controlledBusesOutOfDeadband)
+                .stream().filter(b -> !contextData.getControllersContexts().get(b.getId()).isInsensitive())
+                .toList();
+
+        // all branches are within their deadbands or are insensitive
         if (controllerBranchesOutOfDeadband.isEmpty()) {
-            return new OuterLoopResult(this, status.getValue());
+            return new OuterLoopResult(this, status.get());
         }
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranchesOutOfDeadband,
@@ -253,10 +278,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
             List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
                     .filter(b -> !b.isDisabled())
+                    .filter(controller -> !contextData.getControllersContexts().get(controller.getId()).isInsensitive())
                     .toList();
             boolean adjusted;
-            if (controllers.size() == 1) {
-                adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
+            if (controllers.isEmpty()) {
+                // no controller with enough sensitivity
+                adjusted = false;
+            } else if (controllers.size() == 1) {
+                adjusted = adjustWithOneController(controllers.getFirst(), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
             } else {
                 adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
             }
@@ -292,6 +321,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBusesWithAllItsControllersToLimit.size());
         }
 
-        return new OuterLoopResult(this, status.getValue());
+        return new OuterLoopResult(this, status.get());
     }
 }
