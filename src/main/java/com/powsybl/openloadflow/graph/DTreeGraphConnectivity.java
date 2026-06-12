@@ -149,6 +149,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
 
             edges.put(e, new Edge<>(u, v, treeEdge));
+
+            // checkEdges();
         }
 
         private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
@@ -219,6 +221,31 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 removeTreeEdge(nodeU, nodeV, e);
             } else {
                 removeNonTreeEdge(nodeU, nodeV, e);
+            }
+
+            // checkEdges();
+        }
+
+        private void checkEdges() {
+            for (DTNode node : vertexToTreeNode.values()) {
+                for (E nonTreeEdge : node.nonTreeEdges) {
+                    assert edges.containsKey(nonTreeEdge) && !edges.get(nonTreeEdge).treeEdge;
+                }
+            }
+
+            for (Map.Entry<E, Edge<V>> entry : edges.entrySet()) {
+                E e = entry.getKey();
+                Edge<V> edge = entry.getValue();
+
+                DTNode src = Objects.requireNonNull(vertexToTreeNode.get(edge.u));
+                DTNode dest = Objects.requireNonNull(vertexToTreeNode.get(edge.v));
+
+                if (edge.treeEdge) {
+                    assert src.parent == dest && src.parentEdge == e || dest.parent == src && dest.parentEdge == e;
+                } else {
+                    assert src.nonTreeEdges.contains(e);
+                    assert dest.nonTreeEdges.contains(e);
+                }
             }
         }
 
@@ -443,8 +470,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             public int size;
 
             public V vertex;
-            public Set<E> childTreeEdges = new HashSet<>();
-            public Set<E> nonTreeEdges = new HashSet<>();
+            public Set<E> childTreeEdges = new LinkedHashSet<>();
+            public Set<E> nonTreeEdges = new LinkedHashSet<>();
 
             // valid only if this node is a root
             public int rootIndex;
@@ -461,33 +488,38 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                 DTNode child = this;
                 DTNode parent = child.parent;
+                E parentEdge = child.parentEdge;
                 this.parent = null;
+                this.parentEdge = null;
 
-                // swap parent/child relationship, between parent and child
+                parent.removeChildUnchecked(child);
+
+                // swap parent/child relation
                 while (parent != null) {
                     DTNode greatParent = parent.parent;
+                    E greatParentEdge = parent.parentEdge;
 
-                    // The followings invariants hold:
-                    // 1. parent.children[child] == parentEdge
-                    // 2. child.children[parent] == null
-                    E parentEdge = child.parentEdge;
-                    parent.removeChildUnchecked(child);
+                    // At this point:
+                    // - the parent of 'parent' aka greatParent should be changed to child
+                    // - parent is in the linked list of child of greatParent
+                    // - child is NOT in the linked list of child of parent
+                    if (greatParent != null) {
+                        greatParent.removeChildUnchecked(parent);
+                    }
+
                     child.addChildUnchecked(parent, parentEdge);
 
                     parent.parent = child;
                     parent.parentEdge = parentEdge;
 
-                    // Now, it should be:
-                    // 1. child.children[parent] == parentEdge
-                    // 2. parent.children[child] == null
-                    // 3. parent.parent = child
-                    // 4. parent.parentEdge == parentEdge
+                    // At this point:
+                    // - parent isn't anymore is the linked list of child of greatParent
+                    // - parent is a child of 'child'
 
                     child = parent;
                     parent = greatParent;
+                    parentEdge = greatParentEdge;
                 }
-
-                this.parentEdge = null;
 
                 if (updateRoots) {
                     // child is the old root, update rootIndex and roots
@@ -635,10 +667,48 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                         while (cursor != null && cursor.nextSibling == null) {
                             cursor = cursor.parent;
                         }
+
+                        if (cursor != null) {
+                            cursor = cursor.nextSibling;
+                        }
                     }
 
                     return next.vertex;
                 }
+            }
+
+            @Override
+            public String toString() {
+                StringBuilder sb = new StringBuilder();
+                sb.append(vertex.toString()).append(" -te-> {");
+
+                Set<V> set = new HashSet<>();
+
+                DTNode child = firstChild;
+                while (child != null) {
+                    if (!set.add(child.vertex)) {
+                        sb.append("loop detected");
+                        break;
+                    } else {
+                        sb.append(child.vertex).append(", ");
+                    }
+                    child = child.nextSibling;
+                }
+                sb.append("} -nte-> ");
+
+                for (E nte : nonTreeEdges) {
+                    Edge<V> e = edges.get(nte);
+
+                    if (e.u.equals(vertex)) {
+                        sb.append(e.v).append(", ");
+                    } else if (e.v.equals(vertex)) {
+                        sb.append(e.u).append(", ");
+                    } else {
+                        sb.append("nte error, ");
+                    }
+                }
+
+                return sb.toString();
             }
         }
     }
