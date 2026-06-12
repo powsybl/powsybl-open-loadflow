@@ -7,11 +7,15 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.iidm.network.PhaseTapChangerHolder;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LoadFlowModel;
+import com.powsybl.openloadflow.network.impl.Transformers;
+import com.powsybl.openloadflow.sa.extensions.PhaseTapChangerResult;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.PhaseShifterResultsExtension;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -40,6 +44,17 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         }, isBranchDisabled, zeroImpedanceFlows);
     }
 
+    private void storeInitialPhaseTapChangerInfo() {
+        phaseTapChangerResults = network.getBranches().stream()
+                    .filter(b -> b instanceof PhaseTapChangerHolder)
+                    .filter(b -> !b.isDisabled())
+                    .filter(b -> ((PhaseTapChangerHolder) b).hasPhaseTapChanger())
+                    .map(b -> new PhaseTapChangerResult(((PhaseTapChangerHolder) b).getPhaseTapChanger(),
+                            b.getMainOriginalId(),
+                            b.getPiModel(),
+                            ((PhaseTapChangerHolder) b).getPhaseTapChanger().getTapPosition())).toList();
+    }
+
     @Override
     public void update() {
         update(LfBranch::isDisabled);
@@ -52,6 +67,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         zeroImpedanceFlows.clear();
         zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
+        storeInitialPhaseTapChangerInfo();
+        updateMovedPhaseShifters();
     }
 
     public BranchResult getBranchResult(String branchId) {

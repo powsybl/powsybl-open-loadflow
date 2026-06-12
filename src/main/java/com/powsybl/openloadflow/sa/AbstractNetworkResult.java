@@ -7,17 +7,17 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfZeroImpedanceNetwork;
-import com.powsybl.openloadflow.network.LoadFlowModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
+import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
+import com.powsybl.openloadflow.sa.extensions.PhaseTapChangerResult;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
+import com.powsybl.security.results.PhaseShifterResultsExtension;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
@@ -53,6 +53,12 @@ public abstract class AbstractNetworkResult {
 
     public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
     }
+
+    protected List<PhaseTapChangerResult> phaseTapChangerResults = new ArrayList<>();
+
+    protected final List<PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifterResults = new ArrayList<>();
+
+
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
@@ -143,5 +149,19 @@ public abstract class AbstractNetworkResult {
             }
         }
         return zeroImpedanceFlows;
+    }
+
+    protected void updateMovedPhaseShifters() {
+        for (PhaseTapChangerResult ptcResult : phaseTapChangerResults) {
+            int newTapPosition = Transformers.findTapPosition(ptcResult.getPhaseTapChanger(), Math.toDegrees(ptcResult.getPiModel().getA1()));
+            if (ptcResult.getCurrentTap() != newTapPosition) {
+                movedPhaseShifterResults.add(new PhaseShifterResultsExtension.MovedPhaseShifterResult(ptcResult.getTransformerId(), ptcResult.getCurrentTap(), newTapPosition));
+                ptcResult.setCurrentTap(newTapPosition);
+            }
+        }
+    }
+
+    public List<PhaseShifterResultsExtension.MovedPhaseShifterResult> getMovedPhaseShifterResults() {
+        return movedPhaseShifterResults;
     }
 }
