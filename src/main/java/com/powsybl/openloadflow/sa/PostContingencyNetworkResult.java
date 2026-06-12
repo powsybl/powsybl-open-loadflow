@@ -10,12 +10,18 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.PhaseTapChangerHolder;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.PhaseShifterResultsExtension;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -77,6 +83,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
             Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
             addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
         }
+        updateMovedPhaseShifters();
     }
 
     @Override
