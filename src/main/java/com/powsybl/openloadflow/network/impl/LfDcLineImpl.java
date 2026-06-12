@@ -55,9 +55,11 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     public void updateFlows(double i1, double i2, double p1, double p2) {
         var dcLine = getDcLine();
 
-        dcLine.getDcTerminal1().setI(i1 * PerUnit.ibDc(dcBus1.getNominalV()));
-        dcLine.getDcTerminal2().setI(i2 * PerUnit.ibDc(dcBus2.getNominalV()));
-        dcLine.getDcTerminal1().setP(p1 * PerUnit.SB);
-        dcLine.getDcTerminal2().setP(p2 * PerUnit.SB);
+        // If a DC bus is grounded, its current and power variable are NaN.
+        // However, we can infer them from the other DC bus (power should be zero)
+        dcLine.getDcTerminal1().setI((dcBus1.isGrounded() ? -i2 : i1) * PerUnit.ibDc(dcBus1.getNominalV()));
+        dcLine.getDcTerminal2().setI((dcBus2.isGrounded() ? -i1 : i2) * PerUnit.ibDc(dcBus2.getNominalV()));
+        dcLine.getDcTerminal1().setP((dcBus1.isGrounded() ? -i2 * dcBus1.getV() : p1) * PerUnit.SB);
+        dcLine.getDcTerminal2().setP((dcBus2.isGrounded() ? -i1 * dcBus2.getV() : p2) * PerUnit.SB);
     }
 }
