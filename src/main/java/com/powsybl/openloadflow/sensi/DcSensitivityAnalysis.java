@@ -342,7 +342,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!branchAction.getDisabledBranches().isEmpty()) {
                     disableBranchIds.addAll(branchAction.getDisabledBranches().stream().map(LfBranch::getId).toList());
                 }
-            } else if (!(action instanceof LfGeneratorAction) && !(action instanceof LfLoadAction)) {
+            } else if (!(action instanceof LfPhaseTapChangerAction) && !(action instanceof LfGeneratorAction) && !(action instanceof LfLoadAction)) {
                 throw new PowsyblException("Unexpected action type: " + action.getClass().getSimpleName());
             }
         }
