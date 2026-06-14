@@ -57,4 +57,16 @@ public abstract class AbstractHvdcAcEmulationDcFlowEquationTerm extends Abstract
         return sv.get(ph2Var.getRow());
     }
 
+    public Variable<DcVariableType> getPh1Var() {
+        return ph1Var;
+    }
+
+    public Variable<DcVariableType> getPh2Var() {
+        return ph2Var;
+    }
+
+    public double getK() {
+        return k;
+    }
+
 }

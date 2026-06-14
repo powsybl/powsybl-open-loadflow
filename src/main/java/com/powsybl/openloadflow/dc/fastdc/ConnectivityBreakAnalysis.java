@@ -11,10 +11,10 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
@@ -122,7 +122,7 @@ public final class ConnectivityBreakAnalysis {
     public record ConnectivityBreakAnalysisResults(List<ConnectivityAnalysisResult> nonBreakingConnectivityAnalysisResults,
                                                    List<ConnectivityAnalysisResult> connectivityBreakingAnalysisResults,
                                                    DenseMatrix contingenciesStates,
-                                                   Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+                                                   Map<String, ComputedBranchContingencyElement> contingencyElementByBranch) {
     }
 
     private ConnectivityBreakAnalysis() {
@@ -132,13 +132,12 @@ public final class ConnectivityBreakAnalysis {
     }
 
     private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix contingencyStates, List<PropagatedContingency> contingencies,
-                                                         Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                         EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                         Map<String, ComputedBranchContingencyElement> contingencyElementByBranch,
                                                          List<ConnectivityAnalysisResult> nonBreakingConnectivityAnalysisResults,
                                                          List<PropagatedContingency> potentiallyBreakingConnectivityContingencies) {
         for (PropagatedContingency contingency : contingencies) {
             if (isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, new States(contingencyStates, DenseMatrix.EMPTY), contingency, contingencyElementByBranch,
-                    Collections.emptyList(), Collections.emptyMap(), equationSystem)) { // connectivity broken
+                    Collections.emptyList(), Collections.emptyMap())) { // connectivity broken
                 potentiallyBreakingConnectivityContingencies.add(contingency);
             } else {
                 nonBreakingConnectivityAnalysisResults.add(ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(contingency, null, lfNetwork));
@@ -151,9 +150,9 @@ public final class ConnectivityBreakAnalysis {
      * This is determined with a "worst case" sensitivity-criterion. If the criterion is not verified, there is no connectivity break.
      */
     private static boolean isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(LfNetwork lfNetwork, States states, PropagatedContingency contingency,
-                                                                                             Map<String, ComputedContingencyElement> contingencyElementByBranch, List<LfAction> operatorStrategyLfActions,
-                                                                                             Map<LfAction, List<ComputedElement>> actionElementByBranch, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        List<ComputedContingencyElement> contingencyElements = contingency != null ? contingency.getBranchIdsToOpen().keySet().stream()
+                                                                                             Map<String, ComputedBranchContingencyElement> contingencyElementByBranch, List<LfAction> operatorStrategyLfActions,
+                                                                                             Map<LfAction, List<ComputedElement>> actionElementByBranch) {
+        List<ComputedBranchContingencyElement> contingencyElements = contingency != null ? contingency.getBranchIdsToOpen().keySet().stream()
                                                                                      .map(contingencyElementByBranch::get)
                                                                                      .toList()
                                                                                    : Collections.emptyList();
@@ -167,13 +166,12 @@ public final class ConnectivityBreakAnalysis {
                 .flatMap(Collection::stream)
                 .filter(actionElement -> actionElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && !computedSwitchBranchElement.isEnabled())
                 .toList();
-        return isGroupOfElementsBreakingConnectivity(lfNetwork, states.contingencyStates(), contingencyElements, states.actionStates(), actionElements, equationSystem);
+        return isGroupOfElementsBreakingConnectivity(lfNetwork, states.contingencyStates(), contingencyElements, states.actionStates(), actionElements);
     }
 
     private static boolean isGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
-                                                                 List<ComputedContingencyElement> contingencyElements,
-                                                                 DenseMatrix actionStates, List<ComputedElement> actionElements,
-                                                                 EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                 List<ComputedBranchContingencyElement> contingencyElements,
+                                                                 DenseMatrix actionStates, List<ComputedElement> actionElements) {
         // use a sensitivity-criterion to detect the loss of connectivity after a contingency
         // we consider a +1 -1 on a line, and we observe the sensitivity of these injections on the other contingency elements
         // if the sum of the sensitivities (in absolute value) is 1, it means that all the flow is going through the lines with a non-zero sensitivity
@@ -182,9 +180,8 @@ public final class ConnectivityBreakAnalysis {
         for (ComputedElement element : computedElements) {
             double sum = 0d;
             for (ComputedElement element2 : computedElements) {
-                LfBranch branch = lfNetwork.getBranchById(element2.getLfBranch().getId());
-                ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                DenseMatrix elementMatrix = element instanceof ComputedContingencyElement ? contingenciesStates : actionStates;
+                EquationTerm<DcVariableType, DcEquationType> p = element2.getEquation();
+                DenseMatrix elementMatrix = element instanceof ComputedBranchContingencyElement ? contingenciesStates : actionStates;
                 double value = Math.abs(p.calculateSensi(elementMatrix, element.getComputedElementIndex()));
                 sum += value;
             }
@@ -202,7 +199,7 @@ public final class ConnectivityBreakAnalysis {
      * Both contingency and actions can impact connectivity.
      */
     private static Optional<ConnectivityAnalysisResult> computeConnectivityAnalysisResult(LfNetwork lfNetwork,
-                                                                                          PropagatedContingency contingency, Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                                          PropagatedContingency contingency, Map<String, ComputedBranchContingencyElement> contingencyElementByBranch,
                                                                                           LfOperatorStrategy operatorStrategy, Map<LfAction, List<ComputedElement>> actionElementByBranch) {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
@@ -211,7 +208,7 @@ public final class ConnectivityBreakAnalysis {
         List<ComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency != null ? contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get) : Stream.empty(),
                 lfActions.stream().map(actionElementByBranch::get).flatMap(Collection::stream)
-        ).sorted(Comparator.comparing(element -> element.getLfBranch().getId())).toList();
+        ).sorted(Comparator.comparing(e -> e.getLfElement().getId())).toList();
 
         // we confirm the breaking of connectivity by network connectivity
         ConnectivityAnalysisResult connectivityAnalysisResult = null;
@@ -246,8 +243,7 @@ public final class ConnectivityBreakAnalysis {
     }
 
     private static boolean isBreakingConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity, ComputedElement element) {
-        LfBranch lfBranch = element.getLfBranch();
-        return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
+        return connectivity.getComponentNumber(element.getBus1()) != connectivity.getComponentNumber(element.getBus2());
     }
 
     /**
@@ -262,8 +258,8 @@ public final class ConnectivityBreakAnalysis {
         // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
         List<Set<Integer>> reconnectedCc = new ArrayList<>();
         for (ComputedElement element : breakingConnectivityElements) {
-            int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-            int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+            int cc1 = connectivity.getComponentNumber(element.getBus1());
+            int cc2 = connectivity.getComponentNumber(element.getBus2());
 
             Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
             Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
@@ -271,7 +267,7 @@ public final class ConnectivityBreakAnalysis {
                 // cc1 and cc2 are still separated:
                 // - mark the element as needed to reconnect all connected components together
                 // - update the list of grouped connected components
-                elementsToReconnect.add(element.getLfBranch().getId());
+                elementsToReconnect.add(element.getLfElement().getId());
                 reconnectedCc.remove(recCc2);
                 if (recCc1.size() == 1) {
                     // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
@@ -291,13 +287,13 @@ public final class ConnectivityBreakAnalysis {
         return elementsToReconnect;
     }
 
-    private static Map<String, ComputedContingencyElement> createContingencyElementsIndexByBranchId(List<PropagatedContingency> contingencies,
-                                                                                                    LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        Map<String, ComputedContingencyElement> contingencyElementByBranch =
+    private static Map<String, ComputedBranchContingencyElement> createContingencyElementsIndexByBranchId(List<PropagatedContingency> contingencies,
+                                                                                                          LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<String, ComputedBranchContingencyElement> contingencyElementByBranch =
                 contingencies.stream()
                         .flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream())
-                        .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
-                        .filter(element -> element.getLfBranchEquation() != null)
+                        .map(branch -> new ComputedBranchContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
+                        .filter(element -> element.getEquation() != null)
                         .collect(Collectors.toMap(
                                 computedContingencyElement -> computedContingencyElement.getElement().getId(),
                                 computedContingencyElement -> computedContingencyElement,
@@ -310,7 +306,7 @@ public final class ConnectivityBreakAnalysis {
 
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
         // index contingency elements by branch id
-        Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem());
+        Map<String, ComputedBranchContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem());
 
         // compute states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(loadFlowContext, contingencyElementByBranch.values());
@@ -327,7 +323,7 @@ public final class ConnectivityBreakAnalysis {
         // connectivity and other contingencies that potentially break connectivity
         LOGGER.info("Running sensitivity based connectivity analysis...");
         Stopwatch stopwatch = Stopwatch.createStarted();
-        detectPotentialConnectivityBreak(loadFlowContext.getNetwork(), contingenciesStates, contingencies, contingencyElementByBranch, loadFlowContext.getEquationSystem(),
+        detectPotentialConnectivityBreak(loadFlowContext.getNetwork(), contingenciesStates, contingencies, contingencyElementByBranch,
                 nonBreakingConnectivityAnalysisResults, potentiallyBreakingConnectivityContingencies);
         stopwatch.stop();
         LOGGER.info("Sensitivity based connectivity analysis done in {} ms, {} contingencies do not break connectivity, {} contingencies potentially break connectivity",
@@ -355,7 +351,7 @@ public final class ConnectivityBreakAnalysis {
      * If there is no switching action or if the connectivity is not modified, the post contingency result is returned, as connectivity has not changed.
      */
     public static ConnectivityAnalysisResult processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(DcLoadFlowContext loadFlowContext, ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
-                                                                                                                     Map<String, ComputedContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
+                                                                                                                     Map<String, ComputedBranchContingencyElement> contingencyElementByBranch, DenseMatrix contingenciesStates,
                                                                                                                      LfOperatorStrategy operatorStrategy, Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction, DenseMatrix actionsStates) {
         Objects.requireNonNull(loadFlowContext);
         Objects.requireNonNull(postContingencyConnectivityAnalysisResult);
@@ -373,9 +369,9 @@ public final class ConnectivityBreakAnalysis {
         LfNetwork lfNetwork = loadFlowContext.getNetwork();
         PropagatedContingency contingency = postContingencyConnectivityAnalysisResult.getPropagatedContingency();
 
-        // verify if the connectivity is potentially modified, and returns post contingency connectivity result if this is not the case
         boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, new States(contingenciesStates, actionsStates), contingency,
-                contingencyElementByBranch, operatorStrategy.getActions(), actionElementsIndexByLfAction, loadFlowContext.getEquationSystem());
+                contingencyElementByBranch, operatorStrategy.getActions(), actionElementsIndexByLfAction);
+        // verify if the connectivity is potentially modified, and returns post contingency connectivity result if this is not the case
         if (!isConnectivityPotentiallyModified) {
             return postContingencyConnectivityAnalysisResult.withOperatorStrategy(operatorStrategy);
         }
