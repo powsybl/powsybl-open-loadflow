@@ -66,6 +66,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         void setNetworkUpdated(boolean networkUpdated);
 
+        boolean isTopologyUpdated(); // used to know if network state variables should be reset (e.g. after switch actions)
+
+        void setTopologyUpdated(boolean networkUpdated);
+
         void close();
     }
 
@@ -126,6 +130,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private boolean networkUpdated = true;
 
+        private boolean topologyUpdated = false;
+
         @Override
         public boolean isNetworkUpdated() {
             return networkUpdated;
@@ -134,6 +140,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         @Override
         public void setNetworkUpdated(boolean networkUpdated) {
             this.networkUpdated = networkUpdated;
+        }
+
+        @Override
+        public boolean isTopologyUpdated() {
+            return topologyUpdated;
+        }
+
+        @Override
+        public void setTopologyUpdated(boolean topologyUpdated) {
+            this.topologyUpdated = topologyUpdated;
         }
     }
 
@@ -338,6 +354,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         enum CacheUpdateStatus {
             UNSUPPORTED_UPDATE,
             ELEMENT_UPDATED,
+            ELEMENT_AND_TOPOLOGY_UPDATED,
             IGNORE_UPDATE,
             ELEMENT_NOT_FOUND
         }
@@ -353,6 +370,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
             static <V extends Value> CacheUpdateResult<V> multipleElementsUpdated(Set<V> values) { // used when multiple LfNetworks can be updated at once (e.g. hvdc)
                 return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_UPDATED, values, null);
+            }
+
+            static <V extends Value> CacheUpdateResult<V> elementAndTopologyUpdated(V value) {
+                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_AND_TOPOLOGY_UPDATED, Set.of(value), null);
             }
 
             static <V extends Value> CacheUpdateResult<V> ignoreUpdate() {
@@ -505,26 +526,24 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 LfNetwork lfNetwork = value.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    updateSwitch(open, lfNetwork, lfBranch);
-                    return CacheUpdateResult.elementUpdated(value);
+                    updateSwitch(open, lfNetwork, lfBranch, value.isTopologyUpdated());
+                    return CacheUpdateResult.elementAndTopologyUpdated(value);
                 }
             }
             return CacheUpdateResult.elementNotFound();
         }
 
-        private static void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch) {
+        private void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch, boolean isTopologyUpdated) {
             var connectivity = lfNetwork.getConnectivity();
-            connectivity.startTemporaryChanges();
-            try {
-                if (open) {
-                    connectivity.removeEdge(lfBranch);
-                } else {
-                    connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
-                }
-                AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
-            } finally {
-                connectivity.undoTemporaryChanges();
+            if (!isTopologyUpdated) { // If this is the first temporary change
+                connectivity.startTemporaryChanges();
             }
+            if (open) {
+                connectivity.removeEdge(lfBranch);
+            } else {
+                connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
+            }
+            AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
         }
 
         private CacheUpdateResult<V> onTransformerTargetVoltageUpdate(String twtId, double newValue) {
@@ -642,6 +661,12 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 case ELEMENT_UPDATED -> {
                     for (V value : result.values) {
                         value.setNetworkUpdated(true);
+                    }
+                }
+                case ELEMENT_AND_TOPOLOGY_UPDATED -> {
+                    for (V value : result.values) {
+                        value.setNetworkUpdated(true);
+                        value.setTopologyUpdated(true);
                     }
                 }
                 case IGNORE_UPDATE -> { /* nothing to do */ }
