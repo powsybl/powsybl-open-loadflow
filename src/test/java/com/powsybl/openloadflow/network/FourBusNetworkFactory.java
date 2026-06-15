@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * <p>4 bus test network:</p>
@@ -111,15 +111,16 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
         Generator g1 = network.getGenerator("g1");
         g1.setTargetQ(0).setVoltageRegulatorOn(false);
-        g1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true).add();
+        g1.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         return network;
     }
 
@@ -131,18 +132,18 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Bus b1 = network.getBusBreakerView().getBus("b1");
         Generator g1 = network.getGenerator("g1");
         g1.setTargetQ(0).setVoltageRegulatorOn(false);
-        g1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
+        g1.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         Generator g1Bis = createGenerator(b1, "g1Bis", 2);
         g1Bis.setTargetQ(0).setVoltageRegulatorOn(false);
-        g1Bis.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
+        g1Bis.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         return network;
     }
 
@@ -152,11 +153,11 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
         Line l34 = network.getLine("l34");
         double remoteTargetQ = 2.0;
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         return network;
     }
 

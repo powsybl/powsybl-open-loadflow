@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
@@ -64,7 +65,7 @@ class LfBusImplTest {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setBmin(-0.006)
                 .setBmax(0.006)
                 .add();
@@ -78,7 +79,7 @@ class LfBusImplTest {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setBmin(-0.001)
                 .setBmax(0.001)
                 .add();
@@ -92,7 +93,7 @@ class LfBusImplTest {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setBmin(-0.00075)
                 .setBmax(0.00075)
                 .add();
