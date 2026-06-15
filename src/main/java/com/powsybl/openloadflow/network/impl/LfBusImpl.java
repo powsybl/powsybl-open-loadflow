@@ -140,21 +140,23 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
-        var bus = getBus();
-        if (parameters.isUpdateV()) {
-            bus.setV(Math.max(v, 0.0));
-        }
-        bus.setAngle(Math.toDegrees(angle));
+        if (!isDisabled()) {
+            var bus = getBus();
+            if (!parameters.isDc()) {
+                bus.setV(Math.max(v, 0.0));
+            }
+            bus.setAngle(Math.toDegrees(angle));
 
-        // update slack bus
-        if (slack && parameters.isWriteSlackBus()) {
-            SlackTerminal.attach(bus);
-        }
-        if (reference && parameters.isWriteReferenceTerminals() && parameters.getReferenceBusSelectionMode() == ReferenceBusSelectionMode.FIRST_SLACK) {
-            bus.getConnectedTerminalStream().findFirst().ifPresent(ReferenceTerminals::addTerminal);
-        }
+            // update slack bus
+            if (slack && parameters.isWriteSlackBus()) {
+                SlackTerminal.attach(bus);
+            }
+            if (reference && parameters.isWriteReferenceTerminals() && parameters.getReferenceBusSelectionMode() == ReferenceBusSelectionMode.FIRST_SLACK) {
+                bus.getConnectedTerminalStream().findFirst().ifPresent(ReferenceTerminals::addTerminal);
+            }
 
-        super.updateState(parameters);
+            super.updateState(parameters);
+        }
     }
 
     @Override

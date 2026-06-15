@@ -401,33 +401,35 @@ class LoadFlowWithCachingTest {
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
     }
 
-    @Test
-    void testSwitchOpen() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testSwitchOpen(boolean isDc) {
+        parameters.setDc(isDc);
         var network = NodeBreakerNetworkFactory.create();
         var l1 = network.getLine("L1");
         var l2 = network.getLine("L2");
 
         parametersExt.setActionableSwitchesIds(Set.of("C"));
 
-        assertTrue(NetworkCache.AC_LF_INSTANCE.findEntry(network).isEmpty());
+        assertTrue((isDc ? NetworkCache.DC_LF_INSTANCE : NetworkCache.AC_LF_INSTANCE).findEntry(network).isEmpty());
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(301.884, l1.getTerminal1());
-        assertActivePowerEquals(301.884, l2.getTerminal1());
+        assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(isDc ? 300 : 301.884, l1.getTerminal1());
+        assertActivePowerEquals(isDc ? 300 : 301.884, l2.getTerminal1());
 
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         network.getSwitch("C").setOpen(true);
 
-        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(0.0993, l1.getTerminal1());
-        assertActivePowerEquals(607.682, l2.getTerminal1());
+        assertEquals(isDc ? 0 : 4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(isDc ? 0 : 0.0993, l1.getTerminal1());
+        assertActivePowerEquals(isDc ? 600 : 607.682, l2.getTerminal1());
     }
 
     @Test
@@ -462,6 +464,39 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(301.884, l2.getTerminal1());
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testSwitchOpenWithLostElements(boolean isDc) {
+        parameters.setDc(isDc);
+        var network = NodeBreakerNetworkFactory.createWith4Bars();
+        var l1 = network.getLine("L1");
+        var l2 = network.getLine("L2");
+
+        parametersExt.setNetworkCacheEnabled(false)
+                .setSlackBusPMaxMismatch(0.0001)
+                .setNewtonRaphsonConvEpsPerEq(0.0001)
+                .setActionableSwitchesIds(Set.of("C", "B3"));
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(isDc ? 0 : 7, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(isDc ? 394.555 : 396.935, l1.getTerminal1());
+        assertActivePowerEquals(isDc ? 394.555 : 396.935, l2.getTerminal1());
+
+        //assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+
+        network.getSwitch("C").setOpen(true);
+        network.getSwitch("B3").setOpen(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(isDc ? 0 : 8, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(Double.NaN, l1.getTerminal1());
+        assertVoltageEquals(Double.NaN, l1.getTerminal1().getBusBreakerView().getBus());
+        assertAngleEquals(Double.NaN, l1.getTerminal1().getBusBreakerView().getBus());
+        assertActivePowerEquals(isDc ? 736.924 : 745.266, l2.getTerminal1());
+    }
+
     @Test
     void testInvalidNetwork() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
@@ -491,8 +526,10 @@ class LoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
 
-    @Test
-    void testSwitchIssueWithInit() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testSwitchIssueWithInit(boolean isDc) {
+        parameters.setDc(isDc);
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var vlload = network.getVoltageLevel("VLLOAD");
         vlload.getBusBreakerView().newBus()
@@ -511,23 +548,23 @@ class LoadFlowWithCachingTest {
                 .setQ0(5)
                 .add();
 
-        parametersExt.setActionableSwitchesIds(Set.of("BR"));
+        parametersExt.setActionableSwitchesIds(Set.of("BR")).setNetworkCacheEnabled(true);
 
-        assertTrue(NetworkCache.AC_LF_INSTANCE.findEntry(network).isEmpty());
+        assertTrue((isDc ? NetworkCache.DC_LF_INSTANCE : NetworkCache.AC_LF_INSTANCE).findEntry(network).isEmpty());
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 4, result.getComponentResults().get(0).getIterationCount());
 
         br.setOpen(false);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
 
         br.setOpen(true);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 1, result.getComponentResults().get(0).getIterationCount());
     }
 
     private static void checkVoltageIsDefinedForAllBuses(Network network) {

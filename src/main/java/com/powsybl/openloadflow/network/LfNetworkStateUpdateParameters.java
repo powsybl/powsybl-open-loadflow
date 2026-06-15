@@ -38,13 +38,11 @@ public class LfNetworkStateUpdateParameters {
 
     private boolean simulateAutomationSystems;
 
-    private boolean updateV;
-
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                                           boolean transformerVoltageControlOn, boolean transformerReactivePowerControlOn, boolean loadPowerFactorConstant, boolean dc,
                                           boolean breakers, ReactivePowerDispatchMode reactivePowerDispatchMode,
                                           boolean writeReferenceTerminals, ReferenceBusSelectionMode referenceBusSelectionMode,
-                                          boolean simulateAutomationSystems, boolean updateV) {
+                                          boolean simulateAutomationSystems) {
         this.reactiveLimits = reactiveLimits;
         this.writeSlackBus = writeSlackBus;
         this.phaseShifterRegulationOn = phaseShifterRegulationOn;
@@ -57,7 +55,6 @@ public class LfNetworkStateUpdateParameters {
         this.writeReferenceTerminals = writeReferenceTerminals;
         this.referenceBusSelectionMode = referenceBusSelectionMode;
         this.simulateAutomationSystems = simulateAutomationSystems;
-        this.updateV = updateV;
     }
 
     public boolean isReactiveLimits() {
@@ -108,7 +105,4 @@ public class LfNetworkStateUpdateParameters {
         return simulateAutomationSystems;
     }
 
-    public boolean isUpdateV() {
-        return updateV;
-    }
 }
