@@ -5046,4 +5046,26 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         networkResult.getBranchResults()
             .forEach(br -> assertEquals(0., br.getFlowTransfer(), DELTA_POWER));
     }
+
+    @Test
+    void testStateMonitor() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")));
+        List<StateMonitor> monitors = List.of(new StateMonitor(new ContingencyContext("NHV1_NHV2_1", ContingencyContextType.SPECIFIC),
+                        Collections.singleton("NHV1_NHV2_2"), Collections.emptySet(), Collections.emptySet()),
+                new StateMonitor(new ContingencyContext(null, ContingencyContextType.NONE),
+                        Collections.singleton("NHV1_NHV2_2"), Collections.emptySet(), Collections.emptySet()));
+        SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
+                .setSecurityAnalysisParameters(parameters)
+                .setMonitors(monitors);
+        SecurityAnalysisReport report = SecurityAnalysis.find("OpenLoadFlow")
+                .run(network, network.getVariantManager().getWorkingVariantId(), n -> contingencies, runParameters);
+        SecurityAnalysisResult result = report.getResult();
+
+        BranchResult branchResult = result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0);
+        double eps = 1e-12;
+        assertEquals(302.44404914466014, branchResult.getP1(), eps);
+        assertEquals(98.74027438015084, branchResult.getQ1(), eps);
+    }
 }
