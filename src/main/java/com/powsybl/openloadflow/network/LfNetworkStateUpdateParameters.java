@@ -104,5 +104,4 @@ public class LfNetworkStateUpdateParameters {
     public boolean isSimulateAutomationSystems() {
         return simulateAutomationSystems;
     }
-
 }
