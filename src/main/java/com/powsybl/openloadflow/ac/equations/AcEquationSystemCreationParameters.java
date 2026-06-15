@@ -14,22 +14,34 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean forceA1Var;
 
+    private final boolean smoothReactiveLimits;
+
     public AcEquationSystemCreationParameters() {
-        this(false);
+        this(false, false);
     }
 
     public AcEquationSystemCreationParameters(boolean forceA1Var) {
+        this(forceA1Var, false);
+    }
+
+    public AcEquationSystemCreationParameters(boolean forceA1Var, boolean smoothReactiveLimits) {
         this.forceA1Var = forceA1Var;
+        this.smoothReactiveLimits = smoothReactiveLimits;
     }
 
     public boolean isForceA1Var() {
         return forceA1Var;
     }
 
+    public boolean isSmoothReactiveLimits() {
+        return smoothReactiveLimits;
+    }
+
     @Override
     public String toString() {
         return "AcEquationSystemCreationParameters(" +
                 "forceA1Var=" + forceA1Var +
+                ", smoothReactiveLimits=" + smoothReactiveLimits +
                 ')';
     }
 }

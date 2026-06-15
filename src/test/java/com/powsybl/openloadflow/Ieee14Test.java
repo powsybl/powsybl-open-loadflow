@@ -23,6 +23,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -87,6 +88,33 @@ class Ieee14Test {
         assertAngleEquals(-15.075584, network.getBusView().getBus("VL12_0"));
         assertAngleEquals(-15.156276, network.getBusView().getBus("VL13_0"));
         assertAngleEquals(-16.033644, network.getBusView().getBus("VL14_0"));
+    }
+
+    @Test
+    void testAcWithSmoothReactiveLimits() {
+        parametersExt.setSmoothReactiveLimits(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertTrue(result.getComponentResults().get(0).getIterationCount() <= 10);
+    }
+
+    @Test
+    void testAcWithSmoothReactiveLimitsAtGeneratorLimit() {
+        network.getGenerator("B2-G").newMinMaxReactiveLimits()
+                .setMinQ(-40)
+                .setMaxQ(10)
+                .add();
+        parametersExt.setSmoothReactiveLimits(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertTrue(result.getComponentResults().get(0).getIterationCount() <= 12);
+        double generatorQ = -network.getGenerator("B2-G").getTerminal().getQ();
+        assertTrue(generatorQ >= -40);
+        assertTrue(generatorQ <= 10);
     }
 
     @ParameterizedTest

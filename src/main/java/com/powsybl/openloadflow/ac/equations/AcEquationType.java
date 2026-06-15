@@ -17,6 +17,7 @@ public enum AcEquationType implements Quantity {
     BUS_TARGET_P("bus_target_p", ElementType.BUS), // bus active power target
     BUS_TARGET_Q("bus_target_q", ElementType.BUS), // bus reactive power target
     BUS_TARGET_V("bus_target_v", ElementType.BUS), // bus voltage magnitude control
+    BUS_TARGET_SMOOTH_V("bus_target_smooth_v", ElementType.BUS), // smooth generator voltage/reactive limits control
     BUS_TARGET_PHI("bus_target_\u03C6", ElementType.BUS), // slack bus voltage angle target
     SHUNT_TARGET_B("shunt_target_b", ElementType.SHUNT_COMPENSATOR), // shunt susceptance
     BRANCH_TARGET_P("branch_target_p", ElementType.BRANCH), // phase shifter active flow control

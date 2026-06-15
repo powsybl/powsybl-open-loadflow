@@ -89,6 +89,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[column] = getBusTargetV(network.getBus(elementNum));
                 break;
 
+            case BUS_TARGET_SMOOTH_V:
+                targets[column] = 0;
+                break;
+
             case BUS_TARGET_PHI:
                 targets[column] = 0;
                 break;

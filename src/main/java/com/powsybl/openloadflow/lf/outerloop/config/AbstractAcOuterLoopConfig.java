@@ -68,7 +68,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createReactiveLimitsOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        if (parameters.isUseReactiveLimits()) {
+        if (parameters.isUseReactiveLimits() && !parametersExt.isSmoothReactiveLimits()) {
             double effectiveMaxReactivePowerMismatch = switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
                 case UNIFORM_CRITERIA -> parametersExt.getNewtonRaphsonConvEpsPerEq();
                 case PER_EQUATION_TYPE_CRITERIA -> parametersExt.getMaxReactivePowerMismatch() / PerUnit.SB;

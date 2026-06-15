@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,15 +126,67 @@ public class AcEquationSystemCreator {
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
                     if (bus.isGeneratorVoltageControlled()) {
-                        if (voltageControl.isLocalControl()) {
+                        boolean smoothVoltageControl = maybeCreateSmoothGeneratorVoltageControlEquation(voltageControl, equationSystem);
+                        if (!smoothVoltageControl && voltageControl.isLocalControl()) {
                             createGeneratorLocalVoltageControlEquation(bus, equationSystem);
-                        } else {
+                        } else if (!smoothVoltageControl) {
                             // create reactive power distribution equations at voltage controller buses
                             createGeneratorReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
                         }
                         updateGeneratorVoltageControl(voltageControl, equationSystem);
                     }
                 });
+    }
+
+    private boolean maybeCreateSmoothGeneratorVoltageControlEquation(GeneratorVoltageControl voltageControl,
+                                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        if (!creationParameters.isSmoothReactiveLimits()) {
+            return false;
+        }
+        List<LfBus> controllerBuses = findSmoothReactiveLimitsControllerBuses(voltageControl);
+        if (controllerBuses.isEmpty()) {
+            return false;
+        }
+
+        LfBus controlledBus = voltageControl.getControlledBus();
+        if (!voltageControl.isLocalControl()) {
+            createGeneratorReactivePowerDistributionEquations(voltageControl, equationSystem, creationParameters);
+        }
+        List<SmoothReactiveLimitsVoltageControlEquationTerm.ControllerQ> controllerQs = controllerBuses.stream()
+                .map(controller -> {
+                    Equation<AcVariableType, AcEquationType> controllerQ = equationSystem.getEquation(controller.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
+                    return new SmoothReactiveLimitsVoltageControlEquationTerm.ControllerQ(controller, controllerQ);
+                })
+                .toList();
+        equationSystem.createEquation(controlledBus, AcEquationType.BUS_TARGET_SMOOTH_V)
+                .addTerm(new SmoothReactiveLimitsVoltageControlEquationTerm(controlledBus,
+                                                                            equationSystem.getVariable(controlledBus.getNum(), AcVariableType.BUS_V).<AcEquationType>createTerm(),
+                                                                            controllerQs));
+        return true;
+    }
+
+    private static List<LfBus> findSmoothReactiveLimitsControllerBuses(GeneratorVoltageControl voltageControl) {
+        if (voltageControl.isLocalControl()) {
+            LfBus controlledBus = voltageControl.getControlledBus();
+            return controlledBus.hasGeneratorsWithSlope() || !hasFiniteReactiveLimits(controlledBus) ? List.of() : List.of(controlledBus);
+        }
+        List<LfBus> controllerBuses = voltageControl.getMergedControllerElements()
+                .stream()
+                .filter(Predicate.not(LfBus::isDisabled))
+                .filter(LfBus::isGeneratorVoltageControlEnabled)
+                .toList();
+        return controllerBuses.stream().allMatch(AcEquationSystemCreator::hasFiniteReactiveLimits) ? controllerBuses : List.of();
+    }
+
+    private static boolean hasFiniteReactiveLimits(LfBus controllerBus) {
+        double minQ = controllerBus.getMinQ();
+        double maxQ = controllerBus.getMaxQ();
+        double rangeQ = maxQ - minQ;
+        return Double.isFinite(minQ)
+                && Double.isFinite(maxQ)
+                && Double.isFinite(rangeQ)
+                && rangeQ >= PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB
+                && rangeQ <= PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB;
     }
 
     private void createGeneratorLocalVoltageControlEquation(LfBus bus,
@@ -311,11 +364,10 @@ public class AcEquationSystemCreator {
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
 
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                .orElseThrow();
+        Equation<AcVariableType, AcEquationType> vEq = getVoltageTargetEquation(controlledBus, equationSystem);
 
         List<Equation<AcVariableType, AcEquationType>> vEqMergedList = voltageControl.getMergedDependentVoltageControls().stream()
-                .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
+                .map(vc -> getVoltageTargetEquation(vc.getControlledBus(), equationSystem))
                 .toList();
 
         if (voltageControl.isHidden()) {
@@ -365,6 +417,13 @@ public class AcEquationSystemCreator {
                         .setActive(false);
             }
         }
+    }
+
+    private static Equation<AcVariableType, AcEquationType> getVoltageTargetEquation(LfBus controlledBus,
+                                                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        return equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_SMOOTH_V)
+                .or(() -> equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V))
+                .orElseThrow();
     }
 
     private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,

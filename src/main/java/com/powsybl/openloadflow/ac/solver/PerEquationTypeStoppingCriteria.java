@@ -74,7 +74,7 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                     return true;
                 }
             }
-            case BRANCH_TARGET_Q, BUS_TARGET_Q, DISTR_Q, DUMMY_TARGET_Q -> {
+            case BRANCH_TARGET_Q, BUS_TARGET_Q, BUS_TARGET_SMOOTH_V, DISTR_Q, DUMMY_TARGET_Q -> {
                 if (Math.abs(fx[column]) * PerUnit.SB >= maxReactivePowerMismatch) {
                     return true;
                 }

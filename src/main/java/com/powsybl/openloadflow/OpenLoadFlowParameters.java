@@ -146,6 +146,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = false;
 
+    public static final boolean SMOOTH_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+
     public static final boolean AC_DC_NETWORK_DEFAULT_VALUE = false;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
@@ -295,6 +297,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME = "areaInterchangePMaxMismatch";
 
     public static final String FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME = "forceTargetQInReactiveLimits";
+
+    public static final String SMOOTH_REACTIVE_LIMITS_PARAM_NAME = "smoothReactiveLimits";
 
     public static final String DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME = "disableInconsistentVoltageControls";
 
@@ -457,6 +461,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control robust mode", VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Force targetQ in the reactive limit diagram", FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(SMOOTH_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Smooth generator reactive limits", SMOOTH_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
@@ -654,6 +659,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double areaInterchangePMaxMismatch = AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE;
 
     private boolean forceTargetQInReactiveLimits = FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
+
+    private boolean smoothReactiveLimits = SMOOTH_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     private boolean disableInconsistentVoltageControls = LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
 
@@ -1423,6 +1430,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isSmoothReactiveLimits() {
+        return smoothReactiveLimits;
+    }
+
+    public OpenLoadFlowParameters setSmoothReactiveLimits(boolean smoothReactiveLimits) {
+        this.smoothReactiveLimits = smoothReactiveLimits;
+        return this;
+    }
+
     public boolean isDisableInconsistentVoltageControls() {
         return disableInconsistentVoltageControls;
     }
@@ -1624,6 +1640,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     config.getOptionalDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setAreaInterchangePMaxMismatch);
                     config.getOptionalBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME).ifPresent(this::setDisableInconsistentVoltageControls);
                     config.getOptionalBooleanProperty(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setForceTargetQInReactiveLimits);
+                    config.getOptionalBooleanProperty(SMOOTH_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setSmoothReactiveLimits);
                     config.getOptionalEnumProperty(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, FictitiousGeneratorVoltageControlCheckMode.class)
                             .ifPresent(this::setFictitiousGeneratorVoltageControlCheckMode);
                     config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME).ifPresent(this::setVoltageRemoteControlRobustMode);
@@ -1797,6 +1814,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltageRemoteControlRobustMode(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME))
                 .ifPresent(prop -> this.setForceTargetQInReactiveLimits(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(SMOOTH_REACTIVE_LIMITS_PARAM_NAME))
+                .ifPresent(prop -> this.setSmoothReactiveLimits(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME))
                 .ifPresent(prop -> this.setDisableInconsistentVoltageControls(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME))
@@ -1892,6 +1911,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, areaInterchangePMaxMismatch);
         map.put(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, voltageRemoteControlRobustMode);
         map.put(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, forceTargetQInReactiveLimits);
+        map.put(SMOOTH_REACTIVE_LIMITS_PARAM_NAME, smoothReactiveLimits);
         map.put(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, disableInconsistentVoltageControls);
         map.put(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, extrapolateReactiveLimits);
         map.put(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, startWithFrozenACEmulation);
@@ -2103,7 +2123,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
-        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
+        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, parametersExt.isSmoothReactiveLimits());
 
         VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
@@ -2322,6 +2342,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getAreaInterchangePMaxMismatch() == extension2.getAreaInterchangePMaxMismatch() &&
                 extension1.isVoltageRemoteControlRobustMode() == extension2.isVoltageRemoteControlRobustMode() &&
                 extension1.isForceTargetQInReactiveLimits() == extension2.isForceTargetQInReactiveLimits() &&
+                extension1.isSmoothReactiveLimits() == extension2.isSmoothReactiveLimits() &&
                 extension1.isDisableInconsistentVoltageControls() == extension2.isDisableInconsistentVoltageControls() &&
                 extension1.getMinNominalVoltageRealisticVoltageCheck() == extension2.getMinNominalVoltageRealisticVoltageCheck() &&
                 extension1.isExtrapolateReactiveLimits() == extension2.isExtrapolateReactiveLimits() &&
@@ -2409,6 +2430,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setAreaInterchangePMaxMismatch(extension.getAreaInterchangePMaxMismatch())
                 .setVoltageRemoteControlRobustMode(extension.isVoltageRemoteControlRobustMode())
                 .setForceTargetQInReactiveLimits(extension.isForceTargetQInReactiveLimits())
+                .setSmoothReactiveLimits(extension.isSmoothReactiveLimits())
                 .setDisableInconsistentVoltageControls(extension.isDisableInconsistentVoltageControls())
                 .setExtrapolateReactiveLimits(extension.isExtrapolateReactiveLimits())
                 .setGeneratorsWithZeroMwTargetAreNotStarted(extension.isGeneratorsWithZeroMwTargetAreNotStarted())
