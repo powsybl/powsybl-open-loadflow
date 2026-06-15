@@ -483,14 +483,15 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(isDc ? 394.555 : 396.935, l1.getTerminal1());
         assertActivePowerEquals(isDc ? 394.555 : 396.935, l2.getTerminal1());
 
-        //assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         network.getSwitch("C").setOpen(true);
         network.getSwitch("B3").setOpen(true);
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(isDc ? 0 : 8, result.getComponentResults().get(0).getIterationCount());
+        // Check that lost elements have been correctly reset (to NaN)
         assertActivePowerEquals(Double.NaN, l1.getTerminal1());
         assertVoltageEquals(Double.NaN, l1.getTerminal1().getBusBreakerView().getBus());
         assertAngleEquals(Double.NaN, l1.getTerminal1().getBusBreakerView().getBus());
