@@ -345,7 +345,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(generator, (value, lfBus) -> {
-                if (attribute.equals("targetV")) {
+                if (attribute.equals("localTargetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                     double nominalV = voltageControl.getControlledBus().getNominalV();
@@ -479,7 +479,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV") || attribute.equals("targetP")) {
+                        if (attribute.equals("localTargetV") || attribute.equals("targetP")) {
                             result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.BATTERY) {

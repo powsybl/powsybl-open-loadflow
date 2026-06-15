@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -99,7 +100,7 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(0, svc1.getTerminal());
 
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
 
         result = loadFlowRunner.run(network, parameters);
@@ -121,7 +122,7 @@ class AcLoadFlowSvcTest {
     void shouldReachReactiveMaxLimit() {
         svc1.setBmin(-0.002)
                 .setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -133,7 +134,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope() {
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -157,7 +158,7 @@ class AcLoadFlowSvcTest {
     void testSvcWithSlope2() {
         // Test switch PV to PQ
         svc1.setVoltageSetpoint(440)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -192,7 +193,7 @@ class AcLoadFlowSvcTest {
                 .add();
 
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
 
         parametersExt.setVoltagePerReactivePowerControl(true);
@@ -214,7 +215,7 @@ class AcLoadFlowSvcTest {
                 .setId("svc2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true)
                 .setVoltageSetpoint(385)
                 .setBmin(-0.008)
@@ -222,7 +223,7 @@ class AcLoadFlowSvcTest {
                 .add();
 
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc2.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
@@ -243,7 +244,7 @@ class AcLoadFlowSvcTest {
     void testSvcWithSlope5() {
         // With a generator at bus2 not controlling voltage
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -278,7 +279,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testRegulationModeReactivePower() {
         svc1.setReactivePowerSetpoint(100)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulating(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -288,7 +289,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testStandByAutomaton() {
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(400)
@@ -310,7 +311,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testStandByAutomatonAndSlope() {
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
         svc1.newExtension(StandbyAutomatonAdder.class)
@@ -335,7 +336,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testStandByAutomaton2() {
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)
@@ -357,7 +358,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testStandByAutomaton3() {
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         g1.setTargetV(405);
 
@@ -383,7 +384,7 @@ class AcLoadFlowSvcTest {
         // Test a voltage controller and a voltage monitor connected to the same bus.
         // Voltage monitor is discarded.
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)
@@ -418,7 +419,7 @@ class AcLoadFlowSvcTest {
                 .setId("svc2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true)
                 .setVoltageSetpoint(385)
                 .setBmin(-0.008)
@@ -434,7 +435,7 @@ class AcLoadFlowSvcTest {
                 .add();
 
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)
@@ -464,7 +465,7 @@ class AcLoadFlowSvcTest {
 
         // SVC regulating voltage with g1
         svc1.setVoltageSetpoint(g1.getTargetV())
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulatingTerminal(g1.getRegulatingTerminal())
                 .setRegulating(true);
 

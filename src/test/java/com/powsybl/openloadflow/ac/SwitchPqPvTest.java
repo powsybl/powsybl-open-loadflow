@@ -12,6 +12,7 @@ import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -257,7 +258,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setBus("b3")
                 .setConnectableBus("b3")
                 .setVoltageSetpoint(20)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true)
                 .setBmax(30 / value)
                 .setBmin(-1000 / value)

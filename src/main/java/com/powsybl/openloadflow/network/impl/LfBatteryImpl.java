@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.extensions.VoltageRegulation;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -53,10 +53,8 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
             participating = false;
         }
 
-        // get voltage control from extension
-        VoltageRegulation voltageRegulation = battery.getExtension(VoltageRegulation.class);
-        if (voltageRegulation != null && voltageRegulation.isVoltageRegulatorOn()) {
-            setVoltageControl(voltageRegulation.getTargetV(), battery.getTerminal(), voltageRegulation.getRegulatingTerminal(), parameters, report);
+        if (battery.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
+            setVoltageControl(battery.getRegulatingTargetV(), battery.getTerminal(), battery.getRegulatingTerminal(), parameters, report);
         }
     }
 
@@ -79,7 +77,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return getBattery().getTargetQ() / PerUnit.SB;
+        return getBattery().getRegulatingTargetQ() / PerUnit.SB;
     }
 
     @Override

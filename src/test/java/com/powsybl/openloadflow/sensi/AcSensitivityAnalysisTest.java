@@ -18,8 +18,7 @@ import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
-import com.powsybl.iidm.network.extensions.VoltageRegulation;
-import com.powsybl.iidm.network.extensions.VoltageRegulationAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
@@ -1487,10 +1486,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testBatteryVoltageControlSensi() {
         Network network = DistributedSlackNetworkFactory.createWithBattery();
-        network.getBattery("bat1").newExtension(VoltageRegulationAdder.class)
-                .withTargetV(400)
-                .withVoltageRegulatorOn(false)
-                .add();
+        network.getBattery("bat1").setLocalTargetV(400);
+        network.getBattery("bat1").newVoltageRegulation()
+            .withMode(RegulationMode.VOLTAGE)
+            .withRegulating(false)
+            .build();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
@@ -1505,8 +1505,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 -0.001288, DELTA_SENSITIVITY_VALUE);
 
         // Setting battery voltage control and computing sensitivity per target V of battery bat1 -> Result should be the same
-        network.getBattery("bat1").getExtension(VoltageRegulation.class)
-                .setVoltageRegulatorOn(true);
+        network.getBattery("bat1").newVoltageRegulation().withMode(RegulationMode.VOLTAGE).build();
         network.getGenerator("g1").setTargetQ(0).setVoltageRegulatorOn(false);
 
         factors = List.of(createBranchReactivePowerPerTargetV("l14", "bat1"));
@@ -1516,9 +1515,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testBatteryNoVoltageControlExtension() {
+    void testBatteryNoVoltageControl() {
         Network network = DistributedSlackNetworkFactory.createWithBattery();
-        // Battery 'bat1' has no VoltageRegulation extension
+        // Battery 'bat1' has no VoltageRegulation
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
@@ -1526,9 +1525,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setContingencies(Collections.emptyList());
 
         List<SensitivityFactor> factors = List.of(createBranchReactivePowerPerTargetV("l14", "bat1"));
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
-        assertInstanceOf(PowsyblException.class, e.getCause());
-        assertEquals("Regulating terminal for 'bat1' not found", e.getCause().getMessage());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(-0.001, result.getSensitivityValue("bat1", "l14", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
     }
 
     @Test

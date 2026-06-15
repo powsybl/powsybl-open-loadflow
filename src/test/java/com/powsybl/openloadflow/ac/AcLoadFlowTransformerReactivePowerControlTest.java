@@ -14,7 +14,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -103,16 +103,17 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         double t2wtTargetQ = 1;
         Terminal regulatedTerminal = t2wt.getTerminal2();
 
-        g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(gTargetQ)
-                .withRegulatingTerminal(regulatedTerminal)
-                .withEnabled(true).add();
+        g4.setTargetQ(0.0);
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTargetValue(gTargetQ)
+            .withTerminal(regulatedTerminal)
+            .build();
         g4.newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
 
         t2wt.getRatioTapChanger()
                 .setLoadTapChangingCapabilities(true)
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setTargetDeadband(0)
                 .setRegulationValue(t2wtTargetQ)
                 .setRegulationTerminal(regulatedTerminal)
@@ -198,16 +199,17 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         double t2wtTargetQ = 1;
         Terminal regulatedTerminal = twoWindingsTransformer.getTerminal2();
 
-        g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(gTargetQ)
-                .withRegulatingTerminal(regulatedTerminal)
-                .withEnabled(true).add();
+        g4.setTargetQ(0.0);
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTargetValue(gTargetQ)
+            .withTerminal(regulatedTerminal)
+            .build();
         g4.newMinMaxReactiveLimits().setMinQ(-3.0).setMaxQ(5.0).add();
 
         twoWindingsTransformer.getRatioTapChanger()
                 .setLoadTapChangingCapabilities(true)
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setTargetDeadband(0)
                 .setRegulationValue(t2wtTargetQ)
                 .setRegulationTerminal(regulatedTerminal)
@@ -275,7 +277,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-0.55);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -299,7 +301,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setSolvedTapPosition(0) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(3)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-0.55);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -322,7 +324,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(2)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(7.6);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -345,7 +347,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal2())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-7.3);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -368,7 +370,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-0.48);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -391,7 +393,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-1);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -445,7 +447,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal2())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-6.89);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -470,14 +472,14 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(3)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-3);
         t2wt2.getRatioTapChanger()
                 .setTargetDeadband(0.1)
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-7.4);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -504,7 +506,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(2)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(7.3);
 
         network.getLine("LINE_12").setR(0).setX(0).setG1(0);
@@ -528,7 +530,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(2)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(3.89);
 
         t2wt2.setR(0).setX(0);
@@ -580,7 +582,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setSolvedTapPosition(0) // set the solved tap position to ensure that it has been updated by the loadflow
                 .setTapPosition(0)
                 .setRegulationTerminal(t3wt.getLeg2().getTerminal())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(4.161);
 
         parameters.setTransformerVoltageControlOn(true);
@@ -606,7 +608,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt2.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-3.071);
 
         // no transformer reactive power control if terminal 2 is opened
@@ -635,7 +637,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt2.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-3.071);
 
         // no transformer reactive power control if terminal 2 is opened on controlled branch
@@ -669,7 +671,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(2)
                 .setRegulationTerminal(load.getTerminal())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(33.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -688,14 +690,14 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal2())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-6.89);
         t2wt2.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(network.getLine("LINE_12").getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-6.603);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

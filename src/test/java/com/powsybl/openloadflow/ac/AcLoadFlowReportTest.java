@@ -11,8 +11,8 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.*;
 import com.powsybl.openloadflow.CommonTestConfig;
@@ -108,7 +108,7 @@ class AcLoadFlowReportTest {
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-0.55);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -295,7 +295,7 @@ class AcLoadFlowReportTest {
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setTargetV(100); // not plausible, will be discarded and reported
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
