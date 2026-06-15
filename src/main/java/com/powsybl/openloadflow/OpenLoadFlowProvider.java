@@ -209,7 +209,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
 
         List<DcLoadFlowResult> results;
-        final boolean updateV;
         if (parametersExt.isNetworkCacheEnabled()) {
             var networkCacheDcEntry = NetworkCache.DC_LF_INSTANCE.findEntry(network).orElse(null);
             if (networkCacheDcEntry == null || networkCacheDcEntry.getValues() == null || networkCacheDcEntry.getValues().stream().anyMatch(NetworkCache.AbstractValue::isTopologyUpdated)) {
