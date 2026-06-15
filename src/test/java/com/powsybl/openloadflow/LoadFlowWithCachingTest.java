@@ -472,8 +472,7 @@ class LoadFlowWithCachingTest {
         var l1 = network.getLine("L1");
         var l2 = network.getLine("L2");
 
-        parametersExt.setNetworkCacheEnabled(false)
-                .setSlackBusPMaxMismatch(0.0001)
+        parametersExt.setSlackBusPMaxMismatch(0.0001)
                 .setNewtonRaphsonConvEpsPerEq(0.0001)
                 .setActionableSwitchesIds(Set.of("C", "B3"));
 
@@ -483,14 +482,13 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(isDc ? 394.555 : 396.935, l1.getTerminal1());
         assertActivePowerEquals(isDc ? 394.555 : 396.935, l2.getTerminal1());
 
-
         network.getSwitch("C").setOpen(true);
         network.getSwitch("B3").setOpen(true);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(isDc ? 0 : 8, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(isDc ? 0 : 6, result.getComponentResults().get(0).getIterationCount());
         // Check that lost elements have been correctly reset (to NaN)
         assertActivePowerEquals(Double.NaN, l1.getTerminal1());
         assertVoltageEquals(Double.NaN, l1.getTerminal1().getBusBreakerView().getBus());
