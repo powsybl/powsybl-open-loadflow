@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,12 +8,17 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
+import org.jgrapht.Graph;
+import org.jgrapht.generate.ScaleFreeGraphGenerator;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DefaultUndirectedGraph;
+import org.jgrapht.util.SupplierUtil;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.*;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -492,16 +497,246 @@ class ConnectivityTest {
         // 1---2   3---4---5   6
     }
 
+    @Test
+    void fishTest() {
+        //  0     2
+        //  |\  ／ |＼
+        //  | 1    |  5
+        //  |/  ＼ |／
+        //  4     3
+
+        HolmEtAlGraphConnectivity<Integer, String> connectivity = new HolmEtAlGraphConnectivity<>();
+        for (int i = 0; i < 6; i++) {
+            connectivity.addVertex(i);
+        }
+
+        connectivity.addEdge(0, 1, "0-1");
+        connectivity.addEdge(2, 1, "2-1");
+        connectivity.addEdge(3, 1, "3-1");
+        connectivity.addEdge(3, 2, "3-2");
+        connectivity.addEdge(0, 4, "0-4");
+        connectivity.addEdge(1, 4, "1-4");
+        connectivity.addEdge(2, 5, "2-5");
+        connectivity.addEdge(5, 3, "5-3");
+
+        // order of removal is important
+        connectivity.removeEdge("0-1");
+        connectivity.removeEdge("2-1");
+        connectivity.removeEdge("3-1");
+        connectivity.removeEdge("3-2");
+
+        connectivity.startTemporaryChanges();
+        assertEquals(2, connectivity.getNbConnectedComponents());
+    }
+
+    @Test
+    void testDTreeInsertNonTreeEdge() {
+        //      0 -- 1
+        //      |    |
+        // 3 -- 2 -- 5
+        //      |
+        //      4
+
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        for (int i = 0; i < 6; i++) {
+            connectivity.addVertex(i);
+        }
+
+        connectivity.addEdge(0, 1, "0-1");
+        connectivity.addEdge(2, 0, "2-0");
+        connectivity.addEdge(2, 3, "2-3");
+        connectivity.addEdge(2, 4, "2-4");
+        connectivity.addEdge(1, 5, "1-5");
+
+        connectivity.startTemporaryChanges();
+        for (int i = 0; i < 6; i++) {
+            assertEquals(0, connectivity.getComponentNumber(i));
+        }
+
+        // Adding this edge doesn't affect connectivity.
+        // However, it modifies the spanning tree.
+        // Before:
+        //      0 -- 1
+        //      |    |
+        // 3 -- 2    5  (5 and 2 not connected)
+        //      |
+        //      4
+        connectivity.addEdge(5, 2, "5-2");
+        // After:
+        //      0    1   (0 and 1 are still connected, but not in the spanning tree!)
+        //      |    |
+        // 3 -- 1 -- 5
+        //      |
+        //      4
+        for (int i = 0; i < 6; i++) {
+            assertEquals(0, connectivity.getComponentNumber(i));
+        }
+    }
+
+    @Test
+    void randomGraph() {
+        for (int size = 1; size < 100; size++) {
+            System.out.println(size);
+            for (int seed = 0; seed < 10; seed++) {
+                // generate graph
+                Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
+
+                // generate expected results based on NaiveGraphConnectivity
+                Sample<Integer, DefaultEdge> sample = new Sample<>(size, seed);
+                sample.buildingControlSample = true;
+                assertSameResultAsControlSample(graph, new NaiveGraphConnectivity<>(i -> i), sample);
+                sample.buildingControlSample = false;
+
+                // test others implementations produce same results as NaiveGraphConnectivity
+                List<GraphConnectivity<Integer, DefaultEdge>> toTest = List.of(
+                        new HolmEtAlWithoutLevelGraphConnectivity<>(),
+                        new HolmEtAlGraphConnectivity<>(),
+                        new DTreeGraphConnectivity<>()
+                );
+
+                for (GraphConnectivity<Integer, DefaultEdge> connectivity : toTest) {
+                    assertSameResultAsControlSample(graph, connectivity, sample);
+                }
+            }
+        }
+    }
+
+    private static <V, E> void assertSameResultAsControlSample(Graph<V, E> graph, GraphConnectivity<V, E> connectivity, Sample<V, E> sample) {
+        List<E> edges = new ArrayList<>(graph.edgeSet());
+
+        sample.beginTest();
+
+        boolean init = false;
+
+        // add all vertices
+        for (V vertex : graph.vertexSet()) {
+            connectivity.addVertex(vertex);
+            if (!init) {
+                connectivity.startTemporaryChanges();
+                init = true;
+            }
+
+            sample.checkAddVertex(connectivity, vertex);
+        }
+
+        // fully connect the graph
+        for (int i = 0; i < edges.size(); i++) {
+            E edge = edges.get(i);
+            connectivity.addEdge(graph.getEdgeSource(edge), graph.getEdgeTarget(edge), edge);
+            sample.checkAddEdge(connectivity, edge);
+
+            // check previously connected edges are still connected
+            for (int j = 0; j <= i; j++) {
+                E e2 = edges.get(j);
+                assertEquals(connectivity.getComponentNumber(graph.getEdgeSource(e2)),
+                        connectivity.getComponentNumber(graph.getEdgeTarget(e2)),
+                        e2.toString());
+            }
+        }
+
+        // check the graph is indeed fully connected
+        for (V v1 : graph.vertexSet()) {
+            for (V v2 : graph.vertexSet()) {
+                Assertions.assertEquals(connectivity.getComponentNumber(v1), connectivity.getComponentNumber(v2),
+                        "(size = " + sample.size + ", seed = " + sample.seed + ")");
+            }
+        }
+
+        // fully disconnect the graph
+        for (int i = 0; i < edges.size(); i++) {
+            E edge = edges.get(i);
+            connectivity.removeEdge(edge);
+            sample.checkRemoveEdge(connectivity, edge);
+        }
+
+        // check graph is indeed fully disconnected
+        for (E edge : edges) {
+            assertNotEquals(connectivity.getComponentNumber(graph.getEdgeSource(edge)),
+                    connectivity.getComponentNumber(graph.getEdgeTarget(edge)),
+                    edge.toString() + " isn't disconnected");
+        }
+
+        sample.endTest();
+    }
+
+    static class Sample<V, E> {
+
+        private final int size;
+        private final int seed;
+
+        private final List<Integer> nbConnectedComponents = new ArrayList<>();
+        private boolean buildingControlSample = true;
+        private int step = 0;
+
+        Sample(int size, int seed) {
+            this.size = size;
+            this.seed = seed;
+        }
+
+        public void check(GraphConnectivity<V, E> connectivity, String method) {
+            if (buildingControlSample) {
+                nbConnectedComponents.add(connectivity.getNbConnectedComponents());
+            } else {
+                assertEquals(nbConnectedComponents.get(step),
+                        connectivity.getNbConnectedComponents(),
+                        "%s at step = %d with %s (size = %d, seed = %d)"
+                                .formatted(method, step, connectivity.getClass().getSimpleName(), size, seed));
+            }
+            step++;
+        }
+
+        public void checkAddVertex(GraphConnectivity<V, E> connectivity, V vertex) {
+            check(connectivity, "addVertex(" + vertex + ")");
+        }
+
+        public void checkAddEdge(GraphConnectivity<V, E> connectivity, E edge) {
+            check(connectivity, "addEdge(" + edge + ")");
+        }
+
+        public void checkRemoveEdge(GraphConnectivity<V, E> connectivity, E edge) {
+            check(connectivity, "removeEdge(" + edge + ")");
+        }
+
+        public void beginTest() {
+            step = 0;
+        }
+
+        public void endTest() {
+            assertEquals(step, nbConnectedComponents.size(), "sample was not fully tested");
+        }
+    }
+
+    private Graph<Integer, DefaultEdge> generateGraph(int vertexCount, int seed) {
+        Graph<Integer, DefaultEdge> graph = new DefaultUndirectedGraph<>(
+                SupplierUtil.createIntegerSupplier(), SupplierUtil.createDefaultEdgeSupplier(),
+                false);
+
+        // https://mathworld.wolfram.com/Scale-FreeNetwork.html
+        // many vertices with low degree
+        // and many vertices with high degree
+        ScaleFreeGraphGenerator<Integer, DefaultEdge> gen =
+                new ScaleFreeGraphGenerator<>(vertexCount, new Random(seed));
+        gen.generateGraph(graph);
+
+        return graph;
+    }
+
     private static Stream<Arguments> provideNonRestrictedConnectivities() {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
-                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()));
+                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
+                Arguments.of(new DTreeGraphConnectivity<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
                 Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>()),
-                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()));
+                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlGraphConnectivity<>()),
+                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
+                Arguments.of(new DTreeGraphConnectivity<>()));
     }
 }

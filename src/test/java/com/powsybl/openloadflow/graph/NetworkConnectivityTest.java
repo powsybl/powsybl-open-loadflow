@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -41,6 +41,9 @@ class NetworkConnectivityTest {
     void testConnectivity() {
         testConnectivity(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
+        testConnectivity(new HolmEtAlGraphConnectivity<>());
+        testConnectivity(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testConnectivity(new DTreeGraphConnectivity<>());
     }
 
     @Test
@@ -49,6 +52,9 @@ class NetworkConnectivityTest {
         // created connected component.
         testReducedMainComponent(new NaiveGraphConnectivity<>(LfBus::getNum));
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
+        testReducedMainComponent(new HolmEtAlGraphConnectivity<>());
+        testReducedMainComponent(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testReducedMainComponent(new DTreeGraphConnectivity<>());
     }
 
     @Test
@@ -57,6 +63,9 @@ class NetworkConnectivityTest {
         testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
         testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
+        testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
+        testReaddEdge(new HolmEtAlWithoutLevelGraphConnectivity<>(), true);
+        testReaddEdge(new DTreeGraphConnectivity<>(), true);
     }
 
     @Test
@@ -80,6 +89,9 @@ class NetworkConnectivityTest {
         testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
         testNonConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
+        testNonConnectedComponents(new HolmEtAlGraphConnectivity<>());
+        testNonConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testNonConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     @Test
@@ -87,6 +99,9 @@ class NetworkConnectivityTest {
         testConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
         testConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
+        testConnectedComponents(new HolmEtAlGraphConnectivity<>());
+        testConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
