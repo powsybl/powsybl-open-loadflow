@@ -35,7 +35,7 @@ public final class Networks {
     }
 
     public static void resetState(Network network) {
-        for (Bus b : network.getBus stView().getBuses()) {
+        for (Bus b : network.getBusView().getBuses()) {
             b.setV(Double.NaN)
                     .setAngle(Double.NaN);
         }
