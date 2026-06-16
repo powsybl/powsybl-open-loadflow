@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.google.common.collect.Sets;
 import gnu.trove.set.hash.THashSet;
 
 import java.util.ArrayDeque;
