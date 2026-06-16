@@ -755,6 +755,23 @@ Moreover, network with the following characteristics are not supported:
 If any of these cases occurs, an exception describing the problem is thrown.
 ```
 
+(param-lf-allow-non-linear-shunt-zero-section)=
+### allowNonLinearShuntZeroSection
+
+In IIDM model, [Non-Linear Shunt Compensators](inv:powsyblcore:*:*:#shunt-compensator) have an implicit section zero representing the disconnection of the shunt compensator.
+
+This parameter defines whether the implicit section number zero for Non-Linear Shunt Compensators is allowed or not.
+
+If set to `true`, Non-Linear Shunt Compensators can use the implicit section zero.
+
+If set to `false`:
+- an input network containing a Non-Linear Shunt Compensator with a zero `sectionCount` results in an exception being thrown.
+- voltage regulation by Non-Linear Shunt Compensators will never make use of the section zero, i.e. `solvedSectionCount` will never be zero.
+To model disconnection, a section with B and G set to zero must be explicitly modeled in the table.
+
+The default value is `true`.
+
+
 ## Configuration file example
 See below an extract of a config file that could help:
 
