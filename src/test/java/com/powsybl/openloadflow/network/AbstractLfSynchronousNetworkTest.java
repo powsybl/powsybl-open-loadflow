@@ -107,7 +107,7 @@ public abstract class AbstractLfSynchronousNetworkTest {
         n.getGenerator("g3").remove(); // First synchronous component will have a reference generator, not the second one
 
         LfNetworkParameters params = new LfNetworkParameters()
-            .setReferenceBusSelector(ReferenceBusSelector.fromMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY));
+                .setReferenceBusSelector(ReferenceBusSelector.fromMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY));
 
         List<LfNetwork> lfNetworks = Networks.load(n, params);  // 2 LfNetwork as we do not have AC-DC networks
 
@@ -128,8 +128,8 @@ public abstract class AbstractLfSynchronousNetworkTest {
     void testSetExcludedSlackBusesFiltersOutBusesThatAreNotPartOfTheSynchronousComponent() {
         LfSynchronousNetwork synchronousNetwork = lfNetwork.getSynchronousNetwork(0);
         Set<LfBus> excludedSlackBuses = Set.of(
-            lfNetwork.getBusById("b1_vl_0"), // Belongs to this synchronous network
-            lfNetwork.getBusById("b2_vl_0") // Does not belong to this synchronous network
+                lfNetwork.getBusById("b1_vl_0"), // Belongs to this synchronous network
+                lfNetwork.getBusById("b2_vl_0") // Does not belong to this synchronous network
         );
 
         synchronousNetwork.setExcludedSlackBuses(excludedSlackBuses);

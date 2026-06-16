@@ -162,8 +162,7 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
         // return directly to prevent an infinite loop.
         if (slackBuses == null && referenceBus == null) {
             List<LfBus> scBuses = getBuses();
-            List<LfBus> selectableBuses =
-                excludedSlackBuses.isEmpty() ? scBuses :
+            List<LfBus> selectableBuses = excludedSlackBuses.isEmpty() ? scBuses :
                     scBuses.stream().filter(bus -> !excludedSlackBuses.contains(bus)).toList();
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(selectableBuses, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();

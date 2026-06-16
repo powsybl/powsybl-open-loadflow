@@ -30,11 +30,11 @@ import java.util.stream.Stream;
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public abstract class AbstractAreaInterchangeControlOuterLoop<
-        V extends Enum<V> & Quantity,
-        E extends Enum<E> & Quantity,
-        P extends AbstractLoadFlowParameters<P>,
-        C extends LoadFlowContext<V, E, P>,
-        O extends AbstractOuterLoopContext<V, E, P, C>>
+            V extends Enum<V> & Quantity,
+            E extends Enum<E> & Quantity,
+            P extends AbstractLoadFlowParameters<P>,
+            C extends LoadFlowContext<V, E, P>,
+            O extends AbstractOuterLoopContext<V, E, P, C>>
         extends AbstractActivePowerDistributionOuterLoop<V, E, P, C, O> {
 
     public static final String NAME = "AreaInterchangeControl";

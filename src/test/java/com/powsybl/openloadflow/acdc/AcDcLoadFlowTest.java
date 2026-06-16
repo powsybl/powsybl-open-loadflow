@@ -60,40 +60,40 @@ class AcDcLoadFlowTest {
 
         // Converter with only idle loss
         vl2.newVoltageSourceConverter()
-            .setIdleLoss(2)
-            .setSwitchingLoss(0)
-            .setResistiveLoss(0)
-            .setControlMode(AcDcConverter.ControlMode.P_PCC)
-            .setTargetP(50.)
-            .setId("conv23")
-            .setBus1("b2")
-            .setDcNode1("dn3")
-            .setDcNode2("dnDummy3")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
-            .add();
+                .setIdleLoss(2)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
 
         // Converter without losses
         vl5.newVoltageSourceConverter()
-            .setIdleLoss(0)
-            .setSwitchingLoss(0)
-            .setResistiveLoss(0)
-            .setControlMode(AcDcConverter.ControlMode.V_DC)
-            .setTargetVdc(400.)
-            .setId("conv45")
-            .setBus1("b5")
-            .setDcNode1("dn4")
-            .setDcNode2("dnDummy4")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
-            .add();
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
 
         parametersExt
-            .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -112,37 +112,37 @@ class AcDcLoadFlowTest {
 
         // Converter with only switching losses
         vl2.newVoltageSourceConverter()
-            .setIdleLoss(0)
-            .setSwitchingLoss(0.01)
-            .setResistiveLoss(0)
-            .setControlMode(AcDcConverter.ControlMode.P_PCC)
-            .setTargetP(50.)
-            .setId("conv23")
-            .setBus1("b2")
-            .setDcNode1("dn3")
-            .setDcNode2("dnDummy3")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
-            .add();
+                .setIdleLoss(0)
+                .setSwitchingLoss(0.01)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
 
         // Converter without losses
         vl5.newVoltageSourceConverter()
-            .setIdleLoss(0)
-            .setSwitchingLoss(0)
-            .setResistiveLoss(0)
-            .setControlMode(AcDcConverter.ControlMode.V_DC)
-            .setTargetVdc(400.)
-            .setId("conv45")
-            .setBus1("b5")
-            .setDcNode1("dn4")
-            .setDcNode2("dnDummy4")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
-            .add();
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
 
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -164,37 +164,37 @@ class AcDcLoadFlowTest {
 
         // Converter with only resistive losses
         vl2.newVoltageSourceConverter()
-            .setIdleLoss(0)
-            .setSwitchingLoss(0)
-            .setResistiveLoss(5)
-            .setControlMode(AcDcConverter.ControlMode.P_PCC)
-            .setTargetP(50.)
-            .setId("conv23")
-            .setBus1("b2")
-            .setDcNode1("dn3")
-            .setDcNode2("dnDummy3")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
-            .add();
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(5)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
 
         // Converter without losses
         vl5.newVoltageSourceConverter()
-            .setIdleLoss(0)
-            .setSwitchingLoss(0)
-            .setResistiveLoss(0)
-            .setControlMode(AcDcConverter.ControlMode.V_DC)
-            .setTargetVdc(400.)
-            .setId("conv45")
-            .setBus1("b5")
-            .setDcNode1("dn4")
-            .setDcNode2("dnDummy4")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
-            .add();
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
 
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -217,17 +217,17 @@ class AcDcLoadFlowTest {
 
         // We add an AC line to connect the two synchronous components
         network.newLine()
-            .setId("acLine")
-            .setBus1("BUS-FR")
-            .setConnectableBus1("BUS-FR")
-            .setBus2("BUS-GB")
-            .setConnectableBus2("BUS-GB")
-            .setR(1)
-            .setX(5)
-            .add();
+                .setId("acLine")
+                .setBus1("BUS-FR")
+                .setConnectableBus1("BUS-FR")
+                .setBus2("BUS-GB")
+                .setConnectableBus2("BUS-GB")
+                .setR(1)
+                .setX(5)
+                .add();
 
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-            .setSlackBusId("BUS-FR");
+                .setSlackBusId("BUS-FR");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -299,17 +299,17 @@ class AcDcLoadFlowTest {
 
         // We add an AC line to connect the two synchronous components
         network.newLine()
-            .setId("acLine")
-            .setBus1("BUS-FR")
-            .setConnectableBus1("BUS-FR")
-            .setBus2("BUS-GB")
-            .setConnectableBus2("BUS-GB")
-            .setR(1)
-            .setX(5)
-            .add();
+                .setId("acLine")
+                .setBus1("BUS-FR")
+                .setConnectableBus1("BUS-FR")
+                .setBus2("BUS-GB")
+                .setConnectableBus2("BUS-GB")
+                .setR(1)
+                .setX(5)
+                .add();
 
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-            .setSlackBusId("BUS-FR");
+                .setSlackBusId("BUS-FR");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isFullyConverged());
@@ -420,7 +420,7 @@ class AcDcLoadFlowTest {
         // The slack bus is located to another AC bus
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-            .setSlackBusId("vl2_0");
+                .setSlackBusId("vl2_0");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -657,7 +657,7 @@ class AcDcLoadFlowTest {
         assertTrue(result.isFailed());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
         assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 30.00 MW remains",
-            result.getComponentResults().getFirst().getStatusText());
+                result.getComponentResults().getFirst().getStatusText());
     }
 
     @Test
@@ -687,7 +687,7 @@ class AcDcLoadFlowTest {
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
         double dcLineLosses = network.getDcLineStream().map(
-            dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
+                dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
@@ -724,7 +724,7 @@ class AcDcLoadFlowTest {
         VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
 
         assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP()
-            + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
+                + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
         assertActivePowerEquals(20, ld1.getTerminal());
         assertActivePowerEquals(-60.000, g1.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(70, conv14.getTerminal1());
@@ -739,7 +739,7 @@ class AcDcLoadFlowTest {
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
         double dcLineLosses = network.getDcLineStream().map(
-            dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
+                dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
@@ -776,9 +776,9 @@ class AcDcLoadFlowTest {
         VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
 
         assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP()
-            + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
+                + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
         double dcLineLosses = network.getDcLineStream().map(
-            dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
+                dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
         assertActivePowerEquals(100, ld2.getTerminal());
         assertActivePowerEquals(-(40 + dcLineLosses / 2), g2.getTerminal());  // TargetP was initially set to 50
         assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
@@ -861,30 +861,30 @@ class AcDcLoadFlowTest {
 
         // Uniform values initializer
         LoadFlowParameters parameters1 = new LoadFlowParameters()
-            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
         OpenLoadFlowParameters.create(parameters1)
-            .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-            .setAcDcNetwork(true);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
 
         LoadFlowResult result1 = loadFlowRunner.run(network, parameters1);
         assertTrue(result1.isFullyConverged());
 
         // Previous values initializer
         LoadFlowParameters parameters2 = new LoadFlowParameters()
-            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         OpenLoadFlowParameters.create(parameters2)
-            .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-            .setAcDcNetwork(true);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
 
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters2);
         assertTrue(result2.isFullyConverged());
 
         // DC initializer (should throw exception)
         LoadFlowParameters parameters3 = new LoadFlowParameters()
-            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         OpenLoadFlowParameters.create(parameters3)
-            .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-            .setAcDcNetwork(true);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
 
         CompletionException e3 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters3));
         assertEquals("DC initialization is not yet supported with AcDcNetwork", e3.getCause().getMessage());
@@ -892,9 +892,9 @@ class AcDcLoadFlowTest {
         // Voltage magnitude override (should throw exception)
         LoadFlowParameters parameters4 = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters4)
-            .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.VOLTAGE_MAGNITUDE)
-            .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-            .setAcDcNetwork(true);
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.VOLTAGE_MAGNITUDE)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
 
         CompletionException e4 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters4));
         assertEquals("Voltage magnitude initialization is not yet supported with AcDcNetwork", e4.getCause().getMessage());
@@ -902,9 +902,9 @@ class AcDcLoadFlowTest {
         // Full voltage override (should throw exception)
         LoadFlowParameters parameters5 = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters5)
-            .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
-            .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-            .setAcDcNetwork(true);
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
 
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters5));
         assertEquals("Full voltage initialization is not yet supported with AcDcNetwork", e5.getCause().getMessage());
@@ -917,33 +917,33 @@ class AcDcLoadFlowTest {
 
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
         vl2.getBusBreakerView().newBus()
-            .setId("b2bis")
-            .add();
+                .setId("b2bis")
+                .add();
         network.newLine()
-            .setId("l12bis")
-            .setBus1("b1")
-            .setBus2("b2bis")
-            .setR(1)
-            .setX(3)
-            .add();
+                .setId("l12bis")
+                .setBus1("b1")
+                .setBus2("b2bis")
+                .setR(1)
+                .setX(3)
+                .add();
 
         network.getVoltageSourceConverter("conv23").remove();
         vl2.newVoltageSourceConverter()
-            .setIdleLoss(0.5)
-            .setSwitchingLoss(0.001)
-            .setResistiveLoss(1)
-            .setControlMode(AcDcConverter.ControlMode.P_PCC)
-            .setTargetP(-50.)
-            .setId("conv23")
-            .setBus1("b2")
-            .setBus2("b2bis")
-            .setDcNode1("dn3")
-            .setDcNode2("dnDummy3")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
-            .add();
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setBus2("b2bis")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
@@ -959,20 +959,20 @@ class AcDcLoadFlowTest {
 
         network.getVoltageSourceConverter("conv23").remove();
         vl2.newLineCommutatedConverter()
-            .setIdleLoss(0.5)
-            .setSwitchingLoss(0.001)
-            .setResistiveLoss(1)
-            .setControlMode(AcDcConverter.ControlMode.P_PCC)
-            .setTargetP(-50.)
-            .setId("conv23")
-            .setBus1("b2")
-            .setDcNode1("dn3")
-            .setDcNode2("dnDummy3")
-            .setDcConnected1(true)
-            .setDcConnected2(true)
-            .setReactiveModel(LineCommutatedConverter.ReactiveModel.FIXED_POWER_FACTOR)
-            .setPowerFactor(0.89443)
-            .add();
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setReactiveModel(LineCommutatedConverter.ReactiveModel.FIXED_POWER_FACTOR)
+                .setPowerFactor(0.89443)
+                .add();
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
@@ -986,8 +986,8 @@ class AcDcLoadFlowTest {
 
         // Change control mode of one VSC. Thus, one DC component is valid but the second one is not
         network.getVoltageSourceConverter("conv56")
-            .setTargetP(50)
-            .setControlMode(AcDcConverter.ControlMode.P_PCC);
+                .setTargetP(50)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC);
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));

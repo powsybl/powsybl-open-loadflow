@@ -302,11 +302,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         // Create a new LfSynchronousNetwork if this bus belongs to a synchronous component not stored yet
         if (!synchronousNetworks.stream().map(LfSynchronousNetwork::getNumSC).toList().contains(bus.getNumSC())) {
             synchronousNetworks.add(new LfSynchronousNetworkImpl(
-                this,
-                bus.getNumSC(),
-                slackBusSelector,
-                referenceBusSelector,
-                maxSlackBusCount
+                    this,
+                    bus.getNumSC(),
+                    slackBusSelector,
+                    referenceBusSelector,
+                    maxSlackBusCount
             ));
         }
 
@@ -443,9 +443,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             LOGGER.debug("Switches status update: {} closed and {} opened", updateReport.closedSwitchCount, updateReport.openedSwitchCount);
         }
         if (updateReport.connectedBranchSide1Count + updateReport.disconnectedBranchSide1Count
-            + updateReport.connectedBranchSide2Count + updateReport.disconnectedBranchSide2Count > 0) {
+                + updateReport.connectedBranchSide2Count + updateReport.disconnectedBranchSide2Count > 0) {
             LOGGER.debug("Branches connection status update: {} connected side 1, {} disconnected side1, {} connected side 2, {} disconnected side 2",
-                updateReport.connectedBranchSide1Count, updateReport.disconnectedBranchSide1Count, updateReport.connectedBranchSide2Count, updateReport.disconnectedBranchSide2Count);
+                    updateReport.connectedBranchSide1Count, updateReport.disconnectedBranchSide1Count, updateReport.connectedBranchSide2Count, updateReport.disconnectedBranchSide2Count);
         }
 
         stopwatch.stop();
@@ -564,8 +564,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         Objects.requireNonNull(writer);
         updateSlackBusesAndReferenceBus();
         try (JsonGenerator jsonGenerator = new JsonFactory()
-            .createGenerator(writer)
-            .useDefaultPrettyPrinter()) {
+                .createGenerator(writer)
+                .useDefaultPrettyPrinter()) {
             jsonGenerator.writeStartObject();
 
             jsonGenerator.writeFieldName("buses");
@@ -647,10 +647,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         }
         if (fictitiousTargetPNormInf + fictitiousTargetQNormInf > 0) {
             Reports.reportFictitiousInjectionTotal(reportNode,
-                fictitiousTargetPNormInf * PerUnit.SB,
-                fictitiousTargetQNormInf * PerUnit.SB,
-                busCount,
-                LOGGER);
+                    fictitiousTargetPNormInf * PerUnit.SB,
+                    fictitiousTargetQNormInf * PerUnit.SB,
+                    busCount,
+                    LOGGER);
         }
     }
 
@@ -679,16 +679,16 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         } else {
             // zero impedance controlling or controlled branch is not supported
             branches.stream()
-                .filter(b -> b.isPhaseController() || b.isPhaseControlled()
-                    || b.isVoltageController()
-                    || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
-                    || b.getGeneratorReactivePowerControl().isPresent())
-                .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
+                    .filter(b -> b.isPhaseController() || b.isPhaseControlled()
+                            || b.isVoltageController()
+                            || b.isTransformerReactivePowerController() || b.isTransformerReactivePowerControlled()
+                            || b.getGeneratorReactivePowerControl().isPresent())
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
             // zero impedance boundary branch is not supported
             areas.stream()
-                .flatMap(a -> a.getBoundaries().stream())
-                .map(LfArea.Boundary::getBranch)
-                .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
+                    .flatMap(a -> a.getBoundaries().stream())
+                    .map(LfArea.Boundary::getBranch)
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
@@ -778,8 +778,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             connectivity = Objects.requireNonNull(connectivityFactory.create());
             getBuses().forEach(connectivity::addVertex);
             getBranches().stream()
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
+                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
             connectivity.setMainComponentVertex(synchronousNetworks.getFirst().getSlackBuses().getFirst());
             // this is necessary to create a first temporary changes level in order to allow
             // some outer loop to change permanently the connectivity (with automation systems for instance)
@@ -841,18 +841,18 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             }
             boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
                 k -> getConnectivity().getConnectedComponent(notControlledSide).stream()
-                    .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
+                        .noneMatch(bus -> bus.isGeneratorVoltageControlled() && bus.isGeneratorVoltageControlEnabled()));
             if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
-                    branch.getId());
+                        branch.getId());
                 disabledTransformerCount++;
             }
         }
         getConnectivity().undoTemporaryChanges();
         if (disabledTransformerCount > 0) {
             LOGGER.warn("{} transformer voltage controls have been disabled because no PV buses on not controlled side connected component",
-                disabledTransformerCount);
+                    disabledTransformerCount);
         }
     }
 
@@ -875,9 +875,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     public String getId() {
         String numSCs = synchronousNetworks.stream()
-            .map(LfSynchronousNetwork::getNumSC)
-            .map(String::valueOf)
-            .collect(Collectors.joining(","));
+                .map(LfSynchronousNetwork::getNumSC)
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
         return "{CC" + numCC + " SC" + numSCs + '}';
     }
 
@@ -892,8 +892,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public Optional<LfSecondaryVoltageControl> getSecondaryVoltageControl(String controlZoneName) {
         Objects.requireNonNull(controlZoneName);
         return secondaryVoltageControls.stream()
-            .filter(lfSvc -> lfSvc.getZoneName().equals(controlZoneName))
-            .findFirst();
+                .filter(lfSvc -> lfSvc.getZoneName().equals(controlZoneName))
+                .findFirst();
     }
 
     private static boolean filterSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
@@ -902,8 +902,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     public List<LfSecondaryVoltageControl> getEnabledSecondaryVoltageControls() {
         return secondaryVoltageControls.stream()
-            .filter(LfNetwork::filterSecondaryVoltageControl)
-            .toList();
+                .filter(LfNetwork::filterSecondaryVoltageControl)
+                .toList();
     }
 
     public void addVoltageAngleLimit(LfVoltageAngleLimit limit) {
@@ -917,21 +917,21 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     @SuppressWarnings("unchecked")
     public <E extends LfElement> List<E> getControllerElements(VoltageControl.Type type) {
         return busesByIndex.stream()
-            .filter(bus -> bus.isVoltageControlled(type))
-            .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-            .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
-            .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
-            .filter(Predicate.not(LfElement::isDisabled))
-            .map(element -> (E) element)
-            .toList();
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
+                .filter(Predicate.not(LfElement::isDisabled))
+                .map(element -> (E) element)
+                .toList();
     }
 
     public List<LfBus> getControlledBuses(VoltageControl.Type type) {
         return busesByIndex.stream()
-            .filter(bus -> bus.isVoltageControlled(type))
-            .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-            .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
-            .toList();
+                .filter(bus -> bus.isVoltageControlled(type))
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                .filter(bus -> bus.getVoltageControl(type).orElseThrow().isVisible())
+                .toList();
     }
 
     public void addOverloadManagementSystem(LfOverloadManagementSystem overloadManagementSystem) {

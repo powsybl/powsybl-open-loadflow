@@ -89,8 +89,8 @@ public class NewtonRaphson extends AbstractAcSolver {
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
 
             testResult = svScaling.applyAfter(equationSystem, equationVector, targetVector,
-                    parameters.getStoppingCriteria(), testResult,
-                    iterationReportNode);
+                                              parameters.getStoppingCriteria(), testResult,
+                                              iterationReportNode);
 
             return reportAndReturnStatus(LOGGER, testResult, iterationReportNode);
         } finally {

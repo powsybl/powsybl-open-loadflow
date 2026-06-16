@@ -74,15 +74,15 @@ class LfNetworkTest extends AbstractSerDeTest {
     void test() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         network.getVoltageLevel("VLLOAD").newShuntCompensator()
-            .setId("SC")
-            .setBus("NLOAD")
-            .setConnectableBus("NLOAD")
-            .setSectionCount(1)
-            .newLinearModel()
-            .setBPerSection(3.25 * Math.pow(10, -3))
-            .setMaximumSectionCount(1)
-            .add()
-            .add();
+                .setId("SC")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setBPerSection(3.25 * Math.pow(10, -3))
+                    .setMaximumSectionCount(1)
+                    .add()
+                .add();
 
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
@@ -99,16 +99,16 @@ class LfNetworkTest extends AbstractSerDeTest {
         Network network = PhaseShifterTestCaseFactory.create();
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
         ps1.getPhaseTapChanger()
-            .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
-            .setTargetDeadband(1)
-            .setRegulating(true)
-            .setTapPosition(1)
-            .setRegulationTerminal(ps1.getTerminal1())
-            .setRegulationValue(83);
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal1())
+                .setRegulationValue(83);
 
         LfNetworkParameters parameters = new LfNetworkParameters()
-            .setSlackBusSelector(new MostMeshedSlackBusSelector())
-            .setPhaseControl(true);
+                .setSlackBusSelector(new MostMeshedSlackBusSelector())
+                .setPhaseControl(true);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());
@@ -195,7 +195,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
-            .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -292,10 +292,10 @@ class LfNetworkTest extends AbstractSerDeTest {
     void testElements() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
-            .withDroop(180)
-            .withP0(0.f)
-            .withEnabled(true)
-            .add();
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals("b1_vl_0", mainNetwork.getElement(ElementType.BUS, 0).getId());
@@ -372,11 +372,11 @@ class LfNetworkTest extends AbstractSerDeTest {
         // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction2 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction3 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
         LimitReductionManager limitReductionManager = new LimitReductionManager();
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
@@ -425,7 +425,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         // No reduction applies because the line isn't within the nominal voltage range => all values equals to 1.
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction0 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(100., 200.), true, null, 0.5);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(100., 200.), true, null, 0.5);
         LimitReductionManager limitReductionManager0 = new LimitReductionManager();
         limitReductionManager0.addTerminalLimitReduction(terminalLimitReduction0);
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager0, branch.getNullableCurrentLimits1());
@@ -437,7 +437,7 @@ class LfNetworkTest extends AbstractSerDeTest {
         // No reductions because only current limits are supported
         branch.getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(100.).add();
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(0., Double.MAX_VALUE), true, null, 0.5);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(0., Double.MAX_VALUE), true, null, 0.5);
         LimitReductionManager limitReductionManager1 = new LimitReductionManager();
         limitReductionManager1.addTerminalLimitReduction(terminalLimitReduction1);
         reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, branch.getNullableActivePowerLimits1());
@@ -455,14 +455,14 @@ class LfNetworkTest extends AbstractSerDeTest {
         // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction2 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction3 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
         // The following reduction overlaps `terminalLimitReduction2` for temporary limits which acceptable duration is in [0,30] seconds.
         LimitReductionManager.TerminalLimitReduction terminalLimitReduction4 =
-            new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 30), 0.87);
+                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 30), 0.87);
         LimitReductionManager limitReductionManager = new LimitReductionManager();
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
         limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);

@@ -1112,11 +1112,11 @@ public final class Reports {
                 .add();
 
         busesOutOfRealisticVoltageRange.forEach((id, voltage) -> voltageOutOfRangeReport.newReportNode()
-                .withMessageTemplate("olf.newtonRaphsonBusesOutOfRealisticVoltageRangeDetails")
-                .withUntypedValue(BUS_ID, id)
-                .withUntypedValue("voltage", voltage)
-                .withSeverity(TypedValue.TRACE_SEVERITY)
-                .add());
+            .withMessageTemplate("olf.newtonRaphsonBusesOutOfRealisticVoltageRangeDetails")
+            .withUntypedValue(BUS_ID, id)
+            .withUntypedValue("voltage", voltage)
+            .withSeverity(TypedValue.TRACE_SEVERITY)
+            .add());
     }
 
     public static void reportAngleReferenceBusAndSlackBuses(ReportNode reportNode, String referenceBus, List<String> slackBuses) {

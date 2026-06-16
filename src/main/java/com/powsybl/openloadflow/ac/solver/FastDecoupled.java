@@ -297,8 +297,8 @@ public class FastDecoupled extends AbstractAcSolver {
         MutableInt iterations = new MutableInt();
 
         try (
-                JacobianMatrixFastDecoupled jPhiRes = initPhiJacobianMatrix(rangeIndex);
-                JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
+            JacobianMatrixFastDecoupled jPhiRes = initPhiJacobianMatrix(rangeIndex);
+            JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
         ) {
             // initialize state vector
             AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);

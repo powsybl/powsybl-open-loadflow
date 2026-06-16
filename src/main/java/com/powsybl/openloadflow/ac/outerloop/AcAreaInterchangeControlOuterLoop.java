@@ -22,8 +22,8 @@ import org.slf4j.LoggerFactory;
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
 public class AcAreaInterchangeControlOuterLoop
-    extends AbstractAreaInterchangeControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
-    implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
+        extends AbstractAreaInterchangeControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+        implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcAreaInterchangeControlOuterLoop.class);
 

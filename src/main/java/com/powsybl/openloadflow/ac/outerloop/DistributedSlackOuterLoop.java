@@ -31,8 +31,8 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class DistributedSlackOuterLoop
-    extends AbstractActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
-    implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
+        extends AbstractActivePowerDistributionOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+        implements AcOuterLoop, AcActivePowerDistributionOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
 
@@ -99,11 +99,11 @@ public class DistributedSlackOuterLoop
         ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         ActivePowerDistribution.Result result = activePowerDistribution.run(lfScNetwork, slackBusActivePowerMismatch);
         ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
-            context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior(),
-            lfScNetwork.getReferenceGenerator(),
-            slackBusActivePowerMismatch,
-            result,
-            "Failed to distribute slack bus active power mismatch, %.2f MW remains"
+                context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior(),
+                lfScNetwork.getReferenceGenerator(),
+                slackBusActivePowerMismatch,
+                result,
+                "Failed to distribute slack bus active power mismatch, %.2f MW remains"
         );
         double remainingMismatch = resultWbh.remainingMismatch();
         double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;

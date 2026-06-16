@@ -89,16 +89,16 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     @Override
     public String toString() {
         Map<Integer, Double> slackBusActivePowerMismatchRealUnit = slackBusActivePowerMismatch.entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() * PerUnit.SB));
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() * PerUnit.SB));
         Map<Integer, Double> distributedActivePowerRealUnit = distributedActivePower.entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() * PerUnit.SB));
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() * PerUnit.SB));
 
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
-            + ", solverIterations=" + solverIterations
-            + ", solverStatus=" + solverStatus
-            + ", outerLoopStatus=" + outerLoopResult.status()
-            + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatchRealUnit
-            + ", distributedActivePower=" + distributedActivePowerRealUnit
-            + ")";
+                + ", solverIterations=" + solverIterations
+                + ", solverStatus=" + solverStatus
+                + ", outerLoopStatus=" + outerLoopResult.status()
+                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatchRealUnit
+                + ", distributedActivePower=" + distributedActivePowerRealUnit
+                + ")";
     }
 }
