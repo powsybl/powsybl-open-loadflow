@@ -97,6 +97,107 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
+    protected Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
+        // first determine the excluded tree: either the tree containing
+        // the mainComponentVertex, either the biggest tree
+        Graph<V, E> graph = getGraph();
+        Graph<V, E>.DTNode excludedTree = getMainComponentRoot(mainComponentVertex);
+
+        return new AbstractSetView<>() {
+            @Override
+            public Iterator<V> iterator() {
+                return new VerticesNotInMainComponentIterator(excludedTree);
+            }
+
+            @Override
+            public boolean contains(Object o) {
+                if (o != null) {
+                    return graph.rootOf((V) o) != excludedTree;
+                }
+
+                return false;
+            }
+
+            @Override
+            public int size() {
+                // this can be computed once
+                int size = 0;
+                for (Graph<V, E>.DTNode root : graph.roots) {
+                    if (root != excludedTree) {
+                        size += root.size;
+                    }
+                }
+
+                return size;
+            }
+        };
+    }
+
+    private class VerticesNotInMainComponentIterator implements Iterator<V> {
+
+        private final Graph<V, E>.DTNode excludedTree;
+        private int index = 0;
+        private Iterator<V> curIt;
+
+        VerticesNotInMainComponentIterator(Graph<V, E>.DTNode excludedTree) {
+            this.excludedTree = excludedTree;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (curIt != null && curIt.hasNext()) {
+                return true;
+            }
+
+            Graph<V, E> graph = getGraph();
+            while (index < graph.roots.size()) {
+                Graph<V, E>.DTNode next = graph.roots.get(index);
+                index++;
+
+                if (next != excludedTree) {
+                    curIt = getGraph().iterator(next);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Override
+        public V next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+
+            return curIt.next();
+        }
+    }
+
+    /**
+     * @param mainComponentVertex a vertex in the main component tree, may be null
+     * @return the root of the tree containing mainComponentVertex, if not null,
+     * or the root of the biggest tree
+     */
+    private Graph<V, E>.DTNode getMainComponentRoot(V mainComponentVertex) {
+        Graph<V, E> graph = getGraph();
+
+        if (mainComponentVertex != null) {
+            return graph.rootOf(mainComponentVertex);
+        } else {
+            Graph<V, E>.DTNode biggestRoot = graph.roots.getFirst();
+
+            for (int i = 1; i < graph.roots.size(); i++) {
+                Graph<V, E>.DTNode root = graph.roots.get(i);
+                if (root.size > biggestRoot.size) {
+                    biggestRoot = root;
+                }
+            }
+
+            return biggestRoot;
+        }
+    }
+
+    @Override
     public boolean supportTemporaryChangesNesting() {
         return true;
     }
@@ -367,6 +468,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
+        public Iterator<V> iterator(DTNode root) {
+            return new DFSIterator(root);
+        }
+
         @Override
         public void addVertex(V v) {
             if (containsVertex(v)) {
@@ -618,7 +723,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return new AbstractSetView<>() {
                     @Override
                     public Iterator<V> iterator() {
-                        return new DFSIterator();
+                        return new DFSIterator(DTNode.this);
                     }
 
                     @Override
@@ -635,46 +740,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                         return size;
                     }
                 };
-            }
-
-            private class DFSIterator implements Iterator<V> {
-
-                private DTNode cursor;
-
-                DFSIterator() {
-                    cursor = DTNode.this;
-                }
-
-                @Override
-                public boolean hasNext() {
-                    return cursor != null;
-                }
-
-                @Override
-                public V next() {
-                    if (!hasNext()) {
-                        throw new NoSuchElementException();
-                    }
-
-                    DTNode next = cursor;
-
-                    // update cursor
-                    if (cursor.firstChild != null) {
-                        cursor = cursor.firstChild;
-                    } else if (cursor.nextSibling != null) {
-                        cursor = cursor.nextSibling;
-                    } else {
-                        while (cursor != null && cursor.nextSibling == null) {
-                            cursor = cursor.parent;
-                        }
-
-                        if (cursor != null) {
-                            cursor = cursor.nextSibling;
-                        }
-                    }
-
-                    return next.vertex;
-                }
             }
 
             @Override
@@ -709,6 +774,46 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 return sb.toString();
+            }
+        }
+
+        private class DFSIterator implements Iterator<V> {
+
+            private DTNode cursor;
+
+            DFSIterator(DTNode root) {
+                cursor = root;
+            }
+
+            @Override
+            public boolean hasNext() {
+                return cursor != null;
+            }
+
+            @Override
+            public V next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
+                DTNode next = cursor;
+
+                // update cursor
+                if (cursor.firstChild != null) {
+                    cursor = cursor.firstChild;
+                } else if (cursor.nextSibling != null) {
+                    cursor = cursor.nextSibling;
+                } else {
+                    while (cursor != null && cursor.nextSibling == null) {
+                        cursor = cursor.parent;
+                    }
+
+                    if (cursor != null) {
+                        cursor = cursor.nextSibling;
+                    }
+                }
+
+                return next.vertex;
             }
         }
     }
