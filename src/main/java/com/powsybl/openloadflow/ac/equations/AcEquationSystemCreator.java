@@ -1232,6 +1232,10 @@ public class AcEquationSystemCreator {
      * branchInjectionAtSlackBus - branchInjectionAtFirstSlackBus = generatorLoadInjectionAtSlackBus - generatorLoadInjectionAtFirstSlackBus
      */
     private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        // In case of AC-DC load flow, there might be several synchronous component in the LfNetwork.
+        // As active power mismatch at slack buses is processed by each synchronous component individually, we must
+        // create equations for each synchronous component individually.
+        // In case of a classic load flow (with only AC components), this loop will therefore have only one iteration.
         for (LfSynchronousNetwork lfScNetwork : network.getSynchronousNetworks()) {
 
             List<LfBus> slackBuses = lfScNetwork.getSlackBuses();

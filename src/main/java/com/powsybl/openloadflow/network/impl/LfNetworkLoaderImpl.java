@@ -1050,7 +1050,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * @param lfNetworkByCc A map providing access to a LfNetwork by its connected component id.
      * @param switches      A list of switches to add in the LfNetwork representation.
      * @param topoConfig    Topology configuration: openable branches, switch to open/close, etc...
-     * @param parameters    Parameters specific to OpenLoadFlow.
+     * @param parameters    Parameters specific to LfNetwork.
      * @param reportNode    A report node object.
      */
     private void addSynchronousComponentElements(int numCc, int numSc, Network network, List<Bus> buses, Map<Integer, LfNetwork> lfNetworkByCc, List<Switch> switches, LfTopoConfig topoConfig, LfNetworkParameters parameters, ReportNode reportNode) {
@@ -1074,7 +1074,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * @param buses      A list of buses belonging to the same synchronous component.
      * @param switches   A list of switches to add in the LfNetwork representation.
      * @param topoConfig Topology configuration: openable branches, switch to open/close, etc...
-     * @param parameters Parameters specific to OpenLoadFlow.
+     * @param parameters Parameters specific to LfNetwork.
      * @param reportNode A report node object.
      * @return A LfNetwork filled with elements from the synchronous component.
      */
@@ -1093,7 +1093,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * @param buses      A list of buses belonging to the same synchronous component.
      * @param switches   A list of switches to add in the LfNetwork representation.
      * @param topoConfig Topology configuration: openable branches, switch to open/close, etc...
-     * @param parameters Parameters specific to OpenLoadFlow.
+     * @param parameters Parameters specific to LfNetwork.
      * @param reportNode a report node object.
      * @return The lfNetwork with new elements from the synchronous component.
      */
@@ -1286,7 +1286,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
      * @param network       The iidm representation of the network.
      * @param dcBuses       A list of DC buses belonging to the same DC component.
      * @param lfNetworkByCc A map providing access to a LfNetwork by its connected component id.
-     * @param parameters    Parameters specific to OpenLoadFlow.
+     * @param parameters    Parameters specific to LfNetwork.
      */
     private void addDcComponentElements(int numCc, int numDcc, Network network, List<DcBus> dcBuses, Map<Integer, LfNetwork> lfNetworkByCc, LfNetworkParameters parameters) {
         if (lfNetworkByCc.containsKey(numCc)) {

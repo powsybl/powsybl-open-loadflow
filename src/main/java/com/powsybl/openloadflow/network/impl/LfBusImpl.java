@@ -52,13 +52,10 @@ public class LfBusImpl extends AbstractLfBus {
     // Lazy initialiation
     private ViolationLocation violationLocation = null;
 
-    private final int numSC;
-
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
-        super(network, v, angle, parameters);
+        super(network, v, angle, bus.getSynchronousComponent().getNum(), parameters);
         this.busRef = Ref.create(bus, parameters.isCacheEnabled());
-        numSC = bus.getSynchronousComponent().getNum();
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
@@ -242,10 +239,5 @@ public class LfBusImpl extends AbstractLfBus {
             };
         }
         return violationLocation;
-    }
-
-    @Override
-    public int getNumSC() {
-        return numSC;
     }
 }

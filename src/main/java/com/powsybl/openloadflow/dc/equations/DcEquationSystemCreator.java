@@ -45,7 +45,7 @@ public class DcEquationSystemCreator {
             }
             // The P balance equation is only disabled for the first slack bus per synchronous component. In case of multi-slack, target vector will be updated for the other slack buses
             LfSynchronousNetwork sc = network.getSynchronousNetwork(bus.getNumSC());
-            if (!sc.getSlackBuses().isEmpty() && sc.getSlackBuses().getFirst() == bus) {
+            if (sc.getSlackBuses().getFirst() == bus) {
                 p.setActive(false);
             }
         }
