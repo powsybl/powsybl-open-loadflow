@@ -520,6 +520,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         rhs.set(variableEquation.getColumn(), getIndex(), 1d);
                     }
                     break;
+                case SHUNT_COMPENSATOR_SUSCEPTANCE:
+                    LfBus shuntLfBus = (LfBus) variableElement;
+                    double vShunt = shuntLfBus.getV();
+                    addBusReactiveInjection(rhs, shuntLfBus, vShunt * vShunt);
+                    break;
                 default:
                     throw createVariableTypeNotImplementedException(variableType);
             }
@@ -965,6 +970,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (injection == null) {
                 injection = network.getBattery(injectionId);
             }
+            if (injection == null) {
+                injection = network.getShuntCompensator(injectionId);
+            }
             return injection;
         }
 
@@ -1125,7 +1133,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
-                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
+                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
@@ -1152,7 +1160,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             case BUS_TARGET_VOLTAGE :
                                 variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                                 break;
-                            case INJECTION_REACTIVE_POWER:
+                            case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
@@ -1166,7 +1174,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             case BUS_TARGET_VOLTAGE :
                                 variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                                 break;
-                            case INJECTION_REACTIVE_POWER:
+                            case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
@@ -1178,7 +1186,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         functionElement = functionInjectionBusId != null ? lfNetwork.getBusById(functionInjectionBusId) : null;
                         variableElement = switch (variableType) {
                             case BUS_TARGET_VOLTAGE -> findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                            case INJECTION_REACTIVE_POWER -> {
+                            case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE -> {
                                 String variableInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 yield variableInjectionBusId != null ? lfNetwork.getBusById(variableInjectionBusId) : null;
                             }
@@ -1300,6 +1308,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             case BUS_TARGET_VOLTAGE:
                 LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
                 return bus.getNominalV();
+            case SHUNT_COMPENSATOR_SUSCEPTANCE:
+                LfBus shuntBus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return 1 / (PerUnit.zb(shuntBus.getNominalV())); // sensi in kV/S
             default:
                 throw new IllegalArgumentException("Unknown variable type " + factor.getVariableType());
         }
