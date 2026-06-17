@@ -431,10 +431,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
 
-        if (lfParametersExt.isAcDcNetwork()) {
-            throw new PowsyblException("DC sensitivity analysis does not support AC-DC networks");
-        }
-
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the network (we only manage main connected component)

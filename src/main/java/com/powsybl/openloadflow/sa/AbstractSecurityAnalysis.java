@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
@@ -131,6 +132,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
 
+        if ((lfParametersExt.isAcDcNetwork()) && (lfParameters.isDc())) {
+            throw new PowsyblException("Security analysis does not support DC load flow on AC-DC networks");
+        }
+
         network.getVariantManager().setWorkingVariant(workingVariantId);
 
         // load contingencies
@@ -218,7 +223,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                          List<Action> actions, List<LimitReduction> limitReductions,
                                                          LoadFlowParameters lfParameters) {
-
+        for (LfNetwork lfNetwork : networks.getList()) {
+            if (lfNetwork.getSynchronousNetworks().size() > 1) {
+                throw new PowsyblException("Security analysis does not support AC-DC networks with multiple synchronous components");
+            }
+        }
         List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(networks, lfParameters.getComponentMode()));
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution = ContingencyActivePowerLossDistribution.find(openSecurityAnalysisParameters.getContingencyActivePowerLossDistribution());

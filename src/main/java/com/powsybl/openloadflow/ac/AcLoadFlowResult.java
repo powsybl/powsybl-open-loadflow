@@ -15,10 +15,9 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.TreeMap;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -26,8 +25,8 @@ import java.util.stream.Collectors;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        Map<Integer, Double> emptySlackBusActivePowerMismatch = new HashMap<>();
-        Map<Integer, Double> emptyDistributedActivePower = new HashMap<>();
+        Map<Integer, Double> emptySlackBusActivePowerMismatch = new TreeMap<>();
+        Map<Integer, Double> emptyDistributedActivePower = new TreeMap<>();
         network.getSynchronousNetworks().forEach(lfScNetwork -> {
             emptySlackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), Double.NaN);
             emptyDistributedActivePower.put(lfScNetwork.getNumSC(), Double.NaN);
@@ -88,10 +87,10 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public String toString() {
-        Map<Integer, Double> slackBusActivePowerMismatchRealUnit = slackBusActivePowerMismatch.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() * PerUnit.SB));
-        Map<Integer, Double> distributedActivePowerRealUnit = distributedActivePower.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() * PerUnit.SB));
+        TreeMap<Integer, Double> slackBusActivePowerMismatchRealUnit = new TreeMap<>(slackBusActivePowerMismatch);
+        slackBusActivePowerMismatchRealUnit.replaceAll((k, v) -> v * PerUnit.SB);
+        TreeMap<Integer, Double> distributedActivePowerRealUnit = new TreeMap<>(distributedActivePower);
+        distributedActivePowerRealUnit.replaceAll((k, v) -> v * PerUnit.SB);
 
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
                 + ", solverIterations=" + solverIterations

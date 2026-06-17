@@ -400,9 +400,6 @@ public class PropagatedContingency {
     }
 
     private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus) {
-        if (network.getSynchronousNetworks().size() > 1) {
-            throw new PowsyblException("Security analysis does not support AC-DC networks with multiple synchronous components");
-        }
         // update connectivity with triggered branches of this network
         // note that this will define the main component as the one containing the first slack bus
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -411,7 +408,8 @@ public class PropagatedContingency {
             branchesToOpen.keySet().stream()
                     .filter(LfBranch::isConnectedAtBothSides)
                     .forEach(connectivity::removeEdge);
-
+            // In both Security analysis and sensitivity analysis, there is only one synchronous network per LfNetwork
+            // Thus, we only need to check for the slack bus of the first synchronous network.
             if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())) {
                 LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
                         contingencyId);

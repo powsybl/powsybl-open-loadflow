@@ -24,7 +24,7 @@ Open Load Flow also supports networks with HVDC lines (High Voltage Direct Curre
 ### DC detailed model
 
 Additionally, Open Load Flow supports AC-DC load flow formulation with detailed model of DC elements.  
-There is no limitation on the number of synchronous components and DC components in a single connected component, except if specific load flow parameters are used (see [acDcNetwork parameter documentation](./parameters.md))
+There is no limitation on the number of synchronous components and DC components in a single connected component, except if specific load flow parameters are used (see [acDcNetwork parameter documentation](./parameters.md#acdcnetwork))
 
 (ac-flow-computing)=
 ## AC flows computing

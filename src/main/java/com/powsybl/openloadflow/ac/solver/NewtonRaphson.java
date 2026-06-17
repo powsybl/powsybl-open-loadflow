@@ -21,9 +21,9 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -137,7 +137,7 @@ public class NewtonRaphson extends AbstractAcSolver {
             AcSolverUtil.updateNetwork(network, equationSystem);
         }
 
-        Map<Integer, Double> slackBusActivePowerMismatch = new HashMap<>();
+        Map<Integer, Double> slackBusActivePowerMismatch = new TreeMap<>();
         for (LfSynchronousNetwork lfScNetwork : network.getSynchronousNetworks()) {
             slackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), lfScNetwork.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum());
         }

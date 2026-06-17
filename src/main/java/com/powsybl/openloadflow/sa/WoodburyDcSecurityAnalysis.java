@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.strategy.OperatorStrategy;
@@ -361,10 +360,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                     List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
-
-        if (!lfNetwork.getDcBuses().isEmpty()) {
-            throw new PowsyblException("DC Security analysis does not support AC-DC networks");
-        } // Therefore, we can also assume that lfNetwork contains only one synchronous network
+        // DC security analysis does not support AC-DC networks.
+        // Therefore, we can also assume that lfNetwork contains only one synchronous network
 
         Map<String, Action> actionsById = Actions.indexById(actions);
         Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =

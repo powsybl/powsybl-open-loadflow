@@ -9,7 +9,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.auto.service.AutoService;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -47,15 +46,6 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
         double mismatch = lfContingency.getActivePowerLoss();
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
-
-        if (openLoadFlowParameters.isAcDcNetwork()) {
-            if (loadFlowParameters.isDc()) {
-                throw new PowsyblException("Security analysis does not support DC load flow on AC-DC networks");
-            }
-            if (network.getSynchronousNetworks().size() > 1) {
-                throw new PowsyblException("Security analysis does not support AC-DC networks with multiple synchronous components");
-            }
-        }
 
         if ((paramsOverride.isDistributedSlack(loadFlowParameters) || paramsOverride.isAreaInterchangeControl(openLoadFlowParameters)) && Math.abs(mismatch) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(paramsOverride.getBalanceType(loadFlowParameters), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());

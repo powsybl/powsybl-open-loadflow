@@ -7,8 +7,8 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Keeps track of distributed active power per synchronous component.
@@ -16,7 +16,7 @@ import java.util.Map;
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 public class DistributedSlackContextData {
-    private final Map<Integer, Double> distributedActivePowerByNumSC = new HashMap<>();
+    private final Map<Integer, Double> distributedActivePowerByNumSC = new TreeMap<>();
 
     /**
      * Get the distributed active power in a synchronous component.
