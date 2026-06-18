@@ -26,6 +26,22 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Config long names (Windows)
+        if: matrix.os == 'windows-latest'
+        run: git config --system core.longpaths true
+        shell: cmd
+
+      - name: Checkout powsybl-core branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: powsybl/powsybl-core
+          ref: refs/heads/math_native_1_5_0
+          path: core
+          fetch-depth: 0
+
+      - name: Build and install powsybl-core with Maven
+        run: mvn --batch-mode -DskipTests=true --file ./core/pom.xml install
+
       - name: Build with Maven (Ubuntu / MacOS)
         if: matrix.os != 'windows-latest'
         run: ./mvnw --batch-mode -Pjacoco install
