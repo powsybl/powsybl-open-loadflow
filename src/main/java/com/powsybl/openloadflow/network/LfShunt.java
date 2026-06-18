@@ -56,6 +56,10 @@ public interface LfShunt extends LfElement {
             return sectionsB;
         }
 
+        public List<Double> getSectionsG() {
+            return sectionsG;
+        }
+
         public int getPosition() {
             return position;
         }

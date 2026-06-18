@@ -80,4 +80,10 @@ public interface PiModel {
     PiModel setTapPosition(int tapPosition);
 
     Range<Integer> getTapPositionRange();
+
+    /**
+     * Create a deep copy of this pi model, not attached to any branch yet
+     * (see {@link #setBranch(LfBranch)}).
+     */
+    PiModel copy();
 }

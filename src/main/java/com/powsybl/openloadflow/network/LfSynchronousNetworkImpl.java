@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of LfSynchronousNetwork that provides a filtered view of LfNetwork buses for a single synchronous
@@ -194,6 +195,17 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
                 lfNetwork.getConnectivity().setMainComponentVertex(slackBuses.getFirst());
             }
 
+        }
+    }
+
+    @Override
+    public void copyStateFrom(LfSynchronousNetwork other) {
+        // Only the excluded slack buses are persistent state: slack/reference selection is lazily redone on the copy.
+        Set<LfBus> otherExcludedSlackBuses = other.getExcludedSlackBuses();
+        if (!otherExcludedSlackBuses.isEmpty()) {
+            setExcludedSlackBuses(otherExcludedSlackBuses.stream()
+                    .map(bus -> lfNetwork.getBusById(bus.getId()))
+                    .collect(Collectors.toCollection(LinkedHashSet::new)));
         }
     }
 

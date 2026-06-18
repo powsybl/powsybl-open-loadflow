@@ -40,6 +40,12 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return twtRef.get();
     }
 
+    protected LfLegBranch(LfLegBranch other, LfNetwork network, LfBus bus1, LfBus bus0) {
+        super(other, network, bus1, bus0);
+        this.twtRef = other.twtRef;
+        this.legRef = other.legRef;
+    }
+
     private ThreeWindingsTransformer.Leg getLeg() {
         return legRef.get();
     }

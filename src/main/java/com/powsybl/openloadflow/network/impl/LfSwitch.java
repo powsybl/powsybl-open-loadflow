@@ -40,6 +40,11 @@ public class LfSwitch extends AbstractLfBranch {
         this.switchRef = Ref.create(aSwitch, parameters.isCacheEnabled());
     }
 
+    protected LfSwitch(LfSwitch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(other, network, Objects.requireNonNull(bus1), Objects.requireNonNull(bus2));
+        this.switchRef = other.switchRef;
+    }
+
     private Switch getSwitch() {
         return switchRef.get();
     }

@@ -60,6 +60,17 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         }
     }
 
+    protected LfBatteryImpl(LfBatteryImpl other, LfNetwork network) {
+        super(other, network);
+        this.batteryRef = other.batteryRef;
+        this.initialParticipating = other.initialParticipating;
+        this.participating = other.participating;
+        this.droop = other.droop;
+        this.participationFactor = other.participationFactor;
+        this.maxTargetP = other.maxTargetP;
+        this.minTargetP = other.minTargetP;
+    }
+
     public static LfBatteryImpl create(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         Objects.requireNonNull(battery);
         Objects.requireNonNull(network);

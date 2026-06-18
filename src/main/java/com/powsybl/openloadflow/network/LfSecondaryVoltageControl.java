@@ -58,6 +58,10 @@ public class LfSecondaryVoltageControl {
         return pilotBus;
     }
 
+    public Set<String> getParticipatingControlUnitIds() {
+        return participatingControlUnitIds;
+    }
+
     public void addParticipatingControlUnit(String id) {
         if (participatingControlUnitIds.add(id)) {
             tryToReEnableHelpfulControllerBuses();
