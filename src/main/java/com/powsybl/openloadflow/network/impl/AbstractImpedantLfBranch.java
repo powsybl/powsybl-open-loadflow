@@ -94,6 +94,14 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
         connectedSide2 = bus2 != null;
     }
 
+    protected AbstractImpedantLfBranch(AbstractImpedantLfBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(other, network, bus1, bus2);
+        this.connectedSide1 = other.connectedSide1;
+        this.connectedSide2 = other.connectedSide2;
+        this.disconnectionAllowedSide1 = other.disconnectionAllowedSide1;
+        this.disconnectionAllowedSide2 = other.disconnectionAllowedSide2;
+    }
+
     @Override
     public boolean isDisconnectionAllowedSide1() {
         return disconnectionAllowedSide1;

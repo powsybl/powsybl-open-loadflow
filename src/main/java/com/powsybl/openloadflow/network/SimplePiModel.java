@@ -220,4 +220,19 @@ public class SimplePiModel implements PiModel {
     public Range<Integer> getTapPositionRange() {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
+
+    @Override
+    public SimplePiModel copy() {
+        SimplePiModel c = new SimplePiModel();
+        c.r = r;
+        c.x = x;
+        c.g1 = g1;
+        c.b1 = b1;
+        c.g2 = g2;
+        c.b2 = b2;
+        c.r1 = r1;
+        c.a1 = a1;
+        return c;
+    }
+
 }

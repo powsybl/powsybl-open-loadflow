@@ -57,6 +57,21 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         this.loadModel = loadModel;
     }
 
+    LfLoadImpl(LfLoadImpl other, LfBus bus) {
+        super(other.initialTargetP, other.targetP);
+        this.bus = Objects.requireNonNull(bus);
+        this.distributedOnConformLoad = other.distributedOnConformLoad;
+        this.loadModel = other.loadModel;
+        this.loadsRefs.putAll(other.loadsRefs);
+        this.lccCsRefs.addAll(other.lccCsRefs);
+        this.targetQ = other.targetQ;
+        this.ensurePowerFactorConstantByLoad = other.ensurePowerFactorConstantByLoad;
+        this.loadsAbsVariableTargetP.putAll(other.loadsAbsVariableTargetP);
+        this.absVariableTargetP = other.absVariableTargetP;
+        this.loadsDisablingStatus = new LinkedHashMap<>(other.loadsDisablingStatus);
+        // p and q are solver injected and stay at their default value
+    }
+
     @Override
     public String getId() {
         return bus.getId() + "_load";
