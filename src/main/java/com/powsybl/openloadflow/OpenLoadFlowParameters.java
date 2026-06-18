@@ -377,7 +377,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .put("phaseShifterRegulationOn", PHASE_CONTROL_CATEGORY_KEY)
             .put("voltageInitMode", VOLTAGE_INIT_CATEGORY_KEY)
             .put("hvdcAcEmulation", HVDC_CATEGORY_KEY)
-            .put("computedComponentScope", PERFORMANCE_CATEGORY_KEY)
+            .put("componentMode", PERFORMANCE_CATEGORY_KEY)
             .build();
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
