@@ -63,6 +63,10 @@ public class DcLoadFlowFromCache extends AbstractLoadFlowFromCache<DcLoadFlowPar
             DcLoadFlowResult result = new DcLoadFlowEngine(value.getContext())
                     .run();
             value.setNetworkUpdated(false);
+            if (value.isTopologyUpdated()) {
+                value.getNetwork().getConnectivity().undoTemporaryChanges();
+                value.setTopologyUpdated(false);
+            }
             return result;
         }
         return new DcLoadFlowResult(value.getNetwork(), 0, true, OuterLoopResult.stable(), 0d, 0d);

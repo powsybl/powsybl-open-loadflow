@@ -141,7 +141,7 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var bus = getBus();
-        if (parameters.isUpdateV()) {
+        if (!parameters.isDc()) {
             bus.setV(Math.max(v, 0.0));
         }
         bus.setAngle(Math.toDegrees(angle));

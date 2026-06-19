@@ -491,12 +491,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         LfNetworkUpdateReport updateReport = new LfNetworkUpdateReport();
 
         for (LfBus bus : busesById.values()) {
-            bus.updateState(parameters);
-            for (LfGenerator generator : bus.getGenerators()) {
-                generator.updateState(parameters);
+            if (!bus.isDisabled()) { // with network cache, there can be disabled buses we do not want to update
+                bus.updateState(parameters);
+                for (LfGenerator generator : bus.getGenerators()) {
+                    generator.updateState(parameters);
+                }
+                bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
+                bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
             }
-            bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
-            bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
 
         for (LfDcBus dcBus : dcBusById.values()) {

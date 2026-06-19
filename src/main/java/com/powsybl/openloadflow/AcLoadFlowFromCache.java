@@ -64,6 +64,10 @@ public class AcLoadFlowFromCache extends AbstractLoadFlowFromCache<AcLoadFlowPar
             AcLoadFlowResult result = new AcloadFlowEngine(value.getContext())
                     .run();
             value.setNetworkUpdated(false);
+            if (value.isTopologyUpdated()) {
+                value.getNetwork().getConnectivity().undoTemporaryChanges();
+                value.setTopologyUpdated(false);
+            }
             return result;
         }
         return new AcLoadFlowResult(value.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
