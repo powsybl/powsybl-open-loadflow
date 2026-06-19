@@ -5050,12 +5050,28 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testMovedPhaseShifterResults() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
+        network.newLine().setId("L3")
+                .setConnectableBus1("B1")
+                .setBus1("B1")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(200.0)
+                .add();
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal1())
+                .setRegulationValue(83);
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setPhaseShifterRegulationOn(true);
-        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
-        PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
         List<Contingency> contingencies = List.of(Contingency.line("L1"));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), loadFlowParameters);
-        NetworkResult networkResult = result.getPostContingencyResults().getFirst().getNetworkResult();
-        Map<String, PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifters = result.getPostContingencyResults().getFirst().getExtension(PhaseShifterResultsExtension.class).getPhaseShifterResults();
+        PhaseShifterResultsExtension postExt = result.getPostContingencyResults().getFirst().getExtension(PhaseShifterResultsExtension.class);
+        assertNotNull(postExt);
+        Map<String, PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifters = postExt.getPhaseShifterResults();
+        assertTrue(!movedPhaseShifters.isEmpty());
     }
 }
