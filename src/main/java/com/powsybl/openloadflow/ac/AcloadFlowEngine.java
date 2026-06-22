@@ -64,6 +64,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         private OuterLoopResult lastOuterLoopResult = OuterLoopResult.stable();
 
         private AcOuterLoop lastUnrealisticStateFixingLoop;
+
+        private AcOuterLoop lastUnstableOuterLoop;
     }
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext, boolean checkUnrealistic) {
@@ -93,6 +95,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                             runningContext.outerLoopTotalIterations + 1,
                             outerLoop.getName());
                 }
+
+                // Keep track that this outer loop went through unstable state.
+                runningContext.lastUnstableOuterLoop = outerLoop;
 
                 // if not yet stable, restart solver
                 runningContext.lastSolverResult = runAcSolverAndCheckRealisticState(solver, new PreviousValueVoltageInitializer(), reportNode, checkUnrealistic,
@@ -258,20 +263,22 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
                 // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
-                    runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), solver, runningContext, checkUnrealisticStates);
-
-                    if (outerLoopAndContext.getLeft() == runningContext.lastUnrealisticStateFixingLoop) {
-                        checkUnrealisticStates = true;
-                    }
-
+                    AcOuterLoop outerLoop = outerLoopAndContext.getLeft();
                     // continue with next outer loop only if:
+                    // - another outerloop went through unstable state
                     // - last solver run succeed,
                     // - last OuterLoopStatus is not FAILED
                     // - we have not reached max number of outer loop iteration
-                    if (runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
-                            || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
-                            || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
+                    if (outerLoop == runningContext.lastUnstableOuterLoop // We went through all other outer loops and none of them modified anything -> we are done.
+                        || runningContext.lastSolverResult.getStatus() != AcSolverStatus.CONVERGED
+                        || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
+                        || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
+                    }
+                    runOuterLoop(outerLoop, outerLoopAndContext.getRight(), solver, runningContext, checkUnrealisticStates);
+
+                    if (outerLoop == runningContext.lastUnrealisticStateFixingLoop) {
+                        checkUnrealisticStates = true;
                     }
                 }
             } while (runningContext.nrTotalIterations.getValue() > oldNrTotalIterations

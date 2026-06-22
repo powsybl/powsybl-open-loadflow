@@ -256,8 +256,6 @@ class AcLoadFlowReportTest {
                             + Outer loop iteration 2
                                Slack bus active power (1.21814 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop DistributedSlack
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertTxtReportEquals(reportTxt, reportNode);
