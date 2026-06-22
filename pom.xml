@@ -53,7 +53,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>7.3.0-SNAPSHOT</powsybl-core.version>
+        <powsybl-core.version>7.3.0-RC2</powsybl-core.version>
 
         <!--  This is required for later correct replacement of argline -->
         <argLine/>
@@ -137,10 +137,6 @@
             <groupId>org.usefultoys</groupId>
             <artifactId>slf4j-toys</artifactId>
             <version>${slf4jtoys.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.anarres.graphviz</groupId>
-            <artifactId>graphviz-builder</artifactId>
         </dependency>
 
         <dependency>
@@ -235,6 +231,11 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-psse-converter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-ucte-converter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

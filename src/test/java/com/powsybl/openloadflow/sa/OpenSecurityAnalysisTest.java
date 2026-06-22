@@ -34,11 +34,11 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
-import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
@@ -83,6 +83,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     private final LimitViolationComparator limitViolationComparator = new LimitViolationComparator();
+
+    OpenSecurityAnalysisTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @Test
     void testCurrentLimitViolations() {
@@ -2071,7 +2075,27 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setLoadFlowParameters(loadFlowParameters);
         runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNode);
 
-        assertReportEquals("/saReport.txt", reportNode);
+        assertReportEquals("/saReportAC.txt", reportNode);
+    }
+
+    @Test
+    void reportTestDc() throws IOException {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("TestSecurityAnalysis")
+                .build();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDc(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reportNode);
+
+        assertReportEquals("/saReportDC.txt", reportNode);
     }
 
     @Test
@@ -3293,7 +3317,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network);
         List<LimitViolation> limitViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
         assertEquals(1, limitViolations.size());
-        assertEquals(LimitViolationUtils.PERMANENT_LIMIT_NAME, limitViolations.get(0).getLimitName());
+        assertEquals(LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME, limitViolations.getFirst().getLimitName());
+
+        String anotherName = "AnotherName";
+        network.getLine("NHV1_NHV2_1").getCurrentLimits1().orElseThrow()
+                .setPermanentLimitName(anotherName);
+        result = runSecurityAnalysis(network);
+        limitViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        assertEquals(1, limitViolations.size());
+        assertEquals(anotherName, limitViolations.getFirst().getLimitName());
     }
 
     /**
@@ -4066,30 +4098,29 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.498, postContingencyResultsDummyLoad.getBranchResult("lc12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.498, postContingencyResultsDummyLoad.getBranchResult("lc12Bis").getP1(), LoadFlowAssert.DELTA_POWER);
 
-        StringWriter sw = new StringWriter();
-        testReport.print(sw);
         // Remove Windows EOL
-        String reportString = TestUtil.normalizeLineSeparator(sw.toString());
+        String reportString = TestUtil.normalizeLineSeparator(reportToString(testReport));
+        //reportString = reportToString(testReport);
 
         // The report should be the same with one or two threads
         // Let's just check the size here
-        assertEquals(7488, reportString.length());
+        assertEquals(7396, reportString.length());
         // Check also that the preCont report is before the postContResults in the second CC
         String expected =
                 """
                               + Network CC1 SC1
                                  + Network info
                                     Network has 2 buses and 2 branches
-                                    Network balance: active generation=2.0 MW, active load=2.0 MW, reactive generation=0.0 MVar, reactive load=0.0 MVar
+                                    Network balance: active generation=2 MW, active load=2 MW, reactive generation=0 MVar, reactive load=0 MVar
                                     Angle reference bus: c1_vl_0
                                     Slack bus: c1_vl_0
                                  + Pre-contingency simulation
                                     Voltage initialization with method Uniform Values
                                     Outer loop DistributedSlack
                                     Outer loop ReactiveLimits
-                                    AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)\
+                                    AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                         """;
-
+        System.out.println(reportString);
         assertTrue(reportString.contains(expected));
     }
 
