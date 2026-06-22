@@ -61,6 +61,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         private int outerLoopTotalIterations = 0;
 
         private OuterLoopResult lastOuterLoopResult = OuterLoopResult.stable();
+
+        private DcOuterLoop lastUnstableOuterLoop;
     }
 
     @Override
@@ -151,6 +153,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 double[] targetVectorArray = context.getTargetVector().getArray().clone();
                 runningContext.lastSolverSuccess = solve(targetVectorArray, context.getJacobianMatrix(), olReportNode);
                 runningContext.solverTotalExecutions++;
+
+                // Keep track that this outer loop went through unstable state.
+                runningContext.lastUnstableOuterLoop = outerLoop;
 
                 if (runningContext.lastSolverSuccess) {
                     context.getEquationSystem().getStateVector().set(targetVectorArray);
@@ -276,17 +281,19 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 oldSolverTotalExecutions = runningContext.solverTotalExecutions;
                 // outer loops are nested: innermost loop first in the list, outermost loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
-                    runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), runningContext);
-
+                    DcOuterLoop outerLoop = outerLoopAndContext.getLeft();
                     // continue with next outer loop only if:
+                    // - another outerloop went through unstable state
                     // - last solver run succeed,
                     // - last OuterLoopStatus is not FAILED
                     // - we have not reached max number of outer loop iteration
-                    if (!runningContext.lastSolverSuccess
-                            || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
-                            || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
+                    if (outerLoop == runningContext.lastUnstableOuterLoop // We went through all other outer loops and none of them modified anything -> we are done.
+                        || !runningContext.lastSolverSuccess
+                        || runningContext.lastOuterLoopResult.status() == OuterLoopStatus.FAILED
+                        || runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
                     }
+                    runOuterLoop(outerLoop, outerLoopAndContext.getRight(), runningContext);
                 }
             } while (runningContext.solverTotalExecutions > oldSolverTotalExecutions
                     && runningContext.lastSolverSuccess

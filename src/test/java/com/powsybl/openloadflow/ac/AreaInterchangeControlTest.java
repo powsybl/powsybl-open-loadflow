@@ -323,8 +323,6 @@ class AreaInterchangeControlTest {
                                Area a1 slack distribution share (0.293861 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (0.331121 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
@@ -374,8 +372,6 @@ class AreaInterchangeControlTest {
                                Area a1 slack distribution share (-0.395604 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (-0.004396 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
@@ -409,8 +405,6 @@ class AreaInterchangeControlTest {
                             + Outer loop iteration 1
                                Area a1 slack distribution share (-0.1 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (-0.3 MW) distributed in 2 distribution iteration(s)
-                         Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
