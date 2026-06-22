@@ -699,15 +699,19 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
                 lfContingency.getDisconnectedElementIds());
 
-        return new PostContingencyResult(
+        PostContingencyResult postContingencyResult = new PostContingencyResult(
                 contingency,
                 status,
                 new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                 new NetworkResult(postContingencyNetworkResult.getBranchResults(),
-                postContingencyNetworkResult.getBusResults(),
-                postContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                        postContingencyNetworkResult.getBusResults(),
+                        postContingencyNetworkResult.getThreeWindingsTransformerResults()),
                 connectivityResult,
                 (preDistributedActivePower + result.getDistributedActivePower()) * PerUnit.SB);
+
+        PhaseShifterResultsExtension phaseShifterResultsExtension = new PhaseShifterResultsExtension(postContingencyNetworkResult.getMovedPhaseShifterResults());
+        postContingencyResult.addExtension(PhaseShifterResultsExtension.class, phaseShifterResultsExtension);
+        return postContingencyResult;
     }
 
     protected void logPostContingencyStart(LfNetwork network, LfContingency lfContingency) {

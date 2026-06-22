@@ -5053,4 +5053,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         networkResult.getBranchResults()
             .forEach(br -> assertEquals(0., br.getFlowTransfer(), DELTA_POWER));
     }
+
+    @Test
+    void testMovedPhaseShifterResults() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setPhaseShifterRegulationOn(true);
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
+        PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
+        List<Contingency> contingencies = List.of(Contingency.line("L1"));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), loadFlowParameters);
+        NetworkResult networkResult = result.getPostContingencyResults().getFirst().getNetworkResult();
+        Map<String, PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifters = result.getPostContingencyResults().getFirst().getExtension(PhaseShifterResultsExtension.class).getPhaseShifterResults();
+    }
 }
