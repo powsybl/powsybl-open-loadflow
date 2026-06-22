@@ -773,7 +773,6 @@ class AcLoadFlowShuntTest {
                                2 shunts changed section
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
-                         Outer loop IncrementalShuntVoltageControl
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
 
@@ -818,7 +817,6 @@ class AcLoadFlowShuntTest {
                                2 shunts changed section
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
-                         Outer loop IncrementalShuntVoltageControl
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
     }
