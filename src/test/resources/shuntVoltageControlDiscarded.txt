@@ -13,5 +13,4 @@
          Outer loop ShuntVoltageControl
          Outer loop DistributedSlack
          Outer loop ReactiveLimits
-         Outer loop ShuntVoltageControl
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
