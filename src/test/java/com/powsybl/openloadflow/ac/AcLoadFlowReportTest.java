@@ -503,8 +503,6 @@ class AcLoadFlowReportTest {
                               Bus V: 1 pu, 0 rad
                               Bus injection: 70 MW, 0 MVar
                      Outer loop ReactiveLimits
-                     Outer loop DistributedSlack
-                     Outer loop ReactiveLimits
                      AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
             """, reportNode);
     }
