@@ -18,6 +18,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
+import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
@@ -41,6 +42,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
     public static final NetworkCache<LfInput, AcLfValue> AC_LF_INSTANCE = new NetworkCache<>(AcLfEntry::new);
 
+    public static final NetworkCache<LfInput, DcLfValue> DC_LF_INSTANCE = new NetworkCache<>(DcLfEntry::new);
+
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
     /**
@@ -51,6 +54,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         T copy();
 
         String hasChanged(T other);
+
+        LoadFlowParameters getLoadFlowParameters();
     }
 
     /**
@@ -65,6 +70,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         boolean isNetworkUpdated();
 
         void setNetworkUpdated(boolean networkUpdated);
+
+        boolean isTopologyUpdated(); // used to know if network state variables should be reset (e.g. after switch actions)
+
+        void setTopologyUpdated(boolean networkUpdated);
 
         void close();
     }
@@ -115,11 +124,18 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             // TODO to refine later by comparing in detail parameters that have changed
             return OpenLoadFlowParameters.equals(parameters, other.parameters) ? null : "parameters";
         }
+
+        @Override
+        public LoadFlowParameters getLoadFlowParameters() {
+            return parameters;
+        }
     }
 
     public abstract static class AbstractValue implements Value {
 
         private boolean networkUpdated = true;
+
+        private boolean topologyUpdated = false;
 
         @Override
         public boolean isNetworkUpdated() {
@@ -129,6 +145,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         @Override
         public void setNetworkUpdated(boolean networkUpdated) {
             this.networkUpdated = networkUpdated;
+        }
+
+        @Override
+        public boolean isTopologyUpdated() {
+            return topologyUpdated;
+        }
+
+        @Override
+        public void setTopologyUpdated(boolean topologyUpdated) {
+            this.topologyUpdated = topologyUpdated;
         }
     }
 
@@ -176,6 +202,46 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     }
                 }
             }
+        }
+    }
+
+    public static class DcLfValue extends AbstractValue {
+
+        private final DcLoadFlowContext context;
+
+        public DcLfValue(DcLoadFlowContext context) {
+            this.context = context;
+        }
+
+        public DcLoadFlowContext getContext() {
+            return context;
+        }
+
+        @Override
+        public LfNetwork getNetwork() {
+            return context.getNetwork();
+        }
+
+        @Override
+        public LfNetworkParameters getNetworkParameters() {
+            return context.getParameters().getNetworkParameters();
+        }
+
+        @Override
+        public void close() {
+            context.close();
+        }
+    }
+
+    public static class DcLfEntry extends AbstractEntry<LfInput, DcLfValue> {
+
+        public DcLfEntry(Network network, LfInput input) {
+            super(network, input);
+        }
+
+        @Override
+        public void restart() {
+            // nothing to do
         }
     }
 
@@ -293,6 +359,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         enum CacheUpdateStatus {
             UNSUPPORTED_UPDATE,
             ELEMENT_UPDATED,
+            ELEMENT_AND_TOPOLOGY_UPDATED,
             IGNORE_UPDATE,
             ELEMENT_NOT_FOUND
         }
@@ -304,6 +371,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
             static <V extends Value> CacheUpdateResult<V> elementUpdated(V value) {
                 return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_UPDATED, value, null);
+            }
+
+            static <V extends Value> CacheUpdateResult<V> elementAndTopologyUpdated(V value) {
+                return new CacheUpdateResult<>(CacheUpdateStatus.ELEMENT_AND_TOPOLOGY_UPDATED, value, null);
             }
 
             static <V extends Value> CacheUpdateResult<V> ignoreUpdate() {
@@ -359,7 +430,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                             lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
                         }
                     }
-                    value.getNetwork().validate(LoadFlowModel.AC, null);
+                    value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
                     return CacheUpdateResult.elementUpdated(value);
                 } else if (attribute.equals("targetP")) {
                     return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
@@ -399,26 +470,24 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 LfNetwork lfNetwork = value.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    updateSwitch(open, lfNetwork, lfBranch);
-                    return CacheUpdateResult.elementUpdated(value);
+                    updateSwitch(open, lfNetwork, lfBranch, value.isTopologyUpdated());
+                    return CacheUpdateResult.elementAndTopologyUpdated(value);
                 }
             }
             return CacheUpdateResult.elementNotFound();
         }
 
-        private static void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch) {
+        private void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch, boolean isTopologyUpdated) {
             var connectivity = lfNetwork.getConnectivity();
-            connectivity.startTemporaryChanges();
-            try {
-                if (open) {
-                    connectivity.removeEdge(lfBranch);
-                } else {
-                    connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
-                }
-                AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
-            } finally {
-                connectivity.undoTemporaryChanges();
+            if (!isTopologyUpdated) { // If this is the first temporary change
+                connectivity.startTemporaryChanges();
             }
+            if (open) {
+                connectivity.removeEdge(lfBranch);
+            } else {
+                connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
+            }
+            AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
         }
 
         private CacheUpdateResult<V> onTransformerTargetVoltageUpdate(String twtId, double newValue) {
@@ -450,6 +519,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             switch (result.status) {
                 case UNSUPPORTED_UPDATE -> reset(result.invalidationReason);
                 case ELEMENT_UPDATED -> result.value.setNetworkUpdated(true);
+                case ELEMENT_AND_TOPOLOGY_UPDATED -> {
+                    result.value.setNetworkUpdated(true);
+                    result.value.setTopologyUpdated(true);
+                }
                 case IGNORE_UPDATE -> { /* nothing to do */ }
                 case ELEMENT_NOT_FOUND -> LOGGER.warn("Cannot update attribute '{}' of element '{}' (type={})", attribute, identifiable.getId(), identifiable.getType());
             }
