@@ -12,6 +12,4 @@
                Area a1 interchange mismatch (10 MW) distributed in 1 distribution iteration(s)
                Area a2 interchange mismatch (-40 MW) distributed in 1 distribution iteration(s)
          Outer loop ReactiveLimits
-         Outer loop AreaInterchangeControl
-         Outer loop ReactiveLimits
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
