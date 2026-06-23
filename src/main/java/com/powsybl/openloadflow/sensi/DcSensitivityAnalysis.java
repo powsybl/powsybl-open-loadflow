@@ -440,6 +440,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             warnOverridenParameter("referenceBusSelectionMode", lfParametersExt.getReferenceBusSelectionMode().name(), ReferenceBusSelector.DEFAULT_MODE.name());
         }
         return new LfNetworkParameters()
+                .setIncludeElementsReconnectingSmallComponents(false) // FIXME does not work yet with woodbury
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setGeneratorVoltageRemoteControl(false)        // not used in DC (no warning log needed)
                 .setTransformerVoltageControl(false)            // not used in DC (no warning log needed)
@@ -507,9 +508,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         boolean breakers = topoConfig.isBreaker();
 
         LfNetworkParameters lfNetworkParameters = overrideUnsupportedParameters(lfParameters, lfParametersExt);
-        lfNetworkParameters
-                .setIncludeElementsReconnectingSmallComponents(false) // FIXME does not work yet with woodbury
-                .setSlackBusSelector(slackBusSelector)
+        lfNetworkParameters.setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
                 .setLowImpedanceThreshold(lfParametersExt.getLowImpedanceThreshold())
                 .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
@@ -517,15 +516,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
                 .setCountriesToBalance(lfParameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setPhaseControl(false)
-                .setTransformerVoltageControl(false)
-                .setVoltagePerReactivePowerControl(false)
-                .setGeneratorReactivePowerRemoteControl(false)
-                .setTransformerReactivePowerControl(false)
-                .setLoadFlowModel(LoadFlowModel.DC)
-                .setShuntVoltageControl(false)
-                .setReactiveLimits(false)
-                .setIncludeElementsReconnectingSmallComponents(false) // FIXME does not work yet with woodbury
                 .setAllowNonLinearShuntZeroSection(lfParametersExt.isAllowNonLinearShuntZeroSection());
 
         // create networks including all necessary switches
