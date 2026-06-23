@@ -49,7 +49,7 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
 
         if ((paramsOverride.isDistributedSlack(loadFlowParameters) || paramsOverride.isAreaInterchangeControl(openLoadFlowParameters)) && Math.abs(mismatch) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(paramsOverride.getBalanceType(loadFlowParameters), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
-            var result = activePowerDistribution.run(network, mismatch);
+            ActivePowerDistribution.Result result = activePowerDistribution.run(network.getSynchronousNetworks().getFirst(), mismatch);
             Reports.reportContingencyActivePowerLossDistribution(reportNode, mismatch * PerUnit.SB, result.remainingMismatch() * PerUnit.SB);
             return mismatch - result.remainingMismatch();
         }

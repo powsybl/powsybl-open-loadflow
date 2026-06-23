@@ -28,13 +28,9 @@ import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis.Connectivity
 import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.LfAction;
-import com.powsybl.openloadflow.network.action.LfActionUtils;
-import com.powsybl.openloadflow.network.action.LfOperatorStrategy;
-import com.powsybl.openloadflow.network.action.Actions;
-import com.powsybl.openloadflow.util.Indexed;
-import com.powsybl.openloadflow.network.action.OperatorStrategies;
+import com.powsybl.openloadflow.network.action.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
@@ -364,6 +360,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                     List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
+        // DC security analysis does not support AC-DC networks.
+        // Therefore, we can also assume that lfNetwork contains only one synchronous network
+
         Map<String, Action> actionsById = Actions.indexById(actions);
         Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
                 OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
