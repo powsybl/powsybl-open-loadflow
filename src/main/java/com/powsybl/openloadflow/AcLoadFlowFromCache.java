@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -23,7 +23,6 @@ import com.powsybl.openloadflow.network.impl.Networks;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
