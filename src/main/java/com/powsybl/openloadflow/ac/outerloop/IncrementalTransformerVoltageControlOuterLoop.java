@@ -129,6 +129,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static boolean isInsensitive(IncrementalContextData contextData, LfBranch controllerBranch, LfBus controlledBus, double sensitivity) {
         if (Math.abs(sensitivity) < MIN_SENSI_FILTER) {
+            // Cache info in controller context. We will not recompute for consecutive outer loops.
             IncrementalContextData.ControllerContext controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
             controllerContext.setInsensitive();
             LOGGER.debug("Controller branch '{}' ratio tap sensitivity to bus {} voltage too low ({}), no control performed",
@@ -250,8 +251,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
-        // If another outerloop than us ran, this will reset insensitive statuses.
-        // Insensitive statuses they may have changed, in particular in case of PV/PQ switching.
+        // If another outerloop than us ran, this will reset insensitive statuses
+        // because insensitive statuses may have changed, in particular in case of PV/PQ switching.
         contextData.check(context.getOuterLoopTotalIterations());
 
         // filter out buses/branches which are outside their deadbands or insensitive
