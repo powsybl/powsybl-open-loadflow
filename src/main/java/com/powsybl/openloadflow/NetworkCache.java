@@ -240,7 +240,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public abstract static class AbstractEntry<I extends Input<I>, V extends Value> extends DefaultNetworkListener implements Entry<I, V> {
+    public abstract static class AbstractEntry<I extends Input<I>, V extends Value> implements NetworkListener, Entry<I, V> {
 
         private final WeakReference<Network> networkRef;
 

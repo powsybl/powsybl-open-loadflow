@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -22,6 +22,8 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -70,7 +72,14 @@ public class AcLoadFlowFromCache extends AbstractLoadFlowFromCache<AcLoadFlowPar
             }
             return result;
         }
-        return new AcLoadFlowResult(value.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
+
+        Map<Integer, Double> slackBusActivePowerMismatch = new TreeMap<>();
+        Map<Integer, Double> distributedActivePower = new TreeMap<>();
+        value.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> {
+            slackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), 0d);
+            distributedActivePower.put(lfScNetwork.getNumSC(), 0d);
+        });
+        return new AcLoadFlowResult(value.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), slackBusActivePowerMismatch, distributedActivePower);
     }
 
     public List<AcLoadFlowResult> run() {
