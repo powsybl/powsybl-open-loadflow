@@ -465,5 +465,25 @@ class AreaInterchangeControlTest {
         return result;
     }
 
+    @Test
+    void testTwoAreasWithEmbeddedDcNetworkDetailedModel() {
+        // Validate that AreaInterchangeControl outer loop supports AC-DC networks with only one synchronous component
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNodeAndEmbeddedDcDetailed();
+        parametersExt.setSlackBusPMaxMismatch(1e-2) // Mismatch is between 1e-2 and 1e-3
+            .setAcDcNetwork(true);
+        runLfTwoAreas(network, -40, 40, -30, 2);
+    }
+
+    @Test
+    void twoSynchronousComponentsConnectedByDetailedDcNetworkIsForbidden() {
+        // Network has an area that has buses in two different synchronous components (connected by a DC network)
+        // This is currently not supported
+        Network network = MultiAreaNetworkFactory.createAreaTwoSynchronousComponentsDetailedDcModel();
+        parametersExt.setAcDcNetwork(true);
+
+        // Run load flow
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components", e5.getCause().getMessage());
+    }
 }
 

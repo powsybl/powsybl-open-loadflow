@@ -167,7 +167,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                               List<ParticipatingElement> participatingElements) {
         Map<LfBus, Double> slackParticipationByBus;
         if (participatingElements.isEmpty()) {
-            slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
+            slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSynchronousNetworks().getFirst().getSlackBuses().getFirst(), -1d);
         } else {
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                 ParticipatingElement::getLfBus,

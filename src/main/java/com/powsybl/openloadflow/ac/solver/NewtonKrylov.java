@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
+import java.util.Collections;
 import java.util.Objects;
 
 /**
@@ -74,6 +75,9 @@ public class NewtonKrylov extends AbstractAcSolver {
         if (result.getStatus() == KinsolStatus.KIN_SUCCESS) {
             AcSolverUtil.updateNetwork(network, equationSystem);
         }
-        return new AcSolverResult(getStatus(result.getStatus()), (int) result.getIterations(), 0);
+
+        // This solver does not support AC-DC networks. Thus, the LfNetwork contains only one synchronous component
+        int numSc = network.getSynchronousNetworks().getFirst().getNumSC();
+        return new AcSolverResult(getStatus(result.getStatus()), (int) result.getIterations(), Collections.singletonMap(numSc, 0.));
     }
 }
