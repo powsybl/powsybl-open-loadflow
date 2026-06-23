@@ -35,6 +35,8 @@ import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -52,6 +54,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcSensitivityAnalysisTest.class);
 
     AcSensitivityAnalysisTest(CommonTestConfig commonTestConfig) {
         super(commonTestConfig);
@@ -2276,6 +2280,17 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double sVl3 = result.getBusVoltageSensitivityValue(shuntId, "vl3_0", varType);
         double sB2 = result.getBusVoltageSensitivityValue(shuntId, bus2.getId(), varType);
         double sB1 = result.getBusVoltageSensitivityValue(shuntId, bus1.getId(), varType);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensi (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f%n",
+                "vl3_0", sVl3, sVl3 * deltaB, vAfter.get(bus3) - vBefore.get(bus3)));
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f%n",
+                bus2.getId(), sB2, sB2 * deltaB, vAfter.get(bus2) - vBefore.get(bus2)));
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  (reference bus, expected 0)%n",
+                bus1.getId(), sB1, sB1 * deltaB));
+        LOGGER.info("{}", out);
+
         assertEquals(vAfter.get(bus3) - vBefore.get(bus3), sVl3 * deltaB, 1e-1);
         assertEquals(vAfter.get(bus2) - vBefore.get(bus2), sB2 * deltaB, 1e-1);
         assertEquals(0.0, sB1 * deltaB, 1e-3);
@@ -2349,10 +2364,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.0, result.getBranchFlow1SensitivityValue(shuntId, "l2", varType), DELTA_POWER);
         assertEquals(0.0, result.getBranchFlow2SensitivityValue(shuntId, "l2", varType), DELTA_POWER);
 
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensiBis (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+
         // Assert bus reactive power sensitivities
         for (Bus bus : monitoredBuses) {
             double diff = qAfter.get(bus) - qBefore.get(bus);
             double scaled = result.getSensitivityValue(shuntId, bus.getId(), SensitivityFunctionType.BUS_REACTIVE_POWER, varType) * deltaB;
+            out.append(String.format("  bus %-3s Q  : pred(sensi*deltaB)=%+14.4f  actual dQ=%+14.4f%n", bus.getId(), scaled, diff));
             assertEquals(diff, scaled, 2.0);
         }
 
@@ -2367,20 +2386,27 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
             double diffP1 = after[0] - before[0];
             double scaledP1 = result.getBranchFlow1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s P1: pred(sensi*deltaB)=%+14.4f  actual dP1=%+14.4f%n", branchId, scaledP1, diffP1));
             assertEquals(diffP1, scaledP1, 1.0);
 
             double diffP2 = after[1] - before[1];
             double scaledP2 = result.getBranchFlow2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s P2: pred(sensi*deltaB)=%+14.4f  actual dP2=%+14.4f%n", branchId, scaledP2, diffP2));
             assertEquals(diffP2, scaledP2, 1.0);
 
             double diffI1 = after[2] - before[2];
             double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s I1: pred(sensi*deltaB)=%+14.4f  actual dI1=%+14.4f  sameSign=%b%n",
+                    branchId, scaledI1, diffI1, Math.signum(diffI1) == Math.signum(scaledI1)));
             assertTrue(Math.signum(diffI1) == Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
 
             double diffI2 = after[3] - before[3];
             double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s I2: pred(sensi*deltaB)=%+14.4f  actual dI2=%+14.4f  sameSign=%b%n",
+                    branchId, scaledI2, diffI2, Math.signum(diffI2) == Math.signum(scaledI2)));
             assertTrue(Math.signum(diffI2) == Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
         }
+        LOGGER.info("{}", out);
     }
 
     private Network createShuntTransformerNetwork(double bPerSection) {
@@ -2470,7 +2496,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                         bStep, branchId, diffI1, scaledI1, signOkI1, diffI2, scaledI2, signOkI2));
             }
         }
-        sweepRows.forEach(System.out::println);
 
         // Assert that small steps (1e-4) have correct signs and close values
         Network smallNet = createShuntTransformerNetwork(1e-4);
@@ -2491,6 +2516,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             assertTrue(Math.signum(diffI1) == Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
             assertTrue(Math.signum(diffI2) == Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
         }
+
+        LOGGER.info("=== testShuntBSensiWithTransformer : I1/I2 diff vs scaled sensitivity over bPerSection sweep ==={}{}",
+                System.lineSeparator(), String.join(System.lineSeparator(), sweepRows));
     }
 
     @Test
@@ -2575,10 +2603,15 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double voltageTol = 5e-1;
         double powerTol = 1.0;
 
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensi2 (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+
         // Assert bus voltage sensitivities — same sign and close values
         for (Bus bus : monitoredBuses) {
             double diff = vAfter.get(bus) - vBefore.get(bus);
             double scaled = result.getBusVoltageSensitivityValue(shuntId, bus.getId(), varType) * deltaB;
+            out.append(String.format("  bus %-4s V : pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f  sameSign=%b%n",
+                    bus.getId(), scaled, diff, Math.signum(diff) == Math.signum(scaled)));
             assertEquals(diff, scaled, voltageTol);
             assertTrue(Math.signum(diff) == Math.signum(scaled), "V sign mismatch on " + bus.getId());
         }
@@ -2587,6 +2620,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         for (Bus bus : monitoredBuses) {
             double diff = qAfter.get(bus) - qBefore.get(bus);
             double scaled = result.getSensitivityValue(shuntId, bus.getId(), SensitivityFunctionType.BUS_REACTIVE_POWER, varType) * deltaB;
+            out.append(String.format("  bus %-4s Q : pred(sensi*deltaB)=%+10.4f  actual dQ=%+10.4f%n", bus.getId(), scaled, diff));
             assertEquals(diff, scaled, powerTol);
         }
 
@@ -2600,16 +2634,23 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             // P1
             double diffP1 = after[0] - before[0];
             double scaledP1 = result.getBranchFlow1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s P1: pred(sensi*deltaB)=%+10.4f  actual dP1=%+10.4f  sameSign=%b%n",
+                    branchId, scaledP1, diffP1, Math.signum(diffP1) == Math.signum(scaledP1)));
             assertEquals(diffP1, scaledP1, powerTol);
             assertTrue(Math.signum(diffP1) == Math.signum(scaledP1), "P1 sign mismatch on " + branchId);
             // P2
             double diffP2 = after[1] - before[1];
             double scaledP2 = result.getBranchFlow2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s P2: pred(sensi*deltaB)=%+10.4f  actual dP2=%+10.4f  sameSign=%b%n",
+                    branchId, scaledP2, diffP2, Math.signum(diffP2) == Math.signum(scaledP2)));
             assertEquals(diffP2, scaledP2, powerTol);
             assertTrue(Math.signum(diffP2) == Math.signum(scaledP2), "P2 sign mismatch on " + branchId);
             // I1
             double diffI1 = after[2] - before[2];
             double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s I1: pred(sensi*deltaB)=%+10.4f  actual dI1=%+10.4f  sameSign=%b%s%n",
+                    branchId, scaledI1, diffI1, Math.signum(diffI1) == Math.signum(scaledI1),
+                    currentSignExceptions.contains(branchId) ? " (expected mismatch)" : ""));
             if (currentSignExceptions.contains(branchId)) {
                 // Known sign mismatch due to current non-linearity with large delta B
                 assertNotEquals(Math.signum(diffI1), Math.signum(scaledI1), "Expected sign mismatch on I1 " + branchId);
@@ -2619,6 +2660,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             // I2
             double diffI2 = after[3] - before[3];
             double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s I2: pred(sensi*deltaB)=%+10.4f  actual dI2=%+10.4f  sameSign=%b%s%n",
+                    branchId, scaledI2, diffI2, Math.signum(diffI2) == Math.signum(scaledI2),
+                    currentSignExceptions.contains(branchId) ? " (expected mismatch)" : ""));
             if (currentSignExceptions.contains(branchId)) {
                 assertNotEquals(Math.signum(diffI2), Math.signum(scaledI2), "Expected sign mismatch on I2 " + branchId);
             } else {
