@@ -25,7 +25,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -120,7 +122,14 @@ public class AcLoadFlowFromCache {
             value.setNetworkUpdated(false);
             return result;
         }
-        return new AcLoadFlowResult(value.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), 0d, 0d);
+
+        Map<Integer, Double> slackBusActivePowerMismatch = new TreeMap<>();
+        Map<Integer, Double> distributedActivePower = new TreeMap<>();
+        value.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> {
+            slackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), 0d);
+            distributedActivePower.put(lfScNetwork.getNumSC(), 0d);
+        });
+        return new AcLoadFlowResult(value.getNetwork(), 0, 0, AcSolverStatus.CONVERGED, OuterLoopResult.stable(), slackBusActivePowerMismatch, distributedActivePower);
     }
 
     public List<AcLoadFlowResult> run() {

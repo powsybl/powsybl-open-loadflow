@@ -8,13 +8,17 @@
 package com.powsybl.openloadflow.dc;
 
 import com.google.common.collect.Lists;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.equations.TargetVector;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -69,7 +73,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     public static double distributeSlack(LfNetwork network, Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, boolean useActiveLimits) {
         double mismatch = getActivePowerMismatch(buses);
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
-        var result = activePowerDistribution.run(network.getReferenceGenerator(), buses, mismatch);
+        var result = activePowerDistribution.run(network.getSynchronousNetworks().getFirst().getReferenceGenerator(), buses, mismatch);
         return mismatch - result.remainingMismatch();
     }
 
@@ -184,6 +188,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     public DcLoadFlowResult run() {
+        if (context.getParameters().getNetworkParameters().isAcDcNetwork()) {
+            throw new PowsyblException("DC load flow does not support detailed AC-DC networks");
+        }
         LfNetwork network = context.getNetwork();
         ReportNode reportNode = network.getReportNode();
         EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
@@ -218,7 +225,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             LoadFlowParameters.BalanceType balanceType = parameters.getBalanceType();
             boolean useActiveLimits = parameters.getNetworkParameters().isUseActiveLimits();
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
-            var result = activePowerDistribution.run(network, initialSlackBusActivePowerMismatch);
+            var result = activePowerDistribution.run(network.getSynchronousNetworks().getFirst(), initialSlackBusActivePowerMismatch);
             final LfGenerator referenceGenerator;
             final OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior;
             if (isAreaInterchangeControl && network.hasArea()) {
@@ -227,7 +234,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 referenceGenerator = null;
             } else {
                 behavior = parameters.getSlackDistributionFailureBehavior();
-                referenceGenerator = context.getNetwork().getReferenceGenerator();
+                referenceGenerator = context.getNetwork().getSynchronousNetworks().getFirst().getReferenceGenerator();
             }
             ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
                     behavior,
