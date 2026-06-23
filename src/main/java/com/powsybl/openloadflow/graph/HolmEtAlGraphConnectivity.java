@@ -1,0 +1,441 @@
+/**
+ * Copyright (c) 2026, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.graph;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
+
+import java.util.*;
+
+/**
+ * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
+ */
+public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, HolmEtAlGraphConnectivity.Graph<V, E>> {
+
+    private TObjectIntMap<V> vertexToComponent;
+
+    public HolmEtAlGraphConnectivity() {
+        super(new Graph<>());
+    }
+
+    @Override
+    protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
+        // simple because everything is done in Graph
+        vertexToComponent = null;
+        componentSets = null;
+    }
+
+    @Override
+    protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
+        // simple because everything is done in Graph
+        vertexToComponent = null;
+        componentSets = null;
+    }
+
+    @Override
+    protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
+        // simple because everything is done in Graph
+        vertexToComponent = null;
+        componentSets = null;
+    }
+
+    @Override
+    protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
+        componentSets = null;
+    }
+
+    @Override
+    protected void updateComponents() {
+        if (componentSets != null) {
+            return;
+        }
+
+        vertexToComponent = null;
+        componentSets = getGraph().spanningForests.getFirst().getComponents();
+
+        // gatherStatistics();
+    }
+
+    private void gatherStatistics() {
+        Graph<V, E> graph = getGraph();
+
+        int[] nonTreeEdgeCount = new int[graph.currentLevelMax()];
+        int totalNonTreeEdgeCount = 0;
+
+        for (int i = 0; i < nonTreeEdgeCount.length; i++) {
+            Map<V, SetMultimap<V, E>> adj = graph.adjacencyList.get(i);
+
+            for (SetMultimap<V, E> s : adj.values()) {
+                nonTreeEdgeCount[i] += s.size();
+            }
+            nonTreeEdgeCount[i] /= 2; // edges are counted twice
+
+            totalNonTreeEdgeCount += nonTreeEdgeCount[i];
+        }
+
+        int[] treeEdgeCount = new int[graph.currentLevelMax()];
+        for (int i = 0; i < nonTreeEdgeCount.length; i++) {
+            SpanningForest<V, E> forest = graph.spanningForests.get(i);
+
+            for (Iterator<V> it = forest.roots(); it.hasNext();) {
+                V root = it.next();
+
+                treeEdgeCount[i] += forest.treeSize(root) - 1;
+            }
+        }
+
+        System.out.println("---------");
+        for (int i = 0; i < nonTreeEdgeCount.length; i++) {
+            System.out.printf("Level %d: tree edge: %d. Non tree edge: %d%n", i, treeEdgeCount[i], nonTreeEdgeCount[i]);
+        }
+
+        System.out.println("Total non tree edge: " + totalNonTreeEdgeCount);
+    }
+
+    @Override
+    protected int getQuickComponentNumber(V vertex) {
+        return getVertexToComponent().get(vertex);
+    }
+
+    private TObjectIntMap<V> getVertexToComponent() {
+        if (vertexToComponent == null) {
+            vertexToComponent = new TObjectIntHashMap<>();
+
+            // don't compute mapping for the biggest component
+            // vertexToComponent.get return 0 (the biggest component)
+            // if the key isn't present
+            for (int i = 1; i < componentSets.size(); i++) {
+                Set<V> comp = componentSets.get(i);
+
+                for (V vertex : comp) {
+                    vertexToComponent.put(vertex, i);
+                }
+            }
+        }
+
+        return vertexToComponent;
+    }
+
+    @Override
+    public int getNbConnectedComponents() {
+        checkSavedContext();
+        return getGraph().spanningForests.getFirst().treeCount();
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        checkSavedContext();
+        checkVertex(vertex);
+        return getGraph().spanningForests.getFirst().getComponent(vertex);
+    }
+
+    @Override
+    protected Set<V> getNonConnectedVertices(V vertex) {
+        checkSavedContext();
+        checkVertex(vertex);
+        return getGraph().spanningForests.getFirst().getNonConnectedVertices(vertex);
+    }
+
+    @Override
+    public boolean supportTemporaryChangesNesting() {
+        return true;
+    }
+
+    public static final class Graph<V, E> implements GraphModel<V, E> {
+
+        private final List<SpanningForest<V, E>> spanningForests = new ArrayList<>();
+        private final List<Map<V, SetMultimap<V, E>>> adjacencyList = new ArrayList<>();
+
+        private final Map<E, EdgeInfo<V>> edgeInfos = new HashMap<>();
+
+        public Graph() {
+            spanningForests.add(new SpanningForest<>());
+            adjacencyList.add(new HashMap<>());
+        }
+
+        private void addNonTreeEdgeAtLevel(V v1, V v2, E e, int level) {
+            adjacencyList.get(level).get(v1).put(v2, e);
+            adjacencyList.get(level).get(v2).put(v1, e);
+        }
+
+        private void removeNonTreeEdgeAtLevel(V v1, V v2, E e, int level) {
+            adjacencyList.get(level).get(v1).remove(v2, e);
+            adjacencyList.get(level).get(v2).remove(v1, e);
+        }
+
+        @Override
+        public void addEdge(V v1, V v2, E e) {
+            if (containsEdge(e)) {
+                return;
+            }
+
+            // try link v1 and v2
+            boolean treeEdge;
+            if (!spanningForests.getFirst().addEdge(v1, v2, e)) {
+                // they are already in the same tree
+                addNonTreeEdgeAtLevel(v1, v2, e, 0);
+                treeEdge = false;
+            } else {
+                treeEdge = true;
+            }
+
+            edgeInfos.put(e, new EdgeInfo<>(0, treeEdge, v1, v2));
+        }
+
+        private void promoteTreeEdges(V representative, int currentLevel) {
+            int newLevel = currentLevel + 1;
+            SpanningForest<V, E> forest = spanningForests.get(currentLevel);
+            SpanningForest<V, E> newForest = spanningForests.get(newLevel);
+
+            for (Iterator<E> it = forest.edgesInComponent(representative); it.hasNext();) {
+                E edge = it.next();
+                EdgeInfo<V> info = edgeInfos.get(edge);
+                // only promote edges of level exactly currentLevel
+                if (info.level == currentLevel) {
+                    info.level = newLevel;
+                    newForest.addEdge(info.src, info.dest, edge);
+                }
+            }
+        }
+
+        private void replace(V v1, V v2, int level) {
+            SpanningForest<V, E> forest = spanningForests.get(level);
+            V smallest = v1; // vertex in the smallest component between T_v1 and T_v2
+            if (forest.treeSize(v1) > forest.treeSize(v2)) {
+                smallest = v2;
+            }
+
+            // promote edges of the smallest tree
+            promoteTreeEdges(smallest, level);
+
+            // iterate over all incident non-tree edges of level 'level' to the smallest tree
+            for (Iterator<V> it = forest.verticesInComponent(smallest); it.hasNext();) {
+                V vertexInComponent = it.next();
+
+                for (Iterator<E> iter = adjacencyList.get(level).get(vertexInComponent).values().iterator(); iter.hasNext();) {
+                    E replacementCandidate = iter.next();
+                    EdgeInfo<V> info = edgeInfos.get(replacementCandidate);
+
+                    if (forest.connected(info.src, info.dest)) {
+                        // src and target are still connected, even after the separation of T_u and T_v
+                        // that means that src and target were already in the same spanning tree, which is T_u
+                        // because we are iterating over the incident edges of T_u
+
+                        iter.remove(); // this is working ????
+                        removeNonTreeEdgeAtLevel(info.src, info.dest, replacementCandidate, info.level);
+                        info.level = level + 1; // increase level
+                        addNonTreeEdgeAtLevel(info.src, info.dest, replacementCandidate, info.level);
+                    } else {
+                        // src and target are not connected. That means they are in two different
+                        // spanning trees. One of them is T_u (because we are iterating over the incident
+                        // edges of T_u). The other one must be in T_v. Indeed, if it is not, that would
+                        // mean the spanning forest wasn't actually a spanning forest.
+                        // Conclusion: this candidate edge is a replacement edge
+
+                        removeNonTreeEdgeAtLevel(info.src, info.dest, replacementCandidate, info.level);
+                        info.treeEdge = true;
+                        for (int i = 0; i <= level; i++) {
+                            spanningForests.get(i).addEdge(info.src, info.dest, replacementCandidate);
+                        }
+                        return;
+                    }
+                }
+            }
+
+            if (level > 0) {
+                replace(v1, v2, level - 1);
+            }
+        }
+
+        @Override
+        public void removeEdge(E e) {
+            EdgeInfo<V> info = edgeInfos.remove(e);
+            if (info == null) {
+                return;
+            }
+
+            if (info.isTreeEdge()) {
+                // remove edge from every spanning trees. the edge cannot be in level > 'info.level'
+                for (int i = 0; i <= info.level; i++) {
+                    spanningForests.get(i).removeEdge(info.src, info.dest, e);
+                }
+
+                replace(info.src, info.dest, info.level);
+            } else {
+                removeNonTreeEdgeAtLevel(info.src, info.dest, e, info.level);
+            }
+        }
+
+        @Override
+        public void addVertex(V v) {
+            if (containsVertex(v)) {
+                return;
+            }
+
+            // these lines could be avoided if the number of vertices were known
+            // at the creation of the object
+            if (currentLevelMax() != newLevelMax(1)) {
+                Map<V, SetMultimap<V, E>> newLevel = new HashMap<>();
+                for (V vertex : adjacencyList.getFirst().keySet()) {
+                    newLevel.put(vertex, HashMultimap.create());
+                }
+                adjacencyList.add(newLevel);
+
+                SpanningForest<V, E> newLevelForest = new SpanningForest<>();
+                for (V vertex : adjacencyList.getFirst().keySet()) {
+                    newLevelForest.addVertex(vertex);
+                }
+                spanningForests.add(newLevelForest);
+            }
+
+            // add v
+            for (Map<V, SetMultimap<V, E>> list : adjacencyList) {
+                list.put(v, HashMultimap.create());
+            }
+
+            for (SpanningForest<V, E> forest : spanningForests) {
+                forest.addVertex(v);
+            }
+        }
+
+        private int currentLevelMax() {
+            return adjacencyList.size();
+        }
+
+        // l_max = floor(log2(vertexCount)) + 1
+        private int newLevelMax(int vertexToAdd) {
+            int vertexCount = adjacencyList.getFirst().size() + vertexToAdd;
+
+            if (vertexCount == 0) {
+                return 1;
+            } else {
+                return (int) (Math.floor(Math.log(vertexCount) / Math.log(2)) + 1);
+            }
+        }
+
+        @Override
+        public void removeVertex(V v) {
+            // terrible implementation
+            for (SpanningForest<V, E> forest : spanningForests) {
+                forest.removeVertex(v);
+            }
+
+            for (Map<V, SetMultimap<V, E>> list : adjacencyList) {
+                list.remove(v);
+
+                for (SetMultimap<V, E> map : list.values()) {
+                    map.removeAll(v);
+                }
+            }
+
+            if (currentLevelMax() != newLevelMax(-1)) {
+                spanningForests.removeLast();
+                adjacencyList.removeLast();
+            }
+        }
+
+        @Override
+        public boolean containsVertex(V vertex) {
+            return adjacencyList.getFirst().containsKey(vertex);
+        }
+
+        @Override
+        public boolean containsEdge(E edge) {
+            return edgeInfos.containsKey(edge);
+        }
+
+        @Override
+        public V getEdgeSource(E edge) {
+            EdgeInfo<V> info = edgeInfos.get(edge);
+            if (info == null) {
+                return null;
+            }
+
+            return info.src;
+        }
+
+        @Override
+        public V getEdgeTarget(E edge) {
+            EdgeInfo<V> info = edgeInfos.get(edge);
+            if (info == null) {
+                return null;
+            }
+
+            return info.dest;
+        }
+
+        @Override
+        public Set<E> getEdgesBetween(V vertex1, V vertex2) {
+            throw new UnsupportedOperationException();
+        }
+
+        public Iterable<E> getEdgesBetween(V vertex1, V vertex2, int level) {
+            return adjacencyList.get(level).get(vertex1).get(vertex2);
+        }
+
+        @Override
+        public Set<E> getEdges() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Set<E> getNeighborEdgesOf(V v) {
+            Set<E> set = new HashSet<>();
+
+            for (int i = 0; i < adjacencyList.size(); i++) {
+                set.addAll(adjacencyList.get(i).get(v).values());
+            }
+
+            for (Iterator<E> it = spanningForests.getFirst().adjacentEdges(v); it.hasNext();) {
+                set.add(it.next());
+            }
+
+            return set;
+        }
+
+        @Override
+        public int getNeighborEdgeCountOf(V v) {
+            return getNeighborEdgesOf(v).size();
+        }
+
+        @Override
+        public Set<V> getVertices() {
+            return adjacencyList.getFirst().keySet();
+        }
+
+        @Override
+        public List<V> getNeighborVerticesOf(V v) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private static final class EdgeInfo<V> {
+        private int level;
+        private boolean treeEdge;
+
+        private final V src;
+        private final V dest;
+
+        EdgeInfo(int level, boolean treeEdge, V src, V dest) {
+            this.level = level;
+            this.treeEdge = treeEdge;
+            this.src = src;
+            this.dest = dest;
+        }
+
+        public boolean isNonTreeEdge() {
+            return !treeEdge;
+        }
+
+        public boolean isTreeEdge() {
+            return treeEdge;
+        }
+    }
+}
